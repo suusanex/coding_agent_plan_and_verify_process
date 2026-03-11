@@ -1,10 +1,6 @@
 ---
 name: integration-test-design
 description: "ブラックボックステスト観点を設計・作成する"
-tools:
-  - read
-  - search
-  - edit
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/

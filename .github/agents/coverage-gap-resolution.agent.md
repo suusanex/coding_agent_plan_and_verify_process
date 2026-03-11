@@ -1,10 +1,6 @@
 ---
 name: coverage-gap-resolution
 description: "implementation-coverage-of-integration-test の未対応項目を起点に、Plan を実装の唯一の基準として必要な設計・実装・UnitTest を追加し、coverage 文書の状態を更新する"
-tools:
-  - read
-  - search
-  - edit
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/

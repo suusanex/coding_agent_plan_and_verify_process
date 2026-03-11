@@ -1,10 +1,6 @@
 ---
 name: integration-test-verification-implementation
 description: "ブラックボックステスト観点を起点に、UnitTestで広く実装有無を検証し、未対応・実装困難を記録しながら網羅範囲を最大化する"
-tools:
-  - read
-  - search
-  - edit
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
