@@ -109,13 +109,16 @@ present と判断した各 risk trigger について、具体的な boundary ま
 
 可能な contract をすべて選んではいけません。cross-process risk または production-binding risk が高いものを選んでください。
 
+`contract-kernel` では、初期の selected contracts は 1〜3 件を目安にしてください。5 件を超える contracts を選びたくなる場合は、`standard-slice` または `full-coverage` を推奨し、`contract-kernel` として無理にまとめないでください。
+
 selected contracts には次の triage statuses を使ってください。
 
 | Status | Meaning |
 | --- | --- |
 | `Deferred` | downstream の kernel または bounded な Plan-first phase に回す対象として選択されたが、triage では検証しない |
 | `NeedsHumanDecision` | 選択はできたが、human input なしでは次の process step を安全に選べない |
-| `OutOfScopeForThisPass` | 妥当な contract ではあるが、今回推奨する slice には含めない |
+
+selected runtime contracts to cover には `OutOfScopeForThisPass` を含めないでください。`OutOfScopeForThisPass` は `Candidate runtime contracts not selected` でのみ使ってください。
 
 ### Step 5. Recommend the process profile
 
@@ -187,6 +190,13 @@ mechanism、risk type 付きで列挙する。次の構造を使う。>
 
 | Contract ID | Boundary | What is at risk | Why selected | Triage status | Next action |
 | --- | --- | --- | --- | --- | --- |
+
+## Candidate runtime contracts not selected
+
+<今回の slice には入れなかったが、参考として把握した contract を列挙する。次の構造を使う。>
+
+| Contract ID | Boundary | Why not selected | Candidate status | Suggested next action |
+| --- | --- | --- | --- | --- |
 
 ## Risk trigger scan
 
@@ -261,3 +271,5 @@ selected contracts、residual work、handoff items を記録する際は、share
 | `Bound` | test substitute に対して、production implementation と production wiring の両方が確認済みである |
 
 `Risk trigger scan` では `Present`、`Absent`、`Unclear` だけを使ってください。`Unclear` は risk scan value であり、completion status ではありません。
+
+`Bound` は triage agent では原則として使いません。既存 artifact に明確な証拠がすでにある場合に限って使用し、それ以外は `Deferred`、`NeedsHumanDecision`、または `NotImplementedOrMismatch` を使ってください。
