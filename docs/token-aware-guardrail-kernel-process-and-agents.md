@@ -1,0 +1,656 @@
+# Token-aware Guardrail Kernel: Process and Agent Requirements
+
+## Purpose of this document
+
+This document defines a concrete process and agent structure for making the Plan-first workflow token-aware while preserving the guardrails that prevent cross-process contract mismatches and stub-only implementation success.
+
+This document is a requirements specification for creating or revising agents. It is not an implementation task list.
+
+Agents created from this document must also read:
+
+- `docs/token-aware-guardrail-kernel-purpose.md`
+- the existing agent files they replace or complement
+- the target repository context for the actual implementation task
+
+## Design policy
+
+The process reduces cost by narrowing the target slice, not by removing essential guardrails.
+
+For selected high-risk slices, the process must still connect:
+
+1. runtime contract
+2. test point
+3. stub / fake / in-memory usage
+4. production implementation
+5. production wiring / entrypoint
+6. explicit unresolved status
+
+## Process profiles
+
+### `triage-only`
+
+Classifies the change and recommends the minimum sufficient process profile.
+
+Use when:
+
+- the required depth is unclear
+- the user wants to avoid unnecessary full processing
+- a previous run became too broad
+- the task may or may not involve high-risk runtime boundaries
+
+Output is a recommendation. No Plan, code, or test implementation should be changed.
+
+### `contract-kernel`
+
+Creates a narrow guardrail kernel for selected high-risk runtime contracts.
+
+Use when:
+
+- the change has cross-boundary risk
+- full runtime evidence would be too expensive
+- the goal is to preserve the minimum runtime/test/production binding chain
+
+This profile does not require exhaustive scenario coverage. It requires deep enough coverage for selected contracts.
+
+### `standard-slice`
+
+Runs a bounded Plan-first process for selected runtime contracts or selected integration test IDs.
+
+Use when:
+
+- the task is normal complexity but still has meaningful runtime or production-binding risk
+- a selected set of contracts / IDs can be handled in one pass
+- the goal is to make bounded progress and leave explicit residual work
+
+### `full-coverage`
+
+Runs the broad process for complex or high-risk work.
+
+Use when:
+
+- multiple runtime scenarios interact
+- external dependencies, retries, persistence, or recovery semantics are important
+- the feature is broad or ambiguous
+- human review needs detailed runtime evidence
+- prior implementation attempts already exposed sequence or production-binding gaps
+
+### `fix-slice`
+
+Resolves explicitly selected gaps only.
+
+Use when:
+
+- triage or verification has already identified target IDs
+- the user wants to spend tokens on a known bounded repair
+- unresolved work should not expand into unrelated implementation changes
+
+## Recommended process flows
+
+### Flow A: Minimal high-risk guardrail flow
+
+Use for bounded changes with one or a few risky runtime boundaries.
+
+1. `change-risk-triage.agent.md`
+2. `runtime-contract-kernel.agent.md`
+3. `test-design-kernel.agent.md`
+4. implementation by normal agent or human-guided implementation agent
+5. `verification-kernel.agent.md`
+6. optional `coverage-gap-resolution-slice.agent.md`
+
+### Flow B: Standard bounded slice flow
+
+Use for normal changes where Plan-first discipline is useful but full coverage is unnecessary.
+
+1. `change-risk-triage.agent.md`
+2. `plan-generation` with runtime contract kernel requirements
+3. `plan-review` in bounded mode
+4. optional `implementation-contract-generation` / `implementation-contract-review`
+5. implementation
+6. `integration-test-verification-implementation` scoped to selected IDs
+7. optional `coverage-gap-triage.agent.md`
+8. optional `coverage-gap-resolution-slice.agent.md`
+
+### Flow C: Full coverage flow
+
+Use for broad, ambiguous, or highly interconnected changes.
+
+1. `plan-generation.agent.md`
+2. `runtime-evidence.agent.md`
+3. `integration-test-design.agent.md`
+4. `plan-review.agent.md`
+5. optional `implementation-contract-generation.agent.md`
+6. optional `implementation-contract-review.agent.md`
+7. implementation
+8. `integration-test-verification-implementation.agent.md`
+9. `coverage-gap-triage.agent.md`
+10. `coverage-gap-resolution-slice.agent.md` or full `coverage-gap-resolution.agent.md` only by explicit choice
+
+## Shared output concepts
+
+### Runtime Contract Kernel
+
+A lightweight runtime contract artifact should use this shape unless the repository already has a stronger convention:
+
+```md
+## Runtime Contract Kernel
+
+| Contract ID | Scenario | Producer | Consumer | Message / API / Event | Required fields | Error / timeout behavior | Production implementation address | Verification hook |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+```
+
+Rules:
+
+- `Contract ID` must be stable and referenced by later artifacts.
+- `Producer` and `Consumer` must be concrete runtime participants, not vague layers.
+- `Message / API / Event` must name the actual boundary mechanism when known.
+- `Required fields` must include identifiers, correlation fields, state keys, or payload fields relevant to the contract.
+- `Error / timeout behavior` must state expected handling or explicitly say it is out of scope.
+- `Production implementation address` must be a concrete file, module, service, endpoint, or DI registration when known.
+- `Verification hook` must point to a test point ID, manual check, or unresolved status.
+
+### Test Design Kernel
+
+A lightweight test design artifact should use this shape:
+
+```md
+## Test Design Kernel
+
+| Test Point ID | Runtime Contract ID | What to verify | Stub / fake allowed? | Production binding required? | Expected observation | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+```
+
+Rules:
+
+- Every selected `Runtime Contract ID` must have at least one test point or an explicit reason why it cannot.
+- A test point must describe an observable result, not just an implementation detail.
+- If stub / fake / in-memory implementations are allowed, production binding must also be required unless explicitly out of scope.
+
+### Stub-to-Production Binding
+
+Verification should produce or update this shape when tests use substitutes:
+
+```md
+## Stub-to-Production Binding
+
+| Test Point ID | Stub / fake / in-memory used in test | Production interface | Production concrete implementation | Production wiring / entrypoint | Status | Remaining work |
+| --- | --- | --- | --- | --- | --- | --- |
+```
+
+Rules:
+
+- A passing test using a fake does not imply production readiness.
+- `Status` must not be `Bound` unless both production implementation and wiring / entrypoint are confirmed.
+- If only the interface exists, use `NotImplementedOrMismatch`.
+- If implementation exists but default wiring is missing, use `NotImplementedOrMismatch` or `PartiallyDone` with explicit remaining work.
+
+### Handoff Packet
+
+Every agent that produces a durable artifact should include or update a compact handoff packet:
+
+```md
+## Handoff Packet
+
+- Profile used:
+- Source artifacts:
+- Selected contracts / IDs:
+- Files inspected:
+- Files intentionally not inspected:
+- Decisions made:
+- Do not redo unless new evidence appears:
+- Remaining work:
+- Recommended next step:
+```
+
+Rules:
+
+- The packet should reduce repeated rediscovery.
+- `Do not redo` must identify prior analysis that downstream agents can trust unless contradicted.
+- `Remaining work` must be specific and actionable.
+
+## Shared status vocabulary
+
+Use these statuses consistently unless an existing artifact has a stronger convention:
+
+| Status | Meaning |
+| --- | --- |
+| `Done` | Completed within this pass |
+| `PartiallyDone` | Some useful progress was made, but the item is not complete |
+| `Deferred` | Intentionally not handled in this pass |
+| `ManualOnly` | Requires manual or real-environment validation |
+| `NeedsHumanDecision` | Cannot safely proceed without a product, architecture, policy, or risk decision |
+| `NotImplementedOrMismatch` | Implementation is missing, mismatched, or only test-side / fake-side exists |
+| `OutOfScopeForThisPass` | Valid work, but outside the selected slice |
+| `Bound` | Production implementation and production wiring have been confirmed for a test substitute |
+
+## Shared bounded-pass rules
+
+All token-aware agents should follow these rules unless the user explicitly asks for full coverage:
+
+- Perform one bounded pass.
+- Do not keep repairing until all issues disappear.
+- Prefer explicit residual work over speculative broad fixes.
+- Stop when the work would require broad redesign, repeated fix loops, or human judgment.
+- Do not expand from selected contracts / IDs into unrelated parts of the system.
+- Do not weaken assertions merely to mark an item complete.
+- Do not treat test-only implementation as production implementation.
+- Do not mark production binding complete without checking wiring or entrypoint.
+
+## Agent requirements
+
+## 1. `change-risk-triage.agent.md`
+
+### Purpose
+
+Classify the requested change, identify high-risk runtime boundaries, and recommend the minimum sufficient process profile.
+
+### Inputs
+
+- issue, prompt, or high-level requirement
+- existing Plan or docs when available
+- repository structure and relevant files only as needed for risk classification
+
+### Required outputs
+
+```md
+# Change Risk Triage
+
+## Recommended profile
+
+## Reasoning
+
+## High-risk boundaries
+
+## Selected runtime contracts to cover
+
+## Suggested next agent
+
+## Out of scope for this triage
+
+## Handoff Packet
+```
+
+### Required checks
+
+The agent must look for risk triggers including:
+
+- cross-process or cross-service sequence
+- queue / event / webhook / background worker
+- external API / SDK
+- authentication / authorization
+- durable state / retry / replay / idempotency
+- startup wiring / DI / configuration
+- production implementation split from test substitute
+
+### Must not do
+
+- create implementation code
+- create or revise tests
+- perform full Plan generation
+- resolve gaps
+
+### Stop condition
+
+Stop after recommending a profile and selected contracts / IDs. If risk cannot be classified from available context, recommend `contract-kernel` or `standard-slice` rather than pretending the task is safe.
+
+## 2. `runtime-contract-kernel.agent.md`
+
+### Purpose
+
+Create or update the minimal runtime contract artifact for selected high-risk slices.
+
+### Inputs
+
+- selected runtime contracts or change-risk triage output
+- existing Plan if present
+- relevant code / docs only for identifying participants, boundaries, and addresses
+
+### Required outputs
+
+```md
+# Runtime Contract Kernel
+
+## Scope
+
+## Runtime Contract Kernel
+
+## Notes / assumptions
+
+## Handoff Packet
+```
+
+### Required checks
+
+For each selected contract, verify or record:
+
+- producer
+- consumer
+- boundary mechanism
+- required fields or state
+- error / timeout / retry expectation
+- production implementation address if known
+- verification hook if known
+
+### Must not do
+
+- generate broad PlantUML evidence for unrelated scenarios
+- implement code
+- create tests
+- invent production addresses without evidence
+
+### Escalation condition
+
+Recommend `runtime-evidence.agent.md` or `full-coverage` if the selected contracts cannot be safely represented without detailed sequence evidence.
+
+## 3. `test-design-kernel.agent.md`
+
+### Purpose
+
+Create a compact test design mapped to selected runtime contracts.
+
+### Inputs
+
+- Runtime Contract Kernel
+- Plan or requirement source
+- relevant existing test conventions
+
+### Required outputs
+
+```md
+# Test Design Kernel
+
+## Scope
+
+## Test Design Kernel
+
+## Required production binding checks
+
+## Manual-only checks
+
+## Handoff Packet
+```
+
+### Required checks
+
+For each selected runtime contract:
+
+- define at least one observable verification point or an explicit reason why not
+- identify whether a stub / fake / in-memory substitute is expected
+- require production binding verification when a substitute is used
+- include negative / error path checks for boundary contracts when relevant
+
+### Must not do
+
+- implement tests
+- expand to full integration test design unless requested
+- create test points not connected to selected runtime contracts
+
+### Escalation condition
+
+Recommend `integration-test-design.agent.md` when the selected slice requires broader feature, error, load, or continuous-operation coverage.
+
+## 4. `verification-kernel.agent.md`
+
+### Purpose
+
+Verify selected runtime contracts and test points after implementation, focusing on production binding and wiring.
+
+### Inputs
+
+- Runtime Contract Kernel
+- Test Design Kernel or integration test points
+- implementation diff or repository state
+- relevant production startup / DI / entrypoint files
+- relevant test files
+
+### Required outputs
+
+```md
+# Verification Kernel Result
+
+## Scope
+
+## Runtime contract verification
+
+## Stub-to-Production Binding
+
+## Test observations
+
+## Unresolved items
+
+## Verdict
+
+## Handoff Packet
+```
+
+### Required checks
+
+For each selected test point:
+
+- whether a test exists or a manual-only reason is recorded
+- whether a stub / fake / in-memory substitute is used
+- whether the corresponding production interface exists
+- whether a production concrete implementation exists
+- whether production wiring / entrypoint reaches that implementation
+- whether selected runtime contract fields and error behavior are represented
+
+### Verdicts
+
+Use one of:
+
+- `PASS_FOR_SELECTED_SCOPE`
+- `PASS_WITH_RESIDUAL_WORK`
+- `BLOCKED_BY_PRODUCTION_BINDING_GAP`
+- `BLOCKED_BY_CONTRACT_MISMATCH`
+- `BLOCKED_BY_HUMAN_DECISION`
+
+### Must not do
+
+- fix all gaps automatically
+- broaden to unrelated IDs
+- mark fake-only success as pass
+- perform large implementation changes
+
+### Stop condition
+
+Stop after classifying selected contracts and test points. If repair is needed, recommend `coverage-gap-resolution-slice.agent.md` with target IDs.
+
+## 5. `coverage-gap-triage.agent.md`
+
+### Purpose
+
+Classify unresolved implementation coverage items without fixing them.
+
+### Inputs
+
+- implementation coverage document
+- Plan
+- integration test points or Test Design Kernel
+- Runtime Contract Kernel when available
+
+### Required outputs
+
+```md
+# Coverage Gap Triage
+
+## Scope
+
+## Gap classification
+
+## Recommended fix slices
+
+## Human decisions required
+
+## Handoff Packet
+```
+
+### Gap classification table
+
+```md
+| ID | Current status | Plan requirement / contract | Gap type | Suggested next action | Recommended target profile |
+| --- | --- | --- | --- | --- | --- |
+```
+
+### Gap types
+
+Use a controlled vocabulary:
+
+- `ProductionImplementationMissing`
+- `ProductionWiringMissing`
+- `ContractMismatch`
+- `TestOracleMissing`
+- `ManualEnvironmentRequired`
+- `PlanAmbiguity`
+- `DesignTooBroadForSlice`
+- `AlreadyCoveredButDocumentationStale`
+
+### Must not do
+
+- implement code
+- change tests
+- update status to complete without evidence
+- create new IDs
+
+## 6. `coverage-gap-resolution-slice.agent.md`
+
+### Purpose
+
+Resolve only explicitly selected coverage gaps in one bounded pass.
+
+### Inputs
+
+- selected gap IDs
+- Plan
+- implementation coverage document
+- integration test points or Test Design Kernel
+- Runtime Contract Kernel when available
+- coverage gap triage output when available
+
+### Required outputs
+
+```md
+# Coverage Gap Resolution Slice Result
+
+## Selected IDs
+
+## Changes made
+
+## Test updates
+
+## Coverage document updates
+
+## Remaining work
+
+## Verdict
+
+## Handoff Packet
+```
+
+### Required behavior
+
+For each selected ID:
+
+- map it back to the Plan requirement or runtime contract
+- identify the minimal production implementation / wiring / test update needed
+- apply only bounded changes required for that ID
+- update the coverage document status and reason
+- leave unresolved status if the fix would exceed the selected slice
+
+### Must not do
+
+- change unrelated IDs
+- add broad abstractions unless required by selected IDs
+- replace Plan-required production behavior with local heuristics
+- treat interface-only or fake-only code as completion
+- continue fix loops until all tests pass at any cost
+
+### Stop condition
+
+Stop after one bounded pass over selected IDs. Remaining issues must be recorded, not chased indefinitely.
+
+## 7. Revisions to existing agents
+
+### `plan-generation.agent.md`
+
+Should support bounded profiles.
+
+Required changes:
+
+- distinguish full runtime evidence from Runtime Contract Kernel
+- require kernel output for high-risk selected slices even in lightweight mode
+- avoid always invoking heavy sub-agents unless profile requires them
+- record assumptions and residual work rather than expanding scope
+
+### `plan-review.agent.md`
+
+Should support review-only and review-and-fix behavior.
+
+Required changes:
+
+- allow a mode that only reports issues without editing
+- in bounded mode, limit deterministic fixes to selected scope
+- flag missing runtime contract / production binding chains explicitly
+
+### `integration-test-design.agent.md`
+
+Should support selected-contract mode.
+
+Required changes:
+
+- allow generation for selected Runtime Contract IDs only
+- keep the full feature / abnormal / load / continuous-operation coverage for full mode
+- require production binding checks when stubs are expected
+
+### `integration-test-verification-implementation.agent.md`
+
+Should support selected-ID mode.
+
+Required changes:
+
+- allow verifying only selected Test Point IDs or Runtime Contract IDs
+- keep the existing production implementation existence check
+- produce Stub-to-Production Binding output when substitutes are used
+- stop after classification and bounded test additions
+
+### `coverage-gap-resolution.agent.md`
+
+Should not be the default next step for all unresolved work.
+
+Required changes:
+
+- prefer `coverage-gap-triage.agent.md` before repair
+- create or use a slice-oriented variant for selected IDs
+- keep full resolution only as an explicit full-coverage choice
+
+## Agent creation order
+
+Recommended order:
+
+1. Create `change-risk-triage.agent.md`
+2. Create `runtime-contract-kernel.agent.md`
+3. Create `test-design-kernel.agent.md`
+4. Create `verification-kernel.agent.md`
+5. Create `coverage-gap-triage.agent.md`
+6. Create `coverage-gap-resolution-slice.agent.md`
+7. Revise existing agents to reference these documents and profiles
+
+This order lets the process first gain a safe lightweight path before changing existing full-mode agents.
+
+## Acceptance criteria for the new process
+
+The new process is acceptable when:
+
+- a lightweight run can handle a selected cross-boundary slice without skipping runtime contracts
+- a stub-based test cannot be marked complete without production binding verification
+- every selected contract / test point / gap ends with explicit status
+- unresolved work is useful enough to drive a later fix slice
+- the full process remains available for broad high-risk work
+- agent prompts clearly state when to stop rather than continue repairing
+
+## Suggested README update after agents exist
+
+After the agents are created, update `README.md` to describe both process families:
+
+- full Plan-first flow
+- token-aware guardrail kernel flow
+
+The README should make clear that the lightweight flow narrows the selected scope, but does not remove the guardrail chain for selected high-risk contracts.
