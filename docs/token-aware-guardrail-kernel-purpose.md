@@ -193,13 +193,15 @@ Agents should avoid vague goals such as "make the implementation complete". Pref
 
 ## Recommended repository convention
 
-Documents that define this policy and its process should be treated as required context for future agent creation and agent revision work.
+Documents that define this policy and its process should be treated as required authoring-time context for future agent creation and agent revision work.
 
-New agent files should be created only after reading:
+New agent files should be created or revised only after the authoring process reads:
 
 - this purpose and policy document
 - the corresponding process and agent requirements document
 - the current agent file being modified, when applicable
+
+These documents are not intended to be runtime dependencies of the generated agents. A generated agent may be copied into another repository without this `docs/` directory. Therefore, any purpose, policy, profile, handoff, or cross-agent relationship that the agent needs during execution must be embedded in the agent file itself or in a common instruction file that is distributed together with the agent.
 
 ## Success criteria for this improvement
 
