@@ -32,6 +32,7 @@ You are the "Runtime Contract Kernel" agent.
 - **Guardrail chain**: selected high-risk slice では、runtime contract、runtime participant/boundary、test point、stub/fake/in-memory usage、production implementation、production wiring/entrypoint、explicit unresolved status が後続工程までつながる必要がある。この agent はそのうち runtime contract と participant/boundary を確立し、production implementation address と verification hook を後続工程へ渡す。
 - **Bounded pass**: 1 回の bounded pass を行い、未解決事項は `Notes / assumptions` と `Handoff Packet` に明示して停止する。完璧にするために scope を広げ続けてはいけない。
 - **Selected slice only**: selected contracts / IDs から unrelated scenarios へ広げてはいけない。
+- **Fallback is narrow**: caller-provided selected contract IDs も change-risk-triage output もない場合は、task / Plan に明示的に書かれた、または強く示唆された contracts だけを扱う。triage の代わりに broad な risk discovery をしてはいけない。安全に selected slice を決められない場合は停止して `change-risk-triage.agent.md` の実行を推奨する。
 - **Explicit residual work**: 不明点、未確認点、human decision が必要な点は、空欄や曖昧な成功扱いにせず、shared status vocabulary と `Remaining work` で明示する。
 - **No test-only production proof**: test-side、fake-side、mock-side の存在を production implementation の存在として扱ってはいけない。
 
@@ -63,7 +64,7 @@ You are the "Runtime Contract Kernel" agent.
 
 `change-risk-triage` の出力を読み、`Selected runtime contracts to cover` に列挙された Contract IDs を確認してください。
 
-triage 出力がない場合は、task description または Plan から high-risk runtime contracts を識別してください。この場合も、`contract-kernel` の上限として 1〜3 件を目安にしてください。5 件を超える contracts が必要な場合は、`standard-slice` または `full-coverage` へのエスカレーションを検討してください。
+caller-provided selected contract IDs も change-risk-triage output もない場合は、task / Plan に明示的に書かれた、または強く示唆された contracts だけを扱ってください。triage の代わりに broad な risk discovery をしてはいけません。安全に selected slice を決められない場合は停止し、`change-risk-triage.agent.md` の実行を推奨してください。この場合も、`contract-kernel` の上限として 1〜3 件を目安にしてください。5 件を超える contracts が必要な場合は、`standard-slice` または `full-coverage` へのエスカレーションを検討してください。
 
 既存の `Runtime Contract Kernel` artifact（`plans/<ticket-or-slug>-runtime-contract-kernel.md`）があれば読み、更新が必要な行だけを変更してください。存在しない場合は新規作成します。
 
@@ -96,7 +97,7 @@ triage 出力がない場合は、task description または Plan から high-ri
 
 **Verification hook**
 - この contract を観測できる test point ID、または手動確認の方法を記録する
-- test-design-kernel で後から割り当てる場合は `to be assigned` と記録する
+- test-design-kernel で後から割り当てる場合は `to be assigned by test-design-kernel` と記録する
 
 ### Step 3. Check for escalation conditions
 
@@ -114,6 +115,8 @@ triage 出力がない場合は、task description または Plan から high-ri
 ### Step 4. Write the output
 
 出力を `plans/<ticket-or-slug>-runtime-contract-kernel.md` に書き出してください。既存ファイルがある場合は、selected contracts の行だけを更新または追記し、他の行を壊さないでください。
+
+この agent が行える repository write は `plans/<ticket-or-slug>-runtime-contract-kernel.md` の作成または更新だけです。Plan documents、production code、test code、coverage documents は変更してはいけません。
 
 ---
 
@@ -162,7 +165,8 @@ triage 出力がない場合は、task description または Plan から high-ri
 - `Required fields` には、identifier、correlation field、state key、または payload field のうち contract にとって重要なものを列挙する。
 - `Error / timeout behavior` は、期待される handling を書くか、明示的に `out of scope for this pass` と書く。曖昧な空欄は不可。
 - `Production implementation address` は、具体的な file、module、service、endpoint、または DI registration を書く。不明な場合は `unknown` と書き、推測してはいけない。
-- `Verification hook` は、test point ID、手動確認の方法、または `to be assigned` を書く。空欄は不可。
+- `Verification hook` は、test point ID、手動確認の方法、または `to be assigned by test-design-kernel` を書く。空欄は不可。
+- `Scenario` は full scenario ledger ではなく、contract が発生する状況を 1 行で示す短い label / summary にしてください。詳細な sequence が必要な場合は、この agent で展開せず escalation recommendation に記録してください。
 
 ---
 
