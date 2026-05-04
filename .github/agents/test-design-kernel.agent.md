@@ -130,10 +130,15 @@ selected runtime contracts に対して十分な深さで設計しますが、�
 | Test Point ID | Runtime Contract ID | What to verify | Stub / fake allowed? | Production binding required? | Expected observation | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 
+In this agent, `Done` means the test design row is complete for this pass.
+It does not mean the test has been implemented, executed, or verified.
+
 ## Required production binding checks
 
-<stub / fake を使う test point について、production implementation と production wiring の
-検証が必要な項目を列挙する。verification-kernel への引継ぎ情報として機能する。>
+| Test Point ID | Runtime Contract ID | Substitute used / expected | Production implementation to check | Production wiring / entrypoint to check | Notes |
+| --- | --- | --- | --- | --- | --- |
+
+<stub / fake を使う test point について、production implementation と production wiring の検証項目を列挙する。Runtime Contract Kernel に `Production implementation address` がある場合はそれを引き継ぎ、分からない場合は `unknown` と書く。verification-kernel への引継ぎ情報として機能する。>
 
 ## Manual-only checks
 
@@ -166,10 +171,10 @@ selected runtime contracts に対して十分な深さで設計しますが、�
 - `Runtime Contract ID` は、Runtime Contract Kernel が存在する場合はその `Contract ID` と一致すること。caller-provided IDs のみを入力にした場合は、その ID をそのまま使い、ID source と仮定を `Notes / assumptions` に記録すること。selected ではない Contract ID への test point を作成してはいけない。
 - **selected contract に対して test point を作れない場合も、必ずその Contract ID を含む row を作成し、`Status` に `OutOfScopeForThisPass` または `NeedsHumanDecision` を記録し、理由を `Notes / assumptions` に書くこと。** table から行を省略してはいけない。
 - `What to verify` は observable な結果を記述すること。実装の内部詳細（"関数が呼ばれること"）ではなく、外部から観測できる output、state、または response を書く。
-- `Stub / fake allowed?` は `Yes` / `No` / `to be determined` で記録する。
+- `Stub / fake allowed?` は、この test point が stub、fake、mock、または in-memory substitute を **使う想定か、合理的に使ってよい想定か** を示す。`Yes` / `No` / `to be determined` で記録する。`Yes` の場合は production binding verification が必要である。
 - `Production binding required?` は、`Stub / fake allowed?` が `Yes` の場合に `Yes` とすること。stub / fake を使うのに production binding verification を `No` にしてはいけない。
 - `Required production binding checks` には、`Production binding required?` が `Yes` の test point を必ず列挙すること。`to be determined` の場合も、何が分かれば production binding requirement を確定できるかを `Notes / assumptions` に記録すること。
-- `Expected observation` は、test point が成功したと判断できる観測可能な結果を書く。
+- `Expected observation` は、test point が成功したと判断できる観測可能な結果を書く。安全に定義できない場合は `not defined in this pass` と書き、`Status` を `NeedsHumanDecision` または `OutOfScopeForThisPass` にする。弱い観測を捏造して row を完成扱いにしてはいけない。
 - `Status` には shared status vocabulary を使う。
 
 ---
