@@ -6,11 +6,15 @@ This document defines a concrete process and agent structure for making the Plan
 
 This document is a requirements specification for creating or revising agents. It is not an implementation task list.
 
-Agents created from this document must also read:
+この document は、agent を作成または改訂する側が読む authoring-time context です。agent 実行時に、この document や `docs/` 配下の file が存在することを前提にしてはいけません。
+
+この document に基づいて agent を作成または改訂する場合、作成者または作成プロセスは次を authoring-time context として読む必要があります。
 
 - `docs/token-aware-guardrail-kernel-purpose.md`
-- the existing agent files they replace or complement
-- the target repository context for the actual implementation task
+- replace または complement する existing agent files
+- 実際の implementation task を想定するために必要な target repository context
+
+作成された agent は、別 repository に単体で配置される可能性があります。そのため、agent の実行時に必要な目的、方針、profile、handoff、他 agent との関係は、agent file 自体、または同時に配布される共通 instruction file に含めてください。
 
 ## Design policy
 
