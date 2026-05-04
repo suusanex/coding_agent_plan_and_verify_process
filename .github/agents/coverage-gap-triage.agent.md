@@ -73,7 +73,15 @@ You are the "Coverage Gap Triage" agent.
 5. `plans/<ticket-or-slug>-runtime-contract-kernel.md` — Runtime Contract Kernel（利用可能な場合、contract reference として参照）
 6. `plans/<ticket-or-slug>-integration-test-points.md` — integration test points（Source B のコンテキスト参照用）
 
-Source A と Source B の両方が存在し、caller が明示していない場合は、selected IDs を含む artifact を使ってください。どちらにも selected IDs がある、または selected IDs がない場合は、両方を無理に merge せず、current flow に対応する artifact を 1 つ選び、`Scope` に選択理由を書いてください。
+Source A と Source B の両方が存在し、caller が明示していない場合は、まず Source A を優先してください。Source A に unresolved items があるなら、narrower な token-aware kernel output としてそれを使います。
+
+Source B を使うのは次の場合だけです。
+
+- Source A に unresolved items がない
+- caller が integration-test coverage の triage を明示的に求めている
+- current task が明らかに full integration-test verification flow の一部である
+
+どちらにも selected IDs がある、または selected IDs がない場合は、両方を無理に merge せず、選んだ artifact を `Scope` に理由付きで書いてください。
 
 Source A も Source B も存在しない場合は、停止して適切な predecessor agent を推奨してください。
 
@@ -95,6 +103,9 @@ Source artifact の形式が異なるため、classification に入る前に次�
 - `## Unresolved items` table: すべての行（`none` 行を除く）
 
 同一の source ID が複数の section に登場する場合は、section ごとに独立した gap として分類してください。
+
+`ManualEnvironmentRequired` は、source artifact だけでは分類できず、real-environment または manual confirmation が本当に必要な場合にのみ使ってください。
+明示的に `ProductionImplementationMissing`、`ProductionWiringMissing`、`ContractMismatch` が記録されている場合は、それらを `ManualEnvironmentRequired` で上書きしてはいけません。
 
 ### Source B: implementation-coverage-of-integration-test.md を使う場合
 
@@ -246,8 +257,8 @@ implementation-coverage-of-integration-test）を使ったか、どの IDs を�
 
 <gap をグループ化し、次の bounded pass に渡す slice を定義する。>
 
-| Slice | Included ID(s) / gap type(s) | Why grouped | Recommended agent | Recommended profile | Preconditions / human decision needed |
-| --- | --- | --- | --- | --- | --- |
+| Slice | Included ID(s) / gap type(s) | Why grouped | Target files / addresses | Recommended agent | Recommended profile | Preconditions / human decision needed |
+| --- | --- | --- | --- | --- | --- | --- |
 
 <human decision が必要な gap は、Preconditions 列に記録し、human decision が解決してから
 次の agent を実行するよう明記する。>
@@ -300,6 +311,8 @@ implementation-coverage-of-integration-test）を使ったか、どの IDs を�
 - `Why grouped` には、なぜこれらを 1 つの slice にまとめるかを書く（例: 同一モジュール、同一 contract に関係するなど）。
 - `Preconditions / human decision needed` は、この slice を開始するために必要な前提条件または human decision を書く。不要な場合は「なし」と書く。
 - `Slice` は新しい stable ID ではありません。後続 agent に渡す stable selector は `Included ID(s) / gap type(s)` と `Handoff Packet` の `Downstream selectors` です。
+- `Target files / addresses` には、修正対象の具体的な file path、module、DI registration、entrypoint、endpoint などを書く。分からない場合は `unknown` と書く。
+- `AlreadyCoveredButDocumentationStale` の slice は documentation update only とし、new evidence が出るまで production code と test code を変更してはいけません。
 
 ---
 
