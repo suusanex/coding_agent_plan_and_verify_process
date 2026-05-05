@@ -4,7 +4,7 @@
 
 This repository defines a Plan-first development process for GitHub Copilot agents.
 
-The original process intentionally combines runtime evidence, integration test design, implementation verification, and coverage gap resolution. That chain exists to prevent two recurring failure modes in AI-assisted implementation:
+The original process intentionally combines Plan generation, runtime evidence, integration test design, implementation verification, and coverage gap resolution. That chain exists to prevent two recurring failure modes in AI-assisted implementation:
 
 1. Cross-process or cross-component sequences appear correct inside each process, but fail when connected because contracts, messages, state transitions, or wiring do not match.
 2. Automated tests pass against stubs, fakes, or in-memory implementations, while the corresponding production implementation or production wiring is missing.
@@ -13,18 +13,50 @@ As GitHub Copilot usage moves toward token-consumption-based cost awareness, the
 
 ## Primary objective
 
-Optimize the process for bounded progress, explicit residual work, and reusable handoff artifacts without removing the guardrail chain that protects runtime contracts and production implementation coverage.
+Optimize the Plan-first process for bounded progress, explicit residual work, and reusable handoff artifacts without removing the guardrail chain that protects runtime contracts and production implementation coverage.
+
+The token-aware process is still a Plan-first process.
+
+The intended sequence is:
+
+1. Create a bounded Plan for the requested change.
+2. Use that Plan to identify the high-risk runtime slice.
+3. Preserve the guardrail chain for the selected high-risk slice.
+4. Implement against the Plan as the source of truth.
+5. Verify that selected contracts, test points, production implementation, and production wiring are aligned.
+6. Record unresolved work instead of continuing indefinitely.
 
 The key policy is:
 
 > Reduce breadth, not depth.
 
-Lightweight execution must narrow the target slice. It must not remove the minimum chain needed to connect runtime contracts, test design, stub usage, production implementation, and production wiring.
+Lightweight execution must narrow the target slice. It must not remove the Plan, and it must not remove the minimum chain needed to connect runtime contracts, test design, stub usage, production implementation, and production wiring.
+
+## Corrected scope of the token-aware flow
+
+The token-aware guardrail kernel flow is not intended to start directly from risk triage.
+
+Risk triage is meaningful only after there is a Plan or equivalent bounded Plan artifact that describes:
+
+- what behavior should be implemented
+- what is out of scope
+- which components or modules are expected to change
+- what acceptance conditions matter
+- where high-risk runtime boundaries may exist
+
+Therefore, a lightweight Plan-generation step is required before `change-risk-triage.agent.md`.
+
+The current conclusion is to add a dedicated `plan-kernel.agent.md` rather than overloading `change-risk-triage.agent.md`.
+
+`plan-kernel.agent.md` should create a bounded implementation Plan that is lighter than the existing full `plan-generation.agent.md` flow. It should not create detailed runtime evidence or full integration test design by itself. Instead, it should hand off high-risk boundary candidates to `change-risk-triage.agent.md` and the downstream kernel agents.
 
 ## Non-goals
 
 This improvement is not intended to:
 
+- skip Plan creation
+- make risk triage replace Plan generation
+- implement directly from `runtime-contract-kernel` artifacts alone
 - make every agent run shorter by simply deleting important checks
 - replace runtime evidence with a shallow checklist
 - treat stub-based tests as sufficient proof of production readiness
@@ -37,17 +69,18 @@ This improvement is not intended to:
 
 For any selected high-risk implementation slice, the process must preserve the following chain:
 
-1. Runtime contract identification
-2. Runtime participant and boundary mapping
-3. Test point mapping
-4. Stub / fake / in-memory usage identification
-5. Production implementation binding
-6. Production wiring / entrypoint verification
-7. Explicit unresolved status for anything not completed
+1. Plan requirement / acceptance condition
+2. Runtime contract identification
+3. Runtime participant and boundary mapping
+4. Test point mapping
+5. Stub / fake / in-memory usage identification
+6. Production implementation binding
+7. Production wiring / entrypoint verification
+8. Explicit unresolved status for anything not completed
 
 The full process may express this through detailed runtime evidence, scenario ledgers, integration test design, implementation coverage documents, and gap resolution.
 
-The lightweight process may express the same chain through smaller kernel artifacts, but it must not skip the chain.
+The lightweight process may express the same chain through smaller kernel artifacts, but it must not skip the Plan or the chain.
 
 ## Failure modes this policy protects against
 
@@ -80,21 +113,41 @@ Typical examples:
 
 The process must therefore verify not only whether a test exists, but whether the tested responsibility has a production implementation and production wiring path.
 
+### 3. High-risk kernel without complete implementation context
+
+A runtime contract kernel artifact intentionally focuses on high-risk boundaries. It is not a complete requirements specification.
+
+If implementation is started from `runtime-contract-kernel` alone, the implementation agent may overfit to the high-risk contract while missing the overall requested behavior.
+
+The implementation handoff must therefore include:
+
+- the bounded Plan created by `plan-kernel.agent.md`
+- the risk triage output
+- the runtime contract kernel
+- the test design kernel
+- explicit scope and non-goals
+
 ## Core operating principles
 
-### 1. Bounded pass over open-ended completion
+### 1. Plan-first before risk-first
+
+The token-aware flow must begin by creating a bounded Plan. `change-risk-triage.agent.md` should classify risk within that Plan, not replace the Plan.
+
+The Plan is the source of truth for implementation behavior. Kernel artifacts are guardrails for the high-risk slice, not substitutes for the Plan.
+
+### 2. Bounded pass over open-ended completion
 
 Agents should perform a bounded pass and then report the remaining work.
 
 They must not assume that their job is to keep repairing until all issues disappear. When completion would require broad redesign, repeated fix loops, missing human judgment, or work outside the selected slice, the agent must stop and classify the residual work.
 
-### 2. Selected slice over whole-system thin coverage
+### 3. Selected slice over whole-system thin coverage
 
 Lightweight mode should select a smaller number of high-risk runtime contracts and handle them deeply enough to preserve the guardrail chain.
 
 It is better to verify three important cross-process contracts properly than to skim twenty requirements without confirming production binding.
 
-### 3. Explicit status over ambiguous partial completion
+### 4. Explicit status over ambiguous partial completion
 
 Every selected contract, test point, or coverage item must end in an explicit status such as:
 
@@ -108,7 +161,7 @@ Every selected contract, test point, or coverage item must end in an explicit st
 
 A missing result is not an acceptable result.
 
-### 4. Handoff artifacts over repeated rediscovery
+### 5. Handoff artifacts over repeated rediscovery
 
 Each phase should leave a compact handoff artifact that tells the next phase:
 
@@ -120,7 +173,7 @@ Each phase should leave a compact handoff artifact that tells the next phase:
 
 This reduces repeated repository exploration and repeated reasoning over the same issue.
 
-### 5. Risk-triggered escalation
+### 6. Risk-triggered escalation
 
 The process should escalate from a kernel slice to a fuller process when the task involves high-risk boundaries such as:
 
@@ -142,6 +195,7 @@ Preferred profile names are based on scope and intent:
 
 | Profile | Purpose | Guardrail depth | Breadth |
 | --- | --- | --- | --- |
+| `plan-kernel` | Create the bounded Plan that remains the implementation source of truth | Plan preserved | Narrow to moderate |
 | `contract-kernel` | Minimal high-risk guardrail for a selected runtime slice | Preserved | Narrow |
 | `standard-slice` | Normal bounded Plan-first process for selected contracts / IDs | Preserved | Moderate |
 | `full-coverage` | Current-style broad process for complex or high-risk changes | Preserved and expanded | Broad |
@@ -150,7 +204,17 @@ Preferred profile names are based on scope and intent:
 
 ## Lightweight mode requirements
 
-A lightweight process is acceptable only when it still produces enough information to answer these questions for each selected high-risk slice:
+A lightweight process is acceptable only when it still produces enough information to answer these questions for the overall change and for each selected high-risk slice.
+
+For the overall change:
+
+1. What behavior is being implemented?
+2. What is out of scope?
+3. Which components or modules are expected to change?
+4. What acceptance conditions define successful implementation?
+5. Which areas are suspected high-risk boundaries?
+
+For each selected high-risk slice:
 
 1. Which runtime participants are involved?
 2. What contract, message, API, event, or state transition connects them?
@@ -189,7 +253,7 @@ Each agent should state:
 - how it records remaining work
 - when it must stop rather than continue fixing
 
-Agents should avoid vague goals such as "make the implementation complete". Prefer goals such as "classify all selected IDs", "verify production binding for selected test points", or "resolve only the selected gap IDs".
+Agents should avoid vague goals such as "make the implementation complete". Prefer goals such as "create a bounded Plan", "classify all selected IDs", "verify production binding for selected test points", or "resolve only the selected gap IDs".
 
 ## Recommended repository convention
 
@@ -207,8 +271,10 @@ These documents are not intended to be runtime dependencies of the generated age
 
 This improvement succeeds when:
 
+- the token-aware flow still begins with a bounded Plan
 - lightweight runs remain meaningfully cheaper than full runs
 - selected high-risk contracts still receive runtime and verification guardrails
+- implementation agents receive both the Plan and kernel guardrail artifacts
 - stub-only success is explicitly detected and recorded
 - agents stop with useful residual work instead of looping toward perfect completion
 - full mode remains available for genuinely complex work
