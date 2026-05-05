@@ -20,24 +20,67 @@ This document is a requirements specification for creating or revising agents. I
 
 The process reduces cost by narrowing the target slice, not by removing essential guardrails.
 
+The token-aware flow is still a Plan-first flow. It must not start implementation from risk triage or runtime-contract artifacts alone.
+
+The required high-level chain is:
+
+1. create a bounded Plan for the requested change
+2. classify high-risk runtime slices inside that Plan
+3. preserve guardrails for selected high-risk slices
+4. implement against the Plan as the source of truth
+5. verify selected contracts, test points, production implementation, and production wiring
+6. classify and resolve remaining gaps through bounded slices
+
 For selected high-risk slices, the process must still connect:
 
-1. runtime contract
-2. test point
-3. stub / fake / in-memory usage
-4. production implementation
-5. production wiring / entrypoint
-6. explicit unresolved status
+1. Plan requirement / acceptance condition
+2. runtime contract
+3. test point
+4. stub / fake / in-memory usage
+5. production implementation
+6. production wiring / entrypoint
+7. explicit unresolved status
+
+## Corrected process gap
+
+The originally drafted token-aware kernel process began with `change-risk-triage.agent.md`. That was incomplete for the intended purpose.
+
+The goal of this repository is not merely to triage risk. The goal is to keep the existing Plan-first sequence — create Plan, implement, and verify that implementation gaps are not missed — while reducing token consumption and avoiding open-ended repair loops.
+
+Therefore, the token-aware flow needs a lightweight Plan creation phase before risk triage.
+
+The chosen direction is to add a dedicated `plan-kernel.agent.md` instead of making `change-risk-triage.agent.md` generate a Plan.
+
+Reasoning:
+
+- `change-risk-triage.agent.md` should remain `triage-only` and should not become a mixed Plan-generation agent.
+- `runtime-contract-kernel.agent.md` is a high-risk boundary guardrail, not a complete requirements specification.
+- implementation agents need the overall Plan as the source of truth, plus kernel artifacts as guardrails.
+- a dedicated Plan Kernel keeps the lightweight flow Plan-first without forcing the full `plan-generation.agent.md` / `runtime-evidence.agent.md` / `integration-test-design.agent.md` chain.
 
 ## Process profiles
 
-### `triage-only`
+### `plan-kernel`
 
-Classifies the change and recommends the minimum sufficient process profile.
+Creates a bounded implementation Plan for the requested change.
 
 Use when:
 
-- the required depth is unclear
+- the user wants token-aware Plan-first development
+- full runtime evidence and full integration test design would be too expensive at the Plan stage
+- the implementation still needs a complete enough source of truth before risk triage
+- the downstream kernel agents need a Plan to map contracts, test points, implementation, and verification back to requirements
+
+Output is a bounded Plan. It is not implementation code, not runtime evidence, and not full test design.
+
+### `triage-only`
+
+Classifies the Plan and recommends the minimum sufficient process profile.
+
+Use when:
+
+- a bounded Plan already exists
+- the required runtime guardrail depth is unclear
 - the user wants to avoid unnecessary full processing
 - a previous run became too broad
 - the task may or may not involve high-risk runtime boundaries
@@ -50,9 +93,9 @@ Creates a narrow guardrail kernel for selected high-risk runtime contracts.
 
 Use when:
 
-- the change has cross-boundary risk
+- the Plan has cross-boundary risk
 - full runtime evidence would be too expensive
-- the goal is to preserve the minimum runtime/test/production binding chain
+- the goal is to preserve the minimum runtime/test/production binding chain for selected contracts
 
 This profile does not require exhaustive scenario coverage. It requires deep enough coverage for selected contracts.
 
@@ -90,29 +133,42 @@ Use when:
 
 ## Recommended process flows
 
-### Flow A: Minimal high-risk guardrail flow
+### Flow A: Token-aware Plan-first guardrail flow
 
-Use for bounded changes with one or a few risky runtime boundaries.
+Use for the main lightweight process this repository now targets.
+
+1. `plan-kernel.agent.md`
+2. `change-risk-triage.agent.md`
+3. `runtime-contract-kernel.agent.md`
+4. `test-design-kernel.agent.md`
+5. implementation by normal agent or human-guided implementation agent
+6. `verification-kernel.agent.md`
+7. optional `coverage-gap-triage.agent.md`
+8. optional `coverage-gap-resolution-slice.agent.md`
+9. optional re-run of `verification-kernel.agent.md`
+
+Implementation handoff for step 5 must include:
+
+- the bounded Plan from `plan-kernel.agent.md`
+- `change-risk-triage` output
+- `runtime-contract-kernel` output
+- `test-design-kernel` output
+- selected implementation scope and non-goals
+
+The implementation agent must treat the Plan as the source of truth. Kernel artifacts are guardrails for high-risk slices, not substitutes for the Plan.
+
+### Flow B: Minimal high-risk guardrail sub-flow
+
+Use only after a bounded Plan exists and the selected risky area is already clear.
 
 1. `change-risk-triage.agent.md`
 2. `runtime-contract-kernel.agent.md`
 3. `test-design-kernel.agent.md`
-4. implementation by normal agent or human-guided implementation agent
+4. implementation by normal agent or human-guided implementation agent using the Plan plus kernel artifacts
 5. `verification-kernel.agent.md`
 6. optional `coverage-gap-resolution-slice.agent.md`
 
-### Flow B: Standard bounded slice flow
-
-Use for normal changes where Plan-first discipline is useful but full coverage is unnecessary.
-
-1. `change-risk-triage.agent.md`
-2. `plan-generation` with runtime contract kernel requirements
-3. `plan-review` in bounded mode
-4. optional `implementation-contract-generation` / `implementation-contract-review`
-5. implementation
-6. `integration-test-verification-implementation` scoped to selected IDs
-7. optional `coverage-gap-triage.agent.md`
-8. optional `coverage-gap-resolution-slice.agent.md`
+This sub-flow must not be used as a replacement for Plan creation.
 
 ### Flow C: Full coverage flow
 
@@ -130,6 +186,43 @@ Use for broad, ambiguous, or highly interconnected changes.
 10. `coverage-gap-resolution-slice.agent.md` or full `coverage-gap-resolution.agent.md` only by explicit choice
 
 ## Shared output concepts
+
+### Plan Kernel
+
+A bounded Plan artifact should use this shape unless the repository already has a stronger convention:
+
+```md
+# Plan Kernel
+
+## Goal
+
+## Non-goals
+
+## Functional requirements
+
+## Acceptance conditions
+
+## Affected components / modules
+
+## Expected implementation scope
+
+## Known high-risk boundaries
+
+## Out of scope for this pass
+
+## Handoff to change-risk-triage
+
+## Handoff Packet
+```
+
+Rules:
+
+- The Plan Kernel is the implementation source of truth for the token-aware flow.
+- It must describe the whole requested change at a useful implementation level, not only high-risk boundaries.
+- It must not expand into full runtime evidence or full integration test design.
+- It must identify known high-risk boundary candidates, but detailed selection belongs to `change-risk-triage.agent.md`.
+- It must include non-goals and out-of-scope items so implementation agents do not infer extra work.
+- It must include acceptance conditions that can later be mapped to test points or verification items.
 
 ### Runtime Contract Kernel
 
@@ -241,16 +334,78 @@ All token-aware agents should follow these rules unless the user explicitly asks
 
 ## Agent requirements
 
-## 1. `change-risk-triage.agent.md`
+## 1. `plan-kernel.agent.md`
 
 ### Purpose
 
-Classify the requested change, identify high-risk runtime boundaries, and recommend the minimum sufficient process profile.
+Create a bounded Plan for the requested change. This Plan is the implementation source of truth for the token-aware flow.
 
 ### Inputs
 
 - issue, prompt, or high-level requirement
-- existing Plan or docs when available
+- existing repository structure and relevant files only as needed to create the Plan
+- existing docs or architecture notes when directly relevant
+
+### Required outputs
+
+```md
+# Plan Kernel
+
+## Goal
+
+## Non-goals
+
+## Functional requirements
+
+## Acceptance conditions
+
+## Affected components / modules
+
+## Expected implementation scope
+
+## Known high-risk boundaries
+
+## Out of scope for this pass
+
+## Handoff to change-risk-triage
+
+## Handoff Packet
+```
+
+### Required checks
+
+The agent must:
+
+- create a useful bounded Plan before risk triage
+- state what is in scope and out of scope
+- identify functional requirements and acceptance conditions
+- identify affected components / modules at a practical implementation level
+- list known or suspected high-risk boundaries without deep runtime evidence
+- prepare the Plan for `change-risk-triage.agent.md`
+
+### Must not do
+
+- implement code
+- create tests
+- generate full runtime evidence
+- generate full integration test design
+- select final runtime contracts in place of `change-risk-triage.agent.md`
+- continue expanding repository exploration after the Plan is good enough for bounded implementation
+
+### Stop condition
+
+Stop after creating or updating the bounded Plan and handoff to `change-risk-triage.agent.md`.
+
+## 2. `change-risk-triage.agent.md`
+
+### Purpose
+
+Classify the bounded Plan, identify high-risk runtime boundaries, and recommend the minimum sufficient process profile.
+
+### Inputs
+
+- Plan Kernel or other bounded Plan artifact
+- original issue / prompt only as supplementary context
 - repository structure and relevant files only as needed for risk classification
 
 ### Required outputs
@@ -287,6 +442,7 @@ The agent must look for risk triggers including:
 
 ### Must not do
 
+- create or change the Plan
 - create implementation code
 - create or revise tests
 - perform full Plan generation
@@ -296,7 +452,7 @@ The agent must look for risk triggers including:
 
 Stop after recommending a profile and selected contracts / IDs. If risk cannot be classified from available context, recommend `contract-kernel` or `standard-slice` rather than pretending the task is safe.
 
-## 2. `runtime-contract-kernel.agent.md`
+## 3. `runtime-contract-kernel.agent.md`
 
 ### Purpose
 
@@ -305,7 +461,7 @@ Create or update the minimal runtime contract artifact for selected high-risk sl
 ### Inputs
 
 - selected runtime contracts or change-risk triage output
-- existing Plan if present
+- Plan Kernel or bounded Plan artifact
 - relevant code / docs only for identifying participants, boundaries, and addresses
 
 ### Required outputs
@@ -340,12 +496,13 @@ For each selected contract, verify or record:
 - implement code
 - create tests
 - invent production addresses without evidence
+- replace the Plan as source of truth
 
 ### Escalation condition
 
 Recommend `runtime-evidence.agent.md` or `full-coverage` if the selected contracts cannot be safely represented without detailed sequence evidence.
 
-## 3. `test-design-kernel.agent.md`
+## 4. `test-design-kernel.agent.md`
 
 ### Purpose
 
@@ -354,7 +511,7 @@ Create a compact test design mapped to selected runtime contracts.
 ### Inputs
 
 - Runtime Contract Kernel
-- Plan or requirement source
+- Plan Kernel or bounded Plan artifact
 - relevant existing test conventions
 
 ### Required outputs
@@ -378,6 +535,7 @@ Create a compact test design mapped to selected runtime contracts.
 For each selected runtime contract:
 
 - define at least one observable verification point or an explicit reason why not
+- map the verification point back to the Plan requirement / acceptance condition where possible
 - identify whether a stub / fake / in-memory substitute is expected
 - require production binding verification when a substitute is used
 - include negative / error path checks for boundary contracts when relevant
@@ -392,7 +550,7 @@ For each selected runtime contract:
 
 Recommend `integration-test-design.agent.md` when the selected slice requires broader feature, error, load, or continuous-operation coverage.
 
-## 4. `verification-kernel.agent.md`
+## 5. `verification-kernel.agent.md`
 
 ### Purpose
 
@@ -400,6 +558,7 @@ Verify selected runtime contracts and test points after implementation, focusing
 
 ### Inputs
 
+- Plan Kernel or bounded Plan artifact
 - Runtime Contract Kernel
 - Test Design Kernel or integration test points
 - implementation diff or repository state
@@ -436,6 +595,7 @@ For each selected test point:
 - whether a production concrete implementation exists
 - whether production wiring / entrypoint reaches that implementation
 - whether selected runtime contract fields and error behavior are represented
+- whether the result is still consistent with the Plan requirement / acceptance condition
 
 ### Verdicts
 
@@ -458,7 +618,7 @@ Use one of:
 
 Stop after classifying selected contracts and test points. If repair is needed, recommend `coverage-gap-resolution-slice.agent.md` with target IDs.
 
-## 5. `coverage-gap-triage.agent.md`
+## 6. `coverage-gap-triage.agent.md`
 
 ### Purpose
 
@@ -466,8 +626,8 @@ Classify unresolved implementation coverage items without fixing them.
 
 ### Inputs
 
-- implementation coverage document
-- Plan
+- verification-kernel output or implementation coverage document
+- Plan Kernel or bounded Plan artifact
 - integration test points or Test Design Kernel
 - Runtime Contract Kernel when available
 
@@ -514,7 +674,7 @@ Use a controlled vocabulary:
 - update status to complete without evidence
 - create new IDs
 
-## 6. `coverage-gap-resolution-slice.agent.md`
+## 7. `coverage-gap-resolution-slice.agent.md`
 
 ### Purpose
 
@@ -523,8 +683,8 @@ Resolve only explicitly selected coverage gaps in one bounded pass.
 ### Inputs
 
 - selected gap IDs
-- Plan
-- implementation coverage document
+- Plan Kernel or bounded Plan artifact
+- implementation coverage document or verification status artifact
 - integration test points or Test Design Kernel
 - Runtime Contract Kernel when available
 - coverage gap triage output when available
@@ -556,7 +716,7 @@ For each selected ID:
 - map it back to the Plan requirement or runtime contract
 - identify the minimal production implementation / wiring / test update needed
 - apply only bounded changes required for that ID
-- update the coverage document status and reason
+- update the active status artifact when appropriate
 - leave unresolved status if the fix would exceed the selected slice
 
 ### Must not do
@@ -571,18 +731,13 @@ For each selected ID:
 
 Stop after one bounded pass over selected IDs. Remaining issues must be recorded, not chased indefinitely.
 
-## 7. Revisions to existing agents
+## 8. Revisions to existing agents
 
 ### `plan-generation.agent.md`
 
-Should support bounded profiles.
+May remain the full-flow Plan generation agent. Do not overload it if doing so would make the lightweight flow ambiguous.
 
-Required changes:
-
-- distinguish full runtime evidence from Runtime Contract Kernel
-- require kernel output for high-risk selected slices even in lightweight mode
-- avoid always invoking heavy sub-agents unless profile requires them
-- record assumptions and residual work rather than expanding scope
+If revised, it should clearly separate full mode from token-aware Plan Kernel behavior.
 
 ### `plan-review.agent.md`
 
@@ -627,22 +782,31 @@ Required changes:
 
 ## Agent creation order
 
-Recommended order:
+Recommended order after this correction:
 
-1. Create `change-risk-triage.agent.md`
-2. Create `runtime-contract-kernel.agent.md`
-3. Create `test-design-kernel.agent.md`
-4. Create `verification-kernel.agent.md`
-5. Create `coverage-gap-triage.agent.md`
-6. Create `coverage-gap-resolution-slice.agent.md`
-7. Revise existing agents to reference these documents and profiles
+1. Create `plan-kernel.agent.md`
+2. Revise `change-risk-triage.agent.md` if needed so its primary input is the bounded Plan
+3. Revise README so token-aware flow begins with `plan-kernel.agent.md`
+4. Verify the existing kernel agents still reference the Plan as source of truth where necessary
+5. Continue with any revisions to existing full-flow agents
 
-This order lets the process first gain a safe lightweight path before changing existing full-mode agents.
+For a fresh implementation of the token-aware flow, the intended order is:
 
-## Acceptance criteria for the new process
+1. `plan-kernel.agent.md`
+2. `change-risk-triage.agent.md`
+3. `runtime-contract-kernel.agent.md`
+4. `test-design-kernel.agent.md`
+5. implementation
+6. `verification-kernel.agent.md`
+7. `coverage-gap-triage.agent.md`
+8. `coverage-gap-resolution-slice.agent.md`
 
-The new process is acceptable when:
+## Acceptance criteria for the corrected process
 
+The corrected process is acceptable when:
+
+- a bounded Plan is created before risk triage
+- implementation agents receive the Plan plus kernel guardrail artifacts
 - a lightweight run can handle a selected cross-boundary slice without skipping runtime contracts
 - a stub-based test cannot be marked complete without production binding verification
 - every selected contract / test point / gap ends with explicit status
@@ -650,11 +814,13 @@ The new process is acceptable when:
 - the full process remains available for broad high-risk work
 - agent prompts clearly state when to stop rather than continue repairing
 
-## Suggested README update after agents exist
+## Suggested README update after `plan-kernel.agent.md` exists
 
-After the agents are created, update `README.md` to describe both process families:
+After `plan-kernel.agent.md` is created, update `README.md` to describe the corrected token-aware flow:
 
-- full Plan-first flow
-- token-aware guardrail kernel flow
+- token-aware flow starts with bounded Plan creation
+- `change-risk-triage.agent.md` consumes the Plan and selects high-risk runtime slices
+- implementation receives Plan + triage + runtime-contract-kernel + test-design-kernel
+- full Plan-first flow remains available for broad autonomous work
 
-The README should make clear that the lightweight flow narrows the selected scope, but does not remove the guardrail chain for selected high-risk contracts.
+The README should make clear that the lightweight flow narrows the selected scope, but does not remove Plan creation or the guardrail chain for selected high-risk contracts.
