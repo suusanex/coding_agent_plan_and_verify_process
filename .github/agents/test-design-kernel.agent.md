@@ -209,8 +209,8 @@ test point を定義するために必要な情報が不足している場合は
 | `NeedsHumanDecision` | product、architecture、policy、または risk に関する human decision なしでは安全に進められない |
 | `NotImplementedOrMismatch` | implementation が欠けている、mismatch している、または test-side / fake-side にしか存在しない |
 | `OutOfScopeForThisPass` | 妥当な work だが、selected slice の外である |
-| `Bound` | test substitute に対して、production implementation と production wiring の両方が確認済みである |
+| `Bound` | test substitute に対して、production interface・production implementation・production wiring / entrypoint の三つすべてが確認済みである |
 
-この agent は production binding verification の要求を設計する agent であり、production binding を実際に確認する agent ではありません。既存 artifact に production implementation と production wiring / entrypoint の両方が確認済みである明確な evidence がある場合を除き、`Bound` を付けてはいけません。通常は `Required production binding checks` に verification-kernel への確認事項として渡してください。
+この agent は production binding verification の要求を設計する agent であり、production binding を実際に確認する agent ではありません。既存 artifact に production interface・production implementation・production wiring / entrypoint の三つすべてが確認済みである明確な evidence がある場合を除き、`Bound` を付けてはいけません。通常は `Required production binding checks` に verification-kernel への確認事項として渡してください。
 
 `Test Point ID`、`Runtime Contract ID`、`What to verify`、`Expected observation` などの table 列には status ではなく具体的な情報を書いてください。status は `Status` 列と `Remaining work` での記録に使います。

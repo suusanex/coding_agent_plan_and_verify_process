@@ -183,7 +183,7 @@ Verification should produce or update this shape when tests use substitutes:
 Rules:
 
 - A passing test using a fake does not imply production readiness.
-- `Status` must not be `Bound` unless both production implementation and wiring / entrypoint are confirmed.
+- `Status` must not be `Bound` unless production interface, production implementation, and wiring / entrypoint are all confirmed.
 - If only the interface exists, use `NotImplementedOrMismatch`.
 - If implementation exists but default wiring is missing, use `NotImplementedOrMismatch` or `PartiallyDone` with explicit remaining work.
 
@@ -224,7 +224,7 @@ Use these statuses consistently unless an existing artifact has a stronger conve
 | `NeedsHumanDecision` | Cannot safely proceed without a product, architecture, policy, or risk decision |
 | `NotImplementedOrMismatch` | Implementation is missing, mismatched, or only test-side / fake-side exists |
 | `OutOfScopeForThisPass` | Valid work, but outside the selected slice |
-| `Bound` | Production implementation and production wiring have been confirmed for a test substitute |
+| `Bound` | Production interface, production implementation, and production wiring / entrypoint have been confirmed for a test substitute |
 
 ## Shared bounded-pass rules
 

@@ -342,4 +342,4 @@ implementation-coverage-of-integration-test）を使ったか、どの IDs を�
 | `NeedsHumanDecision` | human input なしに次の step を安全に選べない。 |
 | `NotImplementedOrMismatch` | source artifact に記録されている未実装または不一致の状態を転記する場合に使用。 |
 | `OutOfScopeForThisPass` | この triage の scope 外として意図的に除外した。 |
-| `Bound` | production implementation と production wiring / entrypoint が、test substitute に対して確認済みであることを示す。この agent は既存 artifact から転記する場合を除き、新たに `Bound` を付けない。 |
+| `Bound` | production interface・production implementation・production wiring / entrypoint の三つすべてが、test substitute に対して確認済みであることを示す。この agent は既存 artifact から転記する場合を除き、新たに `Bound` を付けない。 |
