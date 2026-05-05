@@ -108,14 +108,18 @@ Plan requirement / acceptance condition
 2. `change-risk-triage.agent.md`
 3. `runtime-contract-kernel.agent.md`
 4. `test-design-kernel.agent.md`
-5. 通常エージェントまたは人間主導で実装
-6. `verification-kernel.agent.md`
-7. `coverage-gap-triage.agent.md`
-8. `coverage-gap-resolution-slice.agent.md`
-9. 必要に応じて `verification-kernel.agent.md` を再実行
+5. 必要に応じて `implementation-handoff-review.agent.md`
+6. 通常エージェントまたは人間主導で実装
+7. `verification-kernel.agent.md`
+8. `coverage-gap-triage.agent.md`
+9. `coverage-gap-resolution-slice.agent.md`
+10. 必要に応じて `verification-kernel.agent.md` を再実行
 
 このフローでは、各 agent が 1 回の bounded な実行を行い、未解決項目は成果物に残して停止します。  
 「直るまで修正し続ける」ことは目的ではありません。
+
+`implementation-handoff-review.agent.md` は任意の軽量 gate です。  
+常に必須ではありませんが、実装前に Plan → selected runtime contract → test point → production binding requirement の接続を一度だけ確認したい場合に使います。
 
 ### 実装に渡すもの
 
@@ -128,6 +132,7 @@ Token-aware flow で実装に入るときは、`runtime-contract-kernel` だけ�
 - `change-risk-triage.agent.md` の出力
 - `runtime-contract-kernel.agent.md` の出力
 - `test-design-kernel.agent.md` の出力
+- `implementation-handoff-review.agent.md` の出力（実行した場合）
 - selected implementation scope と non-goals
 
 実装 agent は Plan を source of truth として扱います。kernel artifacts は high-risk slice に対する guardrail であり、Plan の代替ではありません。
@@ -252,6 +257,53 @@ bounded Plan と runtime-contract-kernel の内容を入力として、test-desi
 
 ---
 
+### `implementation-handoff-review.agent.md`
+
+実装に入る直前に、kernel artifact chain の接続を軽量にレビューします。
+
+主な役割:
+
+- `plans/<slug>.md`、`change-risk-triage`、`runtime-contract-kernel`、`test-design-kernel` の 4 成果物だけを読む
+- Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認する
+- source code を読まず、artifacts を修正せず、実装もしない
+- `READY_FOR_IMPLEMENTATION` / `READY_WITH_NOTES` / `BLOCKED` の単一 verdict を出す
+- 実装 agent に渡すべき Required handoff inputs を整理する
+
+この agent は optional です。過剰な review を避けるため、常に使う必要はありません。
+
+使う場面:
+
+- selected RC が複数ある
+- queue / worker / webhook / external API / DI / production wiring が絡む
+- stub / fake / mock / in-memory を使う test point がある
+- 実装前に、Plan と kernel artifacts の接続漏れだけを一度確認したい
+- `test-design-kernel` に `NeedsHumanDecision` や曖昧な mapping が残っている可能性がある
+
+省略してよい場面:
+
+- selected RC が 0〜1 件で、mapping が明確
+- stub / fake / mock / in-memory を使わない
+- cross-boundary risk が低い
+- 実装者が Plan と kernel artifacts の接続を十分に把握している
+
+プロンプト例:
+
+```text
+実装に入る前に、implementation-handoff-review.agent.md を使って軽量レビューを行ってください。
+
+次の 4 成果物だけを対象にしてください。
+
+- plans/<slug>.md
+- plans/<slug>-change-risk-triage.md
+- plans/<slug>-runtime-contract-kernel.md
+- plans/<slug>-test-design-kernel.md
+
+source code は読まず、artifacts も修正しないでください。
+Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認し、READY_FOR_IMPLEMENTATION / READY_WITH_NOTES / BLOCKED の verdict を出してください。
+```
+
+---
+
 ### 実装フェーズ
 
 Token-aware flow では、実装専用 agent が別途あるわけではありません。通常の GitHub Copilot agent、通常の coding agent、または人間主導の実装で進めます。
@@ -267,9 +319,11 @@ Token-aware flow では、実装専用 agent が別途あるわけではあり�
 - plans/<slug>-change-risk-triage.md
 - plans/<slug>-runtime-contract-kernel.md
 - plans/<slug>-test-design-kernel.md
+- plans/<slug>-implementation-handoff-review.md（存在する場合）
 
 実装の source of truth は bounded Plan です。
 runtime-contract-kernel と test-design-kernel は、selected high-risk slice に対する guardrail として使ってください。
+implementation-handoff-review がある場合は、その verdict、blocking issues、recommended implementation prompt additions を確認してください。
 
 次の制約を守ってください。
 
@@ -394,6 +448,21 @@ coverage-gap-triage の推奨修正範囲から Slice 1 だけを対象に、cov
 - ギャップを選択した ID ごとに分割して修正したい
 - トークンコストと bounded な進捗を重視する
 
+### `implementation-handoff-review.agent.md` を使う場合
+
+- 実装前に一度だけ横断的な漏れチェックを入れたい
+- selected RC が複数あり、Plan → RC → TP の対応が見落とされそう
+- stub / fake / mock / in-memory を使う test point がある
+- production binding required の指定漏れが特に怖い
+- 実装 agent に渡す handoff が複数 artifacts に分かれており、接続確認をしておきたい
+
+### `implementation-handoff-review.agent.md` を省略してよい場合
+
+- selected RC が 0〜1 件で単純
+- stub / fake / mock / in-memory を使わない
+- `test-design-kernel` までの対応関係が明確
+- 追加レビューのコストをかけるほどの risk がない
+
 ### kernel flow から full flow に切り替えるべき場合
 
 - bounded Plan を安全に作れないほど要求が曖昧
@@ -436,6 +505,22 @@ bounded Plan と runtime-contract-kernel の RC-001 と RC-002 を対象に、te
 テストは実装せず、テストポイント ID・期待される観測結果・stub/fake の使用有無・必須 production binding チェックを作成してください。
 ```
 
+### 実装前に handoff review を行う
+
+```text
+実装に入る前に、implementation-handoff-review.agent.md を使って軽量レビューを行ってください。
+
+次の 4 成果物だけを対象にしてください。
+
+- plans/<slug>.md
+- plans/<slug>-change-risk-triage.md
+- plans/<slug>-runtime-contract-kernel.md
+- plans/<slug>-test-design-kernel.md
+
+source code は読まず、artifacts も修正しないでください。
+Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認し、READY_FOR_IMPLEMENTATION / READY_WITH_NOTES / BLOCKED の verdict を出してください。
+```
+
 ### Plan と kernel artifacts を渡して実装する
 
 ```text
@@ -445,9 +530,11 @@ bounded Plan と runtime-contract-kernel の RC-001 と RC-002 を対象に、te
 - plans/<slug>-change-risk-triage.md
 - plans/<slug>-runtime-contract-kernel.md
 - plans/<slug>-test-design-kernel.md
+- plans/<slug>-implementation-handoff-review.md（存在する場合）
 
 実装の source of truth は bounded Plan です。
 kernel artifacts は high-risk slice に対する guardrail として使ってください。
+implementation-handoff-review がある場合は、その verdict、blocking issues、recommended implementation prompt additions を確認してください。
 
 Plan の Functional requirements と Acceptance conditions を満たし、Non-goals / Out of scope に含まれる作業は行わないでください。
 stub / fake / mock / in-memory test だけで production complete と判断せず、production implementation と wiring を落とさないでください。
@@ -488,6 +575,7 @@ Token-aware guardrail kernel flow では、通常は次の成果物を作成し�
 | `plans/<ticket-or-slug>-change-risk-triage.md` | リスクプロファイル・対象 contract・推奨プロセスプロファイル |
 | `plans/<ticket-or-slug>-runtime-contract-kernel.md` | runtime contract・producer / consumer・メッセージ・フィールド・production 実装の所在 |
 | `plans/<ticket-or-slug>-test-design-kernel.md` | テストポイントマッピング・stub/fake の使用有無・production binding 確認要件 |
+| `plans/<ticket-or-slug>-implementation-handoff-review.md` | 実装直前の lightweight review verdict と required handoff inputs |
 | `plans/<ticket-or-slug>-verification-kernel.md` | production binding / wiring / contract の検証結果 |
 | `plans/<ticket-or-slug>-coverage-gap-triage.md` | 未解決ギャップの分類と推奨修正範囲 |
 | `plans/<ticket-or-slug>-coverage-gap-resolution-slice.md` | 選択したギャップの修正結果と残作業 |
@@ -499,6 +587,7 @@ Token-aware guardrail kernel flow では、通常は次の成果物を作成し�
 - Token-aware flow でも Plan 作成を省略しない
 - 実装の source of truth は bounded Plan とする
 - kernel artifacts は high-risk slice の guardrail として扱い、Plan の代替にしない
+- `implementation-handoff-review.agent.md` は必要な場合だけ使う optional gate とする
 - 対象スコープを明示する
 - 不明な項目を推測で埋めない
 - テストが通ることを production binding の証拠にしない
