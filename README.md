@@ -10,7 +10,7 @@ GitHub Copilot で Plan-first 開発をするための agent（`.github/agents/`
    runtime evidence・integration test の設計・検証・ギャップ解消を広く使い、ゴールまで自走しやすい従来型のフロー。
 
 2. Token-aware guardrail kernel flow  
-   GitHub Copilot のトークン消費を意識し、対象 slice を絞って bounded に進めるフロー。guardrail は削らず、対象範囲を絞ることを重視します。
+   GitHub Copilot のトークン消費を意識し、Plan-first の効果を保ったまま、対象 slice を絞って bounded に進めるフロー。Plan 作成は省略せず、guardrail も削らず、対象範囲を絞ることを重視します。
 
 ---
 
@@ -27,7 +27,8 @@ GitHub Copilot で Plan-first 開発をするための agent（`.github/agents/`
 Token-aware guardrail kernel flow では、この失敗を防ぐための guardrail チェーンを維持したまま、対象の runtime slice を絞ります。
 
 ```text
-runtime contract
+Plan requirement / acceptance condition
+  -> runtime contract
   -> テストポイント
   -> stub/fake の使用
   -> production 実装
@@ -36,7 +37,7 @@ runtime contract
 ```
 
 軽量化する場合も、削る対象は プロセスの深さ ではなく プロセスの広さ です。  
-つまり「全体を浅く見る」のではなく、「選択した危険な contract を十分に深く見る」ことを優先します。
+つまり「全体を浅く見る」のではなく、「Plan は作る」「選択した危険な contract を十分に深く見る」ことを優先します。
 
 ---
 
@@ -85,13 +86,17 @@ runtime contract
 
 ## Token-aware guardrail kernel flow
 
-トークン消費を意識し、選択した runtime contract・テストポイント・ギャップだけを bounded に扱うフローです。
+トークン消費を意識し、bounded Plan を作成したうえで、選択した runtime contract・テストポイント・ギャップだけを bounded に扱うフローです。
+
+このフローは risk triage から始めません。  
+まず `plan-kernel.agent.md` で実装の source of truth になる bounded Plan を作成し、その Plan の中から高リスクな runtime slice を選びます。
 
 ### 想定用途
 
 次のような場合に向いています。
 
-- full flow は重すぎるが、runtime contract の guardrail は外したくない
+- full flow は重すぎるが、Plan-first の効果は保ちたい
+- runtime contract の guardrail は外したくない
 - 複数のプロセス・サービス・コンポーネントが絡むが、危険な slice は限定できる
 - stub / fake を使ったテストがあり、production 実装 / wiring の欠落を防ぎたい
 - 検証で見つかったギャップを、選択した ID だけ bounded に修正したい
@@ -99,46 +104,92 @@ runtime contract
 
 ### 典型的な手順
 
-1. `change-risk-triage.agent.md`
-2. `runtime-contract-kernel.agent.md`
-3. `test-design-kernel.agent.md`
-4. 通常エージェントまたは人間主導で実装
-5. `verification-kernel.agent.md`
-6. `coverage-gap-triage.agent.md`
-7. `coverage-gap-resolution-slice.agent.md`
-8. 必要に応じて `verification-kernel.agent.md` を再実行
+1. `plan-kernel.agent.md`
+2. `change-risk-triage.agent.md`
+3. `runtime-contract-kernel.agent.md`
+4. `test-design-kernel.agent.md`
+5. 通常エージェントまたは人間主導で実装
+6. `verification-kernel.agent.md`
+7. `coverage-gap-triage.agent.md`
+8. `coverage-gap-resolution-slice.agent.md`
+9. 必要に応じて `verification-kernel.agent.md` を再実行
 
 このフローでは、各 agent が 1 回の bounded な実行を行い、未解決項目は成果物に残して停止します。  
 「直るまで修正し続ける」ことは目的ではありません。
+
+### 実装に渡すもの
+
+Token-aware flow で実装に入るときは、`runtime-contract-kernel` だけを渡してはいけません。  
+`runtime-contract-kernel` は高リスク境界の guardrail であり、要求全体の仕様ではありません。
+
+実装 agent には、少なくとも次を渡してください。
+
+- `plan-kernel.agent.md` が作成した bounded Plan
+- `change-risk-triage.agent.md` の出力
+- `runtime-contract-kernel.agent.md` の出力
+- `test-design-kernel.agent.md` の出力
+- selected implementation scope と non-goals
+
+実装 agent は Plan を source of truth として扱います。kernel artifacts は high-risk slice に対する guardrail であり、Plan の代替ではありません。
 
 ---
 
 ## Token-aware フローの agent 群
 
-### `change-risk-triage.agent.md`
+### `plan-kernel.agent.md`
 
-要求された変更のリスクプロファイルを分類し、最小限かつ十分なプロセスプロファイルを推奨します。
+要求された変更に対して、bounded な実装 Plan を作成します。
 
 主な役割:
 
-- 高リスクな runtime 境界を特定する
+- token-aware flow の先頭で、実装の source of truth になる Plan を作る
+- Goal / Non-goals / Functional requirements / Acceptance conditions を明確にする
+- 影響を受ける component / module と expected implementation scope を整理する
+- high-risk boundary candidates を軽く拾い、`change-risk-triage` へ渡す
+- full runtime evidence や full integration test design には踏み込まない
+
+この agent は実装もテスト作成も行いません。final runtime contracts の選択も行いません。
+
+使う場面:
+
+- Token-aware guardrail kernel flow を開始するとき
+- full `plan-generation.agent.md` は重すぎるが、Plan-first は維持したいとき
+- 実装に入る前に、scope / non-goals / acceptance conditions を固定したいとき
+
+プロンプト例:
+
+```text
+この issue について、Token-aware guardrail kernel flow で進めます。
+まず plan-kernel.agent.md を使って bounded Plan を作成してください。
+実装・テスト作成・full runtime evidence・full integration test design は行わず、Goal、Non-goals、Functional requirements、Acceptance conditions、Affected components、Known high-risk boundaries、Handoff to change-risk-triage を出してください。
+```
+
+---
+
+### `change-risk-triage.agent.md`
+
+bounded Plan を読み、リスクプロファイルを分類し、最小限かつ十分なプロセスプロファイルを推奨します。
+
+主な役割:
+
+- Plan の中から高リスクな runtime 境界を特定する
 - 対象の runtime contract を 1〜3 件程度に絞る
 - `contract-kernel` / `standard-slice` / `full-coverage` / `fix-slice` を推奨する
 - 後続 agent に渡す引き渡し情報を作る
 
-この agent は実装もテスト設計も行いません。
+この agent は Plan 作成・実装・テスト設計を行いません。
 
 使う場面:
 
-- どのフローで進めるべきか迷うとき
+- `plan-kernel.agent.md` が bounded Plan を作成した後
 - full flow に入る前に、軽量化できるか確認したいとき
 - プロセス間・queue・webhook・外部 API・DI・production wiring などのリスクがありそうなとき
 
 プロンプト例:
 
 ```text
-この変更について、change-risk-triage.agent.md を使ってリスクプロファイルを分類してください。
-実装やテスト設計は行わず、リスクトリガーのスキャン結果・対象 runtime contract・推奨プロセスプロファイル・次に使う agent を出してください。
+plan-kernel.agent.md が作成した bounded Plan を入力として、change-risk-triage.agent.md を実行してください。
+Plan の中から高リスクな runtime boundary を分類し、実装やテスト設計は行わず、リスクトリガーのスキャン結果・対象 runtime contract・推奨プロセスプロファイル・次に使う agent を出してください。
 ```
 
 ---
@@ -154,7 +205,7 @@ runtime contract
 - 必須フィールド・エラー / タイムアウト時の動作・production 実装の所在を記録する
 - 後続の `test-design-kernel` や `verification-kernel` が再探索せずに使える引き渡し情報を作る
 
-この agent は実装もテスト作成も行いません。
+この agent は実装もテスト作成も行いません。Plan の代替になる仕様書も作りません。
 
 使う場面:
 
@@ -165,8 +216,9 @@ runtime contract
 プロンプト例:
 
 ```text
-change-risk-triage の出力を入力として、runtime-contract-kernel.agent.md を実行してください。
+change-risk-triage の出力と bounded Plan を入力として、runtime-contract-kernel.agent.md を実行してください。
 対象の runtime contract に含まれる RC だけを対象にし、plans/<slug>-runtime-contract-kernel.md を作成してください。
+Plan を source of truth として扱い、対象外の contract を追加しないでください。
 ```
 
 ---
@@ -194,8 +246,41 @@ Runtime Contract Kernel の `RC-xxx` を、観測可能な `TP-xxx` テストポ
 プロンプト例:
 
 ```text
-runtime-contract-kernel の内容を入力として、test-design-kernel.agent.md を実行してください。
+bounded Plan と runtime-contract-kernel の内容を入力として、test-design-kernel.agent.md を実行してください。
 各 RC に対して観測可能なテストポイントを作り、stub/fake を使う場合は production binding の確認を必須にしてください。
+```
+
+---
+
+### 実装フェーズ
+
+Token-aware flow では、実装専用 agent が別途あるわけではありません。通常の GitHub Copilot agent、通常の coding agent、または人間主導の実装で進めます。
+
+ただし、実装に渡す入力は明確にしてください。
+
+プロンプト例:
+
+```text
+次の成果物を必ず読んで、selected scope だけを実装してください。
+
+- plans/<slug>.md もしくは plan-kernel.agent.md が作成した bounded Plan
+- plans/<slug>-change-risk-triage.md
+- plans/<slug>-runtime-contract-kernel.md
+- plans/<slug>-test-design-kernel.md
+
+実装の source of truth は bounded Plan です。
+runtime-contract-kernel と test-design-kernel は、selected high-risk slice に対する guardrail として使ってください。
+
+次の制約を守ってください。
+
+- Plan の Functional requirements と Acceptance conditions を満たす
+- Non-goals と Out of scope for this pass に含まれる作業は行わない
+- selected runtime contracts / test points に必要な production implementation と wiring を落とさない
+- stub / fake / mock / in-memory test だけで production complete と判断しない
+- selected scope 外の redesign や unrelated refactoring は行わない
+- 完了できない項目は Remaining work として報告する
+
+最後に、変更した files、対応した Runtime Contract ID、対応した Test Point ID、実行した tests、未実行 tests、Remaining work を報告してください。
 ```
 
 ---
@@ -225,7 +310,7 @@ runtime-contract-kernel の内容を入力として、test-design-kernel.agent.m
 
 ```text
 実装後の状態について、verification-kernel.agent.md を実行してください。
-Test Design Kernel の対象テストポイントだけを確認し、stub/fake の使用有無・production 実装・production wiring/entrypoint を検証してください。
+bounded Plan、Runtime Contract Kernel、Test Design Kernel の対象テストポイントだけを確認し、stub/fake の使用有無・production 実装・production wiring/entrypoint を検証してください。
 修正は行わず、判定結果と未解決項目を出してください。
 ```
 
@@ -302,14 +387,16 @@ coverage-gap-triage の推奨修正範囲から Slice 1 だけを対象に、cov
 
 ### Token-aware guardrail kernel flow を使う場合
 
-- 対象にする runtime slice を絞れる
-- 境界をまたぐリスクはあるが、full flow は重すぎる
+- Plan-first は維持したいが、full flow は重すぎる
+- bounded Plan を作り、その中の高リスク slice だけ深く扱いたい
+- 境界をまたぐリスクはあるが、全体の runtime evidence までは不要
 - stub / fake テストと production 実装 / wiring の対応を確認したい
 - ギャップを選択した ID ごとに分割して修正したい
 - トークンコストと bounded な進捗を重視する
 
 ### kernel flow から full flow に切り替えるべき場合
 
+- bounded Plan を安全に作れないほど要求が曖昧
 - 対象の contract が 5 件を超えそう
 - kernel のテーブルだけでは sequence の因果関係が表現できない
 - retry / rollback / replay / recovery の仕様が複雑
@@ -320,32 +407,57 @@ coverage-gap-triage の推奨修正範囲から Slice 1 だけを対象に、cov
 
 ## よく使うプロンプトパターン
 
-### まずトリアージから始める
+### Token-aware flow を Plan から始める
 
 ```text
-この変更について、まず change-risk-triage.agent.md を使ってください。
-実装やテスト設計は行わず、リスクトリガーのスキャン結果・対象 runtime contract・推奨プロセスプロファイル・次の agent を出してください。
+この変更について、Token-aware guardrail kernel flow で進めます。
+まず plan-kernel.agent.md を使って bounded Plan を作成してください。
+実装・テスト作成・full runtime evidence・full integration test design は行わず、実装の source of truth になる Plan と、change-risk-triage への handoff を出してください。
+```
+
+### Plan をもとにトリアージする
+
+```text
+plan-kernel.agent.md が作成した bounded Plan を入力として、change-risk-triage.agent.md を使ってください。
+Plan の中から高リスクな runtime boundary を分類し、実装やテスト設計は行わず、リスクトリガーのスキャン結果・対象 runtime contract・推奨プロセスプロファイル・次の agent を出してください。
 ```
 
 ### 選択した contract だけに絞って contract-kernel を実行する
 
 ```text
-change-risk-triage の出力にある RC-001 と RC-002 だけを対象に、runtime-contract-kernel.agent.md を実行してください。
+bounded Plan と change-risk-triage の出力にある RC-001 と RC-002 だけを対象に、runtime-contract-kernel.agent.md を実行してください。
 対象外の contract を追加せず、不明な項目は推測せず注意事項 / 前提に残してください。
 ```
 
 ### テストを実装せずにテストポイントを設計する
 
 ```text
-runtime-contract-kernel の RC-001 と RC-002 を対象に、test-design-kernel.agent.md を実行してください。
+bounded Plan と runtime-contract-kernel の RC-001 と RC-002 を対象に、test-design-kernel.agent.md を実行してください。
 テストは実装せず、テストポイント ID・期待される観測結果・stub/fake の使用有無・必須 production binding チェックを作成してください。
+```
+
+### Plan と kernel artifacts を渡して実装する
+
+```text
+次の成果物を必ず読んで、selected scope だけを実装してください。
+
+- plans/<slug>.md もしくは plan-kernel.agent.md が作成した bounded Plan
+- plans/<slug>-change-risk-triage.md
+- plans/<slug>-runtime-contract-kernel.md
+- plans/<slug>-test-design-kernel.md
+
+実装の source of truth は bounded Plan です。
+kernel artifacts は high-risk slice に対する guardrail として使ってください。
+
+Plan の Functional requirements と Acceptance conditions を満たし、Non-goals / Out of scope に含まれる作業は行わないでください。
+stub / fake / mock / in-memory test だけで production complete と判断せず、production implementation と wiring を落とさないでください。
 ```
 
 ### 実装後に検証する
 
 ```text
 実装後の状態について、verification-kernel.agent.md を実行してください。
-Test Design Kernel の TP-001 と TP-002 だけを対象にし、production 実装と wiring/entrypoint を確認してください。
+bounded Plan、Test Design Kernel の TP-001 と TP-002 だけを対象にし、production 実装と wiring/entrypoint を確認してください。
 ギャップは修正せず、判定結果と未解決項目を出してください。
 ```
 
@@ -372,6 +484,7 @@ Token-aware guardrail kernel flow では、通常は次の成果物を作成し�
 
 | 成果物 | 目的 |
 | --- | --- |
+| `plans/<ticket-or-slug>.md` | bounded Plan。実装の source of truth |
 | `plans/<ticket-or-slug>-change-risk-triage.md` | リスクプロファイル・対象 contract・推奨プロセスプロファイル |
 | `plans/<ticket-or-slug>-runtime-contract-kernel.md` | runtime contract・producer / consumer・メッセージ・フィールド・production 実装の所在 |
 | `plans/<ticket-or-slug>-test-design-kernel.md` | テストポイントマッピング・stub/fake の使用有無・production binding 確認要件 |
@@ -383,11 +496,13 @@ Token-aware guardrail kernel flow では、通常は次の成果物を作成し�
 
 ## 運用原則
 
+- Token-aware flow でも Plan 作成を省略しない
+- 実装の source of truth は bounded Plan とする
+- kernel artifacts は high-risk slice の guardrail として扱い、Plan の代替にしない
 - 対象スコープを明示する
 - 不明な項目を推測で埋めない
 - テストが通ることを production binding の証拠にしない
 - fake / stub だけを production の完成と扱わない
-- Plan を実装の動作仕様における信頼できる唯一の情報源とする
 - 1 回の bounded な実行で停止し、残件は成果物に残す
 - `Bound` の正式判定は `verification-kernel.agent.md` に任せる
 
