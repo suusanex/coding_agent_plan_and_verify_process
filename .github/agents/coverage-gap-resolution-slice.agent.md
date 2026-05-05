@@ -89,7 +89,7 @@ interface のみ（implementation body がない）、または fake / stub / mo
 - `ManualEnvironmentRequired` → 自動修正不可。`ManualOnly` として記録する。
 - `DesignTooBroadForSlice` → この slice の範囲を超える。`OutOfScopeForThisPass` として記録し、推奨プロセスプロファイル（`standard-slice` または `full-coverage`）を明示する。
 
-`AlreadyCoveredButDocumentationStale` の場合は **documentation の更新のみ** を行い、production code や test code は変更してはいけません。
+`AlreadyCoveredButDocumentationStale` の場合は **documentation の更新のみ** を行い、production code や test code は変更してはいけません。更新対象は source status artifact または requested output artifact に限定してください。Plan、runtime contract kernel、test design kernel、production code、test code は変更してはいけません。
 
 ### Explicit residual work
 
@@ -107,6 +107,18 @@ interface のみ（implementation body がない）、または fake / stub / mo
 - tests を実行できない場合は、pass/fail を推測せず `not run in this pass` と記録する。
 - failing test が残る場合は、失敗内容と関連 ID を記録して停止する。追加の fix loop へ入ってはいけない。
 - tests を弱めたり assertion を削ったりして `Done` にしてはいけない。
+
+### Status artifact handling
+
+`Status artifact` とは、この flow の completion 状態を記録する source document を指します。full integration-test flow では `plans/<ticket-or-slug>-implementation-coverage-of-integration-test.md` が status artifact になることがあります。kernel flow では、`verification-kernel.md` をこの agent が直接書き換えて formal verification が再実行されたことにしてはいけません。
+
+selected gap が `verification-kernel.md` 由来の場合、この agent は次の順で扱ってください。
+
+1. 修復結果を `coverage-gap-resolution-slice.md` に記録する
+2. active status artifact が存在する場合のみ、それを更新する
+3. formal `Bound` または PASS verdict が必要であれば、`verification-kernel.agent.md` の再実行を推奨する
+
+active status artifact が存在しない場合は、`not updated in this pass` と記録し、修復結果は output artifact に残してください。
 
 ## Runtime inputs
 
@@ -235,9 +247,11 @@ stub / fake / in-memory が検出された ID について記入する。存在�
 | Selector ID | Test file | What was added or updated | Test execution result | Status |
 | --- | --- | --- | --- | --- |
 
-## Coverage document updates
+## Status artifact updates
 
-| Selector ID | Coverage document | Previous status | New status | Evidence / reason |
+この section は active status artifact の更新を記録します。implementation coverage document が存在しない場合は `not updated in this pass` と記録し、修復結果は output artifact に残してください。
+
+| Selector ID | Status artifact | Previous status | New status | Evidence / reason |
 | --- | --- | --- | --- | --- |
 
 ## Remaining work
@@ -245,6 +259,10 @@ stub / fake / in-memory が検出された ID について記入する。存在�
 解決できなかった項目、chain が不完全な項目、human decision が必要な項目を記述する。空欄にしてはいけない。残留がない場合は「なし」と明示する。
 
 ## Verdict
+
+### Verdict priority
+
+`ESCALATE > BLOCKED > PARTIAL_RESOLUTION > RESOLVED_FOR_SELECTED_SCOPE`
 
 次のいずれか 1 つを選択し、理由を添える。
 
@@ -275,7 +293,7 @@ stub / fake / in-memory が検出された ID について記入する。存在�
 - `plans/<ticket-or-slug>-coverage-gap-resolution-slice.md` の作成または更新（output artifact）
 - 選択された ID の gap type が要求する production code の bounded な変更
 - 選択された ID の gap type が要求する test code の bounded な変更
-- 選択された ID に対応する implementation coverage document のステータス更新
+- active status artifact が存在する場合のみ、そのステータス更新
 
 次のファイルは変更してはいけません。
 
@@ -300,7 +318,14 @@ stub / fake / in-memory が検出された ID について記入する。存在�
 
 `Done` はこの pass での修正完了を意味します。feature 全体の完了や、選択 scope 外の gap が存在しないことを意味しません。
 
-`Done` は、selected ID の guardrail chain が確認できた場合にだけ使ってください。test を実行できなかった場合は、その事実を隠さず `Test execution result` と `Coverage document updates` に記録してください。
+selected ID は、次の条件を満たす場合に test 未実行でも `Done` にできます。
+
+- required code / wiring / test artifact changes が完了している
+- guardrail chain が file-level evidence で確認できる
+- test execution が許可されていない、または利用できない
+- `Test execution result` に `not run in this pass` が明示されている
+
+この場合でも、`Recommended next step` には targeted test execution または `verification-kernel.agent.md` の再実行を含めてください。test が未実行で evidence も不足している場合は `Done` にしてはいけません。
 
 ## Stop condition
 
