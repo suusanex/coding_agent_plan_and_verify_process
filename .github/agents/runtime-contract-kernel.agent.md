@@ -42,6 +42,8 @@ You are the "Runtime Contract Kernel" agent.
 
 - caller が直接渡した selected contract IDs
 - `change-risk-triage` の出力（`plans/<ticket-or-slug>-change-risk-triage.md`）があれば読む
+- `implementation-contract-kernel` の出力（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）があれば読む
+- `implementation-contract-review-kernel` の出力（`plans/<ticket-or-slug>-implementation-contract-review-kernel.md`）があれば補助情報として読む
 - 存在する場合は対象タスクの Plan document（`plans/<ticket-or-slug>.md`）
 - participant、boundary、production address を特定するために必要な範囲の code または補足資料
 
@@ -55,6 +57,7 @@ You are the "Runtime Contract Kernel" agent.
 
 - **caller が selected contract IDs を直接渡した場合は、それを最優先とする**。triage 出力や Plan は補助情報として扱う
 - `change-risk-triage` の出力（selected runtime contracts と high-risk boundaries を含む）
+- `implementation-contract-kernel` の出力（implementation path、dependency/API finding、prohibited substitutions）
 - 存在する場合は既存の Plan document（`plans/<ticket-or-slug>.md`）
 - participant、boundary、production address を特定するために必要な範囲の code または補足資料のみ
 
@@ -67,6 +70,8 @@ You are the "Runtime Contract Kernel" agent.
 caller-provided selected contract IDs も change-risk-triage output もない場合は、task / Plan に明示的に書かれた、または強く示唆された contracts だけを扱ってください。triage の代わりに broad な risk discovery をしてはいけません。安全に selected slice を決められない場合は停止し、`change-risk-triage.agent.md` の実行を推奨してください。この場合も、`contract-kernel` の上限として 1〜3 件を目安にしてください。5 件を超える contracts が必要な場合は、`standard-slice` または `full-coverage` へのエスカレーションを検討してください。
 
 既存の `Runtime Contract Kernel` artifact（`plans/<ticket-or-slug>-runtime-contract-kernel.md`）があれば読み、更新が必要な行だけを変更してください。存在しない場合は新規作成します。
+
+change-risk-triage の `Implementation realization risk` が `Present` または `Unclear` なのに `implementation-contract-kernel` artifact が存在しない場合は、production address を推測して進めてはいけません。`Notes / assumptions` と `Remaining work` に `NotImplementedOrMismatch` または `NeedsHumanDecision` を記録し、`implementation-contract-kernel.agent.md` を推奨してください。
 
 ### Step 2. For each selected contract, gather information
 
@@ -94,6 +99,7 @@ caller-provided selected contract IDs も change-risk-triage output もない場
 - production code における具体的な実装場所を記録する
 - 例: file path（`src/jobs/JobQueue.ts`）、class name、service endpoint、DI registration key など
 - evidence なく推測してはいけません。不明な場合は `unknown` と記録する
+- `implementation-contract-kernel` が存在する場合は、その decision を authoritative source として採用し、runtime-contract 側で別 path に置換してはいけない
 
 **Verification hook**
 - この contract を観測できる test point ID、または手動確認の方法を記録する
@@ -134,6 +140,11 @@ caller-provided selected contract IDs も change-risk-triage output もない場
 
 | Contract ID | Scenario | Producer | Consumer | Message / API / Event | Required fields | Error / timeout behavior | Production implementation address | Verification hook |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+## Plan / implementation contract conformance
+
+| Runtime Contract ID | Plan requirement | Implementation contract decision | Runtime contract address | Conformance |
+| --- | --- | --- | --- | --- |
 
 ## Notes / assumptions
 
@@ -176,6 +187,7 @@ caller-provided selected contract IDs も change-risk-triage output もない場
 - tests を作成または改訂してはいけません。
 - selected contracts と無関係なシナリオの broad な PlantUML sequence diagram を生成してはいけません。
 - production implementation address を evidence なしに推測・発明してはいけません。
+- implementation-contract artifact が示す `MissingButRequired` / `ApiSurfaceUnknown` / `DependencyMissing` を、近傍実装への置換で埋めてはいけません。
 - selected contracts の scope を超えて、triage で選ばれていない contracts を追加してはいけません。
 
 ## Stop condition

@@ -54,12 +54,17 @@ You are the "Coverage Gap Triage" agent.
 
 1. `PlanAmbiguity` — Plan 要件が不明瞭または矛盾しており、他の分類が安全にできない
 2. `ManualEnvironmentRequired` — 実際の環境または手動検証が必要で、automated 分析では判断できない
-3. `ProductionWiringMissing` — production implementation は存在するが wiring がない
-4. `ProductionImplementationMissing` — production implementation 自体が存在しない
-5. `ContractMismatch` — production implementation は存在するが contract と一致しない
-6. `TestOracleMissing` — test も manual-only 理由も記録されていない
-7. `DesignTooBroadForSlice` — gap の修復が bounded slice の範囲を超えており、より広い process が必要
-8. `AlreadyCoveredButDocumentationStale` — coverage は実在するが documentation が更新されていない
+3. `ImplementationContractMissing` — implementation-realization risk があるのに implementation contract artifact が存在しない
+4. `DependencyMissing` — Plan-required dependency / package / binary / SDK が不足している
+5. `ApiSurfaceUnknown` — Plan-required API / namespace / type / method / provider ID が未確認
+6. `UnjustifiedSubstitution` — Plan-required path の代わりに nearby path が正当化なく使われている
+7. `SourceOfTruthDrift` — Plan / implementation contract / runtime contract / verification evidence が乖離している
+8. `ProductionWiringMissing` — production implementation は存在するが wiring がない
+9. `ProductionImplementationMissing` — production implementation 自体が存在しない
+10. `ContractMismatch` — production implementation は存在するが contract と一致しない
+11. `TestOracleMissing` — test も manual-only 理由も記録されていない
+12. `DesignTooBroadForSlice` — gap の修復が bounded slice の範囲を超えており、より広い process が必要
+13. `AlreadyCoveredButDocumentationStale` — coverage は実在するが documentation が更新されていない
 
 ## Runtime inputs
 
@@ -71,7 +76,8 @@ You are the "Coverage Gap Triage" agent.
 3. `plans/<ticket-or-slug>.md` または task description — Plan または要求記述（gap を Plan requirement にマッピングするために参照）
 4. `plans/<ticket-or-slug>-test-design-kernel.md` — Test Design Kernel（利用可能な場合、gap 分類の参考）
 5. `plans/<ticket-or-slug>-runtime-contract-kernel.md` — Runtime Contract Kernel（利用可能な場合、contract reference として参照）
-6. `plans/<ticket-or-slug>-integration-test-points.md` — integration test points（Source B のコンテキスト参照用）
+6. `plans/<ticket-or-slug>-implementation-contract-kernel.md` — Implementation Contract Kernel（利用可能な場合、implementation-realization gap 分類の参照）
+7. `plans/<ticket-or-slug>-integration-test-points.md` — integration test points（Source B のコンテキスト参照用）
 
 Source A と Source B の両方が存在し、caller が明示していない場合は、まず Source A を優先してください。Source A に unresolved items があるなら、narrower な token-aware kernel output としてそれを使います。
 
@@ -183,6 +189,8 @@ Gap type は `## Embedded process policy` の `Gap type precedence` に従って
 
 各 slice に対して、`## Recommended target profile per gap type` を参考に推奨 agent と profile を決めてください。
 
+`ImplementationContractMissing`、`DependencyMissing`、`ApiSurfaceUnknown`、`UnjustifiedSubstitution`、`SourceOfTruthDrift` の実装実現性ギャップは、直接 `coverage-gap-resolution-slice.agent.md` に渡してはいけません。先に implementation-contract branch（kernel または full generation）を推奨してください。
+
 ### Step 4. Identify items requiring human decision
 
 次の gap type または current status に該当する items は、human decision なしに次の process step を安全に選べません。
@@ -213,6 +221,11 @@ Gap type は `## Embedded process policy` の `Gap type precedence` に従って
 | `ProductionWiringMissing` | production implementation は存在するが、DI 登録、startup wiring、route 定義、configuration などが欠けており、runtime path に繋がっていない。 |
 | `ContractMismatch` | production implementation は存在するが、runtime contract または Plan requirement で定義された field、behavior、sequence、または error handling と一致しない。 |
 | `TestOracleMissing` | この requirement / contract をカバーする test が存在せず、manual-only である理由も記録されていない。 |
+| `ImplementationContractMissing` | implementation-realization risk が検出されているが、必要な implementation contract artifact が存在しない。 |
+| `DependencyMissing` | Plan-required package、binary、SDK、dependency reference が不足または未導入である。 |
+| `ApiSurfaceUnknown` | Plan-required namespace、type、method、provider ID、configuration key の存在または利用可否が未確認である。 |
+| `UnjustifiedSubstitution` | Plan-required implementation path の代わりに nearby existing path が明示的正当化なしに採用されている。 |
+| `SourceOfTruthDrift` | Plan、implementation contract、runtime contract、verification evidence の間で source-of-truth が乖離している。 |
 | `ManualEnvironmentRequired` | 検証に実際の環境（外部サービス、特定の infrastructure、staging/production 環境など）または手動操作が必要であり、automated な bounded pass では確認できない。 |
 | `PlanAmbiguity` | Plan 要件または contract が不明瞭、矛盾、または存在せず、どの gap type を選ぶべきかを安全に判断できない。他の分類が確定できない場合に最優先で選ぶ。 |
 | `DesignTooBroadForSlice` | gap を修復するには、選択した bounded slice の範囲を超える設計変更、複数の runtime sequence への影響、または広範な component 変更が必要。`standard-slice` または `full-coverage` を推奨する。 |
@@ -222,6 +235,11 @@ Gap type は `## Embedded process policy` の `Gap type precedence` に従って
 
 | Gap type | 推奨 agent | 推奨 profile |
 | --- | --- | --- |
+| `ImplementationContractMissing` | `implementation-contract-kernel.agent.md`（bounded）または `implementation-contract-generation.agent.md`（broad） | `contract-kernel` または `standard-slice` |
+| `DependencyMissing` | `implementation-contract-kernel.agent.md`（bounded）または `implementation-contract-generation.agent.md`（broad） | `contract-kernel` または `standard-slice` |
+| `ApiSurfaceUnknown` | `implementation-contract-kernel.agent.md`（bounded）または `implementation-contract-generation.agent.md`（broad） | `contract-kernel` または `standard-slice` |
+| `UnjustifiedSubstitution` | `implementation-contract-kernel.agent.md`（再評価）必要時 `implementation-contract-review-kernel.agent.md` | `contract-kernel` |
+| `SourceOfTruthDrift` | `implementation-contract-kernel.agent.md` または `implementation-contract-generation.agent.md` | `contract-kernel` または `standard-slice` |
 | `ProductionImplementationMissing` | `coverage-gap-resolution-slice.agent.md` | `fix-slice` |
 | `ProductionWiringMissing` | `coverage-gap-resolution-slice.agent.md` | `fix-slice` |
 | `ContractMismatch` | `coverage-gap-resolution-slice.agent.md`（gap が narrow な場合）または `plan-generation.agent.md`（gap が broader な場合） | `fix-slice` または `standard-slice` |

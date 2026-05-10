@@ -106,14 +106,16 @@ Plan requirement / acceptance condition
 
 1. `plan-kernel.agent.md`
 2. `change-risk-triage.agent.md`
-3. `runtime-contract-kernel.agent.md`
-4. `test-design-kernel.agent.md`
-5. 必要に応じて `implementation-handoff-review.agent.md`
-6. 通常エージェントまたは人間主導で実装
-7. `verification-kernel.agent.md`
-8. `coverage-gap-triage.agent.md`
-9. `coverage-gap-resolution-slice.agent.md`
-10. 必要に応じて `verification-kernel.agent.md` を再実行
+3. `implementation-contract-kernel.agent.md`（implementation-realization risk がある場合）
+4. `implementation-contract-review-kernel.agent.md` または bounded `implementation-contract-review.agent.md`（contract が non-trivial の場合）
+5. `runtime-contract-kernel.agent.md`
+6. `test-design-kernel.agent.md`
+7. 必要に応じて `implementation-handoff-review.agent.md`
+8. 通常エージェントまたは人間主導で実装
+9. `verification-kernel.agent.md`
+10. 未解決がある場合は `coverage-gap-triage.agent.md`
+11. 選択した gap は `coverage-gap-resolution-slice.agent.md`
+12. 必要に応じて `verification-kernel.agent.md` を再実行
 
 このフローでは、各 agent が 1 回の bounded な実行を行い、未解決項目は成果物に残して停止します。  
 「直るまで修正し続ける」ことは目的ではありません。
@@ -130,10 +132,19 @@ Token-aware flow で実装に入るときは、`runtime-contract-kernel` だけ�
 
 - `plan-kernel.agent.md` が作成した bounded Plan
 - `change-risk-triage.agent.md` の出力
+- `implementation-contract-kernel.agent.md` の出力（implementation-realization risk が Present / Unclear の場合）
+- `implementation-contract-review-kernel.agent.md` の出力（存在する場合）
 - `runtime-contract-kernel.agent.md` の出力
 - `test-design-kernel.agent.md` の出力
 - `implementation-handoff-review.agent.md` の出力（実行した場合）
 - selected implementation scope と non-goals
+
+補足:
+
+- runtime-contract artifact は implementation-contract artifact の代替ではありません
+- Plan conformance を確認しても、unknown な implementation path の調査は不要になりません
+- implementation-realization の unresolved items は guessed address に変換せず、明示的に保持します
+- broad なケースでは full-flow `implementation-contract-generation.agent.md` / `implementation-contract-review.agent.md` を継続利用します
 
 実装 agent は Plan を source of truth として扱います。kernel artifacts は high-risk slice に対する guardrail であり、Plan の代替ではありません。
 
@@ -178,8 +189,9 @@ bounded Plan を読み、リスクプロファイルを分類し、最小限か�
 主な役割:
 
 - Plan の中から高リスクな runtime 境界を特定する
+- implementation-realization risk（dependency / API surface / substitution risk）を分類する
 - 対象の runtime contract を 1〜3 件程度に絞る
-- `contract-kernel` / `standard-slice` / `full-coverage` / `fix-slice` を推奨する
+- `implementation-contract-kernel` / full `implementation-contract-generation` / `contract-kernel` / `standard-slice` / `full-coverage` / `fix-slice` を推奨する
 - 後続 agent に渡す引き渡し情報を作る
 
 この agent は Plan 作成・実装・テスト設計を行いません。
@@ -189,12 +201,68 @@ bounded Plan を読み、リスクプロファイルを分類し、最小限か�
 - `plan-kernel.agent.md` が bounded Plan を作成した後
 - full flow に入る前に、軽量化できるか確認したいとき
 - プロセス間・queue・webhook・外部 API・DI・production wiring などのリスクがありそうなとき
+- Plan-named dependency/API/provider path の実在確認が未完了なとき
 
 プロンプト例:
 
 ```text
 plan-kernel.agent.md が作成した bounded Plan を入力として、change-risk-triage.agent.md を実行してください。
-Plan の中から高リスクな runtime boundary を分類し、実装やテスト設計は行わず、リスクトリガーのスキャン結果・対象 runtime contract・推奨プロセスプロファイル・次に使う agent を出してください。
+Plan の中から高リスクな runtime boundary と implementation-realization risk を分類し、実装やテスト設計は行わず、リスクトリガーのスキャン結果・対象 runtime contract・Implementation realization risk・推奨プロセスプロファイル・次に使う agent を出してください。
+```
+
+---
+
+### `implementation-contract-kernel.agent.md`
+
+bounded Plan を concrete な implementation decision に変換し、dependency / API surface / provider path の確認結果を記録します。
+
+主な役割:
+
+- Plan-named implementation requirement を明示する
+- dependency / API / symbol の evidence を確認する
+- prohibited substitutions と allowed reuse を分離する
+- required code changes と verification hooks を定義する
+- unresolved implementation-realization items を可視化する
+
+この agent は実装もテスト作成も行いません。
+
+使う場面:
+
+- `change-risk-triage` が implementation-realization risk を `Present` / `Unclear` と判定した後
+- runtime-contract-kernel へ進む前に implementation path を固定したいとき
+
+プロンプト例:
+
+```text
+bounded Plan と change-risk-triage の出力を入力として、implementation-contract-kernel.agent.md を実行してください。
+plans/<slug>-implementation-contract-kernel.md を作成し、Plan-named dependency/API/provider path の確認結果、prohibited substitutions、required code changes、unresolved implementation-realization items を記録してください。
+```
+
+---
+
+### `implementation-contract-review-kernel.agent.md`
+
+implementation-contract-kernel の内容を軽量レビューし、runtime-contract または実装へ進めるかを verdict で判定します。
+
+主な役割:
+
+- dependency / API evidence 不足の検出
+- unjustified substitution の検出
+- Plan と implementation contract の source-of-truth drift の検出
+- `READY_FOR_RUNTIME_CONTRACT` / `READY_FOR_IMPLEMENTATION` / `BLOCKED_*` / `NEEDS_HUMAN_DECISION` の判定
+
+この agent は docs-only review gate であり、実装・テスト作成は行いません。
+
+使う場面:
+
+- implementation-contract-kernel が non-trivial な判断を含むとき
+- runtime-contract へ進む前に drift を抑止したいとき
+
+プロンプト例:
+
+```text
+plans/<slug>.md、plans/<slug>-change-risk-triage.md、plans/<slug>-implementation-contract-kernel.md を入力として、implementation-contract-review-kernel.agent.md を実行してください。
+source-of-truth drift、dependency/API evidence 不足、unjustified substitution を確認し、single verdict を出してください。
 ```
 
 ---
@@ -263,7 +331,8 @@ bounded Plan と runtime-contract-kernel の内容を入力として、test-desi
 
 主な役割:
 
-- `plans/<slug>.md`、`change-risk-triage`、`runtime-contract-kernel`、`test-design-kernel` の 4 成果物だけを読む
+- base 4 成果物（`plans/<slug>.md`、`change-risk-triage`、`runtime-contract-kernel`、`test-design-kernel`）を読む
+- implementation-realization risk が `Present` / `Unclear` の場合は `implementation-contract-kernel`（存在すれば review-kernel も）を追加で読む
 - Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認する
 - source code を読まず、artifacts を修正せず、実装もしない
 - `READY_FOR_IMPLEMENTATION` / `READY_WITH_NOTES` / `BLOCKED` の単一 verdict を出す
@@ -291,12 +360,17 @@ bounded Plan と runtime-contract-kernel の内容を入力として、test-desi
 ```text
 実装に入る前に、implementation-handoff-review.agent.md を使って軽量レビューを行ってください。
 
-次の 4 成果物だけを対象にしてください。
+次の base 成果物を対象にしてください。
 
 - plans/<slug>.md
 - plans/<slug>-change-risk-triage.md
 - plans/<slug>-runtime-contract-kernel.md
 - plans/<slug>-test-design-kernel.md
+
+change-risk-triage の Implementation realization risk が Present / Unclear の場合は、次も対象にしてください。
+
+- plans/<slug>-implementation-contract-kernel.md
+- plans/<slug>-implementation-contract-review-kernel.md（存在する場合）
 
 source code は読まず、artifacts も修正しないでください。
 Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認し、READY_FOR_IMPLEMENTATION / READY_WITH_NOTES / BLOCKED の verdict を出してください。
@@ -317,6 +391,8 @@ Token-aware flow では、実装専用 agent が別途あるわけではあり�
 
 - plans/<slug>.md もしくは plan-kernel.agent.md が作成した bounded Plan
 - plans/<slug>-change-risk-triage.md
+- plans/<slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
+- plans/<slug>-implementation-contract-review-kernel.md（存在する場合）
 - plans/<slug>-runtime-contract-kernel.md
 - plans/<slug>-test-design-kernel.md
 - plans/<slug>-implementation-handoff-review.md（存在する場合）
@@ -378,7 +454,7 @@ bounded Plan、Runtime Contract Kernel、Test Design Kernel の対象テスト�
 
 - `verification-kernel.md` または `implementation-coverage-of-integration-test.md` から未解決項目を抽出する
 - ギャップの種別を統制語彙で分類する
-- `ProductionImplementationMissing` / `ProductionWiringMissing` / `ContractMismatch` などを分ける
+- `ImplementationContractMissing` / `DependencyMissing` / `ApiSurfaceUnknown` / `UnjustifiedSubstitution` / `SourceOfTruthDrift` / `ProductionImplementationMissing` / `ProductionWiringMissing` / `ContractMismatch` などを分ける
 - 人間の判断が必要なものを分離する
 - `coverage-gap-resolution-slice` に渡す後続セレクターを作る
 
@@ -407,6 +483,7 @@ verification-kernel の出力を入力として、coverage-gap-triage.agent.md �
 
 - 呼び出し元または `coverage-gap-triage` が指定した後続セレクターだけを対象にする
 - Plan の要件 / Runtime Contract ID / テストポイント ID に戻して修正する
+- implementation-realization gap（`ImplementationContractMissing` / `DependencyMissing` / `ApiSurfaceUnknown` / `UnjustifiedSubstitution` / `SourceOfTruthDrift`）では、repair 前に implementation-contract artifact を consume または create する
 - production 実装・production wiring・テストの oracle・ドキュメントの陳腐化など、ギャップ種別に応じた最小限の修正を行う
 - カバレッジドキュメントまたはステータス成果物の更新結果を記録する
 - 修正できなかった残件を「残作業」に残す
@@ -444,6 +521,7 @@ coverage-gap-triage の推奨修正範囲から Slice 1 だけを対象に、cov
 - Plan-first は維持したいが、full flow は重すぎる
 - bounded Plan を作り、その中の高リスク slice だけ深く扱いたい
 - 境界をまたぐリスクはあるが、全体の runtime evidence までは不要
+- implementation-realization risk がある場合だけ implementation-contract branch を差し込みたい
 - stub / fake テストと production 実装 / wiring の対応を確認したい
 - ギャップを選択した ID ごとに分割して修正したい
 - トークンコストと bounded な進捗を重視する
@@ -491,6 +569,20 @@ plan-kernel.agent.md が作成した bounded Plan を入力として、change-ri
 Plan の中から高リスクな runtime boundary を分類し、実装やテスト設計は行わず、リスクトリガーのスキャン結果・対象 runtime contract・推奨プロセスプロファイル・次の agent を出してください。
 ```
 
+### implementation-realization risk がある場合に implementation-contract-kernel を作る
+
+```text
+change-risk-triage の出力で Implementation realization risk が Present / Unclear なので、implementation-contract-kernel.agent.md を実行してください。
+plans/<slug>-implementation-contract-kernel.md を作成し、Plan-named dependency/API/provider path の確認結果、prohibited substitutions、required code changes、verification hooks、unresolved items を記録してください。
+```
+
+### implementation-contract をレビューしてから runtime-contract へ進む
+
+```text
+plans/<slug>.md、plans/<slug>-change-risk-triage.md、plans/<slug>-implementation-contract-kernel.md を入力として、implementation-contract-review-kernel.agent.md を実行してください。
+single verdict を出し、READY_FOR_RUNTIME_CONTRACT の場合のみ runtime-contract-kernel へ進めてください。
+```
+
 ### 選択した contract だけに絞って contract-kernel を実行する
 
 ```text
@@ -510,12 +602,17 @@ bounded Plan と runtime-contract-kernel の RC-001 と RC-002 を対象に、te
 ```text
 実装に入る前に、implementation-handoff-review.agent.md を使って軽量レビューを行ってください。
 
-次の 4 成果物だけを対象にしてください。
+次の base 成果物を対象にしてください。
 
 - plans/<slug>.md
 - plans/<slug>-change-risk-triage.md
 - plans/<slug>-runtime-contract-kernel.md
 - plans/<slug>-test-design-kernel.md
+
+change-risk-triage の Implementation realization risk が Present / Unclear の場合は、次も対象にしてください。
+
+- plans/<slug>-implementation-contract-kernel.md
+- plans/<slug>-implementation-contract-review-kernel.md（存在する場合）
 
 source code は読まず、artifacts も修正しないでください。
 Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認し、READY_FOR_IMPLEMENTATION / READY_WITH_NOTES / BLOCKED の verdict を出してください。
@@ -528,6 +625,8 @@ Plan → selected runtime contracts → RC → TP → production binding require
 
 - plans/<slug>.md もしくは plan-kernel.agent.md が作成した bounded Plan
 - plans/<slug>-change-risk-triage.md
+- plans/<slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
+- plans/<slug>-implementation-contract-review-kernel.md（存在する場合）
 - plans/<slug>-runtime-contract-kernel.md
 - plans/<slug>-test-design-kernel.md
 - plans/<slug>-implementation-handoff-review.md（存在する場合）
@@ -573,6 +672,8 @@ Token-aware guardrail kernel flow では、通常は次の成果物を作成し�
 | --- | --- |
 | `plans/<ticket-or-slug>.md` | bounded Plan。実装の source of truth |
 | `plans/<ticket-or-slug>-change-risk-triage.md` | リスクプロファイル・対象 contract・推奨プロセスプロファイル |
+| `plans/<ticket-or-slug>-implementation-contract-kernel.md` | Plan-named dependency/API/provider path の確認結果、required code changes、prohibited substitutions |
+| `plans/<ticket-or-slug>-implementation-contract-review-kernel.md` | implementation-contract の readiness / blocking verdict |
 | `plans/<ticket-or-slug>-runtime-contract-kernel.md` | runtime contract・producer / consumer・メッセージ・フィールド・production 実装の所在 |
 | `plans/<ticket-or-slug>-test-design-kernel.md` | テストポイントマッピング・stub/fake の使用有無・production binding 確認要件 |
 | `plans/<ticket-or-slug>-implementation-handoff-review.md` | 実装直前の lightweight review verdict と required handoff inputs |
