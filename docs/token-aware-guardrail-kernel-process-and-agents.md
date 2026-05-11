@@ -148,7 +148,7 @@ Use for the main lightweight process this repository now targets.
 9. `coverage-gap-triage.agent.md`, when unresolved items remain
 10. `coverage-gap-resolution-slice.agent.md`, for selected bounded gaps
 
-Implementation handoff for step 5 must include:
+Implementation handoff must include:
 
 - the bounded Plan from `plan-kernel.agent.md`
 - `change-risk-triage` output
