@@ -88,6 +88,22 @@ codebase 全体を読んではいけません。risk を分類するために必
 
 ある trigger が present の場合は、それがどの runtime boundary または participant に関係するかも記録してください。
 
+### Step 2b. Check for implementation-realization risk triggers
+
+runtime risk とは別に、implementation-realization risk を確認してください。各項目を `Present` / `Absent` / `Unclear` で記録します。
+
+| Trigger | Description |
+| --- | --- |
+| Plan names a specific external SDK or API | The Plan requires a concrete SDK/API rather than generic logic. |
+| Plan names a package, release, binary artifact, or local lib folder | The dependency may need to be fetched, updated, referenced, or inspected. |
+| Plan names a namespace, type, method, extension method, provider ID, or config section | The API surface must be confirmed before implementation. |
+| Existing code contains a similar but different implementation path | There is a risk of nearest-neighbor substitution. |
+| Implementation requires DI/startup/configuration wiring | The correct production path depends on registration and entrypoint wiring. |
+| The affected production address is not known from current evidence | Runtime contract work would otherwise guess the implementation address. |
+| Plan contains remaining work about API surface inspection or dependency confirmation | The handoff already says implementation realization is unresolved. |
+
+この trigger 群に `Present` または `Unclear` がある場合、runtime-contract-kernel へ直行してはいけません。implementation-contract branch を推奨してください。
+
 ### Step 3. Identify high-risk runtime boundaries
 
 present と判断した各 risk trigger について、具体的な boundary または participant pair を特定してください。
@@ -138,13 +154,23 @@ selected runtime contracts to cover には `OutOfScopeForThisPass` を含めな�
 
 推奨した profile に基づいて、次に実行すべき agent を指定してください。
 
-- `contract-kernel` → `runtime-contract-kernel.agent.md`
+- `contract-kernel` + implementation-realization risk `Absent` → `runtime-contract-kernel.agent.md`
+- implementation-realization risk `Present` / `Unclear` + bounded scope → `implementation-contract-kernel.agent.md`
+- implementation-realization risk `Present` / `Unclear` + broader scope → `implementation-contract-generation.agent.md` または `full-coverage`
 - `standard-slice` → `plan-generation.agent.md`（contract kernel requirements 付き）
 - `full-coverage` → `plan-generation.agent.md` → `runtime-evidence.agent.md`
 - `fix-slice` → `coverage-gap-resolution-slice.agent.md` with selected IDs
 - `triage-only` → 停止し、human decision を待つ
 
 推奨 profile が `contract-kernel`、`standard-slice`、`full-coverage`、`fix-slice` のいずれかである場合は、immediate next agent だけでなく、minimum required flow も明記してください。
+
+implementation-realization risk が `Present` または `Unclear` の場合は、次のいずれかを必ず推奨してください。
+
+- `implementation-contract-kernel.agent.md`
+- full `implementation-contract-generation.agent.md`
+- `full-coverage`
+
+この条件で `runtime-contract-kernel.agent.md` を immediate next agent にしてはいけません。
 
 selected high-risk contract ごとに、推奨する downstream flow は次の chain を保持しなければなりません。
 
@@ -212,6 +238,11 @@ mechanism、risk type 付きで列挙する。次の構造を使う。>
 | Multiple runtime participants coordinating state | | |
 | Observable behavior spanning more than one component | | |
 
+## Implementation realization risk
+
+| Trigger | Status | Evidence | Required next step |
+| --- | --- | --- | --- |
+
 ## Suggested next agent
 
 <この triage から渡すべき required inputs と共に、immediate next agent を記載する。
@@ -229,6 +260,7 @@ mechanism、risk type 付きで列挙する。次の構造を使う。>
 - Files inspected: <一覧>
 - Files intentionally not inspected: <一覧と理由>
 - Decisions made: <この triage で行った主要な判断>
+- Implementation realization risk summary: <Present/Absent/Unclear の要約と根拠>
 - Do not redo unless new evidence appears: <下流が、反証が出るまで信頼してよい分析内容>
 - Remaining work: <この triage で未解決の内容>
 - Recommended next step: <next agent と inputs>

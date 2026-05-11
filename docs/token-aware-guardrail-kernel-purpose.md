@@ -26,6 +26,8 @@ The intended sequence is:
 5. Verify that selected contracts, test points, production implementation, and production wiring are aligned.
 6. Record unresolved work instead of continuing indefinitely.
 
+When implementation-realization risk is present (for example: Plan-named external SDK/API/provider, unresolved dependency/API surface confirmation, or nearest-neighbor substitution risk), the token-aware flow must add a conditional implementation-contract branch before runtime-contract work.
+
 The key policy is:
 
 > Reduce breadth, not depth.
@@ -113,6 +115,8 @@ Typical examples:
 
 The process must therefore verify not only whether a test exists, but whether the tested responsibility has a production implementation and production wiring path.
 
+The process must also prevent silent implementation-path drift: runtime-contract, test-design, and verification artifacts must not substitute a nearby existing implementation when the Plan-required implementation path remains unconfirmed.
+
 ### 3. High-risk kernel without complete implementation context
 
 A runtime contract kernel artifact intentionally focuses on high-risk boundaries. It is not a complete requirements specification.
@@ -123,6 +127,7 @@ The implementation handoff must therefore include:
 
 - the bounded Plan created by `plan-kernel.agent.md`
 - the risk triage output
+- implementation-contract artifacts when implementation-realization risk is present
 - the runtime contract kernel
 - the test design kernel
 - explicit scope and non-goals

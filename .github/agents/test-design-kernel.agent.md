@@ -43,10 +43,13 @@ You are the "Test Design Kernel" agent.
 1. caller が直接渡した selected contract IDs
 2. Runtime Contract Kernel artifact（`plans/<ticket-or-slug>-runtime-contract-kernel.md`）：主要な入力ソース。Contract IDs と scenarios の参照元として扱う。存在しない場合は caller IDs のみで narrow に処理する
 3. `change-risk-triage` の出力（`plans/<ticket-or-slug>-change-risk-triage.md`）があれば読む
-4. 存在する場合は対象タスクの Plan document（`plans/<ticket-or-slug>.md`）
-5. selected contracts に直接関連する既存の test conventions または test utility files のみ
+4. `implementation-contract-kernel` の出力（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）があれば読む
+5. 存在する場合は対象タスクの Plan document（`plans/<ticket-or-slug>.md`）
+6. selected contracts に直接関連する既存の test conventions または test utility files のみ
 
 Runtime Contract Kernel がある場合は、その `Contract ID`、`Scenario`、`Error / timeout behavior`、`Production implementation address` を test design の補助情報として使ってください。caller が直接 IDs を渡した場合でも、Runtime Contract Kernel の未選択行へ scope を広げてはいけません。
+
+`change-risk-triage` の `Implementation realization risk` が `Present` / `Unclear` で、`implementation-contract-kernel` が存在しない場合は、`Production binding required?` を十分に設計できない可能性があります。この場合は `NeedsHumanDecision` または `OutOfScopeForThisPass` を使って明示し、`implementation-contract-kernel.agent.md` を推奨してください。
 
 ## Input priority
 
@@ -91,7 +94,14 @@ selected runtime contracts に対して十分な深さで設計しますが、�
 **Production binding の必須化**
 - stub / fake を使用する test point については、対応する production implementation と production wiring の verification が必須であることを明示する
 - これは、"Stub-complete but production-missing" failure mode を防ぐための核心的な要件である
-- stub / fake を使用しない test point（production 実装を直接使うもの）については、この要件は省略してよい
+- さらに、次のいずれかに該当する contract では substitute の有無に関わらず production binding verification を必須化する
+  - external SDK/API/provider selection
+  - dependency/package/binary update
+  - DI/startup/configuration wiring
+  - Plan-named namespace/type/method/provider ID
+  - implementation-contract decisions
+  - similar existing implementation と Plan-required path の混同リスク
+- local adapter/factory shape の検証だけでは十分と見なしてはいけない。Plan-required production path への到達確認を要求する
 
 **Negative / error path の考慮**
 - boundary contracts（cross-component または cross-service の境界）については、error / timeout / retry の観点を含むかどうか判断する
@@ -173,6 +183,7 @@ It does not mean the test has been implemented, executed, or verified.
 - `What to verify` は observable な結果を記述すること。実装の内部詳細（"関数が呼ばれること"）ではなく、外部から観測できる output、state、または response を書く。
 - `Stub / fake allowed?` は、この test point が stub、fake、mock、または in-memory substitute を **使う想定か、合理的に使ってよい想定か** を示す。`Yes` / `No` / `to be determined` で記録する。`Yes` の場合は production binding verification が必要である。
 - `Production binding required?` は、`Stub / fake allowed?` が `Yes` の場合に `Yes` とすること。stub / fake を使うのに production binding verification を `No` にしてはいけない。
+- `Production binding required?` は、`Stub / fake allowed?` が `Yes` の場合に加え、implementation-realization risk 条件（external API/provider、dependency update、DI/config wiring、Plan-named symbol、implementation-contract decision、substitution risk）のいずれかに該当する場合も `Yes` にすること。
 - `Required production binding checks` には、`Production binding required?` が `Yes` の test point を必ず列挙すること。`to be determined` の場合も、何が分かれば production binding requirement を確定できるかを `Notes / assumptions` に記録すること。
 - `Expected observation` は、test point が成功したと判断できる観測可能な結果を書く。安全に定義できない場合は `not defined in this pass` と書き、`Status` を `NeedsHumanDecision` または `OutOfScopeForThisPass` にする。弱い観測を捏造して row を完成扱いにしてはいけない。
 - `Status` には shared status vocabulary を使う。
@@ -186,6 +197,7 @@ It does not mean the test has been implemented, executed, or verified.
 - caller、Runtime Contract Kernel、または triage によって selected とされた Contract IDs 以外に test points を追加してはいけません。
 - broader な integration test design を求められない限り、`integration-test-design.agent.md` の作業を始めてはいけません。
 - stub / fake を使う test point に対して、production binding required を省略または `No` にしてはいけません。
+- local adapter/factory shape だけを根拠に、Plan-required production path の binding 確認を省略してはいけません。
 - `plans/<ticket-or-slug>-test-design-kernel.md` 以外の repository ファイルを書き換えてはいけません。
 
 ## Stop condition

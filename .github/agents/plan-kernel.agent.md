@@ -218,6 +218,8 @@ Output path が repository 内か不明な場合は、repository root からの 
 
 ## Handoff to change-risk-triage
 
+## Implementation-realization residuals
+
 ## Handoff Packet
 ```
 
@@ -232,6 +234,7 @@ Output path が repository 内か不明な場合は、repository root からの 
 - **Known high-risk boundaries**: Step 6 で特定した high-risk boundary candidates を記録する。詳細は `change-risk-triage.agent.md` に委ねると明示する
 - **Out of scope for this pass**: この Plan が扱わないことを列挙する
 - **Handoff to change-risk-triage**: `change-risk-triage.agent.md` が risk classification を始めるために必要な情報を記述する。high-risk boundary candidates を再度まとめ、確認を要請する
+- **Implementation-realization residuals**: dependency confirmation、API surface inspection、production implementation address confirmation の未解決事項を表形式または箇条書きで残す。triage が implementation-realization risk trigger として機械的に読めるよう、曖昧な prose だけで済ませない
 - **Handoff Packet**: 標準形式で記録する（下記参照）
 
 ### Handoff Packet の記述
@@ -243,6 +246,7 @@ Output path が repository 内か不明な場合は、repository root からの 
 - Plan artifact: <repository-relative path, for example plans/<ticket-or-slug>.md>
 - Source artifacts:
 - Selected contracts / IDs: none selected by this agent; final selection belongs to change-risk-triage
+- Implementation-realization residuals: <dependency/API/address residual items with status>
 - Files inspected:
 - Files intentionally not inspected:
 - Decisions made:
@@ -258,7 +262,10 @@ Output path が repository 内か不明な場合は、repository root からの 
 - **Files intentionally not inspected**: 読まないと決めた範囲を明示する
 - **Decisions made**: Plan 作成中に行った scope 判断、non-goal の決定、boundary candidate の判断を記録する
 - **Do not redo unless new evidence appears**: downstream agents が再探索しなくてよい分析を記録する
-- **Remaining work**: Plan で決定できなかった点、`NeedsHumanDecision` の項目を列挙する
+- **Remaining work**: Plan で決定できなかった点、`NeedsHumanDecision` の項目を列挙する。可能な限り `Consumed` / `Blocking` / `DeferredWithReason` のいずれかで分類する
+- `Consumed`: この pass で扱い切った residual（追跡のみ必要で、追加作業は不要）
+- `Blocking`: 実装または次 agent に進む前に解消が必要な残件
+- `DeferredWithReason`: この pass では扱わないと判断した残件。defer 理由を併記する
 - **Recommended next step**: `change-risk-triage.agent.md` を実行することを推奨し、必要な入力を明示する
 
 ## Repository write policy
@@ -323,17 +330,21 @@ Plan が good enough for bounded implementation であれば停止してくだ�
 
 1. **`plan-kernel.agent.md`** ← この agent
 2. `change-risk-triage.agent.md` — Plan を読み、high-risk runtime slices を選択し、process profile を推奨する
-3. `runtime-contract-kernel.agent.md` — selected slices に対して minimal runtime contract artifact を作成する
-4. `test-design-kernel.agent.md` — selected contracts に対して compact test design を作成する
-5. 実装 agent（Plan + triage + runtime-contract-kernel + test-design-kernel を入力として受け取る）
-6. `verification-kernel.agent.md` — selected contracts と test points を verification する
-7. （optional）`coverage-gap-triage.agent.md`
-8. （optional）`coverage-gap-resolution-slice.agent.md`
+3. `implementation-contract-kernel.agent.md`（implementation-realization risk が `Present` / `Unclear` の場合）
+4. `implementation-contract-review-kernel.agent.md`（3 が実行され、非自明または unresolved が残る場合）
+5. `runtime-contract-kernel.agent.md` — selected slices に対して minimal runtime contract artifact を作成する
+6. `test-design-kernel.agent.md` — selected contracts に対して compact test design を作成する
+7. 実装 agent（Plan + triage + implementation-contract artifacts（when required）+ runtime-contract-kernel + test-design-kernel を入力として受け取る）
+8. `verification-kernel.agent.md` — selected contracts と test points を verification する
+9. （optional）`coverage-gap-triage.agent.md`
+10. （optional）`coverage-gap-resolution-slice.agent.md`
 
 実装 agent への handoff には必ず次を含めてください。
 
 - この agent が作成した bounded Plan
 - `change-risk-triage` の output
+- `implementation-contract-kernel` の output（implementation-realization risk が `Present` / `Unclear` の場合）
+- `implementation-contract-review-kernel` の output（存在する場合）
 - `runtime-contract-kernel` の output
 - `test-design-kernel` の output
 - selected implementation scope と non-goals

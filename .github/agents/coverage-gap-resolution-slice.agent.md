@@ -81,6 +81,33 @@ interface のみ（implementation body がない）、または fake / stub / mo
 
 いずれかのリンクが修正後も missing のままであれば、その ID を `Done` にせず、未解決ステータスと残留理由を明示してください。
 
+### Implementation-contract precondition for implementation-realization gaps
+
+次の gap type は、直接 production/test 修正に進んではいけません。
+
+- `ImplementationContractMissing`
+- `DependencyMissing`
+- `ApiSurfaceUnknown`
+- `UnjustifiedSubstitution`
+- `SourceOfTruthDrift`
+
+これらを受け取った場合は、selected slice 内で次を先に実行してください。
+
+1. 既存の `plans/<ticket-or-slug>-implementation-contract-kernel.md` を **consume** する
+2. 存在しない場合は、同 path に必要最小限の implementation contract artifact を **create** する
+
+この precondition が満たされるまで、production/test の修正を適用してはいけません。
+
+consume または create した implementation contract artifact に、selected gap に影響する次の status が残る場合は、production/test repair に進んではいけません。
+
+- `MissingButRequired`
+- `DependencyMissing`
+- `ApiSurfaceUnknown`
+- `NeedsHumanDecision`
+- review されていない `RejectedSubstitute`
+
+この条件に該当する場合は `BLOCKED` または `PARTIAL_RESOLUTION` を記録し、`implementation-contract-review-kernel.agent.md` または human decision を推奨して停止してください。
+
 ### Gap type が解消不能な場合
 
 次の gap type は、この agent では解消できません。受け取った場合は `OutOfScopeForThisPass` または `NeedsHumanDecision` として記録し、推奨アクションを明示してください。
@@ -176,6 +203,11 @@ triage 出力が利用可能な場合はその gap type と target files / addre
 
 | Gap type | 必要な修正 |
 | --- | --- |
+| `ImplementationContractMissing` | 先に implementation contract artifact を作成または補完する。artifact なしに direct repair へ進まない。 |
+| `DependencyMissing` | implementation contract artifact で dependency/source を確定し、その decision を consume してから最小修正へ進む。 |
+| `ApiSurfaceUnknown` | implementation contract artifact で API/symbol surface を確定し、その decision を consume してから最小修正へ進む。 |
+| `UnjustifiedSubstitution` | implementation contract artifact で prohibited/allowed reuse を確定し、正当化されない substitute を排除してから修正する。 |
+| `SourceOfTruthDrift` | implementation contract artifact を基準に Plan/runtime/test evidence の乖離を解消する。必要なら implementation contract を先に更新する。 |
 | `ProductionImplementationMissing` | production implementation を実装する（その後 wiring も確認する） |
 | `ProductionWiringMissing` | DI 登録・entrypoint・configuration wiring を追加する（implementation が存在することも確認する） |
 | `ContractMismatch` | production code または code/schema/configuration として存在する production-side contract 定義の不一致を修正する。Plan、Runtime Contract Kernel、Test Design Kernel は変更しない。 |
@@ -184,6 +216,8 @@ triage 出力が利用可能な場合はその gap type と target files / addre
 | `PlanAmbiguity` | 修正不可。`NeedsHumanDecision` として記録して停止する。 |
 | `ManualEnvironmentRequired` | 修正不可。`ManualOnly` として記録する。 |
 | `DesignTooBroadForSlice` | 修正不可。`OutOfScopeForThisPass` として記録し、推奨プロファイルを明示する。 |
+
+implementation-contract precondition により blocking status が残る場合は、この表の production/test 修正行へ進まず、該当 ID を `BLOCKED` または `PARTIAL_RESOLUTION` として記録してください。
 
 #### 2e. Guardrail chain の確認
 
@@ -291,6 +325,7 @@ stub / fake / in-memory が検出された ID について記入する。存在�
 この agent が行ってよい repository への書き込みは次のものに限ります。
 
 - `plans/<ticket-or-slug>-coverage-gap-resolution-slice.md` の作成または更新（output artifact）
+- `plans/<ticket-or-slug>-implementation-contract-kernel.md` の作成または更新（implementation-realization gap の precondition を満たす場合のみ）
 - 選択された ID の gap type が要求する production code の bounded な変更
 - 選択された ID の gap type が要求する test code の bounded な変更
 - active status artifact が存在する場合のみ、そのステータス更新

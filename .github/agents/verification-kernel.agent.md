@@ -47,9 +47,11 @@ You are the "Verification Kernel" agent.
 3. integration test points（Test Design Kernel がない場合の代替）
 4. Runtime Contract Kernel artifact（`plans/<ticket-or-slug>-runtime-contract-kernel.md`）：contract fields、error/timeout behavior、production implementation address の参照元
 5. `change-risk-triage` の出力（`plans/<ticket-or-slug>-change-risk-triage.md`）があれば読む
-6. implementation diff または repository の現在の state（selected contracts に直接関係する production code のみ）
-7. selected contracts に直接関連する production startup / DI / entrypoint files
-8. selected contracts に直接関連する test files
+6. `implementation-contract-kernel` artifact（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）があれば読む
+7. `implementation-contract-review-kernel` artifact（`plans/<ticket-or-slug>-implementation-contract-review-kernel.md`）があれば補助情報として読む
+8. implementation diff または repository の現在の state（selected contracts に直接関係する production code のみ）
+9. selected contracts に直接関連する production startup / DI / entrypoint files
+10. selected contracts に直接関連する test files
 
 ## Input priority
 
@@ -58,7 +60,8 @@ You are the "Verification Kernel" agent.
 3. Test Design Kernel がなく integration test points がある場合は、それを test point の source とする
 4. Test Design Kernel も integration test points も caller IDs も存在しないが、Runtime Contract Kernel の `Verification hook` 列に concrete test point、manual check、または existing verification artifact を明示している場合は、その `Verification hook` を scope anchor として使い proceed する
 5. Runtime Contract Kernel は contract field と error behavior の参照に使う。Test Design Kernel の記載と矛盾する場合は `Notes` に記録する
-6. 上記のいずれも存在せず、selected test points を安全に特定できない場合は停止して `test-design-kernel.agent.md` の実行を推奨する
+6. implementation-contract-kernel が存在する場合は、Plan-required implementation path と allowed substitute decision を authoritative に参照する
+7. 上記のいずれも存在せず、selected test points を安全に特定できない場合は停止して `test-design-kernel.agent.md` の実行を推奨する
 
 ## Test execution policy
 
@@ -105,6 +108,10 @@ selected test points の一覧を確認してください。
 
 各 selected test point について、production implementation と production wiring / entrypoint への対応を確認してください。substitute usage が確認された test point は `Stub-to-Production Binding` table で詳しく記録します。substitute を使わない test point はこの table には含めませんが、production path を通っていること、または production evidence が `Runtime contract verification` table で確認できることを `Test observations` に記録してください。
 
+`Production binding required?` が `Yes` の selected test point または selected runtime contract については、substitute 使用の有無に関係なく、production interface / concrete implementation / wiring / entrypoint の確認が必要です。
+
+implementation-contract-kernel が存在する場合は、production path の確認先をその decision に合わせてください。Plan-required path と異なる nearby path が wiring されていても、explicit `AllowedReuse` がない限り成功扱いにしてはいけません。
+
 substitute を使わない test point に `Done` を付けてよいのは、test artifact または manual-only reason があり、selected runtime contract に対応する production implementation / wiring / entrypoint の証拠が確認できる場合だけです。test が helper や local-only path だけを検証しており production path との接続を確認できない場合は、成功扱いにせず `Unresolved items` に記録してください。
 
 Check ② で substitute usage が確認された test point については、次を確認してください。
@@ -112,6 +119,7 @@ Check ② で substitute usage が確認された test point については、�
 **Check ③: production interface の存在**
 - stub / fake が代替している production interface（インターフェース型、抽象クラス、API contract など）が存在するか確認する
 - 存在しない場合は `NotImplementedOrMismatch` として `Stub-to-Production Binding` table に記録する
+- implementation-contract-kernel が指定する interface / provider path と一致するか照合する
 
 **Check ④: production concrete implementation の存在**
 - production interface に対する concrete implementation（非 test / 非 fake の実装）が存在するか確認する
@@ -129,6 +137,7 @@ Check ② で substitute usage が確認された test point については、�
 **Check ⑥: runtime contract fields と error behavior の production 表現**
 - Runtime Contract Kernel の `Required fields` 列に記載されたフィールド、相関 ID、state key、payload が、production code 内で扱われているか確認する
 - Runtime Contract Kernel の `Error / timeout behavior` 列が `out of scope for this pass` 以外の場合、対応する handling が production code 内に存在するか確認する
+- implementation-contract-kernel が存在する場合は、Plan requirement と implementation decision に整合する production address かも同時に確認する
 - mismatch または欠如が見つかった場合は `NotImplementedOrMismatch` として `Runtime contract verification` table に記録する
 - その contract を担当する test point があれば `Covered by Test Point ID(s)` に記録する
 
@@ -142,11 +151,12 @@ Unresolved items を分類してください。
 - `missing-test`: test が存在せず manual-only 理由も記録されていない
 - `human-decision-needed`: 客観的に判断できず人間の判断が必要
 - `manual-only`: 自動検証が不可能で manual または real-environment confirmation が必要
+- `plan-required-path-missing`: Plan または implementation-contract で要求された production path が見つからない
 
 Verdict を次の優先順位で決定してください。高優先度の条件が1つでも該当すれば、そちらを選んでください。
 
-1. **`BLOCKED_BY_CONTRACT_MISMATCH`**: runtime contract field または error behavior と production code の mismatch が1つ以上確認された
-2. **`BLOCKED_BY_PRODUCTION_BINDING_GAP`**: production interface、concrete implementation、または wiring/entrypoint の欠如が1つ以上確認された（substitute を使う test point が対象）
+1. **`BLOCKED_BY_CONTRACT_MISMATCH`**: runtime contract field または error behavior と production code の mismatch、または Plan/implementation-contract decision と runtime address の不整合が1つ以上確認された
+2. **`BLOCKED_BY_PRODUCTION_BINDING_GAP`**: `Production binding required?` が `Yes` の selected test point または selected runtime contract について、Plan-required / implementation-contract-selected production path の interface、concrete implementation、または wiring/entrypoint の欠如が1つ以上確認された。substitute を使う test point に限定しない。nearby 実装が wiring されても Plan-required path が欠ける場合を含む
 3. **`BLOCKED_BY_HUMAN_DECISION`**: 上記の客観的 failure を断定できず、human decision なしに安全に verdict を出せない
 4. **`PASS_WITH_RESIDUAL_WORK`**: blocking gap は存在しないが、非 blocking の残件（追加観察の強化、証跡整理など）がある
 5. **`PASS_FOR_SELECTED_SCOPE`**: 全 selected test points が verified（`Done` または `Bound`）または justified `ManualOnly` であり、production binding / wiring / contract representation に blocking gap がない
@@ -170,15 +180,15 @@ Verdict を次の優先順位で決定してください。高優先度の条件
 
 ## Runtime contract verification
 
-| Contract ID | Field / behavior | Expected (from Runtime Contract Kernel) | Production evidence | Covered by Test Point ID(s) | Status | Notes |
-| --- | --- | --- | --- | --- | --- | --- |
+| Contract ID | Field / behavior | Expected (from Runtime Contract Kernel) | Implementation contract decision | Production evidence | Covered by Test Point ID(s) | Status | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 
 <Runtime Contract Kernel の Required fields と Error/timeout behavior が、production code で扱われているかを記録する。>
 
 ## Stub-to-Production Binding
 
-| Test Point ID | Stub / fake / in-memory used in test | Production interface | Production concrete implementation | Production wiring / entrypoint | Status | Remaining work |
-| --- | --- | --- | --- | --- | --- | --- |
+| Test Point ID | Stub / fake / in-memory used in test | Implementation contract decision | Production interface | Production concrete implementation | Production wiring / entrypoint | Status | Remaining work |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 
 <substitute を使う test point についてのみ記録する。Bound は production interface + concrete implementation + wiring/entrypoint の三つが確認できた場合のみ付ける。>
 
@@ -194,7 +204,7 @@ Verdict を次の優先順位で決定してください。高優先度の条件
 | ID | Type | Why unresolved | Recommended next agent | Target files / addresses |
 | --- | --- | --- | --- | --- |
 
-<Type は production-binding-gap / contract-mismatch / missing-test / human-decision-needed / manual-only のいずれか。>
+<Type は production-binding-gap / contract-mismatch / missing-test / human-decision-needed / manual-only / plan-required-path-missing のいずれか。>
 
 ## Verdict
 
@@ -224,6 +234,7 @@ Verdict を次の優先順位で決定してください。高優先度の条件
 
 - 全 selected runtime contracts の、Runtime Contract Kernel に記載された各フィールドと error/timeout behavior を行として記録する。行を省略してはいけない。
 - `Field / behavior` には、検証した具体的なフィールド名、state key、または error/timeout condition を書く。
+- `Implementation contract decision` には、implementation-contract-kernel がある場合は対応する decision を書く。ない場合は `not provided in this pass` と書く。
 - `Production evidence` は具体的な file path、symbol name、DI 登録箇所、endpoint、または line number when available を書く。確認できなかった場合は `not found` と書く。
 - `Covered by Test Point ID(s)` には、そのフィールドまたは behavior を検証対象とする test point の ID を書く。不明な場合は `unknown` と書く。
 - `Status` には shared status vocabulary を使う。mismatch または欠如は `NotImplementedOrMismatch`。
@@ -232,6 +243,7 @@ Verdict を次の優先順位で決定してください。高優先度の条件
 
 - substitute（stub、fake、mock、in-memory）を使う test point のみを対象とする。substitute を使わない test point はこの table に含めてはいけない。
 - `Bound` は production interface、production concrete implementation、production wiring/entrypoint の**三つすべてが確認できた場合にのみ**付ける。
+- `Implementation contract decision` は、stub 側で想定する production path が Plan-required path と一致するかを示す。nearby path の暗黙代替は許可しない。
 - production interface のみで concrete implementation が存在しない場合は `NotImplementedOrMismatch` を使う。
 - implementation は存在するが wiring/entrypoint が未確認の場合は `PartiallyDone` を使い、`Remaining work` に具体的な残件を書く。
 - `Stub / fake / in-memory used in test` は、test code での具体的な型名または変数名を書く。
@@ -248,7 +260,7 @@ Verdict を次の優先順位で決定してください。高優先度の条件
 
 ### Unresolved items table rules
 
-- Type は次のいずれかとする：`production-binding-gap`、`contract-mismatch`、`missing-test`、`human-decision-needed`、`manual-only`
+- Type は次のいずれかとする：`production-binding-gap`、`contract-mismatch`、`missing-test`、`human-decision-needed`、`manual-only`、`plan-required-path-missing`
 - `Why unresolved` は、なぜこのパスで解決できなかったかを具体的に書く。
 - `Target files / addresses` は、修復時に対象となる具体的なファイルパス、モジュール名、DI 登録箇所などを書く。不明な場合は `unknown` と書く。
 - blocking gap がない場合もこのテーブルを省略せず、`none` の row を作るか、テーブルが空であることを明記する。
@@ -261,7 +273,7 @@ Verdict を次の優先順位で決定してください。高優先度の条件
 | --- | --- |
 | `PASS_FOR_SELECTED_SCOPE` | 全 selected test points が verified（`Done` または `Bound`）または justified `ManualOnly` であり、production binding / wiring / contract representation に blocking gap がない。この verdict は selected scope に限定され、feature 全体の完了を意味しない |
 | `PASS_WITH_RESIDUAL_WORK` | blocking gap は存在しない。非 blocking の残件（例：追加観察の強化、証跡整理、`to be determined` 項目）がある |
-| `BLOCKED_BY_PRODUCTION_BINDING_GAP` | production interface、concrete implementation、または wiring/entrypoint の欠如が、substitute を使う test point の中に1つ以上確認された |
+| `BLOCKED_BY_PRODUCTION_BINDING_GAP` | `Production binding required?` が `Yes` の selected test point または selected runtime contract について、Plan-required / implementation-contract-selected production path の interface、concrete implementation、または wiring/entrypoint の欠如が1つ以上確認された。substitute を使う test point に限定しない |
 | `BLOCKED_BY_CONTRACT_MISMATCH` | runtime contract field または error/timeout behavior と production code の実装が1つ以上一致しない |
 | `BLOCKED_BY_HUMAN_DECISION` | 客観的な failure を断定できず、product、architecture、policy、または risk に関する human decision なしに安全に verdict を出せない |
 

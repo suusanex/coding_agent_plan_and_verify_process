@@ -1,6 +1,6 @@
 ---
 name: implementation-handoff-review
-description: Review the kernel artifact chain (Plan Kernel, change-risk-triage, runtime-contract-kernel, test-design-kernel) immediately before implementation. Documents only. Issues a single READY_FOR_IMPLEMENTATION / READY_WITH_NOTES / BLOCKED verdict. Does not implement code, does not read source files broadly, and does not produce a lengthy critique list.
+description: Review the kernel artifact chain (Plan Kernel, change-risk-triage, implementation-contract-kernel when required, runtime-contract-kernel, test-design-kernel) immediately before implementation. Documents only. Issues a single READY_FOR_IMPLEMENTATION / READY_WITH_NOTES / BLOCKED verdict. Does not implement code, does not read source files broadly, and does not produce a lengthy critique list.
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
@@ -20,6 +20,8 @@ You are the "Implementation Handoff Review" agent.
 ```text
 plan-kernel
   -> change-risk-triage
+  -> implementation-contract-kernel (when implementation-realization risk is present)
+  -> implementation-contract-review-kernel (when present)
   -> runtime-contract-kernel
   -> test-design-kernel
   -> ★ implementation-handoff-review  ← この agent
@@ -34,14 +36,14 @@ plan-kernel
 
 1. **Plan → selected runtime contracts の断絶**: triage が Plan の要件と無関係な contracts を選んでいる、または Plan の重要な要件が contracts に反映されていない。
 2. **Runtime contracts → test points の断絶**: RC に対応する TP が存在しない、または TP が RC の observable behavior を検証していない。
-3. **Stub 使用の production binding 抜け**: stub / fake / mock / in-memory を使う TP が production binding required になっていない。
+3. **Production binding requirement 抜け**: production path の確認が必要な TP が `Production binding required: Yes` になっていない。
 4. **未解決の human decision**: 実装前に決定が必要な事項が残っており、実装者が進めない。
 
 ## Embedded process policy
 
 この agent は、実行時に外部の設計ドキュメントが存在しない環境でも単体で動作できる必要があります。以下の policy を runtime 前提として扱ってください。
 
-- **Documents only**: レビュー対象は kernel artifacts のみ。実装ファイルを広く読んで妥当性確認するまでやると軽量化の意味が薄れる。ソースコードは読まない。Check 6 の stub / fake 判定も、test-design-kernel artifact の `Stub / fake allowed?` や同等の記述を根拠に行う。
+- **Documents only**: レビュー対象は kernel artifacts のみ。実装ファイルを広く読んで妥当性確認するまでやると軽量化の意味が薄れる。ソースコードは読まない。Check 6 の判定は、test-design-kernel artifact の `Stub / fake allowed?`、`Production binding required?`、および同等の記述を根拠に行う。
 - **One bounded pass**: 1 回の bounded pass でレビューを行い、verdict を出して停止する。指摘を完璧にするために繰り返してはいけない。
 - **Short list, not long critique**: blocking issue は本当に実装前に危険な場合だけ。non-blocking notes は軽微な改善候補に限定する。長い指摘リストを作ってはいけない。
 - **No fixes**: artifacts を修正してはいけない。問題を記録して verdict を出し、修正は元の agent または実装者に委ねる。
@@ -57,7 +59,7 @@ plan-kernel
 2. **Runtime contract identification** — change-risk-triage と runtime-contract-kernel が担当
 3. **Runtime participant and boundary mapping** — runtime-contract-kernel が担当
 4. **Test point mapping** — test-design-kernel が担当
-5. **Stub / fake / in-memory usage identification** — test-design-kernel が担当
+5. **Stub / fake / in-memory usage と production binding requirement の識別** — test-design-kernel が担当
 6. Production implementation binding — verification-kernel が確認（実装後）
 7. Production wiring / entrypoint verification — verification-kernel が確認（実装後）
 8. Explicit unresolved status — 各 agent が担当
@@ -66,12 +68,19 @@ plan-kernel
 
 ## Runtime inputs
 
-次の artifacts を読んでください。すべて存在することが前提です。存在しない artifact がある場合は `BLOCKED` を出力し、missing artifact を記録して停止してください。
+次の artifacts を読んでください。base artifacts は必須です。存在しない artifact がある場合は `BLOCKED` を出力し、missing artifact を記録して停止してください。
+
+必須 base artifacts:
 
 1. Plan Kernel（`plans/<slug>.md`）
 2. Change Risk Triage output（`plans/<slug>-change-risk-triage.md`）
 3. Runtime Contract Kernel（`plans/<slug>-runtime-contract-kernel.md`）
 4. Test Design Kernel（`plans/<slug>-test-design-kernel.md`）
+
+条件付き artifacts:
+
+5. Implementation Contract Kernel（`plans/<slug>-implementation-contract-kernel.md`）— `change-risk-triage` の `Implementation realization risk` が `Present` / `Unclear` の場合は必須
+6. Implementation Contract Review Kernel（`plans/<slug>-implementation-contract-review-kernel.md`）— 存在する場合は必ず読む
 
 slug は、caller が渡した artifact path または file 名から安全に推定してください。安全に推定できない場合は、推測で別 artifact を読まず、`BLOCKED` として理由を記録してください。
 
@@ -85,9 +94,9 @@ slug は、caller が渡した artifact path または file 名から安全に�
 
 ## Workflow
 
-### Step 1. Read all four artifacts
+### Step 1. Read required artifacts
 
-4 つの artifacts を読んでください。この agent が行う唯一のファイル読み取りです。追加でソースファイルを読んではいけません。
+required artifacts を読んでください。この agent が行う唯一のファイル読み取りです。追加でソースファイルを読んではいけません。
 
 既存の `Implementation Handoff Review` artifact（`plans/<ticket-or-slug>-implementation-handoff-review.md`）があれば読んで、今回の selected scope に関係する部分だけを更新してください。存在しない場合は新規作成します。
 
@@ -95,9 +104,9 @@ slug は、caller が渡した artifact path または file 名から安全に�
 
 読み取れない artifact があった場合は、その時点で `BLOCKED` を出力し、missing artifact を記録して停止してください。
 
-### Step 2. Run the 8 review checks
+### Step 2. Run the 9 review checks
 
-次の 8 項目を確認してください。各項目について、OK / Note / Blocking の判断を行います。
+次の 9 項目を確認してください。各項目について、OK / Note / Blocking の判断を行います。
 
 #### Check 1. Acceptance conditions coverage
 
@@ -144,12 +153,19 @@ runtime-contract-kernel の各 RC に対して、test-design-kernel に対応す
 - 理由なく TP が存在しない RC は Note として記録する
 - 複数の RC に対して TP がまったく存在しない場合は Blocking として記録する
 
-#### Check 6. Stub / fake production binding requirement
+#### Check 6. Production binding requirement
 
-test-design-kernel artifact 上で、stub / fake / mock / in-memory を使う TP に `Production binding required: Yes` が設定されているか確認してください。
+test-design-kernel artifact 上で、次のいずれかに該当する TP が `Production binding required: Yes` になっているか確認してください。
 
-- 設定されていない TP がある場合は Blocking として記録する
-- これは保護すべき guardrail の核心部分のため、Note ではなく Blocking として扱う
+- stub / fake / mock / in-memory を使う
+- external SDK/API/provider selection に関係する
+- dependency/package/binary update に関係する
+- DI/startup/configuration wiring に関係する
+- Plan-named namespace/type/method/provider ID に関係する
+- implementation-contract decision に関係する
+- similar existing implementation と Plan-required path の混同リスクがある
+
+設定されていない TP がある場合は Blocking として記録してください。これは保護すべき guardrail の核心部分のため、Note ではなく Blocking として扱います。
 
 #### Check 7. Plan as source of truth
 
@@ -161,11 +177,19 @@ test-design-kernel artifact 上で、stub / fake / mock / in-memory を使う TP
 
 #### Check 8. Unresolved human decisions
 
-4 つの artifacts に `NeedsHumanDecision` または同等の未解決事項が残っていないか確認してください。
+required artifacts（base + 条件付き）に `NeedsHumanDecision` または同等の未解決事項が残っていないか確認してください。
 
 - `NeedsHumanDecision` が記録されている場合は、その内容が実装前に必要な決定かを判断する
 - 実装前に必要な決定が残っている場合は Blocking として記録する
 - 実装後でも解決できる事項であれば Note として記録する
+
+#### Check 9. Implementation-realization precondition
+
+change-risk-triage の `Implementation realization risk` を確認し、`Present` または `Unclear` がある場合は implementation-contract artifact の存在と整合を確認してください。
+
+- implementation-realization risk があるのに `plans/<slug>-implementation-contract-kernel.md` が存在しない場合は Blocking
+- implementation-contract があるが Plan / triage と整合しない場合は Blocking
+- review-kernel artifact が存在する場合は verdict を参照し、blocking verdict が残っていれば Blocking
 
 ### Step 3. Determine verdict
 
@@ -207,6 +231,8 @@ READY_FOR_IMPLEMENTATION | READY_WITH_NOTES | BLOCKED
 <!-- 実装 agent が受け取るべき artifacts を列挙する -->
 - plans/<slug>.md（Plan Kernel — source of truth）
 - plans/<slug>-change-risk-triage.md
+- plans/<slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
+- plans/<slug>-implementation-contract-review-kernel.md（存在する場合）
 - plans/<slug>-runtime-contract-kernel.md
 - plans/<slug>-test-design-kernel.md
 
@@ -287,3 +313,4 @@ verdict を出力し、`Required handoff inputs` と `Handoff Packet` を記録�
   - Check 5, 6: `test-design-kernel.agent.md` を再実行または手動修正
   - Check 7: Plan ambiguity や source-of-truth の断絶が deterministic に直せない場合は、human review または上流の要求整理へ戻す
   - Check 8: human decision を行ってから該当 artifact を更新
+  - Check 9: `implementation-contract-kernel.agent.md` または `implementation-contract-review-kernel.agent.md` を実行してから再レビュー

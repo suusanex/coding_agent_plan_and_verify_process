@@ -139,34 +139,47 @@ Use for the main lightweight process this repository now targets.
 
 1. `plan-kernel.agent.md`
 2. `change-risk-triage.agent.md`
-3. `runtime-contract-kernel.agent.md`
-4. `test-design-kernel.agent.md`
-5. implementation by normal agent or human-guided implementation agent
-6. `verification-kernel.agent.md`
-7. optional `coverage-gap-triage.agent.md`
-8. optional `coverage-gap-resolution-slice.agent.md`
-9. optional re-run of `verification-kernel.agent.md`
+3. `implementation-contract-kernel.agent.md`, when implementation-realization risk is present
+4. `implementation-contract-review-kernel.agent.md` or bounded `implementation-contract-review.agent.md`, when the contract is non-trivial
+5. `runtime-contract-kernel.agent.md`
+6. `test-design-kernel.agent.md`
+7. implementation by normal agent or human-guided implementation agent
+8. `verification-kernel.agent.md`
+9. `coverage-gap-triage.agent.md`, when unresolved items remain
+10. `coverage-gap-resolution-slice.agent.md`, for selected bounded gaps
 
-Implementation handoff for step 5 must include:
+Implementation handoff must include:
 
 - the bounded Plan from `plan-kernel.agent.md`
 - `change-risk-triage` output
+- `implementation-contract-kernel` output when required
+- `implementation-contract-review-kernel` output when present
 - `runtime-contract-kernel` output
 - `test-design-kernel` output
 - selected implementation scope and non-goals
+- prohibited substitutions
+- unresolved implementation-realization items
 
 The implementation agent must treat the Plan as the source of truth. Kernel artifacts are guardrails for high-risk slices, not substitutes for the Plan.
+
+The token-aware process documentation must also enforce these points:
+
+- Runtime contract artifacts are not substitutes for implementation contract artifacts.
+- Plan conformance checks are required but do not remove the need to investigate unknown implementation paths.
+- Unresolved implementation-realization items must stay explicit and must not be converted to guessed production addresses.
+- Full-flow implementation contract agents remain available and should be recommended when the kernel variant is too narrow.
 
 ### Flow B: Minimal high-risk guardrail sub-flow
 
 Use only after a bounded Plan exists and the selected risky area is already clear.
 
 1. `change-risk-triage.agent.md`
-2. `runtime-contract-kernel.agent.md`
-3. `test-design-kernel.agent.md`
-4. implementation by normal agent or human-guided implementation agent using the Plan plus kernel artifacts
-5. `verification-kernel.agent.md`
-6. optional `coverage-gap-resolution-slice.agent.md`
+2. `implementation-contract-kernel.agent.md`（when implementation-realization risk is present）
+3. `runtime-contract-kernel.agent.md`
+4. `test-design-kernel.agent.md`
+5. implementation by normal agent or human-guided implementation agent using the Plan plus kernel artifacts
+6. `verification-kernel.agent.md`
+7. optional `coverage-gap-resolution-slice.agent.md`
 
 This sub-flow must not be used as a replacement for Plan creation.
 
@@ -223,6 +236,52 @@ Rules:
 - It must identify known high-risk boundary candidates, but detailed selection belongs to `change-risk-triage.agent.md`.
 - It must include non-goals and out-of-scope items so implementation agents do not infer extra work.
 - It must include acceptance conditions that can later be mapped to test points or verification items.
+
+### Implementation Contract Kernel
+
+A lightweight implementation-realization artifact should use this shape:
+
+```md
+# Implementation Contract Kernel
+
+## Scope
+
+## Plan-named implementation requirements
+
+| Requirement | Expected by Plan | Evidence found | Status |
+| --- | --- | --- | --- |
+
+## Dependency and API surface findings
+
+| Dependency / API / symbol | Expected source | Found location | Status | Notes |
+| --- | --- | --- | --- | --- |
+
+## Selected implementation approach
+
+## Required code changes
+
+## Prohibited substitutions
+
+| Similar existing path | Why it is not sufficient | Allowed reuse, if any |
+| --- | --- | --- |
+
+## Verification hooks
+
+## Unresolved implementation-realization items
+
+## Handoff Packet
+```
+
+Required statuses include:
+
+- `Confirmed`
+- `MissingButRequired`
+- `ApiSurfaceUnknown`
+- `DependencyMissing`
+- `NeedsHumanDecision`
+- `RejectedSubstitute`
+- `AllowedReuse`
+- `OutOfScopeForThisPass`
 
 ### Runtime Contract Kernel
 
@@ -421,6 +480,8 @@ Classify the bounded Plan, identify high-risk runtime boundaries, and recommend 
 
 ## Selected runtime contracts to cover
 
+## Implementation realization risk
+
 ## Suggested next agent
 
 ## Out of scope for this triage
@@ -439,6 +500,12 @@ The agent must look for risk triggers including:
 - durable state / retry / replay / idempotency
 - startup wiring / DI / configuration
 - production implementation split from test substitute
+- Plan names a specific external SDK or API
+- Plan names package / release / binary artifact / local lib folder
+- Plan names namespace / type / method / extension method / provider ID / config section
+- existing code contains a similar but different implementation path
+- affected production address is not known from current evidence
+- Plan contains remaining work about API surface inspection or dependency confirmation
 
 ### Must not do
 
@@ -452,6 +519,14 @@ The agent must look for risk triggers including:
 
 Stop after recommending a profile and selected contracts / IDs. If risk cannot be classified from available context, recommend `contract-kernel` or `standard-slice` rather than pretending the task is safe.
 
+When implementation-realization risk is `Present` or `Unclear`, the next-step recommendation must be one of:
+
+- `implementation-contract-kernel.agent.md`
+- `implementation-contract-generation.agent.md`
+- `full-coverage`
+
+Do not recommend immediate `runtime-contract-kernel.agent.md` in this condition.
+
 ## 3. `runtime-contract-kernel.agent.md`
 
 ### Purpose
@@ -462,6 +537,7 @@ Create or update the minimal runtime contract artifact for selected high-risk sl
 
 - selected runtime contracts or change-risk triage output
 - Plan Kernel or bounded Plan artifact
+- Implementation Contract Kernel artifact when present
 - relevant code / docs only for identifying participants, boundaries, and addresses
 
 ### Required outputs
@@ -472,6 +548,8 @@ Create or update the minimal runtime contract artifact for selected high-risk sl
 ## Scope
 
 ## Runtime Contract Kernel
+
+## Plan / implementation contract conformance
 
 ## Notes / assumptions
 
@@ -496,6 +574,7 @@ For each selected contract, verify or record:
 - implement code
 - create tests
 - invent production addresses without evidence
+- substitute nearby existing implementation when implementation-contract says path is missing/unknown
 - replace the Plan as source of truth
 
 ### Escalation condition
@@ -538,6 +617,7 @@ For each selected runtime contract:
 - map the verification point back to the Plan requirement / acceptance condition where possible
 - identify whether a stub / fake / in-memory substitute is expected
 - require production binding verification when a substitute is used
+- also require production binding verification when selected contracts involve external SDK/API/provider selection, dependency/package/binary update, DI/startup/config wiring, Plan-named symbols, implementation-contract decisions, or substitution risk
 - include negative / error path checks for boundary contracts when relevant
 
 ### Must not do
@@ -596,6 +676,8 @@ For each selected test point:
 - whether production wiring / entrypoint reaches that implementation
 - whether selected runtime contract fields and error behavior are represented
 - whether the result is still consistent with the Plan requirement / acceptance condition
+- when implementation-contract exists, whether runtime address and wiring are consistent with implementation-contract decisions
+- if nearby implementation is wired but Plan-required path is missing, classify as blocking mismatch/gap rather than pass
 
 ### Verdicts
 
@@ -658,6 +740,11 @@ Classify unresolved implementation coverage items without fixing them.
 
 Use a controlled vocabulary:
 
+- `ImplementationContractMissing`
+- `DependencyMissing`
+- `ApiSurfaceUnknown`
+- `UnjustifiedSubstitution`
+- `SourceOfTruthDrift`
 - `ProductionImplementationMissing`
 - `ProductionWiringMissing`
 - `ContractMismatch`
@@ -714,6 +801,7 @@ Resolve only explicitly selected coverage gaps in one bounded pass.
 For each selected ID:
 
 - map it back to the Plan requirement or runtime contract
+- for `ImplementationContractMissing` / `DependencyMissing` / `ApiSurfaceUnknown` / `UnjustifiedSubstitution` / `SourceOfTruthDrift`, first consume or create the selected-slice implementation contract artifact before direct repair
 - identify the minimal production implementation / wiring / test update needed
 - apply only bounded changes required for that ID
 - update the active status artifact when appropriate
@@ -794,12 +882,14 @@ For a fresh implementation of the token-aware flow, the intended order is:
 
 1. `plan-kernel.agent.md`
 2. `change-risk-triage.agent.md`
-3. `runtime-contract-kernel.agent.md`
-4. `test-design-kernel.agent.md`
-5. implementation
-6. `verification-kernel.agent.md`
-7. `coverage-gap-triage.agent.md`
-8. `coverage-gap-resolution-slice.agent.md`
+3. `implementation-contract-kernel.agent.md`（when implementation-realization risk is present）
+4. `implementation-contract-review-kernel.agent.md` or bounded `implementation-contract-review.agent.md`（when non-trivial）
+5. `runtime-contract-kernel.agent.md`
+6. `test-design-kernel.agent.md`
+7. implementation
+8. `verification-kernel.agent.md`
+9. `coverage-gap-triage.agent.md`
+10. `coverage-gap-resolution-slice.agent.md`
 
 ## Acceptance criteria for the corrected process
 
@@ -809,6 +899,10 @@ The corrected process is acceptable when:
 - implementation agents receive the Plan plus kernel guardrail artifacts
 - a lightweight run can handle a selected cross-boundary slice without skipping runtime contracts
 - a stub-based test cannot be marked complete without production binding verification
+- when implementation-realization risk is `Present` / `Unclear`, implementation-contract branch is recommended before `runtime-contract-kernel`
+- when Plan-named dependency / API / provider path is unconfirmed, it remains unresolved and is not replaced by nearby existing implementation
+- implementation-contract decisions are handed off to and consumed by runtime-contract / test-design / verification artifacts
+- production binding required applies not only to stub/fake usage but also to Plan-named external provider/API/dependency paths
 - every selected contract / test point / gap ends with explicit status
 - unresolved work is useful enough to drive a later fix slice
 - the full process remains available for broad high-risk work
@@ -820,7 +914,8 @@ After `plan-kernel.agent.md` is created, update `README.md` to describe the corr
 
 - token-aware flow starts with bounded Plan creation
 - `change-risk-triage.agent.md` consumes the Plan and selects high-risk runtime slices
-- implementation receives Plan + triage + runtime-contract-kernel + test-design-kernel
+- implementation-realization risk uses conditional `implementation-contract-kernel` / review before runtime-contract
+- implementation receives Plan + triage + implementation-contract artifacts (when required) + runtime-contract-kernel + test-design-kernel
 - full Plan-first flow remains available for broad autonomous work
 
 The README should make clear that the lightweight flow narrows the selected scope, but does not remove Plan creation or the guardrail chain for selected high-risk contracts.
