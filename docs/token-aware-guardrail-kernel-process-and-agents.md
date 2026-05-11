@@ -899,6 +899,10 @@ The corrected process is acceptable when:
 - implementation agents receive the Plan plus kernel guardrail artifacts
 - a lightweight run can handle a selected cross-boundary slice without skipping runtime contracts
 - a stub-based test cannot be marked complete without production binding verification
+- when implementation-realization risk is `Present` / `Unclear`, implementation-contract branch is recommended before `runtime-contract-kernel`
+- when Plan-named dependency / API / provider path is unconfirmed, it remains unresolved and is not replaced by nearby existing implementation
+- implementation-contract decisions are handed off to and consumed by runtime-contract / test-design / verification artifacts
+- production binding required applies not only to stub/fake usage but also to Plan-named external provider/API/dependency paths
 - every selected contract / test point / gap ends with explicit status
 - unresolved work is useful enough to drive a later fix slice
 - the full process remains available for broad high-risk work

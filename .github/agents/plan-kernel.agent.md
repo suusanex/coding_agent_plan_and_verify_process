@@ -327,17 +327,21 @@ Plan が good enough for bounded implementation であれば停止してくだ�
 
 1. **`plan-kernel.agent.md`** ← この agent
 2. `change-risk-triage.agent.md` — Plan を読み、high-risk runtime slices を選択し、process profile を推奨する
-3. `runtime-contract-kernel.agent.md` — selected slices に対して minimal runtime contract artifact を作成する
-4. `test-design-kernel.agent.md` — selected contracts に対して compact test design を作成する
-5. 実装 agent（Plan + triage + runtime-contract-kernel + test-design-kernel を入力として受け取る）
-6. `verification-kernel.agent.md` — selected contracts と test points を verification する
-7. （optional）`coverage-gap-triage.agent.md`
-8. （optional）`coverage-gap-resolution-slice.agent.md`
+3. `implementation-contract-kernel.agent.md`（implementation-realization risk が `Present` / `Unclear` の場合）
+4. `implementation-contract-review-kernel.agent.md`（3 が実行され、非自明または unresolved が残る場合）
+5. `runtime-contract-kernel.agent.md` — selected slices に対して minimal runtime contract artifact を作成する
+6. `test-design-kernel.agent.md` — selected contracts に対して compact test design を作成する
+7. 実装 agent（Plan + triage + implementation-contract artifacts（when required）+ runtime-contract-kernel + test-design-kernel を入力として受け取る）
+8. `verification-kernel.agent.md` — selected contracts と test points を verification する
+9. （optional）`coverage-gap-triage.agent.md`
+10. （optional）`coverage-gap-resolution-slice.agent.md`
 
 実装 agent への handoff には必ず次を含めてください。
 
 - この agent が作成した bounded Plan
 - `change-risk-triage` の output
+- `implementation-contract-kernel` の output（implementation-realization risk が `Present` / `Unclear` の場合）
+- `implementation-contract-review-kernel` の output（存在する場合）
 - `runtime-contract-kernel` の output
 - `test-design-kernel` の output
 - selected implementation scope と non-goals

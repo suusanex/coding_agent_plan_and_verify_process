@@ -98,6 +98,16 @@ interface のみ（implementation body がない）、または fake / stub / mo
 
 この precondition が満たされるまで、production/test の修正を適用してはいけません。
 
+consume または create した implementation contract artifact に、selected gap に影響する次の status が残る場合は、production/test repair に進んではいけません。
+
+- `MissingButRequired`
+- `DependencyMissing`
+- `ApiSurfaceUnknown`
+- `NeedsHumanDecision`
+- review されていない `RejectedSubstitute`
+
+この条件に該当する場合は `BLOCKED` または `PARTIAL_RESOLUTION` を記録し、`implementation-contract-review-kernel.agent.md` または human decision を推奨して停止してください。
+
 ### Gap type が解消不能な場合
 
 次の gap type は、この agent では解消できません。受け取った場合は `OutOfScopeForThisPass` または `NeedsHumanDecision` として記録し、推奨アクションを明示してください。
@@ -206,6 +216,8 @@ triage 出力が利用可能な場合はその gap type と target files / addre
 | `PlanAmbiguity` | 修正不可。`NeedsHumanDecision` として記録して停止する。 |
 | `ManualEnvironmentRequired` | 修正不可。`ManualOnly` として記録する。 |
 | `DesignTooBroadForSlice` | 修正不可。`OutOfScopeForThisPass` として記録し、推奨プロファイルを明示する。 |
+
+implementation-contract precondition により blocking status が残る場合は、この表の production/test 修正行へ進まず、該当 ID を `BLOCKED` または `PARTIAL_RESOLUTION` として記録してください。
 
 #### 2e. Guardrail chain の確認
 

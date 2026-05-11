@@ -36,14 +36,14 @@ plan-kernel
 
 1. **Plan → selected runtime contracts の断絶**: triage が Plan の要件と無関係な contracts を選んでいる、または Plan の重要な要件が contracts に反映されていない。
 2. **Runtime contracts → test points の断絶**: RC に対応する TP が存在しない、または TP が RC の observable behavior を検証していない。
-3. **Stub 使用の production binding 抜け**: stub / fake / mock / in-memory を使う TP が production binding required になっていない。
+3. **Production binding requirement 抜け**: production path の確認が必要な TP が `Production binding required: Yes` になっていない。
 4. **未解決の human decision**: 実装前に決定が必要な事項が残っており、実装者が進めない。
 
 ## Embedded process policy
 
 この agent は、実行時に外部の設計ドキュメントが存在しない環境でも単体で動作できる必要があります。以下の policy を runtime 前提として扱ってください。
 
-- **Documents only**: レビュー対象は kernel artifacts のみ。実装ファイルを広く読んで妥当性確認するまでやると軽量化の意味が薄れる。ソースコードは読まない。Check 6 の stub / fake 判定も、test-design-kernel artifact の `Stub / fake allowed?` や同等の記述を根拠に行う。
+- **Documents only**: レビュー対象は kernel artifacts のみ。実装ファイルを広く読んで妥当性確認するまでやると軽量化の意味が薄れる。ソースコードは読まない。Check 6 の判定は、test-design-kernel artifact の `Stub / fake allowed?`、`Production binding required?`、および同等の記述を根拠に行う。
 - **One bounded pass**: 1 回の bounded pass でレビューを行い、verdict を出して停止する。指摘を完璧にするために繰り返してはいけない。
 - **Short list, not long critique**: blocking issue は本当に実装前に危険な場合だけ。non-blocking notes は軽微な改善候補に限定する。長い指摘リストを作ってはいけない。
 - **No fixes**: artifacts を修正してはいけない。問題を記録して verdict を出し、修正は元の agent または実装者に委ねる。
@@ -59,7 +59,7 @@ plan-kernel
 2. **Runtime contract identification** — change-risk-triage と runtime-contract-kernel が担当
 3. **Runtime participant and boundary mapping** — runtime-contract-kernel が担当
 4. **Test point mapping** — test-design-kernel が担当
-5. **Stub / fake / in-memory usage identification** — test-design-kernel が担当
+5. **Stub / fake / in-memory usage と production binding requirement の識別** — test-design-kernel が担当
 6. Production implementation binding — verification-kernel が確認（実装後）
 7. Production wiring / entrypoint verification — verification-kernel が確認（実装後）
 8. Explicit unresolved status — 各 agent が担当
@@ -153,12 +153,19 @@ runtime-contract-kernel の各 RC に対して、test-design-kernel に対応す
 - 理由なく TP が存在しない RC は Note として記録する
 - 複数の RC に対して TP がまったく存在しない場合は Blocking として記録する
 
-#### Check 6. Stub / fake production binding requirement
+#### Check 6. Production binding requirement
 
-test-design-kernel artifact 上で、stub / fake / mock / in-memory を使う TP に `Production binding required: Yes` が設定されているか確認してください。
+test-design-kernel artifact 上で、次のいずれかに該当する TP が `Production binding required: Yes` になっているか確認してください。
 
-- 設定されていない TP がある場合は Blocking として記録する
-- これは保護すべき guardrail の核心部分のため、Note ではなく Blocking として扱う
+- stub / fake / mock / in-memory を使う
+- external SDK/API/provider selection に関係する
+- dependency/package/binary update に関係する
+- DI/startup/configuration wiring に関係する
+- Plan-named namespace/type/method/provider ID に関係する
+- implementation-contract decision に関係する
+- similar existing implementation と Plan-required path の混同リスクがある
+
+設定されていない TP がある場合は Blocking として記録してください。これは保護すべき guardrail の核心部分のため、Note ではなく Blocking として扱います。
 
 #### Check 7. Plan as source of truth
 

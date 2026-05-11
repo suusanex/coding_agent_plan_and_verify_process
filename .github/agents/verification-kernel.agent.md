@@ -108,6 +108,8 @@ selected test points の一覧を確認してください。
 
 各 selected test point について、production implementation と production wiring / entrypoint への対応を確認してください。substitute usage が確認された test point は `Stub-to-Production Binding` table で詳しく記録します。substitute を使わない test point はこの table には含めませんが、production path を通っていること、または production evidence が `Runtime contract verification` table で確認できることを `Test observations` に記録してください。
 
+`Production binding required?` が `Yes` の selected test point または selected runtime contract については、substitute 使用の有無に関係なく、production interface / concrete implementation / wiring / entrypoint の確認が必要です。
+
 implementation-contract-kernel が存在する場合は、production path の確認先をその decision に合わせてください。Plan-required path と異なる nearby path が wiring されていても、explicit `AllowedReuse` がない限り成功扱いにしてはいけません。
 
 substitute を使わない test point に `Done` を付けてよいのは、test artifact または manual-only reason があり、selected runtime contract に対応する production implementation / wiring / entrypoint の証拠が確認できる場合だけです。test が helper や local-only path だけを検証しており production path との接続を確認できない場合は、成功扱いにせず `Unresolved items` に記録してください。
@@ -153,7 +155,7 @@ Unresolved items を分類してください。
 Verdict を次の優先順位で決定してください。高優先度の条件が1つでも該当すれば、そちらを選んでください。
 
 1. **`BLOCKED_BY_CONTRACT_MISMATCH`**: runtime contract field または error behavior と production code の mismatch、または Plan/implementation-contract decision と runtime address の不整合が1つ以上確認された
-2. **`BLOCKED_BY_PRODUCTION_BINDING_GAP`**: production interface、concrete implementation、または wiring/entrypoint の欠如が1つ以上確認された（substitute を使う test point が対象）。nearby 実装が wiring されても Plan-required path が欠ける場合を含む
+2. **`BLOCKED_BY_PRODUCTION_BINDING_GAP`**: `Production binding required?` が `Yes` の selected test point または selected runtime contract について、Plan-required / implementation-contract-selected production path の interface、concrete implementation、または wiring/entrypoint の欠如が1つ以上確認された。substitute を使う test point に限定しない。nearby 実装が wiring されても Plan-required path が欠ける場合を含む
 3. **`BLOCKED_BY_HUMAN_DECISION`**: 上記の客観的 failure を断定できず、human decision なしに安全に verdict を出せない
 4. **`PASS_WITH_RESIDUAL_WORK`**: blocking gap は存在しないが、非 blocking の残件（追加観察の強化、証跡整理など）がある
 5. **`PASS_FOR_SELECTED_SCOPE`**: 全 selected test points が verified（`Done` または `Bound`）または justified `ManualOnly` であり、production binding / wiring / contract representation に blocking gap がない
@@ -270,7 +272,7 @@ Verdict を次の優先順位で決定してください。高優先度の条件
 | --- | --- |
 | `PASS_FOR_SELECTED_SCOPE` | 全 selected test points が verified（`Done` または `Bound`）または justified `ManualOnly` であり、production binding / wiring / contract representation に blocking gap がない。この verdict は selected scope に限定され、feature 全体の完了を意味しない |
 | `PASS_WITH_RESIDUAL_WORK` | blocking gap は存在しない。非 blocking の残件（例：追加観察の強化、証跡整理、`to be determined` 項目）がある |
-| `BLOCKED_BY_PRODUCTION_BINDING_GAP` | production interface、concrete implementation、または wiring/entrypoint の欠如が、substitute を使う test point の中に1つ以上確認された |
+| `BLOCKED_BY_PRODUCTION_BINDING_GAP` | `Production binding required?` が `Yes` の selected test point または selected runtime contract について、Plan-required / implementation-contract-selected production path の interface、concrete implementation、または wiring/entrypoint の欠如が1つ以上確認された。substitute を使う test point に限定しない |
 | `BLOCKED_BY_CONTRACT_MISMATCH` | runtime contract field または error/timeout behavior と production code の実装が1つ以上一致しない |
 | `BLOCKED_BY_HUMAN_DECISION` | 客観的な failure を断定できず、product、architecture、policy、または risk に関する human decision なしに安全に verdict を出せない |
 
