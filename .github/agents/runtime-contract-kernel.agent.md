@@ -179,6 +179,13 @@ change-risk-triage の `Implementation realization risk` が `Present` または
 - `Verification hook` は、test point ID、手動確認の方法、または `to be assigned by test-design-kernel` を書く。空欄は不可。
 - `Scenario` は full scenario ledger ではなく、contract が発生する状況を 1 行で示す短い label / summary にしてください。詳細な sequence が必要な場合は、この agent で展開せず escalation recommendation に記録してください。
 
+### Plan / implementation contract conformance table rules
+
+- `Conformance` は `Conformant` / `Mismatch` / `Unknown` のいずれかを使う。
+- `Conformant`: Plan requirement と implementation-contract decision が runtime contract address と矛盾しない。
+- `Mismatch`: Plan requirement または implementation-contract decision と runtime contract address が矛盾している。
+- `Unknown`: Plan requirement、implementation-contract decision、または runtime contract address のいずれかが不足し、適合判定できない。
+
 ---
 
 ## Must not do

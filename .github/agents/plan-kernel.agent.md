@@ -263,6 +263,9 @@ Output path が repository 内か不明な場合は、repository root からの 
 - **Decisions made**: Plan 作成中に行った scope 判断、non-goal の決定、boundary candidate の判断を記録する
 - **Do not redo unless new evidence appears**: downstream agents が再探索しなくてよい分析を記録する
 - **Remaining work**: Plan で決定できなかった点、`NeedsHumanDecision` の項目を列挙する。可能な限り `Consumed` / `Blocking` / `DeferredWithReason` のいずれかで分類する
+- `Consumed`: この pass で扱い切った residual（追跡のみ必要で、追加作業は不要）
+- `Blocking`: 実装または次 agent に進む前に解消が必要な残件
+- `DeferredWithReason`: この pass では扱わないと判断した残件。defer 理由を併記する
 - **Recommended next step**: `change-risk-triage.agent.md` を実行することを推奨し、必要な入力を明示する
 
 ## Repository write policy

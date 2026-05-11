@@ -151,6 +151,7 @@ Unresolved items を分類してください。
 - `missing-test`: test が存在せず manual-only 理由も記録されていない
 - `human-decision-needed`: 客観的に判断できず人間の判断が必要
 - `manual-only`: 自動検証が不可能で manual または real-environment confirmation が必要
+- `plan-required-path-missing`: Plan または implementation-contract で要求された production path が見つからない
 
 Verdict を次の優先順位で決定してください。高優先度の条件が1つでも該当すれば、そちらを選んでください。
 
