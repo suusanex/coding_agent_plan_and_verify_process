@@ -1,7 +1,6 @@
 ---
 name: implementation-contract-generation
 description: 承認済み Plan を、実装前の技術採用・再利用方針・検証フックまで落とし込んだ Implementation Contract に変換する。
-disable-model-invocation: true
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/

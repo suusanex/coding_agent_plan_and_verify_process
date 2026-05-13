@@ -1,7 +1,6 @@
 ---
 name: implementation-contract-review
 description: Implementation Contract をレビューし、技術採用判断・再利用判断・独自実装の必要性・検証可能性を強化する。
-disable-model-invocation: true
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/

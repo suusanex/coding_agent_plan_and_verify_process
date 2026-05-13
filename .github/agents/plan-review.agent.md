@@ -1,7 +1,6 @@
 ---
 name: plan-review
 description: Review a Plan for implementation readiness, runtime completeness, and verification coverage. Apply deterministic fixes directly, and escalate only true judgment calls as numbered questions.
-disable-model-invocation: true
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
