@@ -1,8 +1,7 @@
 ---
 name: runtime-evidence
 description: Generates plans/<ticket-or-slug>-runtime-evidence.md with sequences-first PlantUML, then extracts Scenario Ledger. Avoids C4 Context/Container diagrams.
-tools: ["read", "search", "edit"]
-infer: false
+
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/

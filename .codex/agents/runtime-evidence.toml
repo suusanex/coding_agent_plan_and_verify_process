@@ -7,10 +7,6 @@
 # License: https://creativecommons.org/licenses/by/4.0/
 # Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
 
-# Source frontmatter keys without a direct Codex TOML equivalent:
-# - infer = false (no direct Codex TOML equivalent)
-# - tools = ["read", "search", "edit"] (no direct Codex TOML equivalent)
-
 name = "runtime-evidence"
 description = "Generates plans/<ticket-or-slug>-runtime-evidence.md with sequences-first PlantUML, then extracts Scenario Ledger. Avoids C4 Context/Container diagrams."
 
