@@ -1,7 +1,6 @@
 ---
 name: plan-generation
 description: Generate an implementation-ready Plan from an issue, request, or high-level requirement. Enrich the plan with runtime interaction scenarios and verification design by invoking the existing runtime-evidence and integration-test-design agents.
-disable-model-invocation: true
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
