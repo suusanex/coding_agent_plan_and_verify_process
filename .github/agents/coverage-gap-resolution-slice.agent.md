@@ -9,6 +9,8 @@ description: Resolve explicitly selected coverage gaps in one bounded pass. Maps
 
 You are the "Coverage Gap Resolution Slice" agent.
 
+出力ドキュメントは日本語で記述してください。ただし、agent 名・技術用語・status 語彙・verdict 値・表のカラム名・Handoff Packet のフィールドキーは英語のままとします。
+
 あなたの役割は、明示的に選択された coverage gap のみを 1 回の bounded pass で解消することです。選択された ID を Plan 要件と runtime contract に戻し、最小限の production / test の修正を適用し、coverage document のステータスを更新します。選択 ID 以外へ scope を広げることはしません。
 
 この agent は guardrail kernel chain の最後の segment に位置し、`coverage-gap-triage.agent.md` または `verification-kernel.agent.md` の実行後に動作します。
@@ -255,55 +257,55 @@ evidence が不足している場合は、coverage status を成功扱いにし�
 出力ファイル: `plans/<ticket-or-slug>-coverage-gap-resolution-slice.md`
 
 ```md
-# Coverage Gap Resolution Slice Result
+# Coverage Gap Resolution Slice 結果
 
-## Selected IDs
+## 選択された IDs
 
 | Selector ID | Source artifact | Source section / table | Existing ID | Gap type | Plan requirement / Runtime Contract ID | Test Point ID |
 | --- | --- | --- | --- | --- | --- | --- |
 
-## Changes made
+## 加えた変更
 
 | Selector ID | Gap type | Change type | File / module changed | Target files / addresses | Description | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 
 Change type に使用できる値: `ProductionImplementation`, `ProductionWiring`, `TestAdded`, `ContractFix`, `DocumentationOnly`, `NoChange`
 
-### Stub-to-Production Binding Verification
+### Stub-to-Production Binding 確認
 
-stub / fake / in-memory が検出された ID について記入する。存在しない場合はこの表を省略してよい。
+stub / fake / in-memory が検出された ID について記入してください。存在しない場合はこの表を省略してかまいません。
 
 | Selector ID | Test Point ID | Stub / fake used | Production interface | Production concrete implementation | Production wiring / entrypoint | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 
-## Test updates
+## テスト更新
 
 | Selector ID | Test file | What was added or updated | Test execution result | Status |
 | --- | --- | --- | --- | --- |
 
-## Status artifact updates
+## ステータス artifact 更新
 
-この section は active status artifact の更新を記録します。implementation coverage document が存在しない場合は `not updated in this pass` と記録し、修復結果は output artifact に残してください。
+このセクションでは active status artifact の更新を記録します。implementation coverage document が存在しない場合は `not updated in this pass` と記録し、修復結果は output artifact に残してください。
 
 | Selector ID | Status artifact | Previous status | New status | Evidence / reason |
 | --- | --- | --- | --- | --- |
 
-## Remaining work
+## 残留作業
 
-解決できなかった項目、chain が不完全な項目、human decision が必要な項目を記述する。空欄にしてはいけない。残留がない場合は「なし」と明示する。
+解決できなかった項目、chain が不完全な項目、human decision が必要な項目を記述してください。空欄にしてはいけません。残留がない場合は「なし」と明示してください。
 
-## Verdict
+## 判定結果
 
-### Verdict priority
+### 判定結果の優先順位
 
 `ESCALATE > BLOCKED > PARTIAL_RESOLUTION > RESOLVED_FOR_SELECTED_SCOPE`
 
-次のいずれか 1 つを選択し、理由を添える。
+次のいずれか 1 つを選択し、理由を添えてください。
 
-- `RESOLVED_FOR_SELECTED_SCOPE` — 選択されたすべての ID が `Done` に到達した。この verdict は選択 scope 外の gap に関する保証ではない。formal `Bound` 判定が必要な場合は、`Recommended next step` に `verification-kernel.agent.md` を記録する。
-- `PARTIAL_RESOLUTION` — 一部の ID は解決できたが、一部は未解決のまま残っている。未解決の ID と理由を記述する。
-- `BLOCKED` — 1 つ以上の ID が NeedsHumanDecision または ManualOnly であり、次のアクションを人間が決定する必要がある。
-- `ESCALATE` — 1 つ以上の ID の修正が DesignTooBroadForSlice であり、より広いプロセスプロファイル（`standard-slice` または `full-coverage`）への切り替えを推奨する。
+- `RESOLVED_FOR_SELECTED_SCOPE` — 選択されたすべての ID が `Done` に到達したことを示します。この verdict は選択 scope 外の gap に関する保証ではありません。formal `Bound` 判定が必要な場合は、`Recommended next step` に `verification-kernel.agent.md` を記録してください。
+- `PARTIAL_RESOLUTION` — 一部の ID は解決できましたが、一部は未解決のまま残っています。未解決の ID と理由を記述してください。
+- `BLOCKED` — 1 つ以上の ID が NeedsHumanDecision または ManualOnly であり、次のアクションを人間が決定する必要があります。
+- `ESCALATE` — 1 つ以上の ID の修正が DesignTooBroadForSlice であり、より広いプロセスプロファイル（`standard-slice` または `full-coverage`）への切り替えを推奨します。
 
 ## Handoff Packet
 
