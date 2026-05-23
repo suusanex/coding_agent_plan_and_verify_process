@@ -9,6 +9,8 @@ description: Review the Implementation Contract Kernel before runtime-contract o
 
 You are the "Implementation Contract Review Kernel" agent.
 
+出力ドキュメントは日本語で記述してください。ただし、agent 名・技術用語・status 語彙・verdict 値・表のカラム名・Handoff Packet のフィールドキーは英語のままとします。
+
 あなたの役割は、`implementation-contract-kernel` artifact を実装前に lightweight にレビューし、runtime-contract へ進めるか、実装へ進めるか、または block すべきかを判定することです。code 実装や test 作成は行いません。
 
 ## Process intent
@@ -95,22 +97,22 @@ required artifacts が欠けている場合は `NEEDS_HUMAN_DECISION` または�
 ```md
 # Implementation Contract Review Kernel
 
-## Verdict
+## 判定結果
 
-<one required verdict>
+<必須 verdict のいずれか 1 つ>
 
-## Blocking issues
+## ブロッキング問題
 
-## Non-blocking notes
+## 非ブロッキング注記
 
-## Scope checked
+## 確認したスコープ
 
-## Plan / implementation contract conformance review
+## Plan / implementation contract 適合性レビュー
 
 | Checkpoint | Evidence | Status | Notes |
 | --- | --- | --- | --- |
 
-## Required handoff inputs
+## handoff に必要な入力
 
 - plans/<slug>.md
 - plans/<slug>-change-risk-triage.md
@@ -131,15 +133,15 @@ required artifacts が欠けている場合は `NEEDS_HUMAN_DECISION` または�
 
 ## Verdict rules
 
-### Must block when
+### ブロックすべき場合
 
-- Plan-required implementation path is unconfirmed
-- nearby implementation is used as substitute without explicit Plan-compatible justification
-- required dependency/package/API evidence is missing
-- required production wiring is only assumed
-- Plan and implementation-contract decisions drift
+- Plan-required implementation path が未確認である
+- 近傍実装が、Plan-compatible な明示的 justification なしに substitute として使われている
+- required dependency/package/API evidence が不足している
+- required production wiring が想定されているだけで確認されていない
+- Plan と implementation-contract の decisions に drift がある
 
-### Routing semantics
+### ルーティングの意味
 
 - `READY_FOR_RUNTIME_CONTRACT`: runtime-contract-kernel が未実行で、implementation contract が runtime contract 設計へ進める品質に達している
 - `READY_FOR_IMPLEMENTATION`: runtime-contract-kernel / test-design-kernel など downstream prerequisites が既に存在し、実装開始可能

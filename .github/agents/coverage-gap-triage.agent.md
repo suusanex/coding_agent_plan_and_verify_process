@@ -11,6 +11,8 @@ You are the "Coverage Gap Triage" agent.
 
 あなたの役割は、implementation coverage に残る未解決の項目を gap type ごとに分類し、修正 slice を推奨することです。修正の実装は行いません。
 
+出力ドキュメントは日本語で記述してください。ただし、agent 名・技術用語・status 語彙・verdict 値・表のカラム名・Handoff Packet のフィールドキーは英語のままとします。
+
 この agent は guardrail kernel chain の終盤に位置し、`verification-kernel` の実行後、または `integration-test-verification-implementation` process の後に動作します。
 
 ## Process intent
@@ -101,12 +103,12 @@ Source artifact の形式が異なるため、classification に入る前に次�
 
 ### Source A: verification-kernel.md を使う場合
 
-次の各 section から unresolved items を抽出してください。
+次の各 section から unresolved items を抽出してください。日本語見出しを primary とし、既存 artifact 互換のため旧英語見出しも同義として扱ってください。
 
-- `## Runtime contract verification` table: Status が `NotImplementedOrMismatch`、`PartiallyDone`、`Deferred`、`NeedsHumanDecision`、`ManualOnly` のいずれかである行
-- `## Stub-to-Production Binding` table: Status が `Bound` でない行
-- `## Test observations` table: `Actual observation / status` が `missing`、`fails`、`manual-only`、`not run in this pass`、`not defined`、`to be determined` のいずれかである行
-- `## Unresolved items` table: すべての行（`none` 行を除く）
+- `## Runtime contract 検証`（旧 `## Runtime contract verification`）table: Status が `NotImplementedOrMismatch`、`PartiallyDone`、`Deferred`、`NeedsHumanDecision`、`ManualOnly` のいずれかである行
+- `## Stub-to-Production Binding 確認`（旧 `## Stub-to-Production Binding`）table: Status が `Bound` でない行
+- `## テスト観測結果`（旧 `## Test observations`）table: `Actual observation / status` が `missing`、`fails`、`manual-only`、`not run in this pass`、`not defined`、`to be determined` のいずれかである行
+- `## 未解決項目`（旧 `## Unresolved items`）table: すべての行（`none` 行を除く）
 
 同一の source ID が複数の section に登場する場合は、section ごとに独立した gap として分類してください。
 
@@ -256,36 +258,36 @@ Gap type は `## Embedded process policy` の `Gap type precedence` に従って
 ```md
 # Coverage Gap Triage
 
-## Scope
+## スコープ
 
 <この triage が扱う source artifact を説明する。どの source type（verification-kernel または
-implementation-coverage-of-integration-test）を使ったか、どの IDs を対象としたかを書く。
+implementation-coverage-of-integration-test）を使ったか、どの ID を対象としたかを書く。
 また、参照した Plan、Test Design Kernel、Runtime Contract Kernel があれば記録する。>
 
-## Gap classification
+## Gap 分類
 
-<全 unresolved items を次の表で分類する。行を省略してはいけない。>
+<すべての未解決項目を次の表で分類する。行を省略してはいけない。>
 
 | ID | Current status | Plan requirement / contract | Gap type | Suggested next action | Recommended target profile |
 | --- | --- | --- | --- | --- | --- |
 
 <同一 source ID に独立した複数の gap type が存在する場合は、同一 ID で複数行を作成する。>
 
-## Recommended fix slices
+## 推奨修正スライス
 
 <gap をグループ化し、次の bounded pass に渡す slice を定義する。>
 
 | Slice | Included ID(s) / gap type(s) | Why grouped | Target files / addresses | Recommended agent | Recommended profile | Preconditions / human decision needed |
 | --- | --- | --- | --- | --- | --- | --- |
 
-<human decision が必要な gap は、Preconditions 列に記録し、human decision が解決してから
+<人間の判断が必要な gap は、Preconditions 列に記録し、人間の判断が解決してから
 次の agent を実行するよう明記する。>
 
-<`Slice` は human-readable label であり、新しい coverage ID、Contract ID、Test Point ID ではない。>
+<`Slice` は人が読めるラベルであり、新しい coverage ID、Contract ID、Test Point ID ではない。>
 
-## Human decisions required
+## 人間の判断が必要な項目
 
-<次の agent を安全に実行するために human decision が必要な items を列挙する。>
+<次の agent を安全に実行するために人間の判断が必要な項目を列挙する。>
 
 | ID | Gap type | Decision needed | Suggested action |
 | --- | --- | --- | --- |
@@ -296,15 +298,15 @@ implementation-coverage-of-integration-test）を使ったか、どの IDs を�
 
 - Profile used: triage-only
 - Source artifact type: <verification-kernel または implementation-coverage-of-integration-test>
-- Source artifact: <読んだ source document のファイルパス>
+- Source artifact: <読んだ source artifact のファイルパス>
 - Reference artifacts: <参照した Plan、Test Design Kernel、Runtime Contract Kernel などの一覧>
 - Items reviewed: <対象とした ID の一覧>
 - Downstream selectors: <source artifact + source section/table + existing ID + gap type の組み合わせ。coverage-gap-resolution-slice.agent.md に渡す対象を曖昧にしない>
-- Items intentionally not reviewed: <対象外にした items と理由>
+- Items intentionally not reviewed: <対象外にした項目と理由>
 - Decisions made: <この pass で行った主要な分類判断>
 - Do not redo unless new evidence appears: <下流が反証が出るまで信頼してよい分析内容>
 - Remaining work: <この triage で確定できなかった items と理由>
-- Recommended next step: <next agent と inputs。fix-slice が複数ある場合は、優先順位を付けて列挙する。human decision が必要な items がある場合はそれを先に記載する。>
+- Recommended next step: <次に実行する agent と入力。fix-slice が複数ある場合は、優先順位を付けて列挙する。人間の判断が必要な項目がある場合はそれを先に記載する。>
 ```
 
 ---
@@ -325,7 +327,7 @@ implementation-coverage-of-integration-test）を使ったか、どの IDs を�
 ### Recommended fix slices table rules
 
 - 関連する gaps を一度の bounded pass でまとめて対応できるグループにする。
-- `Included ID(s) / gap type(s)` には、source artifact / source section / source ID / gap type の組み合わせを記録する（例: `verification-kernel.md#Stub-to-Production Binding: TP-001 / ProductionWiringMissing`）。
+- `Included ID(s) / gap type(s)` には、source artifact / source section / source ID / gap type の組み合わせを記録する（例: `verification-kernel.md#Stub-to-Production Binding 確認: TP-001 / ProductionWiringMissing`）。
 - `Why grouped` には、なぜこれらを 1 つの slice にまとめるかを書く（例: 同一モジュール、同一 contract に関係するなど）。
 - `Preconditions / human decision needed` は、この slice を開始するために必要な前提条件または human decision を書く。不要な場合は「なし」と書く。
 - `Slice` は新しい stable ID ではありません。後続 agent に渡す stable selector は `Included ID(s) / gap type(s)` と `Handoff Packet` の `Downstream selectors` です。
