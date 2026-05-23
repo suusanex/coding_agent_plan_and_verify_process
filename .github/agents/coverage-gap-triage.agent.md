@@ -103,12 +103,12 @@ Source artifact の形式が異なるため、classification に入る前に次�
 
 ### Source A: verification-kernel.md を使う場合
 
-次の各 section から unresolved items を抽出してください。
+次の各 section から unresolved items を抽出してください。日本語見出しを primary とし、既存 artifact 互換のため旧英語見出しも同義として扱ってください。
 
-- `## Runtime contract verification` table: Status が `NotImplementedOrMismatch`、`PartiallyDone`、`Deferred`、`NeedsHumanDecision`、`ManualOnly` のいずれかである行
-- `## Stub-to-Production Binding` table: Status が `Bound` でない行
-- `## Test observations` table: `Actual observation / status` が `missing`、`fails`、`manual-only`、`not run in this pass`、`not defined`、`to be determined` のいずれかである行
-- `## Unresolved items` table: すべての行（`none` 行を除く）
+- `## Runtime contract 検証`（旧 `## Runtime contract verification`）table: Status が `NotImplementedOrMismatch`、`PartiallyDone`、`Deferred`、`NeedsHumanDecision`、`ManualOnly` のいずれかである行
+- `## Stub-to-Production Binding 確認`（旧 `## Stub-to-Production Binding`）table: Status が `Bound` でない行
+- `## テスト観測結果`（旧 `## Test observations`）table: `Actual observation / status` が `missing`、`fails`、`manual-only`、`not run in this pass`、`not defined`、`to be determined` のいずれかである行
+- `## 未解決項目`（旧 `## Unresolved items`）table: すべての行（`none` 行を除く）
 
 同一の source ID が複数の section に登場する場合は、section ごとに独立した gap として分類してください。
 
@@ -294,7 +294,7 @@ implementation-coverage-of-integration-test）を使ったか、どの ID を対
 
 <human decision が不要な場合は「なし」と書く。省略してはいけない。>
 
-## 引き継ぎパケット
+## Handoff Packet
 
 - Profile used: triage-only
 - Source artifact type: <verification-kernel または implementation-coverage-of-integration-test>
@@ -327,7 +327,7 @@ implementation-coverage-of-integration-test）を使ったか、どの ID を対
 ### Recommended fix slices table rules
 
 - 関連する gaps を一度の bounded pass でまとめて対応できるグループにする。
-- `Included ID(s) / gap type(s)` には、source artifact / source section / source ID / gap type の組み合わせを記録する（例: `verification-kernel.md#Stub-to-Production Binding: TP-001 / ProductionWiringMissing`）。
+- `Included ID(s) / gap type(s)` には、source artifact / source section / source ID / gap type の組み合わせを記録する（例: `verification-kernel.md#Stub-to-Production Binding 確認: TP-001 / ProductionWiringMissing`）。
 - `Why grouped` には、なぜこれらを 1 つの slice にまとめるかを書く（例: 同一モジュール、同一 contract に関係するなど）。
 - `Preconditions / human decision needed` は、この slice を開始するために必要な前提条件または human decision を書く。不要な場合は「なし」と書く。
 - `Slice` は新しい stable ID ではありません。後続 agent に渡す stable selector は `Included ID(s) / gap type(s)` と `Handoff Packet` の `Downstream selectors` です。

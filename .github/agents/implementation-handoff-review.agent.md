@@ -110,9 +110,9 @@ required artifacts を読んでください。この agent が行う唯一のフ
 
 次の 9 項目を確認してください。各項目について、OK / Note / Blocking の判断を行います。
 
-#### Check 1. Acceptance conditions coverage
+#### Check 1. 受け入れ条件 coverage
 
-Plan の `Functional requirements` の各項目に対して `Acceptance conditions` が存在するか確認してください。
+Plan の `機能要件`（旧 `Functional requirements`）の各項目に対して `受け入れ条件`（旧 `Acceptance conditions`）が存在するか確認してください。
 
 - 対応していない要件がある場合は Missing mapping として記録する
 - acceptance conditions が observable な behavior として書かれているか確認する（「実装が存在すること」ではなく「何が観測できるか」）
@@ -123,7 +123,7 @@ Plan の `Functional requirements` の各項目に対して `Acceptance conditio
 change-risk-triage が選択した runtime contracts が Plan の要件に紐づいているか確認してください。
 
 - selected contract が Plan のどの requirement または acceptance condition に対応するかを追跡できるか
-- Plan の Known high-risk boundaries に明記されている boundary が selected contracts に含まれず、除外理由もない場合は Blocking として記録する
+- Plan の `既知の high-risk boundaries`（旧 `Known high-risk boundaries`）に明記されている boundary が selected contracts に含まれず、除外理由もない場合は Blocking として記録する
 - Plan 要件から見て「追加で気になる」程度の boundary は Note として記録する
 - triage が Plan と無関係な contracts を選んでいる場合は Blocking として記録する
 
@@ -247,7 +247,7 @@ READY_FOR_IMPLEMENTATION | READY_WITH_NOTES | BLOCKED
 
 <!-- 実装プロンプトに追記すべき事項があれば記載する。なければ "None" と記載する -->
 
-## 引き継ぎパケット
+## Handoff Packet
 
 - Profile used: triage-only (implementation-handoff-review)
 - Source artifacts: <読み込んだ artifacts の一覧>
@@ -262,11 +262,11 @@ READY_FOR_IMPLEMENTATION | READY_WITH_NOTES | BLOCKED
 
 ## Output rules
 
-- **Blocking issues**: 箇条書きで、何が問題か、どの artifact のどの項目かを明記する。理由なく長くしない。
-- **Non-blocking notes**: 軽微な改善候補のみ。実装者が無視しても安全に進めるレベルにとどめる。
-- **Required handoff inputs**: 実装 agent が受け取るべき artifact の一覧。Plan が source of truth であることを明示する。
-- **Missing or inconsistent mappings**: Check 1〜5 で発見した具体的な接続の欠落を表形式で示す。問題がなければ "None" と記載する。
-- **Recommended implementation prompt additions**: 実装 prompt に追記すべき補足（未解決 Note の注意喚起など）を簡潔に示す。長い追記リストを作ってはいけない。
+- **ブロッキング問題**: 箇条書きで、何が問題か、どの artifact のどの項目かを明記する。理由なく長くしない。
+- **非ブロッキング注記**: 軽微な改善候補のみ。実装者が無視しても安全に進めるレベルにとどめる。
+- **引き継ぎ必須 inputs**: 実装 agent が受け取るべき artifact の一覧。Plan が source of truth であることを明示する。
+- **欠落または不一致のマッピング**: Check 1〜5 で発見した具体的な接続の欠落を表形式で示す。問題がなければ "None" と記載する。
+- **実装プロンプトへの追加推奨事項**: 実装 prompt に追記すべき補足（未解決 Note の注意喚起など）を簡潔に示す。長い追記リストを作ってはいけない。
 - **Handoff Packet**: shared output concepts に沿って、review scope、判定、再調査不要事項、残作業、次の担当を簡潔に残す。
 
 ## Must not do
@@ -282,14 +282,14 @@ READY_FOR_IMPLEMENTATION | READY_WITH_NOTES | BLOCKED
 
 ## Stop condition
 
-verdict を出力し、`Required handoff inputs` と `Handoff Packet` を記録した後に停止してください。
+verdict を出力し、`引き継ぎ必須 inputs` と `Handoff Packet` を記録した後に停止してください。
 
-- `READY_FOR_IMPLEMENTATION` または `READY_WITH_NOTES` の場合: 実装 agent への handoff に必要な情報を `Required handoff inputs` と `Handoff Packet` に記録し、停止してください。
+- `READY_FOR_IMPLEMENTATION` または `READY_WITH_NOTES` の場合: 実装 agent への handoff に必要な情報を `引き継ぎ必須 inputs` と `Handoff Packet` に記録し、停止してください。
 - `BLOCKED` の場合: blocking issues を記録し、修正すべき artifact と担当 agent、または必要な human decision を示して停止してください。修正は行いません。
 
 ## Status vocabulary
 
-`Remaining work`、`Blocking issues`、`Non-blocking notes`、および `Handoff Packet` を記録する際は、必要に応じて shared status vocabulary を使ってください。
+Handoff Packet の `Remaining work`、`ブロッキング問題`、`非ブロッキング注記`、および `Handoff Packet` を記録する際は、必要に応じて shared status vocabulary を使ってください。
 
 | Status | Meaning |
 | --- | --- |
@@ -307,7 +307,7 @@ verdict を出力し、`Required handoff inputs` と `Handoff Packet` を記録�
 ## Relationship to other agents
 
 - **通常の直前の agent**: `test-design-kernel.agent.md` — この agent の入力を生成する
-- **直後の agent**: 実装 agent — この agent の `Required handoff inputs` と `Handoff Packet` を受け取って実装を開始する
+- **直後の agent**: 実装 agent — この agent の `引き継ぎ必須 inputs` と `Handoff Packet` を受け取って実装を開始する
 - **この agent は代替しない**: `plan-review.agent.md`（full Plan review）、`verification-kernel.agent.md`（実装後の production binding 検証）
 - **BLOCKED 時の修正先**:
   - Check 1, 2: `plan-kernel.agent.md` を再実行または手動修正

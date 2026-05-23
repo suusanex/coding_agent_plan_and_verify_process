@@ -118,7 +118,7 @@ required artifacts が欠けている場合は `NEEDS_HUMAN_DECISION` または�
 - plans/<slug>-change-risk-triage.md
 - plans/<slug>-implementation-contract-kernel.md
 
-## 引き継ぎパケット
+## Handoff Packet
 
 - Profile used: contract-kernel
 - Source artifacts:

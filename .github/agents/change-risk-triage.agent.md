@@ -136,7 +136,7 @@ selected contracts には次の triage statuses を使ってください。
 | `Deferred` | downstream の kernel または bounded な Plan-first phase に回す対象として選択されたが、triage では検証しない |
 | `NeedsHumanDecision` | 選択はできたが、human input なしでは次の process step を安全に選べない |
 
-selected runtime contracts to cover には `OutOfScopeForThisPass` を含めないでください。`OutOfScopeForThisPass` は `Candidate runtime contracts not selected` でのみ使ってください。
+`対象とする runtime contracts` には `OutOfScopeForThisPass` を含めないでください。`OutOfScopeForThisPass` は `選択されなかった候補 runtime contracts` でのみ使ってください。
 
 ### Step 5. Recommend the process profile
 
@@ -287,7 +287,7 @@ profile を推奨し、selected contracts を列挙したら停止してくだ�
 
 implementation、test design、gap resolution に進んではいけません。
 
-classification に追加情報が必要な場合でも、安全側の fallback として `contract-kernel` または `standard-slice` を推奨してください。何の情報が足りないかは `Remaining work` と `Out of scope for this triage` に記録してください。安全だと推測してはいけません。profile recommendation を出さずに triage を終えてはいけません。
+classification に追加情報が必要な場合でも、安全側の fallback として `contract-kernel` または `standard-slice` を推奨してください。何の情報が足りないかは Handoff Packet の `Remaining work` と `今回の triage の対象外` に記録してください。安全だと推測してはいけません。profile recommendation を出さずに triage を終えてはいけません。
 
 ## Status vocabulary
 

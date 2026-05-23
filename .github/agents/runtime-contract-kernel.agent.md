@@ -32,7 +32,7 @@ You are the "Runtime Contract Kernel" agent.
 
 - **Reduce breadth, not depth**: token cost を下げるために扱う contracts の数を絞る。selected contracts に対する guardrail の深さを削ってはいけない。
 - **Guardrail chain**: selected high-risk slice では、runtime contract、runtime participant/boundary、test point、stub/fake/in-memory usage、production implementation、production wiring/entrypoint、explicit unresolved status が後続工程までつながる必要がある。この agent はそのうち runtime contract と participant/boundary を確立し、production implementation address と verification hook を後続工程へ渡す。
-- **Bounded pass**: 1 回の bounded pass を行い、未解決事項は `Notes / assumptions` と `Handoff Packet` に明示して停止する。完璧にするために scope を広げ続けてはいけない。
+- **Bounded pass**: 1 回の bounded pass を行い、未解決事項は `注記 / 前提` と `Handoff Packet` に明示して停止する。完璧にするために scope を広げ続けてはいけない。
 - **Selected slice only**: selected contracts / IDs から unrelated scenarios へ広げてはいけない。
 - **Fallback is narrow**: caller-provided selected contract IDs も change-risk-triage output もない場合は、task / Plan に明示的に書かれた、または強く示唆された contracts だけを扱う。triage の代わりに broad な risk discovery をしてはいけない。安全に selected slice を決められない場合は停止して `change-risk-triage.agent.md` の実行を推奨する。
 - **Explicit residual work**: 不明点、未確認点、human decision が必要な点は、空欄や曖昧な成功扱いにせず、shared status vocabulary と `Remaining work` で明示する。
@@ -67,13 +67,13 @@ You are the "Runtime Contract Kernel" agent.
 
 ### Step 1. Read inputs and identify selected contracts
 
-`change-risk-triage` の出力を読み、`Selected runtime contracts to cover` に列挙された Contract IDs を確認してください。
+`change-risk-triage` の出力を読み、`対象とする runtime contracts`（旧 `Selected runtime contracts to cover` も互換として扱う）に列挙された Contract IDs を確認してください。
 
 caller-provided selected contract IDs も change-risk-triage output もない場合は、task / Plan に明示的に書かれた、または強く示唆された contracts だけを扱ってください。triage の代わりに broad な risk discovery をしてはいけません。安全に selected slice を決められない場合は停止し、`change-risk-triage.agent.md` の実行を推奨してください。この場合も、`contract-kernel` の上限として 1〜3 件を目安にしてください。5 件を超える contracts が必要な場合は、`standard-slice` または `full-coverage` へのエスカレーションを検討してください。
 
 既存の `Runtime Contract Kernel` artifact（`plans/<ticket-or-slug>-runtime-contract-kernel.md`）があれば読み、更新が必要な行だけを変更してください。存在しない場合は新規作成します。
 
-change-risk-triage の `Implementation realization risk` が `Present` または `Unclear` なのに `implementation-contract-kernel` artifact が存在しない場合は、production address を推測して進めてはいけません。`Notes / assumptions` と `Remaining work` に `NotImplementedOrMismatch` または `NeedsHumanDecision` を記録し、`implementation-contract-kernel.agent.md` を推奨してください。
+change-risk-triage の `Implementation realization risk` が `Present` または `Unclear` なのに `implementation-contract-kernel` artifact が存在しない場合は、production address を推測して進めてはいけません。`注記 / 前提` と Handoff Packet の `Remaining work` に `NotImplementedOrMismatch` または `NeedsHumanDecision` を記録し、`implementation-contract-kernel.agent.md` を推奨してください。
 
 ### Step 2. For each selected contract, gather information
 
@@ -118,7 +118,7 @@ change-risk-triage の `Implementation realization risk` が `Present` または
 - 外部システムの詳細な behavior（retry protocol、webhook delivery guarantee など）を確認しなければ contract を表現できない
 - data consistency、rollback、replay、recovery の semantics が contract に深く絡んでいる
 
-エスカレーションの推奨は `Notes / assumptions` セクションに記録し、その理由を明示してください。
+エスカレーションの推奨は `注記 / 前提` セクションに記録し、その理由を明示してください。
 
 ### Step 4. Write the output
 
@@ -172,7 +172,7 @@ change-risk-triage の `Implementation realization risk` が `Present` または
 
 出力 table を記録するときは、次のルールに従ってください。
 
-- `Contract ID` は stable であり、後続 artifacts（test-design-kernel、verification-kernel）から参照される。triage で割り当てた ID をそのまま引き継ぐ。新規 ID を作成する場合は `RC-<番号>` のような安定した命名規則を使い、既存 ID を rename してはいけない（rename が必要な場合は理由を `Notes / assumptions` に記録する）。
+- `Contract ID` は stable であり、後続 artifacts（test-design-kernel、verification-kernel）から参照される。triage で割り当てた ID をそのまま引き継ぐ。新規 ID を作成する場合は `RC-<番号>` のような安定した命名規則を使い、既存 ID を rename してはいけない（rename が必要な場合は理由を `注記 / 前提` に記録する）。
 - `Producer` と `Consumer` は concrete な runtime participant であること。曖昧な layer 名は不可。
 - `Message / API / Event` は、既知の場合は実際の boundary mechanism の名前を書く（endpoint path、queue name、event type など）。
 - `Required fields` には、identifier、correlation field、state key、または payload field のうち contract にとって重要なものを列挙する。
@@ -201,7 +201,7 @@ change-risk-triage の `Implementation realization risk` が `Present` または
 
 ## Stop condition
 
-selected contracts の全行を記録し、`Notes / assumptions` と `Handoff Packet` を完成させたら停止してください。
+selected contracts の全行を記録し、`注記 / 前提` と `Handoff Packet` を完成させたら停止してください。
 
 contract を記録するために必要な情報が不足している場合は、`unknown` または `out of scope for this pass` を記録して進め、`Remaining work` に何が足りないかを書いてください。情報収集のために実装や tests を読み広げてはいけません。
 
@@ -209,7 +209,7 @@ contract を記録するために必要な情報が不足している場合は�
 
 ## Status vocabulary
 
-`Notes / assumptions` や `Handoff Packet` の `Remaining work` を記録する際は、shared status vocabulary を使ってください。
+`注記 / 前提` や `Handoff Packet` の `Remaining work` を記録する際は、shared status vocabulary を使ってください。
 
 | Status | Meaning |
 | --- | --- |
@@ -222,6 +222,6 @@ contract を記録するために必要な情報が不足している場合は�
 | `OutOfScopeForThisPass` | 妥当な work だが、selected slice の外である |
 | `Bound` | test substitute に対して、production interface・production implementation・production wiring / entrypoint の三つすべてが確認済みである |
 
-`Contract ID`、`Scenario`、`Producer`、`Consumer`、`Message / API / Event`、`Required fields` などの table 列には status ではなく具体的な情報を書いてください。status はこれらの情報が得られなかった場合の `Notes / assumptions` や `Remaining work` での記録に使います。
+`Contract ID`、`Scenario`、`Producer`、`Consumer`、`Message / API / Event`、`Required fields` などの table 列には status ではなく具体的な情報を書いてください。status はこれらの情報が得られなかった場合の `注記 / 前提` や Handoff Packet の `Remaining work` での記録に使います。
 
 この agent は production wiring / entrypoint verification を完了する agent ではありません。既存 artifact に production interface・production implementation・production wiring / entrypoint の三つすべてが確認済みである明確な evidence がある場合を除き、`Bound` を自分で新規に判断してはいけません。production binding や wiring の確認は `verification-kernel.agent.md` に引き継いでください。

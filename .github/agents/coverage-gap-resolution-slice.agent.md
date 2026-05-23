@@ -32,7 +32,7 @@ You are the "Coverage Gap Resolution Slice" agent.
 
 ### Bounded pass
 
-1 回の bounded pass で選択 ID を処理し、停止してください。すべての問題が消えるまでループしてはいけません。修正できなかった残留事項は `Remaining work` に明示して停止します。
+1 回の bounded pass で選択 ID を処理し、停止してください。すべての問題が消えるまでループしてはいけません。修正できなかった残留事項は `残留作業` セクションと Handoff Packet の `Remaining work` に明示して停止します。
 
 ### Selected selectors are mandatory
 
@@ -54,7 +54,7 @@ selected gap selector は、少なくとも source artifact、existing ID、gap 
 
 ### Plan is the source of truth
 
-triage 出力は fix scope の参考として使いますが、implementation behavior と completion の判断は常に Plan が基準です。triage の分類が Plan 要件と矛盾する場合は、Plan を優先し、矛盾を `Notes` に記録してください。
+triage 出力は fix scope の参考として使いますが、implementation behavior と completion の判断は常に Plan が基準です。triage の分類が Plan 要件と矛盾する場合は、Plan を優先し、矛盾を `残留作業` に記録してください。
 
 ### No local heuristics as substitutes for Plan behavior
 
@@ -122,7 +122,7 @@ consume または create した implementation contract artifact に、selected 
 
 ### Explicit residual work
 
-不明点、未確認点、human decision が必要な点は、空欄や曖昧な成功扱いにせず、shared status vocabulary と `Remaining work` で明示してください。
+不明点、未確認点、human decision が必要な点は、空欄や曖昧な成功扱いにせず、shared status vocabulary と `残留作業` セクション、および Handoff Packet の `Remaining work` で明示してください。
 
 ### No fix loops
 
@@ -193,7 +193,7 @@ Test Design Kernel または integration test points を参照し、この ID �
 
 選択された gap type が `TestOracleMissing` の場合、test point が存在しないこと自体が修正対象です。この場合は Plan requirement / runtime contract に基づいて、observable assertion を持つ最小の test point または test を追加する方針で進めてください。
 
-選択された gap type が `TestOracleMissing` ではないのに test point が存在しない場合は、guardrail chain が欠落しています。この ID は `PartiallyDone` または `NotImplementedOrMismatch` として残し、`Remaining work` に明示してください。
+選択された gap type が `TestOracleMissing` ではないのに test point が存在しない場合は、guardrail chain が欠落しています。この ID は `PartiallyDone` または `NotImplementedOrMismatch` として残し、`残留作業` に明示してください。
 
 #### 2c. Stub / fake detection
 
@@ -236,7 +236,7 @@ chain のいずれかのリンクが missing であれば、`Done` にせず明�
 
 #### 2f. Modification scope チェック
 
-変更が `Allowed bounded cascade` を超えるか確認してください。超える場合は修正を中断し、`OutOfScopeForThisPass` として記録し、残留理由を `Remaining work` に書いてください。
+変更が `Allowed bounded cascade` を超えるか確認してください。超える場合は修正を中断し、`OutOfScopeForThisPass` として記録し、残留理由を `残留作業` に書いてください。
 
 #### 2g. 修正の適用
 
@@ -366,7 +366,7 @@ selected ID は、次の条件を満たす場合に test 未実行でも `Done` 
 
 ## Stop condition
 
-選択された ID を 1 回 bounded pass した後、停止してください。未解決の問題は `Remaining work` に記録し、修正し続けてはいけません。
+選択された ID を 1 回 bounded pass した後、停止してください。未解決の問題は `残留作業` セクションと Handoff Packet の `Remaining work` に記録し、修正し続けてはいけません。
 
 ## Must not do
 
