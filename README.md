@@ -155,7 +155,7 @@ Token-aware flow で `implementation-execution.agent.md` を使って実装に�
 
 人間主導で実装する場合も、上記と同じ artifacts を実装者に渡してください。
 
-human code review に渡すときは、上記に加えて実装差分、changed files 一覧、`plans/<slug>-implementation-execution.md`、必要に応じて `code-review-focus-kernel.agent.md` の出力を渡してください。
+human code review に渡すときは、上記に加えて実装差分、changed files 一覧、`plans/<ticket-or-slug>-implementation-execution.md`、必要に応じて `code-review-focus-kernel.agent.md` の出力を渡してください。
 
 ---
 
@@ -244,7 +244,7 @@ bounded Plan を concrete な implementation decision に変換し、dependency 
 
 ```text
 bounded Plan と change-risk-triage の出力を入力として、implementation-contract-kernel.agent.md を実行してください。
-plans/<slug>-implementation-contract-kernel.md を作成し、Plan-named dependency/API/provider path の確認結果、prohibited substitutions、required code changes、unresolved implementation-realization items を記録してください。
+plans/<ticket-or-slug>-implementation-contract-kernel.md を作成し、Plan-named dependency/API/provider path の確認結果、prohibited substitutions、required code changes、unresolved implementation-realization items を記録してください。
 ```
 
 ---
@@ -270,7 +270,7 @@ implementation-contract-kernel の内容を軽量レビューし、runtime-contr
 プロンプト例:
 
 ```text
-plans/<slug>.md、plans/<slug>-change-risk-triage.md、plans/<slug>-implementation-contract-kernel.md を入力として、implementation-contract-review-kernel.agent.md を実行してください。
+plans/<ticket-or-slug>.md、plans/<ticket-or-slug>-change-risk-triage.md、plans/<ticket-or-slug>-implementation-contract-kernel.md を入力として、implementation-contract-review-kernel.agent.md を実行してください。
 source-of-truth drift、dependency/API evidence 不足、unjustified substitution を確認し、single verdict を出してください。
 ```
 
@@ -299,7 +299,7 @@ source-of-truth drift、dependency/API evidence 不足、unjustified substitutio
 
 ```text
 change-risk-triage の出力と bounded Plan を入力として、runtime-contract-kernel.agent.md を実行してください。
-対象の runtime contract に含まれる RC だけを対象にし、plans/<slug>-runtime-contract-kernel.md を作成してください。
+対象の runtime contract に含まれる RC だけを対象にし、plans/<ticket-or-slug>-runtime-contract-kernel.md を作成してください。
 Plan を source of truth として扱い、対象外の contract を追加しないでください。
 ```
 
@@ -340,7 +340,7 @@ bounded Plan と runtime-contract-kernel の内容を入力として、test-desi
 
 主な役割:
 
-- base 4 成果物（`plans/<slug>.md`、`change-risk-triage`、`runtime-contract-kernel`、`test-design-kernel`）を読む
+- base 4 成果物（`plans/<ticket-or-slug>.md`、`change-risk-triage`、`runtime-contract-kernel`、`test-design-kernel`）を読む
 - implementation-realization risk が `Present` / `Unclear` の場合は `implementation-contract-kernel`（存在すれば review-kernel も）を追加で読む
 - Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認する
 - source code を読まず、artifacts を修正せず、実装もしない
@@ -371,15 +371,15 @@ bounded Plan と runtime-contract-kernel の内容を入力として、test-desi
 
 次の base 成果物を対象にしてください。
 
-- plans/<slug>.md
-- plans/<slug>-change-risk-triage.md
-- plans/<slug>-runtime-contract-kernel.md
-- plans/<slug>-test-design-kernel.md
+- plans/<ticket-or-slug>.md
+- plans/<ticket-or-slug>-change-risk-triage.md
+- plans/<ticket-or-slug>-runtime-contract-kernel.md
+- plans/<ticket-or-slug>-test-design-kernel.md
 
 change-risk-triage の Implementation realization risk が Present / Unclear の場合は、次も対象にしてください。
 
-- plans/<slug>-implementation-contract-kernel.md
-- plans/<slug>-implementation-contract-review-kernel.md（存在する場合）
+- plans/<ticket-or-slug>-implementation-contract-kernel.md
+- plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
 
 source code は読まず、artifacts も修正しないでください。
 Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認し、READY_FOR_IMPLEMENTATION / READY_WITH_NOTES / BLOCKED の verdict を出してください。
@@ -397,7 +397,7 @@ Token-aware flow の bounded な実装フェーズを担当します。
 - runtime-contract / test-design / implementation-contract artifacts を selected high-risk slice の guardrail として使う
 - production implementation と production wiring / entrypoint を落とさず実装する
 - 必要な tests / checks を bounded に実行し、未実行や失敗を明示する
-- downstream の `code-review-focus-kernel.agent.md` と `verification-kernel.agent.md` が使う `Implementation Self-Map` を `plans/<slug>-implementation-execution.md` に残す
+- downstream の `code-review-focus-kernel.agent.md` と `verification-kernel.agent.md` が使う `Implementation Self-Map` を `plans/<ticket-or-slug>-implementation-execution.md` に残す
 
 この agent は optional ではありません。Token-aware flow を agent ベースで通すなら、実装フェーズの標準担当として使います。人間主導で実装する場合も、この agent の入力契約と出力契約を満たす形で進めるのが望ましいです。
 
@@ -408,13 +408,13 @@ implementation-execution.agent.md を使って、selected scope だけを実装�
 
 次の成果物を必ず読んでください。
 
-- plans/<slug>.md もしくは plan-kernel.agent.md が作成した bounded Plan
-- plans/<slug>-change-risk-triage.md
-- plans/<slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
-- plans/<slug>-implementation-contract-review-kernel.md（存在する場合）
-- plans/<slug>-runtime-contract-kernel.md
-- plans/<slug>-test-design-kernel.md
-- plans/<slug>-implementation-handoff-review.md（存在する場合）
+- plans/<ticket-or-slug>.md もしくは plan-kernel.agent.md が作成した bounded Plan
+- plans/<ticket-or-slug>-change-risk-triage.md
+- plans/<ticket-or-slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
+- plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
+- plans/<ticket-or-slug>-runtime-contract-kernel.md
+- plans/<ticket-or-slug>-test-design-kernel.md
+- plans/<ticket-or-slug>-implementation-handoff-review.md（存在する場合）
 
 実装の source of truth は bounded Plan です。
 runtime-contract-kernel と test-design-kernel は、selected high-risk slice に対する guardrail として使ってください。
@@ -427,7 +427,7 @@ implementation-handoff-review がある場合は、その verdict、blocking iss
 - selected runtime contracts / test points に必要な production implementation と wiring を落とさない
 - stub / fake / mock / in-memory test だけで production complete と判断しない
 - selected scope 外の redesign や unrelated refactoring は行わない
-- `plans/<slug>-implementation-execution.md` に Implementation Self-Map、Test / Check Summary、Remaining Work を残す
+- `plans/<ticket-or-slug>-implementation-execution.md` に Implementation Self-Map、Test / Check Summary、Remaining Work を残す
 - 完了できない項目は Remaining work として報告する
 
 最後に、変更した files、対応した Runtime Contract ID、対応した Test Point ID、実行した tests、未実行 tests、Implementation Self-Map の保存先、Remaining work を報告してください。
@@ -444,7 +444,7 @@ implementation-handoff-review がある場合は、その verdict、blocking iss
 - implementation diff と changed files を読む
 - Plan / triage / implementation-contract / runtime-contract / test-design artifact と差分を突き合わせる
 - P0 / P1 の review target、skim でよい file、未確認の不確実性を切り分ける
-- human code review の読む順番と注意点を `plans/<slug>-code-review-focus-kernel.md` にまとめる
+- human code review の読む順番と注意点を `plans/<ticket-or-slug>-code-review-focus-kernel.md` にまとめる
 - code review の承認や修正は行わない
 
 この agent は optional です。実装差分が小さく、人手レビューを重点化する必要が薄い場合は省略できます。
@@ -469,19 +469,19 @@ implementation-handoff-review がある場合は、その verdict、blocking iss
 
 次を入力として、selected scope に関係する changed files だけを読んでください。
 
-- plans/<slug>.md
-- plans/<slug>-change-risk-triage.md
-- plans/<slug>-runtime-contract-kernel.md
-- plans/<slug>-test-design-kernel.md
-- plans/<slug>-implementation-contract-kernel.md（存在する場合）
-- plans/<slug>-implementation-contract-review-kernel.md（存在する場合）
-- plans/<slug>-implementation-handoff-review.md（存在する場合）
+- plans/<ticket-or-slug>.md
+- plans/<ticket-or-slug>-change-risk-triage.md
+- plans/<ticket-or-slug>-runtime-contract-kernel.md
+- plans/<ticket-or-slug>-test-design-kernel.md
+- plans/<ticket-or-slug>-implementation-contract-kernel.md（存在する場合）
+- plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
+- plans/<ticket-or-slug>-implementation-handoff-review.md（存在する場合）
 - working tree diff または PR diff
 
 可能であれば、PR number または base/head commit range を diff source として明示してください。
 例: base=main, head=<current-branch> または PR #123
 
-production code や test code は修正せず、plans/<slug>-code-review-focus-kernel.md を作成してください。
+production code や test code は修正せず、plans/<ticket-or-slug>-code-review-focus-kernel.md を作成してください。
 P0 / P1 の review target、skim でよい file、未確認の不確実性、Suggested human review order をまとめてください。
 ```
 
@@ -646,13 +646,13 @@ Plan の中から高リスクな runtime boundary を分類し、実装やテス
 
 ```text
 change-risk-triage の出力で Implementation realization risk が Present / Unclear なので、implementation-contract-kernel.agent.md を実行してください。
-plans/<slug>-implementation-contract-kernel.md を作成し、Plan-named dependency/API/provider path の確認結果、prohibited substitutions、required code changes、verification hooks、unresolved items を記録してください。
+plans/<ticket-or-slug>-implementation-contract-kernel.md を作成し、Plan-named dependency/API/provider path の確認結果、prohibited substitutions、required code changes、verification hooks、unresolved items を記録してください。
 ```
 
 ### implementation-contract をレビューしてから runtime-contract へ進む
 
 ```text
-plans/<slug>.md、plans/<slug>-change-risk-triage.md、plans/<slug>-implementation-contract-kernel.md を入力として、implementation-contract-review-kernel.agent.md を実行してください。
+plans/<ticket-or-slug>.md、plans/<ticket-or-slug>-change-risk-triage.md、plans/<ticket-or-slug>-implementation-contract-kernel.md を入力として、implementation-contract-review-kernel.agent.md を実行してください。
 single verdict を出し、READY_FOR_RUNTIME_CONTRACT の場合のみ runtime-contract-kernel へ進めてください。
 ```
 
@@ -677,15 +677,15 @@ bounded Plan と runtime-contract-kernel の RC-001 と RC-002 を対象に、te
 
 次の base 成果物を対象にしてください。
 
-- plans/<slug>.md
-- plans/<slug>-change-risk-triage.md
-- plans/<slug>-runtime-contract-kernel.md
-- plans/<slug>-test-design-kernel.md
+- plans/<ticket-or-slug>.md
+- plans/<ticket-or-slug>-change-risk-triage.md
+- plans/<ticket-or-slug>-runtime-contract-kernel.md
+- plans/<ticket-or-slug>-test-design-kernel.md
 
 change-risk-triage の Implementation realization risk が Present / Unclear の場合は、次も対象にしてください。
 
-- plans/<slug>-implementation-contract-kernel.md
-- plans/<slug>-implementation-contract-review-kernel.md（存在する場合）
+- plans/<ticket-or-slug>-implementation-contract-kernel.md
+- plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
 
 source code は読まず、artifacts も修正しないでください。
 Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認し、READY_FOR_IMPLEMENTATION / READY_WITH_NOTES / BLOCKED の verdict を出してください。
@@ -698,13 +698,13 @@ implementation-execution.agent.md を使って、selected scope だけを実装�
 
 次の成果物を必ず読んでください。
 
-- plans/<slug>.md もしくは plan-kernel.agent.md が作成した bounded Plan
-- plans/<slug>-change-risk-triage.md
-- plans/<slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
-- plans/<slug>-implementation-contract-review-kernel.md（存在する場合）
-- plans/<slug>-runtime-contract-kernel.md
-- plans/<slug>-test-design-kernel.md
-- plans/<slug>-implementation-handoff-review.md（存在する場合）
+- plans/<ticket-or-slug>.md もしくは plan-kernel.agent.md が作成した bounded Plan
+- plans/<ticket-or-slug>-change-risk-triage.md
+- plans/<ticket-or-slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
+- plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
+- plans/<ticket-or-slug>-runtime-contract-kernel.md
+- plans/<ticket-or-slug>-test-design-kernel.md
+- plans/<ticket-or-slug>-implementation-handoff-review.md（存在する場合）
 
 実装の source of truth は bounded Plan です。
 kernel artifacts は high-risk slice に対する guardrail として使ってください。
@@ -712,21 +712,21 @@ implementation-handoff-review がある場合は、その verdict、blocking iss
 
 Plan の Functional requirements と Acceptance conditions を満たし、Non-goals / Out of scope に含まれる作業は行わないでください。
 stub / fake / mock / in-memory test だけで production complete と判断せず、production implementation と wiring を落とさないでください。
-実装後は plans/<slug>-implementation-execution.md に Implementation Self-Map、Test / Check Summary、Remaining Work を記録してください。
+実装後は plans/<ticket-or-slug>-implementation-execution.md に Implementation Self-Map、Test / Check Summary、Remaining Work を記録してください。
 ```
 
 ### 実装後に review focus を作る
 
 ```text
 人手レビュー用の読み順を整理したいので、code-review-focus-kernel.agent.md を実行してください。
-bounded Plan と kernel artifacts、plans/<slug>-implementation-execution.md、working tree diff を入力にして、selected scope の changed files だけを読み、P0 / P1 review target と Suggested human review order を出してください。
+bounded Plan と kernel artifacts、plans/<ticket-or-slug>-implementation-execution.md、working tree diff を入力にして、selected scope の changed files だけを読み、P0 / P1 review target と Suggested human review order を出してください。
 可能であれば、PR number または base/head commit range を diff source として明示してください。例: base=main, head=<current-branch> または PR #123
 ```
 
 ### review focus を使って人手レビューする
 
 ```text
-plans/<slug>-code-review-focus-kernel.md を見ながら人手レビューを行います。
+plans/<ticket-or-slug>-code-review-focus-kernel.md を見ながら人手レビューを行います。
 まず Suggested human review order の順に P0 / P1 を読み、必要なら Files not inspected / uncertainty に書かれた箇所を追加で確認してください。
 human code review の指摘で P0 / P1 target、public API、state transition、production wiring、test substitute 周辺に追加変更が入った場合は、verification-kernel の前に code-review-focus-kernel.agent.md を再実行してください。
 ```

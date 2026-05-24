@@ -62,16 +62,16 @@ plan-kernel
 
 ### Required or strongly recommended artifacts
 
-1. Plan Kernel または bounded Plan（通常は `plans/<slug>.md`）
-2. Change Risk Triage output（`plans/<slug>-change-risk-triage.md`）
-3. Runtime Contract Kernel（`plans/<slug>-runtime-contract-kernel.md`）
-4. Test Design Kernel（`plans/<slug>-test-design-kernel.md`）
+1. Plan Kernel または bounded Plan（通常は `plans/<ticket-or-slug>.md`）
+2. Change Risk Triage output（`plans/<ticket-or-slug>-change-risk-triage.md`）
+3. Runtime Contract Kernel（`plans/<ticket-or-slug>-runtime-contract-kernel.md`）
+4. Test Design Kernel（`plans/<ticket-or-slug>-test-design-kernel.md`）
 
 ### Conditional artifacts
 
-5. Implementation Contract Kernel（`plans/<slug>-implementation-contract-kernel.md`）— `Implementation realization risk` が `Present` / `Unclear` の場合は strongly required
-6. Implementation Contract Review Kernel（`plans/<slug>-implementation-contract-review-kernel.md`）— 存在する場合は読む
-7. Implementation Handoff Review（`plans/<slug>-implementation-handoff-review.md`）— 存在する場合は読む
+5. Implementation Contract Kernel（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）— `Implementation realization risk` が `Present` / `Unclear` の場合は strongly required
+6. Implementation Contract Review Kernel（`plans/<ticket-or-slug>-implementation-contract-review-kernel.md`）— 存在する場合は読む
+7. Implementation Handoff Review（`plans/<ticket-or-slug>-implementation-handoff-review.md`）— 存在する場合は読む
 8. Coverage Gap Triage / Resolution Slice output — fix-slice の実装である場合は読む
 9. 既存の Implementation Self-Map または Implementation Execution Result — 既に一部実装済みの続きである場合は読む
 
@@ -125,13 +125,13 @@ plan-kernel
 
 ## Workflow
 
-### Step 1. Determine slug, source artifacts, and selected scope
+### Step 1. Determine ticket-or-slug, source artifacts, and selected scope
 
-caller が slug、artifact path、issue ID、PR、selected contract IDs、selected test point IDs、gap IDs を渡している場合は、それを使って対象を特定してください。
+caller が ticket-or-slug、artifact path、issue ID、PR、selected contract IDs、selected test point IDs、gap IDs を渡している場合は、それを使って対象を特定してください。
 
-slug を安全に推定できる場合、実装後の結果 artifact は `plans/<slug>-implementation-execution.md` に作成または更新してください。
+ticket-or-slug を安全に特定できる場合、実装後の結果 artifact は `plans/<ticket-or-slug>-implementation-execution.md` に作成または更新してください。
 
-安全に slug を推定できない場合は、repository write のうち result artifact 作成は行わず、final response に同じ構造で `Implementation Self-Map` と `Handoff Packet` を出力してください。ただし、production code / tests の実装に必要な file changes は、caller の作業要求に従って行ってよいです。
+安全に ticket-or-slug を特定できない場合は、repository write のうち result artifact 作成は行わず、final response に同じ構造で `Implementation Self-Map` と `Handoff Packet` を出力してください。ただし、production code / tests の実装に必要な file changes は、caller の作業要求に従って行ってよいです。
 
 ### Step 2. Read required artifacts
 
@@ -217,7 +217,7 @@ caller または environment が許す範囲で、関連 tests、build、lint、
 
 実装後、必ず `Implementation Self-Map` を作成してください。
 
-通常は `plans/<slug>-implementation-execution.md` に含めます。既存の result artifact がある場合は、今回の pass に関係する内容だけを更新または追記してください。
+通常は `plans/<ticket-or-slug>-implementation-execution.md` に含めます。既存の result artifact がある場合は、今回の pass に関係する内容だけを更新または追記してください。
 
 必須 table:
 
@@ -296,9 +296,9 @@ Type は必要に応じて次を使ってください。
 
 ### Step 11. Write Implementation Execution Result
 
-安全に slug を特定できる場合、次の artifact を作成または更新してください。
+安全に ticket-or-slug を特定できる場合、次の artifact を作成または更新してください。
 
-`plans/<slug>-implementation-execution.md`
+`plans/<ticket-or-slug>-implementation-execution.md`
 
 この artifact は downstream の `code-review-focus-kernel.agent.md` が読む `Implementation Self-Map` として機能します。
 
@@ -377,7 +377,7 @@ slug を安全に特定できない場合でも、final response に同じ構造
 - selected scope に必要な production code
 - selected scope に必要な test code
 - selected scope に必要な configuration / wiring / entrypoint / migration / docs update
-- `plans/<slug>-implementation-execution.md` の作成または更新
+- `plans/<ticket-or-slug>-implementation-execution.md` の作成または更新
 
 禁止される書き込み:
 

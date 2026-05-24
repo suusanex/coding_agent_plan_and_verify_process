@@ -26,7 +26,7 @@ plan-kernel
   -> implementation-contract-review-kernel (when present)
   -> runtime-contract-kernel
   -> test-design-kernel
-  -> implementation
+  -> implementation-execution / human implementation
   -> ★ code-review-focus-kernel  ← この agent
   -> human code review
   -> verification-kernel
@@ -63,17 +63,17 @@ plan-kernel
 
 ### Strongly recommended artifacts
 
-1. Plan Kernel（`plans/<slug>.md`）
-2. Change Risk Triage output（`plans/<slug>-change-risk-triage.md`）
-3. Runtime Contract Kernel（`plans/<slug>-runtime-contract-kernel.md`）
-4. Test Design Kernel（`plans/<slug>-test-design-kernel.md`）
+1. Plan Kernel（`plans/<ticket-or-slug>.md`）
+2. Change Risk Triage output（`plans/<ticket-or-slug>-change-risk-triage.md`）
+3. Runtime Contract Kernel（`plans/<ticket-or-slug>-runtime-contract-kernel.md`）
+4. Test Design Kernel（`plans/<ticket-or-slug>-test-design-kernel.md`）
 
 ### Conditional / optional artifacts
 
-5. Implementation Contract Kernel（`plans/<slug>-implementation-contract-kernel.md`）— `Implementation realization risk` が `Present` / `Unclear` の場合は strongly recommended
-6. Implementation Contract Review Kernel（`plans/<slug>-implementation-contract-review-kernel.md`）— 存在する場合は読む
-7. Implementation Handoff Review（`plans/<slug>-implementation-handoff-review.md`）— 存在する場合は読む
-8. Verification Kernel Result（`plans/<slug>-verification-kernel.md`）— 実行済みの場合は補助入力として読む
+5. Implementation Contract Kernel（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）— `Implementation realization risk` が `Present` / `Unclear` の場合は strongly recommended
+6. Implementation Contract Review Kernel（`plans/<ticket-or-slug>-implementation-contract-review-kernel.md`）— 存在する場合は読む
+7. Implementation Handoff Review（`plans/<ticket-or-slug>-implementation-handoff-review.md`）— 存在する場合は読む
+8. Verification Kernel Result（`plans/<ticket-or-slug>-verification-kernel.md`）— 実行済みの場合は補助入力として読む
 9. Coverage Gap Triage / Resolution Slice output — 対象が fix-slice の場合は読む
 10. Implementation Self-Map — `implementation-execution.agent.md` または同等の bounded 実装パスが出力している場合は読む
 
@@ -150,11 +150,11 @@ review target の priority には次を使ってください。
 
 ## Workflow
 
-### Step 1. Determine slug and selected scope
+### Step 1. Determine ticket-or-slug and selected scope
 
-caller が artifact path、slug、selected IDs、PR、diff、branch を渡している場合は、それを使って対象を特定してください。
+caller が artifact path、ticket-or-slug、selected IDs、PR、diff、branch を渡している場合は、それを使って対象を特定してください。
 
-slug を安全に推定できない場合でも、inline output として review focus artifact を出力してよいです。ただし repository write を行う場合は、安全に対象を特定できるときだけ `plans/<slug>-code-review-focus-kernel.md` に書き出してください。
+ticket-or-slug を安全に特定できない場合でも、inline output として review focus artifact を出力してよいです。ただし repository write を行う場合は、安全に対象を特定できるときだけ `plans/<ticket-or-slug>-code-review-focus-kernel.md` に書き出してください。
 
 selected IDs が渡されている場合は、それを scope anchor とします。渡されていない場合は、change-risk-triage、runtime-contract-kernel、test-design-kernel、implementation-contract-kernel から selected scope を推定してください。
 

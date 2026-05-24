@@ -27,7 +27,7 @@ plan-kernel
   -> runtime-contract-kernel
   -> test-design-kernel
   -> ★ implementation-handoff-review  ← この agent
-  -> implementation
+  -> implementation-execution / human implementation
   -> (optional) code-review-focus-kernel
   -> human code review
   -> verification-kernel
@@ -76,15 +76,15 @@ plan-kernel
 
 必須 base artifacts:
 
-1. Plan Kernel（`plans/<slug>.md`）
-2. Change Risk Triage output（`plans/<slug>-change-risk-triage.md`）
-3. Runtime Contract Kernel（`plans/<slug>-runtime-contract-kernel.md`）
-4. Test Design Kernel（`plans/<slug>-test-design-kernel.md`）
+1. Plan Kernel（`plans/<ticket-or-slug>.md`）
+2. Change Risk Triage output（`plans/<ticket-or-slug>-change-risk-triage.md`）
+3. Runtime Contract Kernel（`plans/<ticket-or-slug>-runtime-contract-kernel.md`）
+4. Test Design Kernel（`plans/<ticket-or-slug>-test-design-kernel.md`）
 
 条件付き artifacts:
 
-5. Implementation Contract Kernel（`plans/<slug>-implementation-contract-kernel.md`）— `change-risk-triage` の `Implementation realization risk` が `Present` / `Unclear` の場合は必須
-6. Implementation Contract Review Kernel（`plans/<slug>-implementation-contract-review-kernel.md`）— 存在する場合は必ず読む
+5. Implementation Contract Kernel（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）— `change-risk-triage` の `Implementation realization risk` が `Present` / `Unclear` の場合は必須
+6. Implementation Contract Review Kernel（`plans/<ticket-or-slug>-implementation-contract-review-kernel.md`）— 存在する場合は必ず読む
 
 slug は、caller が渡した artifact path または file 名から安全に推定してください。安全に推定できない場合は、推測で別 artifact を読まず、`BLOCKED` として理由を記録してください。
 
@@ -104,7 +104,7 @@ required artifacts を読んでください。この agent が行う唯一のフ
 
 既存の `Implementation Handoff Review` artifact（`plans/<ticket-or-slug>-implementation-handoff-review.md`）があれば読んで、今回の selected scope に関係する部分だけを更新してください。存在しない場合は新規作成します。
 
-既存 review artifact が明らかに別要求や別 slug を指している場合は、黙って上書きしてはいけません。mismatch を記録し、安全に更新対象を特定できない場合は `BLOCKED` として停止してください。
+既存 review artifact が明らかに別要求や別 ticket-or-slug を指している場合は、黙って上書きしてはいけません。mismatch を記録し、安全に更新対象を特定できない場合は `BLOCKED` として停止してください。
 
 読み取れない artifact があった場合は、その時点で `BLOCKED` を出力し、missing artifact を記録して停止してください。
 
@@ -191,7 +191,7 @@ required artifacts（base + 条件付き）に `NeedsHumanDecision` または同
 
 change-risk-triage の `Implementation realization risk` を確認し、`Present` または `Unclear` がある場合は implementation-contract artifact の存在と整合を確認してください。
 
-- implementation-realization risk があるのに `plans/<slug>-implementation-contract-kernel.md` が存在しない場合は Blocking
+- implementation-realization risk があるのに `plans/<ticket-or-slug>-implementation-contract-kernel.md` が存在しない場合は Blocking
 - implementation-contract があるが Plan / triage と整合しない場合は Blocking
 - review-kernel artifact が存在する場合は verdict を参照し、blocking verdict が残っていれば Blocking
 
@@ -233,12 +233,12 @@ READY_FOR_IMPLEMENTATION | READY_WITH_NOTES | BLOCKED
 ## 引き継ぎ必須 inputs
 
 <!-- implementation-execution.agent.md または人間の実装者に渡すべき artifacts を列挙する -->
-- plans/<slug>.md（Plan Kernel — 唯一の基準）
-- plans/<slug>-change-risk-triage.md
-- plans/<slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
-- plans/<slug>-implementation-contract-review-kernel.md（存在する場合）
-- plans/<slug>-runtime-contract-kernel.md
-- plans/<slug>-test-design-kernel.md
+- plans/<ticket-or-slug>.md（Plan Kernel — 唯一の基準）
+- plans/<ticket-or-slug>-change-risk-triage.md
+- plans/<ticket-or-slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
+- plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
+- plans/<ticket-or-slug>-runtime-contract-kernel.md
+- plans/<ticket-or-slug>-test-design-kernel.md
 
 ## 欠落または不一致のマッピング
 
