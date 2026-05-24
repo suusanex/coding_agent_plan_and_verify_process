@@ -28,6 +28,8 @@ plan-kernel
   -> test-design-kernel
   -> ★ implementation-handoff-review  ← この agent
   -> implementation
+  -> (optional) code-review-focus-kernel
+  -> human code review
   -> verification-kernel
 ```
 
@@ -230,7 +232,7 @@ READY_FOR_IMPLEMENTATION | READY_WITH_NOTES | BLOCKED
 
 ## 引き継ぎ必須 inputs
 
-<!-- 実装 agent に渡すべき artifacts を列挙する -->
+<!-- implementation-execution.agent.md または人間の実装者に渡すべき artifacts を列挙する -->
 - plans/<slug>.md（Plan Kernel — 唯一の基準）
 - plans/<slug>-change-risk-triage.md
 - plans/<slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
@@ -257,14 +259,14 @@ READY_FOR_IMPLEMENTATION | READY_WITH_NOTES | BLOCKED
 - Decisions made: <verdict、ブロッキング判定、注記判定の要約>
 - Do not redo unless new evidence appears: <下流が反証を示すまで信頼してよいマッピング / 判定>
 - Remaining work: <ブロッキング問題、注記、NeedsHumanDecision、欠落 artifact など>
-- Recommended next step: <implementation agent または差し戻し先 agent / 人手判断>
+- Recommended next step: <implementation-execution.agent.md または差し戻し先 agent / 人手判断>
 ```
 
 ## Output rules
 
 - **ブロッキング問題**: 箇条書きで、何が問題か、どの artifact のどの項目かを明記する。理由なく長くしない。
 - **非ブロッキング注記**: 軽微な改善候補のみ。実装者が無視しても安全に進めるレベルにとどめる。
-- **引き継ぎ必須 inputs**: 実装 agent が受け取るべき artifact の一覧。Plan が source of truth であることを明示する。
+- **引き継ぎ必須 inputs**: `implementation-execution.agent.md` または人間の実装者が受け取るべき artifact の一覧。Plan が source of truth であることを明示する。
 - **欠落または不一致のマッピング**: Check 1〜5 で発見した具体的な接続の欠落を表形式で示す。問題がなければ "None" と記載する。
 - **実装プロンプトへの追加推奨事項**: 実装 prompt に追記すべき補足（未解決 Note の注意喚起など）を簡潔に示す。長い追記リストを作ってはいけない。
 - **Handoff Packet**: shared output concepts に沿って、review scope、判定、再調査不要事項、残作業、次の担当を簡潔に残す。
@@ -284,7 +286,7 @@ READY_FOR_IMPLEMENTATION | READY_WITH_NOTES | BLOCKED
 
 verdict を出力し、`引き継ぎ必須 inputs` と `Handoff Packet` を記録した後に停止してください。
 
-- `READY_FOR_IMPLEMENTATION` または `READY_WITH_NOTES` の場合: 実装 agent への handoff に必要な情報を `引き継ぎ必須 inputs` と `Handoff Packet` に記録し、停止してください。
+- `READY_FOR_IMPLEMENTATION` または `READY_WITH_NOTES` の場合: `implementation-execution.agent.md` または人間の実装者への handoff に必要な情報を `引き継ぎ必須 inputs` と `Handoff Packet` に記録し、停止してください。
 - `BLOCKED` の場合: blocking issues を記録し、修正すべき artifact と担当 agent、または必要な human decision を示して停止してください。修正は行いません。
 
 ## Status vocabulary
@@ -307,7 +309,8 @@ Handoff Packet の `Remaining work`、`ブロッキング問題`、`非ブロッ
 ## Relationship to other agents
 
 - **通常の直前の agent**: `test-design-kernel.agent.md` — この agent の入力を生成する
-- **直後の agent**: 実装 agent — この agent の `引き継ぎ必須 inputs` と `Handoff Packet` を受け取って実装を開始する
+- **直後の agent**: `implementation-execution.agent.md` または人間の実装者 — この agent の `引き継ぎ必須 inputs` と `Handoff Packet` を受け取って実装を開始する
+- **任意の実装後 gate**: `code-review-focus-kernel.agent.md` — human code review 用の読み順と重点箇所を整理する
 - **この agent は代替しない**: `plan-review.agent.md`（full Plan review）、`verification-kernel.agent.md`（実装後の production binding 検証）
 - **BLOCKED 時の修正先**:
   - Check 1, 2: `plan-kernel.agent.md` を再実行または手動修正

@@ -111,11 +111,13 @@ Plan requirement / acceptance condition
 5. `runtime-contract-kernel.agent.md`
 6. `test-design-kernel.agent.md`
 7. 必要に応じて `implementation-handoff-review.agent.md`
-8. 通常エージェントまたは人間主導で実装
-9. `verification-kernel.agent.md`
-10. 未解決がある場合は `coverage-gap-triage.agent.md`
-11. 選択した gap は `coverage-gap-resolution-slice.agent.md`
-12. 必要に応じて `verification-kernel.agent.md` を再実行
+8. `implementation-execution.agent.md` または人間主導で実装
+9. 必要に応じて `code-review-focus-kernel.agent.md`
+10. `code-review-focus-kernel` を実行した場合は、その出力を使って human code review
+11. `verification-kernel.agent.md`
+12. 未解決がある場合は `coverage-gap-triage.agent.md`
+13. 選択した gap は `coverage-gap-resolution-slice.agent.md`
+14. 必要に応じて `verification-kernel.agent.md` を再実行
 
 このフローでは、各 agent が 1 回の bounded な実行を行い、未解決項目は成果物に残して停止します。  
 「直るまで修正し続ける」ことは目的ではありません。
@@ -123,12 +125,15 @@ Plan requirement / acceptance condition
 `implementation-handoff-review.agent.md` は任意の軽量 gate です。  
 常に必須ではありませんが、実装前に Plan → selected runtime contract → test point → production binding requirement の接続を一度だけ確認したい場合に使います。
 
-### 実装に渡すもの
+`code-review-focus-kernel.agent.md` も任意の軽量 gate です。  
+常に必須ではありませんが、人手レビューを入れる場合に、実装差分と guardrail artifacts を突き合わせて「どこから読むべきか」を先に整理したいときに使います。
 
-Token-aware flow で実装に入るときは、`runtime-contract-kernel` だけを渡してはいけません。  
+### `implementation-execution.agent.md` に渡すもの
+
+Token-aware flow で `implementation-execution.agent.md` を使って実装に入るときは、`runtime-contract-kernel` だけを渡してはいけません。  
 `runtime-contract-kernel` は高リスク境界の guardrail であり、要求全体の仕様ではありません。
 
-実装 agent には、少なくとも次を渡してください。
+`implementation-execution.agent.md` には、少なくとも次を渡してください。
 
 - `plan-kernel.agent.md` が作成した bounded Plan
 - `change-risk-triage.agent.md` の出力
@@ -146,7 +151,11 @@ Token-aware flow で実装に入るときは、`runtime-contract-kernel` だけ�
 - implementation-realization の unresolved items は guessed address に変換せず、明示的に保持します
 - broad なケースでは full-flow `implementation-contract-generation.agent.md` / `implementation-contract-review.agent.md` を継続利用します
 
-実装 agent は Plan を source of truth として扱います。kernel artifacts は high-risk slice に対する guardrail であり、Plan の代替ではありません。
+`implementation-execution.agent.md` は Plan を source of truth として扱います。kernel artifacts は high-risk slice に対する guardrail であり、Plan の代替ではありません。
+
+人間主導で実装する場合も、上記と同じ artifacts を実装者に渡してください。
+
+human code review に渡すときは、上記に加えて実装差分、changed files 一覧、`plans/<slug>-implementation-execution.md`、必要に応じて `code-review-focus-kernel.agent.md` の出力を渡してください。
 
 ---
 
@@ -336,7 +345,7 @@ bounded Plan と runtime-contract-kernel の内容を入力として、test-desi
 - Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認する
 - source code を読まず、artifacts を修正せず、実装もしない
 - `READY_FOR_IMPLEMENTATION` / `READY_WITH_NOTES` / `BLOCKED` の単一 verdict を出す
-- 実装 agent に渡すべき Required handoff inputs を整理する
+- `implementation-execution.agent.md` または人間の実装者に渡すべき Required handoff inputs を整理する
 
 この agent は optional です。過剰な review を避けるため、常に使う必要はありません。
 
@@ -378,16 +387,26 @@ Plan → selected runtime contracts → RC → TP → production binding require
 
 ---
 
-### 実装フェーズ
+### `implementation-execution.agent.md`
 
-Token-aware flow では、実装専用 agent が別途あるわけではありません。通常の GitHub Copilot agent、通常の coding agent、または人間主導の実装で進めます。
+Token-aware flow の bounded な実装フェーズを担当します。
 
-ただし、実装に渡す入力は明確にしてください。
+主な役割:
+
+- bounded Plan を source of truth として selected implementation scope 全体を実装する
+- runtime-contract / test-design / implementation-contract artifacts を selected high-risk slice の guardrail として使う
+- production implementation と production wiring / entrypoint を落とさず実装する
+- 必要な tests / checks を bounded に実行し、未実行や失敗を明示する
+- downstream の `code-review-focus-kernel.agent.md` と `verification-kernel.agent.md` が使う `Implementation Self-Map` を `plans/<slug>-implementation-execution.md` に残す
+
+この agent は optional ではありません。Token-aware flow を agent ベースで通すなら、実装フェーズの標準担当として使います。人間主導で実装する場合も、この agent の入力契約と出力契約を満たす形で進めるのが望ましいです。
 
 プロンプト例:
 
 ```text
-次の成果物を必ず読んで、selected scope だけを実装してください。
+implementation-execution.agent.md を使って、selected scope だけを実装してください。
+
+次の成果物を必ず読んでください。
 
 - plans/<slug>.md もしくは plan-kernel.agent.md が作成した bounded Plan
 - plans/<slug>-change-risk-triage.md
@@ -408,9 +427,62 @@ implementation-handoff-review がある場合は、その verdict、blocking iss
 - selected runtime contracts / test points に必要な production implementation と wiring を落とさない
 - stub / fake / mock / in-memory test だけで production complete と判断しない
 - selected scope 外の redesign や unrelated refactoring は行わない
+- `plans/<slug>-implementation-execution.md` に Implementation Self-Map、Test / Check Summary、Remaining Work を残す
 - 完了できない項目は Remaining work として報告する
 
-最後に、変更した files、対応した Runtime Contract ID、対応した Test Point ID、実行した tests、未実行 tests、Remaining work を報告してください。
+最後に、変更した files、対応した Runtime Contract ID、対応した Test Point ID、実行した tests、未実行 tests、Implementation Self-Map の保存先、Remaining work を報告してください。
+```
+
+---
+
+### `code-review-focus-kernel.agent.md`
+
+実装後に、人手レビューで優先して読むべき code surface を整理します。
+
+主な役割:
+
+- implementation diff と changed files を読む
+- Plan / triage / implementation-contract / runtime-contract / test-design artifact と差分を突き合わせる
+- P0 / P1 の review target、skim でよい file、未確認の不確実性を切り分ける
+- human code review の読む順番と注意点を `plans/<slug>-code-review-focus-kernel.md` にまとめる
+- code review の承認や修正は行わない
+
+この agent は optional です。実装差分が小さく、人手レビューを重点化する必要が薄い場合は省略できます。
+
+使う場面:
+
+- human code review を入れたい
+- queue / retry / state transition / DI / public API / persistence shape など high-risk diff がある
+- 実装差分が広く、review で読む順番を先に絞りたい
+- AI 実装の前提誤りや test false confidence を人手で重点確認したい
+
+省略してよい場面:
+
+- 変更差分がごく小さく、P0 / P1 の候補がほぼ自明
+- human code review 自体を今回行わない
+- changed files と selected scope の対応が単純で、review map を別成果物に分けるほどではない
+
+プロンプト例:
+
+```text
+実装後、人手でコードレビューしたいので code-review-focus-kernel.agent.md を実行してください。
+
+次を入力として、selected scope に関係する changed files だけを読んでください。
+
+- plans/<slug>.md
+- plans/<slug>-change-risk-triage.md
+- plans/<slug>-runtime-contract-kernel.md
+- plans/<slug>-test-design-kernel.md
+- plans/<slug>-implementation-contract-kernel.md（存在する場合）
+- plans/<slug>-implementation-contract-review-kernel.md（存在する場合）
+- plans/<slug>-implementation-handoff-review.md（存在する場合）
+- working tree diff または PR diff
+
+可能であれば、PR number または base/head commit range を diff source として明示してください。
+例: base=main, head=<current-branch> または PR #123
+
+production code や test code は修正せず、plans/<slug>-code-review-focus-kernel.md を作成してください。
+P0 / P1 の review target、skim でよい file、未確認の不確実性、Suggested human review order をまとめてください。
 ```
 
 ---
@@ -435,6 +507,7 @@ implementation-handoff-review がある場合は、その verdict、blocking iss
 - fake テストが production ready と誤判定されていないか確認したいとき
 - `Bound` を正式に判断したいとき
 - `coverage-gap-triage` に渡す未解決項目を作りたいとき
+- human code review の後で、selected scope の verification を bounded に実行したいとき
 
 プロンプト例:
 
@@ -532,7 +605,7 @@ coverage-gap-triage の推奨修正範囲から Slice 1 だけを対象に、cov
 - selected RC が複数あり、Plan → RC → TP の対応が見落とされそう
 - stub / fake / mock / in-memory を使う test point がある
 - production binding required の指定漏れが特に怖い
-- 実装 agent に渡す handoff が複数 artifacts に分かれており、接続確認をしておきたい
+- `implementation-execution.agent.md` または人間の実装者に渡す handoff が複数 artifacts に分かれており、接続確認をしておきたい
 
 ### `implementation-handoff-review.agent.md` を省略してよい場合
 
@@ -618,10 +691,12 @@ source code は読まず、artifacts も修正しないでください。
 Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認し、READY_FOR_IMPLEMENTATION / READY_WITH_NOTES / BLOCKED の verdict を出してください。
 ```
 
-### Plan と kernel artifacts を渡して実装する
+### implementation-execution に実装させる
 
 ```text
-次の成果物を必ず読んで、selected scope だけを実装してください。
+implementation-execution.agent.md を使って、selected scope だけを実装してください。
+
+次の成果物を必ず読んでください。
 
 - plans/<slug>.md もしくは plan-kernel.agent.md が作成した bounded Plan
 - plans/<slug>-change-risk-triage.md
@@ -637,6 +712,23 @@ implementation-handoff-review がある場合は、その verdict、blocking iss
 
 Plan の Functional requirements と Acceptance conditions を満たし、Non-goals / Out of scope に含まれる作業は行わないでください。
 stub / fake / mock / in-memory test だけで production complete と判断せず、production implementation と wiring を落とさないでください。
+実装後は plans/<slug>-implementation-execution.md に Implementation Self-Map、Test / Check Summary、Remaining Work を記録してください。
+```
+
+### 実装後に review focus を作る
+
+```text
+人手レビュー用の読み順を整理したいので、code-review-focus-kernel.agent.md を実行してください。
+bounded Plan と kernel artifacts、plans/<slug>-implementation-execution.md、working tree diff を入力にして、selected scope の changed files だけを読み、P0 / P1 review target と Suggested human review order を出してください。
+可能であれば、PR number または base/head commit range を diff source として明示してください。例: base=main, head=<current-branch> または PR #123
+```
+
+### review focus を使って人手レビューする
+
+```text
+plans/<slug>-code-review-focus-kernel.md を見ながら人手レビューを行います。
+まず Suggested human review order の順に P0 / P1 を読み、必要なら Files not inspected / uncertainty に書かれた箇所を追加で確認してください。
+human code review の指摘で P0 / P1 target、public API、state transition、production wiring、test substitute 周辺に追加変更が入った場合は、verification-kernel の前に code-review-focus-kernel.agent.md を再実行してください。
 ```
 
 ### 実装後に検証する
@@ -677,6 +769,8 @@ Token-aware guardrail kernel flow では、通常は次の成果物を作成し�
 | `plans/<ticket-or-slug>-runtime-contract-kernel.md` | runtime contract・producer / consumer・メッセージ・フィールド・production 実装の所在 |
 | `plans/<ticket-or-slug>-test-design-kernel.md` | テストポイントマッピング・stub/fake の使用有無・production binding 確認要件 |
 | `plans/<ticket-or-slug>-implementation-handoff-review.md` | 実装直前の lightweight review verdict と required handoff inputs |
+| `plans/<ticket-or-slug>-implementation-execution.md` | 実装結果、Implementation Self-Map、Test / Check Summary、Remaining Work |
+| `plans/<ticket-or-slug>-code-review-focus-kernel.md` | 人手コードレビュー向けの重点確認箇所・読む順番・不確実性の整理 |
 | `plans/<ticket-or-slug>-verification-kernel.md` | production binding / wiring / contract の検証結果 |
 | `plans/<ticket-or-slug>-coverage-gap-triage.md` | 未解決ギャップの分類と推奨修正範囲 |
 | `plans/<ticket-or-slug>-coverage-gap-resolution-slice.md` | 選択したギャップの修正結果と残作業 |
@@ -689,6 +783,7 @@ Token-aware guardrail kernel flow では、通常は次の成果物を作成し�
 - 実装の source of truth は bounded Plan とする
 - kernel artifacts は high-risk slice の guardrail として扱い、Plan の代替にしない
 - `implementation-handoff-review.agent.md` は必要な場合だけ使う optional gate とする
+- `code-review-focus-kernel.agent.md` は human code review を行うときの optional gate とする
 - 対象スコープを明示する
 - 不明な項目を推測で埋めない
 - テストが通ることを production binding の証拠にしない
