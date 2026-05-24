@@ -1,0 +1,18 @@
+name: full-autonomous-plan-first-flow
+version: 0.1.0
+description: Full autonomous Plan-first flow for broad runtime evidence and integration-test driven coding
+
+dependencies:
+  apm:
+    - git: parent
+      path: .github/agents/plan-generation.agent.md
+    - git: parent
+      path: .github/agents/plan-review.agent.md
+    - git: parent
+      path: .github/agents/runtime-evidence.agent.md
+    - git: parent
+      path: .github/agents/integration-test-design.agent.md
+    - git: parent
+      path: .github/agents/integration-test-verification-implementation.agent.md
+    - git: parent
+      path: .github/agents/coverage-gap-resolution.agent.md
