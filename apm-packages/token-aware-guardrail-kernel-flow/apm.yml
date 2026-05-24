@@ -1,0 +1,30 @@
+name: token-aware-guardrail-kernel-flow
+version: 0.1.0
+description: Token-aware bounded Plan-first guardrail kernel flow for coding agents
+
+dependencies:
+  apm:
+    - git: parent
+      path: .github/agents/plan-kernel.agent.md
+    - git: parent
+      path: .github/agents/change-risk-triage.agent.md
+    - git: parent
+      path: .github/agents/runtime-contract-kernel.agent.md
+    - git: parent
+      path: .github/agents/test-design-kernel.agent.md
+    - git: parent
+      path: .github/agents/implementation-handoff-review.agent.md
+    - git: parent
+      path: .github/agents/verification-kernel.agent.md
+    - git: parent
+      path: .github/agents/coverage-gap-triage.agent.md
+    - git: parent
+      path: .github/agents/coverage-gap-resolution-slice.agent.md
+    - git: parent
+      path: .github/agents/implementation-contract-kernel.agent.md
+    - git: parent
+      path: .github/agents/implementation-contract-review-kernel.agent.md
+    - git: parent
+      path: .github/agents/code-review-focus-kernel.agent.md
+    - git: parent
+      path: .github/agents/implementation-execution.agent.md
