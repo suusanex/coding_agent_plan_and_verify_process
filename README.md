@@ -6,10 +6,10 @@ GitHub Copilot で Plan-first 開発をするための agent（`.github/agents/`
 
 この repository には、大きく分けて 2 系統のプロセスがあります。
 
-1. Full autonomous Plan-first flow  
+1. Full autonomous Plan-first flow
    runtime evidence・integration test の設計・検証・ギャップ解消を広く使い、ゴールまで自走しやすい従来型のフロー。
 
-2. Token-aware guardrail kernel flow  
+2. Token-aware guardrail kernel flow
    GitHub Copilot のトークン消費を意識し、Plan-first の効果を保ったまま、対象 slice を絞って bounded に進めるフロー。Plan 作成は省略せず、guardrail も削らず、対象範囲を絞ることを重視します。
 
 ---
@@ -18,10 +18,10 @@ GitHub Copilot で Plan-first 開発をするための agent（`.github/agents/`
 
 このプロセスが防ぎたい主な失敗は 2 つです。
 
-1. sequence contract の不一致  
+1. sequence contract の不一致
    プロセス間・コンポーネント間の処理で、各コンポーネント内では unit test が通るが、実際につなげると runtime contract・メッセージ・状態遷移・wiring が対応しておらず動かない。
 
-2. stub は完成しているが production 実装が存在しない  
+2. stub は完成しているが production 実装が存在しない
    stub / fake / mock / in-memory 実装を使った自動テストは通るが、対応する production 実装または production wiring が存在しない。
 
 Token-aware guardrail kernel flow では、この失敗を防ぐための guardrail チェーンを維持したまま、対象の runtime slice を絞ります。
@@ -36,7 +36,7 @@ Plan requirement / acceptance condition
   -> 明示的な未解決状態
 ```
 
-軽量化する場合も、削る対象は プロセスの深さ ではなく プロセスの広さ です。  
+軽量化する場合も、削る対象は プロセスの深さ ではなく プロセスの広さ です。
 つまり「全体を浅く見る」のではなく、「Plan は作る」「選択した危険な contract を十分に深く見る」ことを優先します。
 
 ---
@@ -88,7 +88,7 @@ Plan requirement / acceptance condition
 
 トークン消費を意識し、bounded Plan を作成したうえで、選択した runtime contract・テストポイント・ギャップだけを bounded に扱うフローです。
 
-このフローは risk triage から始めません。  
+このフローは risk triage から始めません。
 まず `plan-kernel.agent.md` で実装の source of truth になる bounded Plan を作成し、その Plan の中から高リスクな runtime slice を選びます。
 
 ### 想定用途
@@ -119,13 +119,13 @@ Plan requirement / acceptance condition
 13. 選択した gap は `coverage-gap-resolution-slice.agent.md`
 14. 必要に応じて `verification-kernel.agent.md` を再実行
 
-このフローでは、各 agent が 1 回の bounded な実行を行い、未解決項目は成果物に残して停止します。  
+このフローでは、各 agent が 1 回の bounded な実行を行い、未解決項目は成果物に残して停止します。
 「直るまで修正し続ける」ことは目的ではありません。
 
-`implementation-handoff-review.agent.md` は任意の軽量 gate です。  
+`implementation-handoff-review.agent.md` は任意の軽量 gate です。
 常に必須ではありませんが、実装前に Plan → selected runtime contract → test point → production binding requirement の接続を一度だけ確認したい場合に使います。
 
-`code-review-focus-kernel.agent.md` も任意の軽量 gate です。  
+`code-review-focus-kernel.agent.md` も任意の軽量 gate です。
 常に必須ではありませんが、人手レビューを入れる場合に、実装差分と guardrail artifacts を突き合わせて「どこから読むべきか」を先に整理したいときに使います。
 
 ### Token-aware guardrail kernel flow の full-coverage handling
@@ -143,7 +143,7 @@ full-coverage
 
 ### `implementation-execution.agent.md` に渡すもの
 
-Token-aware flow で `implementation-execution.agent.md` を使って実装に入るときは、`runtime-contract-kernel` だけを渡してはいけません。  
+Token-aware flow で `implementation-execution.agent.md` を使って実装に入るときは、`runtime-contract-kernel` だけを渡してはいけません。
 `runtime-contract-kernel` は高リスク境界の guardrail であり、要求全体の仕様ではありません。
 
 `implementation-execution.agent.md` には、少なくとも次を渡してください。
