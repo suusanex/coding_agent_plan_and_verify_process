@@ -283,7 +283,9 @@ READY_FOR_IMPLEMENTATION | READY_WITH_NOTES | BLOCKED
 - **ブロッキング問題**: 箇条書きで、何が問題か、どの artifact のどの項目かを明記する。理由なく長くしない。
 - **非ブロッキング注記**: 軽微な改善候補のみ。実装者が無視しても安全に進めるレベルにとどめる。
 - **引き継ぎ必須 inputs**: `implementation-execution.agent.md` または人間の実装者が受け取るべき artifact の一覧。Plan が source of truth であることを明示する。
-- **欠落または不一致のマッピング**: Check 1〜5 で発見した具体的な接続の欠落を表形式で示す。問題がなければ "None" と記載する。
+- **欠落または不一致のマッピング**: Check 1〜5 および Check 10 で発見した具体的な接続の欠落を表形式で示す。問題がなければ "None" と記載する。
+  - `Slice ID` は、full-coverage decomposition 由来の slice に関係する欠落または不一致の場合だけ `SL-xxx` を記載する。該当しない場合は `none`。
+  - `Cross-slice Contract ID` は、欠落または不一致が `XC-xxx` に関係する場合だけ記載する。該当しない場合は `none`。
 - **実装プロンプトへの追加推奨事項**: 実装 prompt に追記すべき補足（未解決 Note の注意喚起など）を簡潔に示す。長い追記リストを作ってはいけない。
 - **Handoff Packet**: shared output concepts に沿って、review scope、判定、再調査不要事項、残作業、次の担当を簡潔に残す。
 

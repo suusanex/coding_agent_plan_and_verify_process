@@ -166,6 +166,8 @@ ticket-or-slug を安全に特定できる場合、実装後の結果 artifact �
 
 この table は internal planning として使ってよいですが、最終出力にも含めることを推奨します。
 
+略語は、`SL` = Slice ID、`XC` = Cross-slice Contract ID、`RC` = Runtime Contract ID、`TP` = Test Point ID、`IC` = Implementation Contract item として扱ってください。
+
 - Plan の functional requirements と acceptance conditions を target に含める。
 - full-coverage decomposition 由来の slice では、対象 Slice ID と関連する XC ID を target に含める。
 - selected runtime contracts / test points に関係する production implementation と wiring を target に含める。
@@ -237,6 +239,8 @@ caller または environment が許す範囲で、関連 tests、build、lint、
 ```
 
 記述ルール:
+
+- `SL` = Slice ID、`XC` = Cross-slice Contract ID、`RC` = Runtime Contract ID、`TP` = Test Point ID、`IC` = Implementation Contract item です。
 
 - `Change ID` は `IMPL-001` のように安定した ID を付ける。
 - `Change` は実際に行った変更を短く書く。

@@ -116,7 +116,7 @@ cross-slice contract には、少なくとも以下を含めてください。
 
 実装対象になる executable slice については、必ず `plans/<ticket-or-slug>-slice-SL-xxx.md` を作成してください。
 
-各 slice artifact は、後続 agent がその slice の bounded Plan として読める内容にしてください。少なくとも Goal、Non-goals、Parent requirements covered、Parent acceptance conditions covered、Affected components / modules、Expected implementation scope、Cross-slice dependencies、Related XC IDs、Stop condition を含めます。
+各 slice artifact は、後続 agent がその slice の bounded Plan として読める内容にしてください。少なくとも Goal、Non-goals、Parent requirements covered、Parent acceptance conditions covered、Affected components / modules、Expected implementation scope、Cross-slice dependencies、Related Cross-slice Contract IDs、Stop condition を含めます。
 
 ### 5. Do not hide full-coverage risk by oversplitting
 

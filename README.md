@@ -139,7 +139,7 @@ full-coverage
   -> cross-slice-verification-kernel.agent.md
 ```
 
-`plans/<ticket-or-slug>-slice-decomposition.md` には、各 slice の scope / non-goals / cross-slice dependencies / cross-slice contract IDs / execution order が含まれます。full-coverage decomposition 由来の slice を実装する場合は、parent Plan と slice decomposition artifact の両方を source artifact として扱ってください。cross-slice contract は slice 内で完了扱いにせず、最後に `cross-slice-verification-kernel.agent.md` で確認します。
+`plans/<ticket-or-slug>-slice-decomposition.md` には、各 slice の scope / non-goals / cross-slice dependencies / cross-slice contract IDs / parent contract mapping / execution order が含まれます。full-coverage decomposition 由来の slice を実装する場合は、parent Plan と slice decomposition artifact の両方を source artifact として扱ってください。cross-slice contract は slice 内で完了扱いにせず、最後に `cross-slice-verification-kernel.agent.md` で確認します。
 
 ### `implementation-execution.agent.md` に渡すもの
 
