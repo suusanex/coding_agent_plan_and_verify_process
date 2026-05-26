@@ -168,10 +168,10 @@ selected contracts には次の triage statuses を使ってください。
 
 推奨した profile に基づいて、次に実行すべき agent を指定してください。
 
-- `contract-kernel` + implementation-realization risk `Absent` → `runtime-contract-kernel.agent.md`
-- implementation-realization risk `Present` / `Unclear` + bounded scope → `implementation-contract-kernel.agent.md`
+- `contract-kernel` または `standard-slice` + implementation-realization risk `Absent` → `runtime-contract-kernel.agent.md`
+- `contract-kernel` または `standard-slice` + implementation-realization risk `Present` / `Unclear` + bounded scope → `implementation-contract-kernel.agent.md`
 - implementation-realization risk `Present` / `Unclear` + broader scope → `full-coverage` として `plan-slice-decomposition.agent.md`
-- `standard-slice` → `plan-kernel.agent.md` または既存 bounded Plan の slice 化（contract kernel requirements 付き）
+- `standard-slice` で Plan が不足している場合だけ → `plan-kernel.agent.md`
 - `full-coverage` → `plan-slice-decomposition.agent.md`
 - `fix-slice` → `coverage-gap-resolution-slice.agent.md` with selected IDs
 - `triage-only` → 停止し、human decision を待つ

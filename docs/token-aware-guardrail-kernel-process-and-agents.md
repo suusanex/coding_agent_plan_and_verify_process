@@ -391,7 +391,7 @@ Use these statuses consistently unless an existing artifact has a stronger conve
 
 ## Shared bounded-pass rules
 
-All token-aware agents should follow these rules unless the user explicitly asks for full coverage:
+All token-aware agents should follow these rules unless the user explicitly asks to leave the token-aware route and run the full autonomous flow:
 
 - Perform one bounded pass.
 - Do not keep repairing until all issues disappear.
@@ -533,10 +533,9 @@ Stop after recommending a profile and selected contracts / IDs. If risk cannot b
 When implementation-realization risk is `Present` or `Unclear`, the next-step recommendation must be one of:
 
 - `implementation-contract-kernel.agent.md`
-- `implementation-contract-generation.agent.md`
 - `full-coverage`
 
-Do not recommend immediate `runtime-contract-kernel.agent.md` in this condition.
+Do not recommend immediate `runtime-contract-kernel.agent.md` in this condition. Recommend full `implementation-contract-generation.agent.md` only when the user explicitly chooses Flow C.
 
 ## 3. `runtime-contract-kernel.agent.md`
 
@@ -641,7 +640,7 @@ For each selected runtime contract:
 
 ### Escalation condition
 
-Recommend `integration-test-design.agent.md` when the selected slice requires broader feature, error, load, or continuous-operation coverage.
+Recommend `full-coverage` / `plan-slice-decomposition.agent.md` when the selected slice cannot be handled safely as a bounded token-aware slice. Recommend `integration-test-design.agent.md` only when the user explicitly wants to leave the token-aware kernel flow and run Flow C.
 
 ## 5. `verification-kernel.agent.md`
 
@@ -691,6 +690,7 @@ For each selected test point:
 - whether the result is still consistent with the Plan requirement / acceptance condition
 - when implementation-contract exists, whether runtime address and wiring are consistent with implementation-contract decisions
 - if nearby implementation is wired but Plan-required path is missing, classify as blocking mismatch/gap rather than pass
+- when Plan Slice Decomposition exists, keep slice scope / XC IDs visible and defer cross-slice binding to `cross-slice-verification-kernel.agent.md`
 
 ### Verdicts
 
@@ -723,6 +723,7 @@ Classify unresolved implementation coverage items without fixing them.
 
 - verification-kernel output or implementation coverage document
 - Plan Kernel or bounded Plan artifact
+- Plan Slice Decomposition artifact when classifying gaps from full-coverage decomposition slices
 - integration test points or Test Design Kernel
 - Runtime Contract Kernel when available
 

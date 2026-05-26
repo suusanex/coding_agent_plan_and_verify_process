@@ -28,8 +28,10 @@ You are the "Plan Slice Decomposition" agent.
 3. slice 間に残る cross-slice runtime contracts を明示する
 4. 各 slice の推奨 process profile を定義する
 5. 各 slice が独立して進められる範囲と、独立して進めてはいけない範囲を分ける
-6. 最後に必要な cross-slice verification を定義する
-7. 未解決または human decision が必要な点を明示する
+6. parent-level runtime contract candidates がどの slice または cross-slice contract に対応したかを追跡可能にする
+7. 実装対象になる slice について、後続 agent が bounded Plan として読める slice artifact を作成する
+8. 最後に必要な cross-slice verification を定義する
+9. 未解決または human decision が必要な点を明示する
 
 この agent は実装、テスト作成、full runtime evidence、full integration test design、gap resolution を行いません。
 
@@ -111,6 +113,10 @@ cross-slice contract には、少なくとも以下を含めてください。
 - recommended next profile
 - recommended next agent
 - required inputs for the next agent
+
+実装対象になる executable slice については、必ず `plans/<ticket-or-slug>-slice-SL-xxx.md` を作成してください。
+
+各 slice artifact は、後続 agent がその slice の bounded Plan として読める内容にしてください。少なくとも Goal、Non-goals、Parent requirements covered、Parent acceptance conditions covered、Affected components / modules、Expected implementation scope、Cross-slice dependencies、Related XC IDs、Stop condition を含めます。
 
 ### 5. Do not hide full-coverage risk by oversplitting
 
@@ -215,7 +221,25 @@ Status は shared status vocabulary を使ってください。
 
 cross-slice contract は、後続の `cross-slice-verification-kernel.agent.md` が検証対象にします。
 
-### Step 5. Define execution order
+### Step 5. Map parent-level contracts to slices and XC IDs
+
+change-risk-triage が `full-coverage` 時に parent-level runtime contract candidates（例: `RC-001`）を出している場合は、それぞれがどの slice または cross-slice contract に落ちたかを必ず記録してください。
+
+```md
+| Parent Contract ID | Disposition | Slice ID | Cross-slice Contract ID | Notes |
+| --- | --- | --- | --- | --- |
+```
+
+`Disposition` は次から選んでください。
+
+- `InternalToSlice`
+- `CrossSlice`
+- `NeedsFurtherDecomposition`
+- `NeedsHumanDecision`
+
+parent-level contract candidate を、理由なく消してはいけません。
+
+### Step 6. Define execution order
 
 slice の実装順序を提案してください。
 
@@ -224,7 +248,7 @@ slice の実装順序を提案してください。
 - cross-slice contract の producer / consumer の片方だけを実装して完成扱いしないよう注意を書く
 - parallel に進めてよい slice と、順序を守るべき slice を分ける
 
-### Step 6. Define final cross-slice verification requirements
+### Step 7. Define final cross-slice verification requirements
 
 すべての selected slices 実装後に必要な verification を定義してください。
 
@@ -238,7 +262,7 @@ slice の実装順序を提案してください。
 - manual-only checks, if any
 - unresolved items that must block PASS
 
-### Step 7. Select output paths
+### Step 8. Select output paths
 
 この agent は、少なくとも次の repository-tracked artifact を作成または更新してください。
 
@@ -246,14 +270,14 @@ slice の実装順序を提案してください。
 
 caller が明示的に path を指定した場合はそれに従ってよいですが、repository 外の path、temporary directory、Copilot session-state、chat attachment に保存してはいけません。
 
-必要に応じて、各 slice の Plan artifact を追加で作成してもよいです。
+実装対象になる executable slice については、各 slice の Plan artifact も必ず作成してください。
 
 - `plans/<ticket-or-slug>-slice-SL-001.md`
 - `plans/<ticket-or-slug>-slice-SL-002.md`
 
 ただし、slice artifact を複数作る場合でも、parent decomposition artifact に全 slice の一覧、dependency、cross-slice contracts、execution order を必ず残してください。
 
-### Step 8. Write output
+### Step 9. Write output
 
 以下の構造で output を作成してください。
 
@@ -294,6 +318,11 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 | Cross-slice Contract ID | Producer slice | Consumer slice | Runtime participants | Mechanism | Required fields / state | Error / retry / recovery expectation | Verification requirement | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
+## Parent contract mapping
+
+| Parent Contract ID | Disposition | Slice ID | Cross-slice Contract ID | Notes |
+| --- | --- | --- | --- | --- |
+
 ## Execution order
 
 ## Final cross-slice verification requirements
@@ -326,7 +355,9 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 Handoff Packet の `Required downstream guardrails` には、少なくとも次を書いてください。
 
 - 各 slice は parent Plan と slice decomposition の両方を source artifact として読むこと
+- executable slice については `plans/<ticket-or-slug>-slice-SL-xxx.md` を bounded Plan として読むこと
 - 各 slice は自分の slice scope と non-goals を守ること
+- 親の `RC-xxx` candidate と slice / `XC-xxx` の対応は `Parent contract mapping` を source として扱うこと
 - slice 内の selected runtime contract について、runtime contract identification / participant mapping / test point mapping / stub usage identification / production implementation binding / production wiring verification / explicit unresolved status を保持すること
 - cross-slice contract は slice 内で勝手に完了扱いにせず、最後に `cross-slice-verification-kernel.agent.md` で確認すること
 - production binding が slice 間にまたがる場合は `Bound` として扱わず、cross-slice verification まで `Deferred` または `PartiallyDone` とすること
@@ -346,7 +377,9 @@ Handoff Packet の `Required downstream guardrails` には、少なくとも次�
 
 ## Stop condition
 
-`plans/<ticket-or-slug>-slice-decomposition.md` を作成または更新し、slice IDs、cross-slice contract IDs、execution order、final cross-slice verification requirements、Handoff Packet を記録したら停止してください。
+`plans/<ticket-or-slug>-slice-decomposition.md` を作成または更新し、slice IDs、parent contract mapping、cross-slice contract IDs、execution order、final cross-slice verification requirements、Handoff Packet を記録したら停止してください。
+
+実装対象になる executable slice がある場合は、対応する `plans/<ticket-or-slug>-slice-SL-xxx.md` も作成してください。slice artifact を作れない場合は、その slice を executable として扱わず、`NeedsFurtherDecomposition` または `NeedsHumanDecision` として記録してください。
 
 各 slice の実装、test design、runtime contract kernel、verification に進んではいけません。
 

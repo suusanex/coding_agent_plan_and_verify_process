@@ -9,6 +9,8 @@ dependencies:
     - git: parent
       path: .github/agents/change-risk-triage.agent.md
     - git: parent
+      path: .github/agents/plan-slice-decomposition.agent.md
+    - git: parent
       path: .github/agents/runtime-contract-kernel.agent.md
     - git: parent
       path: .github/agents/test-design-kernel.agent.md
@@ -16,6 +18,8 @@ dependencies:
       path: .github/agents/implementation-handoff-review.agent.md
     - git: parent
       path: .github/agents/verification-kernel.agent.md
+    - git: parent
+      path: .github/agents/cross-slice-verification-kernel.agent.md
     - git: parent
       path: .github/agents/coverage-gap-triage.agent.md
     - git: parent
