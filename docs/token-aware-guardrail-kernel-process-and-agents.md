@@ -111,7 +111,7 @@ Use when:
 
 ### `full-coverage`
 
-Indicates that the current bounded Plan is too broad, ambiguous, or strongly interconnected to continue as one token-aware implementation pass.
+Indicates that the current bounded Plan is too broad, ambiguous, or strongly interconnected to be continued as a single token-aware implementation pass.
 
 Use when:
 
@@ -121,7 +121,8 @@ Use when:
 - human review needs detailed runtime evidence
 - prior implementation attempts already exposed sequence or production-binding gaps
 
-In the token-aware flow, this is not an automatic handoff to Flow C. The immediate next step is `plan-slice-decomposition.agent.md`, then each resulting slice re-enters the token-aware kernel flow and finishes with `cross-slice-verification-kernel.agent.md`.
+In the token-aware flow, this is not an automatic handoff to Flow C.
+The immediate next step is `plan-slice-decomposition.agent.md`. Each resulting slice then re-enters the token-aware kernel flow and finishes with `cross-slice-verification-kernel.agent.md`.
 
 ### `fix-slice`
 

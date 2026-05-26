@@ -42,7 +42,7 @@ plan-kernel.agent.md
 
 外部リポジトリへ導入する場合は、対象リポジトリの `.github/agents/` に配置してください。
 
-このリポジトリ自身では、この PR に含まれる更新済み `.github/agents/change-risk-triage.agent.md` をそのまま source of truth として使います。外部リポジトリへ導入する場合は、既存の同名ファイルが置き換え対象になります。差分確認したい場合は、先にバックアップしてください。
+このリポジトリ自身では、このリポジトリに含まれる更新済み `.github/agents/change-risk-triage.agent.md` をそのまま source of truth として使います。外部リポジトリへ導入する場合は、既存の同名ファイルが置き換え対象になります。差分確認したい場合は、先にバックアップしてください。
 
 ## 意図的に含めていないもの
 
