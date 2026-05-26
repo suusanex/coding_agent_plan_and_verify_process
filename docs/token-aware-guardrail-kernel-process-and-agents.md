@@ -159,6 +159,7 @@ Implementation handoff must include:
 
 - the bounded Plan from `plan-kernel.agent.md`
 - `change-risk-triage` output
+- `plan-slice-decomposition` output when the implementation scope comes from full-coverage decomposition
 - `implementation-contract-kernel` output when required
 - `implementation-contract-review-kernel` output when present
 - `runtime-contract-kernel` output

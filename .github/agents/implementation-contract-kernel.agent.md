@@ -41,8 +41,9 @@ You are the "Implementation Contract Kernel" agent.
 
 1. bounded Plan（`plans/<ticket-or-slug>.md`）
 2. change-risk-triage output（`plans/<ticket-or-slug>-change-risk-triage.md`）
-3. original user requirement（supplementary context only）
-4. dependency / API surface / implementation path 確認に必要な範囲の project files
+3. Plan Slice Decomposition artifact（`plans/<ticket-or-slug>-slice-decomposition.md`）— full-coverage decomposition 由来の slice で implementation-realization risk を確認する場合
+4. original user requirement（supplementary context only）
+5. dependency / API surface / implementation path 確認に必要な範囲の project files
 
 ## Target profile
 
@@ -53,6 +54,7 @@ You are the "Implementation Contract Kernel" agent.
 ### Step 1. Determine selected scope and Plan-required implementation path
 
 - Plan と triage を読み、selected scope を確定する
+- Plan Slice Decomposition artifact がある場合は、slice scope、cross-slice dependencies、XC IDs、parent contract mapping を確認し、slice 間にまたがる provider / DI / wiring を slice 内完結と誤認しない
 - Plan が要求する dependency / provider / namespace / type / method / factory / adapter / config / wiring path を列挙する
 - scope 外へ拡張せず、必要最小限の確認にとどめる
 

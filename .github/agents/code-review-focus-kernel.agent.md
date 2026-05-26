@@ -76,6 +76,7 @@ plan-kernel
 8. Verification Kernel Result（`plans/<ticket-or-slug>-verification-kernel.md`）— 実行済みの場合は補助入力として読む
 9. Coverage Gap Triage / Resolution Slice output — 対象が fix-slice の場合は読む
 10. Implementation Self-Map — `implementation-execution.agent.md` または同等の bounded 実装パスが出力している場合は読む
+11. Plan Slice Decomposition artifact（`plans/<ticket-or-slug>-slice-decomposition.md`）— full-coverage decomposition 由来の実装差分をレビューする場合は読む
 
 ### Implementation evidence
 
@@ -103,8 +104,9 @@ plan-kernel
 4. Implementation Contract Kernel は、Plan-required implementation path、API surface、prohibited substitutions、allowed reuse の authoritative source として扱う。
 5. Test Design Kernel は、test point、substitute usage、production binding requirement、expected observation の source とする。
 6. Verification Kernel Result が存在する場合は、production binding / contract mismatch / residual work を review priority に反映する。
-7. diff と artifacts が矛盾する場合は、diff を実装事実として扱い、artifact との mismatch を review target または uncertainty として記録する。
-8. artifacts が不足している場合でも、diff 上の obvious high-risk changes は review target として記録する。ただし `BROAD_REVIEW_RECOMMENDED` を検討する。
+7. Plan Slice Decomposition artifact がある場合は、slice scope、non-goals、cross-slice dependencies、XC IDs、parent contract mapping を review target selection に反映する。
+8. diff と artifacts が矛盾する場合は、diff を実装事実として扱い、artifact との mismatch を review target または uncertainty として記録する。
+9. artifacts が不足している場合でも、diff 上の obvious high-risk changes は review target として記録する。ただし `BROAD_REVIEW_RECOMMENDED` を検討する。
 
 ## Review priority vocabulary
 
@@ -131,6 +133,7 @@ review target の priority には次を使ってください。
 | `PublicApi` | public method/type/endpoint/event/config key/package surface の変更 |
 | `PersistenceShape` | database schema、file format、serialized payload、migration、stored state |
 | `ProductionBinding` | fake/mock/in-memory と production implementation / wiring / entrypoint の対応 |
+| `CrossSliceContract` | slice 間 contract、XC ID、cross-slice dependency、parent acceptance のまたがり |
 | `SubstitutionRisk` | 似た既存実装を誤って代替利用した可能性 |
 | `TestFalseConfidence` | test が通っても production behavior を保証しない可能性 |
 | `CallSiteImpact` | caller / consumer / downstream behavior への影響 |
@@ -173,6 +176,7 @@ selected IDs が渡されている場合は、それを scope anchor としま�
 - Verification Kernel Result when present
 - Coverage Gap artifacts when the task is a fix-slice
 - Implementation Self-Map when present
+- Plan Slice Decomposition artifact when the implementation diff comes from full-coverage decomposition
 
 存在しない artifact は missing として記録します。存在しないことだけで必ず BLOCKED にしてはいけません。diff と task context から useful な review focus を作れる場合は proceed してください。
 
@@ -185,6 +189,7 @@ implementation diff、PR diff、または working tree diff を読み、changed 
 - changed files
 - changed files の中で P0 / P1 axis に関係する changed methods / classes / functions / blocks
 - selected runtime contracts に直接関係する production implementation address
+- full-coverage decomposition 由来の変更では、selected slice と XC IDs に直接関係する changed methods / wiring / call sites
 - DI / startup / configuration / entrypoint / route / registration の変更
 - selected test points に直接関係する test files
 - public API / persistence shape が変わる場合の直接 call sites / consumers
@@ -198,6 +203,7 @@ actual diff に基づいて、changed file / symbol ごとに以下を記録し�
 
 - change summary
 - related Plan item
+- related Slice ID / Cross-slice Contract ID when applicable
 - related Runtime Contract ID / Test Point ID / Implementation Contract item / Gap ID
 - risk axis
 - confidence
@@ -215,6 +221,7 @@ artifact と結びつかない changed surface も、risk axis が高ければ�
 - Test Design Kernel の `Production binding required?` が `Yes` の test point に対応する production path
 - Implementation Contract Kernel の `MissingButRequired`、`ApiSurfaceUnknown`、`DependencyMissing`、`RejectedSubstitute`、`Prohibited substitutions` に関係する changed code
 - queue / event / webhook / background worker / retry / idempotency / replay / durable state の実装
+- Plan Slice Decomposition artifact が示す cross-slice dependency、XC ID、parent contract mapping に直結する changed code
 - state transition、status update、lifecycle transition、transaction boundary の変更
 - public API、serialized payload、config key、persisted schema、migration、package / binary surface の変更
 - auth / permission / tenant boundary / secret handling の変更
