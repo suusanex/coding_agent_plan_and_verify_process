@@ -41,7 +41,8 @@ plan-kernel
 1. **Plan → selected runtime contracts の断絶**: triage が Plan の要件と無関係な contracts を選んでいる、または Plan の重要な要件が contracts に反映されていない。
 2. **Runtime contracts → test points の断絶**: RC に対応する TP が存在しない、または TP が RC の observable behavior を検証していない。
 3. **Production binding requirement 抜け**: production path の確認が必要な TP が `Production binding required: Yes` になっていない。
-4. **未解決の human decision**: 実装前に決定が必要な事項が残っており、実装者が進めない。
+4. **Slice decomposition との断絶**: full-coverage decomposition 由来の slice で、slice scope / non-goals / cross-slice dependencies / XC IDs が handoff に残っていない。
+5. **未解決の human decision**: 実装前に決定が必要な事項が残っており、実装者が進めない。
 
 ## Embedded process policy
 
@@ -52,6 +53,7 @@ plan-kernel
 - **Short list, not long critique**: blocking issue は本当に実装前に危険な場合だけ。non-blocking notes は軽微な改善候補に限定する。長い指摘リストを作ってはいけない。
 - **No fixes**: artifacts を修正してはいけない。問題を記録して verdict を出し、修正は元の agent または実装者に委ねる。
 - **No implementation**: code を書いてはいけない。tests を作成してはいけない。
+- **Slice decomposition aware**: full-coverage decomposition 由来の slice では、Plan → Slice → RC / TP → XC の接続を確認する。cross-slice contract を slice 内で完了扱いしている handoff は blocking として扱う。
 - **No full runtime evidence pressure**: `full runtime evidence` や `full integration test design` を、review を厚くするためだけに要求してはいけない。現在の kernel artifacts だけでは安全に実装できない場合は、Blocking issue を記録し、`full-coverage` または適切な upstream agent への escalation を推奨してよい。
 - **BLOCKED は本当に危険な場合だけ**: 接続が明確に壊れている、または human decision が未解決で実装が進められない場合のみ。
 
@@ -85,6 +87,7 @@ plan-kernel
 
 5. Implementation Contract Kernel（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）— `change-risk-triage` の `Implementation realization risk` が `Present` / `Unclear` の場合は必須
 6. Implementation Contract Review Kernel（`plans/<ticket-or-slug>-implementation-contract-review-kernel.md`）— 存在する場合は必ず読む
+7. Plan Slice Decomposition artifact（`plans/<ticket-or-slug>-slice-decomposition.md`）— full-coverage decomposition 由来の slice をレビューする場合は必須
 
 slug は、caller が渡した artifact path または file 名から安全に推定してください。安全に推定できない場合は、推測で別 artifact を読まず、`BLOCKED` として理由を記録してください。
 
@@ -108,9 +111,9 @@ required artifacts を読んでください。この agent が行う唯一のフ
 
 読み取れない artifact があった場合は、その時点で `BLOCKED` を出力し、missing artifact を記録して停止してください。
 
-### Step 2. Run the 9 review checks
+### Step 2. Run the 10 review checks
 
-次の 9 項目を確認してください。各項目について、OK / Note / Blocking の判断を行います。
+次の 10 項目を確認してください。各項目について、OK / Note / Blocking の判断を行います。
 
 #### Check 1. 受け入れ条件 coverage
 
@@ -195,6 +198,18 @@ change-risk-triage の `Implementation realization risk` を確認し、`Present
 - implementation-contract があるが Plan / triage と整合しない場合は Blocking
 - review-kernel artifact が存在する場合は verdict を参照し、blocking verdict が残っていれば Blocking
 
+#### Check 10. Slice decomposition alignment
+
+full-coverage decomposition 由来の slice を実装する場合だけ確認してください。該当しない場合は `OK (not applicable)` として扱います。
+
+- slice scope が parent Plan の requirement / acceptance condition と対応しているか
+- slice non-goals を実装 prompt または handoff が守っているか
+- cross-slice dependencies / XC IDs が handoff に残っているか
+- cross-slice contract を slice 内で完了扱いしていないか
+- production binding が slice 間にまたがる場合、cross-slice verification まで `Deferred` または `PartiallyDone` として残されているか
+
+Plan Slice Decomposition artifact が必要なのに存在しない、または対象 Slice ID / XC ID を特定できない場合は Blocking として記録してください。
+
 ### Step 3. Determine verdict
 
 次の基準で verdict を決定してください。
@@ -239,11 +254,12 @@ READY_FOR_IMPLEMENTATION | READY_WITH_NOTES | BLOCKED
 - plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
 - plans/<ticket-or-slug>-runtime-contract-kernel.md
 - plans/<ticket-or-slug>-test-design-kernel.md
+- plans/<ticket-or-slug>-slice-decomposition.md（full-coverage decomposition 由来の slice の場合）
 
 ## 欠落または不一致のマッピング
 
-| Plan item | Runtime Contract ID | Test Point ID | Issue |
-| --- | --- | --- | --- |
+| Plan item | Slice ID | Cross-slice Contract ID | Runtime Contract ID | Test Point ID | Issue |
+| --- | --- | --- | --- | --- | --- |
 
 ## 実装プロンプトへの追加推奨事項
 
@@ -267,7 +283,9 @@ READY_FOR_IMPLEMENTATION | READY_WITH_NOTES | BLOCKED
 - **ブロッキング問題**: 箇条書きで、何が問題か、どの artifact のどの項目かを明記する。理由なく長くしない。
 - **非ブロッキング注記**: 軽微な改善候補のみ。実装者が無視しても安全に進めるレベルにとどめる。
 - **引き継ぎ必須 inputs**: `implementation-execution.agent.md` または人間の実装者が受け取るべき artifact の一覧。Plan が source of truth であることを明示する。
-- **欠落または不一致のマッピング**: Check 1〜5 で発見した具体的な接続の欠落を表形式で示す。問題がなければ "None" と記載する。
+- **欠落または不一致のマッピング**: Check 1〜5 および Check 10 で発見した具体的な接続の欠落を表形式で示す。問題がなければ "None" と記載する。
+  - `Slice ID` は、full-coverage decomposition 由来の slice に関係する欠落または不一致の場合だけ `SL-xxx` を記載する。該当しない場合は `none`。
+  - `Cross-slice Contract ID` は、欠落または不一致が `XC-xxx` に関係する場合だけ記載する。該当しない場合は `none`。
 - **実装プロンプトへの追加推奨事項**: 実装 prompt に追記すべき補足（未解決 Note の注意喚起など）を簡潔に示す。長い追記リストを作ってはいけない。
 - **Handoff Packet**: shared output concepts に沿って、review scope、判定、再調査不要事項、残作業、次の担当を簡潔に残す。
 

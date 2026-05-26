@@ -76,10 +76,11 @@ You are the "Coverage Gap Triage" agent.
 1. `plans/<ticket-or-slug>-verification-kernel.md` — verification-kernel の出力（Source A）
 2. `plans/<ticket-or-slug>-implementation-coverage-of-integration-test.md` — integration test coverage 文書（Source B）
 3. `plans/<ticket-or-slug>.md` または task description — Plan または要求記述（gap を Plan requirement にマッピングするために参照）
-4. `plans/<ticket-or-slug>-test-design-kernel.md` — Test Design Kernel（利用可能な場合、gap 分類の参考）
-5. `plans/<ticket-or-slug>-runtime-contract-kernel.md` — Runtime Contract Kernel（利用可能な場合、contract reference として参照）
-6. `plans/<ticket-or-slug>-implementation-contract-kernel.md` — Implementation Contract Kernel（利用可能な場合、implementation-realization gap 分類の参照）
-7. `plans/<ticket-or-slug>-integration-test-points.md` — integration test points（Source B のコンテキスト参照用）
+4. `plans/<ticket-or-slug>-slice-decomposition.md` — Plan Slice Decomposition（full-coverage decomposition 由来の slice / XC / parent acceptance gap を分類する場合）
+5. `plans/<ticket-or-slug>-test-design-kernel.md` — Test Design Kernel（利用可能な場合、gap 分類の参考）
+6. `plans/<ticket-or-slug>-runtime-contract-kernel.md` — Runtime Contract Kernel（利用可能な場合、contract reference として参照）
+7. `plans/<ticket-or-slug>-implementation-contract-kernel.md` — Implementation Contract Kernel（利用可能な場合、implementation-realization gap 分類の参照）
+8. `plans/<ticket-or-slug>-integration-test-points.md` — integration test points（Source B のコンテキスト参照用）
 
 Source A と Source B の両方が存在し、caller が明示していない場合は、まず Source A を優先してください。Source A に unresolved items があるなら、narrower な token-aware kernel output としてそれを使います。
 
@@ -237,18 +238,18 @@ Gap type は `## Embedded process policy` の `Gap type precedence` に従って
 
 | Gap type | 推奨 agent | 推奨 profile |
 | --- | --- | --- |
-| `ImplementationContractMissing` | `implementation-contract-kernel.agent.md`（bounded）または `implementation-contract-generation.agent.md`（broad） | `contract-kernel` または `standard-slice` |
-| `DependencyMissing` | `implementation-contract-kernel.agent.md`（bounded）または `implementation-contract-generation.agent.md`（broad） | `contract-kernel` または `standard-slice` |
-| `ApiSurfaceUnknown` | `implementation-contract-kernel.agent.md`（bounded）または `implementation-contract-generation.agent.md`（broad） | `contract-kernel` または `standard-slice` |
+| `ImplementationContractMissing` | `implementation-contract-kernel.agent.md`（bounded）。broad な場合は `plan-slice-decomposition.agent.md` | `contract-kernel` または `standard-slice` |
+| `DependencyMissing` | `implementation-contract-kernel.agent.md`（bounded）。broad な場合は `plan-slice-decomposition.agent.md` | `contract-kernel` または `standard-slice` |
+| `ApiSurfaceUnknown` | `implementation-contract-kernel.agent.md`（bounded）。broad な場合は `plan-slice-decomposition.agent.md` | `contract-kernel` または `standard-slice` |
 | `UnjustifiedSubstitution` | `implementation-contract-kernel.agent.md`（再評価）必要時 `implementation-contract-review-kernel.agent.md` | `contract-kernel` |
-| `SourceOfTruthDrift` | `implementation-contract-kernel.agent.md` または `implementation-contract-generation.agent.md` | `contract-kernel` または `standard-slice` |
+| `SourceOfTruthDrift` | `implementation-contract-kernel.agent.md`。slice / XC drift の場合は `plan-slice-decomposition.agent.md` | `contract-kernel` または `standard-slice` |
 | `ProductionImplementationMissing` | `coverage-gap-resolution-slice.agent.md` | `fix-slice` |
 | `ProductionWiringMissing` | `coverage-gap-resolution-slice.agent.md` | `fix-slice` |
-| `ContractMismatch` | `coverage-gap-resolution-slice.agent.md`（gap が narrow な場合）または `plan-generation.agent.md`（gap が broader な場合） | `fix-slice` または `standard-slice` |
+| `ContractMismatch` | `coverage-gap-resolution-slice.agent.md`（gap が narrow な場合）または `plan-slice-decomposition.agent.md`（gap が broader / cross-slice の場合） | `fix-slice` または `standard-slice` |
 | `TestOracleMissing` | `coverage-gap-resolution-slice.agent.md` | `fix-slice` |
 | `ManualEnvironmentRequired` | 停止し、human decision を待つ | `triage-only` |
 | `PlanAmbiguity` | 停止し、human decision を待つ | `triage-only` |
-| `DesignTooBroadForSlice` | `plan-generation.agent.md` | `standard-slice` または `full-coverage` |
+| `DesignTooBroadForSlice` | `plan-slice-decomposition.agent.md` | `full-coverage` |
 | `AlreadyCoveredButDocumentationStale` | `coverage-gap-resolution-slice.agent.md`（documentation update のみ） | `fix-slice` |
 
 ---

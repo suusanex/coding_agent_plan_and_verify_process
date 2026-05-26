@@ -6,10 +6,10 @@ GitHub Copilot で Plan-first 開発をするための agent（`.github/agents/`
 
 この repository には、大きく分けて 2 系統のプロセスがあります。
 
-1. Full autonomous Plan-first flow  
+1. Full autonomous Plan-first flow
    runtime evidence・integration test の設計・検証・ギャップ解消を広く使い、ゴールまで自走しやすい従来型のフロー。
 
-2. Token-aware guardrail kernel flow  
+2. Token-aware guardrail kernel flow
    GitHub Copilot のトークン消費を意識し、Plan-first の効果を保ったまま、対象 slice を絞って bounded に進めるフロー。Plan 作成は省略せず、guardrail も削らず、対象範囲を絞ることを重視します。
 
 ---
@@ -18,10 +18,10 @@ GitHub Copilot で Plan-first 開発をするための agent（`.github/agents/`
 
 このプロセスが防ぎたい主な失敗は 2 つです。
 
-1. sequence contract の不一致  
+1. sequence contract の不一致
    プロセス間・コンポーネント間の処理で、各コンポーネント内では unit test が通るが、実際につなげると runtime contract・メッセージ・状態遷移・wiring が対応しておらず動かない。
 
-2. stub は完成しているが production 実装が存在しない  
+2. stub は完成しているが production 実装が存在しない
    stub / fake / mock / in-memory 実装を使った自動テストは通るが、対応する production 実装または production wiring が存在しない。
 
 Token-aware guardrail kernel flow では、この失敗を防ぐための guardrail チェーンを維持したまま、対象の runtime slice を絞ります。
@@ -36,7 +36,7 @@ Plan requirement / acceptance condition
   -> 明示的な未解決状態
 ```
 
-軽量化する場合も、削る対象は プロセスの深さ ではなく プロセスの広さ です。  
+軽量化する場合も、削る対象は プロセスの深さ ではなく プロセスの広さ です。
 つまり「全体を浅く見る」のではなく、「Plan は作る」「選択した危険な contract を十分に深く見る」ことを優先します。
 
 ---
@@ -88,7 +88,7 @@ Plan requirement / acceptance condition
 
 トークン消費を意識し、bounded Plan を作成したうえで、選択した runtime contract・テストポイント・ギャップだけを bounded に扱うフローです。
 
-このフローは risk triage から始めません。  
+このフローは risk triage から始めません。
 まず `plan-kernel.agent.md` で実装の source of truth になる bounded Plan を作成し、その Plan の中から高リスクな runtime slice を選びます。
 
 ### 想定用途
@@ -119,18 +119,31 @@ Plan requirement / acceptance condition
 13. 選択した gap は `coverage-gap-resolution-slice.agent.md`
 14. 必要に応じて `verification-kernel.agent.md` を再実行
 
-このフローでは、各 agent が 1 回の bounded な実行を行い、未解決項目は成果物に残して停止します。  
+このフローでは、各 agent が 1 回の bounded な実行を行い、未解決項目は成果物に残して停止します。
 「直るまで修正し続ける」ことは目的ではありません。
 
-`implementation-handoff-review.agent.md` は任意の軽量 gate です。  
+`implementation-handoff-review.agent.md` は任意の軽量 gate です。
 常に必須ではありませんが、実装前に Plan → selected runtime contract → test point → production binding requirement の接続を一度だけ確認したい場合に使います。
 
-`code-review-focus-kernel.agent.md` も任意の軽量 gate です。  
+`code-review-focus-kernel.agent.md` も任意の軽量 gate です。
 常に必須ではありませんが、人手レビューを入れる場合に、実装差分と guardrail artifacts を突き合わせて「どこから読むべきか」を先に整理したいときに使います。
+
+### Token-aware guardrail kernel flow の full-coverage handling
+
+`change-risk-triage.agent.md` が `full-coverage` と診断した場合でも、Token-aware guardrail kernel flow では Full autonomous Plan-first flow へ自動エスカレーションしません。`full-coverage` は「現在の bounded Plan を 1 pass で実装するには広すぎるため、実装前に Plan slice decomposition が必要」という意味で扱います。
+
+```text
+full-coverage
+  -> plan-slice-decomposition.agent.md
+  -> per-slice token-aware kernel flow
+  -> cross-slice-verification-kernel.agent.md
+```
+
+`plans/<ticket-or-slug>-slice-decomposition.md` には、各 slice の scope / non-goals / cross-slice dependencies / cross-slice contract IDs / parent contract mapping / execution order が含まれます。full-coverage decomposition 由来の slice を実装する場合は、parent Plan と slice decomposition artifact の両方を source artifact として扱ってください。cross-slice contract は slice 内で完了扱いにせず、最後に `cross-slice-verification-kernel.agent.md` で確認します。
 
 ### `implementation-execution.agent.md` に渡すもの
 
-Token-aware flow で `implementation-execution.agent.md` を使って実装に入るときは、`runtime-contract-kernel` だけを渡してはいけません。  
+Token-aware flow で `implementation-execution.agent.md` を使って実装に入るときは、`runtime-contract-kernel` だけを渡してはいけません。
 `runtime-contract-kernel` は高リスク境界の guardrail であり、要求全体の仕様ではありません。
 
 `implementation-execution.agent.md` には、少なくとも次を渡してください。
@@ -142,6 +155,7 @@ Token-aware flow で `implementation-execution.agent.md` を使って実装に�
 - `runtime-contract-kernel.agent.md` の出力
 - `test-design-kernel.agent.md` の出力
 - `implementation-handoff-review.agent.md` の出力（実行した場合）
+- `plan-slice-decomposition.agent.md` の出力（full-coverage decomposition 由来の slice を実装する場合）
 - selected implementation scope と non-goals
 
 補足:
@@ -149,7 +163,7 @@ Token-aware flow で `implementation-execution.agent.md` を使って実装に�
 - runtime-contract artifact は implementation-contract artifact の代替ではありません
 - Plan conformance を確認しても、unknown な implementation path の調査は不要になりません
 - implementation-realization の unresolved items は guessed address に変換せず、明示的に保持します
-- broad なケースでは full-flow `implementation-contract-generation.agent.md` / `implementation-contract-review.agent.md` を継続利用します
+- Full autonomous Plan-first flow を明示的に選んだ broad なケースでは、full-flow `implementation-contract-generation.agent.md` / `implementation-contract-review.agent.md` を継続利用します
 
 `implementation-execution.agent.md` は Plan を source of truth として扱います。kernel artifacts は high-risk slice に対する guardrail であり、Plan の代替ではありません。
 
@@ -200,7 +214,7 @@ bounded Plan を読み、リスクプロファイルを分類し、最小限か�
 - Plan の中から高リスクな runtime 境界を特定する
 - implementation-realization risk（dependency / API surface / substitution risk）を分類する
 - 対象の runtime contract を 1〜3 件程度に絞る
-- `implementation-contract-kernel` / full `implementation-contract-generation` / `contract-kernel` / `standard-slice` / `full-coverage` / `fix-slice` を推奨する
+- `implementation-contract-kernel` / `contract-kernel` / `standard-slice` / `full-coverage` / `fix-slice` を推奨する
 - 後続 agent に渡す引き渡し情報を作る
 
 この agent は Plan 作成・実装・テスト設計を行いません。
@@ -218,6 +232,28 @@ bounded Plan を読み、リスクプロファイルを分類し、最小限か�
 plan-kernel.agent.md が作成した bounded Plan を入力として、change-risk-triage.agent.md を実行してください。
 Plan の中から高リスクな runtime boundary と implementation-realization risk を分類し、実装やテスト設計は行わず、リスクトリガーのスキャン結果・対象 runtime contract・Implementation realization risk・推奨プロセスプロファイル・次に使う agent を出してください。
 ```
+
+---
+
+### `plan-slice-decomposition.agent.md`
+
+`change-risk-triage.agent.md` が `full-coverage` と診断した parent Plan を、Token-aware flow で実装可能な slice に分解します。
+
+主な役割:
+
+- parent Plan の requirements / acceptance conditions を保持したまま slice を定義する
+- 各 slice の scope / non-goals / dependencies / execution order を明確にする
+- parent-level `RC-xxx` candidate がどの slice または `XC-xxx` に対応したかを mapping する
+- slice 間に残る cross-slice contract を `XC-xxx` として記録する
+- 実装対象になる slice について、後続 agent が bounded Plan として読める slice artifact を作成する
+- 最後に必要な `cross-slice-verification-kernel.agent.md` の確認観点を定義する
+
+この agent は実装・テスト作成・full runtime evidence 生成を行いません。
+
+使う場面:
+
+- `change-risk-triage.agent.md` が `full-coverage` を推奨したとき
+- bounded Plan が広すぎ、1 pass では scope / production binding / cross-slice contract を安全に扱えないとき
 
 ---
 
@@ -519,6 +555,22 @@ bounded Plan、Runtime Contract Kernel、Test Design Kernel の対象テスト�
 
 ---
 
+### `cross-slice-verification-kernel.agent.md`
+
+full-coverage decomposition で分割された各 slice の実装後に、parent acceptance conditions と cross-slice contracts を bounded に検証します。
+
+主な役割:
+
+- `plan-slice-decomposition.agent.md` が定義した `XC-xxx` cross-slice contracts を確認する
+- producer slice / consumer slice / required fields / state / error handling の不一致を検出する
+- slice 間の production wiring / entrypoint がつながっているかを確認する
+- parent acceptance condition が slice 分割後も満たされているかを確認する
+- cross-slice の stub-only success や production binding gap を分類する
+
+この agent は gap を修正しません。必要に応じて `coverage-gap-triage.agent.md` または `coverage-gap-resolution-slice.agent.md` へ引き継ぎます。
+
+---
+
 ### `coverage-gap-triage.agent.md`
 
 未解決のカバレッジギャップを分類し、次に行う bounded な修正範囲を推奨します。
@@ -790,4 +842,3 @@ Token-aware guardrail kernel flow では、通常は次の成果物を作成し�
 - fake / stub だけを production の完成と扱わない
 - 1 回の bounded な実行で停止し、残件は成果物に残す
 - `Bound` の正式判定は `verification-kernel.agent.md` に任せる
-
