@@ -111,7 +111,7 @@ Use when:
 
 ### `full-coverage`
 
-Runs the broad process for complex or high-risk work.
+Indicates that the current bounded Plan is too broad, ambiguous, or strongly interconnected to continue as one token-aware implementation pass.
 
 Use when:
 
@@ -120,6 +120,8 @@ Use when:
 - the feature is broad or ambiguous
 - human review needs detailed runtime evidence
 - prior implementation attempts already exposed sequence or production-binding gaps
+
+In the token-aware flow, this is not an automatic handoff to Flow C. The immediate next step is `plan-slice-decomposition.agent.md`, then each resulting slice re-enters the token-aware kernel flow and finishes with `cross-slice-verification-kernel.agent.md`.
 
 ### `fix-slice`
 
@@ -139,14 +141,17 @@ Use for the main lightweight process this repository now targets.
 
 1. `plan-kernel.agent.md`
 2. `change-risk-triage.agent.md`
-3. `implementation-contract-kernel.agent.md`, when implementation-realization risk is present
-4. `implementation-contract-review-kernel.agent.md` or bounded `implementation-contract-review.agent.md`, when the contract is non-trivial
-5. `runtime-contract-kernel.agent.md`
-6. `test-design-kernel.agent.md`
-7. implementation by normal agent or human-guided implementation agent
-8. `verification-kernel.agent.md`
-9. `coverage-gap-triage.agent.md`, when unresolved items remain
-10. `coverage-gap-resolution-slice.agent.md`, for selected bounded gaps
+3. If triage recommends `full-coverage`, run `plan-slice-decomposition.agent.md`
+4. Run each resulting slice through the bounded token-aware flow:
+   - `implementation-contract-kernel.agent.md`, when implementation-realization risk is present
+   - `implementation-contract-review-kernel.agent.md` or bounded `implementation-contract-review.agent.md`, when the contract is non-trivial
+   - `runtime-contract-kernel.agent.md`
+   - `test-design-kernel.agent.md`
+   - implementation by normal agent or human-guided implementation agent
+   - `verification-kernel.agent.md`
+5. When step 3 was used, run `cross-slice-verification-kernel.agent.md`
+6. `coverage-gap-triage.agent.md`, when unresolved items remain
+7. `coverage-gap-resolution-slice.agent.md`, for selected bounded gaps
 
 Implementation handoff must include:
 
@@ -161,6 +166,8 @@ Implementation handoff must include:
 - unresolved implementation-realization items
 
 The implementation agent must treat the Plan as the source of truth. Kernel artifacts are guardrails for high-risk slices, not substitutes for the Plan.
+
+If triage does not recommend `full-coverage`, step 4 can be executed as a single bounded pass without decomposition.
 
 The token-aware process documentation must also enforce these points:
 
@@ -183,9 +190,11 @@ Use only after a bounded Plan exists and the selected risky area is already clea
 
 This sub-flow must not be used as a replacement for Plan creation.
 
-### Flow C: Full coverage flow
+### Flow C: Explicit full autonomous flow
 
-Use for broad, ambiguous, or highly interconnected changes.
+Use only when the user explicitly chooses the broad autonomous process for broad, ambiguous, or highly interconnected changes.
+
+This flow remains available, but it is not the automatic interpretation of `full-coverage` inside the token-aware `change-risk-triage.agent.md` route.
 
 1. `plan-generation.agent.md`
 2. `runtime-evidence.agent.md`
@@ -579,7 +588,7 @@ For each selected contract, verify or record:
 
 ### Escalation condition
 
-Recommend `runtime-evidence.agent.md` or `full-coverage` if the selected contracts cannot be safely represented without detailed sequence evidence.
+Recommend re-running `change-risk-triage.agent.md` toward `full-coverage` when the selected contracts need decomposition before safe bounded handling. Recommend `runtime-evidence.agent.md` only when the user explicitly wants to leave the token-aware kernel flow and run Flow C.
 
 ## 4. `test-design-kernel.agent.md`
 

@@ -307,7 +307,7 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 - Profile used: plan-slice-decomposition
 - Parent Plan artifact:
 - Change Risk Triage artifact:
-- Decomposition artifact:
+- Slice Decomposition artifact:
 - Slice artifacts:
 - Slice IDs:
 - Cross-slice Contract IDs:
