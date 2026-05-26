@@ -589,7 +589,7 @@ For each selected contract, verify or record:
 
 ### Escalation condition
 
-Recommend re-running `change-risk-triage.agent.md` toward `full-coverage` when the selected contracts need decomposition before safe bounded handling. Recommend `runtime-evidence.agent.md` only when the user explicitly wants to leave the token-aware kernel flow and run Flow C.
+If the selected contracts need decomposition before safe bounded handling, send the work back to `change-risk-triage.agent.md` for reclassification; when it returns `full-coverage`, hand off to `plan-slice-decomposition.agent.md`. Recommend `runtime-evidence.agent.md` only when the user explicitly wants to leave the token-aware kernel flow and run Flow C.
 
 ## 4. `test-design-kernel.agent.md`
 

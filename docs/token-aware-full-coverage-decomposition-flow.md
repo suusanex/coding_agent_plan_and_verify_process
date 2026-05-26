@@ -4,7 +4,7 @@
 
 `full-coverage` 判定を、Full autonomous Plan-first flow へのエスカレーションではなく、実装前の Plan slice decomposition として扱うための運用メモです。
 
-このメモは、token-aware kernel flow に関する `full-coverage` の意味付けについて、`docs/token-aware-guardrail-kernel-process-and-agents.md` に残っている旧来の broad-process / runtime-evidence 前提の記述を置き換える補足ポリシーです。以後は同ドキュメント中の `### full-coverage`、`Flow A`、`Flow C`、および `runtime-contract-kernel.agent.md` の escalation condition をこの方針に合わせて読んでください。
+このメモは、token-aware kernel flow に関する `full-coverage` の意味付けを要約した補足ポリシーです。`docs/token-aware-guardrail-kernel-process-and-agents.md` 側でも、`### full-coverage`、`Flow A`、`Flow C`、および `runtime-contract-kernel.agent.md` の escalation condition をこの方針に合わせて更新済みです。
 
 ## Policy
 
