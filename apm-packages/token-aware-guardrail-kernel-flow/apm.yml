@@ -1,6 +1,6 @@
 name: token-aware-guardrail-kernel-flow
-version: 0.1.0
-description: Token-aware bounded Plan-first guardrail kernel flow for coding agents
+version: 0.2.0
+description: Token-aware bounded Plan-first guardrail kernel flow with full-coverage slice decomposition for coding agents
 
 dependencies:
   apm:
