@@ -1,6 +1,7 @@
 # Token-aware full-coverage decomposition agents
 
-このリポジトリは、`suusanex/coding_agent_plan_and_verify_process` の Token-aware guardrail kernel flow で、`change-risk-triage.agent.md` が `full-coverage` と診断した場合に Full autonomous Plan-first flow へ自動エスカレーションせず、実装前に Plan を slice 分割するためのカスタムエージェント一式を収録しています。
+このリポジトリは、`suusanex/coding_agent_plan_and_verify_process` の Token-aware guardrail kernel flow 向けカスタムエージェント一式を収録しています。
+`change-risk-triage.agent.md` が `full-coverage` と診断した場合は、Full autonomous Plan-first flow へ自動エスカレーションせず、実装前に Plan を slice 分割する前提です。
 
 ## 含まれるファイル
 

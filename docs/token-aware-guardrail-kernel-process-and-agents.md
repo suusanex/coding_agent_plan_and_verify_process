@@ -122,7 +122,8 @@ Use when:
 - prior implementation attempts already exposed sequence or production-binding gaps
 
 In the token-aware flow, this is not an automatic handoff to Flow C.
-The immediate next step is `plan-slice-decomposition.agent.md`. Each resulting slice then re-enters the token-aware kernel flow and finishes with `cross-slice-verification-kernel.agent.md`.
+The immediate next step is the `plan-slice-decomposition` agent.
+Each resulting slice then re-enters the token-aware kernel flow and finishes with `cross-slice-verification-kernel.agent.md`.
 
 ### `fix-slice`
 
@@ -589,7 +590,9 @@ For each selected contract, verify or record:
 
 ### Escalation condition
 
-If the selected contracts need decomposition before safe bounded handling, send the work back to `change-risk-triage.agent.md` for reclassification; when it returns `full-coverage`, hand off to `plan-slice-decomposition.agent.md`. Recommend `runtime-evidence.agent.md` only when the user explicitly wants to leave the token-aware kernel flow and run Flow C.
+If the selected contracts need decomposition before safe bounded handling, send the work back to `change-risk-triage.agent.md` for reclassification.
+If that reclassification returns `full-coverage`, hand off to `plan-slice-decomposition.agent.md`.
+Recommend `runtime-evidence.agent.md` only when the user explicitly wants to leave the token-aware kernel flow and run Flow C.
 
 ## 4. `test-design-kernel.agent.md`
 
