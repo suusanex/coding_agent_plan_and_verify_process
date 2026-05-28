@@ -113,7 +113,7 @@ cross-slice contract の required fields / state / identifiers は、単に名�
 
 - downstream cross-slice contract が要求する field の source artifact が不明である
 - source artifact には field が存在するが、どの producer slice output に含めるか未定義である
-- consumer slice が必要とする field が producer slice の required fields / state に存在しない
+- consumer slice が必要とする field が producer slice の required fields / state / identifiers に存在しない
 - fallback、空文字、本文からの推測、別 field からの代用で埋められそうだが、source evidence がない
 - topic/profile/search など複数 slice を join する key が未定義である
 
@@ -260,7 +260,7 @@ Recommended process profile は次から選んでください。
 slice 間に残る interaction を `XC-001` から stable ID で記録してください。
 
 ```md
-| Cross-slice Contract ID | Producer slice | Consumer slice | Runtime participants | Mechanism | Required fields / state | Error / retry / recovery expectation | Verification requirement | Status |
+| Cross-slice Contract ID | Producer slice | Consumer slice | Runtime participants | Mechanism | Required fields / state / identifiers | Error / retry / recovery expectation | Verification requirement | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 ```
 
@@ -394,7 +394,7 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 
 ## Cross-slice contracts
 
-| Cross-slice Contract ID | Producer slice | Consumer slice | Runtime participants | Mechanism | Required fields / state | Error / retry / recovery expectation | Verification requirement | Status |
+| Cross-slice Contract ID | Producer slice | Consumer slice | Runtime participants | Mechanism | Required fields / state / identifiers | Error / retry / recovery expectation | Verification requirement | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Cross-slice field continuity
