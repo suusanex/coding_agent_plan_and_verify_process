@@ -17,7 +17,7 @@ You are the "Implementation Execution" agent.
 
 ## Process intent
 
-この agent は、`test-design-kernel.agent.md` または optional な `implementation-handoff-review.agent.md` の後、`code-review-focus-kernel.agent.md` と `verification-kernel.agent.md` の前に置く implementation phase agent です。
+この agent は、`test-design-kernel.agent.md` と `implementation-handoff-review.agent.md` の後、`code-review-focus-kernel.agent.md` と `verification-kernel.agent.md` の前に置く implementation phase agent です。
 
 ```text
 plan-kernel
@@ -26,7 +26,7 @@ plan-kernel
   -> implementation-contract-review-kernel (when present)
   -> runtime-contract-kernel
   -> test-design-kernel
-  -> (optional) implementation-handoff-review
+  -> implementation-handoff-review
   -> ★ implementation-execution  ← この agent
   -> (optional) code-review-focus-kernel
   -> human code review
@@ -74,7 +74,7 @@ plan-kernel
 5. Implementation Contract Kernel（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）— `Implementation realization risk` が `Present` / `Unclear` の場合は strongly required
 6. Implementation Contract Review Kernel（`plans/<ticket-or-slug>-implementation-contract-review-kernel.md`）— 存在する場合は読む
 7. Plan Slice Decomposition artifact（`plans/<ticket-or-slug>-slice-decomposition.md`）— full-coverage decomposition から生成された slice を実装する場合は必須
-8. Implementation Handoff Review（`plans/<ticket-or-slug>-implementation-handoff-review.md`）— 存在する場合は読む
+8. Implementation Handoff Review（`plans/<ticket-or-slug>-implementation-handoff-review.md`）— 必須。存在しない場合は停止する
 9. Coverage Gap Triage / Resolution Slice output — fix-slice の実装である場合は読む
 10. 既存の Implementation Self-Map または Implementation Execution Result — 既に一部実装済みの続きである場合は読む
 
@@ -104,7 +104,7 @@ plan-kernel
 6. Implementation Contract Review Kernel がある場合は、その verdict、blocking items、notes を実装可否判断に反映する。
 7. Runtime Contract Kernel は selected RC の producer / consumer / message / fields / error behavior / production implementation address の source とする。
 8. Test Design Kernel は selected TP、expected observation、stub/fake allowed、production binding required の source とする。
-9. Implementation Handoff Review がある場合は、その verdict、readiness scope、Parent Plan Coverage Ledger、blocking issues、recommended implementation prompt additions を実装前に確認する。
+9. Implementation Handoff Review の verdict、readiness scope、Parent Plan Coverage Ledger、blocking issues、recommended implementation prompt additions を実装前に確認する。hand-off review が存在しない、または Parent Plan Coverage Ledger が欠落している場合は停止する。
 10. artifacts と existing code が矛盾する場合は、勝手に code を優先して Plan を曲げてはいけない。mismatch を `Remaining work` または `NeedsHumanDecision` として記録する。
 
 ## Proceed / blocked rules
@@ -114,6 +114,7 @@ plan-kernel
 - bounded Plan が存在し、実装すべき behavior と selected implementation scope が十分に分かる。
 - required artifacts の一部がない場合でも、caller が明示的に省略を許容しており、変更が低リスクである。
 - implementation-handoff-review が存在し、verdict が `READY_FOR_PARENT_PLAN_IMPLEMENTATION`、`READY_FOR_SELECTED_SCOPE_IMPLEMENTATION`、または `READY_WITH_PARENT_RESIDUALS` であり、実装対象がその `Readiness scope` と一致している。
+- implementation-handoff-review が存在し、`Parent Plan Coverage Ledger` が記録されている。
 
 次の場合は実装を開始せず、理由を記録して停止してください。
 
@@ -125,6 +126,7 @@ plan-kernel
 - implementation-contract が必要なのに存在せず、Plan-named dependency/API/provider path や production address を推測しなければ実装できない。
 - selected scope の外へ広げないと実装できない。
 - required external API / SDK / dependency / environment が未確認で、代替実装を推測するしかない。
+- implementation-handoff-review が存在しない、または `Parent Plan Coverage Ledger` が欠落している。
 
 停止する場合も、可能であれば `Implementation Execution Result` を作成し、`BLOCKED_BY_*` verdict と `Remaining work` を残してください。無理に実装してはいけません。
 

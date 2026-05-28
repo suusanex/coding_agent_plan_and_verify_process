@@ -149,6 +149,7 @@ Use for the main lightweight process this repository now targets.
    - `implementation-contract-review-kernel.agent.md` or bounded `implementation-contract-review.agent.md`, when the contract is non-trivial
    - `runtime-contract-kernel.agent.md`
    - `test-design-kernel.agent.md`
+   - `implementation-handoff-review.agent.md`
    - implementation by normal agent or human-guided implementation agent
    - `verification-kernel.agent.md`
 5. When step 3 was used, run `cross-slice-verification-kernel.agent.md`
@@ -164,6 +165,7 @@ Implementation handoff must include:
 - `implementation-contract-review-kernel` output when present
 - `runtime-contract-kernel` output
 - `test-design-kernel` output
+- `implementation-handoff-review` output
 - selected implementation scope and non-goals
 - Parent Plan Coverage Ledger
 - Readiness scope: `ParentPlan`, `SelectedScopeOnly`, or `SelectedScopeWithParentResiduals`
@@ -420,7 +422,10 @@ Use these statuses consistently unless an existing artifact has a stronger conve
 | `OutOfScopeByPlan` | Parent Plan item is explicitly excluded by Plan Non-goals / Out of scope |
 | `UnmappedBlocking` | Parent Plan item is not mapped to selected scope, deferral, cross-slice verification, out-of-scope, or human decision |
 | `MappedButWeak` | Mapping exists but the oracle, binding, or observable acceptance is weak |
-| `plan-smoke-mismatch` | A Plan-prohibited pattern was found in selected production addresses |
+
+### Shared gap type vocabulary
+
+- `plan-smoke-mismatch`: A Plan-prohibited pattern was found in selected production addresses. verification-kernel uses this in `未解決項目.Type` and keeps `Status` as `NotImplementedOrMismatch`.
 
 ## Shared bounded-pass rules
 
@@ -970,7 +975,7 @@ The corrected process is acceptable when:
 - the full process remains available for broad high-risk work
 - agent prompts clearly state when to stop rather than continue repairing
 - selected-scope readiness cannot be reported as parent-Plan readiness unless all parent Plan FR / AC are mapped or explicitly out of scope
-- implementation-handoff-review creates a Parent Plan Coverage Ledger before issuing READY
+- implementation-handoff-review is a mandatory gate in Flow A and creates a Parent Plan Coverage Ledger before any READY verdict is issued
 - verification-kernel performs a bounded Parent Plan smoke scan for Plan-prohibited patterns in selected production addresses
 - Plan-prohibited substitutions found in selected production addresses are classified as contract mismatch, not as non-blocking notes
 - parent residuals remain visible until resolved by a named slice, cross-slice verification, human decision, or explicit out-of-scope decision

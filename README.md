@@ -385,7 +385,7 @@ bounded Plan と runtime-contract-kernel の内容を入力として、test-desi
 - `READY_FOR_PARENT_PLAN_IMPLEMENTATION` / `READY_FOR_SELECTED_SCOPE_IMPLEMENTATION` / `READY_WITH_PARENT_RESIDUALS` / `BLOCKED_*` の scope-aware verdict を出す
 - `implementation-execution.agent.md` または人間の実装者に渡すべき Required handoff inputs を整理する
 
-この agent は optional です。過剰な review を避けるため、常に使う必要はありません。
+この agent は Token-aware Flow A では必須です。実装前に Parent Plan Coverage Ledger と readiness scope を確定し、selected scope と parent Plan 全体の ready を分離します。
 
 使う場面:
 
@@ -405,7 +405,7 @@ bounded Plan と runtime-contract-kernel の内容を入力として、test-desi
 プロンプト例:
 
 ```text
-実装に入る前に、implementation-handoff-review.agent.md を使って軽量レビューを行ってください。
+実装に入る前に、implementation-handoff-review.agent.md を必須 gate として使って軽量レビューを行ってください。
 
 次の base 成果物を対象にしてください。
 
@@ -485,7 +485,7 @@ implementation-handoff-review がある場合は、その verdict、blocking iss
 - human code review の読む順番と注意点を `plans/<ticket-or-slug>-code-review-focus-kernel.md` にまとめる
 - code review の承認や修正は行わない
 
-この agent は optional です。実装差分が小さく、人手レビューを重点化する必要が薄い場合は省略できます。
+この agent は Token-aware Flow A では必須 gate です。実装差分が小さい場合でも、Parent Plan Coverage Ledger と readiness scope を確認してから implementation に進んでください。
 
 使う場面:
 
@@ -836,7 +836,7 @@ Token-aware guardrail kernel flow では、通常は次の成果物を作成し�
 - Token-aware flow でも Plan 作成を省略しない
 - 実装の source of truth は bounded Plan とする
 - kernel artifacts は high-risk slice の guardrail として扱い、Plan の代替にしない
-- `implementation-handoff-review.agent.md` は必要な場合だけ使う optional gate とする
+- `implementation-handoff-review.agent.md` は token-aware Flow A では必須 gate とする
 - `code-review-focus-kernel.agent.md` は human code review を行うときの optional gate とする
 - 対象スコープを明示する
 - 不明な項目を推測で埋めない

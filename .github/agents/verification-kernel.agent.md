@@ -25,7 +25,7 @@ You are the "Verification Kernel" agent.
 2. **Stub-complete but production-missing**: stub、fake、mock、in-memory implementation を使った tests は通るが、対応する production implementation または production wiring が存在しない。
 3. **Selected scope pass mistaken for parent Plan pass**: selected runtime contract / test point は通っているが、parent Plan の禁止事項または residual が見えなくなっている。
 
-この agent は、両方の failure mode を実装後に検証し、gap を分類して明示します。guardrail chain の中で `Bound` を正式に確認できる唯一の agent です。
+この agent は、これらの failure mode を実装後に検証し、gap を分類して明示します。guardrail chain の中で `Bound` を正式に確認できる唯一の agent です。
 
 ## Embedded process policy
 
