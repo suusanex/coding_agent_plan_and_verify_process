@@ -110,7 +110,7 @@ Plan requirement / acceptance condition
 4. `implementation-contract-review-kernel.agent.md` または bounded `implementation-contract-review.agent.md`（contract が non-trivial の場合）
 5. `runtime-contract-kernel.agent.md`
 6. `test-design-kernel.agent.md`
-7. 必要に応じて `implementation-handoff-review.agent.md`
+7. `implementation-handoff-review.agent.md`
 8. `implementation-execution.agent.md` または人間主導で実装
 9. 必要に応じて `code-review-focus-kernel.agent.md`
 10. `code-review-focus-kernel` を実行した場合は、その出力を使って human code review
@@ -122,8 +122,10 @@ Plan requirement / acceptance condition
 このフローでは、各 agent が 1 回の bounded な実行を行い、未解決項目は成果物に残して停止します。
 「直るまで修正し続ける」ことは目的ではありません。
 
-`implementation-handoff-review.agent.md` は任意の軽量 gate です。
-常に必須ではありませんが、実装前に Plan → selected runtime contract → test point → production binding requirement の接続を一度だけ確認したい場合に使います。
+`implementation-handoff-review.agent.md` は、Token-aware guardrail kernel flow で実装へ進む前の必須 gate です。
+Plan → selected runtime contract → test point → production binding requirement の接続を確認し、Parent Plan Coverage Ledger と Readiness scope を出力します。
+
+`implementation-handoff-review` を省略してよいのは、token-aware guardrail kernel flow ではなく、人間が明示的に別プロセスとして進める場合だけです。
 
 `code-review-focus-kernel.agent.md` も任意の軽量 gate です。
 常に必須ではありませんが、人手レビューを入れる場合に、実装差分と guardrail artifacts を突き合わせて「どこから読むべきか」を先に整理したいときに使います。
@@ -154,7 +156,7 @@ Token-aware flow で `implementation-execution.agent.md` を使って実装に�
 - `implementation-contract-review-kernel.agent.md` の出力（存在する場合）
 - `runtime-contract-kernel.agent.md` の出力
 - `test-design-kernel.agent.md` の出力
-- `implementation-handoff-review.agent.md` の出力（実行した場合）
+- `implementation-handoff-review.agent.md` の出力
 - `plan-slice-decomposition.agent.md` の出力（full-coverage decomposition 由来の slice を実装する場合）
 - selected implementation scope と non-goals
 
@@ -387,6 +389,8 @@ bounded Plan と runtime-contract-kernel の内容を入力として、test-desi
 
 この agent は Token-aware Flow A では必須です。実装前に Parent Plan Coverage Ledger と readiness scope を確定し、selected scope と parent Plan 全体の ready を分離します。
 
+token-aware guardrail kernel flow でこの gate を省略してはいけません。省略が許されるのは、人間が明示的に別プロセスを採用する場合だけです。
+
 使う場面:
 
 - selected RC が複数ある
@@ -395,12 +399,12 @@ bounded Plan と runtime-contract-kernel の内容を入力として、test-desi
 - 実装前に、Plan と kernel artifacts の接続漏れだけを一度確認したい
 - `test-design-kernel` に `NeedsHumanDecision` や曖昧な mapping が残っている可能性がある
 
-省略してよい場面:
+この gate を特に重視すべき場面:
 
-- selected RC が 0〜1 件で、mapping が明確
-- stub / fake / mock / in-memory を使わない
-- cross-boundary risk が低い
-- 実装者が Plan と kernel artifacts の接続を十分に把握している
+- selected RC が 0〜1 件でも、parent Plan の FR / AC を selected scope と取り違えたくない場合
+- stub / fake / mock / in-memory を使う
+- cross-boundary risk が低く見えても、Plan → RC → TP → production binding requirement の接続を明示しておきたい場合
+- 実装者が複数 artifact をまたいで source of truth を読み替える可能性がある場合
 
 プロンプト例:
 
@@ -452,11 +456,11 @@ implementation-execution.agent.md を使って、selected scope だけを実装�
 - plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
 - plans/<ticket-or-slug>-runtime-contract-kernel.md
 - plans/<ticket-or-slug>-test-design-kernel.md
-- plans/<ticket-or-slug>-implementation-handoff-review.md（存在する場合）
+- plans/<ticket-or-slug>-implementation-handoff-review.md
 
 実装の source of truth は bounded Plan です。
 runtime-contract-kernel と test-design-kernel は、selected high-risk slice に対する guardrail として使ってください。
-implementation-handoff-review がある場合は、その verdict、blocking issues、recommended implementation prompt additions を確認してください。
+implementation-handoff-review の verdict、Readiness scope、Parent Plan Coverage Ledger、blocking issues、recommended implementation prompt additions を確認してください。
 
 次の制約を守ってください。
 
@@ -653,20 +657,18 @@ coverage-gap-triage の推奨修正範囲から Slice 1 だけを対象に、cov
 - ギャップを選択した ID ごとに分割して修正したい
 - トークンコストと bounded な進捗を重視する
 
-### `implementation-handoff-review.agent.md` を使う場合
+### `implementation-handoff-review.agent.md` を実行する
 
-- 実装前に一度だけ横断的な漏れチェックを入れたい
+- Token-aware guardrail kernel flow で実装前の必須 gate を通したい
 - selected RC が複数あり、Plan → RC → TP の対応が見落とされそう
 - stub / fake / mock / in-memory を使う test point がある
 - production binding required の指定漏れが特に怖い
 - `implementation-execution.agent.md` または人間の実装者に渡す handoff が複数 artifacts に分かれており、接続確認をしておきたい
 
-### `implementation-handoff-review.agent.md` を省略してよい場合
+### `implementation-handoff-review.agent.md` を省略するのが許される場合
 
-- selected RC が 0〜1 件で単純
-- stub / fake / mock / in-memory を使わない
-- `test-design-kernel` までの対応関係が明確
-- 追加レビューのコストをかけるほどの risk がない
+- token-aware guardrail kernel flow ではなく、人間が明示的に別プロセスを選ぶ場合
+- Parent Plan Coverage Ledger と readiness scope を別の明示的な gate で確実に作成する場合
 
 ### kernel flow から full flow に切り替えるべき場合
 
@@ -727,7 +729,7 @@ bounded Plan と runtime-contract-kernel の RC-001 と RC-002 を対象に、te
 ### 実装前に handoff review を行う
 
 ```text
-実装に入る前に、implementation-handoff-review.agent.md を使って軽量レビューを行ってください。
+実装に入る前に、implementation-handoff-review.agent.md を必須 gate として使って軽量レビューを行ってください。
 
 次の base 成果物を対象にしてください。
 
@@ -758,11 +760,11 @@ implementation-execution.agent.md を使って、selected scope だけを実装�
 - plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
 - plans/<ticket-or-slug>-runtime-contract-kernel.md
 - plans/<ticket-or-slug>-test-design-kernel.md
-- plans/<ticket-or-slug>-implementation-handoff-review.md（存在する場合）
+- plans/<ticket-or-slug>-implementation-handoff-review.md
 
 実装の source of truth は bounded Plan です。
 kernel artifacts は high-risk slice に対する guardrail として使ってください。
-implementation-handoff-review がある場合は、その verdict、blocking issues、recommended implementation prompt additions を確認してください。
+implementation-handoff-review の verdict、Readiness scope、Parent Plan Coverage Ledger、blocking issues、recommended implementation prompt additions を確認してください。
 
 Plan の Functional requirements と Acceptance conditions を満たし、Non-goals / Out of scope に含まれる作業は行わないでください。
 stub / fake / mock / in-memory test だけで production complete と判断せず、production implementation と wiring を落とさないでください。
