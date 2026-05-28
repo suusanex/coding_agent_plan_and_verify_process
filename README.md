@@ -379,8 +379,10 @@ bounded Plan と runtime-contract-kernel の内容を入力として、test-desi
 - base 4 成果物（`plans/<ticket-or-slug>.md`、`change-risk-triage`、`runtime-contract-kernel`、`test-design-kernel`）を読む
 - implementation-realization risk が `Present` / `Unclear` の場合は `implementation-contract-kernel`（存在すれば review-kernel も）を追加で読む
 - Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認する
+- Parent Plan Coverage Ledger を作り、selected scope の ready と parent Plan 全体の ready を分ける
+- Plan が禁止した substitution / must-not pattern を verification-kernel に渡す
 - source code を読まず、artifacts を修正せず、実装もしない
-- `READY_FOR_IMPLEMENTATION` / `READY_WITH_NOTES` / `BLOCKED` の単一 verdict を出す
+- `READY_FOR_PARENT_PLAN_IMPLEMENTATION` / `READY_FOR_SELECTED_SCOPE_IMPLEMENTATION` / `READY_WITH_PARENT_RESIDUALS` / `BLOCKED_*` の scope-aware verdict を出す
 - `implementation-execution.agent.md` または人間の実装者に渡すべき Required handoff inputs を整理する
 
 この agent は optional です。過剰な review を避けるため、常に使う必要はありません。
@@ -418,7 +420,7 @@ change-risk-triage の Implementation realization risk が Present / Unclear の
 - plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
 
 source code は読まず、artifacts も修正しないでください。
-Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認し、READY_FOR_IMPLEMENTATION / READY_WITH_NOTES / BLOCKED の verdict を出してください。
+Parent Plan Coverage Ledger を作成し、Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認してください。selected scope と parent Plan 全体の readiness を分け、scope-aware verdict を出してください。
 ```
 
 ---
@@ -740,7 +742,7 @@ change-risk-triage の Implementation realization risk が Present / Unclear の
 - plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
 
 source code は読まず、artifacts も修正しないでください。
-Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認し、READY_FOR_IMPLEMENTATION / READY_WITH_NOTES / BLOCKED の verdict を出してください。
+Parent Plan Coverage Ledger を作成し、Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認してください。selected scope と parent Plan 全体の readiness を分け、scope-aware verdict を出してください。
 ```
 
 ### implementation-execution に実装させる

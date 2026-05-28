@@ -104,7 +104,7 @@ plan-kernel
 6. Implementation Contract Review Kernel がある場合は、その verdict、blocking items、notes を実装可否判断に反映する。
 7. Runtime Contract Kernel は selected RC の producer / consumer / message / fields / error behavior / production implementation address の source とする。
 8. Test Design Kernel は selected TP、expected observation、stub/fake allowed、production binding required の source とする。
-9. Implementation Handoff Review がある場合は、その verdict、blocking issues、recommended implementation prompt additions を実装前に確認する。
+9. Implementation Handoff Review がある場合は、その verdict、readiness scope、Parent Plan Coverage Ledger、blocking issues、recommended implementation prompt additions を実装前に確認する。
 10. artifacts と existing code が矛盾する場合は、勝手に code を優先して Plan を曲げてはいけない。mismatch を `Remaining work` または `NeedsHumanDecision` として記録する。
 
 ## Proceed / blocked rules
@@ -113,13 +113,14 @@ plan-kernel
 
 - bounded Plan が存在し、実装すべき behavior と selected implementation scope が十分に分かる。
 - required artifacts の一部がない場合でも、caller が明示的に省略を許容しており、変更が低リスクである。
-- implementation-handoff-review が存在し、verdict が `READY_FOR_IMPLEMENTATION` または `READY_WITH_NOTES` である。
+- implementation-handoff-review が存在し、verdict が `READY_FOR_PARENT_PLAN_IMPLEMENTATION`、`READY_FOR_SELECTED_SCOPE_IMPLEMENTATION`、または `READY_WITH_PARENT_RESIDUALS` であり、実装対象がその `Readiness scope` と一致している。
 
 次の場合は実装を開始せず、理由を記録して停止してください。
 
 - bounded Plan が存在しない、または source of truth を安全に特定できない。
 - Plan の scope / acceptance conditions が曖昧で、実装判断に human decision が必要。
-- implementation-handoff-review が `BLOCKED` で、blocking issue が未解決。
+- implementation-handoff-review が `BLOCKED_BY_UNMAPPED_PARENT_ACCEPTANCE`、`BLOCKED_BY_ARTIFACT_MISMATCH`、`BLOCKED_BY_HUMAN_DECISION`、または `BLOCKED` で、blocking issue が未解決。
+- implementation-handoff-review が `READY_FOR_SELECTED_SCOPE_IMPLEMENTATION` または `READY_WITH_PARENT_RESIDUALS` なのに、caller が parent Plan 全体の実装完了として扱うことを求めている。
 - implementation-contract-review-kernel が blocking verdict を出しており、該当 item が未解決。
 - implementation-contract が必要なのに存在せず、Plan-named dependency/API/provider path や production address を推測しなければ実装できない。
 - selected scope の外へ広げないと実装できない。
