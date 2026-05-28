@@ -104,7 +104,7 @@ plan-kernel
 6. Implementation Contract Review Kernel がある場合は、その verdict、blocking items、notes を実装可否判断に反映する。
 7. Runtime Contract Kernel は selected RC の producer / consumer / message / fields / error behavior / production implementation address の source とする。
 8. Test Design Kernel は selected TP、expected observation、stub/fake allowed、production binding required の source とする。
-9. Implementation Handoff Review の verdict、readiness scope、Parent Plan Coverage Ledger、blocking issues、recommended implementation prompt additions を実装前に確認する。hand-off review が存在しない、または Parent Plan Coverage Ledger が欠落している場合は停止する。
+9. Implementation Handoff Review の verdict、readiness scope、Parent Plan Coverage Ledger、blocking issues、recommended implementation prompt additions を実装前に確認する。handoff review が存在しない、または Parent Plan Coverage Ledger が欠落している場合は停止する。
 10. artifacts と existing code が矛盾する場合は、勝手に code を優先して Plan を曲げてはいけない。mismatch を `Remaining work` または `NeedsHumanDecision` として記録する。
 
 ## Proceed / blocked rules

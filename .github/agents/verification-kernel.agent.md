@@ -184,7 +184,7 @@ Plan Kernel、implementation-contract-kernel、runtime-contract-kernel、test-de
 
 - smoke scan は selected scope を広げるためのものではありません。
 - ただし selected production address 内に、Plan が明示的に禁止した pattern が存在する場合は blocking mismatch として扱います。
-- `Plan-prohibited pattern` が見つかっても、Plan がその pattern を compatibility layer / legacy handling として許容している場合は、その根拠を `Allowed by` に記録します。
+- `Plan-prohibited pattern` が見つかっても、Plan がその pattern を compatibility layer / legacy handling として許容している場合は、その根拠を `Notes` に記録します。
 
 ### Step 5. Classify unresolved items and determine verdict
 

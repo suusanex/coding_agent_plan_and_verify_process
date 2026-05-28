@@ -489,7 +489,7 @@ implementation-handoff-review の verdict、Readiness scope、Parent Plan Covera
 - human code review の読む順番と注意点を `plans/<ticket-or-slug>-code-review-focus-kernel.md` にまとめる
 - code review の承認や修正は行わない
 
-この agent は Token-aware Flow A では必須 gate です。実装差分が小さい場合でも、Parent Plan Coverage Ledger と readiness scope を確認してから implementation に進んでください。
+この agent は optional です。human code review を行うときに、実装差分と guardrail artifacts を突き合わせて読む順番や重点箇所を整理したい場合に使います。
 
 使う場面:
 

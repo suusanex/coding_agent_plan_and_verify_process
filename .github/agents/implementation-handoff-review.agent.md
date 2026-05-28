@@ -17,7 +17,8 @@ You are the "Implementation Handoff Review" agent.
 
 ## Process intent
 
-この agent は、caller が軽量な pre-implementation review を 1 回だけ挟みたい場合に、`test-design-kernel.agent.md` の直後、実装の直前に置く **optional review gate** です。
+この agent は、Token-aware Flow A で `test-design-kernel.agent.md` の直後、実装の直前に置く **mandatory pre-implementation review gate** です。
+token-aware guardrail kernel flow では省略してはいけません。省略が許されるのは、caller が明示的に別の human-led process を選び、Parent Plan Coverage Ledger と readiness scope を別の gate で確実に作成する場合だけです。
 
 ```text
 plan-kernel
@@ -34,7 +35,7 @@ plan-kernel
 ```
 
 目的は「実装者が安全に実装を開始できる状態か」を確認することです。長い指摘リストを作ることではありません。
-この agent は token-aware kernel chain の必須代替物ではなく、Plan → selected runtime contract → test point → production binding requirement の接続を軽量に点検する追加 gate です。
+この agent は token-aware kernel chain の実装前 gate として、Plan → selected runtime contract → test point → production binding requirement の接続を軽量に点検します。
 
 この agent の verdict は、必ず **何に対して ready なのか** を明示します。
 
