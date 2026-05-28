@@ -32,6 +32,7 @@ You are the "Plan Slice Decomposition" agent.
 7. 実装対象になる slice について、後続 agent が bounded Plan として読める slice artifact を作成する
 8. 最後に必要な cross-slice verification を定義する
 9. 未解決または human decision が必要な点を明示する
+10. downstream slice または caller-facing projection が必要とする field / state / identifier が、どの upstream artifact または cross-slice contract から来るかを追跡可能にする
 
 この agent は実装、テスト作成、full runtime evidence、full integration test design、gap resolution を行いません。
 
@@ -48,6 +49,8 @@ You are the "Plan Slice Decomposition" agent.
 repository 全体を読んではいけません。decomposition に必要な範囲だけを読みます。
 
 この agent は、実装対象を正確に分けるために repository structure を読むことはできますが、各 slice の detailed runtime contract analysis、API surface confirmation、test design、実装方法の確定までは行いません。
+
+ただし、cross-slice contract の required fields / state / identifiers を安全に分割するために必要な範囲で、parent Plan、triage、既存 contract artifact、sample field inventory、公開済み DTO / schema / manifest 名を確認してください。private data 本文や値を読む必要はありませんが、field 名、artifact 名、identifier 名、source / consumer の対応は decomposition の対象です。
 
 ## Decomposition principles
 
@@ -94,7 +97,29 @@ cross-slice contract には、少なくとも以下を含めてください。
 - verification requirement
 - unresolved status
 
-### 4. Make each slice executable by token-aware flow
+### 4. Preserve cross-slice field continuity
+
+cross-slice contract の required fields / state / identifiers は、単に名前を列挙するだけでは不十分です。downstream slice、caller-facing DTO、API / CLI response、UI projection、DB query projection、topic/profile join、artifact manifest が要求する field は、どの upstream source artifact または producer slice から来るかを追跡可能にしてください。
+
+特に次のような field は、slice 分割で失われやすいため明示的に確認してください。
+
+- caller-facing response に出る display metadata（例: `title`, `url`, `label`, `summary`, `excerpt`）
+- persistence / upsert / idempotency / join に使う identifier（例: `item_id`, `source_item_id`, `topic_id`, `run_id`, `lookup_key`）
+- privacy / eligibility / filtering に使う state（例: `privacy_level`, `indexing_eligible`, `topic_eligible`）
+- traceability に使う hash / lineage / source reference（例: `source_hash`, `text_hash`, `input_hash`, `text_lineage`, `artifact_path`）
+- downstream slice が生成するのではなく upstream artifact から保持すべき source metadata
+
+次の状態を `Done` として扱ってはいけません。
+
+- downstream cross-slice contract が要求する field の source artifact が不明である
+- source artifact には field が存在するが、どの producer slice output に含めるか未定義である
+- consumer slice が必要とする field が producer slice の required fields / state / identifiers に存在しない
+- fallback、空文字、本文からの推測、別 field からの代用で埋められそうだが、source evidence がない
+- topic/profile/search など複数 slice を join する key が未定義である
+
+この場合は、field ごとに `Deferred`、`NeedsHumanDecision`、`NeedsFurtherDecomposition`、または `OutOfScopeForThisPass` として記録してください。source evidence がない field を fabricated value で埋める前提にしてはいけません。
+
+### 5. Make each slice executable by token-aware flow
 
 各 slice は、後続で `change-risk-triage.agent.md` または kernel agents に渡せる粒度にしてください。
 
@@ -118,13 +143,25 @@ cross-slice contract には、少なくとも以下を含めてください。
 
 各 slice artifact は、後続 agent がその slice の bounded Plan として読める内容にしてください。少なくとも Goal、Non-goals、Parent requirements covered、Parent acceptance conditions covered、Affected components / modules、Expected implementation scope、Cross-slice dependencies、Related Cross-slice Contract IDs、Stop condition を含めます。
 
-### 5. Do not hide full-coverage risk by oversplitting
+さらに、各 executable slice artifact には、その slice が producer または consumer になる cross-slice contract の抜粋を必ず含めてください。単に `Related Cross-slice Contract IDs` だけで済ませてはいけません。
+
+cross-slice contract の抜粋には、最低限次を含めます。
+
+- XC ID
+- producer / consumer のどちらとして関与するか
+- mechanism
+- required fields / state / identifiers
+- this slice owns / consumes / defers の区別
+- unresolved fields / state / identifiers
+- parent decomposition artifact の該当 section を authoritative source として扱うこと
+
+### 6. Do not hide full-coverage risk by oversplitting
 
 危険な boundary を slice 外に追い出してはいけません。
 
 分割しても安全に bounded 化できない boundary がある場合は、slice に閉じ込めたふりをせず、cross-slice contract または `NeedsHumanDecision` として残してください。
 
-### 6. Use bounded pass
+### 7. Use bounded pass
 
 1 回の bounded pass で decomposition artifact を作成して停止してください。各 slice の実装や詳細分析に進んではいけません。
 
@@ -166,6 +203,7 @@ change-risk-triage output から次を抽出してください。
 | Acceptance condition grouping | observable behavior that can be verified together |
 | Implementation-realization risk | dependency / SDK / API surface / existing substitute / wiring |
 | Production binding | interface / concrete implementation / entrypoint / startup wiring |
+| Field continuity | downstream required fields / state / identifiers whose upstream source or intermediate artifact must be preserved |
 | Human decision boundary | product or architecture decision that blocks safe implementation |
 
 ### Step 3. Define slices
@@ -189,6 +227,15 @@ slice が大きすぎる場合はさらに分割してください。ただし�
 - Expected implementation scope:
 - Internal high-risk boundary candidates:
 - Cross-slice dependencies:
+- Related Cross-slice Contract IDs:
+- Cross-slice contract excerpt:
+  - XC ID:
+  - This slice role: Producer / Consumer / Both
+  - Mechanism:
+  - Required fields / state / identifiers:
+  - Owned by this slice:
+  - Consumed by this slice:
+  - Deferred / unresolved fields:
 - Implementation-realization risks:
 - Recommended process profile:
 - Immediate next agent:
@@ -213,13 +260,34 @@ Recommended process profile は次から選んでください。
 slice 間に残る interaction を `XC-001` から stable ID で記録してください。
 
 ```md
-| Cross-slice Contract ID | Producer slice | Consumer slice | Runtime participants | Mechanism | Required fields / state | Error / retry / recovery expectation | Verification requirement | Status |
+| Cross-slice Contract ID | Producer slice | Consumer slice | Runtime participants | Mechanism | Required fields / state / identifiers | Error / retry / recovery expectation | Verification requirement | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 ```
 
 Status は shared status vocabulary を使ってください。
 
 cross-slice contract は、後続の `cross-slice-verification-kernel.agent.md` が検証対象にします。
+
+### Step 4a. Check cross-slice field continuity
+
+Step 4 で定義した cross-slice contracts について、downstream required fields / state / identifiers が upstream source artifact または producer slice output から traceable であるかを確認してください。
+
+特に、後続の XC が要求する field が前段の XC に存在しない場合は、次を判断して記録してください。
+
+1. field は upstream source artifact に存在し、producer slice output に追加すべきか
+2. field は consumer slice が別 authoritative source から直接読むべきか
+3. field は downstream slice が生成するべきか
+4. field は product / architecture decision なしに決められないか
+5. field は不要であり downstream contract から削除すべきか
+
+この確認結果を `Cross-slice field continuity` section に記録してください。
+
+```md
+| Field / state / identifier | Required by | Source artifact / owner | Producer XC | Intermediate storage / artifact | Consumer XC | Fabrication allowed? | Status | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+```
+
+`Fabrication allowed?` は原則 `No` としてください。source evidence なしに空文字、推測値、本文からの生成値、別 field の代用で埋める場合は `NeedsHumanDecision` または `Deferred` として扱い、`Done` にしてはいけません。
 
 ### Step 5. Map parent-level contracts to slices and XC IDs
 
@@ -246,6 +314,7 @@ slice の実装順序を提案してください。
 - dependency の前提があるものを先に置く
 - implementation-realization risk を持つ slice は runtime-contract より前に implementation-contract branch が必要であることを明記する
 - cross-slice contract の producer / consumer の片方だけを実装して完成扱いしないよう注意を書く
+- cross-slice field continuity が `Deferred` / `NeedsHumanDecision` の field を、下流 slice で fabricated value として埋めて完成扱いしないよう注意を書く
 - parallel に進めてよい slice と、順序を守るべき slice を分ける
 
 ### Step 7. Define final cross-slice verification requirements
@@ -258,6 +327,7 @@ slice の実装順序を提案してください。
 
 - parent acceptance conditions that require multiple slices
 - cross-slice contract IDs to verify
+- field continuity items to verify across producer / consumer slices
 - production binding checks that must span slices
 - manual-only checks, if any
 - unresolved items that must block PASS
@@ -275,7 +345,7 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 - `plans/<ticket-or-slug>-slice-SL-001.md`
 - `plans/<ticket-or-slug>-slice-SL-002.md`
 
-ただし、slice artifact を複数作る場合でも、parent decomposition artifact に全 slice の一覧、dependency、cross-slice contracts、execution order を必ず残してください。
+ただし、slice artifact を複数作る場合でも、parent decomposition artifact に全 slice の一覧、dependency、cross-slice contracts、cross-slice field continuity、execution order を必ず残してください。
 
 ### Step 9. Write output
 
@@ -307,6 +377,15 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 - Expected implementation scope:
 - Internal high-risk boundary candidates:
 - Cross-slice dependencies:
+- Related Cross-slice Contract IDs:
+- Cross-slice contract excerpt:
+  - XC ID:
+  - This slice role: Producer / Consumer / Both
+  - Mechanism:
+  - Required fields / state / identifiers:
+  - Owned by this slice:
+  - Consumed by this slice:
+  - Deferred / unresolved fields:
 - Implementation-realization risks:
 - Recommended process profile:
 - Immediate next agent:
@@ -315,7 +394,12 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 
 ## Cross-slice contracts
 
-| Cross-slice Contract ID | Producer slice | Consumer slice | Runtime participants | Mechanism | Required fields / state | Error / retry / recovery expectation | Verification requirement | Status |
+| Cross-slice Contract ID | Producer slice | Consumer slice | Runtime participants | Mechanism | Required fields / state / identifiers | Error / retry / recovery expectation | Verification requirement | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+## Cross-slice field continuity
+
+| Field / state / identifier | Required by | Source artifact / owner | Producer XC | Intermediate storage / artifact | Consumer XC | Fabrication allowed? | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Parent contract mapping
@@ -340,6 +424,7 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 - Slice artifacts:
 - Slice IDs:
 - Cross-slice Contract IDs:
+- Cross-slice field continuity items:
 - Source artifacts:
 - Files inspected:
 - Files intentionally not inspected:
@@ -360,6 +445,7 @@ Handoff Packet の `Required downstream guardrails` には、少なくとも次�
 - 親の `RC-xxx` candidate と slice / `XC-xxx` の対応は `Parent contract mapping` を source として扱うこと
 - slice 内の selected runtime contract について、runtime contract identification / participant mapping / test point mapping / stub usage identification / production implementation binding / production wiring verification / explicit unresolved status を保持すること
 - cross-slice contract は slice 内で勝手に完了扱いにせず、最後に `cross-slice-verification-kernel.agent.md` で確認すること
+- cross-slice field continuity は slice 内で勝手に補完・推測・空文字化して完了扱いにせず、source artifact または producer contract から traceable でない field は `Deferred` / `NeedsHumanDecision` として保持すること
 - production binding が slice 間にまたがる場合は `Bound` として扱わず、cross-slice verification まで `Deferred` または `PartiallyDone` とすること
 
 ## Must not do
@@ -372,12 +458,14 @@ Handoff Packet の `Required downstream guardrails` には、少なくとも次�
 - `plan-generation.agent.md`、`runtime-evidence.agent.md`、`integration-test-design.agent.md` を next agent として推奨してはいけません
 - scope 全体に対して full `implementation-contract-generation.agent.md` を先に実行するよう推奨してはいけません
 - cross-slice contract を隠すために slice を過度に細分化してはいけません
+- cross-slice required field / state / identifier の source を不明なまま `Done` または completed 扱いにしてはいけません
+- source evidence のない field を fallback、空文字、本文からの推測、別 field からの代用で埋める前提にしてはいけません
 - parent Plan の acceptance condition を slice に分けた結果として消してはいけません
 - slice の実装順序、dependency、verification requirement を曖昧にしたまま終了してはいけません
 
 ## Stop condition
 
-`plans/<ticket-or-slug>-slice-decomposition.md` を作成または更新し、slice IDs、parent contract mapping、cross-slice contract IDs、execution order、final cross-slice verification requirements、Handoff Packet を記録したら停止してください。
+`plans/<ticket-or-slug>-slice-decomposition.md` を作成または更新し、slice IDs、parent contract mapping、cross-slice contract IDs、cross-slice field continuity、execution order、final cross-slice verification requirements、Handoff Packet を記録したら停止してください。
 
 実装対象になる executable slice がある場合は、対応する `plans/<ticket-or-slug>-slice-SL-xxx.md` も作成してください。slice artifact を作れない場合は、その slice を executable として扱わず、`NeedsFurtherDecomposition` または `NeedsHumanDecision` として記録してください。
 
