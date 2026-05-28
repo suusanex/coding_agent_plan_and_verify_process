@@ -149,6 +149,7 @@ Use for the main lightweight process this repository now targets.
    - `implementation-contract-review-kernel.agent.md` or bounded `implementation-contract-review.agent.md`, when the contract is non-trivial
    - `runtime-contract-kernel.agent.md`
    - `test-design-kernel.agent.md`
+   - `implementation-handoff-review.agent.md`
    - implementation by normal agent or human-guided implementation agent
    - `verification-kernel.agent.md`
 5. When step 3 was used, run `cross-slice-verification-kernel.agent.md`
@@ -164,8 +165,13 @@ Implementation handoff must include:
 - `implementation-contract-review-kernel` output when present
 - `runtime-contract-kernel` output
 - `test-design-kernel` output
+- `implementation-handoff-review` output
 - selected implementation scope and non-goals
+- Parent Plan Coverage Ledger
+- Readiness scope: `ParentPlan`, `SelectedScopeOnly`, or `SelectedScopeWithParentResiduals`
+- explicit parent Plan residuals when selected implementation scope is narrower than the parent Plan
 - prohibited substitutions
+- Plan-prohibited substitutions / must-not patterns that `verification-kernel` must smoke-scan
 - unresolved implementation-realization items
 
 The implementation agent must treat the Plan as the source of truth. Kernel artifacts are guardrails for high-risk slices, not substitutes for the Plan.
@@ -248,6 +254,27 @@ Rules:
 - It must identify known high-risk boundary candidates, but detailed selection belongs to `change-risk-triage.agent.md`.
 - It must include non-goals and out-of-scope items so implementation agents do not infer extra work.
 - It must include acceptance conditions that can later be mapped to test points or verification items.
+
+### Parent Plan Coverage Ledger
+
+A lightweight ledger that prevents selected-scope readiness from being mistaken for parent-Plan readiness.
+
+```md
+## Parent Plan Coverage Ledger
+
+| Plan item | Type | Status | Covered by Slice ID | Covered by RC ID | Covered by TP ID | Cross-slice Contract ID | Residual / reason |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+```
+
+Rules:
+
+- Every parent Plan FR / AC must appear in the ledger.
+- Selected runtime contracts are allowed to cover only part of the parent Plan, but uncovered items must remain explicit.
+- `UnmappedBlocking` blocks implementation handoff.
+- `DeferredToKnownSlice` and `CoveredByCrossSliceVerification` allow selected-scope implementation but do not imply parent-Plan completion.
+- `OutOfScopeByPlan` requires explicit support from Plan Non-goals / Out of scope.
+- Downstream agents must not infer completion from absence.
+- Handoff review must include both selected-scope readiness and parent-Plan readiness.
 
 ### Implementation Contract Kernel
 
@@ -389,6 +416,16 @@ Use these statuses consistently unless an existing artifact has a stronger conve
 | `NotImplementedOrMismatch` | Implementation is missing, mismatched, or only test-side / fake-side exists |
 | `OutOfScopeForThisPass` | Valid work, but outside the selected slice |
 | `Bound` | Production interface, production implementation, and production wiring / entrypoint have been confirmed for a test substitute |
+| `CoveredBySelectedScope` | Parent Plan item is covered by selected RC / TP / slice |
+| `CoveredByCrossSliceVerification` | Parent Plan item is intentionally left for cross-slice verification |
+| `DeferredToKnownSlice` | Parent Plan item is deferred to a named slice / RC / gap ID |
+| `OutOfScopeByPlan` | Parent Plan item is explicitly excluded by Plan Non-goals / Out of scope |
+| `UnmappedBlocking` | Parent Plan item is not mapped to selected scope, deferral, cross-slice verification, out-of-scope, or human decision |
+| `MappedButWeak` | Mapping exists but the oracle, binding, or observable acceptance is weak |
+
+### Shared gap type vocabulary
+
+- `plan-smoke-mismatch`: A Plan-prohibited pattern was found in selected production addresses. verification-kernel uses this in `未解決項目.Type` and keeps `Status` as `NotImplementedOrMismatch`.
 
 ## Shared bounded-pass rules
 
@@ -667,6 +704,8 @@ Verify selected runtime contracts and test points after implementation, focusing
 
 ## Runtime contract verification
 
+## Parent Plan smoke scan
+
 ## Stub-to-Production Binding
 
 ## Test observations
@@ -689,9 +728,11 @@ For each selected test point:
 - whether production wiring / entrypoint reaches that implementation
 - whether selected runtime contract fields and error behavior are represented
 - whether the result is still consistent with the Plan requirement / acceptance condition
+- whether selected production addresses contain Plan-prohibited patterns or implementation-contract `RejectedSubstitute` paths
 - when implementation-contract exists, whether runtime address and wiring are consistent with implementation-contract decisions
 - if nearby implementation is wired but Plan-required path is missing, classify as blocking mismatch/gap rather than pass
 - when Plan Slice Decomposition exists, keep slice scope / XC IDs visible and defer cross-slice binding to `cross-slice-verification-kernel.agent.md`
+- when parent Plan residuals remain outside selected scope, keep them visible in the Handoff Packet rather than implying parent Plan completion
 
 ### Verdicts
 
@@ -702,6 +743,8 @@ Use one of:
 - `BLOCKED_BY_PRODUCTION_BINDING_GAP`
 - `BLOCKED_BY_CONTRACT_MISMATCH`
 - `BLOCKED_BY_HUMAN_DECISION`
+
+`PASS_FOR_SELECTED_SCOPE` is limited to selected contracts / test points. It does not mean the parent Plan is complete. A Plan-prohibited pattern found inside selected production addresses is a contract mismatch, not a non-blocking note.
 
 ### Must not do
 
@@ -768,6 +811,10 @@ Use a controlled vocabulary:
 - `PlanAmbiguity`
 - `DesignTooBroadForSlice`
 - `AlreadyCoveredButDocumentationStale`
+- `ParentPlanCoverageGap`
+- `UnmappedParentAcceptance`
+- `ScopeVerdictAmbiguity`
+- `PlanProhibitedPatternDetected`
 
 ### Must not do
 
@@ -816,6 +863,11 @@ Resolve only explicitly selected coverage gaps in one bounded pass.
 For each selected ID:
 
 - map it back to the Plan requirement or runtime contract
+- for `ParentPlanCoverageGap`, `UnmappedParentAcceptance`, `ScopeVerdictAmbiguity`, or `PlanProhibitedPatternDetected`, map the gap back to the exact parent Plan FR / AC
+- for parent Plan coverage gaps, decide whether the fix is a new slice, cross-slice verification update, implementation-contract update, or production implementation fix
+- do not mark a parent Plan coverage gap complete by narrowing selected scope silently
+- update Parent Plan Coverage Ledger in the output/status artifact, or create one in the output if missing
+- if the gap is a Plan-prohibited production pattern, include a negative test or verification hook unless explicitly impossible
 - for `ImplementationContractMissing` / `DependencyMissing` / `ApiSurfaceUnknown` / `UnjustifiedSubstitution` / `SourceOfTruthDrift`, first consume or create the selected-slice implementation contract artifact before direct repair
 - identify the minimal production implementation / wiring / test update needed
 - apply only bounded changes required for that ID
@@ -922,6 +974,11 @@ The corrected process is acceptable when:
 - unresolved work is useful enough to drive a later fix slice
 - the full process remains available for broad high-risk work
 - agent prompts clearly state when to stop rather than continue repairing
+- selected-scope readiness cannot be reported as parent-Plan readiness unless all parent Plan FR / AC are mapped or explicitly out of scope
+- implementation-handoff-review is a mandatory gate in Flow A and creates a Parent Plan Coverage Ledger before any READY verdict is issued
+- verification-kernel performs a bounded Parent Plan smoke scan for Plan-prohibited patterns in selected production addresses
+- Plan-prohibited substitutions found in selected production addresses are classified as contract mismatch, not as non-blocking notes
+- parent residuals remain visible until resolved by a named slice, cross-slice verification, human decision, or explicit out-of-scope decision
 
 ## Suggested README update after `plan-kernel.agent.md` exists
 

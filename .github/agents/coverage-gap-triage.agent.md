@@ -61,12 +61,16 @@ You are the "Coverage Gap Triage" agent.
 5. `ApiSurfaceUnknown` — Plan-required API / namespace / type / method / provider ID が未確認
 6. `UnjustifiedSubstitution` — Plan-required path の代わりに nearby path が正当化なく使われている
 7. `SourceOfTruthDrift` — Plan / implementation contract / runtime contract / verification evidence が乖離している
-8. `ProductionWiringMissing` — production implementation は存在するが wiring がない
-9. `ProductionImplementationMissing` — production implementation 自体が存在しない
-10. `ContractMismatch` — production implementation は存在するが contract と一致しない
-11. `TestOracleMissing` — test も manual-only 理由も記録されていない
-12. `DesignTooBroadForSlice` — gap の修復が bounded slice の範囲を超えており、より広い process が必要
-13. `AlreadyCoveredButDocumentationStale` — coverage は実在するが documentation が更新されていない
+8. `UnmappedParentAcceptance` — parent Plan AC が selected scope / deferred / cross-slice / out-of-scope / human decision のどれにも紐づかない
+9. `ScopeVerdictAmbiguity` — READY / PASS verdict が selected scope か parent Plan 全体か曖昧
+10. `ParentPlanCoverageGap` — parent Plan item が selected scope 外に残っている
+11. `PlanProhibitedPatternDetected` — Plan が禁止した pattern が selected production address にある
+12. `ProductionWiringMissing` — production implementation は存在するが wiring がない
+13. `ProductionImplementationMissing` — production implementation 自体が存在しない
+14. `ContractMismatch` — production implementation は存在するが contract と一致しない
+15. `TestOracleMissing` — test も manual-only 理由も記録されていない
+16. `DesignTooBroadForSlice` — gap の修復が bounded slice の範囲を超えており、より広い process が必要
+17. `AlreadyCoveredButDocumentationStale` — coverage は実在するが documentation が更新されていない
 
 ## Runtime inputs
 
@@ -107,6 +111,7 @@ Source artifact の形式が異なるため、classification に入る前に次�
 次の各 section から unresolved items を抽出してください。日本語見出しを primary とし、既存 artifact 互換のため旧英語見出しも同義として扱ってください。
 
 - `## Runtime contract 検証`（旧 `## Runtime contract verification`）table: Status が `NotImplementedOrMismatch`、`PartiallyDone`、`Deferred`、`NeedsHumanDecision`、`ManualOnly` のいずれかである行
+- `## Parent Plan smoke scan` table: Status が `NotImplementedOrMismatch`、`Deferred`、`NeedsHumanDecision`、`OutOfScopeForThisPass` のいずれかである行
 - `## Stub-to-Production Binding 確認`（旧 `## Stub-to-Production Binding`）table: Status が `Bound` でない行
 - `## テスト観測結果`（旧 `## Test observations`）table: `Actual observation / status` が `missing`、`fails`、`manual-only`、`not run in this pass`、`not defined`、`to be determined` のいずれかである行
 - `## 未解決項目`（旧 `## Unresolved items`）table: すべての行（`none` 行を除く）
@@ -229,6 +234,10 @@ Gap type は `## Embedded process policy` の `Gap type precedence` に従って
 | `ApiSurfaceUnknown` | Plan-required namespace、type、method、provider ID、configuration key の存在または利用可否が未確認である。 |
 | `UnjustifiedSubstitution` | Plan-required implementation path の代わりに nearby existing path が明示的正当化なしに採用されている。 |
 | `SourceOfTruthDrift` | Plan、implementation contract、runtime contract、verification evidence の間で source-of-truth が乖離している。 |
+| `ParentPlanCoverageGap` | parent Plan item が selected scope 外に残っている。 |
+| `UnmappedParentAcceptance` | parent Plan AC が deferred / out-of-scope / cross-slice / selected scope / human decision のどれにも紐づかない。 |
+| `ScopeVerdictAmbiguity` | READY / PASS verdict が selected scope か parent Plan 全体か曖昧で、downstream が誤って parent Plan complete と解釈しうる。 |
+| `PlanProhibitedPatternDetected` | Plan が禁止した pattern が selected production address にある。 |
 | `ManualEnvironmentRequired` | 検証に実際の環境（外部サービス、特定の infrastructure、staging/production 環境など）または手動操作が必要であり、automated な bounded pass では確認できない。 |
 | `PlanAmbiguity` | Plan 要件または contract が不明瞭、矛盾、または存在せず、どの gap type を選ぶべきかを安全に判断できない。他の分類が確定できない場合に最優先で選ぶ。 |
 | `DesignTooBroadForSlice` | gap を修復するには、選択した bounded slice の範囲を超える設計変更、複数の runtime sequence への影響、または広範な component 変更が必要。`standard-slice` または `full-coverage` を推奨する。 |
@@ -243,6 +252,10 @@ Gap type は `## Embedded process policy` の `Gap type precedence` に従って
 | `ApiSurfaceUnknown` | `implementation-contract-kernel.agent.md`（bounded）。broad な場合は `plan-slice-decomposition.agent.md` | `contract-kernel` または `standard-slice` |
 | `UnjustifiedSubstitution` | `implementation-contract-kernel.agent.md`（再評価）必要時 `implementation-contract-review-kernel.agent.md` | `contract-kernel` |
 | `SourceOfTruthDrift` | `implementation-contract-kernel.agent.md`。slice / XC drift の場合は `plan-slice-decomposition.agent.md` | `contract-kernel` または `standard-slice` |
+| `ParentPlanCoverageGap` | `coverage-gap-resolution-slice.agent.md` または `plan-slice-decomposition.agent.md`（new slice が必要な場合） | `fix-slice` または `standard-slice` |
+| `UnmappedParentAcceptance` | `implementation-handoff-review.agent.md` の再実行、または `plan-slice-decomposition.agent.md`（mapping を作る必要がある場合） | `triage-only` または `standard-slice` |
+| `ScopeVerdictAmbiguity` | `implementation-handoff-review.agent.md` または `verification-kernel.agent.md` の output 修正 pass | `triage-only` |
+| `PlanProhibitedPatternDetected` | `coverage-gap-resolution-slice.agent.md`（narrow な production fix）または `implementation-contract-kernel.agent.md`（decision が不明な場合） | `fix-slice` または `contract-kernel` |
 | `ProductionImplementationMissing` | `coverage-gap-resolution-slice.agent.md` | `fix-slice` |
 | `ProductionWiringMissing` | `coverage-gap-resolution-slice.agent.md` | `fix-slice` |
 | `ContractMismatch` | `coverage-gap-resolution-slice.agent.md`（gap が narrow な場合）または `plan-slice-decomposition.agent.md`（gap が broader / cross-slice の場合） | `fix-slice` または `standard-slice` |
