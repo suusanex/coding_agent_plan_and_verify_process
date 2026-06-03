@@ -94,7 +94,7 @@ bounded Plan を作成し、その parent Plan を実装・検証の source of t
 - `change-risk-triage`、`runtime-contract-kernel`、`test-design-kernel`、`implementation-handoff-review` は parent Plan を縮小しません。
 - Guardrail Focus は deep runtime / production-binding verification の重点対象です。implementation scope ではありません。
 - Guardrail Focus 外の parent Plan item も Parent Plan Coverage Ledger で必ず分類します。
-- residual は記録しただけでは accepted ではありません。explicit human decision がある場合だけ `AcceptedResidual`、`ManualVerificationDelegated`、`DeferredWithOwner`、`AbortedWithReason` などにできます。
+- residual は記録しただけでは accepted ではありません。explicit human decision がある場合だけ `AcceptedResidual`、`ManualVerificationRequired`、`DeferredWithOwner`、`AbortedWithReason` などにできます。
 - final done は Parent Plan Coverage Ledger と Residual Decision Ledger で判定します。
 
 ### 典型的な手順
@@ -331,7 +331,7 @@ parent Plan item に影響する changed files と Guardrail Focus surface を�
 ```text
 実装後の状態について、verification-kernel.agent.md を実行してください。
 Parent Plan Coverage Ledger を更新し、Guardrail Focus RC/TP は production implementation、wiring/entrypoint、contract representation を深く確認してください。
-focus 外の parent Plan item も implemented / verified / ManualVerificationRequired / ResidualCandidate / unmapped のいずれかに分類してください。
+focus 外の parent Plan item も implemented / verified / ManualVerificationRequired / ResidualDecisionCandidate / unmapped のいずれかに分類してください。
 修正は行わず、parent Plan verdict と未解決項目を出してください。
 ```
 
@@ -339,7 +339,7 @@ focus 外の parent Plan item も implemented / verified / ManualVerificationReq
 
 ```text
 verification-kernel と coverage-gap-triage の出力を入力として、residual-decision-gate.agent.md を実行してください。
-Residual Decision Ledger を作成し、explicit human decision がある項目だけ AcceptedResidual / ManualVerificationDelegated / DeferredWithOwner / AbortedWithReason として扱ってください。
+Residual Decision Ledger を作成し、explicit human decision がある項目だけ AcceptedResidual / ManualVerificationRequired / DeferredWithOwner / AbortedWithReason として扱ってください。
 human decision がない residual は NEEDS_HUMAN_RESIDUAL_DECISION として停止してください。
 ```
 

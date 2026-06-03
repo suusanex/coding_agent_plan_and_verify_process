@@ -24,7 +24,7 @@ Residual Decision Gate は、parent Plan の未完了・未検証項目を、age
 - Parent Plan Coverage Ledger は parent Plan の FR / AC を source of truth として扱う。
 - Guardrail Focus は deep-check subset であり、implementation scope ではない。
 - residual candidate は記録されただけでは accepted ではない。
-- `AcceptedResidual`、`ManualVerificationDelegated`、`DeferredWithOwner`、`AbortedWithReason` は explicit human decision がある場合だけ付与できる。
+- `AcceptedResidual`、`ManualVerificationRequired`、`DeferredWithOwner`、`AbortedWithReason` は explicit human decision がある場合だけ付与できる。
 - explicit human decision がない項目は `NeedsHumanDecision` として残し、`NEEDS_HUMAN_RESIDUAL_DECISION` で停止する。
 
 ## Inputs

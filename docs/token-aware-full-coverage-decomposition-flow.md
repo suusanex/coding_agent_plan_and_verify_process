@@ -1,44 +1,27 @@
-# full-coverage decomposition in Plan網羅チェック・残件判定フロー
+# Token-aware full-coverage decomposition flow
 
-この file path は互換性のために残しています。内容は、Plan網羅チェック・残件判定フローにおける `full-coverage` 診断時の decomposition policy です。
+## Purpose
 
-## Meaning of full-coverage
+`full-coverage` 判定を、Full autonomous Plan-first flow へのエスカレーションではなく、実装前の Plan slice decomposition として扱うための運用メモです。
 
-`full-coverage` は parent Plan coverage を縮小する合図ではありません。
+このメモは、token-aware kernel flow に関する `full-coverage` の意味付けを要約した補足ポリシーです。`docs/token-aware-guardrail-kernel-process-and-agents.md` 側でも、`### full-coverage`、`Flow A`、`Flow C`、および `runtime-contract-kernel.agent.md` の escalation condition をこの方針に合わせて更新済みです。
 
-It means the parent Plan is too broad, ambiguous, or interconnected for one bounded parent Plan pass, so the process needs one of:
+## Policy
 
-- bounded execution slice decomposition
-- re-plan
-- human decision
-- manual verification handoff
+- `full-coverage` means: the parent Plan is too broad / ambiguous / strongly interconnected to implement as one bounded pass.
+- `full-coverage` does not mean: run `plan-generation.agent.md`, `runtime-evidence.agent.md`, or `integration-test-design.agent.md`.
+- The next step is always `plan-slice-decomposition.agent.md`.
+- The broad autonomous flow remains available only as an explicit, separate process choice; it is not the default interpretation of `full-coverage` inside token-aware triage.
+- Each resulting slice re-enters the token-aware kernel flow.
+- Cross-slice contracts must remain explicit and must be verified after slice implementations.
 
-## Required sequence
+## Minimal chain
 
 ```text
-change-risk-triage
-  -> plan-slice-decomposition
-  -> per-slice bounded parent Plan pass
-  -> cross-slice-verification-kernel
-  -> coverage-gap-triage
-  -> residual-decision-gate
+Parent Plan Kernel
+→ Change Risk Triage
+→ Plan Slice Decomposition
+→ Per-slice Plan網羅チェック・残件判定フロー
+→ Cross-Slice Verification Kernel
+→ Gap triage / selected slice repair when needed
 ```
-
-## Decomposition rules
-
-- Every slice must map to parent Plan FR / AC.
-- A slice is execution packaging, not a smaller parent Plan.
-- Guardrail Focus within a slice is still deep-check focus only.
-- `XC-xxx` must not be completed inside one slice.
-- Parent Plan Coverage Ledger must be updated after verification.
-- Residual Decision Ledger must be produced before unresolved items are accepted, deferred, delegated, or aborted.
-
-## Parent review gate
-
-Before per-slice implementation, the parent agent or reviewer should confirm:
-
-- all parent Plan items are mapped;
-- cross-slice contracts are explicit;
-- residual risk candidates are visible;
-- per-slice artifacts include required inputs for change-risk-triage, runtime-contract-kernel, test-design-kernel, and implementation-handoff-review;
-- final cross-slice verification and Residual Decision Gate are scheduled.
