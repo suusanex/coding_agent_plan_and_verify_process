@@ -40,6 +40,8 @@ developer_instructions = """
 6. slice-local verification-kernel を実行する。
 7. slice-local verification-kernel の verdict（例: PARENT_PLAN_VERIFIED / PARENT_PLAN_NEEDS_RESIDUAL_DECISION / PARENT_PLAN_PARTIAL_WITH_FIX_CANDIDATES / BLOCKED_*）と Remaining Work / residual candidates を出して停止する。
 
+slice-local verification-kernel の `PARENT_PLAN_VERIFIED` は assigned slice-local bounded parent Plan pass に限定され、global parent Plan completion を意味しない。
+
 禁止:
 - 親が READY としていない slice を実装しない。
 - 親が承認した bounded parent Plan pass 外の変更をしない。
@@ -58,6 +60,10 @@ developer_instructions = """
 
 - Status: PARENT_PLAN_VERIFIED / PARENT_PLAN_NEEDS_RESIDUAL_DECISION / PARENT_PLAN_PARTIAL_WITH_FIX_CANDIDATES / BLOCKED_*
 - Reason:
+
+## Verdict scope
+
+SliceLocalBoundedParentPlanPass / GlobalParentPlan
 
 ## Changed files
 
