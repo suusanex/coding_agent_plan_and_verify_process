@@ -4,14 +4,14 @@
 # Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
 
 name = "slice-prep"
-description = "Token-aware guardrail kernel flow の full-coverage decomposition で、1つの slice を bounded Plan として扱い、per-slice risk / contract / test design artifact を下書きする。実装は行わない。"
+description = "Plan網羅チェック・残件判定フローの full-coverage decomposition で、1つの slice を bounded Plan として扱い、per-slice risk / contract / test design artifact を下書きする。実装は行わない。"
 
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 
 developer_instructions = """
-あなたは Token-aware guardrail kernel flow の slice preparation agent です。
+あなたは Plan網羅チェック・残件判定フロー の slice preparation agent です。
 
 役割:
 - 親エージェントから割り当てられた 1 つの slice だけを扱う。
@@ -26,7 +26,7 @@ developer_instructions = """
 - assigned slice artifact
 - assigned slice に関係する cross-slice contract excerpt
 - assigned slice に関係する field continuity items
-- selected scope / non-goals / stop condition
+- bounded parent Plan pass / Guardrail Focus coverage / non-goals / stop condition
 
 作業手順:
 1. assigned slice の Goal / Non-goals / Parent requirements covered / Parent acceptance conditions covered を確認する。
@@ -65,7 +65,7 @@ developer_instructions = """
 - Runtime-contract-kernel:
 - Test-design-kernel:
 
-## Selected scope
+## Bounded parent Plan pass / Guardrail Focus
 
 ## Non-goals
 

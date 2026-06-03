@@ -11,19 +11,20 @@ Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
 
 この repository は、coding agent に Plan-first / verification-first の作業プロセスを渡すための agent / skill / documentation を管理します。
 
-GitHub Copilot 向けの `.github/agents/*.agent.md` が既存の主成果物です。Codex で作業する場合も、既存の Token-aware guardrail kernel flow の用語・責務・artifact chain を source of truth として扱ってください。
+GitHub Copilot 向けの `.github/agents/*.agent.md` が既存の主成果物です。Codex で作業する場合も、既存の Plan網羅チェック・残件判定フロー の用語・責務・artifact chain を source of truth として扱ってください。
 
-## Token-aware guardrail kernel flow の扱い
+## Plan網羅チェック・残件判定フロー の扱い
 
 `change-risk-triage.agent.md` が `full-coverage` を診断した場合、Codex は `plan-slice-decomposition.agent.md` の出力から直接実装に入ってはいけません。
 
-その場合は、原則として `$token-aware-full-coverage-3layer` skill を使ってください。
+その場合は、原則として `$token-aware-full-coverage-3layer` skill を使ってください。この skill 名は互換用の legacy invocation です。本文では Plan網羅チェック・残件判定フローとして扱います。
 
 この skill は、次の3層で進めます。
 
 1. 親エージェントによる orchestration と parent review gate
 2. slice-prep subagent による slice 単位の kernel artifact 下書き
-3. slice-impl subagent による親承認済み slice の実装と verification-kernel
+3. slice-impl subagent による親承認済み slice-local bounded parent Plan pass の実装と verification-kernel
+4. 親エージェントによる cross-slice-verification-kernel と residual-decision-gate
 
 ## 重要な禁止事項
 
@@ -36,7 +37,7 @@ GitHub Copilot 向けの `.github/agents/*.agent.md` が既存の主成果物で
 ## Codex での典型的な起動例
 
 ```text
-$token-aware-full-coverage-3layer を使って、この full-coverage decomposition を進めて。
+$token-aware-full-coverage-3layer を使って、この full-coverage decomposition を Plan網羅チェック・残件判定フローとして進めて。
 まず slice preparation と parent review gate まで。実装はまだ行わない。
 ```
 
