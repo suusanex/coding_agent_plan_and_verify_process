@@ -24,7 +24,8 @@ Residual Decision Gate は、parent Plan の未完了・未検証項目を、age
 - Parent Plan Coverage Ledger は parent Plan の FR / AC を source of truth として扱う。
 - Guardrail Focus は deep-check subset であり、implementation scope ではない。
 - residual candidate は記録されただけでは accepted ではない。
-- `AcceptedResidual`、`ManualVerificationRequired`、`DeferredWithOwner`、`AbortedWithReason` は explicit human decision がある場合だけ付与できる。
+- `ManualVerificationRequired` は close 不可の residual candidate status であり、accepted residual ではない。
+- `AcceptedResidual`、`ManualVerificationDelegated`、`DeferredWithOwner`、`AbortedWithReason` は explicit human decision がある場合だけ付与できる。
 - explicit human decision がない項目は `NeedsHumanDecision` として残し、`NEEDS_HUMAN_RESIDUAL_DECISION` で停止する。
 
 ## Inputs
@@ -62,9 +63,10 @@ parent Plan item ごとに実装・検証・residual status を分類してく�
 各 residual candidate について、次のいずれかを判断してください。
 
 - `FixNow`: 次の bounded fix pass で修正する
-- `ManualVerificationRequired`: manual verification handoff が必要
+- `ManualVerificationRequired`: manual verification が必要な residual candidate。close 不可
 - `NeedsHumanDecision`: human decision が必要
 - `AcceptedResidual`: explicit human decision により accepted
+- `ManualVerificationDelegated`: explicit human decision により owner / method / required evidence が明示され、manual verification handoff へ委譲済み
 - `DeferredWithOwner`: explicit human decision により owner / follow-up が決まっている
 - `AbortedWithReason`: explicit human decision により abort 理由が決まっている
 - `ReplanRequired`: parent Plan 変更が必要
@@ -76,7 +78,7 @@ parent Plan item ごとに実装・検証・residual status を分類してく�
 | Verdict | Meaning |
 | --- | --- |
 | `READY_TO_CLOSE_WITH_NO_RESIDUALS` | parent Plan の全 FR / AC が implemented + verified で blocking residual がない |
-| `READY_TO_CLOSE_WITH_ACCEPTED_RESIDUALS` | unresolved items はすべて explicit human decision により accepted / delegated / deferred / aborted になっている |
+| `READY_TO_CLOSE_WITH_ACCEPTED_RESIDUALS` | unresolved items はすべて explicit human decision により accepted / manual-verification-delegated / deferred / aborted になっている |
 | `READY_FOR_NEXT_BOUNDED_FIX_PASS` | FixNow items があり、次 bounded pass で修正すべき |
 | `READY_FOR_MANUAL_VERIFICATION_HANDOFF` | manual verification handoff が必要で、必要な owner / method / evidence が明示されている |
 | `NEEDS_HUMAN_RESIDUAL_DECISION` | human decision がない residual candidate が残る |
@@ -139,6 +141,8 @@ parent Plan item ごとに実装・検証・residual status を分類してく�
 - Plan を勝手に変更しない。
 - human decision がない residual を accepted 扱いしない。
 - `ManualVerificationRequired` を「確認済み」と扱わない。
+- `ManualVerificationRequired` を close-ready な accepted residual と扱わない。
+- owner / method / required evidence が明示されていない manual verification を `ManualVerificationDelegated` と扱わない。
 - residual を記録しただけで close verdict を出さない。
 - Guardrail Focus verification を parent Plan completion と表現しない。
 

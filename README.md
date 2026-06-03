@@ -94,7 +94,7 @@ bounded Plan を作成し、その parent Plan を実装・検証の source of t
 - `change-risk-triage`、`runtime-contract-kernel`、`test-design-kernel`、`implementation-handoff-review` は parent Plan を縮小しません。
 - Guardrail Focus は deep runtime / production-binding verification の重点対象です。implementation scope ではありません。
 - Guardrail Focus 外の parent Plan item も Parent Plan Coverage Ledger で必ず分類します。
-- residual は記録しただけでは accepted ではありません。explicit human decision がある場合だけ `AcceptedResidual`、`ManualVerificationRequired`、`DeferredWithOwner`、`AbortedWithReason` などにできます。
+- residual は記録しただけでは accepted ではありません。`ManualVerificationRequired` は close 不可の candidate status です。explicit human decision により owner / method / required evidence が明示された場合だけ、`AcceptedResidual`、`ManualVerificationDelegated`、`DeferredWithOwner`、`AbortedWithReason` などの close 可能な decision status にできます。
 - final done は Parent Plan Coverage Ledger と Residual Decision Ledger で判定します。
 
 ### 典型的な手順
@@ -247,7 +247,7 @@ slice ごとの pass を parent Plan completion と扱わず、parent acceptance
 - `REPLAN_REQUIRED`
 - `ABORT_RECOMMENDED`
 
-`READY_TO_CLOSE_WITH_ACCEPTED_RESIDUALS` は、input artifact、issue comment、PR comment、user prompt などに explicit human decision がある場合だけ出せます。
+`READY_TO_CLOSE_WITH_ACCEPTED_RESIDUALS` は、input artifact、issue comment、PR comment、user prompt などに explicit human decision がある場合だけ出せます。`ManualVerificationRequired` のままでは close 不可で、owner / method / required evidence が明示された `ManualVerificationDelegated` に変換されている必要があります。
 
 ---
 
@@ -339,7 +339,8 @@ focus 外の parent Plan item も implemented / verified / ManualVerificationReq
 
 ```text
 verification-kernel と coverage-gap-triage の出力を入力として、residual-decision-gate.agent.md を実行してください。
-Residual Decision Ledger を作成し、explicit human decision がある項目だけ AcceptedResidual / ManualVerificationRequired / DeferredWithOwner / AbortedWithReason として扱ってください。
+Residual Decision Ledger を作成し、`ManualVerificationRequired` は close 不可の candidate action、`ManualVerificationDelegated` は owner / method / required evidence が明示された explicit decision 後の decision status として扱ってください。
+explicit human decision がある項目だけ AcceptedResidual / ManualVerificationDelegated / DeferredWithOwner / AbortedWithReason として扱ってください。
 human decision がない residual は NEEDS_HUMAN_RESIDUAL_DECISION として停止してください。
 ```
 
@@ -385,7 +386,8 @@ Plan網羅チェック・残件判定フローでは、通常は次の成果物�
 - Parent Plan Coverage Ledger を実装前と検証後に維持する
 - Residual Decision Ledger なしに residual を accepted 扱いしない
 - `AcceptedResidual` は explicit human decision がある場合だけ使う
-- `ManualVerificationRequired` は「確認済み」ではなく、decision gate へ渡す状態として扱う
+- `ManualVerificationRequired` は「確認済み」ではなく、decision gate へ渡す close 不可の candidate status として扱う
+- `ManualVerificationDelegated` は owner / method / required evidence が明示された explicit human decision 後の close 可能な decision status として扱う
 - 不明な項目を推測で埋めない
 - テストが通ることを production binding の証拠にしない
 - fake / stub だけを production の完成と扱わない

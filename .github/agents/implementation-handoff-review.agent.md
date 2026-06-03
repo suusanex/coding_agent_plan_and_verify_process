@@ -312,8 +312,8 @@ READY_FOR_BOUNDED_PARENT_PLAN_PASS | READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DEC
 | --- | --- |
 | Verdict | READY_FOR_BOUNDED_PARENT_PLAN_PASS / READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS / BLOCKED_BY_UNMAPPED_PARENT_ACCEPTANCE / BLOCKED_BY_ARTIFACT_MISMATCH / BLOCKED_BY_HUMAN_DECISION / BLOCKED |
 | Scope | ParentPlanPass / ParentPlanPassWithResidualRisks / Blocked |
-| Parent Plan complete? | Yes / No / Not evaluated |
-| Selected scope ready? | Yes / No |
+| Parent Plan coverage ledger complete? | Yes / No / Not evaluated |
+| Guardrail Focus ready? | Yes / No / NotApplicable |
 
 ## ブロッキング問題
 

@@ -209,7 +209,7 @@ Verdict を次の優先順位で決定してください。高優先度の条件
 3. **`BLOCKED_BY_HUMAN_DECISION`**: 上記の客観的 failure を断定できず、human decision なしに安全に verdict を出せない
 4. **`PARENT_PLAN_NEEDS_RESIDUAL_DECISION`**: blocking implementation gap はないが、explicit human decision がない residual candidate、manual-only、parent-plan-residual、parent-plan-smoke-deferred が残る
 5. **`PARENT_PLAN_PARTIAL_WITH_FIX_CANDIDATES`**: blocking mismatch はないが、次 bounded pass で直すべき FixNow items がある
-6. **`PARENT_PLAN_VERIFIED_WITH_ACCEPTED_RESIDUALS`**: 未完了・未検証項目は存在するが、すべて explicit human decision により `AcceptedResidual` / `ManualVerificationRequired` / `DeferredWithOwner` / `AbortedWithReason` として分類済みで、blocking residual がない
+6. **`PARENT_PLAN_VERIFIED_WITH_ACCEPTED_RESIDUALS`**: 未完了・未検証項目は存在するが、すべて explicit human decision により `AcceptedResidual` / `ManualVerificationDelegated` / `DeferredWithOwner` / `AbortedWithReason` として分類済みで、blocking residual がない。`ManualVerificationRequired` は close 不可の candidate status であり、この verdict の根拠にしてはいけない
 7. **`PARENT_PLAN_VERIFIED`**: parent Plan のすべての FR / AC が implemented + verified で、blocking residual がない
 
 Guardrail Focus deep verification だけでは `PARENT_PLAN_VERIFIED` を出してはいけません。focus 外 parent Plan item は Parent Plan Coverage Ledger で分類してください。
@@ -353,7 +353,7 @@ Guardrail Focus deep verification だけでは `PARENT_PLAN_VERIFIED` を出し�
 | Verdict | 意味と適用条件 |
 | --- | --- |
 | `PARENT_PLAN_VERIFIED` | parent Plan のすべての FR / AC が implemented + verified で、blocking residual がない |
-| `PARENT_PLAN_VERIFIED_WITH_ACCEPTED_RESIDUALS` | 未完了・未検証項目は存在するが、すべて explicit human decision により accepted / manual verification required / deferred / aborted として分類済みで、blocking residual がない |
+| `PARENT_PLAN_VERIFIED_WITH_ACCEPTED_RESIDUALS` | 未完了・未検証項目は存在するが、すべて explicit human decision により accepted / manual verification delegated / deferred / aborted として分類済みで、blocking residual がない。manual verification required のままでは close 不可 |
 | `PARENT_PLAN_PARTIAL_WITH_FIX_CANDIDATES` | blocking mismatch はないが、次 bounded pass で直すべき FixNow items がある |
 | `PARENT_PLAN_NEEDS_RESIDUAL_DECISION` | agent が defer / manual / abort を推奨できるが、explicit human decision がない |
 | `BLOCKED_BY_PRODUCTION_BINDING_GAP` | `Production binding required?` が `Yes` の selected test point または selected runtime contract について、Plan-required / implementation-contract-selected production path の interface、concrete implementation、または wiring/entrypoint の欠如が1つ以上確認された。substitute を使う test point に限定しない |
