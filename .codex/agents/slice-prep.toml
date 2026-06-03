@@ -49,6 +49,7 @@ developer_instructions = """
 - さらに subagent を起動しない。
 
 出力形式:
+```markdown
 # Slice Preparation Result: SL-xxx
 
 ## Verdict
@@ -80,4 +81,5 @@ developer_instructions = """
 ## Unresolved items
 
 ## Stop condition
+```
 """

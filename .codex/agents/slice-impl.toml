@@ -51,6 +51,7 @@ developer_instructions = """
 - stub / fake / mock / in-memory test だけで production complete と判断しない。
 
 出力形式:
+```markdown
 # Slice Implementation Result: SL-xxx
 
 ## Verdict
@@ -74,4 +75,5 @@ developer_instructions = """
 ## Remaining Work
 
 ## Handoff to parent
+```
 """
