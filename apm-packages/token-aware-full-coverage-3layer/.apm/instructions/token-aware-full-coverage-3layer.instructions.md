@@ -1,11 +1,6 @@
-# AGENTS.md
-
-<!--
-Copyright (c) 2026 suusanex (GitHub UserName)
-SPDX-License-Identifier: CC-BY-4.0
-License: https://creativecommons.org/licenses/by/4.0/
-Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
--->
+---
+description: Codex project guidance for Plan網羅チェック・残件判定フロー when full-coverage decomposition requires three-layer slice orchestration.
+---
 
 ## Codex 向けプロジェクト指示
 

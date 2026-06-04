@@ -1,0 +1,12 @@
+name: token-aware-full-coverage-3layer
+version: 0.1.1
+description: 3-layer full-coverage workflow package (parent review gate + slice prep + slice impl) for token-aware decomposition flows
+type: hybrid
+targets:
+  - copilot
+  - codex
+  - agent-skills
+includes: auto
+
+dependencies:
+  apm: []
