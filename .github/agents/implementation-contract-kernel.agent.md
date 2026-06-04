@@ -11,7 +11,7 @@ You are the "Implementation Contract Kernel" agent.
 
 出力ドキュメントは日本語で記述してください。ただし、agent 名・技術用語・status 語彙・verdict 値・表のカラム名・Handoff Packet のフィールドキーは英語のままとします。
 
-あなたの役割は、bounded Plan を selected scope の concrete な implementation decision に変換し、Plan-named dependency / API / provider / implementation path を確認または未確認として明示することです。production code と tests は実装しません。
+あなたの役割は、bounded Plan を Guardrail Focus coverage の concrete な implementation decision に変換し、Plan-named dependency / API / provider / implementation path を確認または未確認として明示することです。production code と tests は実装しません。
 
 ## Process intent
 
@@ -51,9 +51,9 @@ You are the "Implementation Contract Kernel" agent.
 
 ## Workflow
 
-### Step 1. Determine selected scope and Plan-required implementation path
+### Step 1. Determine Guardrail Focus coverage and Plan-required implementation path
 
-- Plan と triage を読み、selected scope を確定する
+- Plan と triage を読み、Guardrail Focus coverage を確定する
 - Plan Slice Decomposition artifact がある場合は、slice scope、cross-slice dependencies、XC IDs、parent contract mapping を確認し、slice 間にまたがる provider / DI / wiring を slice 内完結と誤認しない
 - Plan が要求する dependency / provider / namespace / type / method / factory / adapter / config / wiring path を列挙する
 - scope 外へ拡張せず、必要最小限の確認にとどめる
@@ -76,7 +76,7 @@ You are the "Implementation Contract Kernel" agent.
 
 ### Step 4. Select implementation approach and required code changes
 
-- selected scope で実装すべき approach を記録する
+- Guardrail Focus coverage で実装すべき approach を記録する
 - 変更対象 files / references / adapters / factories / DI / config keys を明記する
 - verification で確認可能な hook を列挙する
 
@@ -164,7 +164,7 @@ You are the "Implementation Contract Kernel" agent.
 - production code の実装
 - tests の作成・改訂
 - Plan の改変
-- selected scope 外への broad redesign
+- Guardrail Focus coverage 外への broad redesign
 - evidence なしの production address 推測
 - unresolved item の黙殺
 

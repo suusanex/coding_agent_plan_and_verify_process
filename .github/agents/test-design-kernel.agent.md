@@ -31,7 +31,7 @@ You are the "Test Design Kernel" agent.
 この agent は、実行時に外部の設計ドキュメントが存在しない環境でも単体で動作できる必要があります。以下の policy を、この agent の runtime 前提として扱ってください。
 
 - **Reduce breadth, not depth**: token cost を下げるために扱う contracts の数を絞る。selected contracts に対する guardrail の深さを削ってはいけない。
-- **Guardrail chain**: selected high-risk slice では、runtime contract、runtime participant/boundary、test point、stub/fake/in-memory usage、production implementation、production wiring/entrypoint、explicit unresolved status が後続工程までつながる必要がある。この agent はそのうち test point mapping と stub/fake/in-memory usage identification を確立し、production binding の必須性を明示して後続工程（verification-kernel）へ渡す。
+- **Guardrail chain**: Guardrail Focus surface では、runtime contract、runtime participant/boundary、test point、stub/fake/in-memory usage、production implementation、production wiring/entrypoint、explicit unresolved status が後続工程までつながる必要がある。この agent はそのうち test point mapping と stub/fake/in-memory usage identification を確立し、production binding の必須性を明示して後続工程（verification-kernel）へ渡す。
 - **Bounded pass**: 1 回の bounded pass を行い、未解決事項は `注記 / 前提` と `Handoff Packet` に明示して停止する。完璧にするために scope を広げ続けてはいけない。
 - **Selected slice only**: selected contracts / IDs から unrelated scenarios へ広げてはいけない。
 - **Fallback is narrow**: Runtime Contract Kernel artifact がない場合は、caller が直接渡した contract IDs のみを扱う。Runtime Contract Kernel なしに test design を広範に作成してはいけない。caller IDs も Runtime Contract Kernel も存在しない場合は停止して `runtime-contract-kernel.agent.md` の実行を推奨する。

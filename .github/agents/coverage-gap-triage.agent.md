@@ -61,9 +61,9 @@ You are the "Coverage Gap Triage" agent.
 5. `ApiSurfaceUnknown` — Plan-required API / namespace / type / method / provider ID が未確認
 6. `UnjustifiedSubstitution` — Plan-required path の代わりに nearby path が正当化なく使われている
 7. `SourceOfTruthDrift` — Plan / implementation contract / runtime contract / verification evidence が乖離している
-8. `UnmappedParentAcceptance` — parent Plan AC が selected scope / deferred / cross-slice / out-of-scope / human decision のどれにも紐づかない
-9. `ScopeVerdictAmbiguity` — READY / PASS verdict が selected scope か parent Plan 全体か曖昧
-10. `ParentPlanCoverageGap` — parent Plan item が selected scope 外に残っている
+8. `UnmappedParentAcceptance` — parent Plan AC が Guardrail Focus coverage / deferred / cross-slice / out-of-scope / human decision のどれにも紐づかない
+9. `ScopeVerdictAmbiguity` — READY / PASS verdict が Guardrail Focus coverage か parent Plan 全体か曖昧
+10. `ParentPlanCoverageGap` — parent Plan item が Guardrail Focus coverage 外に残っている
 11. `PlanProhibitedPatternDetected` — Plan が禁止した pattern が selected production address にある
 12. `ProductionWiringMissing` — production implementation は存在するが wiring がない
 13. `ProductionImplementationMissing` — production implementation 自体が存在しない
@@ -234,9 +234,9 @@ Gap type は `## Embedded process policy` の `Gap type precedence` に従って
 | `ApiSurfaceUnknown` | Plan-required namespace、type、method、provider ID、configuration key の存在または利用可否が未確認である。 |
 | `UnjustifiedSubstitution` | Plan-required implementation path の代わりに nearby existing path が明示的正当化なしに採用されている。 |
 | `SourceOfTruthDrift` | Plan、implementation contract、runtime contract、verification evidence の間で source-of-truth が乖離している。 |
-| `ParentPlanCoverageGap` | parent Plan item が selected scope 外に残っている。 |
-| `UnmappedParentAcceptance` | parent Plan AC が deferred / out-of-scope / cross-slice / selected scope / human decision のどれにも紐づかない。 |
-| `ScopeVerdictAmbiguity` | READY / PASS verdict が selected scope か parent Plan 全体か曖昧で、downstream が誤って parent Plan complete と解釈しうる。 |
+| `ParentPlanCoverageGap` | parent Plan item が Guardrail Focus coverage 外に残っている。 |
+| `UnmappedParentAcceptance` | parent Plan AC が deferred / out-of-scope / cross-slice / Guardrail Focus coverage / human decision のどれにも紐づかない。 |
+| `ScopeVerdictAmbiguity` | READY / PASS verdict が Guardrail Focus coverage か parent Plan 全体か曖昧で、downstream が誤って parent Plan complete と解釈しうる。 |
 | `PlanProhibitedPatternDetected` | Plan が禁止した pattern が selected production address にある。 |
 | `ManualEnvironmentRequired` | 検証に実際の環境（外部サービス、特定の infrastructure、staging/production 環境など）または手動操作が必要であり、automated な bounded pass では確認できない。 |
 | `PlanAmbiguity` | Plan 要件または contract が不明瞭、矛盾、または存在せず、どの gap type を選ぶべきかを安全に判断できない。他の分類が確定できない場合に最優先で選ぶ。 |

@@ -1,8 +1,8 @@
-# Token-aware Guardrail Kernel: Process and Agent Requirements
+# Plan Coverage Check and Residual Decision Flow: Process and Agent Requirements
 
 ## Purpose of this document
 
-This document defines a concrete process and agent structure for making the Plan-first workflow token-aware while preserving the guardrails that prevent cross-process contract mismatches and stub-only implementation success.
+This document defines a concrete process and agent structure for making the Plan-first workflow bounded and token-conscious while preserving the guardrails that prevent cross-process contract mismatches and stub-only implementation success.
 
 This document is a requirements specification for creating or revising agents. It is not an implementation task list.
 
@@ -18,20 +18,20 @@ This document is a requirements specification for creating or revising agents. I
 
 ## Design policy
 
-The process reduces cost by narrowing the target slice, not by removing essential guardrails.
+The process reduces cost by narrowing Guardrail Focus coverage for deep checks, not by shrinking parent Plan implementation scope or removing essential guardrails.
 
-The token-aware flow is still a Plan-first flow. It must not start implementation from risk triage or runtime-contract artifacts alone.
+The Plan網羅チェック・残件判定フロー is still a Plan-first flow. It must not start implementation from risk triage or runtime-contract artifacts alone.
 
 The required high-level chain is:
 
 1. create a bounded Plan for the requested change
-2. classify high-risk runtime slices inside that Plan
-3. preserve guardrails for selected high-risk slices
+2. classify Guardrail Focus coverage inside that Plan
+3. preserve guardrails for Guardrail Focus surfaces
 4. implement against the Plan as the source of truth
-5. verify selected contracts, test points, production implementation, and production wiring
-6. classify and resolve remaining gaps through bounded slices
+5. verify Guardrail Focus contracts, test points, production implementation, and production wiring
+6. update Parent Plan Coverage Ledger and route unresolved items through coverage-gap-triage and residual-decision-gate
 
-For selected high-risk slices, the process must still connect:
+For Guardrail Focus surfaces, the process must still connect:
 
 1. Plan requirement / acceptance condition
 2. runtime contract
@@ -43,11 +43,11 @@ For selected high-risk slices, the process must still connect:
 
 ## Corrected process gap
 
-The originally drafted token-aware kernel process began with `change-risk-triage.agent.md`. That was incomplete for the intended purpose.
+The originally drafted lightweight kernel process began with `change-risk-triage.agent.md`. That was incomplete for the intended purpose.
 
 The goal of this repository is not merely to triage risk. The goal is to keep the existing Plan-first sequence — create Plan, implement, and verify that implementation gaps are not missed — while reducing token consumption and avoiding open-ended repair loops.
 
-Therefore, the token-aware flow needs a lightweight Plan creation phase before risk triage.
+Therefore, the Plan網羅チェック・残件判定フロー needs a lightweight Plan creation phase before risk triage.
 
 The chosen direction is to add a dedicated `plan-kernel.agent.md` instead of making `change-risk-triage.agent.md` generate a Plan.
 
@@ -66,7 +66,7 @@ Creates a bounded implementation Plan for the requested change.
 
 Use when:
 
-- the user wants token-aware Plan-first development
+- the user wants bounded Plan-first development with token-conscious guardrails
 - full runtime evidence and full integration test design would be too expensive at the Plan stage
 - the implementation still needs a complete enough source of truth before risk triage
 - the downstream kernel agents need a Plan to map contracts, test points, implementation, and verification back to requirements
@@ -101,7 +101,7 @@ This profile does not require exhaustive scenario coverage. It requires deep eno
 
 ### `standard-slice`
 
-Runs a bounded Plan-first process for selected runtime contracts or selected integration test IDs.
+Runs a bounded Plan-first process with Guardrail Focus runtime contracts or explicitly selected integration test IDs.
 
 Use when:
 
@@ -111,7 +111,7 @@ Use when:
 
 ### `full-coverage`
 
-Indicates that the current bounded Plan is too broad, ambiguous, or strongly interconnected to be continued as a single token-aware implementation pass.
+Indicates that the current bounded Plan is too broad, ambiguous, or strongly interconnected to be continued as a single Plan網羅チェック implementation pass.
 
 Use when:
 
@@ -121,13 +121,13 @@ Use when:
 - human review needs detailed runtime evidence
 - prior implementation attempts already exposed sequence or production-binding gaps
 
-In the token-aware flow, this is not an automatic handoff to Flow C.
+In the Plan網羅チェック・残件判定フロー, this is not an automatic handoff to Flow C.
 The immediate next step is the `plan-slice-decomposition` agent.
-Each resulting slice then re-enters the token-aware kernel flow and finishes with `cross-slice-verification-kernel.agent.md`.
+Each resulting slice then re-enters the Plan網羅チェック・残件判定フロー as a bounded parent Plan pass. After slice verification, the parent flow runs `cross-slice-verification-kernel.agent.md` and then `residual-decision-gate.agent.md`.
 
 ### `fix-slice`
 
-Resolves explicitly selected gaps only.
+Resolves explicit FixNow gaps only.
 
 Use when:
 
@@ -137,14 +137,14 @@ Use when:
 
 ## Recommended process flows
 
-### Flow A: Token-aware Plan-first guardrail flow
+### Main flow: Plan網羅チェック・残件判定フロー
 
 Use for the main lightweight process this repository now targets.
 
 1. `plan-kernel.agent.md`
 2. `change-risk-triage.agent.md`
 3. If triage recommends `full-coverage`, run `plan-slice-decomposition.agent.md`
-4. Run each resulting slice through the bounded token-aware flow:
+4. Run each resulting slice through the bounded Plan網羅チェック・残件判定フロー:
    - `implementation-contract-kernel.agent.md`, when implementation-realization risk is present
    - `implementation-contract-review-kernel.agent.md` or bounded `implementation-contract-review.agent.md`, when the contract is non-trivial
    - `runtime-contract-kernel.agent.md`
@@ -153,32 +153,33 @@ Use for the main lightweight process this repository now targets.
    - implementation by normal agent or human-guided implementation agent
    - `verification-kernel.agent.md`
 5. When step 3 was used, run `cross-slice-verification-kernel.agent.md`
-6. `coverage-gap-triage.agent.md`, when unresolved items remain
-7. `coverage-gap-resolution-slice.agent.md`, for selected bounded gaps
+6. `coverage-gap-triage.agent.md`, when FixNow candidates or unresolved implementation coverage items need classification
+7. `residual-decision-gate.agent.md`, when residual / manual / human-decision candidates remain
+8. `coverage-gap-resolution-slice.agent.md`, only when coverage-gap-triage or residual-decision-gate emits an explicit FixNow selector
 
 Implementation handoff must include:
 
 - the bounded Plan from `plan-kernel.agent.md`
 - `change-risk-triage` output
-- `plan-slice-decomposition` output when the implementation scope comes from full-coverage decomposition
+- `plan-slice-decomposition` output when the bounded parent Plan pass comes from full-coverage decomposition
 - `implementation-contract-kernel` output when required
 - `implementation-contract-review-kernel` output when present
 - `runtime-contract-kernel` output
 - `test-design-kernel` output
 - `implementation-handoff-review` output
-- selected implementation scope and non-goals
+- parent Plan implementation surface and non-goals
 - Parent Plan Coverage Ledger
-- Readiness scope: `ParentPlan`, `SelectedScopeOnly`, or `SelectedScopeWithParentResiduals`
-- explicit parent Plan residuals when selected implementation scope is narrower than the parent Plan
+- Readiness scope: `ParentPlanPass`, `ParentPlanPassWithResidualRisks`, or `Blocked`
+- explicit parent Plan residuals when parent Plan implementation surface is narrower than the parent Plan
 - prohibited substitutions
 - Plan-prohibited substitutions / must-not patterns that `verification-kernel` must smoke-scan
 - unresolved implementation-realization items
 
-The implementation agent must treat the Plan as the source of truth. Kernel artifacts are guardrails for high-risk slices, not substitutes for the Plan.
+The implementation agent must treat the Plan as the source of truth. Kernel artifacts are guardrails for Guardrail Focus coverage, not substitutes for the Plan.
 
 If triage does not recommend `full-coverage`, step 4 can be executed as a single bounded pass without decomposition.
 
-The token-aware process documentation must also enforce these points:
+The Plan網羅チェック process documentation must also enforce these points:
 
 - Runtime contract artifacts are not substitutes for implementation contract artifacts.
 - Plan conformance checks are required but do not remove the need to investigate unknown implementation paths.
@@ -187,7 +188,7 @@ The token-aware process documentation must also enforce these points:
 
 ### Flow B: Minimal high-risk guardrail sub-flow
 
-Use only after a bounded Plan exists and the selected risky area is already clear.
+Use only after a bounded Plan exists and the Guardrail Focus area is already clear.
 
 1. `change-risk-triage.agent.md`
 2. `implementation-contract-kernel.agent.md`（when implementation-realization risk is present）
@@ -195,7 +196,8 @@ Use only after a bounded Plan exists and the selected risky area is already clea
 4. `test-design-kernel.agent.md`
 5. implementation by normal agent or human-guided implementation agent using the Plan plus kernel artifacts
 6. `verification-kernel.agent.md`
-7. optional `coverage-gap-resolution-slice.agent.md`
+7. `coverage-gap-triage.agent.md` or `residual-decision-gate.agent.md` when unresolved items remain
+8. `coverage-gap-resolution-slice.agent.md` only when an explicit FixNow selector exists
 
 This sub-flow must not be used as a replacement for Plan creation.
 
@@ -203,7 +205,7 @@ This sub-flow must not be used as a replacement for Plan creation.
 
 Use only when the user explicitly chooses the broad autonomous process for broad, ambiguous, or highly interconnected changes.
 
-This flow remains available, but it is not the automatic interpretation of `full-coverage` inside the token-aware `change-risk-triage.agent.md` route.
+This flow remains available, but it is not the automatic interpretation of `full-coverage` inside the Plan網羅チェック `change-risk-triage.agent.md` route.
 
 1. `plan-generation.agent.md`
 2. `runtime-evidence.agent.md`
@@ -248,7 +250,7 @@ A bounded Plan artifact should use this shape unless the repository already has 
 
 Rules:
 
-- The Plan Kernel is the implementation source of truth for the token-aware flow.
+- The Plan Kernel is the implementation source of truth for the Plan網羅チェック・残件判定フロー.
 - It must describe the whole requested change at a useful implementation level, not only high-risk boundaries.
 - It must not expand into full runtime evidence or full integration test design.
 - It must identify known high-risk boundary candidates, but detailed selection belongs to `change-risk-triage.agent.md`.
@@ -257,7 +259,7 @@ Rules:
 
 ### Parent Plan Coverage Ledger
 
-A lightweight ledger that prevents selected-scope readiness from being mistaken for parent-Plan readiness.
+A lightweight ledger that prevents Guardrail Focus readiness from being mistaken for bounded parent-Plan pass readiness.
 
 ```md
 ## Parent Plan Coverage Ledger
@@ -271,10 +273,10 @@ Rules:
 - Every parent Plan FR / AC must appear in the ledger.
 - Selected runtime contracts are allowed to cover only part of the parent Plan, but uncovered items must remain explicit.
 - `UnmappedBlocking` blocks implementation handoff.
-- `DeferredToKnownSlice` and `CoveredByCrossSliceVerification` allow selected-scope implementation but do not imply parent-Plan completion.
+- `DeferredToKnownSlice` and `CoveredByCrossSliceVerification` allow a bounded parent Plan pass to proceed, but do not imply parent-Plan completion.
 - `OutOfScopeByPlan` requires explicit support from Plan Non-goals / Out of scope.
 - Downstream agents must not infer completion from absence.
-- Handoff review must include both selected-scope readiness and parent-Plan readiness.
+- Handoff review must include both Guardrail Focus readiness and bounded parent-Plan pass readiness.
 
 ### Implementation Contract Kernel
 
@@ -414,13 +416,13 @@ Use these statuses consistently unless an existing artifact has a stronger conve
 | `ManualOnly` | Requires manual or real-environment validation |
 | `NeedsHumanDecision` | Cannot safely proceed without a product, architecture, policy, or risk decision |
 | `NotImplementedOrMismatch` | Implementation is missing, mismatched, or only test-side / fake-side exists |
-| `OutOfScopeForThisPass` | Valid work, but outside the selected slice |
+| `OutOfScopeForThisPass` | Valid work, but outside the bounded parent Plan pass or Guardrail Focus coverage |
 | `Bound` | Production interface, production implementation, and production wiring / entrypoint have been confirmed for a test substitute |
-| `CoveredBySelectedScope` | Parent Plan item is covered by selected RC / TP / slice |
+| `CoveredByGuardrailFocus` | Parent Plan item is covered by selected RC / TP / slice |
 | `CoveredByCrossSliceVerification` | Parent Plan item is intentionally left for cross-slice verification |
 | `DeferredToKnownSlice` | Parent Plan item is deferred to a named slice / RC / gap ID |
 | `OutOfScopeByPlan` | Parent Plan item is explicitly excluded by Plan Non-goals / Out of scope |
-| `UnmappedBlocking` | Parent Plan item is not mapped to selected scope, deferral, cross-slice verification, out-of-scope, or human decision |
+| `UnmappedBlocking` | Parent Plan item is not mapped to Guardrail Focus coverage, deferral, cross-slice verification, out-of-scope, or human decision |
 | `MappedButWeak` | Mapping exists but the oracle, binding, or observable acceptance is weak |
 
 ### Shared gap type vocabulary
@@ -429,13 +431,13 @@ Use these statuses consistently unless an existing artifact has a stronger conve
 
 ## Shared bounded-pass rules
 
-All token-aware agents should follow these rules unless the user explicitly asks to leave the token-aware route and run the full autonomous flow:
+All Plan網羅チェック agents should follow these rules unless the user explicitly asks to leave the bounded route and run the full autonomous flow:
 
 - Perform one bounded pass.
 - Do not keep repairing until all issues disappear.
 - Prefer explicit residual work over speculative broad fixes.
 - Stop when the work would require broad redesign, repeated fix loops, or human judgment.
-- Do not expand from selected contracts / IDs into unrelated parts of the system.
+- Do not expand from Guardrail Focus contracts / explicitly selected IDs into unrelated parts of the system.
 - Do not weaken assertions merely to mark an item complete.
 - Do not treat test-only implementation as production implementation.
 - Do not mark production binding complete without checking wiring or entrypoint.
@@ -446,7 +448,7 @@ All token-aware agents should follow these rules unless the user explicitly asks
 
 ### Purpose
 
-Create a bounded Plan for the requested change. This Plan is the implementation source of truth for the token-aware flow.
+Create a bounded Plan for the requested change. This Plan is the implementation source of truth for the Plan網羅チェック・残件判定フロー.
 
 ### Inputs
 
@@ -566,7 +568,7 @@ The agent must look for risk triggers including:
 
 ### Stop condition
 
-Stop after recommending a profile and selected contracts / IDs. If risk cannot be classified from available context, recommend `contract-kernel` or `standard-slice` rather than pretending the task is safe.
+Stop after recommending a profile and Guardrail Focus contracts / IDs. If risk cannot be classified from available context, recommend `contract-kernel` or `standard-slice` rather than pretending the task is safe.
 
 When implementation-realization risk is `Present` or `Unclear`, the next-step recommendation must be one of:
 
@@ -579,11 +581,11 @@ Do not recommend immediate `runtime-contract-kernel.agent.md` in this condition.
 
 ### Purpose
 
-Create or update the minimal runtime contract artifact for selected high-risk slices.
+Create or update the minimal runtime contract artifact for Guardrail Focus surfaces.
 
 ### Inputs
 
-- selected runtime contracts or change-risk triage output
+- Guardrail Focus runtime contracts or change-risk triage output
 - Plan Kernel or bounded Plan artifact
 - Implementation Contract Kernel artifact when present
 - relevant code / docs only for identifying participants, boundaries, and addresses
@@ -629,13 +631,13 @@ For each selected contract, verify or record:
 
 If the selected contracts need decomposition before safe bounded handling, send the work back to `change-risk-triage.agent.md` for reclassification.
 If that reclassification returns `full-coverage`, hand off to `plan-slice-decomposition.agent.md`.
-Recommend `runtime-evidence.agent.md` only when the user explicitly wants to leave the token-aware kernel flow and run Flow C.
+Recommend `runtime-evidence.agent.md` only when the user explicitly wants to leave the Plan網羅チェック flow and run Flow C.
 
 ## 4. `test-design-kernel.agent.md`
 
 ### Purpose
 
-Create a compact test design mapped to selected runtime contracts.
+Create a compact test design mapped to Guardrail Focus runtime contracts.
 
 ### Inputs
 
@@ -661,7 +663,7 @@ Create a compact test design mapped to selected runtime contracts.
 
 ### Required checks
 
-For each selected runtime contract:
+For each Guardrail Focus runtime contract:
 
 - define at least one observable verification point or an explicit reason why not
 - map the verification point back to the Plan requirement / acceptance condition where possible
@@ -674,17 +676,17 @@ For each selected runtime contract:
 
 - implement tests
 - expand to full integration test design unless requested
-- create test points not connected to selected runtime contracts
+- create test points not connected to Guardrail Focus runtime contracts
 
 ### Escalation condition
 
-Recommend `full-coverage` / `plan-slice-decomposition.agent.md` when the selected slice cannot be handled safely as a bounded token-aware slice. Recommend `integration-test-design.agent.md` only when the user explicitly wants to leave the token-aware kernel flow and run Flow C.
+Recommend `full-coverage` / `plan-slice-decomposition.agent.md` when the bounded parent Plan pass cannot be handled safely as one Plan網羅チェック pass. Recommend `integration-test-design.agent.md` only when the user explicitly wants to leave the Plan網羅チェック flow and run Flow C.
 
 ## 5. `verification-kernel.agent.md`
 
 ### Purpose
 
-Verify selected runtime contracts and test points after implementation, focusing on production binding and wiring.
+Verify Parent Plan coverage and Guardrail Focus runtime contracts/test points after implementation, focusing on production binding and wiring.
 
 ### Inputs
 
@@ -726,25 +728,27 @@ For each selected test point:
 - whether the corresponding production interface exists
 - whether a production concrete implementation exists
 - whether production wiring / entrypoint reaches that implementation
-- whether selected runtime contract fields and error behavior are represented
+- whether Guardrail Focus runtime contract fields and error behavior are represented
 - whether the result is still consistent with the Plan requirement / acceptance condition
 - whether selected production addresses contain Plan-prohibited patterns or implementation-contract `RejectedSubstitute` paths
 - when implementation-contract exists, whether runtime address and wiring are consistent with implementation-contract decisions
 - if nearby implementation is wired but Plan-required path is missing, classify as blocking mismatch/gap rather than pass
 - when Plan Slice Decomposition exists, keep slice scope / XC IDs visible and defer cross-slice binding to `cross-slice-verification-kernel.agent.md`
-- when parent Plan residuals remain outside selected scope, keep them visible in the Handoff Packet rather than implying parent Plan completion
+- when parent Plan residuals remain outside the bounded parent Plan pass or Guardrail Focus, keep them visible in the Handoff Packet rather than implying parent Plan completion
 
 ### Verdicts
 
 Use one of:
 
-- `PASS_FOR_SELECTED_SCOPE`
-- `PASS_WITH_RESIDUAL_WORK`
+- `PARENT_PLAN_VERIFIED`
+- `PARENT_PLAN_VERIFIED_WITH_ACCEPTED_RESIDUALS`
+- `PARENT_PLAN_NEEDS_RESIDUAL_DECISION`
+- `PARENT_PLAN_PARTIAL_WITH_FIX_CANDIDATES`
 - `BLOCKED_BY_PRODUCTION_BINDING_GAP`
 - `BLOCKED_BY_CONTRACT_MISMATCH`
 - `BLOCKED_BY_HUMAN_DECISION`
 
-`PASS_FOR_SELECTED_SCOPE` is limited to selected contracts / test points. It does not mean the parent Plan is complete. A Plan-prohibited pattern found inside selected production addresses is a contract mismatch, not a non-blocking note.
+`PARENT_PLAN_VERIFIED` is valid only when the Parent Plan Coverage Ledger has no unmapped parent Plan items and no unresolved residual decision candidates. Guardrail Focus verification alone does not mean the parent Plan is complete. A Plan-prohibited pattern found inside selected production addresses is a contract mismatch, not a non-blocking note.
 
 ### Must not do
 
@@ -755,7 +759,7 @@ Use one of:
 
 ### Stop condition
 
-Stop after classifying selected contracts and test points. If repair is needed, recommend `coverage-gap-resolution-slice.agent.md` with target IDs.
+Stop after updating Parent Plan Coverage Ledger and classifying unresolved items. If FixNow candidates exist, hand them to `coverage-gap-triage.agent.md`. If residual / manual / human-decision candidates remain, hand them to `residual-decision-gate.agent.md`. Do not recommend `coverage-gap-resolution-slice.agent.md` directly unless an explicit FixNow selector already exists.
 
 ## 6. `coverage-gap-triage.agent.md`
 
@@ -865,14 +869,14 @@ For each selected ID:
 - map it back to the Plan requirement or runtime contract
 - for `ParentPlanCoverageGap`, `UnmappedParentAcceptance`, `ScopeVerdictAmbiguity`, or `PlanProhibitedPatternDetected`, map the gap back to the exact parent Plan FR / AC
 - for parent Plan coverage gaps, decide whether the fix is a new slice, cross-slice verification update, implementation-contract update, or production implementation fix
-- do not mark a parent Plan coverage gap complete by narrowing selected scope silently
+- do not mark a parent Plan coverage gap complete by narrowing Guardrail Focus coverage silently
 - update Parent Plan Coverage Ledger in the output/status artifact, or create one in the output if missing
 - if the gap is a Plan-prohibited production pattern, include a negative test or verification hook unless explicitly impossible
 - for `ImplementationContractMissing` / `DependencyMissing` / `ApiSurfaceUnknown` / `UnjustifiedSubstitution` / `SourceOfTruthDrift`, first consume or create the selected-slice implementation contract artifact before direct repair
 - identify the minimal production implementation / wiring / test update needed
 - apply only bounded changes required for that ID
 - update the active status artifact when appropriate
-- leave unresolved status if the fix would exceed the selected slice
+- leave unresolved status if the fix would exceed the explicit FixNow selector or bounded parent Plan pass
 
 ### Must not do
 
@@ -892,7 +896,7 @@ Stop after one bounded pass over selected IDs. Remaining issues must be recorded
 
 May remain the full-flow Plan generation agent. Do not overload it if doing so would make the lightweight flow ambiguous.
 
-If revised, it should clearly separate full mode from token-aware Plan Kernel behavior.
+If revised, it should clearly separate full mode from bounded Plan Kernel behavior.
 
 ### `plan-review.agent.md`
 
@@ -901,7 +905,7 @@ Should support review-only and review-and-fix behavior.
 Required changes:
 
 - allow a mode that only reports issues without editing
-- in bounded mode, limit deterministic fixes to selected scope
+- in bounded mode, limit deterministic fixes to Guardrail Focus coverage
 - flag missing runtime contract / production binding chains explicitly
 
 ### `integration-test-design.agent.md`
@@ -941,11 +945,11 @@ Recommended order after this correction:
 
 1. Create `plan-kernel.agent.md`
 2. Revise `change-risk-triage.agent.md` if needed so its primary input is the bounded Plan
-3. Revise README so token-aware flow begins with `plan-kernel.agent.md`
+3. Revise README so Plan網羅チェック・残件判定フロー begins with `plan-kernel.agent.md`
 4. Verify the existing kernel agents still reference the Plan as source of truth where necessary
 5. Continue with any revisions to existing full-flow agents
 
-For a fresh implementation of the token-aware flow, the intended order is:
+For a fresh implementation of the Plan網羅チェック・残件判定フロー, the intended order is:
 
 1. `plan-kernel.agent.md`
 2. `change-risk-triage.agent.md`
@@ -955,8 +959,9 @@ For a fresh implementation of the token-aware flow, the intended order is:
 6. `test-design-kernel.agent.md`
 7. implementation
 8. `verification-kernel.agent.md`
-9. `coverage-gap-triage.agent.md`
-10. `coverage-gap-resolution-slice.agent.md`
+9. `coverage-gap-triage.agent.md` when unresolved implementation coverage items need classification
+10. `residual-decision-gate.agent.md` when residual / manual / human-decision candidates remain
+11. `coverage-gap-resolution-slice.agent.md` only when an explicit FixNow selector exists
 
 ## Acceptance criteria for the corrected process
 
@@ -964,30 +969,30 @@ The corrected process is acceptable when:
 
 - a bounded Plan is created before risk triage
 - implementation agents receive the Plan plus kernel guardrail artifacts
-- a lightweight run can handle a selected cross-boundary slice without skipping runtime contracts
+- a lightweight run can handle Guardrail Focus cross-boundary coverage without skipping runtime contracts
 - a stub-based test cannot be marked complete without production binding verification
 - when implementation-realization risk is `Present` / `Unclear`, implementation-contract branch is recommended before `runtime-contract-kernel`
 - when Plan-named dependency / API / provider path is unconfirmed, it remains unresolved and is not replaced by nearby existing implementation
 - implementation-contract decisions are handed off to and consumed by runtime-contract / test-design / verification artifacts
 - production binding required applies not only to stub/fake usage but also to Plan-named external provider/API/dependency paths
-- every selected contract / test point / gap ends with explicit status
+- every Guardrail Focus contract / test point and explicit FixNow gap ends with explicit status
 - unresolved work is useful enough to drive a later fix slice
 - the full process remains available for broad high-risk work
 - agent prompts clearly state when to stop rather than continue repairing
-- selected-scope readiness cannot be reported as parent-Plan readiness unless all parent Plan FR / AC are mapped or explicitly out of scope
-- implementation-handoff-review is a mandatory gate in Flow A and creates a Parent Plan Coverage Ledger before any READY verdict is issued
+- Guardrail Focus readiness cannot be reported as bounded parent-Plan pass readiness unless all parent Plan FR / AC are mapped, deferred, assigned to residual decision, or explicitly out of scope
+- implementation-handoff-review is a mandatory gate in the main Plan網羅チェック flow and creates a Parent Plan Coverage Ledger before any READY verdict is issued
 - verification-kernel performs a bounded Parent Plan smoke scan for Plan-prohibited patterns in selected production addresses
 - Plan-prohibited substitutions found in selected production addresses are classified as contract mismatch, not as non-blocking notes
 - parent residuals remain visible until resolved by a named slice, cross-slice verification, human decision, or explicit out-of-scope decision
 
 ## Suggested README update after `plan-kernel.agent.md` exists
 
-After `plan-kernel.agent.md` is created, update `README.md` to describe the corrected token-aware flow:
+After `plan-kernel.agent.md` is created, update `README.md` to describe the corrected Plan網羅チェック・残件判定フロー:
 
-- token-aware flow starts with bounded Plan creation
-- `change-risk-triage.agent.md` consumes the Plan and selects high-risk runtime slices
+- Plan網羅チェック・残件判定フロー starts with bounded Plan creation
+- `change-risk-triage.agent.md` consumes the Plan and recommends Guardrail Focus coverage
 - implementation-realization risk uses conditional `implementation-contract-kernel` / review before runtime-contract
 - implementation receives Plan + triage + implementation-contract artifacts (when required) + runtime-contract-kernel + test-design-kernel
 - full Plan-first flow remains available for broad autonomous work
 
-The README should make clear that the lightweight flow narrows the selected scope, but does not remove Plan creation or the guardrail chain for selected high-risk contracts.
+The README should make clear that the lightweight flow narrows the Guardrail Focus coverage, but does not remove Plan creation or the guardrail chain for Guardrail Focus contracts.

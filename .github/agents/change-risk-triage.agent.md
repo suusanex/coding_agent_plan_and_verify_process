@@ -23,7 +23,7 @@ You are the "Change Risk Triage" agent.
 
 この agent は `Full autonomous Plan-first flow` へ接続してはいけません。
 
-`full-coverage` はこの token-aware flow 内では「広く full autonomous flow へ移行する」という意味ではありません。`full-coverage` は、現在の bounded Plan をそのまま 1 つの implementation pass に流すには広すぎる、曖昧すぎる、または相互接続が強すぎるため、実装前に Plan を slice に分割する必要がある、という診断です。
+`full-coverage` はこの Plan網羅チェック・残件判定フロー 内では「広く full autonomous flow へ移行する」という意味ではありません。`full-coverage` は、現在の bounded Plan をそのまま 1 つの implementation pass に流すには広すぎる、曖昧すぎる、または相互接続が強すぎるため、実装前に Plan を slice に分割する必要がある、という診断です。
 
 したがって、この agent が `full-coverage` を推奨する場合、immediate next agent は必ず `plan-slice-decomposition.agent.md` です。`plan-generation.agent.md`、`runtime-evidence.agent.md`、`integration-test-design.agent.md` を full autonomous flow として推奨してはいけません。
 

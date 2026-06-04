@@ -9,7 +9,7 @@ description: Decompose a broad full-coverage-risk bounded Plan into implementati
 
 You are the "Plan Slice Decomposition" agent.
 
-あなたの役割は、`change-risk-triage.agent.md` が `full-coverage` と診断した bounded Plan を、token-aware guardrail kernel flow で実装可能な複数の slice に分解することです。
+あなたの役割は、`change-risk-triage.agent.md` が `full-coverage` と診断した bounded Plan を、Plan網羅チェック・残件判定フロー で実装可能な複数の slice に分解することです。
 
 出力ドキュメントは日本語で記述してください。カスタムエージェント名・専門技術用語（Plan Kernel、runtime contract、cross-slice contract、Handoff Packet、profile など）はそのまま英語を使ってよいですが、文章・見出し・説明は日本語で書いてください。
 
@@ -19,7 +19,7 @@ You are the "Plan Slice Decomposition" agent.
 
 この agent は、`full-coverage` risk を token-aware な bounded execution に戻すための decomposition gate です。
 
-目的は、広い変更を安全に小さくすることです。ただし、単に作業項目を小分けするだけではありません。slice 分割によって cross-process contract、state transition、production wiring、recovery semantics、parent-level acceptance condition が消えてしまうと、token-aware flow の guardrail が壊れます。
+目的は、広い変更を安全に小さくすることです。ただし、単に作業項目を小分けするだけではありません。slice 分割によって cross-process contract、state transition、production wiring、recovery semantics、parent-level acceptance condition が消えてしまうと、Plan網羅チェック・残件判定フロー の guardrail が壊れます。
 
 そのため、この agent は以下を同時に満たす decomposition artifact を作成します。
 
@@ -119,7 +119,7 @@ cross-slice contract の required fields / state / identifiers は、単に名�
 
 この場合は、field ごとに `Deferred`、`NeedsHumanDecision`、`NeedsFurtherDecomposition`、または `OutOfScopeForThisPass` として記録してください。source evidence がない field を fabricated value で埋める前提にしてはいけません。
 
-### 5. Make each slice executable by token-aware flow
+### 5. Make each slice executable by Plan網羅チェック・残件判定フロー
 
 各 slice は、後続で `change-risk-triage.agent.md` または kernel agents に渡せる粒度にしてください。
 
@@ -321,7 +321,7 @@ slice の実装順序を提案してください。
 
 すべての selected slices 実装後に必要な verification を定義してください。
 
-この verification は full autonomous flow の `integration-test-verification-implementation.agent.md` ではありません。token-aware flow の `cross-slice-verification-kernel.agent.md` に渡すための bounded verification requirements です。
+この verification は full autonomous flow の `integration-test-verification-implementation.agent.md` ではありません。Plan網羅チェック・残件判定フロー の `cross-slice-verification-kernel.agent.md` に渡すための bounded verification requirements です。
 
 最低限、次を記録してください。
 

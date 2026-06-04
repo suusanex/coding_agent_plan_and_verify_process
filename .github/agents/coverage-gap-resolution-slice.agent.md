@@ -56,7 +56,7 @@ selected gap selector は、少なくとも source artifact、existing ID、gap 
 
 triage 出力は fix scope の参考として使いますが、implementation behavior と completion の判断は常に Plan が基準です。triage の分類が Plan 要件と矛盾する場合は、Plan を優先し、矛盾を `残留作業` に記録してください。
 
-Parent Plan coverage gap を受け取った場合は、selected scope を狭め直すことで完了扱いにしてはいけません。正確な parent Plan FR / AC に戻し、新しい slice、cross-slice verification update、implementation-contract update、または production implementation fix のどれが必要かをこの pass の範囲で判断してください。
+Parent Plan coverage gap を受け取った場合は、Guardrail Focus coverage を狭め直すことで完了扱いにしてはいけません。正確な parent Plan FR / AC に戻し、新しい slice、cross-slice verification update、implementation-contract update、または production implementation fix のどれが必要かをこの pass の範囲で判断してください。
 
 ### No local heuristics as substitutes for Plan behavior
 
@@ -133,9 +133,9 @@ consume または create した implementation contract artifact に、selected 
 
 処理ルール:
 
-- `ParentPlanCoverageGap`: selected scope 外の parent Plan item を、新しい slice / cross-slice verification / implementation-contract update / production implementation fix のいずれに渡すか決める。silent narrowing で complete にしてはいけない。
+- `ParentPlanCoverageGap`: Guardrail Focus coverage 外の parent Plan item を、新しい slice / cross-slice verification / implementation-contract update / production implementation fix のいずれに渡すか決める。silent narrowing で complete にしてはいけない。
 - `UnmappedParentAcceptance`: mapping が作れない限り `Done` にしない。人間判断が必要なら `NeedsHumanDecision` として残す。
-- `ScopeVerdictAmbiguity`: output/status artifact に `Readiness scope` または equivalent scope note を追加・更新し、selected scope と parent Plan complete を分離する。production code は変更しない。
+- `ScopeVerdictAmbiguity`: output/status artifact に `Readiness scope` または equivalent scope note を追加・更新し、Guardrail Focus coverage と parent Plan complete を分離する。production code は変更しない。
 - `PlanProhibitedPatternDetected`: Plan が禁止した production pattern を修正する。明示的に不可能な場合を除き、negative test または verification hook を追加・更新する。
 - Parent Plan Coverage Ledger が missing の場合、この agent の output/status artifact に作成する。upstream Plan / Runtime Contract Kernel / Test Design Kernel を勝手に変更してはいけない。
 
@@ -236,7 +236,7 @@ triage 出力が利用可能な場合はその gap type と target files / addre
 | `AlreadyCoveredButDocumentationStale` | documentation のみ更新する（production code・test code は変更しない） |
 | `ParentPlanCoverageGap` | exact parent Plan FR / AC に戻し、new slice / cross-slice verification / implementation-contract update / production fix のどれで解消するか記録する。必要な bounded 修正だけを行う。 |
 | `UnmappedParentAcceptance` | parent Plan AC の mapping を作成できる場合のみ output/status artifact の Parent Plan Coverage Ledger を更新する。mapping できない場合は `NeedsHumanDecision`。 |
-| `ScopeVerdictAmbiguity` | output/status artifact の verdict scope を明確化する。selected scope ready と parent Plan complete を分離し、code は変更しない。 |
+| `ScopeVerdictAmbiguity` | output/status artifact の verdict scope を明確化する。Guardrail Focus coverage ready と parent Plan complete を分離し、code は変更しない。 |
 | `PlanProhibitedPatternDetected` | selected production address 内の禁止 pattern を除去または正当化し、negative test / verification hook を追加する。decision が不明なら `NeedsHumanDecision`。 |
 | `PlanAmbiguity` | 修正不可。`NeedsHumanDecision` として記録して停止する。 |
 | `ManualEnvironmentRequired` | 修正不可。`ManualOnly` として記録する。 |

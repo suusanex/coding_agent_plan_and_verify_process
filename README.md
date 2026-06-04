@@ -1,43 +1,48 @@
 # coding_agent_plan_and_verify_process
 
-GitHub Copilot で Plan-first 開発をするための agent（`.github/agents/`）です。
-
-単純な Plan モードでは不十分と感じた点を、自分の用途向けに改善したものです。
+GitHub Copilot / Codex で Plan-first 開発をするための agent（`.github/agents/`）と運用ドキュメントを管理する repository です。
 
 この repository には、大きく分けて 2 系統のプロセスがあります。
 
 1. Full autonomous Plan-first flow
    runtime evidence・integration test の設計・検証・ギャップ解消を広く使い、ゴールまで自走しやすい従来型のフロー。
 
-2. Token-aware guardrail kernel flow
-   GitHub Copilot のトークン消費を意識し、Plan-first の効果を保ったまま、対象 slice を絞って bounded に進めるフロー。Plan 作成は省略せず、guardrail も削らず、対象範囲を絞ることを重視します。
+2. Plan網羅チェック・残件判定フロー
+   English helper name: Plan Coverage Check and Residual Decision Flow
+
+   bounded Plan を source of truth として維持しながら、通常可能な実装・検証は parent Plan に沿って進めるフロー。深い runtime / production-binding 確認は Guardrail Focus に絞れるが、それは implementation scope ではありません。高コスト、manual-only、blocked、ambiguous、human decision が必要な項目は residual candidate として記録し、Residual Decision Gate で明示判断します。
+
+Migration note: 旧称 `Token-aware guardrail kernel flow` は、この新フローへ移行済みの legacy name です。通常の prompt では新名称を使ってください。
 
 ---
 
 ## 基本的な考え方
 
-このプロセスが防ぎたい主な失敗は 2 つです。
+このプロセスが防ぎたい主な失敗は 3 つです。
 
 1. sequence contract の不一致
-   プロセス間・コンポーネント間の処理で、各コンポーネント内では unit test が通るが、実際につなげると runtime contract・メッセージ・状態遷移・wiring が対応しておらず動かない。
+   プロセス間・コンポーネント間の処理で、各コンポーネント内では unit test が通るが、実際につなげると runtime contract・メッセージ・状態遷移・wiring が対応していない。
 
 2. stub は完成しているが production 実装が存在しない
    stub / fake / mock / in-memory 実装を使った自動テストは通るが、対応する production 実装または production wiring が存在しない。
 
-Token-aware guardrail kernel flow では、この失敗を防ぐための guardrail チェーンを維持したまま、対象の runtime slice を絞ります。
+3. parent Plan の縮小を完了と誤認する
+   深く確認した Guardrail Focus だけを見て、parent Plan の FR / AC 全体が完了したように扱ってしまう。
+
+Plan網羅チェック・残件判定フローでは、次の guardrail chain を維持します。
 
 ```text
 Plan requirement / acceptance condition
-  -> runtime contract
-  -> テストポイント
+  -> Guardrail Focus runtime contract
+  -> Guardrail Focus test point
   -> stub/fake の使用
   -> production 実装
   -> production wiring / entrypoint
-  -> 明示的な未解決状態
+  -> Parent Plan Coverage Ledger
+  -> Residual Decision Ledger
 ```
 
-軽量化する場合も、削る対象は プロセスの深さ ではなく プロセスの広さ です。
-つまり「全体を浅く見る」のではなく、「Plan は作る」「選択した危険な contract を十分に深く見る」ことを優先します。
+軽量化する場合も、削る対象は parent Plan の責務ではありません。Guardrail Focus は deep-check subset であり、implementation scope ではありません。
 
 ---
 
@@ -46,8 +51,6 @@ Plan requirement / acceptance condition
 従来の、広く自走させる用途向けのフローです。
 
 ### 想定用途
-
-次のような場合に使います。
 
 - 機能全体のスコープがまだ広い、または曖昧
 - 複数の runtime sequence が絡む
@@ -59,7 +62,6 @@ Plan requirement / acceptance condition
 ### 典型的な手順
 
 1. `plan-generation.agent.md`
-    1. この中で `integration-test-design.agent.md` と `runtime-evidence.agent.md` を呼び出す
 2. `plan-review.agent.md`
 3. 通常エージェントで実装
 4. `integration-test-verification-implementation.agent.md`
@@ -67,573 +69,185 @@ Plan requirement / acceptance condition
 
 ### オプション: implementation contract フェーズ
 
-通常はそのまま実装に入ればよいですが、新しい実現方式の採用や、標準 API・既存 OSS・既存コードの比較検討が重要なケースでは、実装前に次のオプションフェーズを追加できます。
+新しい実現方式の採用や、標準 API・既存 OSS・既存コードの比較検討が重要なケースでは、実装前に次のオプションフェーズを追加できます。
 
 1. `implementation-contract-generation.agent.md`
 2. `implementation-contract-review.agent.md`
 
-これは、実装の中でも特に採用する API・ライブラリ・既存実装・設計パターンなどを検討するフェーズです。独自実装よりも適切な既存実装やベストプラクティスの採用を明示的に検討することで、AI による不要な車輪の再発明を避けることを狙います。
-
-### プロンプト例
-
-```text
-この issue について、Full autonomous Plan-first flow で進めてください。
-まず plan-generation.agent.md を使って Plan を作成し、runtime evidence と integration test の設計も含めてください。
-その後、plan-review.agent.md で Plan をレビューしてください。
-```
-
 ---
 
-## Token-aware guardrail kernel flow
+## Plan網羅チェック・残件判定フロー
 
-トークン消費を意識し、bounded Plan を作成したうえで、選択した runtime contract・テストポイント・ギャップだけを bounded に扱うフローです。
-
-このフローは risk triage から始めません。
-まず `plan-kernel.agent.md` で実装の source of truth になる bounded Plan を作成し、その Plan の中から高リスクな runtime slice を選びます。
+bounded Plan を作成し、その parent Plan を実装・検証の source of truth として維持します。
 
 ### 想定用途
 
-次のような場合に向いています。
-
 - full flow は重すぎるが、Plan-first の効果は保ちたい
 - runtime contract の guardrail は外したくない
-- 複数のプロセス・サービス・コンポーネントが絡むが、危険な slice は限定できる
+- 複数のプロセス・サービス・コンポーネントが絡むが、深く確認すべき runtime / production-binding surface は限定できる
 - stub / fake を使ったテストがあり、production 実装 / wiring の欠落を防ぎたい
-- 検証で見つかったギャップを、選択した ID だけ bounded に修正したい
-- トークンコストを抑えるため、1 回の実行で全部を解決しようとしない運用にしたい
+- 1 回の bounded pass で全項目を無理に終わらせず、残件を明示判断したい
+
+### 不変条件
+
+- parent Plan は `plan-kernel.agent.md` が作成した bounded Plan であり、実装・検証の source of truth です。
+- `change-risk-triage`、`runtime-contract-kernel`、`test-design-kernel`、`implementation-handoff-review` は parent Plan を縮小しません。
+- Guardrail Focus は deep runtime / production-binding verification の重点対象です。implementation scope ではありません。
+- Guardrail Focus 外の parent Plan item も Parent Plan Coverage Ledger で必ず分類します。
+- residual は記録しただけでは accepted ではありません。`ManualVerificationRequired` は close 不可の candidate status です。explicit human decision により owner / method / required evidence が明示された場合だけ、`AcceptedResidual`、`ManualVerificationDelegated`、`DeferredWithOwner`、`AbortedWithReason` などの close 可能な decision status にできます。
+- final done は Parent Plan Coverage Ledger と Residual Decision Ledger で判定します。
 
 ### 典型的な手順
 
 1. `plan-kernel.agent.md`
 2. `change-risk-triage.agent.md`
 3. `implementation-contract-kernel.agent.md`（implementation-realization risk がある場合）
-4. `implementation-contract-review-kernel.agent.md` または bounded `implementation-contract-review.agent.md`（contract が non-trivial の場合）
+4. `implementation-contract-review-kernel.agent.md`（contract が non-trivial の場合）
 5. `runtime-contract-kernel.agent.md`
 6. `test-design-kernel.agent.md`
 7. `implementation-handoff-review.agent.md`
-8. `implementation-execution.agent.md` または人間主導で実装
+8. `implementation-execution.agent.md` または人間主導で bounded parent Plan pass を実行
 9. 必要に応じて `code-review-focus-kernel.agent.md`
-10. `code-review-focus-kernel` を実行した場合は、その出力を使って human code review
+10. human code review
 11. `verification-kernel.agent.md`
 12. 未解決がある場合は `coverage-gap-triage.agent.md`
-13. 選択した gap は `coverage-gap-resolution-slice.agent.md`
-14. 必要に応じて `verification-kernel.agent.md` を再実行
+13. `residual-decision-gate.agent.md`
+14. FixNow items がある場合だけ `coverage-gap-resolution-slice.agent.md`
+15. 必要に応じて `verification-kernel.agent.md` と `residual-decision-gate.agent.md` を再実行
 
-このフローでは、各 agent が 1 回の bounded な実行を行い、未解決項目は成果物に残して停止します。
-「直るまで修正し続ける」ことは目的ではありません。
+各 agent は 1 回の bounded な実行を行い、未解決項目は成果物に残して停止します。「直るまで修正し続ける」ことは目的ではありません。
 
-`implementation-handoff-review.agent.md` は、Token-aware guardrail kernel flow で実装へ進む前の必須 gate です。
-Plan → selected runtime contract → test point → production binding requirement の接続を確認し、Parent Plan Coverage Ledger と Readiness scope を出力します。
+### full-coverage handling
 
-`implementation-handoff-review` を省略してよいのは、token-aware guardrail kernel flow ではなく、人間が明示的に別プロセスとして進める場合だけです。
-
-`code-review-focus-kernel.agent.md` も任意の軽量 gate です。
-常に必須ではありませんが、人手レビューを入れる場合に、実装差分と guardrail artifacts を突き合わせて「どこから読むべきか」を先に整理したいときに使います。
-
-### Token-aware guardrail kernel flow の full-coverage handling
-
-`change-risk-triage.agent.md` が `full-coverage` と診断した場合でも、Token-aware guardrail kernel flow では Full autonomous Plan-first flow へ自動エスカレーションしません。`full-coverage` は「現在の bounded Plan を 1 pass で実装するには広すぎるため、実装前に Plan slice decomposition が必要」という意味で扱います。
+`change-risk-triage.agent.md` が `full-coverage` と診断した場合でも、parent Plan coverage は縮小しません。`full-coverage` は「bounded pass / decomposition / re-plan / human decision のいずれかが必要」という診断です。
 
 ```text
 full-coverage
   -> plan-slice-decomposition.agent.md
-  -> per-slice token-aware kernel flow
+  -> per-slice bounded parent Plan pass
   -> cross-slice-verification-kernel.agent.md
+  -> residual-decision-gate.agent.md
 ```
 
-`plans/<ticket-or-slug>-slice-decomposition.md` には、各 slice の scope / non-goals / cross-slice dependencies / cross-slice contract IDs / parent contract mapping / execution order が含まれます。full-coverage decomposition 由来の slice を実装する場合は、parent Plan と slice decomposition artifact の両方を source artifact として扱ってください。cross-slice contract は slice 内で完了扱いにせず、最後に `cross-slice-verification-kernel.agent.md` で確認します。
+slice decomposition は scope shrink ではありません。各 slice は parent Plan item mapping を持ち、最後に cross-slice verification と residual decision を通します。
 
 ### `implementation-execution.agent.md` に渡すもの
 
-Token-aware flow で `implementation-execution.agent.md` を使って実装に入るときは、`runtime-contract-kernel` だけを渡してはいけません。
-`runtime-contract-kernel` は高リスク境界の guardrail であり、要求全体の仕様ではありません。
+`implementation-execution.agent.md` は parent Plan に対する 1 bounded implementation pass を行います。`runtime-contract-kernel` だけを渡してはいけません。
 
-`implementation-execution.agent.md` には、少なくとも次を渡してください。
+少なくとも次を渡してください。
 
-- `plan-kernel.agent.md` が作成した bounded Plan
-- `change-risk-triage.agent.md` の出力
-- `implementation-contract-kernel.agent.md` の出力（implementation-realization risk が Present / Unclear の場合）
-- `implementation-contract-review-kernel.agent.md` の出力（存在する場合）
-- `runtime-contract-kernel.agent.md` の出力
-- `test-design-kernel.agent.md` の出力
-- `implementation-handoff-review.agent.md` の出力
-- `plan-slice-decomposition.agent.md` の出力（full-coverage decomposition 由来の slice を実装する場合）
-- selected implementation scope と non-goals
+- `plans/<ticket-or-slug>.md`
+- `plans/<ticket-or-slug>-change-risk-triage.md`
+- `plans/<ticket-or-slug>-implementation-contract-kernel.md`（implementation-realization risk が Present / Unclear の場合）
+- `plans/<ticket-or-slug>-implementation-contract-review-kernel.md`（存在する場合）
+- `plans/<ticket-or-slug>-runtime-contract-kernel.md`
+- `plans/<ticket-or-slug>-test-design-kernel.md`
+- `plans/<ticket-or-slug>-implementation-handoff-review.md`
+- `plans/<ticket-or-slug>-slice-decomposition.md`（full-coverage decomposition 由来の slice を扱う場合）
+- parent Plan の Non-goals / constraints / residual policy
 
-補足:
-
-- runtime-contract artifact は implementation-contract artifact の代替ではありません
-- Plan conformance を確認しても、unknown な implementation path の調査は不要になりません
-- implementation-realization の unresolved items は guessed address に変換せず、明示的に保持します
-- Full autonomous Plan-first flow を明示的に選んだ broad なケースでは、full-flow `implementation-contract-generation.agent.md` / `implementation-contract-review.agent.md` を継続利用します
-
-`implementation-execution.agent.md` は Plan を source of truth として扱います。kernel artifacts は high-risk slice に対する guardrail であり、Plan の代替ではありません。
-
-人間主導で実装する場合も、上記と同じ artifacts を実装者に渡してください。
-
-human code review に渡すときは、上記に加えて実装差分、changed files 一覧、`plans/<ticket-or-slug>-implementation-execution.md`、必要に応じて `code-review-focus-kernel.agent.md` の出力を渡してください。
+実装者は通常可能な FR / AC を parent Plan に沿って進め、詰まった項目は `Blocked`、`NeedsHumanDecision`、`ManualVerificationRequired`、`TooCostlyForBoundedPass`、`ImplementationEvidenceMissing` などで記録します。
 
 ---
 
-## Token-aware フローの agent 群
+## Agent 群
 
 ### `plan-kernel.agent.md`
 
-要求された変更に対して、bounded な実装 Plan を作成します。
-
-主な役割:
-
-- token-aware flow の先頭で、実装の source of truth になる Plan を作る
-- Goal / Non-goals / Functional requirements / Acceptance conditions を明確にする
-- 影響を受ける component / module と expected implementation scope を整理する
-- high-risk boundary candidates を軽く拾い、`change-risk-triage` へ渡す
-- full runtime evidence や full integration test design には踏み込まない
-
-この agent は実装もテスト作成も行いません。final runtime contracts の選択も行いません。
-
-使う場面:
-
-- Token-aware guardrail kernel flow を開始するとき
-- full `plan-generation.agent.md` は重すぎるが、Plan-first は維持したいとき
-- 実装に入る前に、scope / non-goals / acceptance conditions を固定したいとき
-
-プロンプト例:
-
-```text
-この issue について、Token-aware guardrail kernel flow で進めます。
-まず plan-kernel.agent.md を使って bounded Plan を作成してください。
-実装・テスト作成・full runtime evidence・full integration test design は行わず、Goal、Non-goals、Functional requirements、Acceptance conditions、Affected components、Known high-risk boundaries、Handoff to change-risk-triage を出してください。
-```
-
----
+bounded Plan を作成し、Goal / Non-goals / Functional requirements / Acceptance conditions / Affected components / Residual policy / Guardrail Focus candidates を記録します。final runtime contracts は選びません。
 
 ### `change-risk-triage.agent.md`
 
-bounded Plan を読み、リスクプロファイルを分類し、最小限かつ十分なプロセスプロファイルを推奨します。
-
-主な役割:
-
-- Plan の中から高リスクな runtime 境界を特定する
-- implementation-realization risk（dependency / API surface / substitution risk）を分類する
-- 対象の runtime contract を 1〜3 件程度に絞る
-- `implementation-contract-kernel` / `contract-kernel` / `standard-slice` / `full-coverage` / `fix-slice` を推奨する
-- 後続 agent に渡す引き渡し情報を作る
-
-この agent は Plan 作成・実装・テスト設計を行いません。
-
-使う場面:
-
-- `plan-kernel.agent.md` が bounded Plan を作成した後
-- full flow に入る前に、軽量化できるか確認したいとき
-- プロセス間・queue・webhook・外部 API・DI・production wiring などのリスクがありそうなとき
-- Plan-named dependency/API/provider path の実在確認が未完了なとき
-
-プロンプト例:
-
-```text
-plan-kernel.agent.md が作成した bounded Plan を入力として、change-risk-triage.agent.md を実行してください。
-Plan の中から高リスクな runtime boundary と implementation-realization risk を分類し、実装やテスト設計は行わず、リスクトリガーのスキャン結果・対象 runtime contract・Implementation realization risk・推奨プロセスプロファイル・次に使う agent を出してください。
-```
-
----
+parent Plan 全体の risk inventory を作り、implementation-realization risk、Guardrail Focus recommendation、Residual risk candidates、Recommended process path を出します。実装 scope は縮小しません。
 
 ### `plan-slice-decomposition.agent.md`
 
-`change-risk-triage.agent.md` が `full-coverage` と診断した parent Plan を、Token-aware flow で実装可能な slice に分解します。
-
-主な役割:
-
-- parent Plan の requirements / acceptance conditions を保持したまま slice を定義する
-- 各 slice の scope / non-goals / dependencies / execution order を明確にする
-- parent-level `RC-xxx` candidate がどの slice または `XC-xxx` に対応したかを mapping する
-- slice 間に残る cross-slice contract を `XC-xxx` として記録する
-- 実装対象になる slice について、後続 agent が bounded Plan として読める slice artifact を作成する
-- 最後に必要な `cross-slice-verification-kernel.agent.md` の確認観点を定義する
-
-この agent は実装・テスト作成・full runtime evidence 生成を行いません。
-
-使う場面:
-
-- `change-risk-triage.agent.md` が `full-coverage` を推奨したとき
-- bounded Plan が広すぎ、1 pass では scope / production binding / cross-slice contract を安全に扱えないとき
-
----
+full-coverage 診断時に、parent Plan coverage を維持したまま bounded execution slice に分解します。各 slice は parent Plan item mapping と cross-slice verification requirements を持ちます。
 
 ### `implementation-contract-kernel.agent.md`
 
-bounded Plan を concrete な implementation decision に変換し、dependency / API surface / provider path の確認結果を記録します。
-
-主な役割:
-
-- Plan-named implementation requirement を明示する
-- dependency / API / symbol の evidence を確認する
-- prohibited substitutions と allowed reuse を分離する
-- required code changes と verification hooks を定義する
-- unresolved implementation-realization items を可視化する
-
-この agent は実装もテスト作成も行いません。
-
-使う場面:
-
-- `change-risk-triage` が implementation-realization risk を `Present` / `Unclear` と判定した後
-- runtime-contract-kernel へ進む前に implementation path を固定したいとき
-
-プロンプト例:
-
-```text
-bounded Plan と change-risk-triage の出力を入力として、implementation-contract-kernel.agent.md を実行してください。
-plans/<ticket-or-slug>-implementation-contract-kernel.md を作成し、Plan-named dependency/API/provider path の確認結果、prohibited substitutions、required code changes、unresolved implementation-realization items を記録してください。
-```
-
----
+dependency / API / provider / substitution risk を確認し、unresolved implementation-realization items を guessed address に変換せず residual candidate として保持します。
 
 ### `implementation-contract-review-kernel.agent.md`
 
-implementation-contract-kernel の内容を軽量レビューし、runtime-contract または実装へ進めるかを verdict で判定します。
-
-主な役割:
-
-- dependency / API evidence 不足の検出
-- unjustified substitution の検出
-- Plan と implementation contract の source-of-truth drift の検出
-- `READY_FOR_RUNTIME_CONTRACT` / `READY_FOR_IMPLEMENTATION` / `BLOCKED_*` / `NEEDS_HUMAN_DECISION` の判定
-
-この agent は docs-only review gate であり、実装・テスト作成は行いません。
-
-使う場面:
-
-- implementation-contract-kernel が non-trivial な判断を含むとき
-- runtime-contract へ進む前に drift を抑止したいとき
-
-プロンプト例:
-
-```text
-plans/<ticket-or-slug>.md、plans/<ticket-or-slug>-change-risk-triage.md、plans/<ticket-or-slug>-implementation-contract-kernel.md を入力として、implementation-contract-review-kernel.agent.md を実行してください。
-source-of-truth drift、dependency/API evidence 不足、unjustified substitution を確認し、single verdict を出してください。
-```
-
----
+source-of-truth drift、evidence 不足、unjustified substitution を review し、unresolved item を accepted residual と扱わず次工程へ渡します。
 
 ### `runtime-contract-kernel.agent.md`
 
-選択された高リスクな runtime contract について、最小限の runtime contract 成果物を作成します。
-
-主な役割:
-
-- `RC-xxx` を安定した runtime contract として固定する
-- Producer / Consumer / メッセージ / API / イベントを明確にする
-- 必須フィールド・エラー / タイムアウト時の動作・production 実装の所在を記録する
-- 後続の `test-design-kernel` や `verification-kernel` が再探索せずに使える引き渡し情報を作る
-
-この agent は実装もテスト作成も行いません。Plan の代替になる仕様書も作りません。
-
-使う場面:
-
-- `change-risk-triage` が `contract-kernel` を推奨した後
-- 対象 runtime contract の境界を明確にしたいとき
-- full runtime evidence までは不要だが、producer / consumer / contract は固定したいとき
-
-プロンプト例:
-
-```text
-change-risk-triage の出力と bounded Plan を入力として、runtime-contract-kernel.agent.md を実行してください。
-対象の runtime contract に含まれる RC だけを対象にし、plans/<ticket-or-slug>-runtime-contract-kernel.md を作成してください。
-Plan を source of truth として扱い、対象外の contract を追加しないでください。
-```
-
----
+Guardrail Focus runtime contract だけを深く固定します。focus 外の parent Plan item を out-of-scope 扱いにせず、Parent Plan Coverage Ledger へ残す前提で downstream に渡します。
 
 ### `test-design-kernel.agent.md`
 
-Runtime Contract Kernel の `RC-xxx` を、観測可能な `TP-xxx` テストポイントに落とし込みます。
-
-主な役割:
-
-- 対象の runtime contract ごとにテストポイントを定義する
-- 「何を検証するか」と「期待される観測結果」を記録する
-- stub / fake / mock / in-memory を使う可能性を明示する
-- stub / fake を使う場合、production binding の検証を必須にする
-- `verification-kernel` に渡す「必須 production binding チェック」を作る
-
-この agent はテストを実装しません。
-
-使う場面:
-
-- Runtime Contract Kernel が作成された後
-- 対象 contract に対する最小限のテスト設計を作りたいとき
-- stub / fake は許容するが、実際の実装・本番 wiring の確認を省きたくないとき
-
-プロンプト例:
-
-```text
-bounded Plan と runtime-contract-kernel の内容を入力として、test-design-kernel.agent.md を実行してください。
-各 RC に対して観測可能なテストポイントを作り、stub/fake を使う場合は production binding の確認を必須にしてください。
-```
-
----
+Guardrail Focus RC を Guardrail Focus TP に落とし、stub / fake / mock / in-memory を使う場合は production binding check を必須にします。focus 外 parent Plan item の verification responsibility は消えません。
 
 ### `implementation-handoff-review.agent.md`
 
-実装に入る直前に、kernel artifact chain の接続を軽量にレビューします。
-
-主な役割:
-
-- base 4 成果物（`plans/<ticket-or-slug>.md`、`change-risk-triage`、`runtime-contract-kernel`、`test-design-kernel`）を読む
-- implementation-realization risk が `Present` / `Unclear` の場合は `implementation-contract-kernel`（存在すれば review-kernel も）を追加で読む
-- Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認する
-- Parent Plan Coverage Ledger を作り、selected scope の ready と parent Plan 全体の ready を分ける
-- Plan が禁止した substitution / must-not pattern を verification-kernel に渡す
-- source code を読まず、artifacts を修正せず、実装もしない
-- `READY_FOR_PARENT_PLAN_IMPLEMENTATION` / `READY_FOR_SELECTED_SCOPE_IMPLEMENTATION` / `READY_WITH_PARENT_RESIDUALS` / `BLOCKED_*` の scope-aware verdict を出す
-- `implementation-execution.agent.md` または人間の実装者に渡すべき Required handoff inputs を整理する
-
-この agent は Token-aware Flow A では必須です。実装前に Parent Plan Coverage Ledger と readiness scope を確定し、selected scope と parent Plan 全体の ready を分離します。
-
-token-aware guardrail kernel flow でこの gate を省略してはいけません。省略が許されるのは、人間が明示的に別プロセスを採用する場合だけです。
-
-使う場面:
-
-- selected RC が複数ある
-- queue / worker / webhook / external API / DI / production wiring が絡む
-- stub / fake / mock / in-memory を使う test point がある
-- 実装前に、Plan と kernel artifacts の接続漏れだけを一度確認したい
-- `test-design-kernel` に `NeedsHumanDecision` や曖昧な mapping が残っている可能性がある
-
-この gate を特に重視すべき場面:
-
-- selected RC が 0〜1 件でも、parent Plan の FR / AC を selected scope と取り違えたくない場合
-- stub / fake / mock / in-memory を使う
-- cross-boundary risk が低く見えても、Plan → RC → TP → production binding requirement の接続を明示しておきたい場合
-- 実装者が複数 artifact をまたいで source of truth を読み替える可能性がある場合
-
-プロンプト例:
-
-```text
-実装に入る前に、implementation-handoff-review.agent.md を必須 gate として使って軽量レビューを行ってください。
-
-次の base 成果物を対象にしてください。
-
-- plans/<ticket-or-slug>.md
-- plans/<ticket-or-slug>-change-risk-triage.md
-- plans/<ticket-or-slug>-runtime-contract-kernel.md
-- plans/<ticket-or-slug>-test-design-kernel.md
-
-change-risk-triage の Implementation realization risk が Present / Unclear の場合は、次も対象にしてください。
-
-- plans/<ticket-or-slug>-implementation-contract-kernel.md
-- plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
-
-source code は読まず、artifacts も修正しないでください。
-Parent Plan Coverage Ledger を作成し、Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認してください。selected scope と parent Plan 全体の readiness を分け、scope-aware verdict を出してください。
-```
-
----
+実装前 gate です。Plan → Guardrail Focus RC → TP → production binding requirement の接続と Parent Plan Coverage Ledger を確認し、`READY_FOR_BOUNDED_PARENT_PLAN_PASS` 系または `BLOCKED_*` verdict を出します。
 
 ### `implementation-execution.agent.md`
 
-Token-aware flow の bounded な実装フェーズを担当します。
-
-主な役割:
-
-- bounded Plan を source of truth として selected implementation scope 全体を実装する
-- runtime-contract / test-design / implementation-contract artifacts を selected high-risk slice の guardrail として使う
-- production implementation と production wiring / entrypoint を落とさず実装する
-- 必要な tests / checks を bounded に実行し、未実行や失敗を明示する
-- downstream の `code-review-focus-kernel.agent.md` と `verification-kernel.agent.md` が使う `Implementation Self-Map` を `plans/<ticket-or-slug>-implementation-execution.md` に残す
-
-この agent は optional ではありません。Token-aware flow を agent ベースで通すなら、実装フェーズの標準担当として使います。人間主導で実装する場合も、この agent の入力契約と出力契約を満たす形で進めるのが望ましいです。
-
-プロンプト例:
-
-```text
-implementation-execution.agent.md を使って、selected scope だけを実装してください。
-
-次の成果物を必ず読んでください。
-
-- plans/<ticket-or-slug>.md もしくは plan-kernel.agent.md が作成した bounded Plan
-- plans/<ticket-or-slug>-change-risk-triage.md
-- plans/<ticket-or-slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
-- plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
-- plans/<ticket-or-slug>-runtime-contract-kernel.md
-- plans/<ticket-or-slug>-test-design-kernel.md
-- plans/<ticket-or-slug>-implementation-handoff-review.md
-
-実装の source of truth は bounded Plan です。
-runtime-contract-kernel と test-design-kernel は、selected high-risk slice に対する guardrail として使ってください。
-implementation-handoff-review の verdict、Readiness scope、Parent Plan Coverage Ledger、blocking issues、recommended implementation prompt additions を確認してください。
-
-次の制約を守ってください。
-
-- Plan の Functional requirements と Acceptance conditions を満たす
-- Non-goals と Out of scope for this pass に含まれる作業は行わない
-- selected runtime contracts / test points に必要な production implementation と wiring を落とさない
-- stub / fake / mock / in-memory test だけで production complete と判断しない
-- selected scope 外の redesign や unrelated refactoring は行わない
-- `plans/<ticket-or-slug>-implementation-execution.md` に Implementation Self-Map、Test / Check Summary、Remaining Work を残す
-- 完了できない項目は Remaining work として報告する
-
-最後に、変更した files、対応した Runtime Contract ID、対応した Test Point ID、実行した tests、未実行 tests、Implementation Self-Map の保存先、Remaining work を報告してください。
-```
-
----
+parent Plan に対する 1 bounded implementation pass を行い、Implementation Self-Map と item ごとの status を記録します。通常可能な FR / AC は実装し、残るものは residual candidate として明示します。
 
 ### `code-review-focus-kernel.agent.md`
 
-実装後に、人手レビューで優先して読むべき code surface を整理します。
-
-主な役割:
-
-- implementation diff と changed files を読む
-- Plan / triage / implementation-contract / runtime-contract / test-design artifact と差分を突き合わせる
-- P0 / P1 の review target、skim でよい file、未確認の不確実性を切り分ける
-- human code review の読む順番と注意点を `plans/<ticket-or-slug>-code-review-focus-kernel.md` にまとめる
-- code review の承認や修正は行わない
-
-この agent は optional です。human code review を行うときに、実装差分と guardrail artifacts を突き合わせて読む順番や重点箇所を整理したい場合に使います。
-
-使う場面:
-
-- human code review を入れたい
-- queue / retry / state transition / DI / public API / persistence shape など high-risk diff がある
-- 実装差分が広く、review で読む順番を先に絞りたい
-- AI 実装の前提誤りや test false confidence を人手で重点確認したい
-
-省略してよい場面:
-
-- 変更差分がごく小さく、P0 / P1 の候補がほぼ自明
-- human code review 自体を今回行わない
-- changed files と selected scope の対応が単純で、review map を別成果物に分けるほどではない
-
-プロンプト例:
-
-```text
-実装後、人手でコードレビューしたいので code-review-focus-kernel.agent.md を実行してください。
-
-次を入力として、selected scope に関係する changed files だけを読んでください。
-
-- plans/<ticket-or-slug>.md
-- plans/<ticket-or-slug>-change-risk-triage.md
-- plans/<ticket-or-slug>-runtime-contract-kernel.md
-- plans/<ticket-or-slug>-test-design-kernel.md
-- plans/<ticket-or-slug>-implementation-contract-kernel.md（存在する場合）
-- plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
-- plans/<ticket-or-slug>-implementation-handoff-review.md（存在する場合）
-- working tree diff または PR diff
-
-可能であれば、PR number または base/head commit range を diff source として明示してください。
-例: base=main, head=<current-branch> または PR #123
-
-production code や test code は修正せず、plans/<ticket-or-slug>-code-review-focus-kernel.md を作成してください。
-P0 / P1 の review target、skim でよい file、未確認の不確実性、Suggested human review order をまとめてください。
-```
-
----
+human review 用の重点 surface を整理します。parent Plan item に影響する changed files と Guardrail Focus surface を分けて出します。
 
 ### `verification-kernel.agent.md`
 
-実装後に対象の contract / テストポイントを検証し、production binding と wiring の状態を分類します。
-
-主な役割:
-
-- 対象テストポイントのテスト成果物 / 手動のみの理由を確認する
-- stub / fake / mock / in-memory の使用有無を確認する
-- production interface / 具体的な実装 / wiring / entrypoint を確認する
-- runtime contract のフィールドとエラー時の動作が production コードに表現されているか確認する
-- `PASS_FOR_SELECTED_SCOPE` / `BLOCKED_BY_*` などの判定結果を出す
-
-この agent はギャップを修正しません。修正が必要な場合は、ギャップを分類して後続 agent へ渡します。
-
-使う場面:
-
-- 対象 slice の実装後
-- fake テストが production ready と誤判定されていないか確認したいとき
-- `Bound` を正式に判断したいとき
-- `coverage-gap-triage` に渡す未解決項目を作りたいとき
-- human code review の後で、selected scope の verification を bounded に実行したいとき
-
-プロンプト例:
-
-```text
-実装後の状態について、verification-kernel.agent.md を実行してください。
-bounded Plan、Runtime Contract Kernel、Test Design Kernel の対象テストポイントだけを確認し、stub/fake の使用有無・production 実装・production wiring/entrypoint を検証してください。
-修正は行わず、判定結果と未解決項目を出してください。
-```
-
----
-
-### `cross-slice-verification-kernel.agent.md`
-
-full-coverage decomposition で分割された各 slice の実装後に、parent acceptance conditions と cross-slice contracts を bounded に検証します。
-
-主な役割:
-
-- `plan-slice-decomposition.agent.md` が定義した `XC-xxx` cross-slice contracts を確認する
-- producer slice / consumer slice / required fields / state / error handling の不一致を検出する
-- slice 間の production wiring / entrypoint がつながっているかを確認する
-- parent acceptance condition が slice 分割後も満たされているかを確認する
-- cross-slice の stub-only success や production binding gap を分類する
-
-この agent は gap を修正しません。必要に応じて `coverage-gap-triage.agent.md` または `coverage-gap-resolution-slice.agent.md` へ引き継ぎます。
-
----
+Parent Plan Coverage Ledger を更新し、Guardrail Focus RC/TP については production binding / wiring / contract representation を深く確認します。final verdict は parent Plan verdict です。
 
 ### `coverage-gap-triage.agent.md`
 
-未解決のカバレッジギャップを分類し、次に行う bounded な修正範囲を推奨します。
+Parent Plan Coverage Ledger から unresolved items を抽出し、FixNow items、manual decision candidates、Residual decision candidates を分けます。defer / abort / manual delegation を承認しません。
 
-主な役割:
+### `residual-decision-gate.agent.md`
 
-- `verification-kernel.md` または `implementation-coverage-of-integration-test.md` から未解決項目を抽出する
-- ギャップの種別を統制語彙で分類する
-- `ImplementationContractMissing` / `DependencyMissing` / `ApiSurfaceUnknown` / `UnjustifiedSubstitution` / `SourceOfTruthDrift` / `ProductionImplementationMissing` / `ProductionWiringMissing` / `ContractMismatch` などを分ける
-- 人間の判断が必要なものを分離する
-- `coverage-gap-resolution-slice` に渡す後続セレクターを作る
-
-この agent は修正を行いません。
-
-使う場面:
-
-- `verification-kernel` の後
-- `integration-test-verification-implementation` の後
-- 未解決ギャップが複数あり、どれをどの範囲で修正すべきか整理したいとき
-
-プロンプト例:
-
-```text
-verification-kernel の出力を入力として、coverage-gap-triage.agent.md を実行してください。
-未解決項目をギャップ種別ごとに分類し、coverage-gap-resolution-slice.agent.md に渡す bounded な修正範囲を提案してください。
-```
-
----
+coverage-gap-triage または verification-kernel 後の docs-only gate です。explicit human decision がある項目だけ accepted residual として扱い、Residual Decision Ledger と final next-step verdict を出します。
 
 ### `coverage-gap-resolution-slice.agent.md`
 
-明示的に選択されたカバレッジギャップだけを、1 回の bounded な実行で修正します。
+post-verification repair subflow です。coverage-gap-triage または residual-decision-gate が出した explicit FixNow selector だけを修正し、修正後は verification-kernel と residual-decision-gate に戻します。
 
-主な役割:
+### `cross-slice-verification-kernel.agent.md`
 
-- 呼び出し元または `coverage-gap-triage` が指定した後続セレクターだけを対象にする
-- Plan の要件 / Runtime Contract ID / テストポイント ID に戻して修正する
-- implementation-realization gap（`ImplementationContractMissing` / `DependencyMissing` / `ApiSurfaceUnknown` / `UnjustifiedSubstitution` / `SourceOfTruthDrift`）では、repair 前に implementation-contract artifact を consume または create する
-- production 実装・production wiring・テストの oracle・ドキュメントの陳腐化など、ギャップ種別に応じた最小限の修正を行う
-- カバレッジドキュメントまたはステータス成果物の更新結果を記録する
-- 修正できなかった残件を「残作業」に残す
+slice ごとの pass を parent Plan completion と扱わず、parent acceptance conditions、cross-slice contracts、residual decisions を統合して residual-decision-gate へ渡します。
 
-この agent は発見・分類を行いません。後続セレクターが曖昧な場合は修正を開始せず、`coverage-gap-triage` の実行を推奨します。
+---
 
-使う場面:
+## Verdict 語彙
 
-- `coverage-gap-triage` が推奨修正範囲を出した後
-- 修正対象 ID とギャップ種別が明示されているとき
-- 全ギャップではなく、選択したギャップだけを bounded に修正したいとき
+### implementation-handoff-review
 
-プロンプト例:
+- `READY_FOR_BOUNDED_PARENT_PLAN_PASS`
+- `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS`
+- `BLOCKED_BY_UNMAPPED_PARENT_ACCEPTANCE`
+- `BLOCKED_BY_ARTIFACT_MISMATCH`
+- `BLOCKED_BY_HUMAN_DECISION`
+- `BLOCKED`
 
-```text
-coverage-gap-triage の推奨修正範囲から Slice 1 だけを対象に、coverage-gap-resolution-slice.agent.md を実行してください。
-後続セレクターに含まれる ID / ギャップ種別だけを修正し、選択スコープ外へ広げないでください。
-修正後、必要であれば verification-kernel.agent.md の再実行を次のステップとして記録してください。
-```
+### verification-kernel
+
+- `PARENT_PLAN_VERIFIED`
+- `PARENT_PLAN_VERIFIED_WITH_ACCEPTED_RESIDUALS`
+- `PARENT_PLAN_PARTIAL_WITH_FIX_CANDIDATES`
+- `PARENT_PLAN_NEEDS_RESIDUAL_DECISION`
+- `BLOCKED_BY_PRODUCTION_BINDING_GAP`
+- `BLOCKED_BY_CONTRACT_MISMATCH`
+- `BLOCKED_BY_UNMAPPED_PARENT_ACCEPTANCE`
+- `BLOCKED_BY_HUMAN_DECISION`
+
+### residual-decision-gate
+
+- `READY_TO_CLOSE_WITH_NO_RESIDUALS`
+- `READY_TO_CLOSE_WITH_ACCEPTED_RESIDUALS`
+- `READY_FOR_NEXT_BOUNDED_FIX_PASS`
+- `READY_FOR_MANUAL_VERIFICATION_HANDOFF`
+- `NEEDS_HUMAN_RESIDUAL_DECISION`
+- `REPLAN_REQUIRED`
+- `ABORT_RECOMMENDED`
+
+`READY_TO_CLOSE_WITH_ACCEPTED_RESIDUALS` は、input artifact、issue comment、PR comment、user prompt などに explicit human decision がある場合だけ出せます。`ManualVerificationRequired` のままでは close 不可で、owner / method / required evidence が明示された `ManualVerificationDelegated` に変換されている必要があります。
 
 ---
 
@@ -647,114 +261,51 @@ coverage-gap-triage の推奨修正範囲から Slice 1 だけを対象に、cov
 - トークンコストより網羅性を優先する
 - agent にある程度ゴールまで自走させたい
 
-### Token-aware guardrail kernel flow を使う場合
+### Plan網羅チェック・残件判定フローを使う場合
 
 - Plan-first は維持したいが、full flow は重すぎる
-- bounded Plan を作り、その中の高リスク slice だけ深く扱いたい
-- 境界をまたぐリスクはあるが、全体の runtime evidence までは不要
+- bounded parent Plan pass で進めたい
+- Guardrail Focus を深く確認しつつ parent Plan coverage を落としたくない
 - implementation-realization risk がある場合だけ implementation-contract branch を差し込みたい
-- stub / fake テストと production 実装 / wiring の対応を確認したい
-- ギャップを選択した ID ごとに分割して修正したい
+- residual を explicit decision なしに accepted 扱いしたくない
 - トークンコストと bounded な進捗を重視する
-
-### `implementation-handoff-review.agent.md` を実行する
-
-- Token-aware guardrail kernel flow で実装前の必須 gate を通したい
-- selected RC が複数あり、Plan → RC → TP の対応が見落とされそう
-- stub / fake / mock / in-memory を使う test point がある
-- production binding required の指定漏れが特に怖い
-- `implementation-execution.agent.md` または人間の実装者に渡す handoff が複数 artifacts に分かれており、接続確認をしておきたい
-
-### `implementation-handoff-review.agent.md` を省略するのが許される場合
-
-- token-aware guardrail kernel flow ではなく、人間が明示的に別プロセスを選ぶ場合
-- Parent Plan Coverage Ledger と readiness scope を別の明示的な gate で確実に作成する場合
-
-### kernel flow から full flow に切り替えるべき場合
-
-- bounded Plan を安全に作れないほど要求が曖昧
-- 対象の contract が 5 件を超えそう
-- kernel のテーブルだけでは sequence の因果関係が表現できない
-- retry / rollback / replay / recovery の仕様が複雑
-- 複数の contract が相互依存しており、1 slice に分けると危険
-- 詳細な runtime evidence を人間がレビューする必要がある
 
 ---
 
 ## よく使うプロンプトパターン
 
-### Token-aware flow を Plan から始める
+### Plan から始める
 
 ```text
-この変更について、Token-aware guardrail kernel flow で進めます。
+この変更について、Plan網羅チェック・残件判定フローで進めます。
 まず plan-kernel.agent.md を使って bounded Plan を作成してください。
-実装・テスト作成・full runtime evidence・full integration test design は行わず、実装の source of truth になる Plan と、change-risk-triage への handoff を出してください。
+実装・テスト作成・full runtime evidence・full integration test design は行わず、Goal、Non-goals、Functional requirements、Acceptance conditions、Affected components、Residual policy、Guardrail Focus candidates、change-risk-triage への handoff を出してください。
 ```
 
 ### Plan をもとにトリアージする
 
 ```text
-plan-kernel.agent.md が作成した bounded Plan を入力として、change-risk-triage.agent.md を使ってください。
-Plan の中から高リスクな runtime boundary を分類し、実装やテスト設計は行わず、リスクトリガーのスキャン結果・対象 runtime contract・推奨プロセスプロファイル・次の agent を出してください。
-```
-
-### implementation-realization risk がある場合に implementation-contract-kernel を作る
-
-```text
-change-risk-triage の出力で Implementation realization risk が Present / Unclear なので、implementation-contract-kernel.agent.md を実行してください。
-plans/<ticket-or-slug>-implementation-contract-kernel.md を作成し、Plan-named dependency/API/provider path の確認結果、prohibited substitutions、required code changes、verification hooks、unresolved items を記録してください。
-```
-
-### implementation-contract をレビューしてから runtime-contract へ進む
-
-```text
-plans/<ticket-or-slug>.md、plans/<ticket-or-slug>-change-risk-triage.md、plans/<ticket-or-slug>-implementation-contract-kernel.md を入力として、implementation-contract-review-kernel.agent.md を実行してください。
-single verdict を出し、READY_FOR_RUNTIME_CONTRACT の場合のみ runtime-contract-kernel へ進めてください。
-```
-
-### 選択した contract だけに絞って contract-kernel を実行する
-
-```text
-bounded Plan と change-risk-triage の出力にある RC-001 と RC-002 だけを対象に、runtime-contract-kernel.agent.md を実行してください。
-対象外の contract を追加せず、不明な項目は推測せず注意事項 / 前提に残してください。
-```
-
-### テストを実装せずにテストポイントを設計する
-
-```text
-bounded Plan と runtime-contract-kernel の RC-001 と RC-002 を対象に、test-design-kernel.agent.md を実行してください。
-テストは実装せず、テストポイント ID・期待される観測結果・stub/fake の使用有無・必須 production binding チェックを作成してください。
+plans/<ticket-or-slug>.md を入力として、change-risk-triage.agent.md を実行してください。
+parent Plan 全体の risk inventory、Guardrail Focus recommendation、Residual risk candidates、Implementation-realization risk、Recommended process path を出してください。実装 scope は縮小しないでください。
 ```
 
 ### 実装前に handoff review を行う
 
 ```text
-実装に入る前に、implementation-handoff-review.agent.md を必須 gate として使って軽量レビューを行ってください。
-
-次の base 成果物を対象にしてください。
-
-- plans/<ticket-or-slug>.md
-- plans/<ticket-or-slug>-change-risk-triage.md
-- plans/<ticket-or-slug>-runtime-contract-kernel.md
-- plans/<ticket-or-slug>-test-design-kernel.md
-
-change-risk-triage の Implementation realization risk が Present / Unclear の場合は、次も対象にしてください。
-
-- plans/<ticket-or-slug>-implementation-contract-kernel.md
-- plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
-
+実装に入る前に、implementation-handoff-review.agent.md を必須 gate として使ってください。
 source code は読まず、artifacts も修正しないでください。
-Parent Plan Coverage Ledger を作成し、Plan → selected runtime contracts → RC → TP → production binding requirement の接続を確認してください。selected scope と parent Plan 全体の readiness を分け、scope-aware verdict を出してください。
+Parent Plan Coverage Ledger を作成し、Plan → Guardrail Focus RC → TP → production binding requirement の接続を確認してください。
+Guardrail Focus ready と Parent Plan coverage ledger complete を分け、READY_FOR_BOUNDED_PARENT_PLAN_PASS 系または BLOCKED_* verdict を出してください。
 ```
 
 ### implementation-execution に実装させる
 
 ```text
-implementation-execution.agent.md を使って、selected scope だけを実装してください。
+implementation-execution.agent.md を使って、parent Plan に対する 1 bounded implementation pass を行ってください。
 
 次の成果物を必ず読んでください。
 
-- plans/<ticket-or-slug>.md もしくは plan-kernel.agent.md が作成した bounded Plan
+- plans/<ticket-or-slug>.md
 - plans/<ticket-or-slug>-change-risk-triage.md
 - plans/<ticket-or-slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
 - plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
@@ -762,87 +313,83 @@ implementation-execution.agent.md を使って、selected scope だけを実装�
 - plans/<ticket-or-slug>-test-design-kernel.md
 - plans/<ticket-or-slug>-implementation-handoff-review.md
 
-実装の source of truth は bounded Plan です。
-kernel artifacts は high-risk slice に対する guardrail として使ってください。
-implementation-handoff-review の verdict、Readiness scope、Parent Plan Coverage Ledger、blocking issues、recommended implementation prompt additions を確認してください。
-
-Plan の Functional requirements と Acceptance conditions を満たし、Non-goals / Out of scope に含まれる作業は行わないでください。
-stub / fake / mock / in-memory test だけで production complete と判断せず、production implementation と wiring を落とさないでください。
-実装後は plans/<ticket-or-slug>-implementation-execution.md に Implementation Self-Map、Test / Check Summary、Remaining Work を記録してください。
+実装の source of truth は bounded Plan です。Guardrail Focus artifacts は deep-check guardrail として使い、implementation scope として扱わないでください。
+通常可能な Functional requirements と Acceptance conditions を満たし、Non-goals / constraints / parent Plan 外の作業は行わないでください。
+完了できない項目は NeedsHumanDecision / ManualVerificationRequired / TooCostlyForBoundedPass / ImplementationEvidenceMissing などで Implementation Self-Map と Remaining Work に記録してください。
 ```
 
 ### 実装後に review focus を作る
 
 ```text
 人手レビュー用の読み順を整理したいので、code-review-focus-kernel.agent.md を実行してください。
-bounded Plan と kernel artifacts、plans/<ticket-or-slug>-implementation-execution.md、working tree diff を入力にして、selected scope の changed files だけを読み、P0 / P1 review target と Suggested human review order を出してください。
-可能であれば、PR number または base/head commit range を diff source として明示してください。例: base=main, head=<current-branch> または PR #123
-```
-
-### review focus を使って人手レビューする
-
-```text
-plans/<ticket-or-slug>-code-review-focus-kernel.md を見ながら人手レビューを行います。
-まず Suggested human review order の順に P0 / P1 を読み、必要なら Files not inspected / uncertainty に書かれた箇所を追加で確認してください。
-human code review の指摘で P0 / P1 target、public API、state transition、production wiring、test substitute 周辺に追加変更が入った場合は、verification-kernel の前に code-review-focus-kernel.agent.md を再実行してください。
+bounded Plan、kernel artifacts、plans/<ticket-or-slug>-implementation-execution.md、working tree diff または PR diff を入力にしてください。
+parent Plan item に影響する changed files と Guardrail Focus surface を分け、P0 / P1 / P2 review target と Suggested human review order を出してください。
 ```
 
 ### 実装後に検証する
 
 ```text
 実装後の状態について、verification-kernel.agent.md を実行してください。
-bounded Plan、Test Design Kernel の TP-001 と TP-002 だけを対象にし、production 実装と wiring/entrypoint を確認してください。
-ギャップは修正せず、判定結果と未解決項目を出してください。
+Parent Plan Coverage Ledger を更新し、Guardrail Focus RC/TP は production implementation、wiring/entrypoint、contract representation を深く確認してください。
+focus 外の parent Plan item も implemented / verified / ManualVerificationRequired / ResidualDecisionCandidate / unmapped のいずれかに分類してください。
+修正は行わず、parent Plan verdict と未解決項目を出してください。
 ```
 
-### 未解決ギャップをトリアージする
+### residual decision を行う
 
 ```text
-verification-kernel の未解決項目を対象に、coverage-gap-triage.agent.md を実行してください。
-ギャップ種別を分類し、coverage-gap-resolution-slice.agent.md に渡す後続セレクターを作ってください。
+verification-kernel と coverage-gap-triage の出力を入力として、residual-decision-gate.agent.md を実行してください。
+Residual Decision Ledger を作成し、`ManualVerificationRequired` は close 不可の candidate action、`ManualVerificationDelegated` は owner / method / required evidence が明示された explicit decision 後の decision status として扱ってください。
+explicit human decision がある項目だけ AcceptedResidual / ManualVerificationDelegated / DeferredWithOwner / AbortedWithReason として扱ってください。
+human decision がない residual は NEEDS_HUMAN_RESIDUAL_DECISION として停止してください。
 ```
 
-### 選択したギャップだけを修正する
+### 選択した FixNow だけを修正する
 
 ```text
-coverage-gap-triage の Slice 1 だけを対象に、coverage-gap-resolution-slice.agent.md を実行してください。
-選択した後続セレクター以外へスコープを広げず、1 回の bounded な実行で修正してください。
-完了できない項目は残作業に残してください。
+coverage-gap-triage または residual-decision-gate の FixNow selector だけを対象に、coverage-gap-resolution-slice.agent.md を実行してください。
+FixNow selector 外へ広げず、parent Plan との整合を崩さないでください。
+修正後、verification-kernel.agent.md と residual-decision-gate.agent.md の再実行を次のステップとして記録してください。
 ```
 
 ---
 
 ## 成果物の命名規則
 
-Token-aware guardrail kernel flow では、通常は次の成果物を作成します。
+Plan網羅チェック・残件判定フローでは、通常は次の成果物を作成します。
 
 | 成果物 | 目的 |
 | --- | --- |
 | `plans/<ticket-or-slug>.md` | bounded Plan。実装の source of truth |
-| `plans/<ticket-or-slug>-change-risk-triage.md` | リスクプロファイル・対象 contract・推奨プロセスプロファイル |
-| `plans/<ticket-or-slug>-implementation-contract-kernel.md` | Plan-named dependency/API/provider path の確認結果、required code changes、prohibited substitutions |
+| `plans/<ticket-or-slug>-change-risk-triage.md` | risk inventory、Guardrail Focus recommendation、Residual risk candidates |
+| `plans/<ticket-or-slug>-implementation-contract-kernel.md` | dependency/API/provider path の確認結果、required code changes、prohibited substitutions |
 | `plans/<ticket-or-slug>-implementation-contract-review-kernel.md` | implementation-contract の readiness / blocking verdict |
-| `plans/<ticket-or-slug>-runtime-contract-kernel.md` | runtime contract・producer / consumer・メッセージ・フィールド・production 実装の所在 |
-| `plans/<ticket-or-slug>-test-design-kernel.md` | テストポイントマッピング・stub/fake の使用有無・production binding 確認要件 |
-| `plans/<ticket-or-slug>-implementation-handoff-review.md` | 実装直前の lightweight review verdict と required handoff inputs |
+| `plans/<ticket-or-slug>-runtime-contract-kernel.md` | Guardrail Focus runtime contract・producer / consumer・メッセージ・フィールド・production 実装の所在 |
+| `plans/<ticket-or-slug>-test-design-kernel.md` | Guardrail Focus TP・stub/fake の使用有無・production binding 確認要件 |
+| `plans/<ticket-or-slug>-implementation-handoff-review.md` | 実装直前の lightweight review verdict と Parent Plan Coverage Ledger |
 | `plans/<ticket-or-slug>-implementation-execution.md` | 実装結果、Implementation Self-Map、Test / Check Summary、Remaining Work |
 | `plans/<ticket-or-slug>-code-review-focus-kernel.md` | 人手コードレビュー向けの重点確認箇所・読む順番・不確実性の整理 |
-| `plans/<ticket-or-slug>-verification-kernel.md` | production binding / wiring / contract の検証結果 |
-| `plans/<ticket-or-slug>-coverage-gap-triage.md` | 未解決ギャップの分類と推奨修正範囲 |
-| `plans/<ticket-or-slug>-coverage-gap-resolution-slice.md` | 選択したギャップの修正結果と残作業 |
+| `plans/<ticket-or-slug>-verification-kernel.md` | Parent Plan Coverage Ledger 更新、production binding / wiring / contract の検証結果 |
+| `plans/<ticket-or-slug>-coverage-gap-triage.md` | 未解決ギャップの分類、FixNow items、Residual decision candidates |
+| `plans/<ticket-or-slug>-residual-decision-gate.md` | Residual Decision Ledger と next-step verdict |
+| `plans/<ticket-or-slug>-coverage-gap-resolution-slice.md` | FixNow selector の修正結果と残作業 |
 
 ---
 
 ## 運用原則
 
-- Token-aware flow でも Plan 作成を省略しない
+- Plan網羅チェック・残件判定フローでも Plan 作成を省略しない
 - 実装の source of truth は bounded Plan とする
-- kernel artifacts は high-risk slice の guardrail として扱い、Plan の代替にしない
-- `implementation-handoff-review.agent.md` は token-aware Flow A では必須 gate とする
-- `code-review-focus-kernel.agent.md` は human code review を行うときの optional gate とする
-- 対象スコープを明示する
+- Guardrail Focus は implementation scope ではない
+- kernel artifacts は deep-check guardrail として扱い、Plan の代替にしない
+- parent Plan を agent が勝手に縮小しない
+- Parent Plan Coverage Ledger を実装前と検証後に維持する
+- Residual Decision Ledger なしに residual を accepted 扱いしない
+- `AcceptedResidual` は explicit human decision がある場合だけ使う
+- `ManualVerificationRequired` は「確認済み」ではなく、decision gate へ渡す close 不可の candidate status として扱う
+- `ManualVerificationDelegated` は owner / method / required evidence が明示された explicit human decision 後の close 可能な decision status として扱う
 - 不明な項目を推測で埋めない
 - テストが通ることを production binding の証拠にしない
 - fake / stub だけを production の完成と扱わない
 - 1 回の bounded な実行で停止し、残件は成果物に残す
-- `Bound` の正式判定は `verification-kernel.agent.md` に任せる
+- final done は parent Plan coverage と residual decision の両方で判定する

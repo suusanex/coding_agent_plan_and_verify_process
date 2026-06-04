@@ -16,9 +16,9 @@ The goal is not to describe one incident only. The goal is to prevent a class of
 The repository already has two related process directions:
 
 1. A full autonomous Plan-first flow, which includes implementation contract generation and review.
-2. A token-aware guardrail kernel flow, which narrows the inspected slice while preserving important guardrails.
+2. A Plan網羅チェック・残件判定フロー, which narrows the inspected slice while preserving important guardrails.
 
-The token-aware flow currently emphasizes:
+The Plan網羅チェック・残件判定フロー currently emphasizes:
 
 - creating a bounded Plan,
 - triaging risky runtime boundaries,
@@ -37,7 +37,7 @@ This creates a dangerous failure mode: the guardrail artifacts can become intern
 
 ## Problem Statement
 
-The current token-aware flow needs to distinguish three concerns that are related but not interchangeable:
+The current Plan網羅チェック・残件判定フロー needs to distinguish three concerns that are related but not interchangeable:
 
 1. **Plan conformance**
    - Does the downstream artifact still preserve the Plan-required behavior, dependency, provider, and implementation path?
@@ -49,7 +49,7 @@ The current token-aware flow needs to distinguish three concerns that are relate
 3. **Runtime contract verification**
    - Once the implementation path is selected, are the runtime participants, boundaries, fields, error behavior, tests, production implementation, and production wiring connected?
 
-The token-aware flow must not treat runtime contract work as a replacement for implementation contract work.
+The Plan網羅チェック・残件判定フロー must not treat runtime contract work as a replacement for implementation contract work.
 
 ## Required Outcome
 
@@ -59,7 +59,7 @@ After these requirements are implemented, the flow must prevent or explicitly su
 - A Plan names a package, namespace, type, method, release, or binary artifact, but no agent verifies whether it exists before implementation.
 - A runtime contract uses a nearby existing class as the production implementation address even though the Plan-required implementation path is missing or unconfirmed.
 - A test design verifies an adapter/factory shape but does not require production binding to the Plan-required implementation path.
-- A verification pass marks a selected scope as bound because the substituted implementation is wired, even though the Plan-required implementation was not materialized.
+- A verification pass marks a Guardrail Focus coverage as bound because the substituted implementation is wired, even though the Plan-required implementation was not materialized.
 - A gap is detected but the recommended repair path lacks the implementation-realization investigation needed to fix it safely.
 
 ## Non-goals
@@ -68,7 +68,7 @@ These requirements do not require every token-aware run to become a full autonom
 
 They do not require exhaustive repository exploration for every task.
 
-They do not require the token-aware flow to inspect unrelated features, unrelated runtime scenarios, or all possible implementation alternatives.
+They do not require the Plan網羅チェック・残件判定フロー to inspect unrelated features, unrelated runtime scenarios, or all possible implementation alternatives.
 
 They do not require replacing the existing full-flow `implementation-contract-generation.agent.md` and `implementation-contract-review.agent.md`.
 
@@ -78,7 +78,7 @@ The intended change is to add a lightweight implementation-realization branch an
 
 ### 1. Narrow scope does not permit nearest-neighbor substitution
 
-The token-aware flow reduces cost by narrowing breadth, not by replacing a Plan-required implementation with a nearby existing implementation.
+The Plan網羅チェック・残件判定フロー reduces cost by narrowing breadth, not by replacing a Plan-required implementation with a nearby existing implementation.
 
 If the Plan requires implementation path `X` and the repository only shows similar path `Y`, downstream agents must not treat `Y` as the production implementation address for `X`.
 
@@ -113,11 +113,11 @@ Runtime contract work then uses that selected implementation path to describe ru
 
 A token-aware bounded pass must prefer explicit unresolved status over speculative completion.
 
-If a required API surface, package, binary, namespace, method, or wiring point cannot be confirmed within the selected scope, the artifact must record that as a blocker or residual item. It must not invent a production address or silently redirect to a similar existing path.
+If a required API surface, package, binary, namespace, method, or wiring point cannot be confirmed within the Guardrail Focus coverage, the artifact must record that as a blocker or residual item. It must not invent a production address or silently redirect to a similar existing path.
 
 ### 5. Full-flow concepts should be reused, not duplicated unnecessarily
 
-The existing full-flow implementation contract agents express the correct concept. The token-aware flow should either:
+The existing full-flow implementation contract agents express the correct concept. The Plan網羅チェック・残件判定フロー should either:
 
 - invoke the existing full implementation contract agents when the risk is broad enough, or
 - introduce lightweight kernel variants for bounded runs.
@@ -165,7 +165,7 @@ Create `implementation-contract-kernel.agent.md` or an equivalent bounded profil
 
 Purpose:
 
-- Convert the bounded Plan into concrete implementation decisions for the selected scope.
+- Convert the bounded Plan into concrete implementation decisions for the Guardrail Focus coverage.
 - Confirm or explicitly mark missing the Plan-named dependency/API/provider/implementation path.
 - Prevent downstream agents from substituting a nearby existing implementation.
 
@@ -237,7 +237,7 @@ Stop condition:
 
 ### 3. Add or adapt implementation-contract-review for kernel usage
 
-The token-aware flow must include a review step when implementation-realization risk is present and the implementation contract is non-trivial.
+The Plan網羅チェック・残件判定フロー must include a review step when implementation-realization risk is present and the implementation contract is non-trivial.
 
 This can be either:
 
@@ -309,7 +309,7 @@ A test point must not be considered sufficient merely because it verifies a loca
 Required behavior:
 
 - Compare Plan requirement, implementation contract decision, runtime contract address, test point, implementation diff, and production wiring.
-- Mark a selected scope as `Bound` only when the production interface, concrete implementation, and wiring match the Plan-required implementation path or an explicitly approved substitute.
+- Mark a Guardrail Focus coverage as `Bound` only when the production interface, concrete implementation, and wiring match the Plan-required implementation path or an explicitly approved substitute.
 - If a nearby implementation is wired but the Plan-required one is missing, use `NotImplementedOrMismatch` or a more specific blocking verdict.
 
 ### 7. Update coverage-gap triage and resolution to handle implementation-realization gaps
@@ -341,7 +341,7 @@ Before coding, the handoff to the implementation agent must include:
 - implementation contract review output when present,
 - runtime contract kernel output,
 - test design kernel output,
-- selected implementation scope,
+- parent Plan implementation surface,
 - non-goals,
 - prohibited substitutions,
 - unresolved implementation-realization items.
@@ -415,7 +415,7 @@ verification-kernel:
 
 The hardening work is complete when all of the following are true:
 
-- The token-aware flow has a documented conditional path for implementation-realization risk.
+- The Plan網羅チェック・残件判定フロー has a documented conditional path for implementation-realization risk.
 - `change-risk-triage` can recommend implementation contract work before runtime contract work.
 - A lightweight implementation contract artifact exists or the existing implementation contract agents support bounded token-aware usage.
 - Runtime contract kernel consumes implementation contract decisions when present.
@@ -456,7 +456,7 @@ A failure mode where an agent finds an existing implementation that resembles th
 
 ### Implementation contract kernel
 
-A lightweight, bounded artifact that documents the selected implementation approach, required code changes, dependency/API findings, prohibited substitutions, and verification hooks for the selected scope.
+A lightweight, bounded artifact that documents the selected implementation approach, required code changes, dependency/API findings, prohibited substitutions, and verification hooks for the Guardrail Focus coverage.
 
 ### Runtime contract kernel
 

@@ -1,9 +1,9 @@
 ---
 name: token-aware-full-coverage-3layer
-description: Token-aware guardrail kernel flow で full-coverage 診断後の plan-slice-decomposition を、Codex の親エージェント・slice-prep・slice-impl の3層運用で安全に進めるための skill。full-coverage、plan-slice-decomposition、cross-slice-verification-kernel が関係するときだけ使う。
+description: Plan網羅チェック・残件判定フローで full-coverage 診断後の plan-slice-decomposition を、Codex の親エージェント・slice-prep・slice-impl の3層運用で安全に進めるための skill。full-coverage、plan-slice-decomposition、cross-slice-verification-kernel、residual-decision-gate が関係するときだけ使う。skill 名は互換用の legacy invocation として残す。
 ---
 
-# Token-aware full-coverage 3層運用 Skill
+# Plan網羅チェック full-coverage 3層運用 Skill
 
 <!--
 Copyright (c) 2026 suusanex (GitHub UserName)
@@ -14,7 +14,9 @@ Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
 
 ## 目的
 
-この skill は、Token-aware guardrail kernel flow で `change-risk-triage.agent.md` が `full-coverage` を診断し、`plan-slice-decomposition.agent.md` によって複数の slice が作成された後に使います。
+この skill は、Plan網羅チェック・残件判定フローで `change-risk-triage.agent.md` が `full-coverage` を診断し、`plan-slice-decomposition.agent.md` によって複数の slice が作成された後に使います。
+
+`token-aware-full-coverage-3layer` という skill 名と `$token-aware-full-coverage-3layer` の起動例は互換用の legacy invocation です。新しい作業では本文の概念を Plan網羅チェック・残件判定フロー、Guardrail Focus、Residual Decision Gate として扱ってください。
 
 目的は、広い parent Plan を bounded な slice 実行に戻しつつ、slice 間の runtime contract、field continuity、production wiring、parent acceptance condition を失わないことです。
 
@@ -27,11 +29,11 @@ Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
 - `change-risk-triage.agent.md` が `full-coverage` を推奨した
 - `plan-slice-decomposition.agent.md` の出力を Codex で実行したい
 - full-coverage decomposition 由来の slice を、並列化しつつ安全に進めたい
-- cross-slice contract (`XC-xxx`) を含む Token-aware guardrail kernel flow を進めたい
+- cross-slice contract (`XC-xxx`) を含む Plan網羅チェック・残件判定フローを進めたい
 
 次の場合は使いません。
 
-- 1つの bounded Plan を通常の Token-aware guardrail kernel flow で進めれば足りる
+- 1つの bounded Plan を通常の Plan網羅チェック・残件判定フローで進めれば足りる
 - `fix-slice` だけの小さな既知 gap 修正である
 - Full autonomous Plan-first flow を明示的に選んでいる
 - 人間が各 artifact を手作業で作成し、Codex には単発実装だけを依頼する
@@ -66,7 +68,7 @@ Layer 3: slice-impl subagent
 
 Final gate: 親エージェント
   全 slice の verification 結果を集約し、
-  cross-slice-verification-kernel を実行する。
+  cross-slice-verification-kernel と residual-decision-gate を実行する。
 ```
 
 ## Layer 1: 親エージェント orchestration
@@ -107,7 +109,7 @@ Final gate: 親エージェント
 - assigned slice artifact
 - assigned slice に関係する cross-slice contract excerpt
 - assigned slice に関係する field continuity items
-- この pass での selected scope / non-goals / stop condition
+- この pass での bounded parent Plan pass / Guardrail Focus coverage / non-goals / stop condition
 
 `slice-prep` は次を行います。
 
@@ -141,7 +143,7 @@ Final gate: 親エージェント
 - Runtime-contract-kernel:
 - Test-design-kernel:
 
-## Selected scope
+## Bounded parent Plan pass / Guardrail Focus
 
 ## Non-goals
 
@@ -224,21 +226,21 @@ Final gate: 親エージェント
 - per-slice runtime-contract-kernel
 - per-slice test-design-kernel
 - parent review gate の implementation authorization
-- selected implementation scope / non-goals / stop condition
+- bounded parent Plan pass / Guardrail Focus coverage / non-goals / stop condition
 
 `slice-impl` は次を行います。
 
 1. `implementation-handoff-review` を実行する。
 2. READY でない場合は実装せず停止する。
-3. 親が承認した selected scope のみ実装する。
+3. 親が承認した assigned slice-local bounded parent Plan pass を実装する。Guardrail Focus artifacts は deep-check guardrail として扱い、implementation scope として扱わない。
 4. 無関係な refactoring や redesign を行わない。
 5. required checks を実行する。実行できない check は理由を明記する。
 6. slice-local `verification-kernel` を実行する。
-7. `PASS_FOR_SELECTED_SCOPE` / `CONCERNS` / `BLOCKED` と Remaining Work を出力して停止する。
+7. slice-local verification-kernel の verdict（例: `PARENT_PLAN_VERIFIED`、`PARENT_PLAN_NEEDS_RESIDUAL_DECISION`、`PARENT_PLAN_PARTIAL_WITH_FIX_CANDIDATES`、`BLOCKED_*`）と Remaining Work / residual candidates を出力して停止する。
 
 `slice-impl` は次を行ってはいけません。
 
-- scope を広げる
+- parent review gate が承認した bounded parent Plan pass を広げる
 - cross-slice-verification-kernel を実行する
 - `XC-xxx` を単独で完了扱いにする
 - gap を見つけた場で coverage-gap-resolution へ進む
@@ -251,7 +253,7 @@ Final gate: 親エージェント
 
 ## Verdict
 
-- Status: PASS_FOR_SELECTED_SCOPE / CONCERNS / BLOCKED
+- Status: PARENT_PLAN_VERIFIED / PARENT_PLAN_NEEDS_RESIDUAL_DECISION / PARENT_PLAN_PARTIAL_WITH_FIX_CANDIDATES / BLOCKED_*
 - Reason:
 
 ## Changed files
@@ -272,9 +274,9 @@ Final gate: 親エージェント
 ## Handoff to parent
 ```
 
-## Final gate: cross-slice-verification-kernel
+## Final gate: cross-slice-verification-kernel and residual-decision-gate
 
-すべての実装対象 slice の verification-kernel 結果が出そろった後、親エージェントは `cross-slice-verification-kernel.agent.md` を実行します。
+すべての実装対象 slice の verification-kernel 結果が出そろった後、親エージェントは `cross-slice-verification-kernel.agent.md` を実行し、その後に unresolved items を `residual-decision-gate.agent.md` へ渡します。
 
 確認対象は次です。
 
@@ -295,7 +297,7 @@ cross-slice verification では次を確認してください。
 - stub-only success や production binding gap が残っていないか
 - Remaining Work が parent PASS を妨げるものかどうか分類されているか
 
-cross-slice verification では、見つけた gap をその場で修正しません。必要なら `coverage-gap-triage.agent.md` に渡すための handoff を作成して停止します。
+cross-slice verification では、見つけた gap をその場で修正しません。必要なら `coverage-gap-triage.agent.md` に渡すための handoff を作成し、residual candidate は `residual-decision-gate.agent.md` で explicit human decision の有無を判定して停止します。
 
 ## 並列化ルール
 
@@ -321,7 +323,7 @@ cross-slice verification では、見つけた gap をその場で修正しま�
 準備までで止める場合:
 
 ```text
-$token-aware-full-coverage-3layer を使って、この full-coverage decomposition を進めて。
+$token-aware-full-coverage-3layer を使って、この full-coverage decomposition を Plan網羅チェック・残件判定フローとして進めて。
 slice-prep で各 slice の準備 artifact を作り、parent review gate までで停止して。
 実装はまだ行わない。
 ```
@@ -331,8 +333,8 @@ slice-prep で各 slice の準備 artifact を作り、parent review gate まで
 ```text
 $token-aware-full-coverage-3layer を使って進めて。
 parent review gate で READY になった slice だけ slice-impl に渡し、
-各 slice の verification-kernel 後に cross-slice-verification-kernel まで実行して。
-gap があれば修正せず coverage-gap-triage への handoff を作って停止して。
+各 slice の verification-kernel 後に cross-slice-verification-kernel と residual-decision-gate まで実行して。
+gap があれば修正せず coverage-gap-triage または residual-decision-gate への handoff を作って停止して。
 ```
 
 ## 最終監査
@@ -344,4 +346,4 @@ gap があれば修正せず coverage-gap-triage への handoff を作って停�
 - READY でない slice を実装していない
 - cross-slice contract を slice 内で完了扱いにしていない
 - verification-kernel で gap 修正に進んでいない
-- cross-slice-verification-kernel を最後に実行している、または未実行理由を明示している
+- cross-slice-verification-kernel と residual-decision-gate を最後に実行している、または未実行理由を明示している

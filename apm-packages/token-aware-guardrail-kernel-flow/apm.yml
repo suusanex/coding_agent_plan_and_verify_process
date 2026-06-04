@@ -1,6 +1,6 @@
-name: token-aware-guardrail-kernel-flow
-version: 0.2.0
-description: Token-aware bounded Plan-first guardrail kernel flow with full-coverage slice decomposition for coding agents
+name: plan-coverage-residual-gate-flow
+version: 0.3.0
+description: Plan Coverage Check and Residual Decision Flow with bounded parent Plan passes, Guardrail Focus, and residual decision gating
 
 dependencies:
   apm:
@@ -22,6 +22,8 @@ dependencies:
       path: .github/agents/cross-slice-verification-kernel.agent.md
     - git: parent
       path: .github/agents/coverage-gap-triage.agent.md
+    - git: parent
+      path: .github/agents/residual-decision-gate.agent.md
     - git: parent
       path: .github/agents/coverage-gap-resolution-slice.agent.md
     - git: parent

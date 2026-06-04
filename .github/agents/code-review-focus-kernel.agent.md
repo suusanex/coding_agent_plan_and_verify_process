@@ -48,7 +48,7 @@ plan-kernel
 
 - **Human review focus, not AI approval**: この agent は approve / reject を行わない。人間が読むべき箇所を整理する。
 - **Read code narrowly, but do read code**: `implementation-handoff-review` と異なり、この agent は implementation diff と、必要な範囲の changed files / directly related call sites / production wiring / test files を読む。ただし codebase 全体を探索してはいけない。
-- **Reduce review breadth, not review responsibility**: token cost と review cost を下げるために読む順番と範囲を絞る。selected high-risk slice に対する人間レビューの責任を削ってはいけない。
+- **Reduce review breadth, not review responsibility**: token cost と review cost を下げるために読む順番と範囲を絞る。Guardrail Focus surface に対する人間レビューの責任を削ってはいけない。
 - **Artifact-grounded review map**: review target は、Plan、change-risk-triage、implementation-contract、runtime-contract、test-design、implementation self-map、diff のいずれかに根拠を持つ必要がある。根拠のない不安を長く列挙してはいけない。
 - **Diff-grounded prioritization**: 実際に変更された file / symbol / behavior に優先順位を付ける。artifact 上の一般論だけで review point を作ってはいけない。
 - **Explicit uncertainty**: 読んでいない file、diff から判断できない影響、call site 未確認、test coverage 不明、human decision が必要な箇所は、`Files not inspected / uncertainty` と `Handoff Packet` に明示する。
@@ -153,15 +153,15 @@ review target の priority には次を使ってください。
 
 ## Workflow
 
-### Step 1. Determine ticket-or-slug and selected scope
+### Step 1. Determine ticket-or-slug and Guardrail Focus coverage
 
 caller が artifact path、ticket-or-slug、selected IDs、PR、diff、branch を渡している場合は、それを使って対象を特定してください。
 
 ticket-or-slug を安全に特定できない場合でも、inline output として review focus artifact を出力してよいです。ただし repository write を行う場合は、安全に対象を特定できるときだけ `plans/<ticket-or-slug>-code-review-focus-kernel.md` に書き出してください。
 
-selected IDs が渡されている場合は、それを scope anchor とします。渡されていない場合は、change-risk-triage、runtime-contract-kernel、test-design-kernel、implementation-contract-kernel から selected scope を推定してください。
+selected IDs が渡されている場合は、それを scope anchor とします。渡されていない場合は、change-risk-triage、runtime-contract-kernel、test-design-kernel、implementation-contract-kernel から Guardrail Focus coverage を推定してください。
 
-安全に selected scope を決められない場合は、`BROAD_REVIEW_RECOMMENDED` または `BLOCKED_UNTIL_HUMAN_DECISION` を検討してください。
+安全に Guardrail Focus coverage を決められない場合は、`BROAD_REVIEW_RECOMMENDED` または `BLOCKED_UNTIL_HUMAN_DECISION` を検討してください。
 
 ### Step 2. Read source artifacts
 
@@ -325,7 +325,7 @@ BLOCKED は、本当に review focus 作成以前に危険な場合だけ使っ�
 
 ### Step 11. Write the output
 
-出力を `plans/<ticket-or-slug>-code-review-focus-kernel.md` に書き出してください。既存ファイルがある場合は、同じ requested change / selected scope に対応する内容だけを更新し、無関係な review focus を壊さないでください。
+出力を `plans/<ticket-or-slug>-code-review-focus-kernel.md` に書き出してください。既存ファイルがある場合は、同じ requested change / Guardrail Focus coverage に対応する内容だけを更新し、無関係な review focus を壊さないでください。
 
 この agent が行える repository write は `plans/<ticket-or-slug>-code-review-focus-kernel.md` の作成または更新だけです。production code、test code、Plan、triage、runtime-contract、test-design、verification artifact は変更してはいけません。
 
@@ -446,7 +446,7 @@ BLOCKED は、本当に review focus 作成以前に危険な場合だけ使っ�
 - Plan、change-risk-triage、implementation-contract、runtime-contract、test-design、verification artifact を変更してはいけません。
 - code review の承認、却下、merge 判断をしてはいけません。
 - 「review 不要」と宣言してはいけません。
-- selected scope と関係ない codebase 全体を探索してはいけません。
+- Guardrail Focus coverage と関係ない codebase 全体を探索してはいけません。
 - broad なリファクタ提案を行ってはいけません。
 - 問題を見つけても自動修正してはいけません。
 - test が通ることを production readiness として扱ってはいけません。
