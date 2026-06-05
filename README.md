@@ -215,6 +215,59 @@ slice ごとの pass を parent Plan completion と扱わず、parent acceptance
 
 ---
 
+## 応用運用: PR #10 で追加した Codex 向け full-coverage 3層運用
+
+これは基本プロセスそのものではなく、`change-risk-triage.agent.md` が `full-coverage` を返し、`plan-slice-decomposition.agent.md` で複数 slice に分けたあとに使う Codex 向けの応用運用です。
+
+PR #10（`Codex向け full-coverage 3層運用を追加`）では、その局面で slice を安全に扱うための補助一式を追加しました。現在の `main` では、その内容は主に `apm-packages/token-aware-full-coverage-3layer/` を source of truth として管理しています。
+
+| 役割 | 現在の主な配置 |
+| --- | --- |
+| Codex へのプロジェクト指示 | `apm-packages/token-aware-full-coverage-3layer/.apm/instructions/token-aware-full-coverage-3layer.instructions.md` |
+| 親エージェントが呼ぶ skill | `apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md` |
+| slice 準備 subagent | `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-prep.agent.md` |
+| slice 実装 subagent | `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-impl.agent.md` |
+| Codex project config | `.codex/config.toml` |
+
+### 何をする応用か
+
+この 3 層運用は、`plan-slice-decomposition.agent.md` の出力をそのまま実装開始条件にしないためのものです。
+
+1. 親エージェントが slice 実行表と parent review gate を管理する
+2. `slice-prep` が slice ごとの kernel artifact を下書きする
+3. 親レビューで READY になった slice だけを `slice-impl` が実装し、slice-local verification まで進める
+4. 最後に親エージェントが cross-slice verification と residual decision をまとめる
+
+つまり、「full-coverage decomposition を Codex でそのまま分解実装させる」のではなく、「親が整合を握ったまま、準備と実装だけを bounded に委譲する」ための運用補助です。
+
+### APM で取得できるもの / できないもの
+
+この応用運用では、APM package に入っているものと、workspace 側に残すものを分けています。
+
+- APM で取得できるもの
+  - project guidance 相当の instructions
+  - reusable skill
+  - custom agent として使う `slice-prep` / `slice-impl`
+- APM で取得できないもの
+  - workspace そのものの Codex 実行設定（例: `.codex/config.toml`）
+  - repository 固有のローカル配置や、キミの作業環境に依存する設定値
+
+関係としては、APM で取得できるものが「何を守ってどう進めるか」を定義し、APM で取得できないものが「その workspace でどう実行するか」を補います。前者だけでは運用方針は入るけれど、並列度や再帰深さのようなローカル実行境界までは固定しません。
+
+### APM で取得できないものの使い方
+
+`.codex/config.toml` は package の代用品ではなく、APM で入った instructions / skill / agents をこの repository で安全に動かすための補助設定として使います。
+
+この repository では、少なくとも次の意図で使っています。
+
+- 親エージェント既定値を重めにし、広い設計整合を見落としにくくする
+- `max_threads = 3` で slice の無制限並列化を防ぐ
+- `max_depth = 1` で subagent からさらに subagent を増殖させない
+
+つまり、APM で取得した skill / agents が作業手順のガードレール、`.codex/config.toml` がそのガードレールを壊しにくい実行境界、という分担です。どちらか片方だけだと運用が痩せます。
+
+---
+
 ## Verdict 語彙
 
 ### implementation-handoff-review
