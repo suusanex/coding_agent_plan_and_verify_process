@@ -1,6 +1,11 @@
 name: codex-first-ai-development-process
-version: 0.1.0
-description: Codex-first applied operation package that wraps the existing Plan-first APM flows for beginner-friendly, cost-aware development
+version: 0.2.0
+description: Codex-first cost-aware routing package for ordinary development requests, stateful resume, tiered agent delegation, and advanced full-coverage separation
+type: hybrid
+targets:
+  - codex
+  - agent-skills
+includes: auto
 
 dependencies:
   apm:

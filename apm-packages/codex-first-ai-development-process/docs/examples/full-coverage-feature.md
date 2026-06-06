@@ -1,10 +1,13 @@
 # Example: Full-coverage Feature
 
+この例は熟練 operator / maintainer 向けの advanced route 例である。
+標準 user guide には載せない。
+
 ## Request
 
 ```text
-注文作成、在庫予約、決済、失敗時の補償処理をまとめて追加してください。
-Codex-first AI Development Process で進めて。
+注文作成、在庫予約、決済、失敗時の補償処理をまとめて追加して。
+大きな変更なので、必要なら並列化も検討して。
 ```
 
 ## Why full-coverage
@@ -17,8 +20,10 @@ Codex-first AI Development Process で進めて。
 ## Expected route
 
 ```text
-plan-kernel.agent.md
--> change-risk-triage.agent.md
+codex-first-cost-router
+-> parent Plan / state artifact
+-> risk triage
+-> advanced-route confirmation
 -> plan-slice-decomposition.agent.md
 -> per-slice token-aware kernel flow
 -> cross-slice-verification-kernel.agent.md
