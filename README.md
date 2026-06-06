@@ -1,8 +1,10 @@
 # coding_agent_plan_and_verify_process
 
-GitHub Copilot / Codex で Plan-first 開発をするための agent（`.github/agents/`）と運用ドキュメントを管理する repository です。
+GitHub Copilot / Codex で Plan-first 開発をするための agent（`.github/agents/`）、APM package、運用ドキュメントを管理する repository です。
 
-この repository には、大きく分けて 2 系統のプロセスがあります。
+単純な Plan モードでは不十分と感じた点を、自分の用途向けに改善したものです。
+
+この repository には、大きく分けて 3 系統のプロセスがあります。
 
 1. Full autonomous Plan-first flow
    runtime evidence・integration test の設計・検証・ギャップ解消を広く使い、ゴールまで自走しやすい従来型のフロー。
@@ -13,6 +15,9 @@ GitHub Copilot / Codex で Plan-first 開発をするための agent（`.github/
    bounded Plan を source of truth として維持しながら、通常可能な実装・検証は parent Plan に沿って進めるフロー。深い runtime / production-binding 確認は Guardrail Focus に絞れるが、それは implementation scope ではありません。高コスト、manual-only、blocked、ambiguous、human decision が必要な項目は residual candidate として記録し、Residual Decision Gate で明示判断します。
 
 Migration note: 旧称 `Token-aware guardrail kernel flow` は、この新フローへ移行済みの legacy name です。通常の prompt では新名称を使ってください。
+
+3. Codex-first AI Development Process
+   Codex を第一優先にし、初心者でも短い依頼から cost-aware routing に入れる応用運用。中核はモデル tier の自動分担であり、full-coverage 3層運用は標準ルートではなく advanced route として分離します。
 
 ---
 
@@ -43,6 +48,85 @@ Plan requirement / acceptance condition
 ```
 
 軽量化する場合も、削る対象は parent Plan の責務ではありません。Guardrail Focus は deep-check subset であり、implementation scope ではありません。
+
+---
+
+## APM package の選び方
+
+この repository では、応用運用を使う方法と、既存 package を直接使う方法の両方を残します。
+
+| package | Use when |
+| --- | --- |
+| `apm-packages/codex-first-ai-development-process` | Codex を第一優先にし、短い依頼から cost-aware routing、モデル tier 分担、READY / close gate、stateful resume に入りたい |
+| `apm-packages/token-aware-guardrail-kernel-flow` | operator が Plan網羅チェック・残件判定フローを直接選べる。既存 agent 群をそのまま使いたい |
+| `apm-packages/token-aware-full-coverage-3layer` | PR #10 由来の Codex 向け full-coverage 3層応用運用だけを直接使いたい |
+| `apm-packages/full-autonomous-plan-first-flow` | broad autonomous flow を明示的に選び、runtime evidence / integration test design を広く使いたい |
+
+`codex-first-ai-development-process` は既存 package の source を複製しません。同じ `.github/agents/*.agent.md` を参照しつつ、Codex-first の入口、instructions、Skill、停止語彙、tier 別 agent / profile テンプレート、state / stop templates、examples、user / maintainer guide を追加します。
+
+---
+
+## Codex-first AI Development Process
+
+Codex を第一優先にしたチーム導入向けの応用運用です。
+これは full-coverage 3層運用を標準化する package ではありません。
+中核は cost-aware routing であり、難しい判断を `HIGH_MODEL`、通常実装を `STANDARD_MODEL`、軽い探索・整合確認を `CHEAP_MODEL` へ分担するための入口です。
+full-coverage 3層運用は advanced route として分離されています。
+
+### 想定用途
+
+次のような場合に使います。
+
+- 利用者が Codex App / CLI や agent の選び方に慣れていない
+- 「この issue を進めて」のような短い依頼からでも Plan-first に入りたい
+- 実装前 READY 判定と実装後 close 判定を明示したい
+- Codex の利用枠を優先し、必要な場合だけ GitHub Copilot fallback を検討したい
+- read-heavy scan や docs consistency を低コスト側へ寄せたい
+- advanced route が必要な大規模変更を、標準ルートから分離したい
+
+### 利用者の入口
+
+利用者は次のように短く依頼します。
+
+```text
+この issue を進めて。
+このバグを直して。
+続きやって。
+```
+
+`codex-first-cost-router` が内部で source of truth、repo rules、state artifact、次 gate、model tier、agent / subagent 候補を決めます。
+利用者に process 名、skill 名、agent 名、full-coverage 分岐を選ばせません。
+
+### 内部 routing
+
+1. `codex-first-cost-router` が依頼と既存 state を読む
+2. Intake / Plan / Risk / Scan / Contract / Implementation / Verification / Close のうち次 gate を選ぶ
+3. gate ごとに `HIGH_MODEL` / `STANDARD_MODEL` / `CHEAP_MODEL` と agent / subagent を割り当てる
+4. READY でない場合は実装せず、state artifact と stop reason を更新する
+5. READY 後だけ bounded scope を実装する
+6. close 可否と residual を state artifact に戻す
+
+full-coverage 3層運用は、標準 cost-router で安全に bounded 化できない場合、または熟練 operator が明示的に選んだ場合だけ advanced route として扱います。
+
+### モデル階層
+
+| Label | Intended use |
+| --- | --- |
+| `HIGH_MODEL` | 曖昧な要求整理、bounded Plan、難しい risk triage、implementation contract、危険な close gate |
+| `STANDARD_MODEL` | READY 後の通常実装、通常 verification、test update |
+| `CHEAP_MODEL` | read-heavy scan、docs consistency、artifact format check、単純局所修正 |
+
+実名モデルは固定しません。組織の契約、利用枠、品質要求に合わせて mapping してください。
+この package には、そのまま使える profile / agent file テンプレート例として `profiles/codex-first/` を含めます。
+
+### 詳細ドキュメント
+
+- `apm-packages/codex-first-ai-development-process/AGENTS.md`
+- `apm-packages/codex-first-ai-development-process/docs/codex-first-ai-development-process.md`
+- `apm-packages/codex-first-ai-development-process/docs/user-guide.md`
+- `apm-packages/codex-first-ai-development-process/docs/maintainer-guide.md`
+- `apm-packages/codex-first-ai-development-process/docs/team-profile-launcher.md`
+- `apm-packages/codex-first-ai-development-process/profiles/codex-first/`
 
 ---
 

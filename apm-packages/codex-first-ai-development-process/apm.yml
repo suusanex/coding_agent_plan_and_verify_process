@@ -1,0 +1,55 @@
+name: codex-first-ai-development-process
+version: 0.2.0
+description: Codex-first cost-aware routing package for ordinary development requests, stateful resume, tiered agent delegation, and advanced full-coverage separation
+type: hybrid
+targets:
+  - codex
+  - agent-skills
+includes: auto
+
+dependencies:
+  apm:
+    # Standard cost-aware route kernels.
+    - git: parent
+      path: .github/agents/plan-kernel.agent.md
+    - git: parent
+      path: .github/agents/change-risk-triage.agent.md
+    - git: parent
+      path: .github/agents/implementation-contract-kernel.agent.md
+    - git: parent
+      path: .github/agents/implementation-contract-review-kernel.agent.md
+    - git: parent
+      path: .github/agents/runtime-contract-kernel.agent.md
+    - git: parent
+      path: .github/agents/test-design-kernel.agent.md
+    - git: parent
+      path: .github/agents/implementation-handoff-review.agent.md
+    - git: parent
+      path: .github/agents/implementation-execution.agent.md
+    - git: parent
+      path: .github/agents/code-review-focus-kernel.agent.md
+    - git: parent
+      path: .github/agents/verification-kernel.agent.md
+    - git: parent
+      path: .github/agents/coverage-gap-triage.agent.md
+    - git: parent
+      path: .github/agents/coverage-gap-resolution-slice.agent.md
+    # Advanced full-coverage route support. These are not the default beginner path.
+    - git: parent
+      path: .github/agents/plan-slice-decomposition.agent.md
+    - git: parent
+      path: .github/agents/cross-slice-verification-kernel.agent.md
+    # Compatibility with the existing full-autonomous Plan-first package.
+    # The standard Codex-first route does not invoke these by default.
+    - git: parent
+      path: .github/agents/plan-generation.agent.md
+    - git: parent
+      path: .github/agents/plan-review.agent.md
+    - git: parent
+      path: .github/agents/runtime-evidence.agent.md
+    - git: parent
+      path: .github/agents/integration-test-design.agent.md
+    - git: parent
+      path: .github/agents/integration-test-verification-implementation.agent.md
+    - git: parent
+      path: .github/agents/coverage-gap-resolution.agent.md
