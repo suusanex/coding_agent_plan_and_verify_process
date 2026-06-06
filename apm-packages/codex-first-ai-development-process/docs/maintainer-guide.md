@@ -29,6 +29,9 @@ global guidance は短く保つ。
 `profiles/codex-first/agents/*.toml` は Codex custom agent file として使える形にし、`model` と `model_reasoning_effort` のデフォルト例を入れる。
 組織の契約や利用枠に合わせて、これらの TOML を編集してから配布する。
 
+repository-local な継続運用のためには `scripts/install-codex-first-local.cs` も追加しておく。  
+このインストーラは `AGENTS.md` の managed section、`.codex/config.toml`、`.codex/agents/*.toml`、`templates/codex-first-state.md` を安全に追加・マージする。
+
 ## AGENTS layering
 
 Codex は global から作業ディレクトリへ向かって `AGENTS.md` 系の instruction chain を読む前提で設計する。

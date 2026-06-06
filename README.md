@@ -147,22 +147,36 @@ codex status
 - `agents/*.toml` に `model` / `model_reasoning_effort` が入っている
 - 対象 repository の `AGENTS.md` も通常通り読まれる
 
-#### 一時的に試す
+#### ローカル導入（推奨）
 
-profile をコピーせず、この repository 内の profile をそのまま使う場合は `codex-first-start.ps1` を使います。
+VS Code の Codex 拡張で実運用する場合は、まず対象リポジトリへローカル導入するのが推奨です。
+
+```powershell
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- .
+```
+
+これで対象リポジトリに次を追加します。
+
+- `AGENTS.md` の codex-first セクション
+- `.codex/config.toml`
+- `.codex/agents/*.toml`
+- `templates/codex-first-state.md`
+
+導入内容を確認したいときは `--dry-run` を使うと、変更予定一覧だけ表示できます。
+
+```powershell
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- . --dry-run
+```
+
+`codex-first-start.ps1` は、実行中だけ `CODEX_HOME` を切り替える一時 launcher です。  
+そのためリポジトリ設定の恒久化はしません。`Codex` を常設で使うなら上のインストールを使ってください。
 
 ```powershell
 pwsh .\apm-packages\codex-first-ai-development-process\scripts\codex-first-start.ps1 -RepoPath . status
-```
-
-任意の Codex 引数も渡せます。
-
-```powershell
 pwsh .\apm-packages\codex-first-ai-development-process\scripts\codex-first-start.ps1 -RepoPath D:\path\to\target-repo exec "この issue を進めて。"
 ```
 
-`codex-first-start.ps1` は、実行中だけ `CODEX_HOME` を `apm-packages/codex-first-ai-development-process/profiles/codex-first/` に向けてから Codex を起動します。
-対象 repository のファイルを自動で書き換えるものではありません。
+VS Code の Codex 拡張では、最初にインストール済みリポジトリを開くと、ローカル `.codex` / `AGENTS.md` を見て既定のルーティングで起動します。
 
 ### 詳細ドキュメント
 

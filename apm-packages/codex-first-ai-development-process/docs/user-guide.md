@@ -24,6 +24,24 @@ Codex 側が repo rules と既存 artifact を読み、次に安全な工程を�
 5. 実装後に test / verification / close 可否を確認する。
 6. 止まる必要がある場合だけ、必要最小限の質問を返す。
 
+## VS Code Codex 拡張でのローカル導入
+
+`codex-first-start.ps1` は一時 launcher なので、VS Code 拡張のようにリポジトリごとに標準運用を残したい場合は、次のインストーラを先に実行する。
+
+```powershell
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- <target-repo-path>
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- <target-repo-path> --dry-run
+```
+
+このインストーラは次を対象リポジトリへ追加します。
+
+- `AGENTS.md` の Codex-first セクション（既存を上書きしない既定）
+- `.codex/config.toml`（足りないキーだけ補完）
+- `.codex/agents/*.toml`（同名既存ファイルは競合時に停止）
+- `templates/codex-first-state.md`
+
+必要なら `--force` を使って既存の `AGENTS.md` section / agent / template を上書きし、VScode 再読込して反映確認する。
+
 ## 止まったときの見方
 
 よくある停止理由は次の通り。

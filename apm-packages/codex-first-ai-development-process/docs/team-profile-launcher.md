@@ -35,6 +35,8 @@ CODEX_HOME/
 The actual installed layout may vary by APM tool, but the ownership is the same:
 profile-level instructions provide the entry behavior, while repo-level instructions keep local rules.
 
+For VS Code Codex extension in repository-local operation, use `scripts/install-codex-first-local.cs` first so that `AGENTS.md` and `.codex` are created in the target repository.
+
 ## Minimal install example
 
 For a local trial, copy the template profile to a dedicated Codex home:
@@ -51,6 +53,12 @@ For one-off use without copying, use the launcher example:
 
 ```powershell
 pwsh .\apm-packages\codex-first-ai-development-process\scripts\codex-first-start.ps1 -RepoPath . status
+```
+
+To install repo-local bootstrap files for repeated local use:
+
+```powershell
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- .
 ```
 
 Expected verification:
