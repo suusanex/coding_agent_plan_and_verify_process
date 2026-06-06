@@ -1,8 +1,10 @@
 # coding_agent_plan_and_verify_process
 
-GitHub Copilot / Codex で Plan-first 開発をするための agent（`.github/agents/`）と運用ドキュメントを管理する repository です。
+GitHub Copilot / Codex で Plan-first 開発をするための agent（`.github/agents/`）、APM package、運用ドキュメントを管理する repository です。
 
-この repository には、大きく分けて 2 系統のプロセスがあります。
+単純な Plan モードでは不十分と感じた点を、自分の用途向けに改善したものです。
+
+この repository には、大きく分けて 3 系統のプロセスがあります。
 
 1. Full autonomous Plan-first flow
    runtime evidence・integration test の設計・検証・ギャップ解消を広く使い、ゴールまで自走しやすい従来型のフロー。
@@ -13,6 +15,9 @@ GitHub Copilot / Codex で Plan-first 開発をするための agent（`.github/
    bounded Plan を source of truth として維持しながら、通常可能な実装・検証は parent Plan に沿って進めるフロー。深い runtime / production-binding 確認は Guardrail Focus に絞れるが、それは implementation scope ではありません。高コスト、manual-only、blocked、ambiguous、human decision が必要な項目は residual candidate として記録し、Residual Decision Gate で明示判断します。
 
 Migration note: 旧称 `Token-aware guardrail kernel flow` は、この新フローへ移行済みの legacy name です。通常の prompt では新名称を使ってください。
+
+3. Codex-first AI Development Process
+   Codex を第一優先にし、初心者でも短い依頼から Plan-first / gate-driven / cost-aware な進め方に入れる応用運用。既存 flow を置き換えず、通常ルートと full-coverage 分岐を選びやすくする wrapper package です。
 
 ---
 
@@ -43,6 +48,67 @@ Plan requirement / acceptance condition
 ```
 
 軽量化する場合も、削る対象は parent Plan の責務ではありません。Guardrail Focus は deep-check subset であり、implementation scope ではありません。
+
+---
+
+## APM package の選び方
+
+この repository では、応用運用を使う方法と、既存 package を直接使う方法の両方を残します。
+
+| package | Use when |
+| --- | --- |
+| `apm-packages/codex-first-ai-development-process` | Codex を第一優先にし、初心者向けの短い入口、モデル階層、READY / close gate、full-coverage 分岐をまとめて使いたい |
+| `apm-packages/token-aware-guardrail-kernel-flow` | operator が Plan網羅チェック・残件判定フローを直接選べる。既存 agent 群をそのまま使いたい |
+| `apm-packages/token-aware-full-coverage-3layer` | PR #10 由来の Codex 向け full-coverage 3層応用運用だけを直接使いたい |
+| `apm-packages/full-autonomous-plan-first-flow` | broad autonomous flow を明示的に選び、runtime evidence / integration test design を広く使いたい |
+
+`codex-first-ai-development-process` は既存 package の source を複製しません。同じ `.github/agents/*.agent.md` を参照し、Codex-first の入口、Skill、停止語彙、user / maintainer guide だけを追加します。
+
+---
+
+## Codex-first AI Development Process
+
+Codex を第一優先にしたチーム導入向けの応用運用です。
+
+### 想定用途
+
+次のような場合に使います。
+
+- 利用者が Codex App / CLI や agent の選び方に慣れていない
+- 「この issue を進めて」のような短い依頼からでも Plan-first に入りたい
+- 実装前 READY 判定と実装後 close 判定を明示したい
+- Codex の利用枠を優先し、必要な場合だけ GitHub Copilot fallback を検討したい
+- full-coverage を乱用せず、必要な課題だけ 3 層運用へ分岐したい
+
+### 典型的な手順
+
+1. `codex-plan-coverage` Skill で入口を整える
+2. `plan-kernel.agent.md`
+3. `change-risk-triage.agent.md`
+4. 必要に応じて implementation contract / runtime contract / test design
+5. `implementation-handoff-review.agent.md`
+6. `implementation-execution.agent.md`
+7. `verification-kernel.agent.md`
+8. 未解決があれば `coverage-gap-triage.agent.md` と選択的な `coverage-gap-resolution-slice.agent.md`
+
+`change-risk-triage.agent.md` が `full-coverage` を推奨した場合は、すぐに broad implementation へ進まず、`codex-full-coverage-3layer` Skill と `plan-slice-decomposition.agent.md` で parent / slice-prep / slice-impl に分けます。
+
+### モデル階層
+
+| Label | Intended use |
+| --- | --- |
+| `HIGH_MODEL` | Plan 作成、risk triage、full-coverage parent、最終 close gate |
+| `STANDARD_MODEL` | bounded implementation、runtime / test design、verification |
+| `CHEAP_MODEL` | 形式確認、軽量 consistency check、README / example 整形 |
+
+実名モデルは固定しません。組織の契約、利用枠、品質要求に合わせて mapping してください。
+
+### 詳細ドキュメント
+
+- `apm-packages/codex-first-ai-development-process/AGENTS.md`
+- `apm-packages/codex-first-ai-development-process/docs/codex-first-ai-development-process.md`
+- `apm-packages/codex-first-ai-development-process/docs/user-guide.md`
+- `apm-packages/codex-first-ai-development-process/docs/maintainer-guide.md`
 
 ---
 
