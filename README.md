@@ -119,6 +119,51 @@ full-coverage 3層運用は、標準 cost-router で安全に bounded 化でき�
 実名モデルは固定しません。組織の契約、利用枠、品質要求に合わせて mapping してください。
 この package には、そのまま使える profile / agent file テンプレート例として `profiles/codex-first/` を含めます。
 
+### 導入方法
+
+Codex-first は、対象 repository の `AGENTS.md` を置き換えるのではなく、`CODEX_HOME` 側の team profile として重ねて使う想定です。
+repo 固有の build / test / security ルールは、対象 repository 側の `AGENTS.md` が引き続き優先されます。
+
+#### 常設 profile として使う
+
+`profiles/codex-first/` を専用の Codex home にコピーします。
+
+```powershell
+$profile = "$env:USERPROFILE\.codex-profiles\codex-first"
+New-Item -ItemType Directory -Force $profile | Out-Null
+Copy-Item -Recurse -Force .\apm-packages\codex-first-ai-development-process\profiles\codex-first\* $profile
+```
+
+利用するときは、その profile を `CODEX_HOME` に指定して Codex を起動します。
+
+```powershell
+$env:CODEX_HOME = "$env:USERPROFILE\.codex-profiles\codex-first"
+codex status
+```
+
+確認観点:
+
+- `codex status` で意図した `CODEX_HOME` が使われている
+- `agents/*.toml` に `model` / `model_reasoning_effort` が入っている
+- 対象 repository の `AGENTS.md` も通常通り読まれる
+
+#### 一時的に試す
+
+profile をコピーせず、この repository 内の profile をそのまま使う場合は `codex-first-start.ps1` を使います。
+
+```powershell
+pwsh .\apm-packages\codex-first-ai-development-process\scripts\codex-first-start.ps1 -RepoPath . status
+```
+
+任意の Codex 引数も渡せます。
+
+```powershell
+pwsh .\apm-packages\codex-first-ai-development-process\scripts\codex-first-start.ps1 -RepoPath D:\path\to\target-repo exec "この issue を進めて。"
+```
+
+`codex-first-start.ps1` は、実行中だけ `CODEX_HOME` を `apm-packages/codex-first-ai-development-process/profiles/codex-first/` に向けてから Codex を起動します。
+対象 repository のファイルを自動で書き換えるものではありません。
+
 ### 詳細ドキュメント
 
 - `apm-packages/codex-first-ai-development-process/AGENTS.md`
