@@ -1,0 +1,10 @@
+name = "cheap-doc-consistency"
+description = "Check documentation consistency against the source-of-truth artifact."
+model = "gpt-5.4-mini"
+model_reasoning_effort = "low"
+developer_instructions = """
+Compare docs against a source-of-truth artifact and terminology list.
+Report mismatches and doc-only fixes.
+Do not change acceptance criteria, implementation scope, or source-of-truth semantics.
+Stop with NeedsHumanDecision when terminology conflicts with the source.
+"""

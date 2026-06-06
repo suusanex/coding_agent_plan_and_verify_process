@@ -9,6 +9,7 @@ includes: auto
 
 dependencies:
   apm:
+    # Standard cost-aware route kernels.
     - git: parent
       path: .github/agents/plan-kernel.agent.md
     - git: parent
@@ -33,10 +34,13 @@ dependencies:
       path: .github/agents/coverage-gap-triage.agent.md
     - git: parent
       path: .github/agents/coverage-gap-resolution-slice.agent.md
+    # Advanced full-coverage route support. These are not the default beginner path.
     - git: parent
       path: .github/agents/plan-slice-decomposition.agent.md
     - git: parent
       path: .github/agents/cross-slice-verification-kernel.agent.md
+    # Compatibility with the existing full-autonomous Plan-first package.
+    # The standard Codex-first route does not invoke these by default.
     - git: parent
       path: .github/agents/plan-generation.agent.md
     - git: parent

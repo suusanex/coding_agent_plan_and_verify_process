@@ -5,8 +5,9 @@ Do not treat these labels as fixed model names.
 
 | Tier | Real model | Notes |
 | --- | --- | --- |
-| `HIGH_MODEL` | TBD by organization | Use for hard judgment and high-risk planning. |
-| `STANDARD_MODEL` | TBD by organization | Use for normal implementation and verification. |
-| `CHEAP_MODEL` | TBD by organization | Use for read-heavy scan, docs consistency, and simple local fixes. |
+| `HIGH_MODEL` | `gpt-5.5` | Use for hard judgment and high-risk planning. Start with high/xhigh reasoning. |
+| `STANDARD_MODEL` | `gpt-5.5` | Use for normal implementation and verification. Start with medium reasoning. |
+| `CHEAP_MODEL` | `gpt-5.4-mini` | Use for read-heavy scan, docs consistency, and simple local fixes. Start with low reasoning. |
 
 Review this mapping when contracts, available models, pricing, or quality requirements change.
+The matching runnable examples live in `profiles/codex-first/agents/*.toml`.

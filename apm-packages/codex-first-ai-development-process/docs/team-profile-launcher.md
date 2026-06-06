@@ -1,6 +1,7 @@
 # Team Profile / Launcher
 
-The package is intended to be installed as a team profile such as `codex-first` or launched through a helper such as `codex-first-start`.
+The package includes a minimal profile template under `profiles/codex-first/` and a launcher example under `scripts/codex-first-start.ps1`.
+Copy or point `CODEX_HOME` at the profile when you want ordinary requests to enter Codex-first cost-aware routing.
 
 ## Goals
 
@@ -15,23 +16,55 @@ The package is intended to be installed as a team profile such as `codex-first` 
 ```text
 CODEX_HOME/
   AGENTS.md
+  config.toml
+  agents/
+    high-planner.toml
+    high-risk-triage.toml
+    high-implementation-contract.toml
+    high-closure-reviewer.toml
+    standard-implementer.toml
+    standard-verifier.toml
+    cheap-repo-scanner.toml
+    cheap-doc-consistency.toml
+    cheap-artifact-format-checker.toml
   skills/codex-first-cost-router/SKILL.md
-  agents/high-planner.agent.md
-  agents/standard-implementer.agent.md
-  agents/cheap-repo-scanner.agent.md
   templates/codex-first-state.md
-  docs/model-tier-mapping.md
+  templates/model-tier-mapping.example.md
 ```
 
 The actual installed layout may vary by APM tool, but the ownership is the same:
 profile-level instructions provide the entry behavior, while repo-level instructions keep local rules.
+
+## Minimal install example
+
+For a local trial, copy the template profile to a dedicated Codex home:
+
+```powershell
+$profile = "$env:USERPROFILE\.codex-profiles\codex-first"
+New-Item -ItemType Directory -Force $profile | Out-Null
+Copy-Item -Recurse -Force .\apm-packages\codex-first-ai-development-process\profiles\codex-first\* $profile
+$env:CODEX_HOME = $profile
+codex status
+```
+
+For one-off use without copying, use the launcher example:
+
+```powershell
+pwsh .\apm-packages\codex-first-ai-development-process\scripts\codex-first-start.ps1 -RepoPath . status
+```
+
+Expected verification:
+
+- `codex status` shows the custom `CODEX_HOME`.
+- A prompt such as `Summarize the current instructions.` includes the Codex-first global guidance.
+- Subagent work can use the TOML files under `agents/`, each of which sets `model` and `model_reasoning_effort`.
 
 ## Launcher behavior
 
 The launcher should:
 
 - load the Codex-first profile before ordinary repo work
-- keep model tier mapping external to the package
+- allow maintainers to edit model tier defaults before team rollout
 - avoid overwriting repo files
 - report when repo-local instructions are too large or conflicting
 - offer bootstrap / dry-run merge only when profile layering is insufficient

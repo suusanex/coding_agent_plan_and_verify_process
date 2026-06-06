@@ -27,6 +27,7 @@ Users do not choose process names, agent names, model tiers, subagents, READY ga
 - Prevent implementation before READY.
 - Prevent close when human, manual, or higher-model stops remain.
 - Save the next action and stop reason.
+- Use Codex-readable custom agent file templates when maintainers want hard model routing.
 
 ## Gate summary
 
@@ -48,3 +49,9 @@ Users do not choose process names, agent names, model tiers, subagents, READY ga
 - No fake / stub / mock-only result counted as production success.
 - No close with unresolved `ManualVerificationRequired`, `NeedsHumanDecision`, or `NeedsHigherModelReview`.
 - No hard-coded real model names.
+
+## Executable model routing
+
+The abstract labels stay in process documents, but the team profile may pin real execution defaults in Codex custom agent files.
+Use `profiles/codex-first/agents/*.toml` as the editable starting point.
+Each template includes `model` and `model_reasoning_effort`, so teams can run it as-is for validation or change it before rollout.

@@ -29,7 +29,7 @@
 ## Standard route: cost-aware routing
 
 | Gate | Main output | Default tier |
-| --- | --- |
+| --- | --- | --- |
 | Intake | source of truth, current state, allowed-to-edit | `STANDARD_MODEL` |
 | Plan | bounded Plan or equivalent artifact | `HIGH_MODEL` |
 | Risk | risk class and advanced-route boundary | `STANDARD_MODEL` / `HIGH_MODEL` |
@@ -62,6 +62,13 @@ plans/<slug>/codex-first-state.md
 
 この artifact は、`current_gate`、`next_gate`、`recommended_model_tier`、`allowed_to_edit`、`stop_reason`、`human_required_items`、`unresolved_residuals`、`next_action` を持つ。
 ユーザーが「続きやって」と依頼したら、まずこの artifact を読む。
+
+## Executable profile templates
+
+この package は `profiles/codex-first/` に、Codex が読める profile / custom agent file の最小例を持つ。
+`profiles/codex-first/agents/*.toml` には `model` と `model_reasoning_effort` の初期値があり、そのまま検証に使うことも、組織の契約や利用枠に合わせて変更することもできる。
+
+抽象 tier は文書上の安定語彙であり、実名モデルへの対応は profile 側で管理する。
 
 ## Advanced route
 

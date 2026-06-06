@@ -145,7 +145,8 @@ Do not hard-code real model names. Maintainers own the mapping.
 
 ## Predefined agents / subagents
 
-Use the package agents as role descriptions for delegation:
+Use the package agents as role descriptions for delegation.
+For Codex-readable custom agent files with concrete `model` and `model_reasoning_effort` defaults, use `profiles/codex-first/agents/*.toml`.
 
 - `high-planner`
 - `high-risk-triage`
@@ -158,6 +159,7 @@ Use the package agents as role descriptions for delegation:
 - `cheap-artifact-format-checker`
 
 Subagents are a way to assign bounded work to the right tier.
+They still require explicit subagent / parallel work instructions from the parent thread or launcher.
 Do not make write-heavy parallel editing the default.
 
 ## Stop reasons

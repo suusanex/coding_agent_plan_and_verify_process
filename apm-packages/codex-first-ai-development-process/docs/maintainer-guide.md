@@ -25,6 +25,10 @@
 global guidance は短く保つ。
 詳細は Skill、docs、templates へ逃がす。
 
+この package では最小例として `profiles/codex-first/` と `scripts/codex-first-start.ps1` を持つ。
+`profiles/codex-first/agents/*.toml` は Codex custom agent file として使える形にし、`model` と `model_reasoning_effort` のデフォルト例を入れる。
+組織の契約や利用枠に合わせて、これらの TOML を編集してから配布する。
+
 ## AGENTS layering
 
 Codex は global から作業ディレクトリへ向かって `AGENTS.md` 系の instruction chain を読む前提で設計する。
@@ -50,6 +54,14 @@ team profile の global `AGENTS.md` は repo-local `AGENTS.md` を置き換え�
 
 この対応表は package に固定しない。
 契約、利用枠、品質要求、時期によって変わるため、team profile 側で保守する。
+
+ただし、実行可能な初期値がないと導入検証できないため、`profiles/codex-first/agents/*.toml` には次のようなデフォルト例を置く。
+
+- high 系: `model = "gpt-5.5"`、`model_reasoning_effort = "xhigh"` または `"high"`
+- standard 系: `model = "gpt-5.5"`、`model_reasoning_effort = "medium"`
+- cheap 系: `model = "gpt-5.4-mini"`、`model_reasoning_effort = "low"`
+
+この値は公式推奨や利用可能モデルの変化に合わせて見直す。
 
 ## Updating route policy
 
@@ -98,8 +110,10 @@ full-coverage 3層運用は advanced route である。
 ## Release checklist
 
 - `apm.yml` が package intent と既存 agent dependencies を説明している。
+- `apm.yml` または maintainer guide が標準 route dependency と advanced / compatibility dependency の違いを説明している。
 - user guide が process 名、agent 名、model tier、full-coverage 分岐を利用者へ要求していない。
 - `codex-first-cost-router` が state artifact、model tier、READY、close 不可条件を定義している。
+- `profiles/codex-first/agents/*.toml` に `model` と `model_reasoning_effort` の実行可能な初期値がある。
 - maintainer guide がモデル実名を固定していない。
 - advanced guide が full-coverage 3層運用を標準ルートから分離している。
 - bootstrap policy が `AGENTS.override.md` と size limit risk を説明している。
