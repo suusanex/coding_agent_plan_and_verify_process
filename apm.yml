@@ -1,0 +1,10 @@
+name: coding_agent_plan_and_verify_process
+version: 1.0.0
+description: APM project for coding_agent_plan_and_verify_process
+author: suusanex
+dependencies:
+  apm:
+  - suusanex/agent_skills_dotnet_utility/.agents/skills/dotnet-file-based-apps
+  mcp: []
+includes: auto
+scripts: {}
