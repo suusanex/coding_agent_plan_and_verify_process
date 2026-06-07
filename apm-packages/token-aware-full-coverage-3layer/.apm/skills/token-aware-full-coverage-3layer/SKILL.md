@@ -79,7 +79,7 @@ Final gate: 親エージェント
 | --- | --- | --- |
 | `PREP_ONLY` | slice-prep と parent review gate までで停止する | 禁止 |
 | `DELEGATED_IMPLEMENTATION` | READY slice を `slice-impl` に委譲して実装する | 親は禁止、`slice-impl` のみ可 |
-| `PARENT_DIRECT_IMPLEMENTATION_EXCEPTION` | 例外的に親が直接実装する | 明示理由とユーザー承認が必要。3層委譲成功とは扱わない |
+| `PARENT_DIRECT_IMPLEMENTATION` | 例外的に親が直接実装する | 明示理由とユーザー承認が必要。3層委譲成功とは扱わない |
 
 `DELEGATED_IMPLEMENTATION` では、親エージェントは production code / tests を直接編集してはいけません。親が直接編集してよいのは、原則として orchestration / review / usage ledger / final summary / handoff artifact だけです。
 
@@ -92,7 +92,7 @@ Final gate: 親エージェント
 - `plans/*-agent-usage-ledger.md`
 - final summary / handoff artifact
 
-委譲が必要な工程で custom agent / subagent を起動できない場合、親はその工程を自分で続行せず、`DelegationUnavailable` または `BlockedByMissingSliceImplDelegation` として停止してください。親直接実装は `PARENT_DIRECT_IMPLEMENTATION_EXCEPTION` と explicit human approval がある場合だけ許可されます。
+委譲が必要な工程で custom agent / subagent を起動できない場合、親はその工程を自分で続行せず、`DelegationUnavailable` または `BlockedByMissingSliceImplDelegation` として停止してください。親直接実装は `PARENT_DIRECT_IMPLEMENTATION` と explicit human approval がある場合だけ許可されます。
 
 ## Layer 1: 親エージェント orchestration
 
@@ -167,8 +167,10 @@ executable slice は、次のいずれかを満たす必要があります。
 ## Agent metadata
 
 - Agent type: slice-prep
-- Model:
-- Reasoning effort:
+- Configured model:
+- Configured reasoning effort:
+- Hook model:
+- Effective model: unknown unless independently verified
 - Parent authorization artifact:
 - Delegation evidence:
 
@@ -255,7 +257,7 @@ READY slice は、次の証跡を満たす必要があります。
 
 - `slice-impl` run が存在する。
 - `slice-impl` output が `Slice Implementation Result: SL-xxx` を持つ。
-- `Agent type: slice-impl` / `Model` / `Reasoning effort` / `Parent authorization artifact` が記録されている。
+- `Agent type: slice-impl` / `Configured model` / `Configured reasoning effort` / `Hook model` / `Effective model` / `Parent authorization artifact` が記録されている。
 - `Changed files` / `Checks run` / `Verification verdict` が記録されている。
 
 これを満たさない場合、親は `BlockedByMissingSliceImplDelegation` として停止し、成功扱いしてはいけません。
@@ -305,8 +307,10 @@ READY slice は、次の証跡を満たす必要があります。
 ## Agent metadata
 
 - Agent type: slice-impl
-- Model:
-- Reasoning effort:
+- Configured model:
+- Configured reasoning effort:
+- Hook model:
+- Effective model: unknown unless independently verified
 - Parent authorization artifact:
 - Delegation evidence:
 
@@ -337,21 +341,21 @@ READY slice は、次の証跡を満たす必要があります。
 
 ## Execution mode
 
-- Mode: PREP_ONLY / DELEGATED_IMPLEMENTATION / PARENT_DIRECT_IMPLEMENTATION_EXCEPTION
-- Parent model:
+- Mode: PREP_ONLY / DELEGATED_IMPLEMENTATION / PARENT_DIRECT_IMPLEMENTATION
+- Parent configured model:
 - Parent direct code edit allowed: Yes / No
 - Reason if exception:
 - Explicit human approval if exception:
 
 ## Expected delegation
 
-| Phase | Slice | Delegation required | Expected agent type | Expected tier/model | Edit owner | Parallel group |
+| Phase | Slice | Delegation required | Expected agent type | Configured model | Edit owner | Parallel group |
 | --- | --- | --- | --- | --- | --- | --- |
 
 ## Observed agent runs
 
-| Run ID | Phase | Slice | Agent name | Agent type | Model | Reasoning effort | Edit allowed | Artifact | Outcome |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Run ID | Agent type | Slice | Configured model | Hook model | Effective model | ExecutionMode | DelegationRequired | EditOwner | DelegationViolation | Phase | Outcome | Evidence |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Delegation compliance
 
@@ -439,7 +443,7 @@ gap があれば修正せず coverage-gap-triage または residual-decision-gat
 - `Can implement now? = Yes` の slice はすべて `slice-impl` に渡されている
 - `slice-impl` run が存在しない READY slice は `BlockedByMissingSliceImplDelegation` として停止している
 - `Agent Usage Ledger` が作成・更新され、`DelegationCompliance` が PASS / FAIL / EXCEPTION_ACCEPTED で判定されている
-- `PARENT_DIRECT_IMPLEMENTATION_EXCEPTION` は明示理由とユーザー承認がある場合だけ使われ、3層委譲成功としてカウントされていない
+- `PARENT_DIRECT_IMPLEMENTATION` は明示理由とユーザー承認がある場合だけ使われ、3層委譲成功としてカウントされていない
 - cross-slice contract を slice 内で完了扱いにしていない
 - verification-kernel で gap 修正に進んでいない
 - cross-slice-verification-kernel と residual-decision-gate を最後に実行している、または未実行理由を明示している

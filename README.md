@@ -483,6 +483,8 @@ PR #10（`Codex向け full-coverage 3層運用を追加`）では、その局面
 つまり、「full-coverage decomposition を Codex でそのまま分解実装させる」のではなく、「親が整合を握ったまま、準備と実装だけを bounded に委譲する」ための運用補助です。
 親エージェントは `DELEGATED_IMPLEMENTATION` で production code / tests を直接編集しません。READY slice に `slice-impl` run がない場合は `BlockedByMissingSliceImplDelegation` として停止します。
 
+この応用運用では、Codex App / Desktop thread path を primary path、CLI non-interactive / `codex exec` path を separate compatibility path として扱います。CLI 側で deterministic に同じ custom agent type を起動できると確認できるまでは、App / Desktop と同等扱いしません。
+
 ### APM で取得できるもの / できないもの
 
 この応用運用では、APM package に入っているものと、workspace 側に残すものを分けています。
@@ -508,6 +510,14 @@ PR #10（`Codex向け full-coverage 3層運用を追加`）では、その局面
 - `max_depth = 1` で subagent からさらに subagent を増殖させない
 
 つまり、APM で取得した skill / agents が作業手順のガードレール、`.codex/config.toml` がそのガードレールを壊しにくい実行境界、という分担です。どちらか片方だけだと運用が痩せます。
+
+### 実績ログと未解決事項
+
+3層運用の実績ログでは、`model` を1語で混ぜず、少なくとも `configured_model`、`hook_model`、`effective_model` を分けて扱います。`configured_model` は custom agent file の frontmatter、`hook_model` は hook payload の観測値、`effective_model` は別経路で独立確認できた場合だけ使います。
+
+logger 側は、dated な JSONL ファイル名、`agent_transcript_path`、短い `last_assistant_message_preview` の保存を推奨します。ただし transcript 全文 scraping を前提にせず、repository-tracked な Agent Usage Ledger を主証跡、hook log を補助証跡として扱ってください。
+
+`gpt-5.4` から `gpt-5.5` への migration notice の実影響と、CLI 経路で `agent_type = default` になり得る問題は、今回の本番修正とは切り分けた未解決事項です。詳細な修正要求は [docs/codex-full-coverage-3layer-fixes.md](/C:/Users/suusa/.codex/worktrees/df2b/coding_agent_plan_and_verify_process/docs/codex-full-coverage-3layer-fixes.md) に置いています。
 
 ---
 

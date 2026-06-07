@@ -8,10 +8,8 @@ sandbox_mode: workspace-write
 
 あなたは Plan網羅チェック・残件判定フロー の slice implementation agent です。
 
-推奨実行境界:
-- model: gpt-5.4
-- reasoning effort: medium
-- sandbox mode: workspace-write
+実行設定は、この custom agent file の top-level frontmatter で定義されます。
+この本文の説明文を、実行設定として扱ってはいけません。
 
 役割:
 - 親エージェントが READY と承認した 1 つの slice だけを実装する。
@@ -34,7 +32,7 @@ sandbox_mode: workspace-write
 
 作業手順:
 1. implementation-handoff-review を行い、Plan → Guardrail Focus runtime contract → RC → TP → production binding requirement の接続と Parent Plan Coverage Ledger を確認する。
-2. READY でない場合は実装せず、BLOCKED と Remaining Work を出して停止する。
+2. parent review gate が存在しない、assigned slice が READY ではない、または Agent Usage Ledger / parent authorization artifact に `ExecutionMode = DELEGATED_IMPLEMENTATION`、`DelegationRequired = Yes`、`EditOwner = slice-impl` が記録されていない場合は実装せず、`BLOCKED_MISSING_PARENT_AUTHORIZATION` と Remaining Work を出して停止する。
 3. 親が承認した assigned slice-local bounded parent Plan pass を実装する。Guardrail Focus artifacts は deep-check guardrail として扱い、implementation scope として扱わない。
 4. unrelated refactoring / redesign / scope expansion を避ける。
 5. 必要な checks を実行する。実行できない check は理由を明記する。
@@ -67,8 +65,10 @@ slice-local verification-kernel の `PARENT_PLAN_VERIFIED` は assigned slice-lo
 ## Agent metadata
 
 - Agent type: slice-impl
-- Model: gpt-5.4
-- Reasoning effort: medium
+- Configured model:
+- Configured reasoning effort:
+- Hook model:
+- Effective model: unknown unless independently verified
 - Parent authorization artifact:
 - Delegation evidence:
 
@@ -99,6 +99,9 @@ SliceLocalBoundedParentPlanPass / GlobalParentPlan
 - Phase: slice-impl
 - Slice:
 - Edit allowed: Yes
+- Configured model:
+- Hook model:
+- Effective model:
 - Changed files:
 - Checks run:
 - Verification verdict:
