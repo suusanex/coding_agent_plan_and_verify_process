@@ -26,6 +26,9 @@ Codex 側が repo rules と既存 artifact を読み、次に安全な工程を�
 
 Codex は内部で Routing Plan と Agent Usage Ledger を残す。利用者が agent や model を選ぶ必要はないが、結果にはどの工程をどの agent / tier へ委譲したかの summary が含まれる。
 
+Plan の受け入れ条件と残件の読み方は `docs/examples/ledger-samples.md` を見る。
+通常フローで close できる例、READY でないため実装しない例、`ManualVerificationRequired` が残るため close しない例をまとめている。
+
 ## VS Code Codex 拡張でのローカル導入
 
 `codex-first-start.ps1` は一時 launcher なので、VS Code 拡張のようにリポジトリごとに標準運用を残したい場合は、次のインストーラを先に実行する。

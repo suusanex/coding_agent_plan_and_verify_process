@@ -166,4 +166,5 @@ full-coverage 3層運用は advanced route である。
 - advanced guide が full-coverage 3層運用を標準ルートから分離している。
 - bootstrap policy が `AGENTS.override.md` と size limit risk を説明している。
 - examples が novice request、resume、simple local fix、ambiguous high-risk change、existing AGENTS layering を示している。
+- `docs/examples/ledger-samples.md` が Parent Plan Coverage Ledger と Residual Decision Ledger の close / not-close 例を示している。
 - 既存 `token-aware-guardrail-kernel-flow` と `full-autonomous-plan-first-flow` を壊していない。
