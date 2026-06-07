@@ -1,0 +1,20 @@
+---
+name: fix-selected-residual
+description: Fix only selected residual IDs after Copilot fallback verification.
+agent: copilot-standard-implementer
+model: GPT-5.5 (copilot)
+tools: ['codebase', 'editFiles', 'runCommands']
+---
+
+Fix only the selected residual IDs or selected scope.
+
+Selected residuals:
+
+`${input:residualIds:RES-001}`
+
+Rules:
+
+- Do not expand scope beyond the selected residuals.
+- Read the state artifact and verification result first.
+- Update implementation evidence after the fix.
+- Return to verification after edits.
