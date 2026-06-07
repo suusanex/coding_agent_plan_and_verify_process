@@ -22,6 +22,7 @@ Decide the implementation approach when API, SDK, dependency, production wiring,
 - forbidden shortcuts
 - human-required decisions
 - READY prerequisites
+- usage ledger metadata: agent type, model tier, reasoning effort, edited paths, artifact path, outcome
 
 ## Prohibited
 

@@ -23,9 +23,14 @@ Users do not choose process names, agent names, model tiers, subagents, READY ga
 - Create or update `plans/<slug>/codex-first-state.md`.
 - Split work into gates.
 - Assign `HIGH_MODEL`, `STANDARD_MODEL`, or `CHEAP_MODEL`.
-- Delegate bounded read-heavy work when useful.
+- Write Routing Plan, Edit Permission, Agent Usage Ledger, and DelegationCompliance.
+- Delegate bounded read-heavy work when required by the Routing Plan.
+- MUST delegate normal READY implementation to `standard-implementer`.
+- MUST delegate normal READY verification to `standard-verifier`.
 - Prevent implementation before READY.
+- Prevent parent-direct execution of delegated gates without explicit exception approval.
 - Prevent close when human, manual, or higher-model stops remain.
+- Prevent close when delegation evidence is missing.
 - Save the next action and stop reason.
 - Use Codex-readable custom agent file templates when maintainers want hard model routing.
 
@@ -38,16 +43,20 @@ Users do not choose process names, agent names, model tiers, subagents, READY ga
 | Risk | classify risk and advanced-route boundary | `STANDARD_MODEL` / `HIGH_MODEL` |
 | Scan | collect summarized evidence | `CHEAP_MODEL` |
 | Contract | decide implementation approach and human decisions | `HIGH_MODEL` |
-| Implementation | edit READY scope only | `STANDARD_MODEL` / `CHEAP_MODEL` |
-| Verification | map evidence to acceptance criteria | `STANDARD_MODEL` |
+| Implementation | edit READY scope only through delegated owner | `STANDARD_MODEL` / `CHEAP_MODEL` |
+| Verification | map evidence to acceptance criteria through delegated owner | `STANDARD_MODEL` |
 | Close | decide residuals and closure | `STANDARD_MODEL` / `HIGH_MODEL` |
 
 ## Safety requirements
 
 - No implementation without READY or an equivalent low-risk trivial-fix decision.
+- No parent-direct implementation when `DelegationRequired = Yes`, except recorded `ParentDirectExecutionException` with explicit human approval.
+- No READY implementation success without observed `standard-implementer` run or accepted exception.
+- No verification success without observed `standard-verifier` run or accepted exception.
 - No production, secret, billing, or external service side effect without explicit approval.
 - No fake / stub / mock-only result counted as production success.
 - No close with unresolved `ManualVerificationRequired`, `NeedsHumanDecision`, or `NeedsHigherModelReview`.
+- No close with `DelegationCompliance = FAIL` or missing Agent Usage Ledger.
 - No hard-coded real model names.
 
 ## Executable model routing

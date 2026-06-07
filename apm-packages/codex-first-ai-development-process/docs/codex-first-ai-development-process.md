@@ -13,8 +13,9 @@
 - Plan / risk / scan / contract / implementation / verification / close gate
 - state artifact based resume
 - READY 判定
-- bounded implementation
+- delegated bounded implementation
 - residual decision
+- Agent Usage Ledger / DelegationCompliance
 - human / higher-model stop
 
 ## Non-goals
@@ -35,12 +36,14 @@
 | Risk | risk class and advanced-route boundary | `STANDARD_MODEL` / `HIGH_MODEL` |
 | Scan | summarized repo evidence | `CHEAP_MODEL` |
 | Contract | implementation approach and human decisions | `HIGH_MODEL` |
-| Implementation | READY scope edits | `STANDARD_MODEL` |
-| Verification | evidence and manual-only checks | `STANDARD_MODEL` |
+| Implementation | READY scope edits delegated to `standard-implementer` | `STANDARD_MODEL` |
+| Verification | evidence and manual-only checks delegated to `standard-verifier` | `STANDARD_MODEL` |
 | Close | residual and close decision | `STANDARD_MODEL` / `HIGH_MODEL` |
 
-`CHEAP_MODEL` workers may help with read-heavy scan, docs consistency, or artifact formatting.
+`CHEAP_MODEL` workers handle delegated read-heavy scan, docs consistency, or artifact formatting when the Routing Plan requires it.
 They do not own final implementation permission or close decisions.
+
+write-heavy parallel editing is not the default. That is separate from delegation: READY implementation is serial delegated work owned by `standard-implementer`, and the parent does not implement it directly unless a recorded `ParentDirectExecutionException` has explicit human approval.
 
 ## Close rules
 
@@ -50,6 +53,8 @@ Close してよいのは、次が満たされるときだけ。
 - production implementation と wiring が確認済み、または manual-only として明示済み。
 - `ManualVerificationRequired` を残す場合は close ではなく human review 待ちにする。
 - `NeedsHumanDecision` と `NeedsHigherModelReview` は未解決のまま完了扱いしない。
+- `DelegationRequired = Yes` の gate に observed run または accepted exception がある。
+- `DelegationCompliance = PASS`、または explicit human decision 付き `EXCEPTION_ACCEPTED` である。
 - residual work がある場合は、FixNow / Deferred / Manual / HigherModel のいずれかに分類されている。
 
 ## State artifact
@@ -60,7 +65,7 @@ Close してよいのは、次が満たされるときだけ。
 plans/<slug>/codex-first-state.md
 ```
 
-この artifact は、`current_gate`、`next_gate`、`recommended_model_tier`、`allowed_to_edit`、`stop_reason`、`human_required_items`、`unresolved_residuals`、`next_action` を持つ。
+この artifact は、`current_gate`、`next_gate`、`recommended_model_tier`、Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance、`stop_reason`、`human_required_items`、`unresolved_residuals`、`next_action` を持つ。
 ユーザーが「続きやって」と依頼したら、まずこの artifact を読む。
 
 ## Executable profile templates

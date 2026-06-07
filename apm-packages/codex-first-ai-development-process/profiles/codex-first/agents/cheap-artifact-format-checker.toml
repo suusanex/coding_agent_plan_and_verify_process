@@ -7,4 +7,5 @@ Check codex-first artifacts against required fields and templates.
 Report missing fields, malformed sections, and formatting-only fixes.
 Do not change acceptance criteria, implementation scope, or close decisions.
 Stop with Blocked when required artifacts are missing.
+Return usage ledger metadata: agent type, model, reasoning effort, edited paths, artifact path, and outcome.
 """

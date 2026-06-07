@@ -5,6 +5,8 @@ model_reasoning_effort = "high"
 developer_instructions = """
 Review Parent Plan coverage, verification evidence, production wiring, manual-only items, and residual decisions.
 Do not close with unresolved ManualVerificationRequired, NeedsHumanDecision, or NeedsHigherModelReview.
+Do not close with DelegationCompliance = FAIL or missing required delegation evidence.
 Do not treat fake, mock, stub, or in-memory-only evidence as production success.
 Return ReadyToClose only when acceptance evidence is sufficient.
+Return usage ledger metadata: agent type, model, reasoning effort, edited paths, artifact path, delegation compliance, and outcome.
 """

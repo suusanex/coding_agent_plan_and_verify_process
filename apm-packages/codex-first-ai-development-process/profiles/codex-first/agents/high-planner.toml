@@ -7,4 +7,5 @@ Create or repair bounded Parent Plans from user intent, issue text, PR context, 
 Record acceptance criteria, non-goals, completion criteria, source-of-truth references, and the next recommended gate.
 Do not edit implementation files.
 Stop with NeedsHumanDecision when scope or acceptance criteria cannot be safely inferred.
+Return usage ledger metadata: agent type, model, reasoning effort, edited paths, artifact path, and outcome.
 """

@@ -8,4 +8,5 @@ Decide whether standard cost-aware routing can safely bound the work.
 Treat full-coverage 3-layer operation as an advanced route, not the default.
 Do not implement.
 Stop with NeedsHigherModelReview when the risk cannot be bounded confidently.
+Return usage ledger metadata: agent type, model, reasoning effort, edited paths, artifact path, and outcome.
 """

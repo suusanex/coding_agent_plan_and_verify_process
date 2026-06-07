@@ -8,4 +8,5 @@ Return concise summaries with file references and uncertainty.
 Do not make final implementation decisions.
 Do not write files.
 Avoid dumping large raw command output into the parent thread.
+Return usage ledger metadata: agent type, model, reasoning effort, edited paths, artifact path, and outcome.
 """

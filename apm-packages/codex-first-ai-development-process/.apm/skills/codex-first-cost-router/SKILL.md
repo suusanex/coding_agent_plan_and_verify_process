@@ -12,8 +12,10 @@ The router owns:
 - intake and source-of-truth detection
 - state artifact creation / update
 - model tier assignment
-- agent / subagent delegation choice
+- agent / subagent delegation requirement
 - READY / implementation permission
+- routing plan and edit owner
+- agent usage ledger and delegation compliance
 - stop reason and residual classification
 - close permission
 
@@ -29,10 +31,13 @@ Minimum fields:
 - current gate
 - next gate
 - recommended model tier
-- allowed to edit
+- routing plan
+- edit permission
 - current status
 - stop reason
 - human required items
+- agent usage ledger
+- delegation compliance
 - artifacts created / consumed
 - unresolved residuals
 - next action
@@ -40,6 +45,70 @@ Minimum fields:
 - last updated summary
 
 For "続きやって", read the newest matching state artifact before deciding the next step.
+
+### Routing Plan
+
+Before executing a gate, write this table to the state artifact.
+
+```md
+## Routing Plan
+
+| Gate | Recommended tier | Delegation required | Expected agent type | Edit owner | Parent may execute directly? | Stop if unavailable |
+| --- | --- | --- | --- | --- | --- | --- |
+```
+
+Rules:
+
+- `CHEAP_MODEL` read-heavy scan, docs consistency, and artifact format checks SHOULD delegate to cheap agents when the work is more than trivial.
+- `STANDARD_MODEL` READY implementation MUST delegate to `standard-implementer` when the parent is running as `HIGH_MODEL` or otherwise owns orchestration.
+- `STANDARD_MODEL` READY verification MUST delegate to `standard-verifier` before close, unless close risk requires `high-closure-reviewer`.
+- `HIGH_MODEL` plan, risk, implementation contract, and dangerous close judgment may stay with the parent or high agents.
+- A gate with `Delegation required = Yes` cannot be marked successful without observed delegation or an accepted parent-direct exception.
+
+### Edit Permission
+
+Replace the old single `allowed to edit` decision with this block.
+
+```md
+## Edit Permission
+
+- allowed_to_edit: Yes / No
+- edit_owner: parent / standard-implementer / standard-verifier / cheap-fixer / human / none
+- parent_direct_edit_allowed: Yes / No
+- allowed_paths:
+- forbidden_paths:
+- required_authorization_artifact:
+```
+
+For READY implementation, default to `edit_owner = standard-implementer` and `parent_direct_edit_allowed = No`.
+For READY verification, default to `edit_owner = standard-verifier` and `parent_direct_edit_allowed = No`, except for final close permission retained by the parent or `high-closure-reviewer`.
+
+### Agent Usage Ledger
+
+State artifacts must include expected vs observed delegation.
+
+```md
+## Agent Usage Ledger
+
+### Expected delegation
+
+| Gate | Delegation required | Expected agent | Expected tier | Edit owner | Reason |
+| --- | --- | --- | --- | --- | --- |
+
+### Observed runs
+
+| Run ID | Gate | Agent name | Agent type | Model | Reasoning effort | Edited? | Artifact | Outcome |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+### Delegation compliance
+
+| Check | Status | Evidence |
+| --- | --- | --- |
+| CHEAP work delegated when required | PASS / FAIL / N/A | |
+| STANDARD implementation delegated | PASS / FAIL / N/A | |
+| STANDARD verification delegated | PASS / FAIL / N/A | |
+| Parent direct execution exception documented | PASS / FAIL / N/A | |
+```
 
 ## Gates
 
@@ -84,7 +153,7 @@ Use `STANDARD_MODEL` if the scan directly affects implementation API choice.
 
 Do:
 
-- delegate read-heavy search, inventory, and consistency checks when useful
+- delegate read-heavy search, inventory, and consistency checks to `cheap-repo-scanner`, `cheap-doc-consistency`, or `cheap-artifact-format-checker` when delegation is required by the Routing Plan
 - summarize findings instead of dumping raw output
 - avoid final implementation decisions inside cheap scan work
 
@@ -107,10 +176,13 @@ Use `CHEAP_MODEL` only for simple, local, low-risk edits.
 
 Do:
 
+- set `Delegation required = Yes` and `Edit owner = standard-implementer` for normal READY implementation
+- delegate READY implementation serially to `standard-implementer`; serial delegation is required even when write-heavy parallel editing is not allowed
 - implement only READY scope
 - stop if new design uncertainty appears
 - avoid external API, production, secret, or billing side effects
 - avoid endless repair loops
+- stop with `DelegationUnavailable`, `ParentDirectExecutionException`, or `NeedsHigherModelReview` if required delegation cannot run
 
 ### Test / verification
 
@@ -120,6 +192,8 @@ Use `HIGH_MODEL` for risky close judgment.
 
 Do:
 
+- set `Delegation required = Yes` and `Edit owner = standard-verifier` for normal READY verification
+- delegate verification to `standard-verifier`; use `high-closure-reviewer` when close judgment is risky
 - map evidence to Plan acceptance criteria
 - distinguish fake / mock / stub success from production readiness
 - record manual-only verification explicitly
@@ -132,6 +206,8 @@ Use `HIGH_MODEL` for broad impact, difficult residual decisions, or uncertain ac
 Do:
 
 - keep `ManualVerificationRequired`, `NeedsHumanDecision`, and `NeedsHigherModelReview` from closing
+- keep `DelegationRequired` gates from closing when no observed run or accepted exception exists
+- require `DelegationCompliance = PASS` or `DelegationCompliance = EXCEPTION_ACCEPTED` with explicit human decision
 - distinguish `ReadyToClose` from `ReadyToCloseWithAcceptedResiduals`
 - record accepted residuals and their owner
 
@@ -161,6 +237,7 @@ For Codex-readable custom agent files with concrete `model` and `model_reasoning
 Subagents are a way to assign bounded work to the right tier.
 They still require explicit subagent / parallel work instructions from the parent thread or launcher.
 Do not make write-heavy parallel editing the default.
+This does not permit parent-direct implementation: READY implementation is serial delegated work owned by `standard-implementer` unless a recorded exception is accepted.
 
 ## Stop reasons
 
@@ -172,6 +249,15 @@ Do not make write-heavy parallel editing the default.
 - `Blocked`
 - `TooCostlyForCurrentPass`
 - `ReadyButAwaitingHumanApproval`
+- `DelegationRequired`
+- `DelegationUnavailable`
+- `DelegationEvidenceMissing`
+- `ParentDirectExecutionException`
+- `ParentDirectExecutionNotAllowed`
+- `RoutingPolicyViolation`
+- `BlockedByMissingDelegationLedger`
+- `ReadyForDelegatedImplementation`
+- `ReadyForDelegatedVerification`
 
 Ask the user only for the minimum next input.
 Do not ask them to choose a gate, agent, or model.
@@ -184,9 +270,12 @@ Return:
 - current gate
 - next gate
 - recommended model tier
-- allowed-to-edit value
+- routing plan summary
+- edit permission / edit owner
+- delegation compliance
 - stop reason, if any
 - human-required items
 - unresolved residuals
+- agent usage ledger summary
 - artifacts created / consumed
 - next action

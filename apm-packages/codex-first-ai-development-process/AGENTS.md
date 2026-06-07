@@ -10,7 +10,11 @@
 - まず source of truth、repo rules、既存 artifact、state artifact を確認する。
 - 必要な工程を Intake / Plan / Risk / Scan / Contract / Implementation / Verification / Close に分ける。
 - 各工程を `HIGH_MODEL`、`STANDARD_MODEL`、`CHEAP_MODEL` の抽象 tier へ割り当てる。
-- read-heavy な scan / consistency check は、必要に応じて低コスト subagent へ委譲してよい。
+- state artifact に Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance を記録する。
+- read-heavy な scan / consistency check は、Routing Plan が要求する場合は低コスト subagent へ委譲する。
+- READY 後の通常実装は `standard-implementer` へ serial delegation する。write-heavy parallel editing を標準化しないことは、親が直接実装してよいことを意味しない。
+- READY 後の通常 verification は `standard-verifier` へ委譲し、危険な close 判定だけ高性能側へ戻す。
+- `DelegationRequired = Yes` の gate は、observed run または explicit human approval 付き `ParentDirectExecutionException` がない限り成功扱いしない。
 - 難しい判断、security / auth / DB / public API / production wiring / close risk は高性能側へ戻す。
 - READY でない状態では実装へ進まない。
 - close 不可の stop reason を残したまま完了扱いしない。
@@ -32,9 +36,9 @@
 2. `plans/<slug>/codex-first-state.md` を作成または更新する。
 3. Plan / risk / scan / contract のうち、次に安全な工程を 1 つ選ぶ。
 4. READY gate を満たすまで implementation へ進まない。
-5. READY 後は bounded scope だけ実装する。
-6. verification で production implementation / wiring / manual-only を分類する。
-7. residual decision で close 可否を判定し、必要なら最小の人間入力だけを提示する。
+5. READY 後は bounded scope を `standard-implementer` に委譲する。
+6. verification は `standard-verifier` に委譲し、production implementation / wiring / manual-only を分類する。
+7. residual decision と DelegationCompliance で close 可否を判定し、必要なら最小の人間入力だけを提示する。
 
 ## Advanced route
 
@@ -45,5 +49,5 @@ full-coverage 3層運用は標準ルートではない。
 ## 既存 APM package との関係
 
 - 初心者やチーム導入では、この `codex-first-ai-development-process` を使う。
-- 既存運用に慣れていて、明示的に flow を選べる場合は `token-aware-guardrail-kernel-flow` または `full-autonomous-plan-first-flow` を直接使ってよい。
+- 既存運用に慣れていて、明示的に flow を選べる場合は `token-aware-guardrail-kernel-flow` または `full-autonomous-plan-first-flow` を直接選択できる。
 - この package は既存 package の source を複製せず、同じ agent 群を参照して応用運用だけを追加する。

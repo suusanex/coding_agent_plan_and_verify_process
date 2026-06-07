@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using static System.Console;
 
 const string StartMarker = "<!-- codex-first:start -->";
 const string EndMarker = "<!-- codex-first:end -->";
@@ -89,7 +90,6 @@ try
         targetRepoRoot,
         options.DryRun,
         options.Force,
-        options.Verbose,
         logs,
         blockers);
 }
@@ -519,14 +519,14 @@ static string MergeTomlContent(string targetContent, Dictionary<string, string> 
     {
         changed.Add(string.Empty);
         changed.Add("[agents]");
-        if (sourceValues.TryGetValue("max_threads", out var maxThreads))
+        if (sourceValues.TryGetValue("max_threads", out var defaultMaxThreads))
         {
-            changed.Add($"max_threads = {maxThreads}");
+            changed.Add($"max_threads = {defaultMaxThreads}");
         }
 
-        if (sourceValues.TryGetValue("max_depth", out var maxDepth))
+        if (sourceValues.TryGetValue("max_depth", out var defaultMaxDepth))
         {
-            changed.Add($"max_depth = {maxDepth}");
+            changed.Add($"max_depth = {defaultMaxDepth}");
         }
 
         return string.Join(Environment.NewLine, changed);
@@ -627,6 +627,10 @@ static string BuildAgentsSection(string packageRoot)
     sb.AppendLine("- 利用者は process 名・agent 名・model 名・full-coverage 分岐を選ぶ必要がない。");
     sb.AppendLine("- repo-local の AGENTS.md / 制約は引き続き最優先で読む。");
     sb.AppendLine("- README の指示と `.codex/config.toml` / `.codex/agents/*.toml` / `templates/codex-first-state.md` を使って `codex-first` 標準ルートを使う。");
+    sb.AppendLine("- state artifact には Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance を記録する。");
+    sb.AppendLine("- READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する。");
+    sb.AppendLine("- `DelegationRequired = Yes` の gate は observed run または explicit human approval 付き `ParentDirectExecutionException` がない限り成功扱いしない。");
+    sb.AppendLine("- write-heavy parallel editing を標準化しないことは、親が直接実装してよいことを意味しない。");
     sb.AppendLine();
     sb.AppendLine("`codex-first-start.ps1` は起動時のみ CODEX_HOME を切り替える一時 launcher なので、");
     sb.AppendLine("リポジトリごとの標準利用では、本インストーラで `.codex` と `AGENTS.md` を揃える。");

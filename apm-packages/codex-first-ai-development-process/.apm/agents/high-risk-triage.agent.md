@@ -21,6 +21,7 @@ Classify high-risk work before implementation.
 - advanced-route recommendation, if needed
 - required human decisions
 - state artifact update
+- usage ledger metadata: agent type, model tier, reasoning effort, edited paths, artifact path, outcome
 
 ## Prohibited
 

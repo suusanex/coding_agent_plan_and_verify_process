@@ -18,6 +18,7 @@ sandbox_mode: read-only
 - assigned slice artifact を、その slice の bounded Plan として読む。
 - 実装前に必要な per-slice kernel artifact を下書きする。
 - 実装・テスト作成・production code 編集は行わない。
+- 親の Agent Usage Ledger に記録できる delegation evidence を必ず返す。
 
 必ず読む入力:
 - parent bounded Plan
@@ -58,6 +59,14 @@ sandbox_mode: read-only
 - Status: READY_FOR_PARENT_REVIEW / BLOCKED / NEEDS_HUMAN_DECISION
 - Reason:
 
+## Agent metadata
+
+- Agent type: slice-prep
+- Model: gpt-5.4
+- Reasoning effort: medium
+- Parent authorization artifact:
+- Delegation evidence:
+
 ## Generated / drafted artifacts
 
 - Per-slice change-risk-triage:
@@ -82,4 +91,12 @@ sandbox_mode: read-only
 ## Unresolved items
 
 ## Stop condition
+
+## Handoff to Agent Usage Ledger
+
+- Run ID:
+- Phase: slice-prep
+- Slice:
+- Edit allowed: No
+- Outcome:
 ```

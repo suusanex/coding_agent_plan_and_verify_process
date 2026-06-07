@@ -72,6 +72,7 @@ Codex を第一優先にしたチーム導入向けの応用運用です。
 これは full-coverage 3層運用を標準化する package ではありません。
 中核は cost-aware routing であり、難しい判断を `HIGH_MODEL`、通常実装を `STANDARD_MODEL`、軽い探索・整合確認を `CHEAP_MODEL` へ分担するための入口です。
 full-coverage 3層運用は advanced route として分離されています。
+この分担は単なる候補ではなく、Routing Plan と Agent Usage Ledger によって期待委譲と実績を記録します。
 
 ### 想定用途
 
@@ -101,23 +102,25 @@ full-coverage 3層運用は advanced route として分離されています。
 
 1. `codex-first-cost-router` が依頼と既存 state を読む
 2. Intake / Plan / Risk / Scan / Contract / Implementation / Verification / Close のうち次 gate を選ぶ
-3. gate ごとに `HIGH_MODEL` / `STANDARD_MODEL` / `CHEAP_MODEL` と agent / subagent を割り当てる
+3. gate ごとに `HIGH_MODEL` / `STANDARD_MODEL` / `CHEAP_MODEL` と agent / subagent を割り当て、Routing Plan / Edit Permission / Agent Usage Ledger を state artifact に記録する
 4. READY でない場合は実装せず、state artifact と stop reason を更新する
-5. READY 後だけ bounded scope を実装する
-6. close 可否と residual を state artifact に戻す
+5. READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する
+6. close 可否、residual、DelegationCompliance を state artifact に戻す
 
 full-coverage 3層運用は、標準 cost-router で安全に bounded 化できない場合、または熟練 operator が明示的に選んだ場合だけ advanced route として扱います。
+write-heavy parallel editing を標準化しないことは、親エージェントが直接実装してよいことを意味しません。委譲必須 gate は observed run または explicit human approval 付き `ParentDirectExecutionException` がない限り成功扱いしません。
 
 ### モデル階層
 
 | Label | Intended use |
 | --- | --- |
 | `HIGH_MODEL` | 曖昧な要求整理、bounded Plan、難しい risk triage、implementation contract、危険な close gate |
-| `STANDARD_MODEL` | READY 後の通常実装、通常 verification、test update |
+| `STANDARD_MODEL` | READY 後の通常実装を担当する `standard-implementer`、通常 verification を担当する `standard-verifier`、test update |
 | `CHEAP_MODEL` | read-heavy scan、docs consistency、artifact format check、単純局所修正 |
 
 実名モデルは固定しません。組織の契約、利用枠、品質要求に合わせて mapping してください。
 この package には、そのまま使える profile / agent file テンプレート例として `profiles/codex-first/` を含めます。
+現行 default では `STANDARD_MODEL` が `HIGH_MODEL` と同じ実名モデルの medium effort になる場合があります。この場合は `same-model-lower-effort` として扱い、導入時に lower-cost mapping へ変更するか、effort 差で十分かを確認してください。
 
 ### 導入方法
 
@@ -378,10 +381,11 @@ PR #10（`Codex向け full-coverage 3層運用を追加`）では、その局面
 
 1. 親エージェントが slice 実行表と parent review gate を管理する
 2. `slice-prep` が slice ごとの kernel artifact を下書きする
-3. 親レビューで READY になった slice だけを `slice-impl` が実装し、slice-local verification まで進める
+3. `DELEGATED_IMPLEMENTATION` mode では、親レビューで READY になった slice を必ず `slice-impl` が実装し、slice-local verification まで進める
 4. 最後に親エージェントが cross-slice verification と residual decision をまとめる
 
 つまり、「full-coverage decomposition を Codex でそのまま分解実装させる」のではなく、「親が整合を握ったまま、準備と実装だけを bounded に委譲する」ための運用補助です。
+親エージェントは `DELEGATED_IMPLEMENTATION` で production code / tests を直接編集しません。READY slice に `slice-impl` run がない場合は `BlockedByMissingSliceImplDelegation` として停止します。
 
 ### APM で取得できるもの / できないもの
 

@@ -4,8 +4,10 @@ model = "gpt-5.5"
 model_reasoning_effort = "medium"
 developer_instructions = """
 Implement only the scope marked READY in the codex-first state artifact, Parent Plan, and implementation contract.
+Require EditOwner = standard-implementer and DelegationRequired = Yes for normal READY implementation.
 Keep edits narrow and aligned with repo-local rules.
 Do not perform secret, billing, external service, or production operations.
 Stop with NeedsHigherModelReview when new design uncertainty appears.
+Return usage ledger metadata: agent type, model, reasoning effort, edited paths, artifact path, checks run, and outcome.
 Summarize files changed, checks run, and remaining uncertainty.
 """

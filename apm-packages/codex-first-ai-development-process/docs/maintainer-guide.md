@@ -14,6 +14,7 @@
 - close / stop vocabulary
 - state artifact templates
 - predefined routing agents / subagents
+- Routing Plan / Edit Permission / Agent Usage Ledger / DelegationCompliance
 - advanced full-coverage boundary
 - examples and maintainer notes
 
@@ -64,7 +65,48 @@ team profile の global `AGENTS.md` は repo-local `AGENTS.md` を置き換え�
 - standard 系: `model = "gpt-5.5"`、`model_reasoning_effort = "medium"`
 - cheap 系: `model = "gpt-5.4-mini"`、`model_reasoning_effort = "low"`
 
-この値は公式推奨や利用可能モデルの変化に合わせて見直す。
+現行 default では `STANDARD_MODEL` と `HIGH_MODEL` が同じ実名モデルを使う場合がある。この場合の cost-aware routing は `same-model-lower-effort` として扱い、reasoning effort 差で十分か、組織の価格・品質・利用枠に照らして必ず確認する。lower-cost の実名モデルへ置き換えられる場合は、team profile の `standard-implementer` / `standard-verifier` を更新する。
+
+この値は公式推奨、利用可能モデル、価格、品質要求の変化に合わせて見直す。
+
+## Delegation evidence and hooks
+
+process の成功条件は repository-tracked な Agent Usage Ledger を主証跡にする。Codex hooks は補助証跡として使えるが、hook payload の詳細だけに依存して close 判定を行わない。
+
+補助ログを取りたい場合は、project-local または profile-local hooks で `SubagentStart` / `SubagentStop` を JSONL に保存する。例:
+
+```json
+{
+  "hooks": {
+    "SubagentStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File .codex/hooks/log-subagent-event.ps1 start",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File .codex/hooks/log-subagent-event.ps1 stop",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+hook の raw JSONL は Agent Usage Ledger の補助 evidence として参照する。ledger には、expected agent、observed run、model、reasoning effort、edit owner、changed files、checks run、outcome、parent direct exception の有無を必ず残す。
 
 ## Updating route policy
 
@@ -116,8 +158,11 @@ full-coverage 3層運用は advanced route である。
 - `apm.yml` または maintainer guide が標準 route dependency と advanced / compatibility dependency の違いを説明している。
 - user guide が process 名、agent 名、model tier、full-coverage 分岐を利用者へ要求していない。
 - `codex-first-cost-router` が state artifact、model tier、READY、close 不可条件を定義している。
+- Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance が template / skill / docs に揃っている。
+- READY implementation は `standard-implementer`、READY verification は `standard-verifier` への serial delegation として定義されている。
+- close gate が delegation evidence missing を成功扱いしない。
 - `profiles/codex-first/agents/*.toml` に `model` と `model_reasoning_effort` の実行可能な初期値がある。
-- maintainer guide がモデル実名を固定していない。
+- maintainer guide がモデル実名を固定せず、`same-model-lower-effort` default の確認責務を説明している。
 - advanced guide が full-coverage 3層運用を標準ルートから分離している。
 - bootstrap policy が `AGENTS.override.md` と size limit risk を説明している。
 - examples が novice request、resume、simple local fix、ambiguous high-risk change、existing AGENTS layering を示している。

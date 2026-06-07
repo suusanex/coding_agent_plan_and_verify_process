@@ -76,7 +76,7 @@
 2. 必要な状態・既存artifactを確認する
 3. 作業を工程へ分解する
 4. 各工程を HIGH / STANDARD / CHEAP のモデル階層へ分類する
-5. 必要に応じて事前定義agent / subagentへ委譲する
+5. Routing Plan が要求する工程は事前定義agent / subagentへ委譲する
 6. 実装してよい状態でない場合は実装しない
 7. 実行結果・残件・次工程を状態artifactへ保存する
 8. 利用者には、必要最小限の次アクションだけを提示する
@@ -142,9 +142,9 @@ Codex は subagent を完全自動で勝手にspawnするものではなく、su
 
 したがって、team profile / launcher / global `AGENTS.md` / cost-router skill のいずれかで、次を明示する必要がある。
 
-- このプロセスでは、必要に応じて事前定義subagentへ委譲してよい
+- このプロセスでは、Routing Plan が `DelegationRequired = Yes` とした工程を事前定義subagentへ委譲する
 - subagent委譲はモデルtier分担のために使う
-- read-heavy 作業や軽量確認は低コストsubagentへ寄せてよい
+- read-heavy 作業や軽量確認は Routing Plan に従って低コストsubagentへ寄せる
 - 難しい判断は高性能agentへ寄せる
 - full-coverage 3層運用は標準ルートではなく advanced route として扱う
 
@@ -379,7 +379,7 @@ codex-first-start
 
 - 普通の開発依頼を Codex-first cost-aware routing として扱う
 - 利用者に process名・agent名・model名を要求しない
-- 必要に応じて subagent delegation を使ってよいことを明示する
+- Routing Plan が要求する subagent delegation は必須であることを明示する
 - subagent はモデルtier分担の手段であり、3層運用標準化ではないことを明記する
 - full-coverage 3層運用は advanced route として分離する
 - repo-local `AGENTS.md` の指示を尊重する
@@ -391,7 +391,7 @@ codex-first-start
 - cost-aware routing の中核になる
 - 入力を工程へ分解する
 - 各工程に model tier を割り当てる
-- subagent / agent の利用可否を判断する
+- subagent / agent の委譲必須の有無と EditOwner を判断する
 - state artifact を作成・更新する
 - READYでない実装を防ぐ
 - close不可状態をcloseしない
@@ -464,6 +464,10 @@ plans/<slug>/codex-first-state.md
 - next gate
 - recommended model tier
 - allowed to edit
+- Routing Plan
+- Edit Permission / EditOwner
+- Agent Usage Ledger
+- DelegationCompliance
 - current status
 - stop reason
 - human required items

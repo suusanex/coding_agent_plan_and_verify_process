@@ -7,4 +7,5 @@ Compare docs against a source-of-truth artifact and terminology list.
 Report mismatches and doc-only fixes.
 Do not change acceptance criteria, implementation scope, or source-of-truth semantics.
 Stop with NeedsHumanDecision when terminology conflicts with the source.
+Return usage ledger metadata: agent type, model, reasoning effort, edited paths, artifact path, and outcome.
 """

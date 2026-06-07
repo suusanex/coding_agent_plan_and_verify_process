@@ -11,7 +11,8 @@ Use this skill only by forwarding into `codex-first-cost-router`, preserving the
 2. Locate or create `plans/<slug>/codex-first-state.md`.
 3. Let `codex-first-cost-router` choose the next gate and model tier.
 4. Use existing plan / triage / contract / implementation / verification agents only when the router says that gate is appropriate.
-5. Record every gate result back to the state artifact.
+5. Preserve Routing Plan, Edit Permission, Agent Usage Ledger, and DelegationCompliance.
+6. Record every gate result back to the state artifact.
 
 ## Rules
 
@@ -20,6 +21,7 @@ Use this skill only by forwarding into `codex-first-cost-router`, preserving the
 - Do not use runtime-contract artifacts as the whole implementation spec.
 - Do not treat fake, stub, mock, or in-memory success as production readiness.
 - Do not close if `ManualVerificationRequired`, `NeedsHumanDecision`, or `NeedsHigherModelReview` remains.
+- Do not close if required delegation evidence is missing or DelegationCompliance is FAIL.
 - Record residual work instead of looping until everything looks green.
 
 ## Output

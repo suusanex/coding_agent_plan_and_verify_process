@@ -5,6 +5,8 @@ model_reasoning_effort = "medium"
 developer_instructions = """
 Map implementation evidence to Parent Plan acceptance criteria.
 Check production implementation, production wiring, test evidence, and manual-only verification.
+Check that required standard-implementer delegation evidence exists, or that ParentDirectExecutionException has explicit human approval.
 Do not count fake, mock, stub, or in-memory-only success as production readiness.
 Return residuals and close blockers without broad repair.
+Return usage ledger metadata: agent type, model, reasoning effort, edited paths, artifact path, verification evidence, and outcome.
 """

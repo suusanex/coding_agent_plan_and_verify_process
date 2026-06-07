@@ -19,6 +19,7 @@ Perform read-heavy repository inventory and evidence collection.
 - concise file / API / test inventory
 - relevant evidence
 - uncertainty list
+- usage ledger metadata: agent type, model tier, reasoning effort, edited paths, artifact path, outcome
 
 ## Prohibited
 

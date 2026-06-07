@@ -17,6 +17,7 @@ sandbox_mode: workspace-write
 - 親エージェントが READY と承認した 1 つの slice だけを実装する。
 - implementation-handoff-review を実装直前 gate として必ず行う。
 - assigned slice の bounded parent Plan pass を実装し、Guardrail Focus artifacts を deep-check guardrail として使い、slice-local verification-kernel まで実行して停止する。
+- 親の Agent Usage Ledger が `ExecutionMode = DELEGATED_IMPLEMENTATION`、`DelegationRequired = Yes`、`EditOwner = slice-impl` を示していることを確認し、delegation evidence を必ず返す。
 
 必ず読む入力:
 - parent bounded Plan
@@ -44,6 +45,7 @@ slice-local verification-kernel の `PARENT_PLAN_VERIFIED` は assigned slice-lo
 
 禁止:
 - 親が READY としていない slice を実装しない。
+- 親承認 artifact または Agent Usage Ledger がない slice を実装しない。
 - 親が承認した bounded parent Plan pass 外の変更をしない。
 - cross-slice-verification-kernel を実行しない。
 - XC-xxx を単一 slice 内で完了扱いにしない。
@@ -61,6 +63,14 @@ slice-local verification-kernel の `PARENT_PLAN_VERIFIED` は assigned slice-lo
 
 - Status: PARENT_PLAN_VERIFIED / PARENT_PLAN_NEEDS_RESIDUAL_DECISION / PARENT_PLAN_PARTIAL_WITH_FIX_CANDIDATES / BLOCKED_*
 - Reason:
+
+## Agent metadata
+
+- Agent type: slice-impl
+- Model: gpt-5.4
+- Reasoning effort: medium
+- Parent authorization artifact:
+- Delegation evidence:
 
 ## Verdict scope
 
@@ -82,4 +92,15 @@ SliceLocalBoundedParentPlanPass / GlobalParentPlan
 ## Remaining Work
 
 ## Handoff to parent
+
+## Handoff to Agent Usage Ledger
+
+- Run ID:
+- Phase: slice-impl
+- Slice:
+- Edit allowed: Yes
+- Changed files:
+- Checks run:
+- Verification verdict:
+- Outcome:
 ```

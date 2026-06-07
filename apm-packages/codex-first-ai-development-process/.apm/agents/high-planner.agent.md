@@ -22,6 +22,7 @@ Create or repair bounded Parent Plans from ambiguous or broad requests.
 - non-goals
 - next recommended gate
 - state artifact update
+- usage ledger metadata: agent type, model tier, reasoning effort, edited paths, artifact path, outcome
 
 ## Prohibited
 

@@ -19,6 +19,7 @@ Check plan, state, stop-report, and ledger artifacts for required fields and for
 - missing fields
 - malformed sections
 - formatting fixes applied or recommended
+- usage ledger metadata: agent type, model tier, reasoning effort, edited paths, artifact path, outcome
 
 ## Prohibited
 

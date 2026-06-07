@@ -19,6 +19,7 @@ Check documentation consistency against a source artifact.
 - mismatch list
 - suggested doc-only fixes
 - residual uncertainty
+- usage ledger metadata: agent type, model tier, reasoning effort, edited paths, artifact path, outcome
 
 ## Prohibited
 

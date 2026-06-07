@@ -9,6 +9,7 @@ Use this instruction set when ordinary development work should start through Cod
 - Start by reading repo-local instructions, existing artifacts, and the latest `plans/<slug>/codex-first-state.md` if present.
 - Create or update state so the next "続きやって" request can resume safely.
 - Keep the user-facing entry small, but keep internal gates explicit in artifacts.
+- Write a Routing Plan, Edit Permission block, Agent Usage Ledger, and DelegationCompliance into the state artifact before treating a delegated gate as successful.
 - Use Codex as the primary execution environment.
 - Treat GitHub Copilot as a later fallback route, not the first deliverable.
 
@@ -20,9 +21,9 @@ Use this instruction set when ordinary development work should start through Cod
 4. Scan gate: delegate read-heavy discovery to low-cost workers when useful, and summarize evidence instead of flooding the main context.
 5. Contract gate: resolve implementation approach and human decisions before editing.
 6. READY gate: confirm Plan, selected scope, non-goals, contract/test handoff, and unresolved implementation-realization items before implementation.
-7. Implementation gate: implement only the selected READY scope.
-8. Verification gate: classify production implementation, production wiring, test evidence, and manual-only checks.
-9. Close gate: do not close when unresolved items include `ManualVerificationRequired`, `NeedsHumanDecision`, or `NeedsHigherModelReview`.
+7. Implementation gate: delegate the selected READY scope to `standard-implementer` unless a recorded `ParentDirectExecutionException` has explicit human approval.
+8. Verification gate: delegate ordinary verification to `standard-verifier`; route dangerous close judgment to `high-closure-reviewer`.
+9. Close gate: do not close when unresolved items include `ManualVerificationRequired`, `NeedsHumanDecision`, `NeedsHigherModelReview`, missing delegation evidence, or failing `DelegationCompliance`.
 
 ## Stop vocabulary
 
@@ -34,8 +35,15 @@ Use this instruction set when ordinary development work should start through Cod
 - `NeedsSecretInput`
 - `TooCostlyForCurrentPass`
 - `ReadyButAwaitingHumanApproval`
-- `ReadyForImplementation`
-- `ReadyForVerification`
+- `DelegationRequired`
+- `DelegationUnavailable`
+- `DelegationEvidenceMissing`
+- `ParentDirectExecutionException`
+- `ParentDirectExecutionNotAllowed`
+- `RoutingPolicyViolation`
+- `BlockedByMissingDelegationLedger`
+- `ReadyForDelegatedImplementation`
+- `ReadyForDelegatedVerification`
 - `ReadyToClose`
 - `ReadyToCloseWithAcceptedResiduals`
 - `ResidualWorkRecorded`
@@ -45,8 +53,9 @@ Use this instruction set when ordinary development work should start through Cod
 - Use `HIGH_MODEL` for ambiguous requirements, bounded Plan framing, difficult risk triage, implementation contract decisions, security/auth/DB/public API/production wiring, and dangerous closure decisions.
 - Use `STANDARD_MODEL` for normal READY implementation, verification, test design/update, and moderate-risk repairs.
 - Use `CHEAP_MODEL` for repo scan, read-heavy inventory, documentation consistency, artifact formatting, and simple local fixes.
-- Use subagents as a routing mechanism for bounded work, especially read-heavy or consistency work. Do not standardize write-heavy parallel editing.
-- Keep the main thread responsible for final implementation permission and close decisions.
+- MUST delegate when the Routing Plan assigns a gate owner that differs from the parent tier or parent thread. Required delegated gates cannot be completed by parent-direct execution without a recorded exception and explicit human approval.
+- Delegate ordinary READY implementation serially to `standard-implementer` and ordinary verification to `standard-verifier`. Do not standardize write-heavy parallel editing; serial delegated implementation is still required.
+- Keep the main thread responsible for final implementation permission, state updates, delegation compliance audit, and close decisions.
 
 Do not hard-code model names here. The consuming organization owns the mapping from labels to actual model names.
 

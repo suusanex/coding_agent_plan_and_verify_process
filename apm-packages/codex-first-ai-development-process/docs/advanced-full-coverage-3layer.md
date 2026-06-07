@@ -27,6 +27,7 @@ codex-first-cost-router
 -> plan-slice-decomposition
 -> slice-prep
 -> slice-impl
+-> Agent Usage Ledger / DelegationCompliance
 -> cross-slice-verification
 -> residual decision
 ```
@@ -34,8 +35,15 @@ codex-first-cost-router
 ## Cost routing
 
 - Parent Plan, decomposition, and cross-slice close risk usually need `HIGH_MODEL`.
-- Routine slice implementation usually uses `STANDARD_MODEL`.
+- Routine READY slice implementation is delegated to `slice-impl`, usually with `STANDARD_MODEL`.
 - Read-heavy slice inventory and doc consistency may use `CHEAP_MODEL`.
+
+## Delegation rules
+
+- `PREP_ONLY` stops after slice-prep and parent review gate. production code / tests are not edited.
+- `DELEGATED_IMPLEMENTATION` requires every READY slice to have observed `slice-impl` evidence.
+- Missing `slice-impl` evidence is `BlockedByMissingSliceImplDelegation`, not success.
+- `PARENT_DIRECT_IMPLEMENTATION_EXCEPTION` needs explicit human approval and is excluded from delegated completion metrics.
 
 ## Closure
 

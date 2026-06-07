@@ -21,10 +21,17 @@ GitHub Copilot 向けの `.github/agents/*.agent.md` が既存の主成果物で
 3. slice-impl subagent による親承認済み slice-local bounded parent Plan pass の実装と verification-kernel
 4. 親エージェントによる cross-slice-verification-kernel と residual-decision-gate
 
+開始時に `ExecutionMode` を `PREP_ONLY` / `DELEGATED_IMPLEMENTATION` / `PARENT_DIRECT_IMPLEMENTATION_EXCEPTION` のいずれかとして `plans/*-agent-usage-ledger.md` に記録してください。
+
+`DELEGATED_IMPLEMENTATION` mode では、親エージェントは production code / tests を直接編集してはいけません。親が編集できるのは orchestration artifact、parent review gate、Agent Usage Ledger、cross-slice verification、residual decision、final summary / handoff artifact に限定します。
+
 ## 重要な禁止事項
 
 - `plan-slice-decomposition` の slice artifact を「実装準備完了」とみなしてはいけません。
 - per-slice `change-risk-triage`、必要な `implementation-contract-kernel`、`runtime-contract-kernel`、`test-design-kernel` を飛ばしてはいけません。
+- executable slice は `slice-prep` に MUST delegate してください。blocked / human decision / triage only の場合は理由を Agent Usage Ledger に記録してください。
+- `DELEGATED_IMPLEMENTATION` で READY になった slice は `slice-impl` に MUST delegate してください。`slice-impl` run の証跡がない READY slice は `BlockedByMissingSliceImplDelegation` として停止してください。
+- 親直接実装は `PARENT_DIRECT_IMPLEMENTATION_EXCEPTION`、明示理由、explicit human approval がある場合だけ許可します。これは3層委譲成功として扱いません。
 - cross-slice contract (`XC-xxx`) を単一 slice 内で完了扱いにしてはいけません。
 - source evidence のない field / state / identifier を fallback、空文字、推測、本文からの生成値で埋めて `Done` にしてはいけません。
 - `verification-kernel` や `cross-slice-verification-kernel` で見つけた gap を、その場で scope 拡大して修正してはいけません。必要なら `coverage-gap-triage` に渡してください。
@@ -37,3 +44,4 @@ $token-aware-full-coverage-3layer を使って、この full-coverage decomposit
 ```
 
 実装まで進める場合も、parent review gate で READY になった slice だけを `slice-impl` に渡してください。
+このとき `ExecutionMode = DELEGATED_IMPLEMENTATION`、`EditOwner = slice-impl`、`DelegationRequired = Yes` を Agent Usage Ledger に記録し、親エージェントは production code / tests を直接編集しないでください。

@@ -25,10 +25,13 @@ codex-first-cost-router
 -> risk triage
 -> advanced-route confirmation
 -> plan-slice-decomposition.agent.md
--> per-slice token-aware kernel flow
+-> slice-prep for executable slices
+-> slice-impl for READY slices
 -> cross-slice-verification-kernel.agent.md
 -> residual decision
 ```
+
+In `DELEGATED_IMPLEMENTATION` mode, READY slices require observed `slice-impl` runs. Missing `slice-impl` evidence blocks the run with `BlockedByMissingSliceImplDelegation`.
 
 ## Slice example
 

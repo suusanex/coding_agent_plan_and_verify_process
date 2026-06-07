@@ -22,6 +22,12 @@ current_gate: Intake
 next_gate: Plan
 recommended_model_tier: HIGH_MODEL
 allowed_to_edit: false
+edit_owner: none
+delegation_compliance: N/A
 stop_reason: None
 next_action: Create bounded Plan from issue body and repo rules.
+
+Routing Plan:
+| Gate | Recommended tier | Delegation required | Expected agent type | Edit owner | Parent may execute directly? | Stop if unavailable |
+| Plan | HIGH_MODEL | No | high-planner or parent | parent | Yes | NeedsHumanDecision |
 ```

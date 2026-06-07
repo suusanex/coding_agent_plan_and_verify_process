@@ -22,11 +22,14 @@ Implement the bounded scope after READY.
 - tests / checks run
 - remaining uncertainty
 - state artifact update
+- usage ledger metadata: agent type, model tier, reasoning effort, edited paths, artifact path, outcome
 
 ## Prohibited
 
 - expanding scope
 - editing without READY
+- editing unless `EditOwner = standard-implementer`
+- parent-direct implementation fallback without recorded `ParentDirectExecutionException`
 - secret, billing, external service, or production operations
 - endless repair loops
 

@@ -7,4 +7,5 @@ Decide the implementation approach before editing when API, SDK, dependency, pro
 Record selected approach, alternatives rejected, forbidden shortcuts, human-required decisions, and READY prerequisites.
 Do not edit production code.
 Stop with NeedsHumanDecision or NeedsHigherModelReview when the contract cannot be completed safely.
+Return usage ledger metadata: agent type, model, reasoning effort, edited paths, artifact path, and outcome.
 """

@@ -22,10 +22,13 @@ Verify implementation against acceptance criteria and production wiring.
 - manual-only verification list
 - residual list
 - state artifact update
+- delegation evidence check for implementation and verification gates
+- usage ledger metadata: agent type, model tier, reasoning effort, edited paths, artifact path, outcome
 
 ## Prohibited
 
 - counting fake / mock / stub-only success as production readiness
+- verifying as complete without observed `standard-implementer` run or accepted parent-direct exception
 - closing the task when blockers remain
 
 ## Failure stop reason

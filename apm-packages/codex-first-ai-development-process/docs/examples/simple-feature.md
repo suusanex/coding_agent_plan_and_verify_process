@@ -10,16 +10,17 @@
 
 - cost-router が repo rules と既存 artifact を読む。
 - bounded Plan または同等の短い scope を作る。
-- config 読み込みと CLI 出力だけが READY なら `STANDARD_MODEL` で実装する。
-- 単純な docs / format check は `CHEAP_MODEL` に寄せてもよい。
+- config 読み込みと CLI 出力だけが READY なら `standard-implementer` へ serial delegation する。
+- 単純な docs / format check は Routing Plan に応じて `CHEAP_MODEL` worker へ委譲する。
 - production CLI entrypoint を verification で確認する。
 
 ## READY example
 
 ```text
-ReadyForImplementation
+ReadyForDelegatedImplementation
 - Plan exists.
 - Scope is limited to config read and CLI output.
+- EditOwner is standard-implementer.
 - No secret or external service is involved.
 - No advanced route is required.
 ```
@@ -30,6 +31,7 @@ ReadyForImplementation
 SafeToClose
 - Acceptance conditions are mapped to verification evidence.
 - Production CLI entrypoint uses the config path.
+- DelegationCompliance is PASS.
 - Remaining work is Deferred and not required for this request.
 ```
 
