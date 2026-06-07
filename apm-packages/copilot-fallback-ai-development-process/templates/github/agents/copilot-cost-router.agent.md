@@ -33,7 +33,7 @@ Accept ordinary requests such as "この issue を進めて", "このバグを�
 - Locate or create `plans/<slug>/codex-first-state.md` for non-trivial work.
 - Select the next gate: Intake, Plan, Risk, Scan, Contract, Implementation, Verification, or Close.
 - Assign `COPILOT_HIGH_MODEL`, `COPILOT_STANDARD_MODEL`, or `COPILOT_CHEAP_MODEL`.
-- Update Routing Plan, Edit Permission, Agent Usage Ledger, stop reason, and next action.
+- Update Routing Plan, Edit Permission, Agent Usage Ledger, `stop_reason`, and `next_action`.
 - Handoff to the specialized Copilot agent when needed.
 - Do not implement before READY.
 - Do not close with unresolved `ManualVerificationRequired`, `NeedsHumanDecision`, or `NeedsHigherModelReview`.

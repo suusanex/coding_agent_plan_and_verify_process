@@ -9,7 +9,7 @@ tools: ['codebase', 'editFiles', 'runCommands']
 Resume from `plans/<slug>/codex-first-state.md`.
 
 - Locate the relevant state artifact.
-- Read `current_gate`, `next_gate`, Routing Plan, Edit Permission, stop reason, unresolved residuals, and next action.
+- Read `current_gate`, `next_gate`, Routing Plan, Edit Permission, `stop_reason`, `unresolved_residuals`, and `next_action`.
 - Execute only the next gate.
 - Confirm whether edits are allowed before implementation.
 - Update the state artifact before stopping.

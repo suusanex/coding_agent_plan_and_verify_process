@@ -82,7 +82,8 @@ if (blockers.Count > 0)
     }
 
     Console.WriteLine();
-    Console.WriteLine("Resolve the blockers manually, or rerun with --force for same-name template overwrites.");
+    Console.WriteLine("Resolve marker or merge blockers manually.");
+    Console.WriteLine("--force only overwrites same-name template files or replaces an existing managed copilot-fallback block.");
     Environment.Exit(2);
 }
 

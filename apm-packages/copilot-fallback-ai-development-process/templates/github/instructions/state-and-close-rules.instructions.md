@@ -20,8 +20,8 @@ Use `plans/<slug>/codex-first-state.md` as the compatible state artifact.
 - Routing Plan
 - Edit Permission
 - Agent Usage Ledger
-- unresolved residuals
-- next action
+- `unresolved_residuals`
+- `next_action`
 
 ## Close blockers
 

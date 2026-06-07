@@ -36,9 +36,8 @@ router は process 名、agent 名、model tier、full-coverage 分岐を利用�
 plans/<slug>/codex-first-state.md
 ```
 
-この名前は Codex 由来ですが、Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance、stop reason、unresolved residuals を共有できるため残します。
+この名前は Codex 由来ですが、Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance、`stop_reason`、`unresolved_residuals` を共有できるため残します。
 
 ## Advanced route
 
 full-coverage 3層運用は標準 route ではありません。大規模で明示的に分割統治が必要な場合、または熟練 operator が選ぶ場合だけ advanced route として扱います。
-

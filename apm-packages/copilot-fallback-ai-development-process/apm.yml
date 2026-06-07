@@ -9,9 +9,6 @@ includes: auto
 
 dependencies:
   apm:
-    # Shared state/gate vocabulary is compatible with Codex-first.
-    - git: parent
-      path: apm-packages/codex-first-ai-development-process/templates/codex-first-state.md
     # Existing kernel agents remain the source of truth for deeper Plan-first flow.
     - git: parent
       path: .github/agents/plan-kernel.agent.md
