@@ -1,0 +1,27 @@
+name: copilot-fallback-ai-development-process
+version: 0.1.0
+description: GitHub Copilot Chat fallback package for cost-aware Plan-first routing, repo-local VS Code customizations, stateful resume, and close gates
+type: hybrid
+targets:
+  - github-copilot
+  - vscode
+includes: auto
+
+dependencies:
+  apm:
+    # Shared state/gate vocabulary is compatible with Codex-first.
+    - git: parent
+      path: apm-packages/codex-first-ai-development-process/templates/codex-first-state.md
+    # Existing kernel agents remain the source of truth for deeper Plan-first flow.
+    - git: parent
+      path: .github/agents/plan-kernel.agent.md
+    - git: parent
+      path: .github/agents/change-risk-triage.agent.md
+    - git: parent
+      path: .github/agents/implementation-handoff-review.agent.md
+    - git: parent
+      path: .github/agents/implementation-execution.agent.md
+    - git: parent
+      path: .github/agents/verification-kernel.agent.md
+    - git: parent
+      path: .github/agents/residual-decision-gate.agent.md

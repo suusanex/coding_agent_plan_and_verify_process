@@ -58,6 +58,7 @@ Plan requirement / acceptance condition
 | package | Use when |
 | --- | --- |
 | `apm-packages/codex-first-ai-development-process` | Codex を第一優先にし、短い依頼から cost-aware routing、モデル tier 分担、READY / close gate、stateful resume に入りたい |
+| `apm-packages/copilot-fallback-ai-development-process` | Codex 枠が尽きた場合などに、GitHub Copilot Chat in VS Code へ同じ思想の cost-aware process を repo-local 導入したい |
 | `apm-packages/token-aware-guardrail-kernel-flow` | operator が Plan網羅チェック・残件判定フローを直接選べる。既存 agent 群をそのまま使いたい |
 | `apm-packages/token-aware-full-coverage-3layer` | PR #10 由来の Codex 向け full-coverage 3層応用運用だけを直接使いたい |
 | `apm-packages/full-autonomous-plan-first-flow` | broad autonomous flow を明示的に選び、runtime evidence / integration test design を広く使いたい |
@@ -189,6 +190,101 @@ VS Code の Codex 拡張では、最初にインストール済みリポジト�
 - `apm-packages/codex-first-ai-development-process/docs/maintainer-guide.md`
 - `apm-packages/codex-first-ai-development-process/docs/team-profile-launcher.md`
 - `apm-packages/codex-first-ai-development-process/profiles/codex-first/`
+
+---
+
+## GitHub Copilot fallback AI Development Process
+
+Codex 枠が尽きた場合や利用者環境の都合で Codex を使えない場合に、GitHub Copilot Chat in VS Code へ fallback するための repo-local package です。
+Codex-first と state artifact、stop vocabulary、gate 設計、READY / close policy は共有します。ただし導入面は Codex 用 `.toml`、`CODEX_HOME`、`.codex/config.toml` ではなく、VS Code Copilot が読む `.github/` 配下の custom instructions / custom agents / prompt files へ置きます。
+
+標準入口は `copilot-cost-router` です。full-coverage 3層運用は standard route ではなく advanced route であり、初心者向け導入では判断させません。
+
+### 導入方法
+
+既存 `.github` や `AGENTS.md` を壊さないように、まず dry-run で確認します。
+
+```powershell
+dotnet run --file .\apm-packages\copilot-fallback-ai-development-process\scripts\install-copilot-fallback-local.cs -- <target-repo-path> --dry-run
+```
+
+衝突がなければ `--dry-run` を外して適用します。
+
+```powershell
+dotnet run --file .\apm-packages\copilot-fallback-ai-development-process\scripts\install-copilot-fallback-local.cs -- <target-repo-path>
+```
+
+同名 template を上書きする必要がある場合だけ `--force` を使います。既存 `.github/copilot-instructions.md` は marker 管理された `copilot-fallback` block だけを差し替え、marker がない既存 file は manual merge blocker として停止します。
+
+導入後は主に次が配置されます。
+
+- `.github/copilot-instructions.md`
+- `.github/instructions/cost-aware-routing.instructions.md`
+- `.github/instructions/state-and-close-rules.instructions.md`
+- `.github/agents/copilot-cost-router.agent.md`
+- `.github/agents/copilot-high-planner.agent.md`
+- `.github/agents/copilot-risk-triage.agent.md`
+- `.github/agents/copilot-standard-implementer.agent.md`
+- `.github/agents/copilot-standard-verifier.agent.md`
+- `.github/agents/copilot-cheap-repo-scanner.agent.md`
+- `.github/agents/copilot-close-reviewer.agent.md`
+- `.github/prompts/cost-route.prompt.md`
+- `.github/prompts/resume-state.prompt.md`
+- `.github/prompts/verify-and-close.prompt.md`
+- `.github/prompts/fix-selected-residual.prompt.md`
+- `templates/codex-first-state.md`
+
+### 使い方
+
+利用者は普通に依頼します。
+
+```text
+この issue を進めて。
+このバグを直して。
+この機能を実装して。
+この PR の残件を片付けて。
+続きやって。
+```
+
+明示入口が必要な場合は VS Code Chat の prompt file を使います。
+
+```text
+/cost-route この issue を進めて
+/resume-state
+/verify-and-close
+/fix-selected-residual RES-001
+```
+
+`copilot-cost-router` は repo-local instructions と既存 artifact を読み、必要なら `plans/<slug>/codex-first-state.md` を作成または更新します。ユーザーに process 名、agent 名、model tier、full-coverage 判断を要求せず、Intake / Plan / Risk / Scan / Contract / Implementation / Verification / Close の次 gate を選びます。
+
+### モデル tier
+
+Copilot fallback の抽象 tier は Codex-first と別管理です。
+
+| Label | Intended use |
+| --- | --- |
+| `COPILOT_HIGH_MODEL` | 曖昧な要求整理、bounded Plan、high-risk triage、auth / security / production close 判断 |
+| `COPILOT_STANDARD_MODEL` | READY 後の通常実装、通常 verification |
+| `COPILOT_CHEAP_MODEL` | read-heavy scan、docs consistency、trivial local fix |
+
+実名モデルは VS Code / GitHub Copilot の可用性、組織 policy、premium request、品質要求に合わせて `apm-packages/copilot-fallback-ai-development-process/docs/model-tier-mapping.md` と agent / prompt frontmatter で調整します。
+
+### 安全ルール
+
+- READY 前に実装しない
+- close 不可状態のまま完了扱いしない
+- `ManualVerificationRequired`、`NeedsHumanDecision`、`NeedsHigherModelReview` が残る場合は close しない
+- fake / stub / mock-only success を production success と扱わない
+- secret / production / billing / external operation を explicit approval なしに実行しない
+- repo 固有の build / test / security rules を常に優先する
+
+### 詳細ドキュメント
+
+- `apm-packages/copilot-fallback-ai-development-process/docs/copilot-fallback-guide.md`
+- `apm-packages/copilot-fallback-ai-development-process/docs/user-guide.md`
+- `apm-packages/copilot-fallback-ai-development-process/docs/install-guide.md`
+- `apm-packages/copilot-fallback-ai-development-process/docs/model-tier-mapping.md`
+- `apm-packages/copilot-fallback-ai-development-process/docs/limitations.md`
 
 ---
 
