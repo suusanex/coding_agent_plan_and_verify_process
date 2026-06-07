@@ -100,8 +100,8 @@ SliceLocalBoundedParentPlanPass / GlobalParentPlan
 - Slice:
 - Edit allowed: Yes
 - Configured model:
-- Hook model:
-- Effective model:
+- Hook model: unknown unless observed in hook log
+- Effective model: unknown unless independently verified
 - Changed files:
 - Checks run:
 - Verification verdict:

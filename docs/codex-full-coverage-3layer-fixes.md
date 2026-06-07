@@ -6,7 +6,7 @@
 
 主な目的は次の4つ。
 
-1. `slice-prep` / `slice-impl` の model / reasoning / sandbox 設定を、Codex が実際に解釈する top-level TOML field として明示する。
+1. `slice-prep` / `slice-impl` の model / reasoning / sandbox 設定を、Codex が実際に解釈する top-level field として明示する。現行のこのリポジトリでは frontmatter で保持している。
 2. `developer_instructions` 内の説明文・出力テンプレートが、実行設定と矛盾しないようにする。
 3. 3層運用の実績ログ・Agent Usage Ledger で、`hook_model` / `configured_model` / `reported_model` / `effective_model` を混同しないようにする。
 4. `gpt-5.4 -> gpt-5.5` migration notice と CLI/App 差分など、未解決事項を本番修正とは分離して扱えるようにする。
@@ -17,7 +17,7 @@
 
 重要な切り分け結果:
 
-- `slice-prep` / `slice-impl` の original definition では、`model` / `model_reasoning_effort` が top-level TOML field として存在せず、`developer_instructions` 内の説明文にしか書かれていなかった。
+- `slice-prep` / `slice-impl` の original definition では、`model` / `model_reasoning_effort` が Codex に解釈される top-level field として存在せず、`developer_instructions` 内の説明文にしか書かれていなかった。
 - 実験で top-level field を追加したところ、Desktop/App 経路では Hook log の `model` が configured child model を反映した。
 - したがって、少なくとも Desktop/App 経路では「Hook の `model` が常に親modelを返している」という説明は主因ではない。
 - `gpt-5.4 -> gpt-5.5` の migration notice が user-level config に存在したが、`model = "gpt-5.4"` を明示した child agent が migration されるかは未確認。
@@ -47,15 +47,17 @@ Desktop/App 経路では、top-level `model` を追加した custom agent の Ho
 
 ## 主要対象ファイル
 
-想定対象:
+現行 repository の source of truth:
 
 ```text
-.codex/agents/slice-prep.toml
-.codex/agents/slice-impl.toml
-.agents/skills/token-aware-full-coverage-3layer/SKILL.md
-AGENTS.md
+apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-prep.agent.md
+apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-impl.agent.md
+apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md
+apm-packages/token-aware-full-coverage-3layer/.apm/instructions/token-aware-full-coverage-3layer.instructions.md
 .codex/config.toml
 ```
+
+以前の `.codex/agents/*` や `.agents/skills/token-aware-full-coverage-3layer/SKILL.md` はこの repository では source of truth ではなく、現在は `apm-packages/token-aware-full-coverage-3layer/.apm/` 配下を正として扱う。
 
 必要なら、次のような修正ゴール文書を追加してもよい。
 
@@ -65,7 +67,7 @@ docs/codex-full-coverage-3layer-fixes.md
 
 ## 修正項目
 
-## 1. custom agent TOML に実行設定を top-level field として明示する
+## 1. custom agent 定義に実行設定を top-level field として明示する
 
 ### 問題
 
@@ -73,7 +75,7 @@ docs/codex-full-coverage-3layer-fixes.md
 
 ### 対応
 
-`.codex/agents/slice-prep.toml` と `.codex/agents/slice-impl.toml` に、必ず top-level field として次を明示する。
+現行 repository では `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-prep.agent.md` と `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-impl.agent.md` の frontmatter に、必ず top-level field として次を明示する。
 
 ### `slice-prep.toml`
 
@@ -133,7 +135,7 @@ developer_instructions = """
 このブロックは削除するか、次のように明確化する。
 
 ```text
-実行設定は、この custom agent file の top-level TOML field で定義されます。
+実行設定は、この custom agent file の top-level field で定義されます。現行 repository では frontmatter がそれに当たります。
 この developer_instructions 内の説明文を、実行設定として扱ってはいけません。
 ```
 
@@ -143,7 +145,7 @@ developer_instructions = """
 
 ### 問題
 
-agent 出力テンプレートに `Model: gpt-5.4` のような固定値を書くと、top-level TOML field や Hook log と不整合になりやすい。
+agent 出力テンプレートに `Model: gpt-5.4` のような固定値を書くと、top-level field や Hook log と不整合になりやすい。
 
 ### 対応
 
@@ -208,7 +210,7 @@ Agent Usage Ledger には、最低限次の列を追加する。
 
 ### 対応
 
-`.agents/skills/token-aware-full-coverage-3layer/SKILL.md` に、次の実行モードを追加する。
+`apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md` に、次の実行モードを追加する。
 
 ```text
 ExecutionMode:
@@ -360,8 +362,8 @@ CLI non-interactive / codex exec path:
 
 ### custom agent定義
 
-- `.codex/agents/slice-prep.toml` に top-level `model` / `model_reasoning_effort` / `sandbox_mode` がある
-- `.codex/agents/slice-impl.toml` に top-level `model` / `model_reasoning_effort` / `sandbox_mode` がある
+- `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-prep.agent.md` に top-level `model` / `model_reasoning_effort` / `sandbox_mode` がある
+- `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-impl.agent.md` に top-level `model` / `model_reasoning_effort` / `sandbox_mode` がある
 - `developer_instructions` に model設定値を重複記載していない
 - sentinel marker が本番agentから削除されている
 
@@ -417,7 +419,7 @@ CLI non-interactive / codex exec path:
 このリポジトリの Codex 3層運用定義について、実験リポジトリで判明した custom agent model 設定問題を反映してください。
 
 主な修正:
-1. slice-prep / slice-impl の model / model_reasoning_effort / sandbox_mode を top-level TOML field として明示。
+1. slice-prep / slice-impl の model / model_reasoning_effort / sandbox_mode を top-level field として明示。
 2. developer_instructions 内の「推奨実行境界」など、実行設定と誤認される説明を削除または明確化。
 3. 出力テンプレートで `Configured model` / `Hook model` / `Effective model` を分離。
 4. Skill に ExecutionMode を導入し、DELEGATED_IMPLEMENTATION では READY slice の実装を必ず slice-impl に委譲する。

@@ -99,7 +99,7 @@ sandbox_mode: read-only
 - Slice:
 - Edit allowed: No
 - Configured model:
-- Hook model:
-- Effective model:
+- Hook model: unknown unless observed in hook log
+- Effective model: unknown unless independently verified
 - Outcome:
 ```
