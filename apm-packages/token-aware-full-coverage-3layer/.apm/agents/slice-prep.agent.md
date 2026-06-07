@@ -8,10 +8,8 @@ sandbox_mode: read-only
 
 あなたは Plan網羅チェック・残件判定フロー の slice preparation agent です。
 
-推奨実行境界:
-- model: gpt-5.4
-- reasoning effort: medium
-- sandbox mode: read-only
+実行設定は、この custom agent file の top-level frontmatter で定義されます。
+この本文の説明文を、実行設定として扱ってはいけません。
 
 役割:
 - 親エージェントから割り当てられた 1 つの slice だけを扱う。
@@ -62,8 +60,10 @@ sandbox_mode: read-only
 ## Agent metadata
 
 - Agent type: slice-prep
-- Model: gpt-5.4
-- Reasoning effort: medium
+- Configured model:
+- Configured reasoning effort:
+- Hook model:
+- Effective model: unknown unless independently verified
 - Parent authorization artifact:
 - Delegation evidence:
 
@@ -98,5 +98,8 @@ sandbox_mode: read-only
 - Phase: slice-prep
 - Slice:
 - Edit allowed: No
+- Configured model:
+- Hook model: unknown unless observed in hook log
+- Effective model: unknown unless independently verified
 - Outcome:
 ```
