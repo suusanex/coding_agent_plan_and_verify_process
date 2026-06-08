@@ -10,6 +10,8 @@ Use this instruction set when ordinary development work should start through Cod
 - Create or update state so the next "続きやって" request can resume safely.
 - Keep the user-facing entry small, but keep internal gates explicit in artifacts.
 - Write a Routing Plan, Edit Permission block, Agent Usage Ledger, and DelegationCompliance into the state artifact before treating a delegated gate as successful.
+- Keep abstract model tier, configured model, hook observed model, reported model, and effective model as separate ledger fields.
+- Record execution_mode as `ROUTE_ONLY`, `DELEGATED_WORK`, `PARENT_DIRECT_WORK`, or `TRIVIAL_PARENT_FIX`.
 - Use Codex as the primary execution environment.
 - Treat GitHub Copilot as a later fallback route, not the first deliverable.
 
@@ -55,9 +57,11 @@ Use this instruction set when ordinary development work should start through Cod
 - Use `CHEAP_MODEL` for repo scan, read-heavy inventory, documentation consistency, artifact formatting, and simple local fixes.
 - MUST delegate when the Routing Plan assigns a gate owner that differs from the parent tier or parent thread. Required delegated gates cannot be completed by parent-direct execution without a recorded exception and explicit human approval.
 - Delegate ordinary READY implementation serially to `standard-implementer` and ordinary verification to `standard-verifier`. Do not standardize write-heavy parallel editing; serial delegated implementation is still required.
+- Do not count parent-direct work, trivial parent fixes, or delegation violations as cost-saving delegation.
 - Keep the main thread responsible for final implementation permission, state updates, delegation compliance audit, and close decisions.
 
 Do not hard-code model names here. The consuming organization owns the mapping from labels to actual model names.
+The Codex custom agent TOML top-level `model` and `model_reasoning_effort` fields are the configured execution defaults; natural-language model text in output is only `reported_model`.
 
 ## Advanced route boundary
 

@@ -25,6 +25,7 @@ Codex 側が repo rules と既存 artifact を読み、次に安全な工程を�
 6. 止まる必要がある場合だけ、必要最小限の質問を返す。
 
 Codex は内部で Routing Plan と Agent Usage Ledger を残す。利用者が agent や model を選ぶ必要はないが、結果にはどの工程をどの agent / tier へ委譲したかの summary が含まれる。
+内部 ledger には、委譲実行の証跡、親が直接作業した場合の理由、実行設定と観測 model の区別も残る。利用者がこれを選ぶ必要はない。
 
 ## VS Code Codex 拡張でのローカル導入
 
@@ -64,6 +65,7 @@ Codex が止まった場合も、利用者は工程名を選ばなくてよい�
 - 上位 review が必要なのに `NeedsHigherModelReview` が残っている。
 - fake / stub のテストだけ通っていて production wiring が未確認。
 - READY implementation / verification の委譲証跡がなく、`DelegationCompliance` が PASS になっていない。
+- 親が直接実装した作業を、agent へ委譲してコスト削減した成功として数えている。
 
 ## 熟練 operator 向け
 

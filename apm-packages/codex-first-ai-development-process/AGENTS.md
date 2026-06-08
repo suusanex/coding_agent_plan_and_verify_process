@@ -11,10 +11,12 @@
 - 必要な工程を Intake / Plan / Risk / Scan / Contract / Implementation / Verification / Close に分ける。
 - 各工程を `HIGH_MODEL`、`STANDARD_MODEL`、`CHEAP_MODEL` の抽象 tier へ割り当てる。
 - state artifact に Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance を記録する。
+- state artifact では execution_mode と、model tier / configured model / hook model / reported model / effective model を分けて記録する。
 - read-heavy な scan / consistency check は、Routing Plan が要求する場合は低コスト subagent へ委譲する。
 - READY 後の通常実装は `standard-implementer` へ serial delegation する。write-heavy parallel editing を標準化しないことは、親が直接実装してよいことを意味しない。
 - READY 後の通常 verification は `standard-verifier` へ委譲し、危険な close 判定だけ高性能側へ戻す。
 - `DelegationRequired = Yes` の gate は、observed run または explicit human approval 付き `ParentDirectExecutionException` がない限り成功扱いしない。
+- 親が委譲予定の作業を直接実行した場合、`PARENT_DIRECT_WORK` または `TRIVIAL_PARENT_FIX` として記録し、cost-saving delegation 成功として扱わない。
 - 難しい判断、security / auth / DB / public API / production wiring / close risk は高性能側へ戻す。
 - READY でない状態では実装へ進まない。
 - close 不可の stop reason を残したまま完了扱いしない。

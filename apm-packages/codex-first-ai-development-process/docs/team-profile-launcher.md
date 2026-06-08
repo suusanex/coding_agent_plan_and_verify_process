@@ -36,6 +36,7 @@ The actual installed layout may vary by APM tool, but the ownership is the same:
 profile-level instructions provide the entry behavior, while repo-level instructions keep local rules.
 
 For VS Code Codex extension in repository-local operation, use `scripts/install-codex-first-local.cs` first so that `AGENTS.md` and `.codex` are created in the target repository.
+For App / Desktop threads, treat the Codex-first profile and repo-local state artifact as the primary path. CLI / `codex exec` launches are compatibility paths; use them when the operator can provide equivalent profile loading, subagent invocation, and ledger evidence.
 
 ## Minimal install example
 
@@ -66,6 +67,7 @@ Expected verification:
 - `codex status` shows the custom `CODEX_HOME`.
 - A prompt such as `Summarize the current instructions.` includes the Codex-first global guidance.
 - Subagent work can use the TOML files under `agents/`, each of which sets `model` and `model_reasoning_effort`.
+- Agent Usage Ledger distinguishes configured model, hook observed model, reported model, and effective model when evidence is available.
 
 ## Launcher behavior
 
@@ -76,3 +78,4 @@ The launcher should:
 - avoid overwriting repo files
 - report when repo-local instructions are too large or conflicting
 - offer bootstrap / dry-run merge only when profile layering is insufficient
+- document whether the current run used the App / Desktop primary path or a CLI / `codex exec` compatibility path

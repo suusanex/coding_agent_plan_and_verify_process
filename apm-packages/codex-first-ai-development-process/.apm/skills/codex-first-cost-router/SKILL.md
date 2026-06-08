@@ -31,6 +31,13 @@ Minimum fields:
 - current gate
 - next gate
 - recommended model tier
+- execution mode
+- selected agent name / type
+- configured model
+- configured reasoning effort
+- hook model
+- reported model
+- effective model
 - routing plan
 - edit permission
 - current status
@@ -45,6 +52,17 @@ Minimum fields:
 - last updated summary
 
 For "続きやって", read the newest matching state artifact before deciding the next step.
+
+### Execution Mode
+
+Record one execution mode before treating a gate as complete.
+
+- `ROUTE_ONLY`: intake, plan, risk, contract, or close judgment only; do not edit production code or tests.
+- `DELEGATED_WORK`: the selected agent / subagent owns the bounded work; the parent owns aggregation, ledger update, and close judgment.
+- `PARENT_DIRECT_WORK`: the parent works without agent / subagent delegation; record the reason and do not count it as cost-saving delegation.
+- `TRIVIAL_PARENT_FIX`: a low-risk, local, explicit fix by the parent; record the reason and do not count it as cost-saving delegation.
+
+If a gate required delegation and the parent directly performs the delegated work, set `delegation_violation = Yes` unless there is an explicit accepted `ParentDirectExecutionException`.
 
 ### Routing Plan
 
@@ -64,6 +82,7 @@ Rules:
 - `STANDARD_MODEL` READY verification MUST delegate to `standard-verifier` before close, unless close risk requires `high-closure-reviewer`.
 - `HIGH_MODEL` plan, risk, implementation contract, and dangerous close judgment may stay with the parent or high agents.
 - A gate with `Delegation required = Yes` cannot be marked successful without observed delegation or an accepted parent-direct exception.
+- A parent-direct exception is not a delegated cost-saving success. Record it as an exception, not as saved cost.
 
 ### Edit Permission
 
@@ -73,7 +92,7 @@ Replace the old single `allowed to edit` decision with this block.
 ## Edit Permission
 
 - allowed_to_edit: Yes / No
-- edit_owner: parent / standard-implementer / standard-verifier / cheap-fixer / human / none
+- edit_owner: parent / standard-implementer / standard-verifier / high-planner / high-implementation-contract / high-risk-triage / high-closure-reviewer / cheap-repo-scanner / cheap-doc-consistency / cheap-artifact-format-checker / human / none
 - parent_direct_edit_allowed: Yes / No
 - allowed_paths:
 - forbidden_paths:
@@ -97,8 +116,19 @@ State artifacts must include expected vs observed delegation.
 
 ### Observed runs
 
-| Run ID | Gate | Agent name | Agent type | Model | Reasoning effort | Edited? | Artifact | Outcome |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Run ID | Gate | Work item | Model tier | Agent name | Agent type | Configured model | Configured reasoning effort | Hook model | Reported model | Effective model | Delegation required | Edit owner | Delegation violation | Cost-saving delegation countable | Outcome | Evidence |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+Use these meanings:
+
+- `Model tier`: abstract route result, one of `HIGH_MODEL`, `STANDARD_MODEL`, or `CHEAP_MODEL`.
+- `Configured model`: Codex custom agent file top-level `model`.
+- `Configured reasoning effort`: Codex custom agent file top-level `model_reasoning_effort`.
+- `Hook model`: model observed from hook payload or hook log, otherwise `unknown`.
+- `Reported model`: model self-reported by the agent; lower-confidence than configured or hook evidence.
+- `Effective model`: billing or runtime-effective model only when independently verified, otherwise `unknown`.
+- `Delegation violation`: `Yes` when required delegation was replaced by parent-direct work or the wrong owner edited.
+- `Cost-saving delegation countable`: `Yes` only when delegated run evidence exists, the owner matches the route, and no delegation violation occurred.
 
 ### Delegation compliance
 
@@ -108,6 +138,8 @@ State artifacts must include expected vs observed delegation.
 | STANDARD implementation delegated | PASS / FAIL / N/A | |
 | STANDARD verification delegated | PASS / FAIL / N/A | |
 | Parent direct execution exception documented | PASS / FAIL / N/A | |
+| Delegation violation absent or accepted | PASS / FAIL / N/A | |
+| Cost-saving delegation has observed delegated run evidence | PASS / FAIL / N/A | |
 ```
 
 ## Gates
@@ -179,6 +211,7 @@ Do:
 - set `Delegation required = Yes` and `Edit owner = standard-implementer` for normal READY implementation
 - delegate READY implementation serially to `standard-implementer`; serial delegation is required even when write-heavy parallel editing is not allowed
 - implement only READY scope
+- stop if the required parent authorization artifact is missing
 - stop if new design uncertainty appears
 - avoid external API, production, secret, or billing side effects
 - avoid endless repair loops
@@ -218,6 +251,7 @@ Do:
 - `CHEAP_MODEL`: scan, inventory, docs consistency, artifact formatting, simple local fixes.
 
 Do not hard-code real model names. Maintainers own the mapping.
+Do not treat natural-language model text in agent output as the source of truth for execution settings. The custom agent TOML top-level fields are configured values; hook observations and reported values are separate ledger fields.
 
 ## Predefined agents / subagents
 
@@ -238,6 +272,7 @@ Subagents are a way to assign bounded work to the right tier.
 They still require explicit subagent / parallel work instructions from the parent thread or launcher.
 Do not make write-heavy parallel editing the default.
 This does not permit parent-direct implementation: READY implementation is serial delegated work owned by `standard-implementer` unless a recorded exception is accepted.
+When parent-direct work is accepted, record `execution_mode = PARENT_DIRECT_WORK` or `TRIVIAL_PARENT_FIX`; do not count it as cost-saving delegation.
 
 ## Stop reasons
 
@@ -270,8 +305,19 @@ Return:
 - current gate
 - next gate
 - recommended model tier
+- selected execution mode
+- selected model tier
+- selected agent name, if delegated
+- configured model, if known
+- configured reasoning effort, if known
+- hook model, if observed
+- reported model, if provided
+- effective model, usually unknown
+- delegation required
 - routing plan summary
 - edit permission / edit owner
+- delegation violation
+- whether this run may be counted as cost-saving delegation
 - delegation compliance
 - stop reason, if any
 - human-required items

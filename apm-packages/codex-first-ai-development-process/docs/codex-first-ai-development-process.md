@@ -16,6 +16,7 @@
 - delegated bounded implementation
 - residual decision
 - Agent Usage Ledger / DelegationCompliance
+- execution mode and model-observability metadata
 - human / higher-model stop
 
 ## Non-goals
@@ -44,6 +45,7 @@
 They do not own final implementation permission or close decisions.
 
 write-heavy parallel editing is not the default. That is separate from delegation: READY implementation is serial delegated work owned by `standard-implementer`, and the parent does not implement it directly unless a recorded `ParentDirectExecutionException` has explicit human approval.
+If the parent directly performs work that was expected to be delegated, the state records `PARENT_DIRECT_WORK` or `TRIVIAL_PARENT_FIX` and does not count it as cost-saving delegation.
 
 ## Close rules
 
@@ -55,6 +57,7 @@ Close してよいのは、次が満たされるときだけ。
 - `NeedsHumanDecision` と `NeedsHigherModelReview` は未解決のまま完了扱いしない。
 - `DelegationRequired = Yes` の gate に observed run または accepted exception がある。
 - `DelegationCompliance = PASS`、または explicit human decision 付き `EXCEPTION_ACCEPTED` である。
+- cost-saving delegation として数える run には、委譲実行の evidence があり、`delegation_violation` がない。
 - residual work がある場合は、FixNow / Deferred / Manual / HigherModel のいずれかに分類されている。
 
 ## State artifact
@@ -65,7 +68,8 @@ Close してよいのは、次が満たされるときだけ。
 plans/<slug>/codex-first-state.md
 ```
 
-この artifact は、`current_gate`、`next_gate`、`recommended_model_tier`、Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance、`stop_reason`、`human_required_items`、`unresolved_residuals`、`next_action` を持つ。
+この artifact は、`current_gate`、`next_gate`、`recommended_model_tier`、`execution_mode`、Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance、`stop_reason`、`human_required_items`、`unresolved_residuals`、`next_action` を持つ。
+Agent Usage Ledger では `configured_model`、`hook_model`、`reported_model`、`effective_model` を混ぜない。
 ユーザーが「続きやって」と依頼したら、まずこの artifact を読む。
 
 ## Executable profile templates
