@@ -71,7 +71,8 @@ try
 {
     ApplyAgentsSection(
         targetRepoRoot,
-        options.DryRun || options.CheckOnly,
+        options.DryRun,
+        options.CheckOnly,
         options.Force,
         options.Verbose,
         packageRoot,
@@ -81,7 +82,8 @@ try
     MergeConfig(
         sourceConfig,
         targetRepoRoot,
-        options.DryRun || options.CheckOnly,
+        options.DryRun,
+        options.CheckOnly,
         logs,
         blockers);
 
@@ -148,7 +150,7 @@ if (blockers.Count > 0)
 if (options.DryRun || options.CheckOnly)
 {
     WriteLine();
-    WriteLine((options.CheckOnly ? "check-only 完了。問題がなければ次は --dry-run なしで実行してインストール可能です。" : "dry-run 完了。実際に反映するには --dry-run を外して再実行してください。"));
+    WriteLine((options.CheckOnly ? "check-only 完了。対象リポジトリは Codex-first bootstrap と整合しています。" : "dry-run 完了。実際に反映するには --dry-run を外して再実行してください。"));
 }
 else
 {
@@ -276,6 +278,7 @@ static bool IsPackageRoot(string dir)
 static void ApplyAgentsSection(
     string targetRepoRoot,
     bool dryRun,
+    bool checkOnly,
     bool force,
     bool verbose,
     string packageRoot,
@@ -294,6 +297,12 @@ static void ApplyAgentsSection(
 
     if (!File.Exists(agentsPath))
     {
+        if (checkOnly)
+        {
+            blockers.Add("AGENTS.md: 既存インストールに codex-first managed section がありません");
+            return;
+        }
+
         AddOrReplace(agentsPath, section, dryRun, logs, "AGENTS.md を新規作成");
         return;
     }
@@ -317,6 +326,12 @@ static void ApplyAgentsSection(
             return;
         }
 
+        if (checkOnly)
+        {
+            blockers.Add("AGENTS.md: codex-first managed section の更新が必要です");
+            return;
+        }
+
         var updated = original[..start] + section + original[(end + EndMarker.Length)..];
         AddOrReplace(agentsPath, updated, dryRun, logs, "AGENTS.md: codex-first section を差し替え");
         return;
@@ -335,6 +350,12 @@ static void ApplyAgentsSection(
         return;
     }
 
+    if (checkOnly)
+    {
+        blockers.Add("AGENTS.md: codex-first managed section の追加が必要です");
+        return;
+    }
+
     AddOrReplace(agentsPath, AppendWithSpacing(original, section), dryRun, logs, "AGENTS.md: codex-first section を追加");
 }
 
@@ -342,6 +363,7 @@ static void MergeConfig(
     string sourceConfigPath,
     string targetRepoRoot,
     bool dryRun,
+    bool checkOnly,
     List<string> logs,
     List<string> blockers)
 {
@@ -351,6 +373,12 @@ static void MergeConfig(
 
     if (!File.Exists(targetPath))
     {
+        if (checkOnly)
+        {
+            blockers.Add(".codex/config.toml: 既存インストールに対象ファイルがありません");
+            return;
+        }
+
         AddOrReplace(targetPath, sourceText, dryRun, logs, ".codex/config.toml を作成");
         return;
     }
@@ -360,6 +388,12 @@ static void MergeConfig(
     if (NormalizeForCompare(merged) == NormalizeForCompare(targetText))
     {
         logs.Add(".codex/config.toml: 既存の設定を保持（追加は不要）");
+        return;
+    }
+
+    if (checkOnly)
+    {
+        blockers.Add(".codex/config.toml: Codex-first default の補完が必要です");
         return;
     }
 
