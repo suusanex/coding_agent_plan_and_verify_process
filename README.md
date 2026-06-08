@@ -65,6 +65,21 @@ Plan requirement / acceptance condition
 
 `codex-first-ai-development-process` は既存 package の source を複製しません。同じ `.github/agents/*.agent.md` を参照しつつ、Codex-first の入口、instructions、Skill、停止語彙、tier 別 agent / profile テンプレート、state / stop templates、examples、user / maintainer guide を追加します。
 
+
+### APM補助スクリプト setup-work-repo-agents
+
+apm を使用して agent.md 形式から Codex 向けの toml 形式を作成すると、一部の記載が欠落する動作が確認されている。(2026/6/8)
+
+それを補うために、apmを実行した後に必要な記載を補うスクリプトが有る。（必要な記載の内容はハードコーディング）
+
+次のように、セットアップ対象のリポジトリのルートパスを渡して実行する。
+
+```
+dotnet run --file scripts/setup-work-repo-agents.cs -- "C:\\path\\to\\work-repo" --dry-run
+dotnet run --file scripts/setup-work-repo-agents.cs -- "C:\\path\\to\\work-repo" --check
+dotnet run --file scripts/setup-work-repo-agents.cs -- "C:\\path\\to\\work-repo" --check --force
+```
+
 ---
 
 ## Codex-first AI Development Process
