@@ -94,7 +94,7 @@ full-coverage 3層運用は advanced route として分離されています。
 
 次のような場合に使います。
 
-- 利用者が Codex App / CLI や agent の選び方に慣れていない
+- 利用者が VS Code の Codex 拡張 / Codex App や agent の選び方に慣れていない
 - 「この issue を進めて」のような短い依頼からでも Plan-first に入りたい
 - 実装前 READY 判定と実装後 close 判定を明示したい
 - Codex の利用枠を優先し、必要な場合だけ GitHub Copilot fallback を検討したい
@@ -140,35 +140,48 @@ write-heavy parallel editing を標準化しないことは、親エージェン
 
 ### 導入方法
 
-Codex-first は、対象 repository の `AGENTS.md` を置き換えるのではなく、`CODEX_HOME` 側の team profile として重ねて使う想定です。
+Codex-first は、VS Code の Codex 拡張や Codex App で対象 repository を開いて使うことを主経路にします。
 repo 固有の build / test / security ルールは、対象 repository 側の `AGENTS.md` が引き続き優先されます。
 
-#### 常設 profile として使う
+#### 手動で使う場合
 
-`profiles/codex-first/` を専用の Codex home にコピーします。
+単発で使う場合は、Codex に skill を明示して依頼します。
 
-```powershell
-$profile = "$env:USERPROFILE\.codex-profiles\codex-first"
-New-Item -ItemType Directory -Force $profile | Out-Null
-Copy-Item -Recurse -Force .\apm-packages\codex-first-ai-development-process\profiles\codex-first\* $profile
+```text
+$codex-first-cost-router を使って、この issue を進めて。
+$codex-first-cost-router を使って、このバグを直して。
+$codex-first-cost-router を使って、続きやって。
 ```
 
-利用するときは、その profile を `CODEX_HOME` に指定して Codex を起動します。
+この場合も、利用者は model tier、agent、full-coverage 分岐を選びません。`codex-first-cost-router` が repo rules、既存 artifact、state artifact、Routing Plan、Edit Permission、Agent Usage Ledger を見て次 gate を決めます。
 
-```powershell
-$env:CODEX_HOME = "$env:USERPROFILE\.codex-profiles\codex-first"
-codex status
+#### 自動で呼ばせたい場合
+
+通常の依頼を自動で Codex-first に入れたい場合は、対象 repository の `AGENTS.md` に次のような記載を入れます。
+既存の `AGENTS.md` を置き換えず、repo 固有ルールの後に追記するのが基本です。
+
+```md
+## Codex-first
+
+普通の開発依頼は Codex-first cost-aware routing として扱う。
+
+- 利用者に process 名、skill 名、agent 名、model tier、full-coverage 分岐を選ばせない。
+- `codex-first-cost-router` skill の振る舞いで、source of truth、repo rules、既存 artifact、state artifact を確認する。
+- 非自明な作業では `plans/<slug>/codex-first-state.md` を作成または更新する。
+- state artifact には Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance を記録する。
+- READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する。
+- `DelegationRequired = Yes` の gate は observed run または explicit human approval 付き `ParentDirectExecutionException` がない限り成功扱いしない。
+- write-heavy parallel editing を標準化しないことは、親が直接実装してよいことを意味しない。
+- repo-local の build / test / security ルールと explicit user instructions を常に優先する。
 ```
 
-確認観点:
+この記載に加えて、対象 repository で `codex-first-cost-router` skill と標準 agent / template を参照できるようにします。手作業で配置する場合の最小構成は次です。
 
-- `codex status` で意図した `CODEX_HOME` が使われている
-- `agents/*.toml` に `model` / `model_reasoning_effort` が入っている
-- 対象 repository の `AGENTS.md` も通常通り読まれる
+- `.agents/skills/codex-first-cost-router/SKILL.md`
+- `.codex/agents/*.toml`（`standard-implementer`、`standard-verifier`、必要な high / cheap agents）
+- `templates/codex-first-state.md`
 
-#### ローカル導入（推奨）
-
-VS Code の Codex 拡張で実運用する場合は、まず対象リポジトリへローカル導入するのが推奨です。
+この repository の package からローカル導入する場合は、次のインストーラで同等の bootstrap を追加できます。
 
 ```powershell
 dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- .
@@ -187,15 +200,7 @@ dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\inst
 dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- . --dry-run
 ```
 
-`codex-first-start.ps1` は、実行中だけ `CODEX_HOME` を切り替える一時 launcher です。  
-そのためリポジトリ設定の恒久化はしません。`Codex` を常設で使うなら上のインストールを使ってください。
-
-```powershell
-pwsh .\apm-packages\codex-first-ai-development-process\scripts\codex-first-start.ps1 -RepoPath . status
-pwsh .\apm-packages\codex-first-ai-development-process\scripts\codex-first-start.ps1 -RepoPath D:\path\to\target-repo exec "この issue を進めて。"
-```
-
-VS Code の Codex 拡張では、最初にインストール済みリポジトリを開くと、ローカル `.codex` / `AGENTS.md` を見て既定のルーティングで起動します。
+VS Code の Codex 拡張や Codex App では、インストール済みリポジトリを開くと、ローカル `AGENTS.md` / skill / `.codex` を見て既定のルーティングに入ります。
 
 ### 詳細ドキュメント
 
@@ -203,15 +208,13 @@ VS Code の Codex 拡張では、最初にインストール済みリポジト�
 - `apm-packages/codex-first-ai-development-process/docs/codex-first-ai-development-process.md`
 - `apm-packages/codex-first-ai-development-process/docs/user-guide.md`
 - `apm-packages/codex-first-ai-development-process/docs/maintainer-guide.md`
-- `apm-packages/codex-first-ai-development-process/docs/team-profile-launcher.md`
-- `apm-packages/codex-first-ai-development-process/profiles/codex-first/`
 
 ---
 
 ## GitHub Copilot fallback AI Development Process
 
 Codex 枠が尽きた場合や利用者環境の都合で Codex を使えない場合に、GitHub Copilot Chat in VS Code へ fallback するための repo-local package です。
-Codex-first と state artifact、stop vocabulary、gate 設計、READY / close policy は共有します。ただし導入面は Codex 用 `.toml`、`CODEX_HOME`、`.codex/config.toml` ではなく、VS Code Copilot が読む `.github/` 配下の custom instructions / custom agents / prompt files へ置きます。
+Codex-first と state artifact、stop vocabulary、gate 設計、READY / close policy は共有します。ただし導入面は Codex 用 `.codex/agents/*.toml` や `.codex/config.toml` ではなく、VS Code Copilot が読む `.github/` 配下の custom instructions / custom agents / prompt files へ置きます。
 
 標準入口は `copilot-cost-router` です。full-coverage 3層運用は standard route ではなく advanced route であり、初心者向け導入では判断させません。
 
