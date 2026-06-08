@@ -71,6 +71,8 @@ Plan requirement / acceptance condition
 apm を使用して agent.md 形式から Codex 向けの toml 形式を作成すると、一部の記載が欠落する動作が確認されている。(2026/6/8)
 
 それを補うために、apmを実行した後に必要な記載を補うスクリプトが有る。（必要な記載の内容はハードコーディング）
+これは既存の token-aware package を APM 経由で導入する補助であり、Codex-first local bootstrap の入口ではない。
+Codex-first を repository-local に導入する場合は、後述の `install-codex-first-local.cs` を使う。
 
 次のように、セットアップ対象のリポジトリのルートパスを渡して実行する。
 
@@ -181,10 +183,13 @@ $codex-first-cost-router を使って、続きやって。
 - `.codex/agents/*.toml`（`standard-implementer`、`standard-verifier`、必要な high / cheap agents）
 - `templates/codex-first-state.md`
 
-この repository の package からローカル導入する場合は、次のインストーラで同等の bootstrap を追加できます。
+この repository の package からローカル導入する場合は、次のインストーラで標準 bootstrap を追加できます。
+この経路では別途 APM を実行しなくても、標準ルートに必要な skill / agent / template を対象 repository に配置します。
 
 ```powershell
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- . --dry-run
 dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- .
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- . --check-only
 ```
 
 これで対象リポジトリに次を追加します。
@@ -192,15 +197,11 @@ dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\inst
 - `AGENTS.md` の codex-first セクション
 - `.codex/config.toml`
 - `.codex/agents/*.toml`
-- `templates/codex-first-state.md`
+- `.agents/skills/codex-first-cost-router/SKILL.md`
+- `templates/*.md`
 
-導入内容を確認したいときは `--dry-run` を使うと、変更予定一覧だけ表示できます。
-
-```powershell
-dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- . --dry-run
-```
-
-VS Code の Codex 拡張や Codex App では、インストール済みリポジトリを開くと、ローカル `AGENTS.md` / skill / `.codex` を見て既定のルーティングに入ります。
+`--dry-run` と `--check-only` はファイルやディレクトリを作成しません。
+VS Code の Codex 拡張や Codex App では、インストール済みリポジトリを開くと、ローカル `AGENTS.md` / `.agents/skills` / `.codex` を見て既定のルーティングに入ります。
 
 ### 詳細ドキュメント
 
