@@ -29,6 +29,7 @@ global guidance は短く保つ。
 この package では最小例として `profiles/codex-first/` と `scripts/codex-first-start.ps1` を持つ。
 `profiles/codex-first/agents/*.toml` は Codex custom agent file として使える形にし、`model` と `model_reasoning_effort` のデフォルト例を入れる。
 組織の契約や利用枠に合わせて、これらの TOML を編集してから配布する。
+TOML の top-level field は Codex が解釈する configured execution defaults であり、本文中の自然言語や output template は source of truth ではない。
 
 repository-local な継続運用のためには `scripts/install-codex-first-local.cs` も追加しておく。  
 このインストーラは `AGENTS.md` の managed section、`.codex/config.toml`、`.codex/agents/*.toml`、`templates/codex-first-state.md` を安全に追加・マージする。
@@ -59,15 +60,25 @@ team profile の global `AGENTS.md` は repo-local `AGENTS.md` を置き換え�
 この対応表は package に固定しない。
 契約、利用枠、品質要求、時期によって変わるため、team profile 側で保守する。
 
-ただし、実行可能な初期値がないと導入検証できないため、`profiles/codex-first/agents/*.toml` には次のようなデフォルト例を置く。
-
-- high 系: `model = "gpt-5.5"`、`model_reasoning_effort = "xhigh"` または `"high"`
-- standard 系: `model = "gpt-5.5"`、`model_reasoning_effort = "medium"`
-- cheap 系: `model = "gpt-5.4-mini"`、`model_reasoning_effort = "low"`
+ただし、実行可能な初期値がないと導入検証できないため、`profiles/codex-first/agents/*.toml` には configured defaults を置く。
+具体値は TOML の top-level `model` / `model_reasoning_effort` を確認する。docs 本文へ自然言語の固定推奨として複製しない。
 
 現行 default では `STANDARD_MODEL` と `HIGH_MODEL` が同じ実名モデルを使う場合がある。この場合の cost-aware routing は `same-model-lower-effort` として扱い、reasoning effort 差で十分か、組織の価格・品質・利用枠に照らして必ず確認する。lower-cost の実名モデルへ置き換えられる場合は、team profile の `standard-implementer` / `standard-verifier` を更新する。
 
 この値は公式推奨、利用可能モデル、価格、品質要求の変化に合わせて見直す。
+
+## Sandbox defaults
+
+Codex-first profile agents should use the smallest practical sandbox boundary:
+
+| Agent role | Default `sandbox_mode` | Reason |
+| --- | --- | --- |
+| cheap repo scan / docs consistency / artifact format check | `read-only` | evidence collection and suggestions only |
+| high planning / risk / contract / closure review | `read-only` | judgment and artifact review, not implementation |
+| standard implementer | `workspace-write` | bounded READY implementation owns edits |
+| standard verifier | `workspace-write` | tests, build artifacts, and verification artifacts may write locally |
+
+If an agent omits `sandbox_mode`, document the reason in this guide before rollout. For Codex-first defaults, omission should be treated as a maintainer action item.
 
 ## Delegation evidence and hooks
 
@@ -106,7 +117,11 @@ process の成功条件は repository-tracked な Agent Usage Ledger を主証�
 }
 ```
 
-hook の raw JSONL は Agent Usage Ledger の補助 evidence として参照する。ledger には、expected agent、observed run、model、reasoning effort、edit owner、changed files、checks run、outcome、parent direct exception の有無を必ず残す。
+hook の raw JSONL は Agent Usage Ledger の補助 evidence として参照する。ledger には、expected agent、observed run、model tier、configured model、configured reasoning effort、hook model、reported model、effective model、edit owner、changed files、checks run、outcome、parent direct exception、delegation violation の有無を必ず残す。
+
+`configured_model` は custom agent TOML の top-level `model`、`configured_reasoning_effort` は top-level `model_reasoning_effort` を指す。`hook_model` は hook payload から観測できた場合だけ、`reported_model` は agent 自己申告、`effective_model` は課金・実行実体として独立確認できた場合だけ記録する。通常 `effective_model` は `unknown` でよい。
+
+Cost-saving delegation は、単に `CHEAP_MODEL` や `STANDARD_MODEL` を選んだだけでは評価しない。対応する delegated run evidence があり、想定 owner が編集し、`delegation_violation = No` の場合だけ countable とする。親が直接実行した `PARENT_DIRECT_WORK` や `TRIVIAL_PARENT_FIX` は、明示的に必要だったとしても cost-saving delegation 成功ではない。
 
 ## Updating route policy
 
@@ -162,6 +177,9 @@ full-coverage 3層運用は advanced route である。
 - READY implementation は `standard-implementer`、READY verification は `standard-verifier` への serial delegation として定義されている。
 - close gate が delegation evidence missing を成功扱いしない。
 - `profiles/codex-first/agents/*.toml` に `model` と `model_reasoning_effort` の実行可能な初期値がある。
+- `profiles/codex-first/agents/*.toml` に role-appropriate `sandbox_mode` がある。
+- Agent Usage Ledger が configured / hook / reported / effective model と delegation violation を分離している。
+- parent direct work と trivial parent fix が cost-saving delegation success として数えられない。
 - maintainer guide がモデル実名を固定せず、`same-model-lower-effort` default の確認責務を説明している。
 - advanced guide が full-coverage 3層運用を標準ルートから分離している。
 - bootstrap policy が `AGENTS.override.md` と size limit risk を説明している。

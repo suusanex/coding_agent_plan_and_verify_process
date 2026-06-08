@@ -628,8 +628,10 @@ static string BuildAgentsSection(string packageRoot)
     sb.AppendLine("- repo-local の AGENTS.md / 制約は引き続き最優先で読む。");
     sb.AppendLine("- README の指示と `.codex/config.toml` / `.codex/agents/*.toml` / `templates/codex-first-state.md` を使って `codex-first` 標準ルートを使う。");
     sb.AppendLine("- state artifact には Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance を記録する。");
+    sb.AppendLine("- state artifact では ExecutionMode と、model tier / configured model / hook model / reported model / effective model を分けて記録する。");
     sb.AppendLine("- READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する。");
     sb.AppendLine("- `DelegationRequired = Yes` の gate は observed run または explicit human approval 付き `ParentDirectExecutionException` がない限り成功扱いしない。");
+    sb.AppendLine("- 親が委譲予定の作業を直接実行した場合、cost-saving delegation 成功として扱わない。");
     sb.AppendLine("- write-heavy parallel editing を標準化しないことは、親が直接実装してよいことを意味しない。");
     sb.AppendLine();
     sb.AppendLine("`codex-first-start.ps1` は起動時のみ CODEX_HOME を切り替える一時 launcher なので、");
