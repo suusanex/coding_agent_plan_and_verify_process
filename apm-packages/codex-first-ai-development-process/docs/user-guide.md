@@ -32,8 +32,9 @@ Codex は内部で Routing Plan と Agent Usage Ledger を残す。利用者が 
 `codex-first-start.ps1` は一時 launcher なので、VS Code 拡張のようにリポジトリごとに標準運用を残したい場合は、次のインストーラを先に実行する。
 
 ```powershell
-dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- <target-repo-path>
 dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- <target-repo-path> --dry-run
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- <target-repo-path>
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- <target-repo-path> --check-only
 ```
 
 このインストーラは次を対象リポジトリへ追加します。
@@ -41,9 +42,12 @@ dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\inst
 - `AGENTS.md` の Codex-first セクション（既存を上書きしない既定）
 - `.codex/config.toml`（足りないキーだけ補完）
 - `.codex/agents/*.toml`（同名既存ファイルは競合時に停止）
-- `templates/codex-first-state.md`
+- `.agents/skills/codex-first-cost-router/SKILL.md`
+- `templates/*.md`
 
-必要なら `--force` を使って既存の `AGENTS.md` section / agent / template を上書きし、VScode 再読込して反映確認する。
+標準ルートに必要な skill / agent / template はこのインストーラだけで入るため、別途 APM 実行を前提にしない。
+`--dry-run` と `--check-only` はファイルやディレクトリを作成しない。
+必要なら `--force` を使って既存の `AGENTS.md` section / skill / agent / template を上書きし、VS Code 再読込して反映確認する。
 
 ## 止まったときの見方
 

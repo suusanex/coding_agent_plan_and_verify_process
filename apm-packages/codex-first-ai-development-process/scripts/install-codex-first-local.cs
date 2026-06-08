@@ -51,9 +51,14 @@ if (packageRoot is null)
 var sourceProfile = Path.Combine(packageRoot, "profiles", "codex-first");
 var sourceConfig = Path.Combine(sourceProfile, "config.toml");
 var sourceAgents = Path.Combine(sourceProfile, "agents");
-var sourceTemplate = Path.Combine(packageRoot, "templates", "codex-first-state.md");
+var sourceSkill = Path.Combine(packageRoot, ".apm", "skills", "codex-first-cost-router");
+var sourceTemplates = Path.Combine(packageRoot, "templates");
 
-if (!Directory.Exists(sourceProfile) || !File.Exists(sourceConfig) || !Directory.Exists(sourceAgents) || !File.Exists(sourceTemplate))
+if (!Directory.Exists(sourceProfile)
+    || !File.Exists(sourceConfig)
+    || !Directory.Exists(sourceAgents)
+    || !File.Exists(Path.Combine(sourceSkill, "SKILL.md"))
+    || !Directory.Exists(sourceTemplates))
 {
     WriteLine($"Error: スクリプトの入力テンプレートが見つからない: {packageRoot}");
     Environment.Exit(2);
@@ -66,7 +71,8 @@ try
 {
     ApplyAgentsSection(
         targetRepoRoot,
-        options.DryRun || options.CheckOnly,
+        options.DryRun,
+        options.CheckOnly,
         options.Force,
         options.Verbose,
         packageRoot,
@@ -76,7 +82,17 @@ try
     MergeConfig(
         sourceConfig,
         targetRepoRoot,
-        options.DryRun || options.CheckOnly,
+        options.DryRun,
+        options.CheckOnly,
+        logs,
+        blockers);
+
+    CopySkillDirectory(
+        sourceSkill,
+        targetRepoRoot,
+        options.DryRun,
+        options.CheckOnly,
+        options.Force,
         logs,
         blockers);
 
@@ -90,10 +106,11 @@ try
         logs,
         blockers);
 
-    CopyTemplate(
-        sourceTemplate,
+    CopyTemplates(
+        sourceTemplates,
         targetRepoRoot,
-        options.DryRun || options.CheckOnly,
+        options.DryRun,
+        options.CheckOnly,
         options.Force,
         logs,
         blockers);
@@ -133,7 +150,7 @@ if (blockers.Count > 0)
 if (options.DryRun || options.CheckOnly)
 {
     WriteLine();
-    WriteLine((options.CheckOnly ? "check-only 完了。問題がなければ次は --dry-run なしで実行してインストール可能です。" : "dry-run 完了。実際に反映するには --dry-run を外して再実行してください。"));
+    WriteLine((options.CheckOnly ? "check-only 完了。対象リポジトリは Codex-first bootstrap と整合しています。" : "dry-run 完了。実際に反映するには --dry-run を外して再実行してください。"));
 }
 else
 {
@@ -261,6 +278,7 @@ static bool IsPackageRoot(string dir)
 static void ApplyAgentsSection(
     string targetRepoRoot,
     bool dryRun,
+    bool checkOnly,
     bool force,
     bool verbose,
     string packageRoot,
@@ -268,10 +286,23 @@ static void ApplyAgentsSection(
     List<string> blockers)
 {
     var agentsPath = Path.Combine(targetRepoRoot, "AGENTS.md");
+    var overridePath = Path.Combine(targetRepoRoot, "AGENTS.override.md");
     var section = BuildAgentsSection(packageRoot);
+
+    if (File.Exists(overridePath))
+    {
+        blockers.Add("AGENTS.override.md: 同階層の AGENTS.md が無視される可能性があります。Codex-first セクションの追加先を手動で決めてから再実行してください。");
+        return;
+    }
 
     if (!File.Exists(agentsPath))
     {
+        if (checkOnly)
+        {
+            blockers.Add("AGENTS.md: 既存インストールに codex-first managed section がありません");
+            return;
+        }
+
         AddOrReplace(agentsPath, section, dryRun, logs, "AGENTS.md を新規作成");
         return;
     }
@@ -295,6 +326,12 @@ static void ApplyAgentsSection(
             return;
         }
 
+        if (checkOnly)
+        {
+            blockers.Add("AGENTS.md: codex-first managed section の更新が必要です");
+            return;
+        }
+
         var updated = original[..start] + section + original[(end + EndMarker.Length)..];
         AddOrReplace(agentsPath, updated, dryRun, logs, "AGENTS.md: codex-first section を差し替え");
         return;
@@ -306,10 +343,16 @@ static void ApplyAgentsSection(
         return;
     }
 
-    if (original.Contains("Codex-first", StringComparison.OrdinalIgnoreCase))
+    if (original.Contains("Codex-first", StringComparison.OrdinalIgnoreCase)
+        || original.Contains("codex-first-cost-router", StringComparison.OrdinalIgnoreCase))
     {
-        var appended = AppendWithSpacing(original, section);
-        AddOrReplace(agentsPath, appended, dryRun, logs, "AGENTS.md: 既存内容に Codex-first セクションを追加");
+        blockers.Add("AGENTS.md: unmanaged な Codex-first / codex-first-cost-router 記載があります。重複追記を避けるため、既存記載を managed marker へ移行するか手動で統合してください。");
+        return;
+    }
+
+    if (checkOnly)
+    {
+        blockers.Add("AGENTS.md: codex-first managed section の追加が必要です");
         return;
     }
 
@@ -320,6 +363,7 @@ static void MergeConfig(
     string sourceConfigPath,
     string targetRepoRoot,
     bool dryRun,
+    bool checkOnly,
     List<string> logs,
     List<string> blockers)
 {
@@ -329,6 +373,12 @@ static void MergeConfig(
 
     if (!File.Exists(targetPath))
     {
+        if (checkOnly)
+        {
+            blockers.Add(".codex/config.toml: 既存インストールに対象ファイルがありません");
+            return;
+        }
+
         AddOrReplace(targetPath, sourceText, dryRun, logs, ".codex/config.toml を作成");
         return;
     }
@@ -338,6 +388,12 @@ static void MergeConfig(
     if (NormalizeForCompare(merged) == NormalizeForCompare(targetText))
     {
         logs.Add(".codex/config.toml: 既存の設定を保持（追加は不要）");
+        return;
+    }
+
+    if (checkOnly)
+    {
+        blockers.Add(".codex/config.toml: Codex-first default の補完が必要です");
         return;
     }
 
@@ -355,7 +411,6 @@ static void CopyAgentFiles(
     List<string> blockers)
 {
     var targetAgentDir = Path.Combine(targetRepoRoot, ".codex", "agents");
-    Directory.CreateDirectory(targetAgentDir);
     foreach (var sourceFile in Directory.GetFiles(sourceAgentDir, "*.toml").OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
     {
         var fileName = Path.GetFileName(sourceFile);
@@ -372,6 +427,7 @@ static void CopyAgentFiles(
             }
             else
             {
+                Directory.CreateDirectory(targetAgentDir);
                 File.Copy(sourceFile, targetFile, overwrite: true);
                 logs.Add($".codex/agents/{fileName}: 追加");
             }
@@ -415,56 +471,97 @@ static void CopyAgentFiles(
         }
         else
         {
+            Directory.CreateDirectory(targetAgentDir);
             File.Copy(sourceFile, targetFile, overwrite: true);
             logs.Add($".codex/agents/{fileName}: 上書き");
         }
     }
 }
 
-static void CopyTemplate(
-    string sourceTemplate,
+static void CopySkillDirectory(
+    string sourceSkillDir,
     string targetRepoRoot,
     bool dryRun,
+    bool checkOnly,
     bool force,
     List<string> logs,
     List<string> blockers)
 {
-    var targetTemplate = Path.Combine(targetRepoRoot, "templates", "codex-first-state.md");
-    Directory.CreateDirectory(Path.GetDirectoryName(targetTemplate)!);
-    if (!File.Exists(targetTemplate))
+    var targetSkillDir = Path.Combine(targetRepoRoot, ".agents", "skills", "codex-first-cost-router");
+    foreach (var sourceFile in Directory.GetFiles(sourceSkillDir, "*", SearchOption.AllDirectories).OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
     {
-        CopyOrCopyDryRun(sourceTemplate, targetTemplate, dryRun, logs, "templates/codex-first-state.md を追加");
-        return;
+        var relative = Path.GetRelativePath(sourceSkillDir, sourceFile);
+        var displayPath = ToDisplayPath(Path.Combine(".agents", "skills", "codex-first-cost-router", relative));
+        var targetFile = Path.Combine(targetSkillDir, relative);
+        CopyManagedFile(sourceFile, targetFile, displayPath, dryRun, checkOnly, force, logs, blockers);
     }
-
-    var sourceText = NormalizeForCompare(File.ReadAllText(sourceTemplate));
-    var targetText = NormalizeForCompare(File.ReadAllText(targetTemplate));
-    if (sourceText == targetText)
-    {
-        logs.Add("templates/codex-first-state.md: 既存同内容のため変更なし");
-        return;
-    }
-
-    if (!force)
-    {
-        blockers.Add("templates/codex-first-state.md: 既存内容が異なるため上書き保留（--force が必要）");
-        return;
-    }
-
-    CopyOrCopyDryRun(sourceTemplate, targetTemplate, dryRun, logs, "templates/codex-first-state.md を上書き");
 }
 
-static void CopyOrCopyDryRun(string source, string target, bool dryRun, List<string> logs, string label)
+static void CopyTemplates(
+    string sourceTemplateDir,
+    string targetRepoRoot,
+    bool dryRun,
+    bool checkOnly,
+    bool force,
+    List<string> logs,
+    List<string> blockers)
 {
-    if (dryRun)
+    foreach (var sourceFile in Directory.GetFiles(sourceTemplateDir, "*.md").OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
     {
-        logs.Add($"[dry-run] {label}");
+        var fileName = Path.GetFileName(sourceFile);
+        var displayPath = ToDisplayPath(Path.Combine("templates", fileName));
+        var targetFile = Path.Combine(targetRepoRoot, "templates", fileName);
+        CopyManagedFile(sourceFile, targetFile, displayPath, dryRun, checkOnly, force, logs, blockers);
     }
-    else
+}
+
+static void CopyManagedFile(
+    string sourceFile,
+    string targetFile,
+    string displayPath,
+    bool dryRun,
+    bool checkOnly,
+    bool force,
+    List<string> logs,
+    List<string> blockers)
+{
+    if (!File.Exists(targetFile))
     {
-        File.Copy(source, target, overwrite: true);
-        logs.Add(label);
+        if (dryRun)
+        {
+            logs.Add($"[dry-run] {displayPath}: 追加");
+        }
+        else if (checkOnly)
+        {
+            blockers.Add($"{displayPath}: 既存インストールに対象ファイルがありません");
+        }
+        else
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(targetFile)!);
+            File.Copy(sourceFile, targetFile, overwrite: true);
+            logs.Add($"{displayPath}: 追加");
+        }
+
+        return;
     }
+
+    var sourceText = NormalizeForCompare(File.ReadAllText(sourceFile));
+    var targetText = NormalizeForCompare(File.ReadAllText(targetFile));
+    if (sourceText == targetText)
+    {
+        logs.Add($"{displayPath}: 既存同内容のため変更なし");
+        return;
+    }
+
+    if (!force || dryRun || checkOnly)
+    {
+        blockers.Add($"{displayPath}: 既存内容が異なるため上書き保留（--force が必要）");
+        return;
+    }
+
+    Directory.CreateDirectory(Path.GetDirectoryName(targetFile)!);
+    File.Copy(sourceFile, targetFile, overwrite: true);
+    logs.Add($"{displayPath}: 上書き");
 }
 
 static void AddOrReplace(
@@ -739,7 +836,7 @@ static string BuildAgentsSection(string packageRoot)
 {
     var packagePath = Path.GetFullPath(packageRoot);
     var line = Environment.NewLine;
-    var relativePath = Path.Combine("apm-packages", "codex-first-ai-development-process", "scripts", "codex-first-start.ps1");
+    var launcherPath = Path.Combine(packagePath, "scripts", "codex-first-start.ps1");
     var sb = new StringBuilder();
     sb.AppendLine(StartMarker);
     sb.AppendLine("## Codex-first");
@@ -747,7 +844,8 @@ static string BuildAgentsSection(string packageRoot)
     sb.AppendLine("このリポジトリには Codex-first コスト意識ルーティングの導入手順を追加した。");
     sb.AppendLine("- 利用者は process 名・agent 名・model 名・full-coverage 分岐を選ぶ必要がない。");
     sb.AppendLine("- repo-local の AGENTS.md / 制約は引き続き最優先で読む。");
-    sb.AppendLine("- README の指示と `.codex/config.toml` / `.codex/agents/*.toml` / `templates/codex-first-state.md` を使って `codex-first` 標準ルートを使う。");
+    sb.AppendLine("- `.agents/skills/codex-first-cost-router/SKILL.md` の振る舞いで source of truth、repo rules、既存 artifact、state artifact を確認する。");
+    sb.AppendLine("- README の指示と `.codex/config.toml` / `.codex/agents/*.toml` / `.agents/skills/codex-first-cost-router/SKILL.md` / `templates/*.md` を使って `codex-first` 標準ルートを使う。");
     sb.AppendLine("- state artifact には Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance を記録する。");
     sb.AppendLine("- state artifact では execution_mode と、model tier / configured model / hook model / reported model / effective model を分けて記録する。");
     sb.AppendLine("- READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する。");
@@ -758,7 +856,7 @@ static string BuildAgentsSection(string packageRoot)
     sb.AppendLine("`codex-first-start.ps1` は起動時のみ CODEX_HOME を切り替える一時 launcher なので、");
     sb.AppendLine("リポジトリごとの標準利用では、本インストーラで `.codex` と `AGENTS.md` を揃える。");
     sb.AppendLine();
-    sb.AppendLine($"参考: {Path.Combine(packagePath, relativePath)}");
+    sb.AppendLine($"参考: {launcherPath}");
     sb.AppendLine();
     sb.AppendLine(EndMarker);
 
@@ -769,6 +867,11 @@ static string BuildAgentsSection(string packageRoot)
     }
 
     return content;
+}
+
+static string ToDisplayPath(string path)
+{
+    return path.Replace(Path.DirectorySeparatorChar, '/').Replace(Path.AltDirectorySeparatorChar, '/');
 }
 
 static string AppendWithSpacing(string original, string section)
@@ -793,12 +896,12 @@ static bool ContainsCodexFirstMarker(string text)
 
 static string NormalizeForCompare(string input)
 {
-    return NormalizeLine(input).Trim();
+    return input.Replace("\r\n", "\n").Replace('\r', '\n').Trim();
 }
 
 static string NormalizeLine(string input)
 {
-    return input.Replace("\r\n", "\n").Replace('\r', '\n');
+    return input.TrimEnd('\r');
 }
 
 sealed class InstallOptions

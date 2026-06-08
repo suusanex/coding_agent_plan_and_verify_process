@@ -35,7 +35,7 @@ CODEX_HOME/
 The actual installed layout may vary by APM tool, but the ownership is the same:
 profile-level instructions provide the entry behavior, while repo-level instructions keep local rules.
 
-For VS Code Codex extension in repository-local operation, use `scripts/install-codex-first-local.cs` first so that `AGENTS.md` and `.codex` are created in the target repository.
+For VS Code Codex extension in repository-local operation, use `scripts/install-codex-first-local.cs` first so that `AGENTS.md`, `.codex`, `.agents/skills`, and `templates` are created in the target repository.
 For App / Desktop threads, treat the Codex-first profile and repo-local state artifact as the primary path. CLI / `codex exec` launches are compatibility paths; use them when the operator can provide equivalent profile loading, subagent invocation, and ledger evidence.
 
 ## Minimal install example
@@ -46,6 +46,10 @@ For a local trial, copy the template profile to a dedicated Codex home:
 $profile = "$env:USERPROFILE\.codex-profiles\codex-first"
 New-Item -ItemType Directory -Force $profile | Out-Null
 Copy-Item -Recurse -Force .\apm-packages\codex-first-ai-development-process\profiles\codex-first\* $profile
+New-Item -ItemType Directory -Force "$profile\skills\codex-first-cost-router" | Out-Null
+Copy-Item -Recurse -Force .\apm-packages\codex-first-ai-development-process\.apm\skills\codex-first-cost-router\* "$profile\skills\codex-first-cost-router"
+New-Item -ItemType Directory -Force "$profile\templates" | Out-Null
+Copy-Item -Recurse -Force .\apm-packages\codex-first-ai-development-process\templates\* "$profile\templates"
 $env:CODEX_HOME = $profile
 codex status
 ```
@@ -59,7 +63,9 @@ pwsh .\apm-packages\codex-first-ai-development-process\scripts\codex-first-start
 To install repo-local bootstrap files for repeated local use:
 
 ```powershell
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- . --dry-run
 dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- .
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- . --check-only
 ```
 
 Expected verification:
