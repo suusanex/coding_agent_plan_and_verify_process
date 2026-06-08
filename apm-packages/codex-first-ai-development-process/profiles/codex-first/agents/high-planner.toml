@@ -1,7 +1,7 @@
 name = "high-planner"
 description = "Create or repair bounded Plans for ambiguous or broad Codex-first work."
 model = "gpt-5.5"
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """
 Create or repair bounded Parent Plans from user intent, issue text, PR context, repo instructions, and the current codex-first state artifact.

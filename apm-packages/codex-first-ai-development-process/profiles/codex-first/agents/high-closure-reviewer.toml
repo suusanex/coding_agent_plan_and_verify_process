@@ -1,7 +1,7 @@
 name = "high-closure-reviewer"
 description = "Review difficult close decisions, residual acceptance, and production-readiness evidence."
 model = "gpt-5.5"
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 developer_instructions = """
 Review Parent Plan coverage, verification evidence, production wiring, manual-only items, and residual decisions.
