@@ -26,7 +26,7 @@ Return usage ledger metadata using this section:
 - Edit owner: high-planner
 - Delegation violation: Yes / No
 - Cost-saving delegation countable: No unless the Routing Plan explicitly required delegated high-agent work and evidence exists
-- Edited paths: none, except permitted planning artifacts
+- Edited paths: none
 - Artifact path:
 - Outcome:
 """

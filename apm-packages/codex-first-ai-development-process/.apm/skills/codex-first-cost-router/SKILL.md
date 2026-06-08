@@ -92,7 +92,7 @@ Replace the old single `allowed to edit` decision with this block.
 ## Edit Permission
 
 - allowed_to_edit: Yes / No
-- edit_owner: parent / standard-implementer / standard-verifier / cheap-repo-scanner / cheap-doc-consistency / cheap-artifact-format-checker / human / none
+- edit_owner: parent / standard-implementer / standard-verifier / high-planner / high-implementation-contract / high-risk-triage / high-closure-reviewer / cheap-repo-scanner / cheap-doc-consistency / cheap-artifact-format-checker / human / none
 - parent_direct_edit_allowed: Yes / No
 - allowed_paths:
 - forbidden_paths:
@@ -272,7 +272,7 @@ Subagents are a way to assign bounded work to the right tier.
 They still require explicit subagent / parallel work instructions from the parent thread or launcher.
 Do not make write-heavy parallel editing the default.
 This does not permit parent-direct implementation: READY implementation is serial delegated work owned by `standard-implementer` unless a recorded exception is accepted.
-When parent-direct work is accepted, record `ExecutionMode = PARENT_DIRECT_WORK` or `TRIVIAL_PARENT_FIX`; do not count it as cost-saving delegation.
+When parent-direct work is accepted, record `execution_mode = PARENT_DIRECT_WORK` or `TRIVIAL_PARENT_FIX`; do not count it as cost-saving delegation.
 
 ## Stop reasons
 

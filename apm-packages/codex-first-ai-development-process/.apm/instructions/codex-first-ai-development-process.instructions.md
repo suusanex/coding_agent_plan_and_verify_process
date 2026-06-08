@@ -11,7 +11,7 @@ Use this instruction set when ordinary development work should start through Cod
 - Keep the user-facing entry small, but keep internal gates explicit in artifacts.
 - Write a Routing Plan, Edit Permission block, Agent Usage Ledger, and DelegationCompliance into the state artifact before treating a delegated gate as successful.
 - Keep abstract model tier, configured model, hook observed model, reported model, and effective model as separate ledger fields.
-- Record ExecutionMode as `ROUTE_ONLY`, `DELEGATED_WORK`, `PARENT_DIRECT_WORK`, or `TRIVIAL_PARENT_FIX`.
+- Record execution_mode as `ROUTE_ONLY`, `DELEGATED_WORK`, `PARENT_DIRECT_WORK`, or `TRIVIAL_PARENT_FIX`.
 - Use Codex as the primary execution environment.
 - Treat GitHub Copilot as a later fallback route, not the first deliverable.
 

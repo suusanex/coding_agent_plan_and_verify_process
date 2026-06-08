@@ -24,7 +24,7 @@ Users do not choose process names, agent names, model tiers, subagents, READY ga
 - Split work into gates.
 - Assign `HIGH_MODEL`, `STANDARD_MODEL`, or `CHEAP_MODEL`.
 - Write Routing Plan, Edit Permission, Agent Usage Ledger, and DelegationCompliance.
-- Record ExecutionMode and separate abstract model tier from configured, hook observed, reported, and effective model fields.
+- Record execution_mode and separate abstract model tier from configured, hook observed, reported, and effective model fields.
 - Delegate bounded read-heavy work when required by the Routing Plan.
 - MUST delegate normal READY implementation to `standard-implementer`.
 - MUST delegate normal READY verification to `standard-verifier`.

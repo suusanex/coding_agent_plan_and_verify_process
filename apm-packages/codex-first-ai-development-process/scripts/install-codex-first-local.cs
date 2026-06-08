@@ -28,6 +28,10 @@ if (options.DryRun)
 {
     WriteLine("[dry-run] ファイルは変更しません。実行計画だけを表示します。");
 }
+if (options.CheckOnly)
+{
+    WriteLine("[check-only] ファイルは変更しません。整合チェックのみを行い、問題があれば終了コード 2 で報告します。");
+}
 
 var targetRepoRoot = Path.GetFullPath(options.TargetRepoRoot);
 if (!Directory.Exists(targetRepoRoot))
@@ -62,7 +66,7 @@ try
 {
     ApplyAgentsSection(
         targetRepoRoot,
-        options.DryRun,
+        options.DryRun || options.CheckOnly,
         options.Force,
         options.Verbose,
         packageRoot,
@@ -72,7 +76,7 @@ try
     MergeConfig(
         sourceConfig,
         targetRepoRoot,
-        options.DryRun,
+        options.DryRun || options.CheckOnly,
         logs,
         blockers);
 
@@ -80,6 +84,7 @@ try
         sourceAgents,
         targetRepoRoot,
         options.DryRun,
+        options.CheckOnly,
         options.Force,
         options.Verbose,
         logs,
@@ -88,7 +93,7 @@ try
     CopyTemplate(
         sourceTemplate,
         targetRepoRoot,
-        options.DryRun,
+        options.DryRun || options.CheckOnly,
         options.Force,
         logs,
         blockers);
@@ -125,10 +130,10 @@ if (blockers.Count > 0)
     Environment.Exit(2);
 }
 
-if (options.DryRun)
+if (options.DryRun || options.CheckOnly)
 {
     WriteLine();
-    WriteLine("dry-run 完了。実際に反映するには --dry-run を外して再実行してね。");
+    WriteLine((options.CheckOnly ? "check-only 完了。問題がなければ次は --dry-run なしで実行してインストール可能。" : "dry-run 完了。実際に反映するには --dry-run を外して再実行してね。"));
 }
 else
 {
@@ -147,6 +152,12 @@ static InstallOptions ParseArguments(string[] args)
         if (arg == "--dry-run" || arg == "-n")
         {
             options.DryRun = true;
+            continue;
+        }
+
+        if (arg == "--check" || arg == "--check-only")
+        {
+            options.CheckOnly = true;
             continue;
         }
 
@@ -190,6 +201,12 @@ static InstallOptions ParseArguments(string[] args)
         options.ShowHelp = true;
     }
 
+    if (options.DryRun && options.CheckOnly)
+    {
+        options.HasError = true;
+        options.ShowHelp = true;
+    }
+
     return options;
 }
 
@@ -203,6 +220,7 @@ static void ShowUsage()
     WriteLine();
     WriteLine("Options:");
     WriteLine("  --dry-run, -n        変更内容を表示だけ行う");
+    WriteLine("  --check, --check-only 内容を検査だけ行う");
     WriteLine("  --force, -f          競合する既存ファイルを上書き");
     WriteLine("  --verbose, -v        詳細ログを表示");
     WriteLine("  --package-root <dir> スクリプト参照元の package ルートを明示");
@@ -330,6 +348,7 @@ static void CopyAgentFiles(
     string sourceAgentDir,
     string targetRepoRoot,
     bool dryRun,
+    bool checkOnly,
     bool force,
     bool verbose,
     List<string> logs,
@@ -347,6 +366,10 @@ static void CopyAgentFiles(
             {
                 logs.Add($"[dry-run] .codex/agents/{fileName}: 追加");
             }
+            else if (checkOnly)
+            {
+                blockers.Add($".codex/agents/{fileName}: 既存インストールに対象ファイルがありません");
+            }
             else
             {
                 File.Copy(sourceFile, targetFile, overwrite: true);
@@ -356,15 +379,31 @@ static void CopyAgentFiles(
             continue;
         }
 
-        var sourceText = NormalizeForCompare(File.ReadAllText(sourceFile));
-        var targetText = NormalizeForCompare(File.ReadAllText(targetFile));
-        if (sourceText == targetText)
+        var sourceText = File.ReadAllText(sourceFile);
+        var sourceForCompare = NormalizeForCompare(sourceText);
+        var targetText = File.ReadAllText(targetFile);
+        var targetForCompare = NormalizeForCompare(targetText);
+
+        var sourceTopLevel = ParseTomlTopLevel(sourceText);
+        var targetTopLevel = ParseTomlTopLevel(targetText);
+        var noWrite = dryRun || checkOnly;
+        var canRepair = force && !noWrite;
+        var hasTopLevelIssues = ValidateAgentTopLevelKeys(
+            fileName,
+            targetTopLevel,
+            sourceTopLevel,
+            canRepair,
+            noWrite,
+            logs,
+            blockers);
+
+        if (sourceForCompare == targetForCompare && !hasTopLevelIssues)
         {
             logs.Add($".codex/agents/{fileName}: 既存同内容のため変更なし");
             continue;
         }
 
-        if (!force)
+        if (!force || noWrite)
         {
             blockers.Add($".codex/agents/{fileName}: 既存ファイルと内容が異なるため、更新保留（--force で上書き）");
             continue;
@@ -449,6 +488,56 @@ static void AddOrReplace(
 
     File.WriteAllText(path, newContent);
     logs.Add(logLabel);
+}
+
+static bool ValidateAgentTopLevelKeys(
+    string fileName,
+    Dictionary<string, string> targetTopLevel,
+    Dictionary<string, string> sourceTopLevel,
+    bool canRepair,
+    bool dryRun,
+    List<string> logs,
+    List<string> blockers)
+{
+    var keys = new[] { "model", "model_reasoning_effort", "sandbox_mode" };
+    var hasIssue = false;
+    foreach (var key in keys)
+    {
+        if (!sourceTopLevel.TryGetValue(key, out var sourceValue))
+        {
+            continue;
+        }
+
+        if (!targetTopLevel.TryGetValue(key, out var targetValue))
+        {
+            hasIssue = true;
+            if (canRepair)
+            {
+                logs.Add((dryRun ? "[dry-run] " : "") + $".codex/agents/{fileName}: top-level `{key}` を追加して `{sourceValue}` を反映（予定）");
+            }
+            else
+            {
+                blockers.Add($".codex/agents/{fileName}: top-level `{key}` が不足しており、値 `{sourceValue}` が必要");
+            }
+
+            continue;
+        }
+
+        if (!string.Equals(targetValue, sourceValue, StringComparison.Ordinal))
+        {
+            hasIssue = true;
+            if (canRepair)
+            {
+                logs.Add((dryRun ? "[dry-run] " : "") + $".codex/agents/{fileName}: top-level `{key}` を `{targetValue}` から `{sourceValue}` に更新（予定）");
+            }
+            else
+            {
+                blockers.Add($".codex/agents/{fileName}: top-level `{key}` が `{targetValue}` で、package 期待値 `{sourceValue}` と異なる");
+            }
+        }
+    }
+
+    return hasIssue;
 }
 
 static string MergeTomlContent(string targetContent, Dictionary<string, string> sourceValues)
@@ -579,12 +668,44 @@ static Dictionary<string, string> ParseTomlSimple(string text)
 
         if (!inAgents)
         {
-            if (key is "model" or "model_reasoning_effort")
+            if (key is "model" or "model_reasoning_effort" or "sandbox_mode")
             {
                 values[key] = value;
             }
         }
         else if (key is "max_threads" or "max_depth")
+        {
+            values[key] = value;
+        }
+    }
+
+    return values;
+}
+
+static Dictionary<string, string> ParseTomlTopLevel(string text)
+{
+    var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    var lines = text.Split('\n').Select(NormalizeLine).ToList();
+
+    foreach (var raw in lines)
+    {
+        var line = raw.Trim();
+        if (line.Length == 0 || line.StartsWith("#", StringComparison.Ordinal))
+        {
+            continue;
+        }
+
+        if (line.StartsWith("[", StringComparison.Ordinal))
+        {
+            break;
+        }
+
+        if (!TryParseAssignment(line, out var key, out var value))
+        {
+            continue;
+        }
+
+        if (key is "model" or "model_reasoning_effort" or "sandbox_mode")
         {
             values[key] = value;
         }
@@ -628,7 +749,7 @@ static string BuildAgentsSection(string packageRoot)
     sb.AppendLine("- repo-local の AGENTS.md / 制約は引き続き最優先で読む。");
     sb.AppendLine("- README の指示と `.codex/config.toml` / `.codex/agents/*.toml` / `templates/codex-first-state.md` を使って `codex-first` 標準ルートを使う。");
     sb.AppendLine("- state artifact には Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance を記録する。");
-    sb.AppendLine("- state artifact では ExecutionMode と、model tier / configured model / hook model / reported model / effective model を分けて記録する。");
+    sb.AppendLine("- state artifact では execution_mode と、model tier / configured model / hook model / reported model / effective model を分けて記録する。");
     sb.AppendLine("- READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する。");
     sb.AppendLine("- `DelegationRequired = Yes` の gate は observed run または explicit human approval 付き `ParentDirectExecutionException` がない限り成功扱いしない。");
     sb.AppendLine("- 親が委譲予定の作業を直接実行した場合、cost-saving delegation 成功として扱わない。");
@@ -684,6 +805,7 @@ sealed class InstallOptions
 {
     public string? TargetRepoRoot { get; set; }
     public bool DryRun { get; set; }
+    public bool CheckOnly { get; set; }
     public bool Force { get; set; }
     public bool Verbose { get; set; }
     public bool ShowHelp { get; set; }

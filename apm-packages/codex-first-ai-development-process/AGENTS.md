@@ -11,7 +11,7 @@
 - 必要な工程を Intake / Plan / Risk / Scan / Contract / Implementation / Verification / Close に分ける。
 - 各工程を `HIGH_MODEL`、`STANDARD_MODEL`、`CHEAP_MODEL` の抽象 tier へ割り当てる。
 - state artifact に Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance を記録する。
-- state artifact では ExecutionMode と、model tier / configured model / hook model / reported model / effective model を分けて記録する。
+- state artifact では execution_mode と、model tier / configured model / hook model / reported model / effective model を分けて記録する。
 - read-heavy な scan / consistency check は、Routing Plan が要求する場合は低コスト subagent へ委譲する。
 - READY 後の通常実装は `standard-implementer` へ serial delegation する。write-heavy parallel editing を標準化しないことは、親が直接実装してよいことを意味しない。
 - READY 後の通常 verification は `standard-verifier` へ委譲し、危険な close 判定だけ高性能側へ戻す。

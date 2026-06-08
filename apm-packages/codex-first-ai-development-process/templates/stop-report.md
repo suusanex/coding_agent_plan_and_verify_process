@@ -16,8 +16,8 @@ hook_model: unknown
 reported_model:
 effective_model: unknown
 parent_direct_work_reason:
-delegation_violation:
-cost_saving_delegation_countable:
+delegation_violation: No
+cost_saving_delegation_countable: No
 delegation_compliance:
 stop_reason:
 

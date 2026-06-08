@@ -24,6 +24,14 @@ cost_saving_delegation_countable: No
 
 allowed_stop_reasons:
 - DelegationRequired
+- NeedsHumanDecision
+- ManualVerificationRequired
+- NeedsHigherModelReview
+- NeedsSecretInput
+- NeedsExternalOperation
+- Blocked
+- TooCostlyForCurrentPass
+- ReadyButAwaitingHumanApproval
 - DelegationUnavailable
 - DelegationEvidenceMissing
 - ParentDirectExecutionException
@@ -49,7 +57,7 @@ allowed_stop_reasons:
 ## Edit Permission
 
 - allowed_to_edit: Yes / No
-- edit_owner: parent / standard-implementer / standard-verifier / cheap-repo-scanner / cheap-doc-consistency / cheap-artifact-format-checker / human / none
+- edit_owner: parent / standard-implementer / standard-verifier / high-planner / high-implementation-contract / high-risk-triage / high-closure-reviewer / cheap-repo-scanner / cheap-doc-consistency / cheap-artifact-format-checker / human / none
 - parent_direct_edit_allowed: Yes / No
 - allowed_paths:
 - forbidden_paths:

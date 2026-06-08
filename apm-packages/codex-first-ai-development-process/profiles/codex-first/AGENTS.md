@@ -8,7 +8,7 @@ Use `codex-first-cost-router` behavior:
 - read repo-local instructions first
 - create or update `plans/<slug>/codex-first-state.md` when the work is non-trivial
 - write Routing Plan, Edit Permission, Agent Usage Ledger, and DelegationCompliance into state
-- record ExecutionMode and keep model tier, configured model, hook model, reported model, and effective model separate
+- record execution_mode and keep model tier, configured model, hook model, reported model, and effective model separate
 - route hard judgment to high agents
 - MUST delegate normal READY implementation serially to `standard-implementer`
 - MUST delegate normal READY verification to `standard-verifier`, unless risky close judgment needs `high-closure-reviewer`
