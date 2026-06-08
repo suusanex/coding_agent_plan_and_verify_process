@@ -39,7 +39,7 @@ GitHub Copilot 向けの `.github/agents/*.agent.md` が既存の主成果物で
 ## Codex での典型的な起動例
 
 ```text
-$token-aware-full-coverage-3layer を使って、この full-coverage decomposition を Plan網羅チェック・残件判定フローとして進めて。
+$token-aware-full-coverage-3layer を使って、この full-coverage decomposition を Plan網羅チェック・残件判定フローとして進めてください。
 まず slice preparation と parent review gate まで。実装はまだ行わない。
 ```
 

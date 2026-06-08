@@ -567,8 +567,8 @@ repository-tracked ledger を主、hooks を補助証跡にする。
 入力:
 
 ```text
-$token-aware-full-coverage-3layer を使って進めて。
-parent review gate で READY になった slice だけ実装して。
+$token-aware-full-coverage-3layer を使って進めてください。
+parent review gate で READY になった slice だけ実装してください。
 ```
 
 期待:
@@ -585,7 +585,7 @@ parent review gate で READY になった slice だけ実装して。
 入力:
 
 ```text
-この issue を進めて。
+この issue を進めてください。
 ```
 
 期待:

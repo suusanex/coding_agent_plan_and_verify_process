@@ -416,19 +416,19 @@ cross-slice verification では、見つけた gap をその場で修正しま�
 準備までで止める場合:
 
 ```text
-$token-aware-full-coverage-3layer を使って、この full-coverage decomposition を Plan網羅チェック・残件判定フローとして進めて。
-slice-prep で各 slice の準備 artifact を作り、parent review gate までで停止して。
+$token-aware-full-coverage-3layer を使って、この full-coverage decomposition を Plan網羅チェック・残件判定フローとして進めてください。
+slice-prep で各 slice の準備 artifact を作り、parent review gate までで停止してください。
 実装はまだ行わない。
 ```
 
 実装と cross-slice verification まで進める場合:
 
 ```text
-$token-aware-full-coverage-3layer を使って進めて。
+$token-aware-full-coverage-3layer を使って進めてください。
 ExecutionMode は DELEGATED_IMPLEMENTATION とし、
 parent review gate で READY になった slice は必ず slice-impl に渡し、
-各 slice の verification-kernel 後に cross-slice-verification-kernel と residual-decision-gate まで実行して。
-gap があれば修正せず coverage-gap-triage または residual-decision-gate への handoff を作って停止して。
+各 slice の verification-kernel 後に cross-slice-verification-kernel と residual-decision-gate まで実行してください。
+gap があれば修正せず coverage-gap-triage または residual-decision-gate への handoff を作って停止してください。
 ```
 
 ## 最終監査

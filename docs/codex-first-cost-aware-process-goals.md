@@ -25,9 +25,9 @@
 利用者は、次のような依頼だけでよい。
 
 ```text
-この issue を進めて。
-このバグを直して。
-この機能を実装して。
+この issue を進めてください。
+このバグを修正してください。
+この機能を実装してください。
 この PR の残件を片付けて。
 続きやって。
 ```
@@ -169,7 +169,7 @@ Codex では agent file や prompt で model / reasoning effort を指定でき�
 利用者は、普通に依頼する。
 
 ```text
-この issue を進めて。
+この issue を進めてください。
 ```
 
 Codex は次を自動で行う。
@@ -490,9 +490,9 @@ plans/<slug>/codex-first-state.md
 User Guide に載せるべき例:
 
 ```text
-この issue を進めて。
-このバグを直して。
-この機能を実装して。
+この issue を進めてください。
+このバグを修正してください。
+この機能を実装してください。
 続きやって。
 ```
 
@@ -680,7 +680,7 @@ maintainer / advanced guide には、別章として配置する。
 入力:
 
 ```text
-この issue を進めて。
+この issue を進めてください。
 ```
 
 期待:
@@ -713,7 +713,7 @@ maintainer / advanced guide には、別章として配置する。
 入力:
 
 ```text
-このtypoを直して。
+この typo を修正してください。
 ```
 
 期待:
@@ -728,7 +728,7 @@ maintainer / advanced guide には、別章として配置する。
 入力:
 
 ```text
-認証まわりの処理を直して。
+認証まわりの処理を修正してください。
 ```
 
 期待:

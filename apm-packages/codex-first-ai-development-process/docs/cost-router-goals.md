@@ -8,9 +8,9 @@ It receives ordinary development requests and routes work by cost, risk, and rea
 Users can start with:
 
 ```text
-この issue を進めて。
-このバグを直して。
-この機能を実装して。
+この issue を進めてください。
+このバグを修正してください。
+この機能を実装してください。
 この PR の残件を片付けて。
 続きやって。
 ```

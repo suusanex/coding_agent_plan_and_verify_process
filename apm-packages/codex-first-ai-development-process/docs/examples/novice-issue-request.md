@@ -3,7 +3,7 @@
 ## Request
 
 ```text
-この issue を進めて。
+この issue を進めてください。
 ```
 
 ## Expected behavior

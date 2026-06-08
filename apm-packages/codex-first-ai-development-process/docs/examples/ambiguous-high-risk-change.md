@@ -3,7 +3,7 @@
 ## Request
 
 ```text
-認証まわりの処理を直して。
+認証まわりの処理を修正してください。
 ```
 
 ## Expected behavior

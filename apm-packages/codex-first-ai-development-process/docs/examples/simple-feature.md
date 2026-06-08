@@ -3,7 +3,7 @@
 ## Request
 
 ```text
-設定ファイルから greeting を読み、CLI の挨拶文に反映して。
+設定ファイルから greeting を読み、CLI の挨拶文に反映してください。
 ```
 
 ## Expected route

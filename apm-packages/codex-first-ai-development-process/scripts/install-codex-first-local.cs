@@ -44,7 +44,7 @@ var packageRoot = ResolvePackageRoot(options.PackageRoot);
 if (packageRoot is null)
 {
     WriteLine("Error: codex-first package のソースを見つけられませんでした。");
-    WriteLine("cwd または --package-root で apm-packages\\codex-first-ai-development-process を指定して実行してね。");
+    WriteLine("cwd または --package-root で apm-packages\\codex-first-ai-development-process を指定して実行してください。");
     Environment.Exit(2);
 }
 
@@ -126,19 +126,19 @@ if (blockers.Count > 0)
     }
 
     WriteLine();
-    WriteLine("--force を付けるか、対象ファイルを確認して再実行してね。");
+    WriteLine("--force を付けるか、対象ファイルを確認して再実行してください。");
     Environment.Exit(2);
 }
 
 if (options.DryRun || options.CheckOnly)
 {
     WriteLine();
-    WriteLine((options.CheckOnly ? "check-only 完了。問題がなければ次は --dry-run なしで実行してインストール可能。" : "dry-run 完了。実際に反映するには --dry-run を外して再実行してね。"));
+    WriteLine((options.CheckOnly ? "check-only 完了。問題がなければ次は --dry-run なしで実行してインストール可能です。" : "dry-run 完了。実際に反映するには --dry-run を外して再実行してください。"));
 }
 else
 {
     WriteLine();
-    WriteLine("インストール完了。対象リポジトリで `codex status` 等を確認してね。");
+    WriteLine("インストール完了。対象リポジトリで `codex status` 等を確認してください。");
 }
 
 Environment.Exit(0);
@@ -291,7 +291,7 @@ static void ApplyAgentsSection(
 
         if (!force)
         {
-            blockers.Add("AGENTS.md: codex-first:start/end ブロック内の内容が不一致です。--force か manual で調整してから再実行して。");
+            blockers.Add("AGENTS.md: codex-first:start/end ブロック内の内容が不一致です。--force または manual で調整してから再実行してください。");
             return;
         }
 

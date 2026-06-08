@@ -106,8 +106,8 @@ full-coverage 3層運用は advanced route として分離されています。
 利用者は次のように短く依頼します。
 
 ```text
-この issue を進めて。
-このバグを直して。
+この issue を進めてください。
+このバグを修正してください。
 続きやって。
 ```
 
@@ -148,8 +148,8 @@ repo 固有の build / test / security ルールは、対象 repository 側の `
 単発で使う場合は、Codex に skill を明示して依頼します。
 
 ```text
-$codex-first-cost-router を使って、この issue を進めて。
-$codex-first-cost-router を使って、このバグを直して。
+$codex-first-cost-router を使って、この issue を進めてください。
+$codex-first-cost-router を使って、このバグを修正してください。
 $codex-first-cost-router を使って、続きやって。
 ```
 
@@ -257,9 +257,9 @@ dotnet run --file .\apm-packages\copilot-fallback-ai-development-process\scripts
 利用者は普通に依頼します。
 
 ```text
-この issue を進めて。
-このバグを直して。
-この機能を実装して。
+この issue を進めてください。
+このバグを修正してください。
+この機能を実装してください。
 この PR の残件を片付けて。
 続きやって。
 ```
@@ -513,7 +513,7 @@ PR #10（`Codex向け full-coverage 3層運用を追加`）では、その局面
   - custom agent として使う `slice-prep` / `slice-impl`
 - APM で取得できないもの
   - workspace そのものの Codex 実行設定（例: `.codex/config.toml`）
-  - repository 固有のローカル配置や、キミの作業環境に依存する設定値
+  - repository 固有のローカル配置や、利用者の作業環境に依存する設定値
 
 関係としては、APM で取得できるものが「何を守ってどう進めるか」を定義し、APM で取得できないものが「その workspace でどう実行するか」を補います。前者だけでは運用方針は入るけれど、並列度や再帰深さのようなローカル実行境界までは固定しません。
 

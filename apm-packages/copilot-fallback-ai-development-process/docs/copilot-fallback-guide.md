@@ -11,9 +11,9 @@ Codex-first package の `.codex/config.toml`、Codex custom agent TOML、`CODEX_
 利用者は次のように普通に依頼します。
 
 ```text
-この issue を進めて。
-このバグを直して。
-この機能を実装して。
+この issue を進めてください。
+このバグを修正してください。
+この機能を実装してください。
 この PR の残件を片付けて。
 続きやって。
 ```

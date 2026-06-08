@@ -3,7 +3,7 @@
 ## Request
 
 ```text
-この typo を直して。
+この typo を修正してください。
 ```
 
 ## Expected behavior

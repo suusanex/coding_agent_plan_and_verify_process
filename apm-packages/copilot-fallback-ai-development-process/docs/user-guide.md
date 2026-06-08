@@ -5,8 +5,8 @@
 GitHub Copilot Chat in VS Code で対象 repository を開き、普通に依頼します。
 
 ```text
-この issue を進めて。
-このバグを直して。
+この issue を進めてください。
+このバグを修正してください。
 続きやって。
 ```
 
