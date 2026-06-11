@@ -33,7 +33,7 @@ selected_process: normal
 recommended_model_tier: STANDARD_MODEL
 model_tier_recommendation: STANDARD_MODEL for intake / plan; STANDARD_MODEL delegated owner after READY
 execution_mode: ROUTE_ONLY
-allowed_to_edit: false
+allowed_to_edit: No
 current_status: ROUTED
 stop_reason: None
 
@@ -80,7 +80,7 @@ selected_process: normal
 recommended_model_tier: STANDARD_MODEL
 execution_mode: DELEGATED_WORK
 selected_agent_name: standard-implementer
-allowed_to_edit: true
+allowed_to_edit: Yes
 delegation_required: Yes
 stop_reason: ReadyForDelegatedImplementation
 ```
@@ -98,7 +98,7 @@ next_gate: HumanDecision
 selected_process: human-decision-wait
 recommended_model_tier: HIGH_MODEL
 execution_mode: ROUTE_ONLY
-allowed_to_edit: false
+allowed_to_edit: No
 delegation_required: No
 stop_reason: NeedsHumanDecision
 

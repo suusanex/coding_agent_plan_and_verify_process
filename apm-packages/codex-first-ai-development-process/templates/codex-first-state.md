@@ -19,7 +19,7 @@ configured_reasoning_effort:
 hook_model: unknown
 reported_model:
 effective_model: unknown
-allowed_to_edit: false
+allowed_to_edit: No
 delegation_required: No
 current_status:
 stop_reason:

@@ -20,7 +20,7 @@
 current_gate: Contract
 next_gate: Implementation
 recommended_model_tier: STANDARD_MODEL
-allowed_to_edit: false
+allowed_to_edit: No
 edit_owner: none
 delegation_required: No
 delegation_compliance: N/A
