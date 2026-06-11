@@ -86,7 +86,13 @@ The validation suite explicitly covers:
 
 ## Actual output summary
 
-The actual dry-run classification matched the expected output for all five samples.
+Codex-produced classification output is captured for all five samples in `routing-mvp-validation.md`.
+The captured classification matched the expected output for all five samples.
+This validates the routing contract from the local router skill, state template, and cost router goals.
+
+The actual `$codex-first-cost-router` runtime trigger was not independently captured in this session because this Codex thread did not have that local package skill listed as an active callable skill.
+The operator validation procedure in `routing-mvp-validation.md` documents how to capture that runtime evidence in a Codex-first profile or installer-prepared repository.
+
 No sample required production code changes, C# script changes, external service calls, GitHub settings changes, secrets, billing operations, or organization repository rollout.
 
 ## Commands to run
@@ -102,11 +108,23 @@ rg -n "Routing Plan|Task Weight|Selected Process|Model Tier Recommendation|Agent
 
 ## Unverified items
 
+- `$codex-first-cost-router` runtime trigger evidence from an installed Codex-first profile was not captured in this session.
 - No real Codex hook payload was captured.
 - No plugin package was built.
 - No Copilot fallback workflow was exercised.
 - No organization repository was used as a live validation target.
 - No effective billing model was independently verified.
+
+## Human / operator execution needed
+
+| Item | Codex can do here? | Human / operator needed? | Reason |
+| --- | --- | --- | --- |
+| Classify the five samples from the routing contract | Yes | No | The local router skill and docs define the expected route vocabulary |
+| Record captured classification output | Yes | No | Captured in `routing-mvp-validation.md` |
+| Verify that `$codex-first-cost-router` is loaded as an active runtime skill | No | Yes | Requires a Codex session/profile where the package skill is installed or loaded |
+| Capture hook payload evidence | No | Yes | Requires hook configuration and runtime events |
+| Validate plugin trust / hook block scope | No | Yes | Requires maintainer decisions before implementation |
+| Run against organization repositories | No | Yes | Out of scope and requires repository selection |
 
 ## Remaining work
 

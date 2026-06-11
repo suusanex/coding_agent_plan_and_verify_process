@@ -16,7 +16,9 @@
 - DelegationRequired
 - Stop / Ready Gate
 
-`actual dry-run classification` は、PR #20 で整備された router skill、state template、cost router goals に照らして分類した手動検証結果である。
+`Captured Codex classification output` は、この repository に含まれる router skill、state template、cost router goals に照らして Codex が分類した出力である。
+このセッションでは対象 profile に install 済みの `$codex-first-cost-router` skill としての runtime trigger 証跡は取得していない。
+runtime trigger まで確認する場合は、末尾の operator validation procedure に従って、Codex-first profile または installer 適用済み repository で同じ prompt を実行する。
 
 ## Sample 1: lightweight local fix
 
@@ -59,6 +61,27 @@ Edit Permission:
 ### Actual dry-run classification
 
 Matches expected. The task is local, explicit, and low risk. The router must still avoid claiming cost-saving delegation unless a cheap delegated run is recorded.
+
+### Captured Codex classification output
+
+```text
+task_weight: trivial-local
+selected_process: lower-cost-delegated-scan or normal
+current_gate: Intake
+next_gate: Scan
+recommended_model_tier: CHEAP_MODEL
+model_tier_recommendation: CHEAP_MODEL for target confirmation and format / docs consistency check
+execution_mode: ROUTE_ONLY
+selected_agent_name: cheap-doc-consistency if delegated; none if handled as TRIVIAL_PARENT_FIX
+delegation_required: No unless the Routing Plan explicitly delegates the scan
+allowed_to_edit: No
+edit_owner: none
+parent_direct_edit_allowed: No during route-only classification
+stop_ready_gate: Ready only after the exact file and typo are identified
+stop_reason: None
+delegation_violation: No
+cost_saving_delegation_countable: No without observed cheap delegated run evidence
+```
 
 ### Gap / follow-up
 
@@ -108,6 +131,27 @@ Stop / Ready Gate:
 
 Matches expected. The compatibility condition makes the task non-trivial, but the scope is bounded to one local command and test path.
 
+### Captured Codex classification output
+
+```text
+task_weight: small-bounded
+selected_process: normal
+current_gate: Plan
+next_gate: Risk
+recommended_model_tier: STANDARD_MODEL
+model_tier_recommendation: STANDARD_MODEL for bounded implementation and verification; HIGH_MODEL only if compatibility ambiguity appears
+execution_mode: ROUTE_ONLY before READY, then DELEGATED_WORK
+selected_agent_name: standard-implementer for READY implementation; standard-verifier for verification
+delegation_required: Yes for Implementation and Verification
+allowed_to_edit: No before READY
+edit_owner: standard-implementer after READY implementation is authorized
+parent_direct_edit_allowed: No
+stop_ready_gate: ReadyForDelegatedImplementation after bounded Plan, risk check, allowed paths, and compatibility rule exist
+stop_reason: ReadyForDelegatedImplementation until an observed standard-implementer run exists
+delegation_violation: No while no parent-direct edit occurs
+cost_saving_delegation_countable: No until observed delegated run evidence exists
+```
+
 ### Gap / follow-up
 
 No MVP blocker. Later enforcement should detect parent-direct implementation when `DelegationRequired = Yes`.
@@ -154,6 +198,27 @@ Stop / Ready Gate:
 ### Actual dry-run classification
 
 Matches expected. Cross-component runtime contracts, retries, compensation, and external payment validation risk exceed a single bounded implementation pass.
+
+### Captured Codex classification output
+
+```text
+task_weight: broad-full-coverage-candidate
+selected_process: advanced-full-coverage
+current_gate: Risk
+next_gate: Decomposition
+recommended_model_tier: HIGH_MODEL
+model_tier_recommendation: HIGH_MODEL for parent Plan, risk triage, decomposition, and cross-slice close judgment
+execution_mode: ROUTE_ONLY
+selected_agent_name: plan-slice-decomposition after advanced-route confirmation
+delegation_required: No for route-only decomposition; Yes later for READY slice implementation
+allowed_to_edit: No
+edit_owner: none
+parent_direct_edit_allowed: No
+stop_ready_gate: Stop before implementation until slice decomposition, parent review, and READY slice authorization exist
+stop_reason: NeedsHigherModelReview or advanced-route decomposition next action
+delegation_violation: No
+cost_saving_delegation_countable: No
+```
 
 ### Gap / follow-up
 
@@ -206,6 +271,27 @@ Edit Permission:
 
 Matches expected. The router should continue from state and avoid asking the user to choose a model, process, or agent.
 
+### Captured Codex classification output
+
+```text
+task_weight: reuse existing state value
+selected_process: normal
+current_gate: Verification
+next_gate: Close
+recommended_model_tier: STANDARD_MODEL
+model_tier_recommendation: STANDARD_MODEL for delegated verification; HIGH_MODEL only if close risk becomes ambiguous
+execution_mode: DELEGATED_WORK
+selected_agent_name: standard-verifier
+delegation_required: Yes
+allowed_to_edit: Yes for verification-owned artifacts and local checks only
+edit_owner: standard-verifier
+parent_direct_edit_allowed: No
+stop_ready_gate: ReadyForDelegatedVerification
+stop_reason: DelegationEvidenceMissing if no observed standard-verifier run is recorded
+delegation_violation: No unless parent performs verifier-owned work directly
+cost_saving_delegation_countable: No until observed standard-verifier evidence exists
+```
+
 ### Gap / follow-up
 
 If state discovery finds multiple candidates, later enforcement can require a deterministic selection or a minimal human question.
@@ -254,6 +340,28 @@ human_required_items:
 
 Matches expected. Hook blocking and plugin trust affect developer workflow and require explicit human decisions before implementation.
 
+### Captured Codex classification output
+
+```text
+task_weight: blocked-human-required or high-risk-bounded
+selected_process: human-decision-wait
+current_gate: Plan
+next_gate: HumanDecision
+recommended_model_tier: HIGH_MODEL
+model_tier_recommendation: HIGH_MODEL for hook / plugin risk and trust boundary analysis
+execution_mode: ROUTE_ONLY
+selected_agent_name: high-planner or high-risk-triage only
+delegation_required: No for implementation because the scope is not READY
+allowed_to_edit: No
+edit_owner: none
+parent_direct_edit_allowed: No
+stop_ready_gate: NeedsHumanDecision
+stop_reason: NeedsHumanDecision
+human_required_items: plugin trust boundary; hook block scope; rollout targets; bypass policy
+delegation_violation: No
+cost_saving_delegation_countable: No
+```
+
 ### Gap / follow-up
 
 `hook-audit` and `plugin-package` remain separate work items. This MVP only validates that the router stops safely.
@@ -289,3 +397,22 @@ Matches expected. Hook blocking and plugin trust affect developer workflow and r
 - `DelegationRequired = Yes` gates require observed agent evidence before success.
 - Close is blocked while `ManualVerificationRequired`, `NeedsHumanDecision`, or missing delegation evidence remains.
 - The next ready follow-up should be `enforcement-hardening`, because it turns these documented stop rules into harder-to-bypass guidance before Hook audit or plugin packaging.
+
+## Operator validation procedure
+
+The captured outputs above are Codex-produced classifications from the local routing contract.
+To verify the actual `$codex-first-cost-router` runtime trigger, an operator should run the same samples in a Codex environment where the Codex-first package has been installed or loaded as the active profile.
+
+1. Prepare a disposable validation repository or this repository worktree.
+2. Ensure one of the following is true:
+   - the Codex-first profile is active, including `profiles/codex-first/AGENTS.md`
+   - the target repository has been prepared with `install-codex-first-local.cs`
+   - the local skill path `.agents/skills/codex-first-cost-router/SKILL.md` is available to the Codex session
+3. Start a fresh Codex thread for each sample.
+4. Paste the sample's Manual prompt exactly.
+5. Capture the first router output before allowing implementation or verification work.
+6. Compare the captured output with the sample's Expected routing and Captured Codex classification output.
+7. Record any difference in this file or in the issue report under the relevant sample.
+
+Do not allow the validation run to change secrets, billing settings, GitHub settings, organization repositories, external services, or production environments.
+For the Hook / Plugin sample, the expected result is a stop with `NeedsHumanDecision`, not implementation.
