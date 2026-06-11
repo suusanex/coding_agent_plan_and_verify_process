@@ -21,7 +21,7 @@
 current_gate: Intake
 next_gate: Plan
 recommended_model_tier: HIGH_MODEL
-allowed_to_edit: false
+allowed_to_edit: No
 edit_owner: none
 delegation_compliance: N/A
 stop_reason: None

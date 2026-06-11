@@ -77,3 +77,8 @@ full-coverage 3層運用や既存 APM package の直接指定は advanced route 
 通常の利用者向け入口では使わない。
 
 詳細は `advanced-full-coverage-3layer.md` と `maintainer-guide.md` を参照する。
+
+## MVP評価用サンプル
+
+`docs/examples/routing-mvp-sample.md` に、軽量な issue 入力と期待される Routing Plan の例を置いている。
+Codex-first を導入した直後は、このサンプルで state artifact、READY 前停止、Edit Permission、Agent Usage Ledger の形を確認する。

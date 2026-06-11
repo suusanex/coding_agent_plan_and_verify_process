@@ -4,20 +4,26 @@ task_slug:
 original_user_intent:
 source_of_truth:
 
+task_weight:
 current_gate:
 next_gate:
+selected_process: normal / advanced-full-coverage / human-decision-wait / higher-model-review / lower-cost-delegated-scan
 recommended_model_tier:
+model_tier_recommendation:
 execution_mode: ROUTE_ONLY / DELEGATED_WORK / PARENT_DIRECT_WORK / TRIVIAL_PARENT_FIX
 selected_agent_name:
 selected_agent_type:
+agent_subagent_plan:
 configured_model:
 configured_reasoning_effort:
 hook_model: unknown
 reported_model:
 effective_model: unknown
-allowed_to_edit: false
+allowed_to_edit: No
+delegation_required: No
 current_status:
 stop_reason:
+stop_ready_gate:
 parent_direct_work_reason:
 delegation_violation: No
 cost_saving_delegation_countable: No
@@ -46,6 +52,12 @@ allowed_stop_reasons:
 | Gate | Recommended tier | Delegation required | Expected agent type | Edit owner | Parent may execute directly? | Stop if unavailable |
 | --- | --- | --- | --- | --- | --- | --- |
 
+## Task Weight
+
+- task_weight: trivial-local / small-bounded / medium-bounded / high-risk-bounded / broad-full-coverage-candidate / blocked-human-required
+- classification_reason:
+- selected_process: normal / advanced-full-coverage / human-decision-wait / higher-model-review / lower-cost-delegated-scan
+
 ## Execution Mode
 
 - execution_mode: ROUTE_ONLY / DELEGATED_WORK / PARENT_DIRECT_WORK / TRIVIAL_PARENT_FIX
@@ -63,6 +75,11 @@ allowed_stop_reasons:
 - forbidden_paths:
 - required_authorization_artifact:
 
+## Agent / Subagent Plan
+
+| Gate | Selected agent or subagent | Model tier recommendation | DelegationRequired | Required artifacts | Stop / Ready Gate |
+| --- | --- | --- | --- | --- | --- |
+
 human_required_items:
 - None
 
@@ -70,6 +87,9 @@ artifacts_created:
 - None
 
 artifacts_consumed:
+- None
+
+required_artifacts:
 - None
 
 unresolved_residuals:
