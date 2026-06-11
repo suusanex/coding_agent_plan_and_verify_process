@@ -13,6 +13,10 @@
 Issue #21 validates that the Codex-first routing MVP can classify representative work when the user manually invokes `$codex-first-cost-router`.
 This is a docs-only validation pass. It does not implement enforcement hardening, Hook audit, plugin packaging, Copilot fallback, or any external / production operation.
 
+This PR validates the routing contract and expected classifications.
+It does not yet prove that a fresh Codex session will automatically load and invoke the installed `$codex-first-cost-router` skill.
+Operator validation must capture that runtime trigger separately before broader rollout.
+
 ## Created artifacts
 
 | Artifact | Purpose |
@@ -73,14 +77,14 @@ The validation suite explicitly covers:
 
 ## Residual Decision Ledger sample
 
-| Residual | Candidate status | Close allowed for Issue #21? | Required owner / next step |
-| --- | --- | --- | --- |
-| Real organization repository validation | out of scope | Yes | Management repo chooses target repositories later |
-| Real model mapping | human-required | Yes | Maintainer decides real model table |
-| Plugin trust boundary | `NeedsHumanDecision` | Yes for this docs-only MVP; No for plugin implementation | Management repo / maintainer decision |
-| Hook block scope | `NeedsHumanDecision` | Yes for this docs-only MVP; No for hook implementation | Management repo / maintainer decision |
-| Real payment sandbox validation in sample | `ManualVerificationRequired` | No for that hypothetical feature; not part of Issue #21 close | Human owner, method, and evidence required |
-| Copilot fallback parity | deferred candidate | Yes | Separate `copilot-fallback-sync` work item |
+| Residual | Candidate / decision status | Scope note | Close allowed for Issue #21? | Required owner / next step |
+| --- | --- | --- | --- | --- |
+| Real organization repository validation | `DeferredWithOwner` | Outside Issue #21 sample validation | Yes | Owner: management repo; choose target repositories later |
+| Real model mapping | `DeferredWithOwner` | Later rollout decision, not this docs-only MVP | Yes | Owner: maintainer; decide real model table |
+| Plugin trust boundary | `NeedsHumanDecision` | Blocks plugin implementation, not this validation-suite artifact | Yes for this docs-only MVP; No for plugin implementation | Management repo / maintainer decision |
+| Hook block scope | `NeedsHumanDecision` | Blocks hook implementation, not this validation-suite artifact | Yes for this docs-only MVP; No for hook implementation | Management repo / maintainer decision |
+| Real payment sandbox validation in sample | `ManualVerificationRequired` | Hypothetical full-coverage sample evidence, not Issue #21 required evidence | No for that hypothetical feature; not part of Issue #21 close | Human owner, method, and evidence required |
+| Copilot fallback parity | `DeferredWithOwner` | Deferred from this MVP into follow-up work | Yes | Owner: management repo; follow-up: `copilot-fallback-sync` |
 
 `ManualVerificationRequired` remains close-blocking unless an explicit human decision converts it to an accepted residual with owner, method, and required evidence.
 
@@ -135,8 +139,8 @@ Reason: this MVP demonstrates that the routing vocabulary can classify the targe
 | Candidate | Suggested status | Reason |
 | --- | --- | --- |
 | `enforcement-hardening` | ready-next | Strengthens documented routing and delegation rules before automation |
-| `hook-audit` | proposed / human-required | Needs hook block scope and trust decisions |
-| `plugin-package` | proposed / human-required | Needs plugin trust and rollout decisions |
+| `hook-audit` | proposed / NeedsHumanDecision | Needs hook block scope and trust decisions |
+| `plugin-package` | proposed / NeedsHumanDecision | Needs plugin trust and rollout decisions |
 | `copilot-fallback-sync` | proposed | Should follow Codex-first MVP stabilization |
 
 ## Management repo handoff

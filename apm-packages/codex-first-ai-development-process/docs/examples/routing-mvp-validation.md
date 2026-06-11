@@ -3,6 +3,12 @@
 この suite は、`codex-first-cost-router` を手動スキル指定で呼び出した場合の MVP 検証用サンプルである。
 実リポジトリ、secret、課金、GitHub 設定、外部サービス、本番環境は変更しない。
 
+## Validation limitation
+
+This suite validates the routing contract and expected classifications.
+It does not yet prove that a fresh Codex session will automatically load and invoke the installed `$codex-first-cost-router` skill.
+Operator validation must capture that runtime trigger separately before broader rollout.
+
 ## Validation rule
 
 各サンプルは次の項目を確認する。
@@ -380,13 +386,13 @@ cost_saving_delegation_countable: No
 
 ## Residual Decision Ledger sample
 
-| Residual | Candidate status | Close allowed? | Required explicit decision |
-| --- | --- | --- | --- |
-| Real payment sandbox validation | `ManualVerificationRequired` | No | Owner, sandbox, credential source, required evidence |
-| Plugin trust boundary | `NeedsHumanDecision` | No | Trusted plugin source and rollout scope |
-| Hook block scope | `NeedsHumanDecision` | No | Event list, block behavior, bypass policy |
-| Copilot fallback parity | Deferred candidate | Yes for this MVP only | Separate `copilot-fallback-sync` work item |
-| Enforcement hardening | Deferred candidate | Yes for this MVP only | Separate `enforcement-hardening` work item |
+| Residual | Candidate / decision status | Scope note | Close allowed? | Required explicit decision or owner |
+| --- | --- | --- | --- | --- |
+| Real payment sandbox validation | `ManualVerificationRequired` | Hypothetical full-coverage sample evidence | No | Owner, sandbox, credential source, required evidence |
+| Plugin trust boundary | `NeedsHumanDecision` | Required before plugin implementation | No | Trusted plugin source and rollout scope |
+| Hook block scope | `NeedsHumanDecision` | Required before hook implementation | No | Event list, block behavior, bypass policy |
+| Copilot fallback parity | `DeferredWithOwner` | Deferred from this MVP into follow-up work | Yes for this MVP only | Owner: management repo; follow-up: `copilot-fallback-sync` |
+| Enforcement hardening | `DeferredWithOwner` | Deferred from this MVP into follow-up work | Yes for this MVP only | Owner: management repo; follow-up: `enforcement-hardening` |
 
 `ManualVerificationRequired` is not an accepted residual. It becomes close-compatible only after an explicit human decision records owner, method, and required evidence.
 
@@ -410,9 +416,10 @@ To verify the actual `$codex-first-cost-router` runtime trigger, an operator sho
    - the local skill path `.agents/skills/codex-first-cost-router/SKILL.md` is available to the Codex session
 3. Start a fresh Codex thread for each sample.
 4. Paste the sample's Manual prompt exactly.
-5. Capture the first router output before allowing implementation or verification work.
+5. Capture only the first router output before allowing implementation or verification work.
 6. Compare the captured output with the sample's Expected routing and Captured Codex classification output.
 7. Record any difference in this file or in the issue report under the relevant sample.
 
-Do not allow the validation run to change secrets, billing settings, GitHub settings, organization repositories, external services, or production environments.
+Run this first trial as route-only.
+Do not allow implementation, hook blocking, plugin trust changes, secrets, billing settings, GitHub settings, organization repositories, external services, or production environments.
 For the Hook / Plugin sample, the expected result is a stop with `NeedsHumanDecision`, not implementation.
