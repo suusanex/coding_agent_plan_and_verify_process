@@ -9,7 +9,7 @@ Use this instruction set when ordinary development work should start through Cod
 - Start by reading repo-local instructions, existing artifacts, and the latest `plans/<slug>/codex-first-state.md` if present.
 - Create or update state so the next "続きやって" request can resume safely.
 - Keep the user-facing entry small, but keep internal gates explicit in artifacts.
-- Write a Routing Plan, Edit Permission block, Agent Usage Ledger, and DelegationCompliance into the state artifact before treating a delegated gate as successful.
+- Write task weight, selected process, Routing Plan, Agent / Subagent Plan, Edit Permission block, Agent Usage Ledger, and DelegationCompliance into the state artifact before treating a delegated gate as successful.
 - Keep abstract model tier, configured model, hook observed model, reported model, and effective model as separate ledger fields.
 - Record execution_mode as `ROUTE_ONLY`, `DELEGATED_WORK`, `PARENT_DIRECT_WORK`, or `TRIVIAL_PARENT_FIX`.
 - Use Codex as the primary execution environment.
@@ -26,6 +26,21 @@ Use this instruction set when ordinary development work should start through Cod
 7. Implementation gate: delegate the selected READY scope to `standard-implementer` unless a recorded `ParentDirectExecutionException` has explicit human approval.
 8. Verification gate: delegate ordinary verification to `standard-verifier`; route dangerous close judgment to `high-closure-reviewer`.
 9. Close gate: do not close when unresolved items include `ManualVerificationRequired`, `NeedsHumanDecision`, `NeedsHigherModelReview`, missing delegation evidence, or failing `DelegationCompliance`.
+
+## Task weight and process selection
+
+Classify task weight before selecting the next gate.
+Record the result as `task_weight` and `selected_process`.
+
+- `trivial-local`: obvious typo, formatting-only edit, no behavior change.
+- `small-bounded`: one component, clear acceptance, local checks available.
+- `medium-bounded`: multiple files or tests, clear source of truth, manageable production risk.
+- `high-risk-bounded`: auth, security, DB, public API, production wiring, external SDK, async/event boundary, or compatibility uncertainty.
+- `broad-full-coverage-candidate`: broad, ambiguous, strongly interconnected, cross-slice contracts, or previous sequence / production-binding gaps.
+- `blocked-human-required`: missing human decision, secret, external service operation, production/billing/GitHub settings change, or manual-only verification owner.
+
+Allowed `selected_process` values are `normal`, `advanced-full-coverage`, `human-decision-wait`, `higher-model-review`, and `lower-cost-delegated-scan`.
+Choose these internally; do not ask the user to select them.
 
 ## Stop vocabulary
 

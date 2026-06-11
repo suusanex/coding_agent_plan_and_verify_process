@@ -2,14 +2,20 @@
 
 task_slug:
 state_artifact:
+task_weight:
+selected_process:
 current_gate:
 next_gate:
 recommended_model_tier:
+model_tier_recommendation:
 execution_mode:
 allowed_to_edit:
 edit_owner:
 delegation_required:
 expected_agent:
+agent_subagent_plan:
+required_artifacts:
+stop_ready_gate:
 configured_model:
 configured_reasoning_effort:
 hook_model: unknown

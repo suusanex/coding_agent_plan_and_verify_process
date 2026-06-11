@@ -28,11 +28,15 @@ Minimum fields:
 
 - task slug
 - original user intent
+- task weight
+- selected process
 - current gate
 - next gate
 - recommended model tier
+- model tier recommendation
 - execution mode
 - selected agent name / type
+- agent / subagent plan
 - configured model
 - configured reasoning effort
 - hook model
@@ -40,6 +44,9 @@ Minimum fields:
 - effective model
 - routing plan
 - edit permission
+- delegation required
+- required artifacts
+- stop / ready gate
 - current status
 - stop reason
 - human required items
@@ -52,6 +59,40 @@ Minimum fields:
 - last updated summary
 
 For "続きやって", read the newest matching state artifact before deciding the next step.
+
+### Task Weight
+
+Classify task weight before selecting the next gate.
+Record the result in state as `task_weight` and `selected_process`.
+
+| Weight | Typical signals | Default process |
+| --- | --- | --- |
+| `trivial-local` | Obvious typo, formatting-only edit, no behavior change | `normal` or `lower-cost-delegated-scan`; state optional unless repo policy requires it |
+| `small-bounded` | One component, clear acceptance, local checks available | `normal` |
+| `medium-bounded` | Multiple files or tests, clear source of truth, manageable production risk | `normal` with bounded Plan and risk check |
+| `high-risk-bounded` | Auth, security, DB, public API, production wiring, external SDK, async/event boundary, or compatibility uncertainty | `higher-model-review` or high-model Plan / risk / contract before READY |
+| `broad-full-coverage-candidate` | Broad, ambiguous, strongly interconnected, cross-slice contracts, or previous sequence / production-binding gaps | `advanced-full-coverage` candidate |
+| `blocked-human-required` | Missing human decision, secret, external service operation, production/billing/GitHub settings change, or manual-only verification owner | `human-decision-wait` |
+
+Classification axes:
+
+- scope breadth
+- ambiguity
+- production-binding risk
+- external side-effect risk
+- verification cost
+- delegation suitability
+
+Use `selected_process` values:
+
+- `normal`
+- `advanced-full-coverage`
+- `human-decision-wait`
+- `higher-model-review`
+- `lower-cost-delegated-scan`
+
+Do not ask the user to choose these values.
+The router chooses them and records the reason.
 
 ### Execution Mode
 
@@ -83,6 +124,24 @@ Rules:
 - `HIGH_MODEL` plan, risk, implementation contract, and dangerous close judgment may stay with the parent or high agents.
 - A gate with `Delegation required = Yes` cannot be marked successful without observed delegation or an accepted parent-direct exception.
 - A parent-direct exception is not a delegated cost-saving success. Record it as an exception, not as saved cost.
+
+### Agent / Subagent Plan
+
+The state artifact must include the selected owner for each relevant gate.
+
+```md
+## Agent / Subagent Plan
+
+| Gate | Selected agent or subagent | Model tier recommendation | DelegationRequired | Required artifacts | Stop / Ready Gate |
+| --- | --- | --- | --- | --- | --- |
+```
+
+`DelegationRequired` is `Yes` for normal READY implementation and normal READY verification.
+It may also be `Yes` for read-heavy scan or docs consistency when the Routing Plan chooses cheaper delegated work.
+
+`Required artifacts` should name the bounded Plan, state artifact, implementation contract, test evidence, or human decision needed before the gate can proceed.
+
+`Stop / Ready Gate` must show either the blocking reason or the condition that makes the next gate READY.
 
 ### Edit Permission
 
@@ -302,11 +361,14 @@ Do not ask them to choose a gate, agent, or model.
 Return:
 
 - state artifact path
+- task weight
 - current gate
 - next gate
 - recommended model tier
+- selected process
 - selected execution mode
 - selected model tier
+- agent / subagent plan
 - selected agent name, if delegated
 - configured model, if known
 - configured reasoning effort, if known
@@ -314,6 +376,8 @@ Return:
 - reported model, if provided
 - effective model, usually unknown
 - delegation required
+- required artifacts
+- stop / ready gate
 - routing plan summary
 - edit permission / edit owner
 - delegation violation
