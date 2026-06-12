@@ -80,5 +80,8 @@ full-coverage 3層運用や既存 APM package の直接指定は advanced route 
 
 ## MVP評価用サンプル
 
-`docs/examples/routing-mvp-sample.md` に、軽量な issue 入力と期待される Routing Plan の例を置いている。
+`docs/examples/routing-mvp-sample.md` に、軽量な issue 入力と期待される Routing Plan の単発例を置いている。
 Codex-first を導入した直後は、このサンプルで state artifact、READY 前停止、Edit Permission、Agent Usage Ledger の形を確認する。
+
+より広い MVP 検証には `docs/examples/routing-mvp-validation.md` を使う。
+この validation suite は、軽量修正、通常実装、full-coverage 候補、中断再開、Hook / Plugin 変更を並べて、Task Weight、Selected Process、Model Tier Recommendation、Agent / Subagent Plan、DelegationRequired、Stop / Ready Gate の分類を確認するための maintainer 向け artifact である。
