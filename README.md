@@ -145,6 +145,11 @@ full-coverage 3層運用は advanced route として分離されています。
 5. READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する
 6. close 可否、residual、DelegationCompliance を state artifact に戻す
 
+Codex-first routing は「軽い処理」と「Plan網羅チェック・残件判定フロー」の二択ではありません。
+実際には `task_weight` / `selected_process` / `execution_mode` の 3 軸で分岐します。
+たとえば `high-risk-bounded` でも、作業範囲が明確に bounded であれば `selected_process: normal` のまま、Plan / risk / implementation contract / close gate だけを厚くして進めます。
+詳しい分岐構造は [docs/codex-first-routing-branching.md](docs/codex-first-routing-branching.md) を参照してください。
+
 full-coverage 3層運用は、標準 cost-router で安全に bounded 化できない場合、または熟練 operator が明示的に選んだ場合だけ advanced route として扱います。
 write-heavy parallel editing を標準化しないことは、親エージェントが直接実装してよいことを意味しません。委譲必須 gate は observed run または explicit human approval 付き `ParentDirectExecutionException` がない限り成功扱いしません。
 
