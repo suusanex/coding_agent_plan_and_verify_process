@@ -291,7 +291,7 @@ Plan Kernel 内で status が必要な場合は、次の vocabulary を使用し
 | `NeedsHumanDecision` | 製品、アーキテクチャ、ポリシー、またはリスクに関する human decision なしに安全に進めない |
 | `NotImplementedOrMismatch` | 実装が存在しない、または不一致、またはテスト側/フェイク側のみ存在 |
 | `OutOfScopeForThisPass` | 有効な作業だが、選択した slice の外 |
-| `Bound` | 対応する test substitute に対して production interface、production implementation、production wiring/entrypoint がすべて確認済み |
+| `Bound` | 対応する test substitute に対して production interface、production implementation、production wiring/entrypoint、post-wiring behavior against required postcondition が確認済み |
 
 `Bound` は語彙整合のためにのみ含めています。この agent は `Bound` を付与してはいけません。production binding は `verification-kernel.agent.md` が確認します。
 

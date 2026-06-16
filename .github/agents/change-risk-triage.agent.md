@@ -339,7 +339,7 @@ selected contracts、residual work、handoff items を記録する際は、share
 | `NeedsHumanDecision` | product、architecture、policy、または risk に関する human decision なしでは安全に進められない |
 | `NotImplementedOrMismatch` | implementation が欠けている、mismatch している、または test-side / fake-side にしか存在しない |
 | `OutOfScopeForThisPass` | 妥当な work だが、selected slice の外である |
-| `Bound` | test substitute に対して、production interface・production implementation・production wiring / entrypoint の三つすべてが確認済みである |
+| `Bound` | test substitute に対して、production interface・production implementation・production wiring / entrypoint に加え、post-wiring behavior が required postcondition を満たすことが確認済みである |
 
 `Risk trigger scan` では `Present`、`Absent`、`Unclear` だけを使ってください。`Unclear` は risk scan value であり、completion status ではありません。
 

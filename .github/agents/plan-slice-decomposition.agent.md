@@ -482,6 +482,6 @@ Handoff Packet の `Required downstream guardrails` には、少なくとも次�
 | `NeedsHumanDecision` | product、architecture、policy、または risk に関する human decision なしでは安全に進められない |
 | `NotImplementedOrMismatch` | implementation が欠けている、mismatch している、または test-side / fake-side にしか存在しない |
 | `OutOfScopeForThisPass` | 妥当な work だが、selected slice の外である |
-| `Bound` | test substitute に対して、production interface・production implementation・production wiring / entrypoint の三つすべてが確認済みである |
+| `Bound` | test substitute に対して、production interface・production implementation・production wiring / entrypoint に加え、post-wiring behavior が required postcondition を満たすことが確認済みである |
 
 この agent は原則として `Bound` を使ってはいけません。production binding は slice verification または cross-slice verification で確認します。

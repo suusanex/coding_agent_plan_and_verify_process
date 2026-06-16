@@ -125,6 +125,8 @@ In the Plan網羅チェック・残件判定フロー, this is not an automatic 
 The immediate next step is the `plan-slice-decomposition` agent.
 Each resulting slice then re-enters the Plan網羅チェック・残件判定フロー as a bounded parent Plan pass. After slice verification, the parent flow runs `cross-slice-verification-kernel.agent.md` and then `residual-decision-gate.agent.md`.
 
+Cross-slice verification is not only a structural wiring check. After producer action and production wiring run, the consumer observable must satisfy the parent acceptance condition runtime postcondition. Forbidden states from the parent acceptance condition must be copied into the cross-slice artifact and denied by evidence before a pass verdict is allowed.
+
 ### `fix-slice`
 
 Resolves explicit FixNow gaps only.
@@ -185,6 +187,8 @@ The Plan網羅チェック process documentation must also enforce these points:
 - Plan conformance checks are required but do not remove the need to investigate unknown implementation paths.
 - Unresolved implementation-realization items must stay explicit and must not be converted to guessed production addresses.
 - Full-flow implementation contract agents remain available and should be recommended when the kernel variant is too narrow.
+- Source-structure tests and CI green are not runtime postcondition proof unless the test body or test-design mapping asserts the required postcondition / forbidden state.
+- Previous gaps and residuals must not be closed with evidence that is the same strength or weaker than the evidence previously judged insufficient.
 
 ### Flow B: Minimal high-risk guardrail sub-flow
 
@@ -376,9 +380,75 @@ Verification should produce or update this shape when tests use substitutes:
 Rules:
 
 - A passing test using a fake does not imply production readiness.
-- `Status` must not be `Bound` unless production interface, production implementation, and wiring / entrypoint are all confirmed.
+- `Status` must not be `Bound` unless production interface, production implementation, wiring / entrypoint, and post-wiring behavior against the parent acceptance condition runtime postcondition are all confirmed.
 - If only the interface exists, use `NotImplementedOrMismatch`.
 - If implementation exists but default wiring is missing, use `NotImplementedOrMismatch` or `PartiallyDone` with explicit remaining work.
+- Source-structure tests can provide wiring evidence, but they cannot prove runtime state, phase, durable state, async worker behavior, input acceptance, recovery semantics, or retry / failure behavior.
+- CI green is close evidence only when the relevant test body or test-design mapping asserts the required runtime postcondition.
+
+### Cross-slice runtime postcondition oracle
+
+`cross-slice-verification-kernel.agent.md` must include this table when `plan-slice-decomposition` was used:
+
+```md
+| ID | Producer action chain | Production wiring path | Consumer observable | Required runtime postcondition | Forbidden state | Evidence type | Evidence strength | Evidence | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+```
+
+Evidence strength is ordered from weak to strong:
+
+1. `ArtifactStatementOnly`
+2. `SourceTextOrSourceStructureTest`
+3. `ExactSourceProofOfProducerAndConsumerStateTransition`
+4. `UnitBehaviorTestInvokingProducerAndConsumerTogether`
+5. `ProductionStartupEquivalentBehaviorTest`
+6. `RealRuntimeOrManualOperationEvidence`
+
+For stateful cross-slice contracts, producer state and consumer gate must both be checked. Startup, recovery, async worker, durable state, and state-machine consistency cannot be marked `Done` or `Bound` from source-structure evidence alone.
+
+When rerunning cross-slice verification, include this table:
+
+```md
+| Previous ID | Previous failure mode | Required closure evidence | New evidence delta | Evidence strength vs previous | Closure decision |
+| --- | --- | --- | --- | --- | --- |
+```
+
+If a previous gap was left open because source-level evidence was insufficient, source-structure test plus CI green is not enough to close it.
+
+### Agent version and verdict vocabulary
+
+Kernel artifacts that produce a final verdict must record the agent / skill version and verdict vocabulary:
+
+```md
+| Item | Value |
+| --- | --- |
+| Agent file path | |
+| Agent file SHA | |
+| Skill file path | |
+| Skill file SHA | |
+| Allowed verdict vocabulary | |
+| Actual verdict | |
+| Vocabulary valid? | Yes/No |
+```
+
+If `Actual verdict` is not present in the allowed vocabulary for that agent file SHA, the artifact is not passable.
+
+### Residual rerun closure rule
+
+`residual-decision-gate.agent.md` must include this table when a previous residual artifact exists:
+
+```md
+| RES ID | Previous required decision | Closure type | New evidence | Why human decision no longer needed |
+| --- | --- | --- | --- | --- |
+```
+
+`NeedsHumanDecision` and previous `RES-*` items cannot be removed by source inspection, source-structure tests, or CI green alone. They can close only when one of these is true:
+
+- an explicit human decision is recorded
+- code or tests changed according to a criterion already decided in the parent Plan
+- new evidence proves the previous residual premise was wrong
+
+Otherwise the item remains `NeedsHumanDecision` and the verdict must not become close-ready.
 
 ### Handoff Packet
 
@@ -417,7 +487,7 @@ Use these statuses consistently unless an existing artifact has a stronger conve
 | `NeedsHumanDecision` | Cannot safely proceed without a product, architecture, policy, or risk decision |
 | `NotImplementedOrMismatch` | Implementation is missing, mismatched, or only test-side / fake-side exists |
 | `OutOfScopeForThisPass` | Valid work, but outside the bounded parent Plan pass or Guardrail Focus coverage |
-| `Bound` | Production interface, production implementation, and production wiring / entrypoint have been confirmed for a test substitute |
+| `Bound` | Production interface, production implementation, production wiring / entrypoint, and post-wiring behavior against the parent acceptance condition runtime postcondition have been confirmed for a test substitute |
 | `CoveredByGuardrailFocus` | Parent Plan item is covered by selected RC / TP / slice |
 | `CoveredByCrossSliceVerification` | Parent Plan item is intentionally left for cross-slice verification |
 | `DeferredToKnownSlice` | Parent Plan item is deferred to a named slice / RC / gap ID |

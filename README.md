@@ -383,6 +383,9 @@ bounded Plan を作成し、その parent Plan を実装・検証の source of t
 - Guardrail Focus 外の parent Plan item も Parent Plan Coverage Ledger で必ず分類します。
 - residual は記録しただけでは accepted ではありません。`ManualVerificationRequired` は close 不可の candidate status です。explicit human decision により owner / method / required evidence が明示された場合だけ、`AcceptedResidual`、`ManualVerificationDelegated`、`DeferredWithOwner`、`AbortedWithReason` などの close 可能な decision status にできます。
 - final done は Parent Plan Coverage Ledger と Residual Decision Ledger で判定します。
+- full-coverage decomposition 後の cross-slice verification は、production interface / implementation / wiring の存在確認だけでは完了しません。producer から production wiring を通した後、consumer 側の runtime gate / durable state / async worker / recovery semantics が parent acceptance condition の runtime postcondition を満たすことを確認します。
+- source-structure test と CI green は、それだけでは runtime postcondition の証明ではありません。test body または test-design mapping が required postcondition / forbidden state を assertion している場合だけ close evidence として扱います。
+- rerun で previous gap / residual を close する場合、前回と同等または弱い evidence では close できません。previous `RES-*` や `NeedsHumanDecision` を skip するには explicit human decision、parent Plan の既決基準に合う code/test 修正、または previous residual の前提誤りを示す新 evidence が必要です。
 
 ### 典型的な手順
 
@@ -417,6 +420,8 @@ full-coverage
 ```
 
 slice decomposition は scope shrink ではありません。各 slice は parent Plan item mapping を持ち、最後に cross-slice verification と residual decision を通します。
+
+cross-slice verification では、runtime postcondition oracle と forbidden-state oracle を作ります。stateful cross-slice contract では、producer state と consumer gate の両方が整合し、禁止状態が起きない evidence がない限り `CROSS_SLICE_VERIFIED` にできません。
 
 ### `implementation-execution.agent.md` に渡すもの
 
@@ -490,7 +495,7 @@ Parent Plan Coverage Ledger から unresolved items を抽出し、FixNow items�
 
 ### `residual-decision-gate.agent.md`
 
-coverage-gap-triage または verification-kernel 後の docs-only gate です。explicit human decision がある項目だけ accepted residual として扱い、Residual Decision Ledger と final next-step verdict を出します。
+coverage-gap-triage、verification-kernel、または cross-slice-verification-kernel 後の docs-only gate です。explicit human decision がある項目だけ accepted residual として扱い、Residual Decision Ledger と final next-step verdict を出します。previous `RES-*` や `NeedsHumanDecision` がある rerun では、closure / skip 理由を明示します。
 
 ### `coverage-gap-resolution-slice.agent.md`
 
@@ -498,7 +503,7 @@ post-verification repair subflow です。coverage-gap-triage または residual
 
 ### `cross-slice-verification-kernel.agent.md`
 
-slice ごとの pass を parent Plan completion と扱わず、parent acceptance conditions、cross-slice contracts、residual decisions を統合して residual-decision-gate へ渡します。
+slice ごとの pass を parent Plan completion と扱わず、parent acceptance conditions、cross-slice contracts、runtime postcondition oracle、forbidden-state oracle、residual decisions を統合して residual-decision-gate へ渡します。production interface / implementation / wiring の存在、source-structure test、CI green だけでは `Bound` や `CROSS_SLICE_VERIFIED` にできません。
 
 ---
 
@@ -693,6 +698,7 @@ verification-kernel と coverage-gap-triage の出力を入力として、residu
 Residual Decision Ledger を作成し、`ManualVerificationRequired` は close 不可の candidate action、`ManualVerificationDelegated` は owner / method / required evidence が明示された explicit decision 後の decision status として扱ってください。
 explicit human decision がある項目だけ AcceptedResidual / ManualVerificationDelegated / DeferredWithOwner / AbortedWithReason として扱ってください。
 human decision がない residual は NEEDS_HUMAN_RESIDUAL_DECISION として停止してください。
+previous RES-* または NeedsHumanDecision がある rerun では、Previous residual closure / skip table を作り、human decision が不要になった理由を記録してください。
 ```
 
 ### 選択した FixNow だけを修正する
@@ -721,6 +727,7 @@ Plan網羅チェック・残件判定フローでは、通常は次の成果物�
 | `plans/<ticket-or-slug>-implementation-execution.md` | 実装結果、Implementation Self-Map、Test / Check Summary、Remaining Work |
 | `plans/<ticket-or-slug>-code-review-focus-kernel.md` | 人手コードレビュー向けの重点確認箇所・読む順番・不確実性の整理 |
 | `plans/<ticket-or-slug>-verification-kernel.md` | Parent Plan Coverage Ledger 更新、production binding / wiring / contract の検証結果 |
+| `plans/<ticket-or-slug>-cross-slice-verification-kernel.md` | full-coverage decomposition 後の runtime postcondition oracle、forbidden-state oracle、previous gap closure delta、cross-slice verdict |
 | `plans/<ticket-or-slug>-coverage-gap-triage.md` | 未解決ギャップの分類、FixNow items、Residual decision candidates |
 | `plans/<ticket-or-slug>-residual-decision-gate.md` | Residual Decision Ledger と next-step verdict |
 | `plans/<ticket-or-slug>-coverage-gap-resolution-slice.md` | FixNow selector の修正結果と残作業 |
@@ -739,6 +746,9 @@ Plan網羅チェック・残件判定フローでは、通常は次の成果物�
 - `AcceptedResidual` は explicit human decision がある場合だけ使う
 - `ManualVerificationRequired` は「確認済み」ではなく、decision gate へ渡す close 不可の candidate status として扱う
 - `ManualVerificationDelegated` は owner / method / required evidence が明示された explicit human decision 後の close 可能な decision status として扱う
+- cross-slice verification では source-structure test と CI green だけで runtime postcondition を close しない
+- stateful cross-slice contract は producer state と consumer gate の両方を確認する
+- previous gap / residual は同等または弱い evidence で close しない
 - 不明な項目を推測で埋めない
 - テストが通ることを production binding の証拠にしない
 - fake / stub だけを production の完成と扱わない

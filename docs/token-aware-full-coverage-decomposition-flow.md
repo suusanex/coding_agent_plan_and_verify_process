@@ -14,6 +14,10 @@
 - The broad autonomous flow remains available only as an explicit, separate process choice; it is not the default interpretation of `full-coverage` inside Plan網羅チェック triage.
 - Each resulting slice re-enters the Plan網羅チェック・残件判定フロー as a bounded parent Plan pass.
 - Cross-slice contracts must remain explicit and must be verified after slice implementations.
+- Cross-slice verification must confirm runtime postconditions after production wiring, not only structural wiring. Production interface / implementation / wiring, source-structure tests, and CI green are not enough unless they prove the parent acceptance condition postcondition.
+- Parent acceptance condition forbidden states must be carried into the cross-slice verification artifact and denied by evidence before a pass verdict is allowed.
+- Stateful cross-slice contracts must check both producer state and consumer gate. Startup, recovery, async worker, durable state, and state-machine consistency cannot be closed by source-structure evidence alone.
+- Reruns must include previous gap / residual closure delta. A previous gap cannot be closed with evidence of the same or weaker strength than the evidence previously judged insufficient.
 - Cross-slice verification is not the final close gate. Unresolved items must go through `residual-decision-gate.agent.md`.
 - `coverage-gap-resolution-slice.agent.md` is used only when coverage-gap-triage or residual-decision-gate emits an explicit FixNow selector.
 
@@ -27,4 +31,30 @@ Parent Plan Kernel
 → Cross-Slice Verification Kernel
 → Residual Decision Gate
 → FixNow repair only when explicit selector exists
+```
+
+## Synthetic self-check fixture
+
+Use this anonymous fixture when reviewing cross-slice verification behavior:
+
+```text
+Startup.Restore()
+  ProducerSnapshot = Active
+
+Startup.StartWorker()
+  Worker started
+
+Consumer.Push()
+  if ConsumerPhase != Accepting:
+      reject
+```
+
+Source-structure evidence that `Restore()` runs before `StartWorker()` and `ProducerSnapshot` becomes `Active` is wiring evidence only. If `ConsumerPhase` remains non-accepting, cross-slice verification must not pass.
+
+Expected verdict:
+
+```text
+BLOCKED_BY_PARENT_ACCEPTANCE_GAP
+or
+BLOCKED_BY_CROSS_SLICE_CONTRACT_MISMATCH
 ```

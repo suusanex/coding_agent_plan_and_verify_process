@@ -410,7 +410,7 @@ Handoff Packet の `Remaining work`、`ブロッキング問題`、`非ブロッ
 | `NeedsHumanDecision` | product、architecture、policy、または risk に関する human decision なしでは安全に進められない |
 | `NotImplementedOrMismatch` | artifact 間の対応が欠けている、mismatch している、または source-of-truth の接続が崩れている |
 | `OutOfScopeForThisPass` | 妥当な確認項目だが、この bounded review の外である |
-| `Bound` | Production interface、production implementation、production wiring / entrypoint が test substitute に対して確認済みである |
+| `Bound` | Production interface、production implementation、production wiring / entrypoint、post-wiring behavior against required postcondition が test substitute に対して確認済みである |
 | `CoveredByGuardrailFocus` | parent Plan item が Guardrail Focus RC / TP / slice で実装・検証対象になっている |
 | `CoveredByCrossSliceVerification` | parent Plan item が cross-slice verification 対象として明示されている |
 | `DeferredToKnownSlice` | parent Plan item が別 slice / RC / gap ID に明示的に残されている |

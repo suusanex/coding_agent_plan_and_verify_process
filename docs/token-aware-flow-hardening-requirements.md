@@ -309,7 +309,7 @@ A test point must not be considered sufficient merely because it verifies a loca
 Required behavior:
 
 - Compare Plan requirement, implementation contract decision, runtime contract address, test point, implementation diff, and production wiring.
-- Mark a Guardrail Focus coverage as `Bound` only when the production interface, concrete implementation, and wiring match the Plan-required implementation path or an explicitly approved substitute.
+- Mark a Guardrail Focus coverage as `Bound` only when the production interface, concrete implementation, wiring, and post-wiring behavior match the Plan-required implementation path or an explicitly approved substitute.
 - If a nearby implementation is wired but the Plan-required one is missing, use `NotImplementedOrMismatch` or a more specific blocking verdict.
 
 ### 7. Update coverage-gap triage and resolution to handle implementation-realization gaps
