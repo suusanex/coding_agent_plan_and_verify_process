@@ -68,7 +68,7 @@ interface のみ（implementation body がない）、または fake / stub / mo
 
 ### Bound status handling
 
-`Bound` は production interface・production concrete implementation・production wiring / entrypoint がすべて確認された test substitute 向けの formal verification status です。この agent は修正 agent であり、formal verification agent ではありません。
+`Bound` は production interface・production concrete implementation・production wiring / entrypoint に加え、post-wiring behavior が required postcondition を満たすことまで確認された test substitute 向けの formal verification status です。この agent は修正 agent であり、formal verification agent ではありません。
 
 この agent は source artifact ですでに `Bound` と記録されている状態を引用してよいですが、新規に upstream artifact へ `Bound` を付与してはいけません。修正後に formal `Bound` 判定が必要な場合は、`verification-kernel.agent.md` の再実行を `Recommended next step` に記録してください。
 
@@ -381,7 +381,7 @@ stub / fake / in-memory が検出された ID について記入してくださ�
 | `NeedsHumanDecision` | Plan 要件の曖昧さや設計判断が必要であり、安全に進めない |
 | `NotImplementedOrMismatch` | production implementation が存在しないか、または contract と一致しない |
 | `OutOfScopeForThisPass` | 修正が bounded cascade を超えるため、この slice では扱わない |
-| `Bound` | stub/fake を使う test point に対して production interface・concrete implementation・wiring/entrypoint の三つすべてが確認済みであることを示す formal verification status。この agent は source artifact に既に存在する `Bound` を引用できるが、新規付与はしない。 |
+| `Bound` | stub/fake を使う test point に対して production interface・concrete implementation・wiring/entrypoint・post-wiring behavior against required postcondition が確認済みであることを示す formal verification status。この agent は source artifact に既に存在する `Bound` を引用できるが、新規付与はしない。 |
 
 `Done` はこの pass での修正完了を意味します。feature 全体の完了や、選択 scope 外の gap が存在しないことを意味しません。
 

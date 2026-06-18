@@ -273,6 +273,26 @@ Plan Slice Decomposition artifact が必要なのに存在しない、または�
 | `BLOCKED_BY_HUMAN_DECISION` | 実装前に human decision が必要 |
 | `BLOCKED` | その他の blocking issue がある |
 
+#### Agent version
+
+出力 artifact には、verdict の直前または直後に次の表を含めてください。
+
+```md
+## Agent version
+
+| Item | Value |
+| --- | --- |
+| Agent file path | |
+| Agent file SHA | |
+| Skill file path | |
+| Skill file SHA | |
+| Allowed verdict vocabulary | |
+| Actual verdict | |
+| Vocabulary valid? | Yes/No |
+```
+
+`Actual verdict` がこの agent file SHA の allowed verdict vocabulary に含まれない場合、artifact は pass 不可です。
+
 #### Readiness scope
 
 | Scope | 意味 |
@@ -301,6 +321,18 @@ BLOCKED になるのは本当に危険な場合だけです。実装者が自分
 
 ```md
 # 実装引き継ぎレビュー
+
+## Agent version
+
+| Item | Value |
+| --- | --- |
+| Agent file path | |
+| Agent file SHA | |
+| Skill file path | |
+| Skill file SHA | |
+| Allowed verdict vocabulary | |
+| Actual verdict | |
+| Vocabulary valid? | Yes/No |
 
 ## 判定結果
 
@@ -410,7 +442,7 @@ Handoff Packet の `Remaining work`、`ブロッキング問題`、`非ブロッ
 | `NeedsHumanDecision` | product、architecture、policy、または risk に関する human decision なしでは安全に進められない |
 | `NotImplementedOrMismatch` | artifact 間の対応が欠けている、mismatch している、または source-of-truth の接続が崩れている |
 | `OutOfScopeForThisPass` | 妥当な確認項目だが、この bounded review の外である |
-| `Bound` | Production interface、production implementation、production wiring / entrypoint が test substitute に対して確認済みである |
+| `Bound` | Production interface、production implementation、production wiring / entrypoint、post-wiring behavior against required postcondition が test substitute に対して確認済みである |
 | `CoveredByGuardrailFocus` | parent Plan item が Guardrail Focus RC / TP / slice で実装・検証対象になっている |
 | `CoveredByCrossSliceVerification` | parent Plan item が cross-slice verification 対象として明示されている |
 | `DeferredToKnownSlice` | parent Plan item が別 slice / RC / gap ID に明示的に残されている |

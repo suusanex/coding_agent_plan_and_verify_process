@@ -27,6 +27,7 @@ Residual Decision Gate は、parent Plan の未完了・未検証項目を、age
 - `ManualVerificationRequired` は close 不可の residual candidate status であり、accepted residual ではない。
 - `AcceptedResidual`、`ManualVerificationDelegated`、`DeferredWithOwner`、`AbortedWithReason` は explicit human decision がある場合だけ付与できる。
 - explicit human decision がない項目は `NeedsHumanDecision` として残し、`NEEDS_HUMAN_RESIDUAL_DECISION` で停止する。
+- previous artifact に `RES-*` または `NeedsHumanDecision` が存在した場合、rerun でそれを消すには explicit human decision、parent Plan の既決基準に合う code/test 修正、または previous residual の前提誤りを示す新 evidence が必要である。
 
 ## Inputs
 
@@ -34,13 +35,29 @@ Residual Decision Gate は、parent Plan の未完了・未検証項目を、age
 - `plans/<ticket-or-slug>-implementation-execution.md`
 - `plans/<ticket-or-slug>-verification-kernel.md`
 - `plans/<ticket-or-slug>-coverage-gap-triage.md`
+- optional: `plans/<ticket-or-slug>-cross-slice-verification-kernel.md`（full-coverage decomposition 後に存在する場合）
+- optional: previous `plans/<ticket-or-slug>-residual-decision-gate.md`（rerun の場合）
 - optional: human decision notes / issue comment / PR comment / user prompt
+
+通常ルートでは `cross-slice-verification-kernel` artifact が存在しなくても実行できます。存在する場合だけ読み、cross-slice residual を decision ledger に merge してください。
 
 ## Workflow
 
 ### Step 1. Read source artifacts
 
 Parent Plan、Implementation Execution Result、Verification Kernel Result、Coverage Gap Triage を読み、Parent Plan Coverage Ledger と unresolved items を抽出してください。
+
+`cross-slice-verification-kernel` artifact が存在する場合は、必ず次を読み、Parent Plan completion ledger と Residual decision table に merge してください。
+
+- `Residual Decision Gate inputs`
+- `Unresolved items`
+- `Previous gap closure delta`
+- `Verdict`
+- Handoff Packet の `Residual decision handoff`
+
+cross-slice artifact の residual candidate を読まずに `READY_TO_CLOSE_*` verdict を出してはいけません。
+
+previous `residual-decision-gate` artifact が存在する場合は、previous `RES-*`、`NeedsHumanDecision`、manual / human decision candidates を抽出してください。
 
 ### Step 2. Identify explicit human decisions
 
@@ -54,11 +71,30 @@ explicit human decision として扱えるもの:
 
 agent の推奨、推測、コスト感だけでは explicit human decision ではありません。
 
-### Step 3. Build completion ledger
+### Step 3. Check previous residual closure or skip
+
+previous artifact に `RES-*` または `NeedsHumanDecision` が存在する場合は、各 item について次を記録してください。
+
+```md
+| RES ID | Previous required decision | Closure type | New evidence | Why human decision no longer needed |
+| --- | --- | --- | --- | --- |
+```
+
+`Closure type` は次から選んでください。
+
+- `ExplicitHumanDecisionRecorded`
+- `ClosedByPlanApprovedCodeOrTestChange`
+- `PreviousPremiseWasWrong`
+- `StillNeedsHumanDecision`
+- `NotClosed`
+
+`NeedsHumanDecision` を含んでいた item は、単に source inspection、source-structure test、CI green だけで close してはいけません。human decision が不要になった理由を説明できない場合は `StillNeedsHumanDecision` として残してください。
+
+### Step 4. Build completion ledger
 
 parent Plan item ごとに実装・検証・residual status を分類してください。行を省略してはいけません。
 
-### Step 4. Decide next action
+### Step 5. Decide next action
 
 各 residual candidate について、次のいずれかを判断してください。
 
@@ -71,7 +107,7 @@ parent Plan item ごとに実装・検証・residual status を分類してく�
 - `AbortedWithReason`: explicit human decision により abort 理由が決まっている
 - `ReplanRequired`: parent Plan 変更が必要
 
-### Step 5. Determine verdict
+### Step 6. Determine verdict
 
 次の verdict から 1 つを出してください。
 
@@ -94,6 +130,18 @@ parent Plan item ごとに実装・検証・residual status を分類してく�
 ```md
 # Residual Decision Gate 結果
 
+## Agent version
+
+| Item | Value |
+| --- | --- |
+| Agent file path | |
+| Agent file SHA | |
+| Skill file path | |
+| Skill file SHA | |
+| Allowed verdict vocabulary | |
+| Actual verdict | |
+| Vocabulary valid? | Yes/No |
+
 ## Decision context
 
 | Field | Value |
@@ -101,6 +149,11 @@ parent Plan item ごとに実装・検証・residual status を分類してく�
 | Parent Plan | plans/<ticket-or-slug>.md |
 | Human decision source | <issue comment / prompt / none> |
 | Explicit human decisions present? | Yes / No |
+
+## Previous residual closure / skip table
+
+| RES ID | Previous required decision | Closure type | New evidence | Why human decision no longer needed |
+| --- | --- | --- | --- | --- |
 
 ## Parent Plan completion ledger
 
@@ -140,6 +193,8 @@ parent Plan item ごとに実装・検証・residual status を分類してく�
 - production/test code を修正しない。
 - Plan を勝手に変更しない。
 - human decision がない residual を accepted 扱いしない。
+- previous `RES-*` または `NeedsHumanDecision` を source inspection、source-structure test、CI green だけで消さない。
+- human decision が不要になった理由を記録せず previous residual を skip しない。
 - `ManualVerificationRequired` を「確認済み」と扱わない。
 - `ManualVerificationRequired` を close-ready な accepted residual と扱わない。
 - owner / method / required evidence が明示されていない manual verification を `ManualVerificationDelegated` と扱わない。
