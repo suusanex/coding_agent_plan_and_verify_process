@@ -227,6 +227,18 @@ Guardrail Focus deep verification だけでは `PARENT_PLAN_VERIFIED` を出し�
 ```md
 # Verification Kernel 結果
 
+## Agent version
+
+| Item | Value |
+| --- | --- |
+| Agent file path | |
+| Agent file SHA | |
+| Skill file path | |
+| Skill file SHA | |
+| Allowed verdict vocabulary | |
+| Actual verdict | |
+| Vocabulary valid? | Yes/No |
+
 ## スコープ
 
 <この成果物が扱う対象を説明する。どの入力ソース（Test Design Kernel、integration test points、caller IDs）を使ったか、どの contract IDs と test point IDs を対象としたかを書く。>
@@ -254,8 +266,8 @@ Guardrail Focus deep verification だけでは `PARENT_PLAN_VERIFIED` を出し�
 
 ## Stub-to-Production Binding 確認
 
-| Test Point ID | Stub / fake / in-memory used in test | Implementation contract decision | Production interface | Production concrete implementation | Production wiring / entrypoint | Status | Remaining work |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+| Test Point ID | Stub / fake / in-memory used in test | Implementation contract decision | Production interface | Production concrete implementation | Production wiring / entrypoint | Post-wiring behavior evidence / oracle reference | Status | Remaining work |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 <substitute を使う test point についてのみ記録する。Bound は production interface + concrete implementation + wiring/entrypoint + post-wiring behavior against required postcondition が確認できた場合のみ付ける。>
 
@@ -314,6 +326,7 @@ Guardrail Focus deep verification だけでは `PARENT_PLAN_VERIFIED` を出し�
 
 - substitute（stub、fake、mock、in-memory）を使う test point のみを対象とする。substitute を使わない test point はこの table に含めてはいけない。
 - `Bound` は production interface、production concrete implementation、production wiring/entrypoint、post-wiring behavior が required postcondition を満たすことのすべてが確認できた場合にのみ付ける。
+- `Post-wiring behavior evidence / oracle reference` には、required postcondition を満たす具体証跡、test observation、exact source proof、または `cross-slice-verification-kernel` の runtime postcondition oracle ID への参照を書く。`Bound` の行でこの列を空欄にしてはいけない。
 - `Implementation contract decision` は、stub 側で想定する production path が Plan-required path と一致するかを示す。nearby path の暗黙代替は許可しない。
 - production interface のみで concrete implementation が存在しない場合は `NotImplementedOrMismatch` を使う。
 - implementation は存在するが wiring/entrypoint が未確認の場合は `PartiallyDone` を使い、`Remaining work` に具体的な残件を書く。

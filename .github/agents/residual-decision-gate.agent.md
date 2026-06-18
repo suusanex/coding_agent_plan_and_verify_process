@@ -34,16 +34,30 @@ Residual Decision Gate は、parent Plan の未完了・未検証項目を、age
 - `plans/<ticket-or-slug>.md`
 - `plans/<ticket-or-slug>-implementation-execution.md`
 - `plans/<ticket-or-slug>-verification-kernel.md`
-- `plans/<ticket-or-slug>-cross-slice-verification-kernel.md`
 - `plans/<ticket-or-slug>-coverage-gap-triage.md`
-- previous `plans/<ticket-or-slug>-residual-decision-gate.md`（rerun の場合）
+- optional: `plans/<ticket-or-slug>-cross-slice-verification-kernel.md`（full-coverage decomposition 後に存在する場合）
+- optional: previous `plans/<ticket-or-slug>-residual-decision-gate.md`（rerun の場合）
 - optional: human decision notes / issue comment / PR comment / user prompt
+
+通常ルートでは `cross-slice-verification-kernel` artifact が存在しなくても実行できます。存在する場合だけ読み、cross-slice residual を decision ledger に merge してください。
 
 ## Workflow
 
 ### Step 1. Read source artifacts
 
 Parent Plan、Implementation Execution Result、Verification Kernel Result、Coverage Gap Triage を読み、Parent Plan Coverage Ledger と unresolved items を抽出してください。
+
+`cross-slice-verification-kernel` artifact が存在する場合は、必ず次を読み、Parent Plan completion ledger と Residual decision table に merge してください。
+
+- `Residual Decision Gate inputs`
+- `Unresolved items`
+- `Previous gap closure delta`
+- `Verdict`
+- Handoff Packet の `Residual decision handoff`
+
+cross-slice artifact の residual candidate を読まずに `READY_TO_CLOSE_*` verdict を出してはいけません。
+
+previous `residual-decision-gate` artifact が存在する場合は、previous `RES-*`、`NeedsHumanDecision`、manual / human decision candidates を抽出してください。
 
 ### Step 2. Identify explicit human decisions
 
@@ -115,6 +129,18 @@ parent Plan item ごとに実装・検証・residual status を分類してく�
 
 ```md
 # Residual Decision Gate 結果
+
+## Agent version
+
+| Item | Value |
+| --- | --- |
+| Agent file path | |
+| Agent file SHA | |
+| Skill file path | |
+| Skill file SHA | |
+| Allowed verdict vocabulary | |
+| Actual verdict | |
+| Vocabulary valid? | Yes/No |
 
 ## Decision context
 

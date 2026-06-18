@@ -69,12 +69,12 @@ stateful な cross-slice contract では、producer から production wiring を
    - source-structure test は wiring evidence としてのみ扱う。
 
 5. Evidence strength ladder を追加する。
-   - `Artifact statement only`
-   - `Source text / source-structure test`
-   - `Exact source proof of producer and consumer state transition`
-   - `Unit behavior test invoking producer and consumer together`
-   - `Production-startup-equivalent behavior test`
-   - `Real runtime / manual operation evidence`
+   - `ArtifactStatementOnly`
+   - `SourceTextOrSourceStructureTest`
+   - `ExactSourceProofOfProducerAndConsumerStateTransition`
+   - `UnitBehaviorTestInvokingProducerAndConsumerTogether`
+   - `ProductionStartupEquivalentBehaviorTest`
+   - `RealRuntimeOrManualOperationEvidence`
 
 6. Rerun gap closure delta を必須化する。
    - 必須表:

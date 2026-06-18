@@ -417,7 +417,7 @@ If a previous gap was left open because source-level evidence was insufficient, 
 
 ### Agent version and verdict vocabulary
 
-Kernel artifacts that produce a final verdict must record the agent / skill version and verdict vocabulary:
+Plan網羅チェックの gate artifacts that produce a final verdict must record the agent / skill version and verdict vocabulary. This applies to `implementation-handoff-review.agent.md`, `verification-kernel.agent.md`, `cross-slice-verification-kernel.agent.md`, and `residual-decision-gate.agent.md`.
 
 ```md
 | Item | Value |
@@ -772,6 +772,18 @@ Verify Parent Plan coverage and Guardrail Focus runtime contracts/test points af
 ```md
 # Verification Kernel Result
 
+## Agent version
+
+| Item | Value |
+| --- | --- |
+| Agent file path | |
+| Agent file SHA | |
+| Skill file path | |
+| Skill file SHA | |
+| Allowed verdict vocabulary | |
+| Actual verdict | |
+| Vocabulary valid? | Yes/No |
+
 ## Scope
 
 ## Runtime contract verification
@@ -779,6 +791,8 @@ Verify Parent Plan coverage and Guardrail Focus runtime contracts/test points af
 ## Parent Plan smoke scan
 
 ## Stub-to-Production Binding
+
+Include `Post-wiring behavior evidence / oracle reference` in the Stub-to-Production Binding table. `Bound` rows must cite concrete post-wiring behavior evidence or a runtime postcondition oracle row.
 
 ## Test observations
 

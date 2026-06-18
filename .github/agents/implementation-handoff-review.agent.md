@@ -273,6 +273,26 @@ Plan Slice Decomposition artifact が必要なのに存在しない、または�
 | `BLOCKED_BY_HUMAN_DECISION` | 実装前に human decision が必要 |
 | `BLOCKED` | その他の blocking issue がある |
 
+#### Agent version
+
+出力 artifact には、verdict の直前または直後に次の表を含めてください。
+
+```md
+## Agent version
+
+| Item | Value |
+| --- | --- |
+| Agent file path | |
+| Agent file SHA | |
+| Skill file path | |
+| Skill file SHA | |
+| Allowed verdict vocabulary | |
+| Actual verdict | |
+| Vocabulary valid? | Yes/No |
+```
+
+`Actual verdict` がこの agent file SHA の allowed verdict vocabulary に含まれない場合、artifact は pass 不可です。
+
 #### Readiness scope
 
 | Scope | 意味 |
@@ -301,6 +321,18 @@ BLOCKED になるのは本当に危険な場合だけです。実装者が自分
 
 ```md
 # 実装引き継ぎレビュー
+
+## Agent version
+
+| Item | Value |
+| --- | --- |
+| Agent file path | |
+| Agent file SHA | |
+| Skill file path | |
+| Skill file SHA | |
+| Allowed verdict vocabulary | |
+| Actual verdict | |
+| Vocabulary valid? | Yes/No |
 
 ## 判定結果
 
