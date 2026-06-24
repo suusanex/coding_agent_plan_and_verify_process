@@ -52,6 +52,7 @@ Guardrail Focus coverage の guardrail chain が整っていても、parent Plan
 3. **Production binding requirement 抜け**: production path の確認が必要な TP が `Production binding required: Yes` になっていない。
 4. **Slice decomposition との断絶**: full-coverage decomposition 由来の slice で、slice scope / non-goals / cross-slice dependencies / XC IDs が handoff に残っていない。
 5. **未解決の human decision**: 実装前に決定が必要な事項が残っており、実装者が進めない。
+6. **Behavior Case coverage の断絶**: behavior expansion が必要な Plan で、relevant Case IDs が Plan FR / AC、coverage route、または explicit disposition に対応しないまま実装へ進んでしまう。
 
 ## Embedded process policy
 
@@ -64,6 +65,7 @@ Guardrail Focus coverage の guardrail chain が整っていても、parent Plan
 - **No implementation**: code を書いてはいけない。tests を作成してはいけない。
 - **Slice decomposition aware**: full-coverage decomposition 由来の slice では、Plan → Slice → RC / TP → XC の接続を確認する。cross-slice contract を slice 内で完了扱いしている handoff は blocking として扱う。
 - **Parent Plan Coverage Ledger required**: Plan の FR / AC を Guardrail Focus RC / TP / slice / cross-slice contract / deferred residual / out-of-scope のいずれかへ分類する。Guardrail Focus coverage に含まれなかった parent Plan item を黙って落としてはいけない。
+- **Behavior Case Coverage Ledger conditional required**: Plan の `Expansion required: Yes` の場合は、Black-box Behavior Spec artifact を条件付き必須入力とし、relevant Case IDs をすべて Behavior Case Coverage Ledger に記録する。Guardrail Focus readiness を Behavior Case / parent Plan readiness の代替にしてはいけない。
 - **Guardrail Focus readiness is not parent Plan readiness**: Guardrail Focus RC / TP がすべて整っていても、それは Guardrail Focus の readiness であり、bounded parent Plan pass 全体の readiness とは限らない。
 - **No unmapped parent acceptance**: parent Plan の AC が Guardrail Focus coverage、deferred slice、cross-slice verification、OutOfScopeByPlan、NeedsHumanDecision のいずれにも対応しない場合は Blocking とする。
 - **Historical / supplement wording safety**: artifact の先頭 scope と supplement scope が食い違う場合は、effective scope を明示する。effective scope が安全に決められない場合は Blocking とする。
@@ -101,6 +103,7 @@ Guardrail Focus coverage の guardrail chain が整っていても、parent Plan
 5. Implementation Contract Kernel（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）— `change-risk-triage` の `Implementation realization risk` が `Present` / `Unclear` の場合は必須
 6. Implementation Contract Review Kernel（`plans/<ticket-or-slug>-implementation-contract-review-kernel.md`）— 存在する場合は必ず読む
 7. Plan Slice Decomposition artifact（`plans/<ticket-or-slug>-slice-decomposition.md`）— full-coverage decomposition 由来の slice をレビューする場合は必須
+8. Black-box Behavior Spec artifact（`plans/<ticket-or-slug>-black-box-behavior-spec.md`）— Plan の `Expansion required: Yes` の場合は必須
 
 slug は、caller が渡した artifact path または file 名から安全に推定してください。安全に推定できない場合は、推測で別 artifact を読まず、`BLOCKED` として理由を記録してください。
 
@@ -151,6 +154,31 @@ Plan の `Functional requirements` / `機能要件` と `Acceptance conditions` 
 - `DeferredToKnownSlice` / `CoveredByCrossSliceVerification` / `MappedButWeak` は、Guardrail Focus coverage の実装開始を妨げないことがある。ただし parent Plan 全体の ready とは扱わない。
 - Plan item が broad すぎてこの pass で安全に分類できない場合は、`DeferredToKnownSlice` ではなく `UnmappedBlocking` または `NeedsHumanDecision` を使う。
 - 「名前が似た既存実装がある」だけでは `CoveredByGuardrailFocus` にしてはいけない。RC / TP / slice / cross-slice contract との対応が必要。
+
+#### Check 1b. Behavior Case Coverage Ledger
+
+Plan の `Black-box behavior coverage` を確認してください。
+
+- `Expansion required: Yes` の場合、Black-box Behavior Spec artifact が存在しないなら Blocking。
+- behavior spec の relevant Case IDs をすべて `Behavior Case Coverage Ledger` に記録する。
+- Plan の `Case-to-Plan mapping` と behavior spec の Case matrix が対応しているか確認する。
+- `UnmappedBlocking` が 1 件でもあれば Blocking。
+- 実装前判断が必要な `NeedsHumanDecision` があれば Blocking。
+- Guardrail Focus に入らない Case ID も、通常実装、別 slice、manual evidence、source-backed out-of-scope などの coverage route を明示する。
+- Behavior Case coverage が未確認なのに Guardrail Focus ready だけを理由に READY を出してはいけない。
+
+`Behavior Case Coverage Ledger` の status は次を使用してください。
+
+| Status | Meaning |
+| --- | --- |
+| `CoveredByGuardrailFocus` | selected RC / TP で deep-check coverage 対象 |
+| `CoveredByParentPlanPass` | bounded parent Plan pass の通常実装・検証対象 |
+| `CoveredByCrossSliceVerification` | cross-slice verification の対象 |
+| `DeferredToKnownSlice` | 別 slice / RC / gap ID へ明示的に defer |
+| `ManualOnly` | manual または real-environment evidence が必要 |
+| `OutOfScopeWithSource` | source-backed out-of-scope / non-goal |
+| `NeedsHumanDecision` | 実装前に human decision が必要 |
+| `UnmappedBlocking` | FR / AC、coverage route、defer、out-of-scope、human decision のどれにも対応しない |
 
 #### Check 2. Plan → Guardrail Focus contracts traceability
 
@@ -304,10 +332,11 @@ Plan Slice Decomposition artifact が必要なのに存在しない、または�
 優先順位:
 
 1. `UnmappedBlocking` がある → `BLOCKED_BY_UNMAPPED_PARENT_ACCEPTANCE`
-2. artifact の Guardrail Focus coverage / effective scope が決められない → `BLOCKED_BY_ARTIFACT_MISMATCH`
-3. 実装前 human decision が必要 → `BLOCKED_BY_HUMAN_DECISION`
-4. Guardrail Focus は整うが parent residual risk candidates が残る → `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS`
-5. bounded parent Plan pass と Guardrail Focus の接続が整い、blocking/residual risk candidates がない → `READY_FOR_BOUNDED_PARENT_PLAN_PASS`
+2. Behavior Case Coverage Ledger に `UnmappedBlocking` がある → `BLOCKED_BY_UNMAPPED_PARENT_ACCEPTANCE`
+3. artifact の Guardrail Focus coverage / effective scope が決められない → `BLOCKED_BY_ARTIFACT_MISMATCH`
+4. 実装前 human decision が必要 → `BLOCKED_BY_HUMAN_DECISION`
+5. Behavior Case または parent residual risk candidates が残る → `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS`
+6. bounded parent Plan pass、Behavior Case coverage、Guardrail Focus の接続が整い、blocking/residual risk candidates がない → `READY_FOR_BOUNDED_PARENT_PLAN_PASS`
 
 BLOCKED になるのは本当に危険な場合だけです。実装者が自分で判断できる軽微な不整合は Note にとどめてください。
 
@@ -345,6 +374,7 @@ READY_FOR_BOUNDED_PARENT_PLAN_PASS | READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DEC
 | Verdict | READY_FOR_BOUNDED_PARENT_PLAN_PASS / READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS / BLOCKED_BY_UNMAPPED_PARENT_ACCEPTANCE / BLOCKED_BY_ARTIFACT_MISMATCH / BLOCKED_BY_HUMAN_DECISION / BLOCKED |
 | Scope | ParentPlanPass / ParentPlanPassWithResidualRisks / Blocked |
 | Parent Plan coverage ledger complete? | Yes / No / Not evaluated |
+| Behavior Case coverage ledger complete? | Yes / No / N/A / Not evaluated |
 | Guardrail Focus ready? | Yes / No / NotApplicable |
 
 ## ブロッキング問題
@@ -359,6 +389,7 @@ READY_FOR_BOUNDED_PARENT_PLAN_PASS | READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DEC
 
 <!-- implementation-execution.agent.md または人間の実装者に渡すべき artifacts を列挙する -->
 - plans/<ticket-or-slug>.md（Plan Kernel — 唯一の基準）
+- plans/<ticket-or-slug>-black-box-behavior-spec.md（Expansion required: Yes の場合）
 - plans/<ticket-or-slug>-change-risk-triage.md
 - plans/<ticket-or-slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
 - plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
@@ -372,6 +403,13 @@ READY_FOR_BOUNDED_PARENT_PLAN_PASS | READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DEC
 | --- | --- | --- | --- | --- | --- | --- | --- |
 
 <!-- 全 FR / AC を省略せず記録する。該当なしは none。 -->
+
+## Behavior Case Coverage Ledger
+
+| Case ID | Source IDs | FR / AC | Coverage route | Slice / RC / TP | Status | Residual / reason |
+| --- | --- | --- | --- | --- | --- | --- |
+
+<!-- Expansion required: Yes の場合は relevant Case IDs を省略せず記録する。該当しない場合は "N/A" と記載する。 -->
 
 ## 欠落または不一致のマッピング
 
@@ -404,6 +442,7 @@ READY_FOR_BOUNDED_PARENT_PLAN_PASS | READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DEC
   - `Slice ID` は、full-coverage decomposition 由来の slice に関係する欠落または不一致の場合だけ `SL-xxx` を記載する。該当しない場合は `none`。
   - `Cross-slice Contract ID` は、欠落または不一致が `XC-xxx` に関係する場合だけ記載する。該当しない場合は `none`。
   - Parent Plan Coverage Ledger で `UnmappedBlocking`、`NeedsHumanDecision`、`MappedButWeak` とした item は、この table にも要約する。
+- **Behavior Case Coverage Ledger**: `Expansion required: Yes` の場合、behavior spec の relevant Case IDs をすべて記録する。`UnmappedBlocking` または実装前判断が必要な `NeedsHumanDecision` がある場合は BLOCKED とする。
 - **実装プロンプトへの追加推奨事項**: 実装 prompt に追記すべき補足（未解決 Note の注意喚起など）を簡潔に示す。長い追記リストを作ってはいけない。
 - **Handoff Packet**: shared output concepts に沿って、review scope、判定、再調査不要事項、残作業、次の担当を簡潔に残す。
 
@@ -419,6 +458,8 @@ READY_FOR_BOUNDED_PARENT_PLAN_PASS | READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DEC
 - BLOCKED にするための指摘を探してはいけません。実装者が安全に進める方法を探してください
 - Guardrail Focus coverage の traceability だけを根拠に、parent Plan 全体が ready であるように書いてはいけません
 - parent Plan の FR / AC を未分類のまま省略してはいけません
+- behavior spec の relevant Case IDs を未分類のまま省略してはいけません
+- `UnmappedBlocking` または実装前判断が必要な `NeedsHumanDecision` がある Behavior Case を非ブロッキング扱いしてはいけません
 - `DeferredToKnownSlice` や `CoveredByCrossSliceVerification` を、完了済みとして扱ってはいけません
 - supplement が historical scope を上書きしている場合、effective scope を明記せずに READY を出してはいけません
 
@@ -449,6 +490,8 @@ Handoff Packet の `Remaining work`、`ブロッキング問題`、`非ブロッ
 | `OutOfScopeByPlan` | parent Plan item が Plan の Non-goals / Out of scope により明示的に除外されている |
 | `UnmappedBlocking` | parent Plan item が Guardrail Focus coverage、deferred、cross-slice、out-of-scope、human decision のどれにも対応しない |
 | `MappedButWeak` | mapping はあるが test oracle、production binding、または observable acceptance が弱い |
+| `CoveredByParentPlanPass` | Behavior Case が bounded parent Plan pass の通常実装・検証対象として明示されている |
+| `OutOfScopeWithSource` | Behavior Case が source-backed out-of-scope / non-goal により除外されている |
 
 `Bound` は vocabulary consistency のためにのみ含まれます。この agent は `Bound` を判定または付与してはいけません。production binding の確認は `verification-kernel.agent.md` が担当します。
 

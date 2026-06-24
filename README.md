@@ -12,7 +12,7 @@ GitHub Copilot / Codex で Plan-first 開発をするための agent（`.github/
 2. Plan網羅チェック・残件判定フロー
    English helper name: Plan Coverage Check and Residual Decision Flow
 
-   bounded Plan を source of truth として維持しながら、通常可能な実装・検証は parent Plan に沿って進めるフロー。深い runtime / production-binding 確認は Guardrail Focus に絞れるが、それは implementation scope ではありません。高コスト、manual-only、blocked、ambiguous、human decision が必要な項目は residual candidate として記録し、Residual Decision Gate で明示判断します。
+   source requirement を必要に応じて black-box behavior cases へ展開し、bounded Plan を source of truth として維持しながら、通常可能な実装・検証は parent Plan に沿って進めるフロー。深い runtime / production-binding 確認は Guardrail Focus に絞れるが、それは implementation scope ではありません。高コスト、manual-only、blocked、ambiguous、human decision が必要な項目は residual candidate として記録し、Residual Decision Gate で明示判断します。
 
 Migration note: 旧称 `Token-aware guardrail kernel flow` は、この新フローへ移行済みの legacy name です。通常の prompt では新名称を使ってください。
 
@@ -23,7 +23,7 @@ Migration note: 旧称 `Token-aware guardrail kernel flow` は、この新フロ
 
 ## 基本的な考え方
 
-このプロセスが防ぎたい主な失敗は 3 つです。
+このプロセスが防ぎたい主な失敗は 4 つです。
 
 1. sequence contract の不一致
    プロセス間・コンポーネント間の処理で、各コンポーネント内では unit test が通るが、実際につなげると runtime contract・メッセージ・状態遷移・wiring が対応していない。
@@ -34,10 +34,15 @@ Migration note: 旧称 `Token-aware guardrail kernel flow` は、この新フロ
 3. parent Plan の縮小を完了と誤認する
    深く確認した Guardrail Focus だけを見て、parent Plan の FR / AC 全体が完了したように扱ってしまう。
 
+4. Requirement-elaboration gap
+   Plan 以降の runtime contract、test design、implementation、verification は整合しているが、Plan 自体が元要求のケース別期待結果、negative expectation、recovery / rollback / retry / replay / cleanup などを十分に展開していないため、要求を満たさない実装が完成扱いになる。
+
 Plan網羅チェック・残件判定フローでは、次の guardrail chain を維持します。
 
 ```text
-Plan requirement / acceptance condition
+Source requirement
+  -> Black-box behavior cases
+  -> Plan FR / AC
   -> Guardrail Focus runtime contract
   -> Guardrail Focus test point
   -> stub/fake の使用
@@ -378,6 +383,7 @@ bounded Plan を作成し、その parent Plan を実装・検証の source of t
 ### 不変条件
 
 - parent Plan は `plan-kernel.agent.md` が作成した bounded Plan であり、実装・検証の source of truth です。
+- Plan readiness は risk triage より前に確認します。behavior expansion が必要なのに artifact や Case-to-Plan mapping が不足している場合は `NeedsPlanBehaviorExpansion` として Plan フェーズへ差し戻します。
 - `change-risk-triage`、`runtime-contract-kernel`、`test-design-kernel`、`implementation-handoff-review` は parent Plan を縮小しません。
 - Guardrail Focus は deep runtime / production-binding verification の重点対象です。implementation scope ではありません。
 - Guardrail Focus 外の parent Plan item も Parent Plan Coverage Ledger で必ず分類します。
@@ -390,26 +396,28 @@ bounded Plan を作成し、その parent Plan を実装・検証の source of t
 ### 典型的な手順
 
 1. `plan-kernel.agent.md`
-2. `change-risk-triage.agent.md`
-3. `implementation-contract-kernel.agent.md`（implementation-realization risk がある場合）
-4. `implementation-contract-review-kernel.agent.md`（contract が non-trivial の場合）
-5. `runtime-contract-kernel.agent.md`
-6. `test-design-kernel.agent.md`
-7. `implementation-handoff-review.agent.md`
-8. `implementation-execution.agent.md` または人間主導で bounded parent Plan pass を実行
-9. 必要に応じて `code-review-focus-kernel.agent.md`
-10. human code review
-11. `verification-kernel.agent.md`
-12. 未解決がある場合は `coverage-gap-triage.agent.md`
-13. `residual-decision-gate.agent.md`
-14. FixNow items がある場合だけ `coverage-gap-resolution-slice.agent.md`
-15. 必要に応じて `verification-kernel.agent.md` と `residual-decision-gate.agent.md` を再実行
+2. `black-box-behavior-spec-kernel.agent.md`（behavior expansion が必要だが artifact が不足する場合）
+3. `plan-kernel.agent.md` 再実行（behavior spec の Case IDs を Plan FR / AC / explicit disposition へ mapping する場合）
+4. `change-risk-triage.agent.md`（`ReadyForRiskTriage` の場合だけ）
+5. `implementation-contract-kernel.agent.md`（implementation-realization risk がある場合）
+6. `implementation-contract-review-kernel.agent.md`（contract が non-trivial の場合）
+7. `runtime-contract-kernel.agent.md`
+8. `test-design-kernel.agent.md`
+9. `implementation-handoff-review.agent.md`
+10. `implementation-execution.agent.md` または人間主導で bounded parent Plan pass を実行
+11. 必要に応じて `code-review-focus-kernel.agent.md`
+12. human code review
+13. `verification-kernel.agent.md`
+14. 未解決がある場合は `coverage-gap-triage.agent.md`
+15. `residual-decision-gate.agent.md`
+16. FixNow items がある場合だけ `coverage-gap-resolution-slice.agent.md`
+17. 必要に応じて `verification-kernel.agent.md` と `residual-decision-gate.agent.md` を再実行
 
 各 agent は 1 回の bounded な実行を行い、未解決項目は成果物に残して停止します。「直るまで修正し続ける」ことは目的ではありません。
 
 ### full-coverage handling
 
-`change-risk-triage.agent.md` が `full-coverage` と診断した場合でも、parent Plan coverage は縮小しません。`full-coverage` は「bounded pass / decomposition / re-plan / human decision のいずれかが必要」という診断です。
+`change-risk-triage.agent.md` が `full-coverage` と診断した場合でも、parent Plan coverage は縮小しません。`full-coverage` は `ReadyForRiskTriage` の Plan が広い、強く相互接続している、複数 runtime sequence にまたがる、または decomposition が必要という診断です。要求展開不足は `full-coverage` ではなく `NeedsPlanBehaviorExpansion` または `NeedsHumanDecision` として Plan フェーズへ戻します。
 
 ```text
 full-coverage
@@ -430,6 +438,7 @@ cross-slice verification では、runtime postcondition oracle と forbidden-sta
 少なくとも次を渡してください。
 
 - `plans/<ticket-or-slug>.md`
+- `plans/<ticket-or-slug>-black-box-behavior-spec.md`（Expansion required: Yes の場合）
 - `plans/<ticket-or-slug>-change-risk-triage.md`
 - `plans/<ticket-or-slug>-implementation-contract-kernel.md`（implementation-realization risk が Present / Unclear の場合）
 - `plans/<ticket-or-slug>-implementation-contract-review-kernel.md`（存在する場合）
@@ -447,11 +456,15 @@ cross-slice verification では、runtime postcondition oracle と forbidden-sta
 
 ### `plan-kernel.agent.md`
 
-bounded Plan を作成し、Goal / Non-goals / Functional requirements / Acceptance conditions / Affected components / Residual policy / Guardrail Focus candidates を記録します。final runtime contracts は選びません。
+bounded Plan を作成し、Goal / Non-goals / Functional requirements / Acceptance conditions / Black-box behavior coverage / Affected components / Residual policy / Guardrail Focus candidates を記録します。final runtime contracts は選びません。`Plan readiness` が `ReadyForRiskTriage` でない場合は risk triage へ進めず、behavior expansion または human decision へ差し戻します。
+
+### `black-box-behavior-spec-kernel.agent.md`
+
+source requirements を external black-box behavior cases へ展開し、stable な Case ID、negative expectation、derived invariant、excluded combinations、unresolved requirement-elaboration items を記録します。Plan FR / AC は変更せず、Case-to-Plan mapping は `plan-kernel.agent.md` が Plan 内で行います。
 
 ### `change-risk-triage.agent.md`
 
-parent Plan 全体の risk inventory を作り、implementation-realization risk、Guardrail Focus recommendation、Residual risk candidates、Recommended process path を出します。実装 scope は縮小しません。
+Plan readiness check を行い、`ReadyForRiskTriage` の場合だけ parent Plan 全体の risk inventory、implementation-realization risk、Guardrail Focus recommendation、Residual risk candidates、Recommended process path を出します。実装 scope は縮小しません。
 
 ### `plan-slice-decomposition.agent.md`
 
@@ -471,11 +484,11 @@ Guardrail Focus runtime contract だけを深く固定します。focus 外の p
 
 ### `test-design-kernel.agent.md`
 
-Guardrail Focus RC を Guardrail Focus TP に落とし、stub / fake / mock / in-memory を使う場合は production binding check を必須にします。focus 外 parent Plan item の verification responsibility は消えません。
+Guardrail Focus RC を Guardrail Focus TP に落とし、stub / fake / mock / in-memory を使う場合は production binding check を必須にします。behavior spec がある場合は selected scope の Case IDs を test points または明示的 coverage disposition に接続します。focus 外 parent Plan item の verification responsibility は消えません。
 
 ### `implementation-handoff-review.agent.md`
 
-実装前 gate です。Plan → Guardrail Focus RC → TP → production binding requirement の接続と Parent Plan Coverage Ledger を確認し、`READY_FOR_BOUNDED_PARENT_PLAN_PASS` 系または `BLOCKED_*` verdict を出します。
+実装前 gate です。Plan → Guardrail Focus RC → TP → production binding requirement の接続、Parent Plan Coverage Ledger、必要な場合は Behavior Case Coverage Ledger を確認し、`READY_FOR_BOUNDED_PARENT_PLAN_PASS` 系または `BLOCKED_*` verdict を出します。
 
 ### `implementation-execution.agent.md`
 
@@ -487,7 +500,7 @@ human review 用の重点 surface を整理します。parent Plan item に影�
 
 ### `verification-kernel.agent.md`
 
-Parent Plan Coverage Ledger を更新し、Guardrail Focus RC/TP については production binding / wiring / contract representation を深く確認します。final verdict は parent Plan verdict です。
+Parent Plan Coverage Ledger と Behavior Case Evidence Ledger を更新し、Guardrail Focus RC/TP については production binding / wiring / contract representation を深く確認します。final verdict は parent Plan verdict です。
 
 ### `coverage-gap-triage.agent.md`
 
@@ -635,14 +648,24 @@ logger 側は、dated な JSONL ファイル名、`agent_transcript_path`、短�
 ```text
 この変更について、Plan網羅チェック・残件判定フローで進めます。
 まず plan-kernel.agent.md を使って bounded Plan を作成してください。
-実装・テスト作成・full runtime evidence・full integration test design は行わず、Goal、Non-goals、Functional requirements、Acceptance conditions、Affected components、Residual policy、Guardrail Focus candidates、change-risk-triage への handoff を出してください。
+実装・テスト作成・full runtime evidence・full integration test design は行わず、Goal、Non-goals、Functional requirements、Acceptance conditions、Black-box behavior coverage、Affected components、Residual policy、Guardrail Focus candidates、Plan readiness、次 gate への handoff を出してください。
+Expansion required: Yes で behavior spec artifact がない場合は NeedsPlanBehaviorExpansion で停止し、black-box-behavior-spec-kernel.agent.md を recommended next step にしてください。
+```
+
+### behavior expansion を作る
+
+```text
+plans/<ticket-or-slug>.md の Plan readiness が NeedsPlanBehaviorExpansion なので、black-box-behavior-spec-kernel.agent.md を実行してください。
+source requirements を stable Case IDs、negative expectation、derived invariant、excluded combinations、unresolved requirement-elaboration items へ展開してください。
+Plan FR / AC、runtime contract、test design、implementation は変更せず、plans/<ticket-or-slug>-black-box-behavior-spec.md を作成してください。
 ```
 
 ### Plan をもとにトリアージする
 
 ```text
 plans/<ticket-or-slug>.md を入力として、change-risk-triage.agent.md を実行してください。
-parent Plan 全体の risk inventory、Guardrail Focus recommendation、Residual risk candidates、Implementation-realization risk、Recommended process path を出してください。実装 scope は縮小しないでください。
+まず Plan readiness check を行い、ReadyForRiskTriage の場合だけ parent Plan 全体の risk inventory、Guardrail Focus recommendation、Residual risk candidates、Implementation-realization risk、Recommended process path を出してください。実装 scope は縮小しないでください。
+NeedsPlanBehaviorExpansion または NeedsHumanDecision の場合は runtime risk / process profile を選ばず Plan フェーズへ差し戻してください。
 ```
 
 ### 実装前に handoff review を行う
@@ -651,6 +674,7 @@ parent Plan 全体の risk inventory、Guardrail Focus recommendation、Residual
 実装に入る前に、implementation-handoff-review.agent.md を必須 gate として使ってください。
 source code は読まず、artifacts も修正しないでください。
 Parent Plan Coverage Ledger を作成し、Plan → Guardrail Focus RC → TP → production binding requirement の接続を確認してください。
+Expansion required: Yes の場合は Behavior Case Coverage Ledger も作成し、relevant Case IDs をすべて分類してください。
 Guardrail Focus ready と Parent Plan coverage ledger complete を分け、READY_FOR_BOUNDED_PARENT_PLAN_PASS 系または BLOCKED_* verdict を出してください。
 ```
 
@@ -662,6 +686,7 @@ implementation-execution.agent.md を使って、parent Plan に対する 1 boun
 次の成果物を必ず読んでください。
 
 - plans/<ticket-or-slug>.md
+- plans/<ticket-or-slug>-black-box-behavior-spec.md（Expansion required: Yes の場合）
 - plans/<ticket-or-slug>-change-risk-triage.md
 - plans/<ticket-or-slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
 - plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
@@ -687,6 +712,7 @@ parent Plan item に影響する changed files と Guardrail Focus surface を�
 ```text
 実装後の状態について、verification-kernel.agent.md を実行してください。
 Parent Plan Coverage Ledger を更新し、Guardrail Focus RC/TP は production implementation、wiring/entrypoint、contract representation を深く確認してください。
+behavior spec がある場合は current pass の Case IDs を Behavior Case Evidence Ledger に記録し、test / manual / production evidence へ接続してください。
 focus 外の parent Plan item も implemented / verified / ManualVerificationRequired / ResidualDecisionCandidate / unmapped のいずれかに分類してください。
 修正は行わず、parent Plan verdict と未解決項目を出してください。
 ```
@@ -718,6 +744,7 @@ Plan網羅チェック・残件判定フローでは、通常は次の成果物�
 | 成果物 | 目的 |
 | --- | --- |
 | `plans/<ticket-or-slug>.md` | bounded Plan。実装の source of truth |
+| `plans/<ticket-or-slug>-black-box-behavior-spec.md` | source requirements から Case IDs、negative expectation、derived invariant への展開 |
 | `plans/<ticket-or-slug>-change-risk-triage.md` | risk inventory、Guardrail Focus recommendation、Residual risk candidates |
 | `plans/<ticket-or-slug>-implementation-contract-kernel.md` | dependency/API/provider path の確認結果、required code changes、prohibited substitutions |
 | `plans/<ticket-or-slug>-implementation-contract-review-kernel.md` | implementation-contract の readiness / blocking verdict |
@@ -737,6 +764,8 @@ Plan網羅チェック・残件判定フローでは、通常は次の成果物�
 ## 運用原則
 
 - Plan網羅チェック・残件判定フローでも Plan 作成を省略しない
+- source requirement の期待動作が複数条件・状態・履歴・negative expectation に依存する場合は、black-box behavior expansion を Plan readiness gate として扱う
+- 要求展開不足を full-coverage や slice decomposition で覆い隠さない
 - 実装の source of truth は bounded Plan とする
 - Guardrail Focus は implementation scope ではない
 - kernel artifacts は deep-check guardrail として扱い、Plan の代替にしない

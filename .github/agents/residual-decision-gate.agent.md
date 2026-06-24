@@ -28,6 +28,9 @@ Residual Decision Gate は、parent Plan の未完了・未検証項目を、age
 - `AcceptedResidual`、`ManualVerificationDelegated`、`DeferredWithOwner`、`AbortedWithReason` は explicit human decision がある場合だけ付与できる。
 - explicit human decision がない項目は `NeedsHumanDecision` として残し、`NEEDS_HUMAN_RESIDUAL_DECISION` で停止する。
 - previous artifact に `RES-*` または `NeedsHumanDecision` が存在した場合、rerun でそれを消すには explicit human decision、parent Plan の既決基準に合う code/test 修正、または previous residual の前提誤りを示す新 evidence が必要である。
+- 実装前に分かっていた requirement-elaboration gap を通常 residual として bypass してはいけない。
+- 実装後に新しく判明した `UnexpandedRequirement`、`SourceRequirementNotMappedToPlan`、`UnmappedBehaviorCase` は、原則 `ReplanRequired` とし、verdict は `REPLAN_REQUIRED` とする。
+- explicit human decision により source requirement 自体が scope 外または accepted residual になった場合だけ、その decision source を記録して別 disposition を許可する。
 
 ## Inputs
 
@@ -36,6 +39,7 @@ Residual Decision Gate は、parent Plan の未完了・未検証項目を、age
 - `plans/<ticket-or-slug>-verification-kernel.md`
 - `plans/<ticket-or-slug>-coverage-gap-triage.md`
 - optional: `plans/<ticket-or-slug>-cross-slice-verification-kernel.md`（full-coverage decomposition 後に存在する場合）
+- optional: `plans/<ticket-or-slug>-black-box-behavior-spec.md`（behavior expansion が必要な場合）
 - optional: previous `plans/<ticket-or-slug>-residual-decision-gate.md`（rerun の場合）
 - optional: human decision notes / issue comment / PR comment / user prompt
 
@@ -93,6 +97,24 @@ previous artifact に `RES-*` または `NeedsHumanDecision` が存在する場�
 ### Step 4. Build completion ledger
 
 parent Plan item ごとに実装・検証・residual status を分類してください。行を省略してはいけません。
+
+### Step 4b. Classify requirement-elaboration residuals
+
+verification-kernel、coverage-gap-triage、cross-slice-verification-kernel、または previous residual artifact から次の residual type を抽出してください。
+
+- `UnexpandedRequirement`
+- `SourceRequirementNotMappedToPlan`
+- `UnmappedBehaviorCase`
+- `BehaviorCaseWithoutEvidence`
+- `AmbiguousExpectedBehavior`
+
+判定ルール:
+
+- 実装前に分かっていた `UnexpandedRequirement` / `SourceRequirementNotMappedToPlan` / `UnmappedBehaviorCase` は、通常 residual として accepted / deferred にしてはいけません。Plan readiness failure として `ReplanRequired` にします。
+- 実装後に新しく判明した `UnexpandedRequirement`、`SourceRequirementNotMappedToPlan`、`UnmappedBehaviorCase` は、原則 `ReplanRequired` とし、verdict は `REPLAN_REQUIRED` とします。
+- `AmbiguousExpectedBehavior` は `NeedsHumanDecision` とし、agent が意味を推測してはいけません。
+- `BehaviorCaseWithoutEvidence` は、behavior 自体が確定している evidence 不足であれば、既存の `FixNow`、`ManualVerificationRequired`、`DeferredWithOwner` などへ分類できます。ただし Case ID 自体が Plan に未対応なら `ReplanRequired` を優先します。
+- explicit human decision により source requirement 自体が scope 外、accepted residual、または deferred owner 付きになった場合だけ、その decision source を `Explicit human decision` に記録して別 disposition を許可します。
 
 ### Step 5. Decide next action
 
@@ -193,6 +215,9 @@ parent Plan item ごとに実装・検証・residual status を分類してく�
 - production/test code を修正しない。
 - Plan を勝手に変更しない。
 - human decision がない residual を accepted 扱いしない。
+- requirement-elaboration gap を通常 residual として bypass しない。
+- `UnexpandedRequirement`、`SourceRequirementNotMappedToPlan`、`UnmappedBehaviorCase` を、explicit human decision なしに accepted / deferred / close-ready 扱いしない。
+- `BehaviorCaseWithoutEvidence` を、Case ID 自体の Plan mapping 不足と混同しない。Plan mapping 不足がある場合は replan を優先する。
 - previous `RES-*` または `NeedsHumanDecision` を source inspection、source-structure test、CI green だけで消さない。
 - human decision が不要になった理由を記録せず previous residual を skip しない。
 - `ManualVerificationRequired` を「確認済み」と扱わない。

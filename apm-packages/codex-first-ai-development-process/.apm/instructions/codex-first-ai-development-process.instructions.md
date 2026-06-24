@@ -18,8 +18,8 @@ Use this instruction set when ordinary development work should start through Cod
 ## Required gates
 
 1. Intake gate: classify source of truth, ambiguity, repo rules, current state, and whether editing is allowed.
-2. Plan gate: create or consume a bounded Plan or equivalent parent artifact.
-3. Risk gate: classify external API, SDK, DI, config, public API, DB, auth, async, production wiring, and cross-slice risk.
+2. Plan gate: create or consume a bounded Plan or equivalent parent artifact, including behavior expansion decision, behavior spec path when required, Case-to-Plan mapping, and Plan readiness.
+3. Risk gate: classify external API, SDK, DI, config, public API, DB, auth, async, production wiring, and cross-slice risk only after `ReadyForRiskTriage`.
 4. Scan gate: delegate read-heavy discovery to low-cost workers when useful, and summarize evidence instead of flooding the main context.
 5. Contract gate: resolve implementation approach and human decisions before editing.
 6. READY gate: confirm Plan, selected scope, non-goals, contract/test handoff, and unresolved implementation-realization items before implementation.
@@ -36,7 +36,8 @@ Record the result as `task_weight` and `selected_process`.
 - `small-bounded`: one component, clear acceptance, local checks available.
 - `medium-bounded`: multiple files or tests, clear source of truth, manageable production risk.
 - `high-risk-bounded`: auth, security, DB, public API, production wiring, external SDK, async/event boundary, or compatibility uncertainty.
-- `broad-full-coverage-candidate`: broad, ambiguous, strongly interconnected, cross-slice contracts, or previous sequence / production-binding gaps.
+- `needs-plan-behavior-expansion`: source requirements contain unexpanded behavior cases, negative expectations, recovery / rollback / retry / replay / cleanup, state transitions, or unmapped Case IDs.
+- `broad-full-coverage-candidate`: ready Plan is broad, strongly interconnected, has cross-slice contracts, or previous sequence / production-binding gaps.
 - `blocked-human-required`: missing human decision, secret, external service operation, production/billing/GitHub settings change, or manual-only verification owner.
 
 Allowed `selected_process` values are `normal`, `advanced-full-coverage`, `human-decision-wait`, `higher-model-review`, and `lower-cost-delegated-scan`.
@@ -51,6 +52,8 @@ Choose these internally; do not ask the user to select them.
 - `NeedsExternalOperation`
 - `NeedsSecretInput`
 - `TooCostlyForCurrentPass`
+- `NeedsPlanBehaviorExpansion`
+- `ReplanRequired`
 - `ReadyButAwaitingHumanApproval`
 - `DelegationRequired`
 - `DelegationUnavailable`
@@ -81,3 +84,4 @@ The Codex custom agent TOML top-level `model` and `model_reasoning_effort` field
 ## Advanced route boundary
 
 Full-coverage 3-layer operation is an advanced route, not the default. Use it only when the work cannot be safely bounded inside the standard cost-router flow or when an experienced operator explicitly asks for broad parallelization.
+Do not use full-coverage for missing behavior expansion, missing Case-to-Plan mapping, or undecided expected behavior. Those stop in Plan gate as `NeedsPlanBehaviorExpansion` or `NeedsHumanDecision`.

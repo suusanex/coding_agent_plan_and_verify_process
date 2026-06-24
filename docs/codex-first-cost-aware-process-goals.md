@@ -267,6 +267,7 @@ Codex は、止まる必要があるときだけ止まる。
 
 - 通常 `STANDARD_MODEL`
 - broad / ambiguous / strongly interconnected / security / DB / auth / production wiring では `HIGH_MODEL`
+- ただし source requirement の behavior expansion や Case-to-Plan mapping が不足している曖昧さは risk triage / full-coverage へ送らず、Plan gate の `NeedsPlanBehaviorExpansion` または `NeedsHumanDecision` として扱う
 
 ### 7.4 Repository scan / evidence collection
 

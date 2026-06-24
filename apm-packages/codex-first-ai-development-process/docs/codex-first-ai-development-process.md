@@ -33,8 +33,8 @@
 | Gate | Main output | Default tier |
 | --- | --- | --- |
 | Intake | source of truth, current state, allowed-to-edit | `STANDARD_MODEL` |
-| Plan | bounded Plan or equivalent artifact | `HIGH_MODEL` |
-| Risk | risk class and advanced-route boundary | `STANDARD_MODEL` / `HIGH_MODEL` |
+| Plan | bounded Plan or equivalent artifact、behavior expansion decision、Case-to-Plan mapping、Plan readiness | `HIGH_MODEL` |
+| Risk | `ReadyForRiskTriage` 後の risk class and advanced-route boundary | `STANDARD_MODEL` / `HIGH_MODEL` |
 | Scan | summarized repo evidence | `CHEAP_MODEL` |
 | Contract | implementation approach and human decisions | `HIGH_MODEL` |
 | Implementation | READY scope edits delegated to `standard-implementer` | `STANDARD_MODEL` |
@@ -52,6 +52,7 @@ If the parent directly performs work that was expected to be delegated, the stat
 Close してよいのは、次が満たされるときだけ。
 
 - Plan の acceptance conditions に対応する evidence がある。
+- behavior expansion が必要な場合、Case IDs が Plan FR / AC または explicit disposition に mapping 済みである。
 - production implementation と wiring が確認済み、または manual-only として明示済み。
 - `ManualVerificationRequired` を残す場合は close ではなく human review 待ちにする。
 - `NeedsHumanDecision` と `NeedsHigherModelReview` は未解決のまま完了扱いしない。
@@ -82,7 +83,8 @@ Agent Usage Ledger では `configured_model`、`hook_model`、`reported_model`�
 ## Advanced route
 
 full-coverage 3層運用は advanced route である。
-scope が広すぎる、cross-slice contract が強い、標準 cost-router では安全に bounded 化できない、または熟練 operator が明示的に選ぶ場合だけ使う。
+`ReadyForRiskTriage` の Plan の scope が広すぎる、cross-slice contract が強い、標準 cost-router では安全に bounded 化できない、または熟練 operator が明示的に選ぶ場合だけ使う。
+要求展開不足、Case-to-Plan mapping 不足、期待動作の未決は full-coverage ではなく Plan gate の `NeedsPlanBehaviorExpansion` / `NeedsHumanDecision` として扱う。
 
 標準 user guide では full-coverage のプロンプト例を示さない。
 詳細は `advanced-full-coverage-3layer.md` に分離する。

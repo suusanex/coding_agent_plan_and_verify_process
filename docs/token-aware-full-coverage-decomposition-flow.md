@@ -8,7 +8,8 @@
 
 ## Policy
 
-- `full-coverage` means: the parent Plan is too broad / ambiguous / strongly interconnected to implement as one bounded pass.
+- `full-coverage` means: a `ReadyForRiskTriage` parent Plan is too broad or strongly interconnected to implement as one bounded pass.
+- `full-coverage` does not mean: missing behavior expansion, missing Case-to-Plan mapping, or undecided expected behavior. Those are Plan readiness failures and must return to `black-box-behavior-spec-kernel.agent.md`, `plan-kernel.agent.md`, or human decision.
 - `full-coverage` does not mean: run `plan-generation.agent.md`, `runtime-evidence.agent.md`, or `integration-test-design.agent.md`.
 - The next step is always `plan-slice-decomposition.agent.md`.
 - The broad autonomous flow remains available only as an explicit, separate process choice; it is not the default interpretation of `full-coverage` inside Plan網羅チェック triage.
@@ -25,6 +26,8 @@
 
 ```text
 Parent Plan Kernel
+→ Black-box Behavior Spec Kernel when Plan readiness requires it
+→ Parent Plan Kernel rerun for Case-to-Plan mapping when needed
 → Change Risk Triage
 → Plan Slice Decomposition
 → Per-slice Plan網羅チェック・残件判定フロー

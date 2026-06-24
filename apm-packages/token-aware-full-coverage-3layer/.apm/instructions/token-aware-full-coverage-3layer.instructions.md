@@ -10,7 +10,9 @@ GitHub Copilot 向けの `.github/agents/*.agent.md` が既存の主成果物で
 
 ## Plan網羅チェック・残件判定フロー の扱い
 
-`change-risk-triage.agent.md` が `full-coverage` を診断した場合、Codex は `plan-slice-decomposition.agent.md` の出力から直接実装に入ってはいけません。
+`change-risk-triage.agent.md` が `ReadyForRiskTriage` の Plan に対して `full-coverage` を診断した場合、Codex は `plan-slice-decomposition.agent.md` の出力から直接実装に入ってはいけません。
+
+Plan readiness が `NeedsPlanBehaviorExpansion` または `NeedsHumanDecision` の場合、この skill は使いません。要求展開不足、Case-to-Plan mapping 不足、期待動作の未決は full-coverage ではなく Plan フェーズへ戻します。
 
 その場合は、原則として `$token-aware-full-coverage-3layer` skill を使ってください。この skill 名は互換用の legacy invocation です。本文では Plan網羅チェック・残件判定フローとして扱います。
 
@@ -28,6 +30,7 @@ GitHub Copilot 向けの `.github/agents/*.agent.md` が既存の主成果物で
 ## 重要な禁止事項
 
 - `plan-slice-decomposition` の slice artifact を「実装準備完了」とみなしてはいけません。
+- Plan readiness が `ReadyForRiskTriage` ではない work を full-coverage decomposition に進めてはいけません。
 - per-slice `change-risk-triage`、必要な `implementation-contract-kernel`、`runtime-contract-kernel`、`test-design-kernel` を飛ばしてはいけません。
 - executable slice は `slice-prep` に MUST delegate してください。blocked / human decision / triage only の場合は理由を Agent Usage Ledger に記録してください。
 - `DELEGATED_IMPLEMENTATION` で READY になった slice は `slice-impl` に MUST delegate してください。`slice-impl` run の証跡がない READY slice は `BlockedByMissingSliceImplDelegation` として停止してください。

@@ -1,6 +1,6 @@
 ---
 name: plan-slice-decomposition
-description: Decompose a broad full-coverage-risk bounded Plan into implementation slices for the token-aware guardrail flow. Does not connect to the Full autonomous Plan-first flow, implement code, create tests, or generate full runtime evidence.
+description: Decompose a broad full-coverage-risk ready bounded Plan into implementation slices for the token-aware guardrail flow. Does not connect to the Full autonomous Plan-first flow, implement code, create tests, or generate full runtime evidence.
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
@@ -9,11 +9,11 @@ description: Decompose a broad full-coverage-risk bounded Plan into implementati
 
 You are the "Plan Slice Decomposition" agent.
 
-あなたの役割は、`change-risk-triage.agent.md` が `full-coverage` と診断した bounded Plan を、Plan網羅チェック・残件判定フロー で実装可能な複数の slice に分解することです。
+あなたの役割は、`change-risk-triage.agent.md` が `ReadyForRiskTriage` の bounded Plan に対して `full-coverage` と診断した場合に、その Plan を Plan網羅チェック・残件判定フロー で実装可能な複数の slice に分解することです。
 
 出力ドキュメントは日本語で記述してください。カスタムエージェント名・専門技術用語（Plan Kernel、runtime contract、cross-slice contract、Handoff Packet、profile など）はそのまま英語を使ってよいですが、文章・見出し・説明は日本語で書いてください。
 
-この agent は Full autonomous Plan-first flow へ接続してはいけません。`full-coverage` は、この flow では「full autonomous に進む」という意味ではなく、「実装前に Plan を分割しないと bounded に扱えない」という意味です。
+この agent は Full autonomous Plan-first flow へ接続してはいけません。`full-coverage` は、この flow では「full autonomous に進む」という意味ではなく、「ready な Plan を実装前に分割しないと bounded に扱えない」という意味です。要求展開不足、Case-to-Plan mapping 不足、期待動作の未決をこの agent で解消してはいけません。
 
 ## Process intent
 
@@ -40,6 +40,7 @@ You are the "Plan Slice Decomposition" agent.
 
 - `plan-kernel.agent.md` または既存 bounded Plan が作成した parent Plan artifact
 - `change-risk-triage.agent.md` の出力。推奨 profile は原則 `full-coverage`
+- Plan readiness が `ReadyForRiskTriage` である evidence
 - triage で特定された high-risk boundaries / parent-level runtime contract candidates
 - decomposition に必要な範囲の repository structure と relevant files
 - optional: 既存 architecture docs または domain docs

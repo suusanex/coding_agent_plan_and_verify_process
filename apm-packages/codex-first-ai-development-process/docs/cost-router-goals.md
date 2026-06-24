@@ -41,8 +41,8 @@ Users do not choose process names, agent names, model tiers, subagents, READY ga
 | Gate | Goal | Tier |
 | --- | --- | --- |
 | Intake | understand source, state, repo rules, and edit permission | `STANDARD_MODEL` / `HIGH_MODEL` |
-| Plan | produce bounded source of truth | `HIGH_MODEL` |
-| Risk | classify risk and advanced-route boundary | `STANDARD_MODEL` / `HIGH_MODEL` |
+| Plan | produce bounded source of truth, behavior expansion decision, Case-to-Plan mapping, and Plan readiness | `HIGH_MODEL` |
+| Risk | classify risk and advanced-route boundary after `ReadyForRiskTriage` | `STANDARD_MODEL` / `HIGH_MODEL` |
 | Scan | collect summarized evidence | `CHEAP_MODEL` |
 | Contract | decide implementation approach and human decisions | `HIGH_MODEL` |
 | Implementation | edit READY scope only through delegated owner | `STANDARD_MODEL` / `CHEAP_MODEL` |
@@ -60,7 +60,8 @@ This classification is not a user-facing menu; it is written into the state arti
 | `small-bounded` | One component, clear acceptance criteria, low production risk, local tests available | Standard route with READY gate; implementation delegated to `standard-implementer` when edits are non-trivial |
 | `medium-bounded` | Multiple files or tests, clear source of truth, manageable risk, no broad cross-slice contract | Standard route with bounded Plan, risk check, implementation contract if needed |
 | `high-risk-bounded` | Auth, security, DB, public API, production wiring, migration, async/event boundary, external SDK, or ambiguous compatibility policy | High model planning / risk / contract before READY; may stop with `NeedsHumanDecision` or `NeedsHigherModelReview` |
-| `broad-full-coverage-candidate` | Broad scope, strongly interconnected changes, multiple runtime sequences, cross-slice contracts, or previous sequence / production-binding gaps | Advanced full-coverage route candidate; do not start implementation before decomposition and parent review |
+| `needs-plan-behavior-expansion` | Source requirements have unexpanded cases, negative expectations, recovery / rollback / retry / replay / cleanup, state transitions, or unmapped Case IDs | Plan gate stop; run `black-box-behavior-spec-kernel` or rerun `plan-kernel`, not full-coverage |
+| `broad-full-coverage-candidate` | Ready Plan has broad scope, strongly interconnected changes, multiple runtime sequences, cross-slice contracts, or previous sequence / production-binding gaps | Advanced full-coverage route candidate; do not start implementation before decomposition and parent review |
 | `blocked-human-required` | Missing spec decision, missing secret, external service action, production/billing/GitHub settings change, or manual-only verification | Stop with the matching reason and do not implement |
 
 Classification axes:
@@ -77,7 +78,8 @@ Classification axes:
 | Route | Select when | Required output |
 | --- | --- | --- |
 | Normal standard route | Task is `small-bounded`, `medium-bounded`, or safely reducible to a bounded Plan | Routing Plan, Edit Permission, required artifacts, READY / close gates |
-| Advanced full-coverage route | Task is broad, ambiguous, strongly interconnected, or unsafe to bound as one implementation pass | Advanced-route note, decomposition next action, no READY implementation until slice readiness exists |
+| Plan behavior expansion route | Task is `needs-plan-behavior-expansion` or Plan readiness is not `ReadyForRiskTriage` because source-to-case expansion or Case-to-Plan mapping is missing | `NeedsPlanBehaviorExpansion`, behavior spec next action or Plan rerun, no risk/profile selection |
+| Advanced full-coverage route | Ready Plan is broad, strongly interconnected, or unsafe to bound as one implementation pass | Advanced-route note, decomposition next action, no READY implementation until slice readiness exists |
 | Human decision wait | Required behavior, scope, priority, rollout target, secret, external operation, or manual evidence owner is missing | `NeedsHumanDecision`, `NeedsSecretInput`, `NeedsExternalOperation`, or `ManualVerificationRequired` |
 | Higher-model review | Close risk, security/auth/DB/API/provider decision, or residual acceptance is too risky for current tier | `NeedsHigherModelReview` or selected high-agent review gate |
 | Lower-cost delegated scan | Evidence collection is read-heavy, docs consistency, or artifact format checking | `CHEAP_MODEL` route with expected cheap agent and Agent Usage Ledger placeholder |
@@ -87,6 +89,8 @@ READY implementation is only selected when the state has a bounded source of tru
 ## Safety requirements
 
 - No implementation without READY or an equivalent low-risk trivial-fix decision.
+- No risk/profile selection before `ReadyForRiskTriage`.
+- No full-coverage route for `NeedsPlanBehaviorExpansion`.
 - No parent-direct implementation when `DelegationRequired = Yes`, except recorded `ParentDirectExecutionException` with explicit human approval.
 - No READY implementation success without observed `standard-implementer` run or accepted exception.
 - No verification success without observed `standard-verifier` run or accepted exception.

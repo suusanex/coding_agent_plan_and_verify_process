@@ -14,7 +14,7 @@ Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
 
 ## 目的
 
-この skill は、Plan網羅チェック・残件判定フローで `change-risk-triage.agent.md` が `full-coverage` を診断し、`plan-slice-decomposition.agent.md` によって複数の slice が作成された後に使います。
+この skill は、Plan網羅チェック・残件判定フローで `ReadyForRiskTriage` の Plan に対して `change-risk-triage.agent.md` が `full-coverage` を診断し、`plan-slice-decomposition.agent.md` によって複数の slice が作成された後に使います。
 
 `token-aware-full-coverage-3layer` という skill 名と `$token-aware-full-coverage-3layer` の起動例は互換用の legacy invocation です。新しい作業では本文の概念を Plan網羅チェック・残件判定フロー、Guardrail Focus、Residual Decision Gate として扱ってください。
 
@@ -36,6 +36,7 @@ Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
 - 1つの bounded Plan を通常の Plan網羅チェック・残件判定フローで進めれば足りる
 - `fix-slice` だけの小さな既知 gap 修正である
 - Full autonomous Plan-first flow を明示的に選んでいる
+- Plan readiness が `NeedsPlanBehaviorExpansion` または `NeedsHumanDecision` であり、behavior spec / Case-to-Plan mapping / product semantics が未解決である
 - 人間が各 artifact を手作業で作成し、Codex には単発実装だけを依頼する
 
 ## 必須入力
@@ -43,6 +44,7 @@ Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
 親エージェントは、少なくとも次を source artifact として読む必要があります。
 
 - parent bounded Plan
+- Black-box Behavior Spec artifact（Expansion required: Yes の場合）
 - parent `change-risk-triage.agent.md` の出力
 - `plans/<ticket-or-slug>-slice-decomposition.md`
 - 各 executable slice artifact: `plans/<ticket-or-slug>-slice-SL-xxx.md`
