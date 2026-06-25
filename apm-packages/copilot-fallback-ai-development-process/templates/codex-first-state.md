@@ -9,6 +9,8 @@ expansion_required: Yes / No / Unknown
 behavior_spec_artifact:
 plan_readiness: ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision / Unknown
 case_to_plan_mapping_status: Complete / Incomplete / N/A / Unknown
+behavior_case_coverage_ledger_artifact:
+behavior_case_coverage_ledger_status: Complete / Incomplete / N/A / Unknown
 replan_required_items:
 - None
 current_gate:
@@ -28,6 +30,8 @@ allowed_stop_reasons:
 - NeedsExternalOperation
 - ReadyForCopilotImplementation
 - ReadyForCopilotVerification
+- ReadyForImplementationHandoffReview
+- BlockedByBehaviorCaseCoverageLedger
 - RoutingPolicyViolation
 
 ## Routing Plan
@@ -42,12 +46,14 @@ allowed_stop_reasons:
 - plan_readiness: ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision / Unknown
 - case_to_plan_mapping_status: Complete / Incomplete / N/A / Unknown
 - behavior_case_ids:
+- behavior_case_coverage_ledger_artifact:
+- behavior_case_coverage_ledger_status: Complete / Incomplete / N/A / Unknown
 - replan_required_items:
 
 ## Edit Permission
 
 - allowed_to_edit: Yes / No
-- edit_owner: black-box-behavior-spec-kernel / copilot-high-planner / copilot-risk-triage / copilot-standard-implementer / copilot-standard-verifier / copilot-cheap-repo-scanner / human / none
+- edit_owner: black-box-behavior-spec-kernel / implementation-handoff-review / copilot-high-planner / copilot-risk-triage / copilot-standard-implementer / copilot-standard-verifier / copilot-cheap-repo-scanner / human / none
 - allowed_paths:
 - forbidden_paths:
 - required_authorization_artifact:
@@ -68,6 +74,8 @@ operations_not_allowed_in_current_state:
 - Do not implement before READY.
 - Do not select risk/profile/full-coverage before plan_readiness = ReadyForRiskTriage.
 - Do not route requirement-elaboration gaps to full-coverage or fix-slice.
+- Do not route to copilot-standard-implementer before implementation-handoff-review or an explicitly equivalent pre-implementation gate creates the parent authorization artifact.
+- If expansion_required = Yes, do not route to copilot-standard-implementer until behavior_case_coverage_ledger_status = Complete.
 - Do not mark fake / stub / mock-only success as production success.
 - Do not perform secret, external service, billing, or production operations without explicit approval.
 - Do not close with unresolved ManualVerificationRequired, NeedsHumanDecision, or NeedsHigherModelReview.

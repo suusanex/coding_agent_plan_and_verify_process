@@ -37,6 +37,7 @@
 | Risk | `ReadyForRiskTriage` 後の risk class and advanced-route boundary | `STANDARD_MODEL` / `HIGH_MODEL` |
 | Scan | summarized repo evidence | `CHEAP_MODEL` |
 | Contract | implementation approach and human decisions | `HIGH_MODEL` |
+| Implementation handoff review | parent authorization artifact, Parent Plan Coverage Ledger, and Behavior Case Coverage Ledger when required | `HIGH_MODEL` / `STANDARD_MODEL` |
 | Implementation | READY scope edits delegated to `standard-implementer` | `STANDARD_MODEL` |
 | Verification | evidence and manual-only checks delegated to `standard-verifier` | `STANDARD_MODEL` |
 | Close | residual and close decision | `STANDARD_MODEL` / `HIGH_MODEL` |
@@ -46,6 +47,7 @@ They do not own final implementation permission or close decisions.
 
 write-heavy parallel editing is not the default. That is separate from delegation: READY implementation is serial delegated work owned by `standard-implementer`, and the parent does not implement it directly unless a recorded `ParentDirectExecutionException` has explicit human approval.
 If the parent directly performs work that was expected to be delegated, the state records `PARENT_DIRECT_WORK` or `TRIVIAL_PARENT_FIX` and does not count it as cost-saving delegation.
+Before normal READY implementation, `implementation-handoff-review` or an explicitly equivalent pre-implementation gate must create the parent authorization artifact. When behavior expansion is required, the state must record `behavior_case_coverage_ledger_status = Complete` before `standard-implementer` can start.
 
 ## Close rules
 
@@ -69,7 +71,7 @@ Close してよいのは、次が満たされるときだけ。
 plans/<slug>/codex-first-state.md
 ```
 
-この artifact は、`task_weight`、`selected_process`、`current_gate`、`next_gate`、`recommended_model_tier`、`model_tier_recommendation`、`execution_mode`、Routing Plan、Agent / Subagent Plan、Edit Permission、`delegation_required`、`required_artifacts`、Stop / Ready Gate、Agent Usage Ledger、DelegationCompliance、`stop_reason`、`human_required_items`、`unresolved_residuals`、`next_action` を持つ。
+この artifact は、`task_weight`、`selected_process`、`current_gate`、`next_gate`、`recommended_model_tier`、`model_tier_recommendation`、`execution_mode`、`behavior_case_coverage_ledger_artifact`、`behavior_case_coverage_ledger_status`、Routing Plan、Agent / Subagent Plan、Edit Permission、`delegation_required`、`required_artifacts`、Stop / Ready Gate、Agent Usage Ledger、DelegationCompliance、`stop_reason`、`human_required_items`、`unresolved_residuals`、`next_action` を持つ。
 Agent Usage Ledger では `configured_model`、`hook_model`、`reported_model`、`effective_model` を混ぜない。
 ユーザーが「続きやって」と依頼したら、まずこの artifact を読む。
 

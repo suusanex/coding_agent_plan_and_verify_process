@@ -176,6 +176,7 @@ full-coverage 3層運用は advanced route である。
 - user guide が process 名、agent 名、model tier、full-coverage 分岐を利用者へ要求していない。
 - `codex-first-cost-router` が state artifact、model tier、READY、close 不可条件を定義している。
 - Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance が template / skill / docs に揃っている。
+- implementation-handoff-review が standard implementation 前の parent authorization と Behavior Case Coverage Ledger gate として定義されている。
 - READY implementation は `standard-implementer`、READY verification は `standard-verifier` への serial delegation として定義されている。
 - close gate が delegation evidence missing を成功扱いしない。
 - `profiles/codex-first/agents/*.toml` に `model` と `model_reasoning_effort` の実行可能な初期値がある。

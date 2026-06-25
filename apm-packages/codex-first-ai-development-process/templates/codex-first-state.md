@@ -9,6 +9,8 @@ expansion_required: Yes / No / Unknown
 behavior_spec_artifact:
 plan_readiness: ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision / Unknown
 case_to_plan_mapping_status: Complete / Incomplete / N/A / Unknown
+behavior_case_coverage_ledger_artifact:
+behavior_case_coverage_ledger_status: Complete / Incomplete / N/A / Unknown
 replan_required_items:
 - None
 current_gate:
@@ -54,6 +56,8 @@ allowed_stop_reasons:
 - BlockedByMissingDelegationLedger
 - ReadyForDelegatedImplementation
 - ReadyForDelegatedVerification
+- ReadyForImplementationHandoffReview
+- BlockedByBehaviorCaseCoverageLedger
 
 ## Routing Plan
 
@@ -73,6 +77,8 @@ allowed_stop_reasons:
 - plan_readiness: ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision / Unknown
 - case_to_plan_mapping_status: Complete / Incomplete / N/A / Unknown
 - behavior_case_ids:
+- behavior_case_coverage_ledger_artifact:
+- behavior_case_coverage_ledger_status: Complete / Incomplete / N/A / Unknown
 - replan_required_items:
 
 ## Execution Mode
@@ -86,7 +92,7 @@ allowed_stop_reasons:
 ## Edit Permission
 
 - allowed_to_edit: Yes / No
-- edit_owner: parent / standard-implementer / standard-verifier / high-planner / black-box-behavior-spec-kernel / high-implementation-contract / high-risk-triage / high-closure-reviewer / cheap-repo-scanner / cheap-doc-consistency / cheap-artifact-format-checker / human / none
+- edit_owner: parent / standard-implementer / standard-verifier / high-planner / black-box-behavior-spec-kernel / implementation-handoff-review / high-implementation-contract / high-risk-triage / high-closure-reviewer / cheap-repo-scanner / cheap-doc-consistency / cheap-artifact-format-checker / human / none
 - parent_direct_edit_allowed: Yes / No
 - allowed_paths:
 - forbidden_paths:
@@ -116,6 +122,8 @@ operations_not_allowed_in_current_state:
 - Do not implement before READY.
 - Do not select risk/profile/full-coverage before plan_readiness = ReadyForRiskTriage.
 - Do not route requirement-elaboration gaps to full-coverage or fix-slice.
+- Do not route to standard-implementer before implementation-handoff-review or an explicitly equivalent pre-implementation gate creates the parent authorization artifact.
+- If expansion_required = Yes, do not route to standard-implementer until behavior_case_coverage_ledger_status = Complete.
 - Do not parent-direct execute a gate with DelegationRequired = Yes unless ParentDirectExecutionException has explicit human approval.
 - Do not mark implementation complete without observed standard-implementer run or accepted exception.
 - Do not mark verification complete without observed standard-verifier run or accepted exception.

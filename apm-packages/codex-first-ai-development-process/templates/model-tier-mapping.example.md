@@ -17,5 +17,7 @@ The matching runnable examples live in `profiles/codex-first/agents/*.toml`.
 - `HIGH_MODEL` is reserved for hard planning, risk, implementation contract, and dangerous close judgment.
 - `STANDARD_MODEL` is lower cost than `HIGH_MODEL`, or explicitly accepted as `same-model-lower-effort`.
 - `CHEAP_MODEL` is suitable for read-heavy scan, docs consistency, artifact format check, and simple local fixes.
+- Implementation handoff review creates the parent authorization artifact before standard implementation.
+- When behavior expansion is required, the Behavior Case Coverage Ledger is Complete before standard implementation.
 - READY implementation delegates to `standard-implementer`.
 - READY verification delegates to `standard-verifier`.

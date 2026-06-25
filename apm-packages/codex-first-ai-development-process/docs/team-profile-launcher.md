@@ -21,6 +21,7 @@ CODEX_HOME/
     high-planner.toml
     black-box-behavior-spec-kernel.toml
     high-risk-triage.toml
+    implementation-handoff-review.toml
     high-implementation-contract.toml
     high-closure-reviewer.toml
     standard-implementer.toml

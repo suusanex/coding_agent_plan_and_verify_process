@@ -26,6 +26,8 @@ Users do not choose process names, agent names, model tiers, subagents, READY ga
 - Write Routing Plan, Edit Permission, Agent Usage Ledger, and DelegationCompliance.
 - Record execution_mode and separate abstract model tier from configured, hook observed, reported, and effective model fields.
 - Delegate bounded read-heavy work when required by the Routing Plan.
+- Require `implementation-handoff-review` or an explicitly equivalent pre-implementation gate before normal READY implementation.
+- Require `Behavior Case Coverage Ledger` status `Complete` before implementation when behavior expansion is required.
 - MUST delegate normal READY implementation to `standard-implementer`.
 - MUST delegate normal READY verification to `standard-verifier`.
 - Prevent implementation before READY.
@@ -45,6 +47,7 @@ Users do not choose process names, agent names, model tiers, subagents, READY ga
 | Risk | classify risk and advanced-route boundary after `ReadyForRiskTriage` | `STANDARD_MODEL` / `HIGH_MODEL` |
 | Scan | collect summarized evidence | `CHEAP_MODEL` |
 | Contract | decide implementation approach and human decisions | `HIGH_MODEL` |
+| Implementation handoff review | create parent authorization and coverage ledgers before implementation | `HIGH_MODEL` / `STANDARD_MODEL` |
 | Implementation | edit READY scope only through delegated owner | `STANDARD_MODEL` / `CHEAP_MODEL` |
 | Verification | map evidence to acceptance criteria through delegated owner | `STANDARD_MODEL` |
 | Close | decide residuals and closure | `STANDARD_MODEL` / `HIGH_MODEL` |
@@ -84,13 +87,15 @@ Classification axes:
 | Higher-model review | Close risk, security/auth/DB/API/provider decision, or residual acceptance is too risky for current tier | `NeedsHigherModelReview` or selected high-agent review gate |
 | Lower-cost delegated scan | Evidence collection is read-heavy, docs consistency, or artifact format checking | `CHEAP_MODEL` route with expected cheap agent and Agent Usage Ledger placeholder |
 
-READY implementation is only selected when the state has a bounded source of truth, edit owner, allowed paths, required artifacts, and no unresolved stop reason.
+READY implementation is only selected when the state has a bounded source of truth, implementation-handoff-review parent authorization artifact, edit owner, allowed paths, required artifacts, and no unresolved stop reason. If `Expansion required = Yes`, `behavior_case_coverage_ledger_status` must be `Complete`.
 
 ## Safety requirements
 
 - No implementation without READY or an equivalent low-risk trivial-fix decision.
 - No risk/profile selection before `ReadyForRiskTriage`.
 - No full-coverage route for `NeedsPlanBehaviorExpansion`.
+- No standard implementation before implementation-handoff-review or an explicitly equivalent pre-implementation gate.
+- No standard implementation with `Expansion required = Yes` unless `Behavior Case Coverage Ledger` is `Complete`.
 - No parent-direct implementation when `DelegationRequired = Yes`, except recorded `ParentDirectExecutionException` with explicit human approval.
 - No READY implementation success without observed `standard-implementer` run or accepted exception.
 - No verification success without observed `standard-verifier` run or accepted exception.

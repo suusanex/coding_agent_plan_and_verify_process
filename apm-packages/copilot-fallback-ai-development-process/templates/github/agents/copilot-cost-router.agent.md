@@ -17,9 +17,13 @@ handoffs:
     agent: copilot-risk-triage
     prompt: Classify risk and decide whether the standard route can safely continue.
     model: GPT-5.5 (copilot)
+  - label: Review implementation handoff
+    agent: implementation-handoff-review
+    prompt: Create the pre-implementation parent authorization artifact and required coverage ledgers before implementation.
+    model: GPT-5.5 (copilot)
   - label: Implement READY scope
     agent: copilot-standard-implementer
-    prompt: Implement only the READY scope recorded in the state artifact.
+    prompt: Implement only after implementation-handoff-review authorizes the READY scope in the state artifact.
     model: GPT-5.5 (copilot)
   - label: Verify and close
     agent: copilot-standard-verifier
@@ -35,12 +39,15 @@ Accept ordinary requests such as "この issue を進めて", "このバグを�
 
 - Read repo-local instructions and existing artifacts first.
 - Locate or create `plans/<slug>/codex-first-state.md` for non-trivial work.
-- Select the next gate: Intake, Plan, Risk, Scan, Contract, Implementation, Verification, or Close.
+- Select the next gate: Intake, Plan, Risk, Scan, Contract, Implementation handoff review, Implementation, Verification, or Close.
 - Assign `COPILOT_HIGH_MODEL`, `COPILOT_STANDARD_MODEL`, or `COPILOT_CHEAP_MODEL`.
 - Record `Expansion required`, `behavior spec artifact`, `Case-to-Plan mapping`, and `Plan readiness`.
 - If Plan readiness is `NeedsPlanBehaviorExpansion`, route to behavior expansion or Plan rerun and do not select risk/profile/full-coverage.
 - If Plan readiness is `NeedsHumanDecision`, stop for human decision.
 - Select Risk only after `Plan readiness = ReadyForRiskTriage`.
+- Before `copilot-standard-implementer`, route to `implementation-handoff-review` or an explicitly equivalent pre-implementation gate.
+- Record `behavior_case_coverage_ledger_artifact` and `behavior_case_coverage_ledger_status` in the state artifact.
+- If `Expansion required = Yes`, do not hand off to `copilot-standard-implementer` until `behavior_case_coverage_ledger_status = Complete`.
 - Update Routing Plan, Edit Permission, Agent Usage Ledger, `stop_reason`, and `next_action`.
 - Handoff to the specialized Copilot agent when needed.
 - Do not implement before READY.

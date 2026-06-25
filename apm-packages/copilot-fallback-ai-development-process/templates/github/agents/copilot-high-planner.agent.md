@@ -13,9 +13,9 @@ handoffs:
     agent: copilot-risk-triage
     prompt: Triage the bounded Plan for risk and route readiness.
     model: GPT-5.5 (copilot)
-  - label: Implement if READY
-    agent: copilot-standard-implementer
-    prompt: Implement only if the state artifact marks the scope READY.
+  - label: Review implementation handoff
+    agent: implementation-handoff-review
+    prompt: Create the pre-implementation parent authorization artifact and required coverage ledgers before implementation.
     model: GPT-5.5 (copilot)
 ---
 
@@ -30,5 +30,7 @@ Set Plan readiness to `ReadyForRiskTriage` only when source requirements are exp
 If source-to-case expansion or Case-to-Plan mapping is missing, stop with `NeedsPlanBehaviorExpansion` and route to `black-box-behavior-spec-kernel` or a Plan rerun. If expected behavior or negative expectation is undecidable, stop with `NeedsHumanDecision`.
 
 Do not route requirement-elaboration gaps to full-coverage or implementation.
+
+When Plan readiness is `ReadyForRiskTriage`, later standard implementation still requires `implementation-handoff-review` before `copilot-standard-implementer`. If `Expansion required = Yes`, the state artifact must record `behavior_case_coverage_ledger_status = Complete` before implementation starts.
 
 If scope or acceptance criteria cannot be safely inferred, stop with `NeedsHumanDecision`.

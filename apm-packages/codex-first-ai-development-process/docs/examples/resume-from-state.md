@@ -18,7 +18,7 @@
 
 ```text
 current_gate: Contract
-next_gate: Implementation
+next_gate: Implementation handoff review
 recommended_model_tier: STANDARD_MODEL
 allowed_to_edit: No
 edit_owner: none

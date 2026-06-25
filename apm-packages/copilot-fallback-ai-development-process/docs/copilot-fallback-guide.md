@@ -22,12 +22,13 @@ router は process 名、agent 名、model tier、full-coverage 分岐を利用�
 
 1. repo-local instructions と既存 artifact を読む
 2. `plans/<slug>/codex-first-state.md` を読む、または作る
-3. Intake / Plan / Risk / Scan / Contract / Implementation / Verification / Close の next gate を選ぶ
+3. Intake / Plan / Risk / Scan / Contract / Implementation handoff review / Implementation / Verification / Close の next gate を選ぶ
 4. `COPILOT_HIGH_MODEL` / `COPILOT_STANDARD_MODEL` / `COPILOT_CHEAP_MODEL` を割り当てる
 5. Plan gate で behavior expansion decision と Plan readiness を記録し、`NeedsPlanBehaviorExpansion` なら risk / full-coverage へ進めない
-6. READY でなければ実装しない
-7. close 不可なら close しない
-8. 必要最小限の human input だけを返す
+6. implementation-handoff-review または明示的に同等の gate で parent authorization artifact を作るまで実装しない
+7. `Expansion required: Yes` の場合は Behavior Case Coverage Ledger が `Complete` になるまで実装しない
+8. close 不可なら close しない
+9. 必要最小限の human input だけを返す
 
 ## State artifact
 

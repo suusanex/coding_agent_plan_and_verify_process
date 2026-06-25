@@ -44,6 +44,7 @@ stop_reason: None
 | Intake | STANDARD_MODEL | No | parent | parent | Yes | Blocked |
 | Plan | STANDARD_MODEL | No | parent or high-planner | parent | Yes | NeedsHumanDecision |
 | Risk | STANDARD_MODEL | No | parent or high-risk-triage | parent | Yes | NeedsHigherModelReview |
+| Implementation handoff review | HIGH_MODEL / STANDARD_MODEL | No | implementation-handoff-review | implementation-handoff-review | Yes | ReadyForImplementationHandoffReview |
 | Implementation | STANDARD_MODEL | Yes | standard-implementer | standard-implementer | No | ReadyForDelegatedImplementation |
 | Verification | STANDARD_MODEL | Yes | standard-verifier | standard-verifier | No | ReadyForDelegatedVerification |
 | Close | STANDARD_MODEL | No | parent or high-closure-reviewer | parent | Yes | NeedsHigherModelReview |
@@ -53,7 +54,8 @@ stop_reason: None
 | Gate | Selected agent or subagent | Model tier recommendation | DelegationRequired | Required artifacts | Stop / Ready Gate |
 | --- | --- | --- | --- | --- | --- |
 | Plan | parent or high-planner | STANDARD_MODEL / HIGH_MODEL if ambiguity appears | No | Issue body, repo rules, state artifact | Ready when bounded Plan defines acceptance and non-goals |
-| Implementation | standard-implementer | STANDARD_MODEL | Yes | Bounded Plan, risk result, Edit Permission | Stop with ReadyForDelegatedImplementation until observed delegated run exists |
+| Implementation handoff review | implementation-handoff-review | HIGH_MODEL / STANDARD_MODEL | No | Bounded Plan, risk result, state artifact | Stop with ReadyForImplementationHandoffReview until parent authorization artifact exists |
+| Implementation | standard-implementer | STANDARD_MODEL | Yes | Bounded Plan, risk result, implementation-handoff-review artifact, Edit Permission | Stop with ReadyForDelegatedImplementation until observed delegated run exists |
 | Verification | standard-verifier | STANDARD_MODEL | Yes | Implementation result, local test command, acceptance mapping | Stop with ReadyForDelegatedVerification until observed delegated run exists |
 
 ## Edit Permission
@@ -67,11 +69,26 @@ stop_reason: None
   - Production, secret, billing, external service, or GitHub settings changes
 - required_authorization_artifact:
   - Bounded Plan with READY implementation scope
+  - implementation-handoff-review artifact before standard implementation
 ```
 
 ## Expected READY transition
 
-After the Plan and risk gates confirm the scope, the state may move to:
+After the Plan and risk gates confirm the scope, the state first moves to:
+
+```md
+current_gate: Implementation handoff review
+next_gate: Implementation
+selected_process: normal
+recommended_model_tier: HIGH_MODEL / STANDARD_MODEL
+execution_mode: ROUTE_ONLY
+selected_agent_name: implementation-handoff-review
+allowed_to_edit: No
+delegation_required: No
+stop_reason: ReadyForImplementationHandoffReview
+```
+
+After the handoff review creates the parent authorization artifact, the state may move to:
 
 ```md
 current_gate: Implementation

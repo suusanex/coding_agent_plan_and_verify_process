@@ -144,11 +144,12 @@ full-coverage 3層運用は advanced route として分離されています。
 ### 内部 routing
 
 1. `codex-first-cost-router` が依頼と既存 state を読む
-2. Intake / Plan / Risk / Scan / Contract / Implementation / Verification / Close のうち次 gate を選ぶ
+2. Intake / Plan / Risk / Scan / Contract / Implementation handoff review / Implementation / Verification / Close のうち次 gate を選ぶ
 3. gate ごとに `HIGH_MODEL` / `STANDARD_MODEL` / `CHEAP_MODEL` と agent / subagent を割り当て、Routing Plan / Edit Permission / Agent Usage Ledger を state artifact に記録する
 4. READY でない場合は実装せず、state artifact と stop reason を更新する
-5. READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する
-6. close 可否、residual、DelegationCompliance を state artifact に戻す
+5. 実装前に `implementation-handoff-review` または明示的に同等の gate で parent authorization artifact を作る
+6. READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する
+7. close 可否、residual、DelegationCompliance を state artifact に戻す
 
 Codex-first routing は「軽い処理」と「Plan網羅チェック・残件判定フロー」の二択ではありません。
 実際には `task_weight` / `selected_process` / `execution_mode` の 3 軸で分岐します。
@@ -201,6 +202,7 @@ $codex-first-cost-router を使って、続きやって。
 - `codex-first-cost-router` skill の振る舞いで、source of truth、repo rules、既存 artifact、state artifact を確認する。
 - 非自明な作業では `plans/<slug>/codex-first-state.md` を作成または更新する。
 - state artifact には Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance を記録する。
+- 実装前に `implementation-handoff-review` または明示的に同等の gate で parent authorization artifact を作成し、`Expansion required: Yes` の場合は Behavior Case Coverage Ledger が complete になるまで `standard-implementer` へ渡さない。
 - READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する。
 - `DelegationRequired = Yes` の gate は observed run または explicit human approval 付き `ParentDirectExecutionException` がない限り成功扱いしない。
 - write-heavy parallel editing を標準化しないことは、親が直接実装してよいことを意味しない。
@@ -305,7 +307,7 @@ dotnet run --file .\apm-packages\copilot-fallback-ai-development-process\scripts
 /fix-selected-residual RES-001
 ```
 
-`copilot-cost-router` は repo-local instructions と既存 artifact を読み、必要なら `plans/<slug>/codex-first-state.md` を作成または更新します。ユーザーに process 名、agent 名、model tier、full-coverage 判断を要求せず、Intake / Plan / Risk / Scan / Contract / Implementation / Verification / Close の次 gate を選びます。
+`copilot-cost-router` は repo-local instructions と既存 artifact を読み、必要なら `plans/<slug>/codex-first-state.md` を作成または更新します。ユーザーに process 名、agent 名、model tier、full-coverage 判断を要求せず、Intake / Plan / Risk / Scan / Contract / Implementation handoff review / Implementation / Verification / Close の次 gate を選びます。
 
 ### モデル tier
 

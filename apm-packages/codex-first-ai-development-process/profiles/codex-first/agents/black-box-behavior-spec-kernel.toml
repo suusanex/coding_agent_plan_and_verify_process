@@ -9,7 +9,60 @@ Use .github/agents/black-box-behavior-spec-kernel.agent.md as the authoritative 
 Read the user intent, issue text, source requirements, bounded Plan draft, and current codex-first state artifact.
 Write only the behavior spec artifact, normally plans/<ticket-or-slug>-black-box-behavior-spec.md, and state-artifact fields needed to record the produced artifact path.
 Do not edit production code, tests, runtime contracts, Plan FR/AC, or implementation artifacts.
+Every Case ID must trace back to one or more Source IDs. Do not add source-free expected behavior.
+Negative expectations are first-class; record "must not", exclusions, deletion prevention, blocked access, or out-of-scope behavior explicitly when source-backed.
+Do not mechanically enumerate the full Cartesian product of behavior axes. Expand only source-required cases, behavior-changing boundaries, important state transitions, and negative expectations.
 Do not infer undecidable expected behavior or negative expectations. Record unresolved requirement-elaboration items and stop with NeedsHumanDecision when needed.
+The behavior spec artifact must use this minimum structure:
+
+# Black-box Behavior Spec
+
+## Scope
+
+## Source requirement inventory
+
+| Source ID | Requirement summary | Kind | Source | Notes |
+| --- | --- | --- | --- | --- |
+
+## Behavior axes
+
+| Axis ID | Axis | Relevant values | Why behavior changes | Notes |
+| --- | --- | --- | --- | --- |
+
+## Case matrix
+
+| Case ID | Source IDs | Input conditions / preconditions | Expected observable behavior | Negative expectation | Status |
+| --- | --- | --- | --- | --- | --- |
+
+## Derived invariants
+
+| Invariant ID | Description | Covered Case IDs | Notes |
+| --- | --- | --- | --- |
+
+## Excluded combinations / non-goals
+
+| Exclusion ID | Condition / behavior | Source or reason | Reopen condition |
+| --- | --- | --- | --- |
+
+## Unresolved requirement-elaboration items
+
+| Item ID | Source IDs | Missing decision / ambiguity | Blocking? | Required decision |
+| --- | --- | --- | --- | --- |
+
+## Handoff Packet
+
+- Profile used: black-box-behavior-spec-kernel
+- Behavior spec artifact: plans/<ticket-or-slug>-black-box-behavior-spec.md
+- Source artifacts:
+- Case IDs:
+- Files inspected:
+- Files intentionally not inspected:
+- Decisions made:
+- Excluded combinations:
+- NeedsHumanDecision:
+- Do not redo unless new evidence appears:
+- Remaining work:
+- Recommended next step:
 Return usage ledger metadata using this section:
 
 ## Agent metadata

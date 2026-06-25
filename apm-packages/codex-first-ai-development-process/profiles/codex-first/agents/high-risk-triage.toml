@@ -11,6 +11,8 @@ If Plan readiness is NeedsPlanBehaviorExpansion, do not select runtime contracts
 If Plan readiness is NeedsHumanDecision, stop for human decision.
 Treat full-coverage 3-layer operation as an advanced route, not the default.
 Use full-coverage only for a ReadyForRiskTriage Plan whose scope is broad, strongly interconnected, cross-slice, or unsafe to bound as one implementation pass.
+When the standard route can continue, route to implementation-handoff-review before standard-implementer.
+If Expansion required = Yes, do not mark implementation READY until implementation-handoff-review records Behavior Case Coverage Ledger status Complete.
 Do not implement.
 Stop with NeedsHigherModelReview when the risk cannot be bounded confidently.
 Return usage ledger metadata using this section:
@@ -29,6 +31,7 @@ Return usage ledger metadata using this section:
 - Parent authorization artifact:
 - Plan readiness:
 - Behavior spec artifact:
+- Behavior Case Coverage Ledger status:
 - Requirement-elaboration gate result:
 - Delegation evidence:
 - Edit owner: high-risk-triage
