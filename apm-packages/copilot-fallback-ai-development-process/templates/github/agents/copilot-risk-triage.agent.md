@@ -15,7 +15,7 @@ handoffs:
     model: GPT-5.5 (copilot)
   - label: Review implementation handoff
     agent: implementation-handoff-review
-    prompt: Create the pre-implementation parent authorization artifact and coverage ledgers before implementation.
+    prompt: Create the pre-implementation parent authorization artifact and coverage ledgers before implementation. If no Guardrail Focus or selected runtime contracts exist, treat runtime-contract-kernel and test-design-kernel as N/A.
     model: GPT-5.5 (copilot)
 ---
 
@@ -31,6 +31,6 @@ If Plan readiness is `NeedsHumanDecision`, stop for human decision.
 
 High-risk work should use `COPILOT_HIGH_MODEL` for planning or close judgment. The standard route may continue only when the work is bounded and READY can be established.
 
-When the standard route can continue, route to `implementation-handoff-review` before `copilot-standard-implementer`. If `Expansion required = Yes`, implementation is not READY until the handoff review records `Behavior Case Coverage Ledger` status `Complete`.
+When the standard route can continue, route to `implementation-handoff-review` before `copilot-standard-implementer`. If no Guardrail Focus or selected runtime contracts are required, the handoff review should record runtime-contract-kernel and test-design-kernel as `N/A` rather than blocking for missing artifacts. If `Expansion required = Yes`, implementation is not READY until the handoff review records `Behavior Case Coverage Ledger` status `Complete`.
 
 If full-coverage 3層運用 appears necessary for a ReadyForRiskTriage Plan, mark it as an advanced route requiring human or skilled operator decision. Do not make it the beginner standard route. Do not use full-coverage for missing behavior expansion, missing Case-to-Plan mapping, or undecided expected behavior.

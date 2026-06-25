@@ -28,6 +28,7 @@ Use `copilot-cost-router` as the default route for ordinary development requests
 - Use `copilot-risk-triage` for high-risk classification.
 - If Plan readiness is `NeedsPlanBehaviorExpansion`, route to behavior expansion / Plan rerun and do not select full-coverage.
 - Use `implementation-handoff-review` or an explicitly equivalent pre-implementation gate before `copilot-standard-implementer`.
+- When no Guardrail Focus or selected runtime contracts exist, handoff review records runtime-contract-kernel and test-design-kernel as `N/A` instead of blocking for missing artifacts.
 - If `Expansion required = Yes`, use `copilot-standard-implementer` only after `behavior_case_coverage_ledger_status = Complete`.
 - Use `copilot-standard-implementer` only after READY and pre-implementation handoff authorization.
 - Use `copilot-standard-verifier` after implementation.

@@ -17,7 +17,7 @@ You are the "Implementation Handoff Review" agent.
 
 ## Process intent
 
-この agent は、Plan網羅チェック・残件判定フロー で `test-design-kernel.agent.md` の直後、実装の直前に置く **mandatory pre-implementation review gate** です。
+この agent は、Plan網羅チェック・残件判定フロー では `test-design-kernel.agent.md` の直後、Codex-first / Copilot fallback の標準 route では risk / contract gate の後、実装の直前に置く **mandatory pre-implementation review gate** です。
 Plan網羅チェック・残件判定フロー では省略してはいけません。省略が許されるのは、caller が明示的に別の human-led process を選び、Parent Plan Coverage Ledger と readiness scope を別の gate で確実に作成する場合だけです。
 
 ```text
@@ -25,8 +25,8 @@ plan-kernel
   -> change-risk-triage
   -> implementation-contract-kernel (when implementation-realization risk is present)
   -> implementation-contract-review-kernel (when present)
-  -> runtime-contract-kernel
-  -> test-design-kernel
+  -> runtime-contract-kernel (when Guardrail Focus / selected runtime contracts exist)
+  -> test-design-kernel (when Guardrail Focus / selected runtime contracts exist)
   -> ★ implementation-handoff-review  ← この agent
   -> implementation-execution / human implementation
   -> (optional) code-review-focus-kernel
@@ -35,7 +35,7 @@ plan-kernel
 ```
 
 目的は「実装者が安全に実装を開始できる状態か」を確認することです。長い指摘リストを作ることではありません。
-この agent は Plan網羅チェック・残件判定フロー の実装前 gate として、Plan → Guardrail Focus runtime contract → test point → production binding requirement の接続を軽量に点検します。
+この agent は Plan網羅チェック・残件判定フロー の実装前 gate として、Guardrail Focus がある場合は Plan → Guardrail Focus runtime contract → test point → production binding requirement の接続を軽量に点検します。Guardrail Focus がない標準 route では、runtime-contract-kernel / test-design-kernel を `N/A` として扱い、Parent Plan Coverage Ledger と必要な Behavior Case Coverage Ledger を作成して bounded parent Plan pass の実装可否を判定します。
 
 この agent の verdict は、必ず **何に対して ready なのか** を明示します。
 
@@ -63,6 +63,7 @@ Guardrail Focus coverage の guardrail chain が整っていても、parent Plan
 - **Short list, not long critique**: blocking issue は本当に実装前に危険な場合だけ。non-blocking notes は軽微な改善候補に限定する。長い指摘リストを作ってはいけない。
 - **No fixes**: artifacts を修正してはいけない。問題を記録して verdict を出し、修正は元の agent または実装者に委ねる。
 - **No implementation**: code を書いてはいけない。tests を作成してはいけない。
+- **No-Guardrail-Focus standard route**: change-risk-triage が selected runtime contracts / Guardrail Focus を要求していない標準 route では、runtime-contract-kernel と test-design-kernel は必須ではありません。この場合、Check 2〜6 は `N/A (no Guardrail Focus)` として扱い、missing runtime/test artifacts だけを理由に BLOCKED にしてはいけません。
 - **Slice decomposition aware**: full-coverage decomposition 由来の slice では、Plan → Slice → RC / TP → XC の接続を確認する。cross-slice contract を slice 内で完了扱いしている handoff は blocking として扱う。
 - **Parent Plan Coverage Ledger required**: Plan の FR / AC を Guardrail Focus RC / TP / slice / cross-slice contract / deferred residual / out-of-scope のいずれかへ分類する。Guardrail Focus coverage に含まれなかった parent Plan item を黙って落としてはいけない。
 - **Behavior Case Coverage Ledger conditional required**: Plan の `Expansion required: Yes` の場合は、Black-box Behavior Spec artifact を条件付き必須入力とし、relevant Case IDs をすべて Behavior Case Coverage Ledger に記録する。Guardrail Focus readiness を Behavior Case / parent Plan readiness の代替にしてはいけない。
@@ -89,17 +90,17 @@ Guardrail Focus coverage の guardrail chain が整っていても、parent Plan
 
 ## Runtime inputs
 
-次の artifacts を読んでください。base artifacts は必須です。存在しない artifact がある場合は `BLOCKED` を出力し、missing artifact を記録して停止してください。
+次の artifacts を読んでください。必須 base artifacts が存在しない場合は `BLOCKED` を出力し、missing artifact を記録して停止してください。
 
 必須 base artifacts:
 
 1. Plan Kernel（`plans/<ticket-or-slug>.md`）
 2. Change Risk Triage output（`plans/<ticket-or-slug>-change-risk-triage.md`）
-3. Runtime Contract Kernel（`plans/<ticket-or-slug>-runtime-contract-kernel.md`）
-4. Test Design Kernel（`plans/<ticket-or-slug>-test-design-kernel.md`）
 
 条件付き artifacts:
 
+3. Runtime Contract Kernel（`plans/<ticket-or-slug>-runtime-contract-kernel.md`）— change-risk-triage が selected runtime contracts / Guardrail Focus を要求する場合は必須。Guardrail Focus がない標準 route では `N/A`
+4. Test Design Kernel（`plans/<ticket-or-slug>-test-design-kernel.md`）— Runtime Contract Kernel が必須の場合は必須。Guardrail Focus がない標準 route では `N/A`
 5. Implementation Contract Kernel（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）— `change-risk-triage` の `Implementation realization risk` が `Present` / `Unclear` の場合は必須
 6. Implementation Contract Review Kernel（`plans/<ticket-or-slug>-implementation-contract-review-kernel.md`）— 存在する場合は必ず読む
 7. Plan Slice Decomposition artifact（`plans/<ticket-or-slug>-slice-decomposition.md`）— full-coverage decomposition 由来の slice をレビューする場合は必須
@@ -125,7 +126,7 @@ required artifacts を読んでください。この agent が行う唯一のフ
 
 既存 review artifact が明らかに別要求や別 ticket-or-slug を指している場合は、黙って上書きしてはいけません。mismatch を記録し、安全に更新対象を特定できない場合は `BLOCKED` として停止してください。
 
-読み取れない artifact があった場合は、その時点で `BLOCKED` を出力し、missing artifact を記録して停止してください。
+必須または条件付き必須 artifact が読み取れない場合は、その時点で `BLOCKED` を出力し、missing artifact を記録して停止してください。Guardrail Focus がない標準 route で runtime-contract-kernel / test-design-kernel が存在しない場合は、missing artifact ではなく `N/A (no Guardrail Focus)` として記録してください。
 
 ### Step 2. Run the review checks
 
@@ -140,6 +141,7 @@ Plan の `Functional requirements` / `機能要件` と `Acceptance conditions` 
 | Status | Meaning |
 | --- | --- |
 | `CoveredByGuardrailFocus` | Guardrail Focus RC / TP / slice の実装・検証対象に含まれる |
+| `CoveredByParentPlanPass` | Guardrail Focus がない、または通常実装対象として bounded parent Plan pass の実装・検証対象に含まれる |
 | `CoveredByCrossSliceVerification` | slice 単体では完了しないが、cross-slice verification の対象として明示されている |
 | `DeferredToKnownSlice` | 別 slice、別 RC、別 gap ID として明示的に残されている |
 | `OutOfScopeByPlan` | Plan の Non-goals / Out of scope により明示的に除外されている |
@@ -151,6 +153,7 @@ Plan の `Functional requirements` / `機能要件` と `Acceptance conditions` 
 
 - `UnmappedBlocking` が 1 件でもあれば Blocking。
 - `NeedsHumanDecision` が実装前判断を必要とする場合は Blocking。
+- `CoveredByParentPlanPass` は、bounded parent Plan pass の通常実装・検証対象として明示できる場合だけ使う。Plan item が broad すぎる、scope が不明、または human decision が必要な場合は使わない。
 - `DeferredToKnownSlice` / `CoveredByCrossSliceVerification` / `MappedButWeak` は、Guardrail Focus coverage の実装開始を妨げないことがある。ただし parent Plan 全体の ready とは扱わない。
 - Plan item が broad すぎてこの pass で安全に分類できない場合は、`DeferredToKnownSlice` ではなく `UnmappedBlocking` または `NeedsHumanDecision` を使う。
 - 「名前が似た既存実装がある」だけでは `CoveredByGuardrailFocus` にしてはいけない。RC / TP / slice / cross-slice contract との対応が必要。
@@ -184,6 +187,8 @@ Plan の `Black-box behavior coverage` を確認してください。
 
 change-risk-triage が選択した runtime contracts が Plan の要件に紐づいているか確認してください。
 
+change-risk-triage が selected runtime contracts / Guardrail Focus を要求していない標準 route では、この check は `N/A (no Guardrail Focus)` として扱います。Plan item は Check 1 の `CoveredByParentPlanPass`、`OutOfScopeByPlan`、`NeedsHumanDecision`、`UnmappedBlocking` などで分類してください。
+
 - Guardrail Focus contract が Plan のどの requirement または acceptance condition に対応するかを追跡できるか
 - Plan の `既知の high-risk boundaries`（旧 `Known high-risk boundaries`）に明記されている boundary が Guardrail Focus contracts に含まれず、除外理由もない場合は Blocking として記録する
 - Plan 要件から見て「追加で気になる」程度の boundary は Note として記録する
@@ -196,6 +201,8 @@ change-risk-triage が選択した runtime contracts が Plan の要件に紐づ
 
 runtime-contract-kernel の RC が、change-risk-triage で Guardrail Focus とされた contracts の範囲を逸脱していないか確認してください。
 
+Guardrail Focus がない標準 route では、この check は `N/A (no Guardrail Focus)` として扱います。Runtime Contract Kernel がないことだけで Blocking にしてはいけません。
+
 - Guardrail Focus contracts に含まれない RC が追加されている場合は Note として記録する
 - Guardrail Focus contracts のうち RC に反映されていないものがあり、明示的な除外理由または deferral がない場合は Blocking として記録する
 - 明示的な除外理由があり、実装 scope 外であることが分かる場合だけ Note として記録する
@@ -203,6 +210,8 @@ runtime-contract-kernel の RC が、change-risk-triage で Guardrail Focus と�
 #### Check 4. RC field completeness
 
 各 RC に次のフィールドが存在するか確認してください。
+
+Guardrail Focus がない標準 route では、この check は `N/A (no Guardrail Focus)` として扱います。
 
 - Producer
 - Consumer
@@ -216,6 +225,8 @@ runtime-contract-kernel の RC が、change-risk-triage で Guardrail Focus と�
 
 runtime-contract-kernel の各 RC に対して、test-design-kernel に対応する TP が存在するか確認してください。
 
+Guardrail Focus がない標準 route では、この check は `N/A (no Guardrail Focus)` として扱います。Test Design Kernel がないことだけで Blocking にしてはいけません。
+
 - TP が存在しない RC がある場合は、test-design-kernel に明示的な理由が記録されているかを確認する
 - 理由なく TP が存在しない RC は Note として記録する
 - 複数の RC に対して TP がまったく存在しない場合は Blocking として記録する
@@ -223,6 +234,8 @@ runtime-contract-kernel の各 RC に対して、test-design-kernel に対応す
 #### Check 6. Production binding requirement
 
 test-design-kernel artifact 上で、次のいずれかに該当する TP が `Production binding required: Yes` になっているか確認してください。
+
+Guardrail Focus がない標準 route では、この check は `N/A (no Guardrail Focus)` として扱います。production implementation / wiring の確認は実装後の verification gate で行い、handoff review では Plan、risk、contract、Behavior Case coverage から実装前に必要な禁止事項や human decision が残っていないかを確認してください。
 
 - stub / fake / mock / in-memory を使う
 - external SDK/API/provider selection に関係する
@@ -336,7 +349,7 @@ Plan Slice Decomposition artifact が必要なのに存在しない、または�
 3. artifact の Guardrail Focus coverage / effective scope が決められない → `BLOCKED_BY_ARTIFACT_MISMATCH`
 4. 実装前 human decision が必要 → `BLOCKED_BY_HUMAN_DECISION`
 5. Behavior Case または parent residual risk candidates が残る → `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS`
-6. bounded parent Plan pass、Behavior Case coverage、Guardrail Focus の接続が整い、blocking/residual risk candidates がない → `READY_FOR_BOUNDED_PARENT_PLAN_PASS`
+6. bounded parent Plan pass、Behavior Case coverage、Guardrail Focus の接続（Guardrail Focus がない標準 route では `N/A`）が整い、blocking/residual risk candidates がない → `READY_FOR_BOUNDED_PARENT_PLAN_PASS`
 
 BLOCKED になるのは本当に危険な場合だけです。実装者が自分で判断できる軽微な不整合は Note にとどめてください。
 
@@ -393,8 +406,8 @@ READY_FOR_BOUNDED_PARENT_PLAN_PASS | READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DEC
 - plans/<ticket-or-slug>-change-risk-triage.md
 - plans/<ticket-or-slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
 - plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
-- plans/<ticket-or-slug>-runtime-contract-kernel.md
-- plans/<ticket-or-slug>-test-design-kernel.md
+- plans/<ticket-or-slug>-runtime-contract-kernel.md（Guardrail Focus / selected runtime contracts がある場合）
+- plans/<ticket-or-slug>-test-design-kernel.md（Guardrail Focus / selected runtime contracts がある場合）
 - plans/<ticket-or-slug>-slice-decomposition.md（full-coverage decomposition 由来の slice の場合）
 
 ## Parent Plan Coverage Ledger
@@ -488,23 +501,23 @@ Handoff Packet の `Remaining work`、`ブロッキング問題`、`非ブロッ
 | `CoveredByCrossSliceVerification` | parent Plan item が cross-slice verification 対象として明示されている |
 | `DeferredToKnownSlice` | parent Plan item が別 slice / RC / gap ID に明示的に残されている |
 | `OutOfScopeByPlan` | parent Plan item が Plan の Non-goals / Out of scope により明示的に除外されている |
-| `UnmappedBlocking` | parent Plan item が Guardrail Focus coverage、deferred、cross-slice、out-of-scope、human decision のどれにも対応しない |
+| `UnmappedBlocking` | parent Plan item が parent Plan pass、Guardrail Focus coverage、deferred、cross-slice、out-of-scope、human decision のどれにも対応しない |
 | `MappedButWeak` | mapping はあるが test oracle、production binding、または observable acceptance が弱い |
-| `CoveredByParentPlanPass` | Behavior Case が bounded parent Plan pass の通常実装・検証対象として明示されている |
+| `CoveredByParentPlanPass` | Parent Plan item または Behavior Case が bounded parent Plan pass の通常実装・検証対象として明示されている |
 | `OutOfScopeWithSource` | Behavior Case が source-backed out-of-scope / non-goal により除外されている |
 
 `Bound` は vocabulary consistency のためにのみ含まれます。この agent は `Bound` を判定または付与してはいけません。production binding の確認は `verification-kernel.agent.md` が担当します。
 
 ## Relationship to other agents
 
-- **通常の直前の agent**: `test-design-kernel.agent.md` — この agent の入力を生成する
+- **通常の直前の agent**: Guardrail Focus がある場合は `test-design-kernel.agent.md`、Guardrail Focus がない標準 route では risk / contract gate — この agent の入力を生成する
 - **直後の agent**: `implementation-execution.agent.md` または人間の実装者 — この agent の `引き継ぎ必須 inputs` と `Handoff Packet` を受け取って実装を開始する
 - **任意の実装後 gate**: `code-review-focus-kernel.agent.md` — human code review 用の読み順と重点箇所を整理する
 - **この agent は代替しない**: `plan-review.agent.md`（full Plan review）、`verification-kernel.agent.md`（実装後の production binding 検証）
 - **BLOCKED 時の修正先**:
   - Check 1, 2: `plan-kernel.agent.md` を再実行または手動修正
-  - Check 3, 4: `runtime-contract-kernel.agent.md` を再実行または手動修正
-  - Check 5, 6: `test-design-kernel.agent.md` を再実行または手動修正
+  - Check 3, 4: Guardrail Focus がある場合は `runtime-contract-kernel.agent.md` を再実行または手動修正。Guardrail Focus がない場合は `N/A`
+  - Check 5, 6: Guardrail Focus がある場合は `test-design-kernel.agent.md` を再実行または手動修正。Guardrail Focus がない場合は `N/A`
   - Check 7: Plan ambiguity や source-of-truth の断絶が deterministic に直せない場合は、human review または上流の要求整理へ戻す
   - Check 8: human decision を行ってから該当 artifact を更新
   - Check 9: `implementation-contract-kernel.agent.md` または `implementation-contract-review-kernel.agent.md` を実行してから再レビュー

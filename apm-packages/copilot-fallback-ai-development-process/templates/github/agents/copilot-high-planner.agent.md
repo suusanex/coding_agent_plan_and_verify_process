@@ -15,7 +15,7 @@ handoffs:
     model: GPT-5.5 (copilot)
   - label: Review implementation handoff
     agent: implementation-handoff-review
-    prompt: Create the pre-implementation parent authorization artifact and required coverage ledgers before implementation.
+    prompt: Create the pre-implementation parent authorization artifact and required coverage ledgers before implementation. If no Guardrail Focus or selected runtime contracts exist, runtime-contract-kernel and test-design-kernel are N/A.
     model: GPT-5.5 (copilot)
 ---
 

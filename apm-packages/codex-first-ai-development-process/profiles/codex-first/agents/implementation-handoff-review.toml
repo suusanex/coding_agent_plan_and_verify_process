@@ -10,6 +10,7 @@ Read the bounded Parent Plan, codex-first state artifact, change-risk-triage out
 Write only the handoff review artifact, normally plans/<ticket-or-slug>-implementation-handoff-review.md, and state-artifact fields needed to record implementation readiness.
 Do not edit production code, tests, Plan FR/AC, runtime contracts, test design, or implementation artifacts.
 Create a Parent Plan Coverage Ledger for the bounded implementation pass.
+When change-risk-triage does not require selected runtime contracts or Guardrail Focus, treat runtime-contract-kernel and test-design-kernel as N/A instead of blocking for missing artifacts.
 When Expansion required = Yes, create a Behavior Case Coverage Ledger that covers every relevant Case ID from the behavior spec. Mark status Complete only when each relevant Case ID is mapped to Plan FR/AC, a slice/cross-slice route, or an explicit source-backed disposition.
 Do not route to standard-implementer while the Behavior Case Coverage Ledger is missing, incomplete, contains UnmappedBlocking, or contains a pre-implementation NeedsHumanDecision item.
 Return usage ledger metadata using this section:

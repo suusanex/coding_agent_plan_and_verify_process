@@ -22,10 +22,11 @@ Use this instruction set when ordinary development work should start through Cod
 3. Risk gate: classify external API, SDK, DI, config, public API, DB, auth, async, production wiring, and cross-slice risk only after `ReadyForRiskTriage`.
 4. Scan gate: delegate read-heavy discovery to low-cost workers when useful, and summarize evidence instead of flooding the main context.
 5. Contract gate: resolve implementation approach and human decisions before editing.
-6. READY gate: confirm Plan, selected scope, non-goals, contract/test handoff, and unresolved implementation-realization items before implementation.
-7. Implementation gate: delegate the selected READY scope to `standard-implementer` unless a recorded `ParentDirectExecutionException` has explicit human approval.
-8. Verification gate: delegate ordinary verification to `standard-verifier`; route dangerous close judgment to `high-closure-reviewer`.
-9. Close gate: do not close when unresolved items include `ManualVerificationRequired`, `NeedsHumanDecision`, `NeedsHigherModelReview`, missing delegation evidence, or failing `DelegationCompliance`.
+6. READY gate: confirm Plan, selected scope, non-goals, required contract/test handoff when Guardrail Focus exists, Behavior Case coverage when required, and unresolved implementation-realization items before implementation.
+7. Implementation handoff review gate: run `implementation-handoff-review` or an explicitly equivalent pre-implementation gate to create the parent authorization artifact, Parent Plan Coverage Ledger, and Behavior Case Coverage Ledger when required.
+8. Implementation gate: delegate the selected READY scope to `standard-implementer` only after handoff authorization exists, unless a recorded `ParentDirectExecutionException` has explicit human approval.
+9. Verification gate: delegate ordinary verification to `standard-verifier`; route dangerous close judgment to `high-closure-reviewer`.
+10. Close gate: do not close when unresolved items include `ManualVerificationRequired`, `NeedsHumanDecision`, `NeedsHigherModelReview`, missing delegation evidence, or failing `DelegationCompliance`.
 
 ## Task weight and process selection
 
@@ -62,6 +63,8 @@ Choose these internally; do not ask the user to select them.
 - `ParentDirectExecutionNotAllowed`
 - `RoutingPolicyViolation`
 - `BlockedByMissingDelegationLedger`
+- `ReadyForImplementationHandoffReview`
+- `BlockedByBehaviorCaseCoverageLedger`
 - `ReadyForDelegatedImplementation`
 - `ReadyForDelegatedVerification`
 - `ReadyToClose`
@@ -70,10 +73,11 @@ Choose these internally; do not ask the user to select them.
 
 ## Cost-aware model routing
 
-- Use `HIGH_MODEL` for ambiguous requirements, bounded Plan framing, difficult risk triage, implementation contract decisions, security/auth/DB/public API/production wiring, and dangerous closure decisions.
+- Use `HIGH_MODEL` for ambiguous requirements, bounded Plan framing, behavior expansion, difficult risk triage, implementation handoff review, implementation contract decisions, security/auth/DB/public API/production wiring, and dangerous closure decisions.
 - Use `STANDARD_MODEL` for normal READY implementation, verification, test design/update, and moderate-risk repairs.
 - Use `CHEAP_MODEL` for repo scan, read-heavy inventory, documentation consistency, artifact formatting, and simple local fixes.
 - MUST delegate when the Routing Plan assigns a gate owner that differs from the parent tier or parent thread. Required delegated gates cannot be completed by parent-direct execution without a recorded exception and explicit human approval.
+- Run `implementation-handoff-review` before ordinary READY implementation. When `Expansion required = Yes`, require `Behavior Case Coverage Ledger` status `Complete` before handing off to `standard-implementer`.
 - Delegate ordinary READY implementation serially to `standard-implementer` and ordinary verification to `standard-verifier`. Do not standardize write-heavy parallel editing; serial delegated implementation is still required.
 - Do not count parent-direct work, trivial parent fixes, or delegation violations as cost-saving delegation.
 - Keep the main thread responsible for final implementation permission, state updates, delegation compliance audit, and close decisions.
