@@ -5,6 +5,12 @@ original_user_intent:
 source_of_truth:
 
 task_weight:
+expansion_required: Yes / No / Unknown
+behavior_spec_artifact:
+plan_readiness: ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision / Unknown
+case_to_plan_mapping_status: Complete / Incomplete / N/A / Unknown
+replan_required_items:
+- None
 current_gate:
 next_gate:
 selected_process: normal / advanced-full-coverage / human-decision-wait / higher-model-review / lower-cost-delegated-scan
@@ -31,6 +37,8 @@ cost_saving_delegation_countable: No
 allowed_stop_reasons:
 - DelegationRequired
 - NeedsHumanDecision
+- NeedsPlanBehaviorExpansion
+- ReplanRequired
 - ManualVerificationRequired
 - NeedsHigherModelReview
 - NeedsSecretInput
@@ -54,9 +62,18 @@ allowed_stop_reasons:
 
 ## Task Weight
 
-- task_weight: trivial-local / small-bounded / medium-bounded / high-risk-bounded / broad-full-coverage-candidate / blocked-human-required
+- task_weight: trivial-local / small-bounded / medium-bounded / high-risk-bounded / needs-plan-behavior-expansion / broad-full-coverage-candidate / blocked-human-required
 - classification_reason:
 - selected_process: normal / advanced-full-coverage / human-decision-wait / higher-model-review / lower-cost-delegated-scan
+
+## Plan Readiness
+
+- expansion_required: Yes / No / Unknown
+- behavior_spec_artifact:
+- plan_readiness: ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision / Unknown
+- case_to_plan_mapping_status: Complete / Incomplete / N/A / Unknown
+- behavior_case_ids:
+- replan_required_items:
 
 ## Execution Mode
 
@@ -97,6 +114,8 @@ unresolved_residuals:
 
 operations_not_allowed_in_current_state:
 - Do not implement before READY.
+- Do not select risk/profile/full-coverage before plan_readiness = ReadyForRiskTriage.
+- Do not route requirement-elaboration gaps to full-coverage or fix-slice.
 - Do not parent-direct execute a gate with DelegationRequired = Yes unless ParentDirectExecutionException has explicit human approval.
 - Do not mark implementation complete without observed standard-implementer run or accepted exception.
 - Do not mark verification complete without observed standard-verifier run or accepted exception.

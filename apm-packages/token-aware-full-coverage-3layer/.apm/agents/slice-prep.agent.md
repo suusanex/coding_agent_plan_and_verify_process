@@ -20,23 +20,26 @@ sandbox_mode: read-only
 
 必ず読む入力:
 - parent bounded Plan
+- Black-box Behavior Spec artifact（Expansion required: Yes の場合）
 - parent change-risk-triage output
 - parent plan-slice-decomposition artifact
 - assigned slice artifact
+- assigned slice の Black-box behavior coverage / Case-to-Slice mapping
 - assigned slice に関係する cross-slice contract excerpt
 - assigned slice に関係する field continuity items
 - bounded parent Plan pass / Guardrail Focus coverage / non-goals / stop condition
 
 作業手順:
 1. assigned slice の Goal / Non-goals / Parent requirements covered / Parent acceptance conditions covered を確認する。
-2. per-slice change-risk-triage を行う。
-3. implementation-realization risk が Present または Unclear の場合、per-slice implementation-contract-kernel を下書きする。
-4. implementation contract に non-trivial な判断がある場合、implementation-contract-review-kernel の下書きまたは review requirement を作る。
-5. selected slice-local RC IDs について runtime-contract-kernel を下書きする。
-6. test-design-kernel を下書きする。
-7. cross-slice contract のうち、この slice が owns / consumes / defers するものを整理する。
-8. source evidence のない field / state / identifier を fabricated value で埋めない。
-9. READY_FOR_PARENT_REVIEW / BLOCKED / NEEDS_HUMAN_DECISION のいずれかで停止する。
+2. assigned slice の Case-to-Slice mapping を確認し、Case IDs が slice-local / cross-slice verification / explicit disposition のどこへ行くかを記録する。
+3. per-slice change-risk-triage を行う。
+4. implementation-realization risk が Present または Unclear の場合、per-slice implementation-contract-kernel を下書きする。
+5. implementation contract に non-trivial な判断がある場合、implementation-contract-review-kernel の下書きまたは review requirement を作る。
+6. selected slice-local RC IDs について runtime-contract-kernel を下書きする。
+7. test-design-kernel を下書きし、selected slice に関係する Behavior Case IDs を Behavior case test mapping へ接続する。
+8. cross-slice contract のうち、この slice が owns / consumes / defers するものを整理する。
+9. source evidence のない field / state / identifier を fabricated value で埋めない。
+10. READY_FOR_PARENT_REVIEW / BLOCKED / NEEDS_HUMAN_DECISION のいずれかで停止する。
 
 禁止:
 - production code を編集しない。
@@ -76,6 +79,11 @@ sandbox_mode: read-only
 - Test-design-kernel:
 
 ## Bounded parent Plan pass / Guardrail Focus
+
+## Behavior Case mapping
+
+| Case ID | Parent FR / AC | Slice FR / AC | Route | Status | Notes |
+| --- | --- | --- | --- | --- | --- |
 
 ## Non-goals
 

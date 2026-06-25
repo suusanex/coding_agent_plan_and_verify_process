@@ -45,6 +45,7 @@ Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
 
 - parent bounded Plan
 - Black-box Behavior Spec artifact（Expansion required: Yes の場合）
+- parent Plan の Black-box behavior coverage / Case-to-Plan mapping
 - parent `change-risk-triage.agent.md` の出力
 - `plans/<ticket-or-slug>-slice-decomposition.md`
 - 各 executable slice artifact: `plans/<ticket-or-slug>-slice-SL-xxx.md`
@@ -107,9 +108,10 @@ Final gate: 親エージェント
 3. slice decomposition artifact から、各 slice の scope / non-goals / dependencies / related XC IDs / recommended profile / immediate next agent を抽出する。
 4. `Cross-slice Contracts` と `Cross-slice field continuity` を抽出する。
 5. parent-level contract mapping が消えていないか確認する。
-6. slice 実行表を作る。
-7. どの slice を並列で slice preparation に出せるかを仮決定する。
-8. 同じ production wiring、shared DTO、DB schema、DI registration、config、public API、migration、durable state owner を触る可能性がある slice は並列実装させない。
+6. Behavior Case mapping と各 slice の Case-to-Slice mapping が消えていないか確認する。
+7. slice 実行表を作る。
+8. どの slice を並列で slice preparation に出せるかを仮決定する。
+9. 同じ production wiring、shared DTO、DB schema、DI registration、config、public API、migration、durable state owner を触る可能性がある slice は並列実装させない。
 
 ### Slice 実行表の形式
 
@@ -135,9 +137,11 @@ executable slice は、次のいずれかを満たす必要があります。
 `slice-prep` に渡す入力は、少なくとも次です。
 
 - parent Plan
+- Black-box Behavior Spec artifact（Expansion required: Yes の場合）
 - parent triage output
 - parent slice decomposition artifact
 - assigned slice artifact
+- assigned slice の Black-box behavior coverage / Case-to-Slice mapping
 - assigned slice に関係する cross-slice contract excerpt
 - assigned slice に関係する field continuity items
 - この pass での bounded parent Plan pass / Guardrail Focus coverage / non-goals / stop condition
@@ -145,14 +149,16 @@ executable slice は、次のいずれかを満たす必要があります。
 `slice-prep` は次を行います。
 
 1. assigned slice artifact を bounded Plan として扱う。
-2. per-slice `change-risk-triage` を実行する。
-3. implementation-realization risk が `Present` または `Unclear` の場合、per-slice `implementation-contract-kernel` を下書きする。
-4. implementation contract に non-trivial な判断がある場合、per-slice `implementation-contract-review-kernel` の下書きまたは review requirement を作る。
-5. selected slice-local RC IDs について `runtime-contract-kernel` を下書きする。
-6. `test-design-kernel` を下書きする。
-7. 実装は行わない。
-8. cross-slice contract を slice 内で完了扱いにしない。
-9. 最後に `READY_FOR_PARENT_REVIEW`、`BLOCKED`、`NEEDS_HUMAN_DECISION` のいずれかを返す。
+2. assigned slice の Case-to-Slice mapping を確認し、Case IDs が slice-local / cross-slice verification / explicit disposition のどこへ行くかを記録する。
+3. per-slice `change-risk-triage` を実行する。
+4. implementation-realization risk が `Present` または `Unclear` の場合、per-slice `implementation-contract-kernel` を下書きする。
+5. implementation contract に non-trivial な判断がある場合、per-slice `implementation-contract-review-kernel` の下書きまたは review requirement を作る。
+6. selected slice-local RC IDs について `runtime-contract-kernel` を下書きする。
+7. `test-design-kernel` を下書きし、selected slice に関係する Behavior Case IDs を test / manual / cross-slice route へ接続する。
+8. 実装は行わない。
+9. cross-slice contract を slice 内で完了扱いにしない。
+10. Behavior Case ID を slice 内で消したり、unmapped のまま READY にしない。
+11. 最後に `READY_FOR_PARENT_REVIEW`、`BLOCKED`、`NEEDS_HUMAN_DECISION` のいずれかを返す。
 
 ### slice-prep の出力形式
 
@@ -186,6 +192,11 @@ executable slice は、次のいずれかを満たす必要があります。
 
 ## Bounded parent Plan pass / Guardrail Focus
 
+## Behavior Case mapping
+
+| Case ID | Parent FR / AC | Slice FR / AC | Route | Status | Notes |
+| --- | --- | --- | --- | --- | --- |
+
 ## Non-goals
 
 ## RC / TP / XC ledger
@@ -214,6 +225,7 @@ executable slice は、次のいずれかを満たす必要があります。
 - runtime-contract-kernel と test-design-kernel が Plan の代替として扱われていないか
 - `XC-xxx` の producer / consumer / required fields / mechanism が一致しているか
 - field continuity の source artifact / producer output / consumer requirement が traceable か
+- Behavior Case IDs が slice / cross-slice verification / explicit disposition のどこへ行ったか traceable か
 - shared DTO / DB schema / DI / config / public API / migration / durable state の ownership が重複していないか
 - parallel implementation してよい slice と、直列化すべき slice が分かれているか
 - source evidence のない fabricated value が `Done` 扱いされていないか
@@ -382,6 +394,7 @@ READY slice は、次の証跡を満たす必要があります。
 - 各 slice-prep artifact
 - 各 slice-impl result
 - 各 verification-kernel result
+- Black-box Behavior Spec artifact と Behavior Case mapping（Expansion required: Yes の場合）
 
 cross-slice verification では次を確認してください。
 
@@ -391,6 +404,7 @@ cross-slice verification では次を確認してください。
 - production wiring / entrypoint / DI / config / migration / persistence が slice 間でつながっているか
 - stub-only success や production binding gap が残っていないか
 - Remaining Work が parent PASS を妨げるものかどうか分類されているか
+- Behavior Case IDs と negative expectations が slice-local verification または cross-slice verification evidence へ接続されているか
 
 cross-slice verification では、見つけた gap をその場で修正しません。必要なら `coverage-gap-triage.agent.md` に渡すための handoff を作成し、residual candidate は `residual-decision-gate.agent.md` で explicit human decision の有無を判定して停止します。
 
@@ -403,6 +417,7 @@ cross-slice verification では、見つけた gap をその場で修正しま�
 - 同じ production wiring / public API / schema / migration / durable state を編集しない
 - producer slice の output が consumer slice の実装前提になっていない
 - `XC-xxx` に unresolved field / state / identifier が残っていない
+- relevant Behavior Case ID が unmapped のまま残っていない
 - 失敗時に単独で rollback / discard できる
 
 次の場合は直列化してください。
@@ -447,5 +462,6 @@ gap があれば修正せず coverage-gap-triage または residual-decision-gat
 - `Agent Usage Ledger` が作成・更新され、`DelegationCompliance` が PASS / FAIL / EXCEPTION_ACCEPTED で判定されている
 - `PARENT_DIRECT_IMPLEMENTATION` は明示理由とユーザー承認がある場合だけ使われ、3層委譲成功としてカウントされていない
 - cross-slice contract を slice 内で完了扱いにしていない
+- Behavior Case ID を slice 内で消したり、unmapped のまま READY / PASS にしていない
 - verification-kernel で gap 修正に進んでいない
 - cross-slice-verification-kernel と residual-decision-gate を最後に実行している、または未実行理由を明示している

@@ -30,6 +30,11 @@ Minimum fields:
 - original user intent
 - task weight
 - selected process
+- expansion required
+- behavior spec artifact
+- plan readiness
+- case-to-plan mapping status
+- replan required items
 - current gate
 - next gate
 - recommended model tier
@@ -71,13 +76,16 @@ Record the result in state as `task_weight` and `selected_process`.
 | `small-bounded` | One component, clear acceptance, local checks available | `normal` |
 | `medium-bounded` | Multiple files or tests, clear source of truth, manageable production risk | `normal` with bounded Plan and risk check |
 | `high-risk-bounded` | Auth, security, DB, public API, production wiring, external SDK, async/event boundary, or compatibility uncertainty | `higher-model-review` or high-model Plan / risk / contract before READY |
-| `broad-full-coverage-candidate` | Broad, ambiguous, strongly interconnected, cross-slice contracts, or previous sequence / production-binding gaps | `advanced-full-coverage` candidate |
+| `needs-plan-behavior-expansion` | Source requirements have unexpanded behavior cases, negative expectations, recovery / rollback / retry / replay / cleanup, state transitions, or unmapped Case IDs | Plan gate stop; run behavior expansion or Plan rerun before risk/profile selection |
+| `broad-full-coverage-candidate` | Ready Plan has broad scope, strongly interconnected changes, cross-slice contracts, multiple runtime sequences, or previous sequence / production-binding gaps | `advanced-full-coverage` candidate |
 | `blocked-human-required` | Missing human decision, secret, external service operation, production/billing/GitHub settings change, or manual-only verification owner | `human-decision-wait` |
 
 Classification axes:
 
 - scope breadth
 - ambiguity
+- behavior expansion completeness
+- Case-to-Plan mapping completeness
 - production-binding risk
 - external side-effect risk
 - verification cost
@@ -223,8 +231,18 @@ Use `STANDARD_MODEL` only for small, explicit fixes.
 Do:
 
 - create or consume a bounded Parent Plan or equivalent artifact
+- record `Expansion required`, `behavior_spec_artifact`, `Case-to-Plan mapping`, and `Plan readiness`
 - record acceptance criteria, non-goals, and completion criteria
 - preserve the Plan as source of truth for later gates
+- stop with `NeedsPlanBehaviorExpansion` when source-to-case expansion or Case-to-Plan mapping is missing
+- stop with `NeedsHumanDecision` when expected behavior or negative expectation cannot be safely inferred
+- proceed to Risk only when `Plan readiness = ReadyForRiskTriage`
+
+Do not:
+
+- treat requirement-elaboration gaps as `broad-full-coverage-candidate`
+- select `advanced-full-coverage` before `ReadyForRiskTriage`
+- implement before Plan readiness is recorded
 
 ### Risk triage
 
@@ -233,9 +251,11 @@ Use `HIGH_MODEL` for broad, ambiguous, security, auth, DB, public API, external 
 
 Do:
 
+- require `Plan readiness = ReadyForRiskTriage` before selecting runtime contracts, risk class, or process profile
 - classify implementation-realization risk
 - decide whether standard routing can bound the work safely
 - treat full-coverage 3-layer operation as advanced route only
+- route `NeedsPlanBehaviorExpansion` back to behavior expansion / Plan rerun, not full-coverage
 
 ### Repository scan / evidence collection
 
@@ -336,6 +356,8 @@ When parent-direct work is accepted, record `execution_mode = PARENT_DIRECT_WORK
 ## Stop reasons
 
 - `NeedsHumanDecision`
+- `NeedsPlanBehaviorExpansion`
+- `ReplanRequired`
 - `ManualVerificationRequired`
 - `NeedsHigherModelReview`
 - `NeedsSecretInput`
@@ -362,6 +384,11 @@ Return:
 
 - state artifact path
 - task weight
+- expansion required
+- behavior spec artifact
+- plan readiness
+- case-to-plan mapping status
+- replan required items
 - current gate
 - next gate
 - recommended model tier

@@ -30,13 +30,15 @@ slice ごとの `verification-kernel.agent.md` は、assigned slice-local bounde
 5. production wiring を通した後に parent acceptance condition が要求する runtime postcondition が満たされているか
 6. parent acceptance condition の forbidden state が否定されているか
 7. stub / fake / mock / in-memory implementation、source-structure test、CI green による false confidence が残っていないか
-8. 未検証または人間判断が必要な項目が explicit unresolved status として残っているか
+8. cross-slice に送られた Behavior Case IDs と negative expectations が evidence へ接続されているか
+9. 未検証または人間判断が必要な項目が explicit unresolved status として残っているか
 
 この agent は gap を修正しません。FixNow 候補は `coverage-gap-triage.agent.md` へ、residual candidate / manual-only / human decision items は `residual-decision-gate.agent.md` へ handoff します。`coverage-gap-resolution-slice.agent.md` へ直接進めるのは、coverage-gap-triage または residual-decision-gate が explicit FixNow selector を出した後だけです。
 
 ## Inputs
 
 - parent bounded Plan artifact
+- Black-box Behavior Spec artifact（Expansion required: Yes の場合）
 - `plans/<ticket-or-slug>-change-risk-triage.md`
 - `plans/<ticket-or-slug>-slice-decomposition.md`
 - 各 slice の Plan artifact（存在する場合）
@@ -45,6 +47,7 @@ slice ごとの `verification-kernel.agent.md` は、assigned slice-local bounde
 - 各 slice の `test-design-kernel` output（存在する場合）
 - 各 slice の `implementation-execution` output または human implementation summary
 - 各 slice の `verification-kernel` output
+- Behavior Case mapping / Case-to-Slice mapping（存在する場合）
 - previous `cross-slice-verification-kernel` output（rerun の場合）
 - previous `residual-decision-gate` output（rerun の場合）
 - implementation diff または repository state
@@ -104,6 +107,7 @@ Skill を使っていない場合は `N/A` とし、理由を記録してくだ�
 - Cross-slice Contract IDs (`XC-xxx`)
 - Execution order
 - Final cross-slice verification requirements
+- Behavior Case mapping / Case-to-Slice mapping
 - Human decisions required
 - Handoff Packet
 
@@ -209,6 +213,26 @@ slice 間にまたがる substitute usage がある場合、次を確認して�
 
 source-structure test は wiring evidence にはできますが、stateful runtime postcondition の代替 evidence にはできません。
 
+### Step 6a. Verify Cross-slice Behavior Case evidence
+
+`plan-slice-decomposition` または slice artifacts に `CrossSliceVerification` として渡された Behavior Case IDs がある場合、次の ledger を作成してください。
+
+```md
+| Case ID | Related slices / XC IDs | Expected behavior | Negative expectation | Evidence | Status | Residual / reason |
+| --- | --- | --- | --- | --- | --- | --- |
+```
+
+確認すること:
+
+- Case ID が parent FR / AC と slice / XC IDs に接続されているか
+- expected observable behavior が cross-slice evidence で確認されているか
+- negative expectation が否定されているか、source-backed disposition で扱われているか
+- evidence がない場合は `BehaviorCaseWithoutEvidence` として unresolved に残すか
+- Case ID が slice / XC / evidence route に未対応の場合は `UnmappedBehaviorCase` として unresolved に残すか
+- expected behavior または negative expectation が未決の場合は `AmbiguousExpectedBehavior` として human decision に残すか
+
+未確認 Case が 1 件でもある場合、`CROSS_SLICE_VERIFIED` を出してはいけません。
+
 ### Step 7. Classify previous gap closure delta
 
 rerun の場合は、前回 gap / residual ごとに closure delta を作成してください。
@@ -247,6 +271,9 @@ Gap type は次から選んでください。
 - `NeedsHumanDecision`
 - `SliceVerificationMissing`
 - `OutOfScopeForThisPass`
+- `UnmappedBehaviorCase`
+- `BehaviorCaseWithoutEvidence`
+- `AmbiguousExpectedBehavior`
 
 ### Step 9. Build Residual Decision Gate handoff
 
@@ -275,6 +302,8 @@ Verdict は次のいずれか 1 つにしてください。
 | `BLOCKED_BY_STUB_ONLY_SUCCESS` | fake / stub / in-memory の成功しか確認できず、production binding が未確認 |
 | `BLOCKED_BY_PARENT_ACCEPTANCE_GAP` | parent acceptance condition が満たされていない、または検証不能 |
 | `BLOCKED_BY_HUMAN_DECISION` | human decision なしに pass / fail を判断できない |
+
+`UnmappedBehaviorCase` または `BehaviorCaseWithoutEvidence` が残る場合は `CROSS_SLICE_VERIFIED_WITH_RESIDUAL_DECISION_REQUIRED` または該当する blocking verdict を選び、`CROSS_SLICE_VERIFIED` を出してはいけません。`AmbiguousExpectedBehavior` が残る場合は `BLOCKED_BY_HUMAN_DECISION` を優先してください。
 
 ## Required output structure
 
@@ -320,6 +349,11 @@ Verdict は次のいずれか 1 つにしてください。
 | Scope ID | Stub / fake / in-memory used | Production interface | Production concrete implementation | Production wiring / entrypoint | Status | Remaining work |
 | --- | --- | --- | --- | --- | --- | --- |
 
+## Cross-slice Behavior Case Evidence Ledger
+
+| Case ID | Related slices / XC IDs | Expected behavior | Negative expectation | Evidence | Status | Residual / reason |
+| --- | --- | --- | --- | --- | --- | --- |
+
 ## Previous gap closure delta
 
 | Previous ID | Previous failure mode | Required closure evidence | New evidence delta | Evidence strength vs previous | Closure decision |
@@ -348,6 +382,7 @@ Verdict は次のいずれか 1 つにしてください。
 - Slice artifacts:
 - Slice verification artifacts:
 - Cross-slice Contract IDs verified:
+- Behavior Case IDs verified:
 - Scope IDs:
 - Runtime postcondition oracle IDs:
 - Gap IDs:
@@ -375,13 +410,14 @@ Verdict は次のいずれか 1 つにしてください。
 - CI green だけで parent acceptance condition の runtime postcondition が検証済みと扱ってはいけません
 - previous gap を同等または弱い evidence で close してはいけません
 - parent acceptance condition の forbidden state を転記せずに PASS してはいけません
+- cross-slice に送られた Behavior Case ID または negative expectation を evidence なしに PASS してはいけません
 - unresolved items を曖昧な note として隠してはいけません
 - `CROSS_SLICE_VERIFIED_WITH_RESIDUAL_DECISION_REQUIRED` を close-ready と扱ってはいけません
 - Residual Decision Gate を通さず residual candidate を accepted / delegated / deferred / aborted と扱ってはいけません
 
 ## Stop condition
 
-cross-slice verification scope、runtime postcondition oracle、parent acceptance conditions、cross-slice production binding、previous gap closure delta を分類し、single verdict、Residual Decision Gate inputs、Handoff Packet を出したら停止してください。
+cross-slice verification scope、runtime postcondition oracle、parent acceptance conditions、cross-slice production binding、Cross-slice Behavior Case Evidence Ledger、previous gap closure delta を分類し、single verdict、Residual Decision Gate inputs、Handoff Packet を出したら停止してください。
 
 修正が必要な場合は、`coverage-gap-triage.agent.md` に渡す selected Gap IDs を明示してください。`coverage-gap-resolution-slice.agent.md` へ直接 handoff してはいけません。`coverage-gap-resolution-slice.agent.md` は、coverage-gap-triage または residual-decision-gate が explicit FixNow selector を出した後だけ使います。residual candidate / manual-only / human decision items は `residual-decision-gate.agent.md` に渡してください。自分で修正してはいけません。
 

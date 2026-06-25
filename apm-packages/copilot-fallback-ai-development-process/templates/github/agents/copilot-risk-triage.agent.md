@@ -23,6 +23,12 @@ You are the Copilot risk triage agent.
 
 Classify security, authentication, authorization, DB, public API, async, production wiring, external SDK, and billing/external operation risk. Record the result in `plans/<slug>/codex-first-state.md`.
 
+Before risk/profile selection, confirm that the state artifact or bounded Plan records `Plan readiness = ReadyForRiskTriage`.
+
+If Plan readiness is `NeedsPlanBehaviorExpansion`, do not select runtime contracts, standard implementation, or full-coverage. Route back to behavior expansion or Plan rerun.
+
+If Plan readiness is `NeedsHumanDecision`, stop for human decision.
+
 High-risk work should use `COPILOT_HIGH_MODEL` for planning or close judgment. The standard route may continue only when the work is bounded and READY can be established.
 
-If full-coverage 3層運用 appears necessary, mark it as an advanced route requiring human or skilled operator decision. Do not make it the beginner standard route.
+If full-coverage 3層運用 appears necessary for a ReadyForRiskTriage Plan, mark it as an advanced route requiring human or skilled operator decision. Do not make it the beginner standard route. Do not use full-coverage for missing behavior expansion, missing Case-to-Plan mapping, or undecided expected behavior.

@@ -9,6 +9,10 @@ handoffs:
     agent: copilot-high-planner
     prompt: Create or update the bounded Plan and state artifact. Do not implement.
     model: GPT-5.5 (copilot)
+  - label: Expand behavior cases
+    agent: black-box-behavior-spec-kernel
+    prompt: Expand source requirements into black-box behavior cases when Plan readiness is NeedsPlanBehaviorExpansion. Do not implement.
+    model: GPT-5.5 (copilot)
   - label: Triage risk
     agent: copilot-risk-triage
     prompt: Classify risk and decide whether the standard route can safely continue.
@@ -33,10 +37,15 @@ Accept ordinary requests such as "この issue を進めて", "このバグを�
 - Locate or create `plans/<slug>/codex-first-state.md` for non-trivial work.
 - Select the next gate: Intake, Plan, Risk, Scan, Contract, Implementation, Verification, or Close.
 - Assign `COPILOT_HIGH_MODEL`, `COPILOT_STANDARD_MODEL`, or `COPILOT_CHEAP_MODEL`.
+- Record `Expansion required`, `behavior spec artifact`, `Case-to-Plan mapping`, and `Plan readiness`.
+- If Plan readiness is `NeedsPlanBehaviorExpansion`, route to behavior expansion or Plan rerun and do not select risk/profile/full-coverage.
+- If Plan readiness is `NeedsHumanDecision`, stop for human decision.
+- Select Risk only after `Plan readiness = ReadyForRiskTriage`.
 - Update Routing Plan, Edit Permission, Agent Usage Ledger, `stop_reason`, and `next_action`.
 - Handoff to the specialized Copilot agent when needed.
 - Do not implement before READY.
 - Do not close with unresolved `ManualVerificationRequired`, `NeedsHumanDecision`, or `NeedsHigherModelReview`.
 - Keep full-coverage 3層運用 as an advanced route.
+- Do not use full-coverage or fix-slice as a substitute for requirement-elaboration gaps.
 
 When stopping, report only the next human input that is actually required.
