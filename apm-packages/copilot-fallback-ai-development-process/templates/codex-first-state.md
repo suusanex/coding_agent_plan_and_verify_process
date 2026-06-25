@@ -47,7 +47,7 @@ allowed_stop_reasons:
 ## Edit Permission
 
 - allowed_to_edit: Yes / No
-- edit_owner: copilot-standard-implementer / copilot-standard-verifier / copilot-cheap-repo-scanner / human / none
+- edit_owner: black-box-behavior-spec-kernel / copilot-high-planner / copilot-risk-triage / copilot-standard-implementer / copilot-standard-verifier / copilot-cheap-repo-scanner / human / none
 - allowed_paths:
 - forbidden_paths:
 - required_authorization_artifact:

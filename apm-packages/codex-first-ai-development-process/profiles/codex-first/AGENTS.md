@@ -9,6 +9,8 @@ Use `codex-first-cost-router` behavior:
 - create or update `plans/<slug>/codex-first-state.md` when the work is non-trivial
 - write Routing Plan, Edit Permission, Agent Usage Ledger, and DelegationCompliance into state
 - record execution_mode and keep model tier, configured model, hook model, reported model, and effective model separate
+- record behavior expansion decision, Case-to-Plan mapping, and Plan readiness before risk / implementation
+- route `NeedsPlanBehaviorExpansion` to `black-box-behavior-spec-kernel` or a Plan rerun, not to full-coverage or fix-slice
 - route hard judgment to high agents
 - MUST delegate normal READY implementation serially to `standard-implementer`
 - MUST delegate normal READY verification to `standard-verifier`, unless risky close judgment needs `high-closure-reviewer`

@@ -129,7 +129,7 @@ Rules:
 - `CHEAP_MODEL` read-heavy scan, docs consistency, and artifact format checks SHOULD delegate to cheap agents when the work is more than trivial.
 - `STANDARD_MODEL` READY implementation MUST delegate to `standard-implementer` when the parent is running as `HIGH_MODEL` or otherwise owns orchestration.
 - `STANDARD_MODEL` READY verification MUST delegate to `standard-verifier` before close, unless close risk requires `high-closure-reviewer`.
-- `HIGH_MODEL` plan, risk, implementation contract, and dangerous close judgment may stay with the parent or high agents.
+- `HIGH_MODEL` plan, behavior expansion, risk, implementation contract, and dangerous close judgment may stay with the parent or high agents.
 - A gate with `Delegation required = Yes` cannot be marked successful without observed delegation or an accepted parent-direct exception.
 - A parent-direct exception is not a delegated cost-saving success. Record it as an exception, not as saved cost.
 
@@ -159,7 +159,7 @@ Replace the old single `allowed to edit` decision with this block.
 ## Edit Permission
 
 - allowed_to_edit: Yes / No
-- edit_owner: parent / standard-implementer / standard-verifier / high-planner / high-implementation-contract / high-risk-triage / high-closure-reviewer / cheap-repo-scanner / cheap-doc-consistency / cheap-artifact-format-checker / human / none
+- edit_owner: parent / standard-implementer / standard-verifier / high-planner / black-box-behavior-spec-kernel / high-implementation-contract / high-risk-triage / high-closure-reviewer / cheap-repo-scanner / cheap-doc-consistency / cheap-artifact-format-checker / human / none
 - parent_direct_edit_allowed: Yes / No
 - allowed_paths:
 - forbidden_paths:
@@ -338,6 +338,7 @@ Use the package agents as role descriptions for delegation.
 For Codex-readable custom agent files with concrete `model` and `model_reasoning_effort` defaults, use `profiles/codex-first/agents/*.toml`.
 
 - `high-planner`
+- `black-box-behavior-spec-kernel`
 - `high-risk-triage`
 - `high-implementation-contract`
 - `high-closure-reviewer`

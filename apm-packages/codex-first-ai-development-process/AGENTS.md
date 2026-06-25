@@ -12,6 +12,8 @@
 - 各工程を `HIGH_MODEL`、`STANDARD_MODEL`、`CHEAP_MODEL` の抽象 tier へ割り当てる。
 - state artifact に Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance を記録する。
 - state artifact では execution_mode と、model tier / configured model / hook model / reported model / effective model を分けて記録する。
+- Plan gate では behavior expansion decision、Case-to-Plan mapping、Plan readiness を記録し、`ReadyForRiskTriage` になるまで risk / full-coverage / implementation へ進めない。
+- `NeedsPlanBehaviorExpansion` は `black-box-behavior-spec-kernel` または Plan rerun へ戻し、full-coverage や fix-slice の代替ルートにしない。
 - read-heavy な scan / consistency check は、Routing Plan が要求する場合は低コスト subagent へ委譲する。
 - READY 後の通常実装は `standard-implementer` へ serial delegation する。write-heavy parallel editing を標準化しないことは、親が直接実装してよいことを意味しない。
 - READY 後の通常 verification は `standard-verifier` へ委譲し、危険な close 判定だけ高性能側へ戻す。
@@ -36,11 +38,12 @@
 
 1. `codex-first-cost-router` Skill で依頼を受ける。
 2. `plans/<slug>/codex-first-state.md` を作成または更新する。
-3. Plan / risk / scan / contract のうち、次に安全な工程を 1 つ選ぶ。
-4. READY gate を満たすまで implementation へ進まない。
-5. READY 後は bounded scope を `standard-implementer` に委譲する。
-6. verification は `standard-verifier` に委譲し、production implementation / wiring / manual-only を分類する。
-7. residual decision と DelegationCompliance で close 可否を判定し、必要なら最小の人間入力だけを提示する。
+3. Plan readiness を確認し、必要なら `black-box-behavior-spec-kernel` または Plan rerun へ戻す。
+4. Plan / risk / scan / contract のうち、次に安全な工程を 1 つ選ぶ。
+5. READY gate を満たすまで implementation へ進まない。
+6. READY 後は bounded scope を `standard-implementer` に委譲する。
+7. verification は `standard-verifier` に委譲し、production implementation / wiring / manual-only / Behavior Case evidence を分類する。
+8. residual decision と DelegationCompliance で close 可否を判定し、必要なら最小の人間入力だけを提示する。
 
 ## Advanced route
 

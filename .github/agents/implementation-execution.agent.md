@@ -347,8 +347,8 @@ Required output structure:
 
 ## Implementation Target Map
 
-| Target | Source artifact | Required behavior / change | Related SL / XC / RC / TP / IC / Gap item | Implementation address | Status |
-| --- | --- | --- | --- | --- | --- |
+| Target | Source artifact | Required behavior / change | Related Behavior Case IDs | Related SL / XC / RC / TP / IC / Gap item | Implementation address | Status |
+| --- | --- | --- | --- | --- | --- | --- |
 
 ## Implementation Self-Map
 

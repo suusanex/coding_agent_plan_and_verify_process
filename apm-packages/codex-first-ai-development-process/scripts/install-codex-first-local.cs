@@ -848,7 +848,7 @@ static string BuildAgentsSection(string packageRoot)
     sb.AppendLine("- README の指示と `.codex/config.toml` / `.codex/agents/*.toml` / `.agents/skills/codex-first-cost-router/SKILL.md` / `templates/*.md` を使って `codex-first` 標準ルートを使う。");
     sb.AppendLine("- state artifact には Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance を記録する。");
     sb.AppendLine("- Plan gate では behavior expansion decision、Case-to-Plan mapping、Plan readiness を記録し、`ReadyForRiskTriage` になるまで risk / full-coverage / implementation へ進めない。");
-    sb.AppendLine("- `NeedsPlanBehaviorExpansion` または `ReplanRequired` は Plan phase へ戻し、`full-coverage` や fix-slice の代替ルートにしない。");
+    sb.AppendLine("- `NeedsPlanBehaviorExpansion` または `ReplanRequired` は Plan phase へ戻し、配置済みの `black-box-behavior-spec-kernel` または `high-planner` / Plan rerun へ渡す。`full-coverage` や fix-slice の代替ルートにしない。");
     sb.AppendLine("- state artifact では execution_mode と、model tier / configured model / hook model / reported model / effective model を分けて記録する。");
     sb.AppendLine("- READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する。");
     sb.AppendLine("- `DelegationRequired = Yes` の gate は observed run または explicit human approval 付き `ParentDirectExecutionException` がない限り成功扱いしない。");

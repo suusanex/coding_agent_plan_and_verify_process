@@ -279,14 +279,17 @@ READY slice は、次の証跡を満たす必要があります。
 `slice-impl` に渡す入力は、少なくとも次です。
 
 - parent Plan
+- Black-box Behavior Spec artifact（Expansion required: Yes の場合）
 - parent triage output
 - parent slice decomposition artifact
 - assigned slice artifact
+- assigned slice の Black-box behavior coverage / Case-to-Slice mapping
 - per-slice change-risk-triage
 - per-slice implementation-contract-kernel（必要な場合）
 - per-slice implementation-contract-review-kernel（存在する場合）
 - per-slice runtime-contract-kernel
 - per-slice test-design-kernel
+- implementation-handoff-review の Behavior Case Coverage Ledger（Expansion required: Yes の場合）
 - parent review gate の implementation authorization
 - bounded parent Plan pass / Guardrail Focus coverage / non-goals / stop condition
 
@@ -294,17 +297,19 @@ READY slice は、次の証跡を満たす必要があります。
 
 1. `implementation-handoff-review` を実行する。
 2. READY でない場合は実装せず停止する。
-3. 親が承認した assigned slice-local bounded parent Plan pass を実装する。Guardrail Focus artifacts は deep-check guardrail として扱い、implementation scope として扱わない。
-4. 無関係な refactoring や redesign を行わない。
-5. required checks を実行する。実行できない check は理由を明記する。
-6. slice-local `verification-kernel` を実行する。
-7. slice-local verification-kernel の verdict（例: `PARENT_PLAN_VERIFIED`、`PARENT_PLAN_NEEDS_RESIDUAL_DECISION`、`PARENT_PLAN_PARTIAL_WITH_FIX_CANDIDATES`、`BLOCKED_*`）と Remaining Work / residual candidates を出力して停止する。
+3. `Expansion required: Yes` の場合は Black-box Behavior Spec、Case-to-Slice mapping、Behavior Case Coverage Ledger が complete であることを確認する。欠落・不完全・`UnmappedBlocking`・実装前 `NeedsHumanDecision` がある場合は実装せず停止する。
+4. 親が承認した assigned slice-local bounded parent Plan pass を実装する。Guardrail Focus artifacts は deep-check guardrail として扱い、implementation scope として扱わない。Behavior Case IDs と negative expectations は実装条件として扱う。
+5. 無関係な refactoring や redesign を行わない。
+6. required checks を実行する。実行できない check は理由を明記する。
+7. slice-local `verification-kernel` を実行し、Behavior Case Evidence Ledger が current Case IDs を扱っているか確認する。
+8. slice-local verification-kernel の verdict（例: `PARENT_PLAN_VERIFIED`、`PARENT_PLAN_NEEDS_RESIDUAL_DECISION`、`PARENT_PLAN_PARTIAL_WITH_FIX_CANDIDATES`、`BLOCKED_*`）と Remaining Work / residual candidates を出力して停止する。
 
 `slice-impl` は次を行ってはいけません。
 
 - parent review gate が承認した bounded parent Plan pass を広げる
 - cross-slice-verification-kernel を実行する
 - `XC-xxx` を単独で完了扱いにする
+- Behavior Case ID、negative expectation、Case-to-Slice mapping を読まずに実装する
 - gap を見つけた場で coverage-gap-resolution へ進む
 - さらに subagent を起動する
 
@@ -334,6 +339,11 @@ READY slice は、次の証跡を満たす必要があります。
 
 | ID | Kind | Status | Notes |
 | --- | --- | --- | --- |
+
+## Behavior Case Coverage
+
+| Case ID | Expected behavior / negative expectation | Implemented by | Verification route | Status | Notes |
+| --- | --- | --- | --- | --- | --- |
 
 ## Checks run
 
