@@ -21,7 +21,7 @@ Reason:
 - Scope is one local command and its tests.
 - Acceptance criteria are clear.
 - There is a compatibility requirement, but no external side effect.
-- The change can use the standard route after a bounded Plan and light risk check.
+- The change can use the standard route after a bounded Plan and change-risk-triage artifact.
 
 ## Expected Routing Plan excerpt
 
@@ -54,8 +54,8 @@ stop_reason: None
 | Gate | Selected agent or subagent | Model tier recommendation | DelegationRequired | Required artifacts | Stop / Ready Gate |
 | --- | --- | --- | --- | --- | --- |
 | Plan | parent or high-planner | STANDARD_MODEL / HIGH_MODEL if ambiguity appears | No | Issue body, repo rules, state artifact | Ready when bounded Plan defines acceptance and non-goals |
-| Implementation handoff review | implementation-handoff-review | HIGH_MODEL / STANDARD_MODEL | No | Bounded Plan, risk result, state artifact | Stop with ReadyForImplementationHandoffReview until parent authorization artifact exists |
-| Implementation | standard-implementer | STANDARD_MODEL | Yes | Bounded Plan, risk result, implementation-handoff-review artifact, Edit Permission | Stop with ReadyForDelegatedImplementation until observed delegated run exists |
+| Implementation handoff review | implementation-handoff-review | HIGH_MODEL / STANDARD_MODEL | No | Bounded Plan, `plans/<slug>-change-risk-triage.md`, state artifact | Stop with ReadyForImplementationHandoffReview until parent authorization artifact exists |
+| Implementation | standard-implementer | STANDARD_MODEL | Yes | Bounded Plan, `plans/<slug>-change-risk-triage.md`, implementation-handoff-review artifact, Edit Permission | Stop with ReadyForDelegatedImplementation until observed delegated run exists |
 | Verification | standard-verifier | STANDARD_MODEL | Yes | Implementation result, local test command, acceptance mapping | Stop with ReadyForDelegatedVerification until observed delegated run exists |
 
 ## Edit Permission

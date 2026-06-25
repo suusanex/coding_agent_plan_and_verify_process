@@ -25,11 +25,12 @@ router は process 名、agent 名、model tier、full-coverage 分岐を利用�
 3. Intake / Plan / Risk / Scan / Contract / Implementation handoff review / Implementation / Verification / Close の next gate を選ぶ
 4. `COPILOT_HIGH_MODEL` / `COPILOT_STANDARD_MODEL` / `COPILOT_CHEAP_MODEL` を割り当てる
 5. Plan gate で behavior expansion decision と Plan readiness を記録し、`NeedsPlanBehaviorExpansion` なら risk / full-coverage へ進めない
-6. implementation-handoff-review または明示的に同等の gate で parent authorization artifact を作るまで実装しない
-7. `Expansion required: Yes` の場合は Behavior Case Coverage Ledger が `Complete` になるまで実装しない
-8. Guardrail Focus / selected runtime contracts がない標準 route では runtime-contract-kernel と test-design-kernel を `N/A` とし、不在だけを理由に停止しない
-9. close 不可なら close しない
-10. 必要最小限の human input だけを返す
+6. Risk gate で `plans/<slug>-change-risk-triage.md` を作り、`risk_triage_artifact_status = Complete` を記録する
+7. implementation-handoff-review または明示的に同等の gate で parent authorization artifact を作るまで実装しない
+8. `Expansion required: Yes` の場合は Behavior Case Coverage Ledger が `Complete` になるまで実装しない
+9. Guardrail Focus / selected runtime contracts がない標準 route では runtime-contract-kernel と test-design-kernel を `N/A` とし、不在だけを理由に停止しない
+10. close 不可なら close しない
+11. 必要最小限の human input だけを返す
 
 ## State artifact
 

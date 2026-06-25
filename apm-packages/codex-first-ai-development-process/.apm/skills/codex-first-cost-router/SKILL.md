@@ -36,6 +36,8 @@ Minimum fields:
 - case-to-plan mapping status
 - behavior case coverage ledger artifact
 - behavior case coverage ledger status
+- `risk_triage_artifact`
+- `risk_triage_artifact_status`
 - replan required items
 - current gate
 - next gate
@@ -133,6 +135,7 @@ Rules:
 - `STANDARD_MODEL` READY verification MUST delegate to `standard-verifier` before close, unless close risk requires `high-closure-reviewer`.
 - `HIGH_MODEL` plan, behavior expansion, risk, implementation handoff review, implementation contract, and dangerous close judgment may stay with the parent or high agents.
 - Normal READY implementation requires an `implementation-handoff-review` artifact, or an explicitly equivalent pre-implementation gate, before selecting `standard-implementer`.
+- Implementation handoff review requires the durable risk artifact `plans/<slug>-change-risk-triage.md`. Do not select `implementation-handoff-review` until `risk_triage_artifact_status = Complete`.
 - When `Expansion required = Yes`, the handoff artifact must include `Behavior Case Coverage Ledger` and state must record `behavior_case_coverage_ledger_status = Complete` before selecting `standard-implementer`.
 - A gate with `Delegation required = Yes` cannot be marked successful without observed delegation or an accepted parent-direct exception.
 - A parent-direct exception is not a delegated cost-saving success. Record it as an exception, not as saved cost.
@@ -256,6 +259,8 @@ Use `HIGH_MODEL` for broad, ambiguous, security, auth, DB, public API, external 
 Do:
 
 - require `Plan readiness = ReadyForRiskTriage` before selecting runtime contracts, risk class, or process profile
+- create or update `plans/<slug>-change-risk-triage.md` as the durable Change Risk Triage artifact
+- record `risk_triage_artifact` and `risk_triage_artifact_status` in state
 - classify implementation-realization risk
 - decide whether standard routing can bound the work safely
 - treat full-coverage 3-layer operation as advanced route only
@@ -292,6 +297,7 @@ Use `STANDARD_MODEL` only when the artifact chain is simple and already complete
 Do:
 
 - run `implementation-handoff-review` or an explicitly equivalent pre-implementation gate before normal READY implementation
+- require `risk_triage_artifact_status = Complete` and the `plans/<slug>-change-risk-triage.md` artifact before starting handoff review
 - create or update the parent authorization artifact, normally `plans/<slug>-implementation-handoff-review.md`
 - record `behavior_case_coverage_ledger_artifact` and `behavior_case_coverage_ledger_status` in state
 - require `Behavior Case Coverage Ledger` when `Expansion required = Yes`
@@ -414,6 +420,8 @@ Return:
 - case-to-plan mapping status
 - behavior case coverage ledger artifact
 - behavior case coverage ledger status
+- `risk_triage_artifact`
+- `risk_triage_artifact_status`
 - replan required items
 - current gate
 - next gate

@@ -6,7 +6,8 @@ sandbox_mode = "workspace-write"
 developer_instructions = """
 Create or update the pre-implementation handoff review artifact before normal Codex-first READY implementation.
 Use .github/agents/implementation-handoff-review.agent.md as the authoritative process contract when it exists in the repository.
-Read the bounded Parent Plan, codex-first state artifact, change-risk-triage output, implementation contract when present, runtime contract when present, test design when present, and Black-box Behavior Spec when Expansion required = Yes.
+Read the bounded Parent Plan, codex-first state artifact, durable change-risk-triage output (`plans/<ticket-or-slug>-change-risk-triage.md`), implementation contract when present, runtime contract when present, test design when present, and Black-box Behavior Spec when Expansion required = Yes.
+Do not proceed when `plans/<ticket-or-slug>-change-risk-triage.md` is missing or state does not record `risk_triage_artifact_status = Complete`.
 Write only the handoff review artifact, normally plans/<ticket-or-slug>-implementation-handoff-review.md, and state-artifact fields needed to record implementation readiness.
 Do not edit production code, tests, Plan FR/AC, runtime contracts, test design, or implementation artifacts.
 Create a Parent Plan Coverage Ledger for the bounded implementation pass.

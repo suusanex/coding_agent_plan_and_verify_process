@@ -95,7 +95,7 @@ Guardrail Focus coverage の guardrail chain が整っていても、parent Plan
 必須 base artifacts:
 
 1. Plan Kernel（`plans/<ticket-or-slug>.md`）
-2. Change Risk Triage output（`plans/<ticket-or-slug>-change-risk-triage.md`）
+2. Change Risk Triage output（`plans/<ticket-or-slug>-change-risk-triage.md`）— Risk gate が作成した durable artifact。state artifact 内の risk metadata だけではこの入力の代替にしてはいけない
 
 条件付き artifacts:
 

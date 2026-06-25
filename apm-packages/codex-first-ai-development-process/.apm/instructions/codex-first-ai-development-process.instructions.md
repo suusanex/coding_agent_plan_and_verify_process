@@ -19,11 +19,11 @@ Use this instruction set when ordinary development work should start through Cod
 
 1. Intake gate: classify source of truth, ambiguity, repo rules, current state, and whether editing is allowed.
 2. Plan gate: create or consume a bounded Plan or equivalent parent artifact, including behavior expansion decision, behavior spec path when required, Case-to-Plan mapping, and Plan readiness.
-3. Risk gate: classify external API, SDK, DI, config, public API, DB, auth, async, production wiring, and cross-slice risk only after `ReadyForRiskTriage`.
+3. Risk gate: classify external API, SDK, DI, config, public API, DB, auth, async, production wiring, and cross-slice risk only after `ReadyForRiskTriage`; create or update `plans/<slug>-change-risk-triage.md` and record `risk_triage_artifact_status`.
 4. Scan gate: delegate read-heavy discovery to low-cost workers when useful, and summarize evidence instead of flooding the main context.
 5. Contract gate: resolve implementation approach and human decisions before editing.
 6. READY gate: confirm Plan, selected scope, non-goals, required contract/test handoff when Guardrail Focus exists, Behavior Case coverage when required, and unresolved implementation-realization items before implementation.
-7. Implementation handoff review gate: run `implementation-handoff-review` or an explicitly equivalent pre-implementation gate to create the parent authorization artifact, Parent Plan Coverage Ledger, and Behavior Case Coverage Ledger when required.
+7. Implementation handoff review gate: run `implementation-handoff-review` or an explicitly equivalent pre-implementation gate only after `plans/<slug>-change-risk-triage.md` exists and `risk_triage_artifact_status = Complete`; create the parent authorization artifact, Parent Plan Coverage Ledger, and Behavior Case Coverage Ledger when required.
 8. Implementation gate: delegate the selected READY scope to `standard-implementer` only after handoff authorization exists, unless a recorded `ParentDirectExecutionException` has explicit human approval.
 9. Verification gate: delegate ordinary verification to `standard-verifier`; route dangerous close judgment to `high-closure-reviewer`.
 10. Close gate: do not close when unresolved items include `ManualVerificationRequired`, `NeedsHumanDecision`, `NeedsHigherModelReview`, missing delegation evidence, or failing `DelegationCompliance`.
@@ -77,7 +77,7 @@ Choose these internally; do not ask the user to select them.
 - Use `STANDARD_MODEL` for normal READY implementation, verification, test design/update, and moderate-risk repairs.
 - Use `CHEAP_MODEL` for repo scan, read-heavy inventory, documentation consistency, artifact formatting, and simple local fixes.
 - MUST delegate when the Routing Plan assigns a gate owner that differs from the parent tier or parent thread. Required delegated gates cannot be completed by parent-direct execution without a recorded exception and explicit human approval.
-- Run `implementation-handoff-review` before ordinary READY implementation. When `Expansion required = Yes`, require `Behavior Case Coverage Ledger` status `Complete` before handing off to `standard-implementer`.
+- Run `implementation-handoff-review` before ordinary READY implementation, after the Risk gate has produced `plans/<slug>-change-risk-triage.md`. When `Expansion required = Yes`, require `Behavior Case Coverage Ledger` status `Complete` before handing off to `standard-implementer`.
 - Delegate ordinary READY implementation serially to `standard-implementer` and ordinary verification to `standard-verifier`. Do not standardize write-heavy parallel editing; serial delegated implementation is still required.
 - Do not count parent-direct work, trivial parent fixes, or delegation violations as cost-saving delegation.
 - Keep the main thread responsible for final implementation permission, state updates, delegation compliance audit, and close decisions.

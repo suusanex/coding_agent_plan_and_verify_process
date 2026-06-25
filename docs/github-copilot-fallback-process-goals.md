@@ -329,7 +329,7 @@ READMEは少なくとも次を説明する。
 
 - full-coverage 3層運用を標準routeにしない
 - high-risk時は high modelへ寄せる
-- risk結果をstate artifactへ反映する
+- risk結果をstate artifactへ反映し、`plans/<slug>-change-risk-triage.md` を作成または更新する
 
 ### 6.4 copilot-cheap-repo-scanner.agent.md
 

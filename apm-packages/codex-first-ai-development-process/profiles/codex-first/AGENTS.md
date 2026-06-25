@@ -11,6 +11,8 @@ Use `codex-first-cost-router` behavior:
 - record execution_mode and keep model tier, configured model, hook model, reported model, and effective model separate
 - record behavior expansion decision, Case-to-Plan mapping, and Plan readiness before risk / implementation
 - route `NeedsPlanBehaviorExpansion` to `black-box-behavior-spec-kernel` or a Plan rerun, not to full-coverage or fix-slice
+- create or update `plans/<slug>-change-risk-triage.md` during Risk gate and record `risk_triage_artifact_status`
+- do not run `implementation-handoff-review` until the change-risk-triage artifact is complete
 - run `implementation-handoff-review` or an explicitly equivalent pre-implementation gate before normal READY implementation
 - when `Expansion required: Yes`, require `Behavior Case Coverage Ledger` status `Complete` before handing off to `standard-implementer`
 - route hard judgment to high agents

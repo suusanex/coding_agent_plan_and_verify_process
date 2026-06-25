@@ -11,6 +11,8 @@ plan_readiness: ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDeci
 case_to_plan_mapping_status: Complete / Incomplete / N/A / Unknown
 behavior_case_coverage_ledger_artifact:
 behavior_case_coverage_ledger_status: Complete / Incomplete / N/A / Unknown
+risk_triage_artifact:
+risk_triage_artifact_status: Complete / Incomplete / Missing / Unknown
 replan_required_items:
 - None
 current_gate:
@@ -81,6 +83,17 @@ allowed_stop_reasons:
 - behavior_case_coverage_ledger_status: Complete / Incomplete / N/A / Unknown
 - replan_required_items:
 
+## Risk Triage
+
+- risk_triage_artifact: plans/<ticket-or-slug>-change-risk-triage.md
+- risk_triage_artifact_status: Complete / Incomplete / Missing / Unknown
+- risk_classification:
+- guardrail_focus_required: Yes / No / Unknown
+- selected_runtime_contracts: <Contract IDs / none / Unknown>
+- implementation_realization_risk: Present / Absent / Unclear / Unknown
+- recommended_process: normal / advanced-full-coverage / human-decision-wait / higher-model-review / lower-cost-delegated-scan
+- recommended_next_step:
+
 ## Execution Mode
 
 - execution_mode: ROUTE_ONLY / DELEGATED_WORK / PARENT_DIRECT_WORK / TRIVIAL_PARENT_FIX
@@ -122,6 +135,7 @@ operations_not_allowed_in_current_state:
 - Do not implement before READY.
 - Do not select risk/profile/full-coverage before plan_readiness = ReadyForRiskTriage.
 - Do not route requirement-elaboration gaps to full-coverage or fix-slice.
+- Do not route to implementation-handoff-review until risk_triage_artifact_status = Complete and `plans/<ticket-or-slug>-change-risk-triage.md` exists.
 - Do not route to standard-implementer before implementation-handoff-review or an explicitly equivalent pre-implementation gate creates the parent authorization artifact.
 - If expansion_required = Yes, do not route to standard-implementer until behavior_case_coverage_ledger_status = Complete.
 - Do not parent-direct execute a gate with DelegationRequired = Yes unless ParentDirectExecutionException has explicit human approval.

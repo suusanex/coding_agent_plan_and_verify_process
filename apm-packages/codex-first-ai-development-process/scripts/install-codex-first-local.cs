@@ -849,8 +849,9 @@ static string BuildAgentsSection(string packageRoot)
     sb.AppendLine("- state artifact には Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance を記録する。");
     sb.AppendLine("- Plan gate では behavior expansion decision、Case-to-Plan mapping、Plan readiness を記録し、`ReadyForRiskTriage` になるまで risk / full-coverage / implementation へ進めない。");
     sb.AppendLine("- `NeedsPlanBehaviorExpansion` または `ReplanRequired` は Plan phase へ戻し、配置済みの `black-box-behavior-spec-kernel` または `high-planner` / Plan rerun へ渡す。`full-coverage` や fix-slice の代替ルートにしない。");
+    sb.AppendLine("- Risk gate では `plans/<slug>-change-risk-triage.md` を作成または更新し、state artifact に `risk_triage_artifact` と `risk_triage_artifact_status` を記録する。");
     sb.AppendLine("- state artifact では execution_mode と、model tier / configured model / hook model / reported model / effective model を分けて記録する。");
-    sb.AppendLine("- 実装前には `implementation-handoff-review` または明示的に同等の gate で parent authorization artifact を作成し、`Expansion required: Yes` の場合は Behavior Case Coverage Ledger が `Complete` になるまで `standard-implementer` へ渡さない。");
+    sb.AppendLine("- 実装前には `risk_triage_artifact_status = Complete` を確認し、`implementation-handoff-review` または明示的に同等の gate で parent authorization artifact を作成し、`Expansion required: Yes` の場合は Behavior Case Coverage Ledger が `Complete` になるまで `standard-implementer` へ渡さない。");
     sb.AppendLine("- READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する。");
     sb.AppendLine("- `DelegationRequired = Yes` の gate は observed run または explicit human approval 付き `ParentDirectExecutionException` がない限り成功扱いしない。");
     sb.AppendLine("- 親が委譲予定の作業を直接実行した場合、cost-saving delegation 成功として扱わない。");

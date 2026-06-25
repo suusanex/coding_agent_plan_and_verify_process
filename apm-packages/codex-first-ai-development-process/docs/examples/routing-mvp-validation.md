@@ -117,7 +117,7 @@ Issue summary:
 | Agent / Subagent Plan | `implementation-handoff-review` before READY implementation, `standard-implementer` for delegated implementation, `standard-verifier` for verification |
 | Edit Permission | `allowed_to_edit: No` before Plan / risk / handoff review; `edit_owner: standard-implementer` after parent authorization artifact exists |
 | DelegationRequired | `Yes` for implementation and verification |
-| Stop / Ready Gate | `ReadyForImplementationHandoffReview` after bounded Plan, risk check, allowed paths, and compatibility rule exist; `ReadyForDelegatedImplementation` after parent authorization artifact exists |
+| Stop / Ready Gate | `ReadyForImplementationHandoffReview` after bounded Plan, `plans/<slug>-change-risk-triage.md`, allowed paths, and compatibility rule exist; `ReadyForDelegatedImplementation` after parent authorization artifact exists |
 
 ### Expected Routing Plan excerpt
 
@@ -154,7 +154,7 @@ delegation_required: Yes for Implementation and Verification
 allowed_to_edit: No before READY
 edit_owner: standard-implementer after READY implementation is authorized
 parent_direct_edit_allowed: No
-stop_ready_gate: ReadyForImplementationHandoffReview after bounded Plan, risk check, allowed paths, and compatibility rule exist; ReadyForDelegatedImplementation after parent authorization artifact exists
+stop_ready_gate: ReadyForImplementationHandoffReview after bounded Plan, plans/<slug>-change-risk-triage.md, allowed paths, and compatibility rule exist; ReadyForDelegatedImplementation after parent authorization artifact exists
 stop_reason: ReadyForDelegatedImplementation until an observed standard-implementer run exists
 delegation_violation: No while no parent-direct edit occurs
 cost_saving_delegation_countable: No until observed delegated run evidence exists

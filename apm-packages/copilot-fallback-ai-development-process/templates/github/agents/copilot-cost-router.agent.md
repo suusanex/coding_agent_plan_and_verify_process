@@ -15,11 +15,11 @@ handoffs:
     model: GPT-5.5 (copilot)
   - label: Triage risk
     agent: copilot-risk-triage
-    prompt: Classify risk and decide whether the standard route can safely continue.
+    prompt: Classify risk, create or update `plans/<slug>-change-risk-triage.md`, and decide whether the standard route can safely continue.
     model: GPT-5.5 (copilot)
   - label: Review implementation handoff
     agent: implementation-handoff-review
-    prompt: Create the pre-implementation parent authorization artifact and required coverage ledgers before implementation. If no Guardrail Focus or selected runtime contracts exist, treat runtime-contract-kernel and test-design-kernel as N/A instead of blocking on missing artifacts.
+    prompt: Create the pre-implementation parent authorization artifact and required coverage ledgers before implementation, using `plans/<slug>-change-risk-triage.md` as the required risk artifact. If no Guardrail Focus or selected runtime contracts exist, treat runtime-contract-kernel and test-design-kernel as N/A instead of blocking on missing artifacts.
     model: GPT-5.5 (copilot)
   - label: Implement READY scope
     agent: copilot-standard-implementer
@@ -45,6 +45,8 @@ Accept ordinary requests such as "この issue を進めて", "このバグを�
 - If Plan readiness is `NeedsPlanBehaviorExpansion`, route to behavior expansion or Plan rerun and do not select risk/profile/full-coverage.
 - If Plan readiness is `NeedsHumanDecision`, stop for human decision.
 - Select Risk only after `Plan readiness = ReadyForRiskTriage`.
+- Risk triage must create or update `plans/<slug>-change-risk-triage.md` and record `risk_triage_artifact_status`.
+- Do not route to implementation handoff review until `risk_triage_artifact_status = Complete`.
 - Before `copilot-standard-implementer`, route to `implementation-handoff-review` or an explicitly equivalent pre-implementation gate.
 - Record `behavior_case_coverage_ledger_artifact` and `behavior_case_coverage_ledger_status` in the state artifact.
 - If `Expansion required = Yes`, do not hand off to `copilot-standard-implementer` until `behavior_case_coverage_ledger_status = Complete`.

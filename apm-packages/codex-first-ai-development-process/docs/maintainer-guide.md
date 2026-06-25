@@ -75,7 +75,8 @@ Codex-first profile agents should use the smallest practical sandbox boundary:
 | Agent role | Default `sandbox_mode` | Reason |
 | --- | --- | --- |
 | cheap repo scan / docs consistency / artifact format check | `read-only` | evidence collection and suggestions only |
-| high planning / risk / contract / closure review | `read-only` | judgment and artifact review, not implementation |
+| high planning / contract / closure review | `read-only` | judgment and artifact review, not implementation |
+| high risk triage | `workspace-write` | creates or updates `plans/<slug>-change-risk-triage.md` and state risk fields, but does not implement |
 | standard implementer | `workspace-write` | bounded READY implementation owns edits |
 | standard verifier | `workspace-write` | tests, build artifacts, and verification artifacts may write locally |
 
@@ -175,6 +176,7 @@ full-coverage 3層運用は advanced route である。
 - `apm.yml` または maintainer guide が標準 route dependency と advanced / compatibility dependency の違いを説明している。
 - user guide が process 名、agent 名、model tier、full-coverage 分岐を利用者へ要求していない。
 - `codex-first-cost-router` が state artifact、model tier、READY、close 不可条件を定義している。
+- high-risk-triage が `plans/<slug>-change-risk-triage.md` を作成し、handoff review の必須入力として扱われている。
 - Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance が template / skill / docs に揃っている。
 - implementation-handoff-review が standard implementation 前の parent authorization と Behavior Case Coverage Ledger gate として定義されている。
 - READY implementation は `standard-implementer`、READY verification は `standard-verifier` への serial delegation として定義されている。
