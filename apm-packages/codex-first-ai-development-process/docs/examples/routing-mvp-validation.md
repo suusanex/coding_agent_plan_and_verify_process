@@ -114,10 +114,10 @@ Issue summary:
 | Task Weight | `small-bounded` |
 | Selected Process | `normal` |
 | Model Tier Recommendation | `STANDARD_MODEL` for implementation and verification |
-| Agent / Subagent Plan | `standard-implementer` for READY implementation, `standard-verifier` for verification |
-| Edit Permission | `allowed_to_edit: No` before Plan / risk; `edit_owner: standard-implementer` after READY |
+| Agent / Subagent Plan | `implementation-handoff-review` before READY implementation, `standard-implementer` for delegated implementation, `standard-verifier` for verification |
+| Edit Permission | `allowed_to_edit: No` before Plan / risk / handoff review; `edit_owner: standard-implementer` after parent authorization artifact exists |
 | DelegationRequired | `Yes` for implementation and verification |
-| Stop / Ready Gate | `ReadyForDelegatedImplementation` after bounded Plan, risk check, allowed paths, and compatibility rule exist |
+| Stop / Ready Gate | `ReadyForImplementationHandoffReview` after bounded Plan, `plans/<slug>-change-risk-triage.md`, allowed paths, and compatibility rule exist; `ReadyForDelegatedImplementation` after parent authorization artifact exists |
 
 ### Expected Routing Plan excerpt
 
@@ -125,10 +125,12 @@ Issue summary:
 Routing Plan:
 - Plan: STANDARD_MODEL or HIGH_MODEL if ambiguity appears.
 - Risk: STANDARD_MODEL.
+- Implementation handoff review: HIGH_MODEL or STANDARD_MODEL, edit_owner = implementation-handoff-review.
 - Implementation: STANDARD_MODEL, DelegationRequired = Yes, edit_owner = standard-implementer.
 - Verification: STANDARD_MODEL, DelegationRequired = Yes, edit_owner = standard-verifier.
 
 Stop / Ready Gate:
+- Stop with ReadyForImplementationHandoffReview until parent authorization artifact exists.
 - Stop with ReadyForDelegatedImplementation until observed standard-implementer run exists.
 - Stop with ReadyForDelegatedVerification until observed standard-verifier run exists.
 ```
@@ -146,13 +148,13 @@ current_gate: Plan
 next_gate: Risk
 recommended_model_tier: STANDARD_MODEL
 model_tier_recommendation: STANDARD_MODEL for bounded implementation and verification; HIGH_MODEL only if compatibility ambiguity appears
-execution_mode: ROUTE_ONLY before READY, then DELEGATED_WORK
-selected_agent_name: standard-implementer for READY implementation; standard-verifier for verification
+execution_mode: ROUTE_ONLY before READY and handoff review, then DELEGATED_WORK
+selected_agent_name: implementation-handoff-review before implementation; standard-implementer for READY implementation; standard-verifier for verification
 delegation_required: Yes for Implementation and Verification
 allowed_to_edit: No before READY
 edit_owner: standard-implementer after READY implementation is authorized
 parent_direct_edit_allowed: No
-stop_ready_gate: ReadyForDelegatedImplementation after bounded Plan, risk check, allowed paths, and compatibility rule exist
+stop_ready_gate: ReadyForImplementationHandoffReview after bounded Plan, plans/<slug>-change-risk-triage.md, allowed paths, and compatibility rule exist; ReadyForDelegatedImplementation after parent authorization artifact exists
 stop_reason: ReadyForDelegatedImplementation until an observed standard-implementer run exists
 delegation_violation: No while no parent-direct edit occurs
 cost_saving_delegation_countable: No until observed delegated run evidence exists

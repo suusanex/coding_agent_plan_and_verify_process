@@ -13,6 +13,8 @@ dependencies:
     - git: parent
       path: .github/agents/plan-kernel.agent.md
     - git: parent
+      path: .github/agents/black-box-behavior-spec-kernel.agent.md
+    - git: parent
       path: .github/agents/change-risk-triage.agent.md
     - git: parent
       path: .github/agents/implementation-contract-kernel.agent.md
@@ -32,6 +34,8 @@ dependencies:
       path: .github/agents/verification-kernel.agent.md
     - git: parent
       path: .github/agents/coverage-gap-triage.agent.md
+    - git: parent
+      path: .github/agents/residual-decision-gate.agent.md
     - git: parent
       path: .github/agents/coverage-gap-resolution-slice.agent.md
     # Advanced full-coverage route support. These are not the default beginner path.

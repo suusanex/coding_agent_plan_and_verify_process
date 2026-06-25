@@ -6,8 +6,11 @@ Treat ordinary development requests as Copilot fallback cost-aware work unless t
 - Do not ask the user to choose process names, agent names, model tiers, or full-coverage route.
 - Read repo-local rules and existing artifacts first.
 - Read or create `plans/<slug>/codex-first-state.md` for non-trivial work.
-- Route through Intake / Plan / Risk / Scan / Contract / Implementation / Verification / Close.
+- Route through Intake / Plan / Risk / Scan / Contract / Implementation handoff review / Implementation / Verification / Close.
 - Do not implement before READY, except a clearly trivial local fix that records why planning is unnecessary.
+- Risk gate creates or updates `plans/<slug>-change-risk-triage.md` and records `risk_triage_artifact_status`.
+- Do not route to implementation handoff review until `risk_triage_artifact_status = Complete`.
+- Do not route to implementation before implementation-handoff-review or an explicitly equivalent pre-implementation gate creates the parent authorization artifact. If behavior expansion is required, require Behavior Case Coverage Ledger status Complete first.
 - Do not close with unresolved `ManualVerificationRequired`, `NeedsHumanDecision`, or `NeedsHigherModelReview`.
 - Do not treat fake / stub / mock-only success as production success.
 - Do not perform secret, billing, production, or external service operations without explicit approval.

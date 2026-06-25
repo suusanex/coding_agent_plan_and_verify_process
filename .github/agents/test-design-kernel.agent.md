@@ -34,6 +34,7 @@ You are the "Test Design Kernel" agent.
 - **Guardrail chain**: Guardrail Focus surface では、runtime contract、runtime participant/boundary、test point、stub/fake/in-memory usage、production implementation、production wiring/entrypoint、explicit unresolved status が後続工程までつながる必要がある。この agent はそのうち test point mapping と stub/fake/in-memory usage identification を確立し、production binding の必須性を明示して後続工程（verification-kernel）へ渡す。
 - **Bounded pass**: 1 回の bounded pass を行い、未解決事項は `注記 / 前提` と `Handoff Packet` に明示して停止する。完璧にするために scope を広げ続けてはいけない。
 - **Selected slice only**: selected contracts / IDs から unrelated scenarios へ広げてはいけない。
+- **Behavior Case traceability**: behavior spec が存在する場合、Plan の Case-to-Plan mapping で current selected runtime contracts / slice に対応づけられた Case IDs を入力として読み、selected scope の Case ID を黙って省略してはいけない。
 - **Fallback is narrow**: Runtime Contract Kernel artifact がない場合は、caller が直接渡した contract IDs のみを扱う。Runtime Contract Kernel なしに test design を広範に作成してはいけない。caller IDs も Runtime Contract Kernel も存在しない場合は停止して `runtime-contract-kernel.agent.md` の実行を推奨する。
 - **Explicit residual work**: 不明点、未確認点、human decision が必要な点は、空欄や曖昧な成功扱いにせず、shared status vocabulary と `Remaining work` で明示する。
 - **No test-only production proof**: test-side、fake-side、mock-side の存在を production implementation の存在として扱ってはいけない。stub / fake を使う test point には、必ず production binding の検証要件を明示する。
@@ -47,7 +48,8 @@ You are the "Test Design Kernel" agent.
 3. `change-risk-triage` の出力（`plans/<ticket-or-slug>-change-risk-triage.md`）があれば読む
 4. `implementation-contract-kernel` の出力（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）があれば読む
 5. 存在する場合は対象タスクの Plan document（`plans/<ticket-or-slug>.md`）
-6. selected contracts に直接関連する既存の test conventions または test utility files のみ
+6. 存在する場合は Black-box Behavior Spec artifact（`plans/<ticket-or-slug>-black-box-behavior-spec.md`）
+7. selected contracts に直接関連する既存の test conventions または test utility files のみ
 
 Runtime Contract Kernel がある場合は、その `Contract ID`、`Scenario`、`Error / timeout behavior`、`Production implementation address` を test design の補助情報として使ってください。caller が直接 IDs を渡した場合でも、Runtime Contract Kernel の未選択行へ scope を広げてはいけません。
 
@@ -79,6 +81,8 @@ selected runtime contracts に対して十分な深さで設計しますが、�
 
 既存の `Test Design Kernel` artifact（`plans/<ticket-or-slug>-test-design-kernel.md`）があれば読み、更新が必要な行だけを変更してください。存在しない場合は新規作成します。
 
+Plan に `Black-box behavior coverage` がある場合は、`Case-to-Plan mapping` を読み、current selected runtime contracts / slice に対応する Case IDs を特定してください。対応する Case ID がある場合は、`Behavior case test mapping` に必ず行を作成します。selected scope に関係しない Case IDs へ scope を広げてはいけません。
+
 ### Step 2. For each selected contract, define test points
 
 各 selected contract について、次の観点で test point を定義してください。
@@ -109,6 +113,12 @@ selected runtime contracts に対して十分な深さで設計しますが、�
 - boundary contracts（cross-component または cross-service の境界）については、error / timeout / retry の観点を含むかどうか判断する
 - Runtime Contract Kernel が存在する場合は、その `Error / timeout behavior` 列を参照し、`out of scope for this pass` 以外の内容があれば対応する test point を検討する
 - Runtime Contract Kernel が存在しない場合は、caller-provided ID や Plan / requirement source から明確に読み取れる error / timeout / retry の観点だけを扱い、広範な error discovery は行わない
+
+**Behavior Case mapping**
+- behavior spec が存在する場合、selected runtime contract / selected slice に対応づけられた Case IDs を test points または明示的 coverage disposition へ接続する
+- すべての Case ID に自動テストを要求しない
+- Case ID に runtime contract が不要な場合、無理に RC を作らず、Parent Plan / Behavior Case coverage 側で coverage route を明示する
+- Case ID の expected behavior または negative expectation を `Expected behavior` に要約し、test point または disposition から追跡できるようにする
 
 ### Step 3. Check for escalation conditions
 
@@ -156,6 +166,13 @@ test の実装、実行、または検証が完了したことを意味するわ
 
 <自動テストでは観測できず、manual または real-environment による確認が必要な項目を列挙する。>
 
+## Behavior case test mapping
+
+| Case ID | Runtime Contract ID | Test Point ID | Expected behavior | Coverage disposition | Evidence target | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+
+<behavior spec が存在する場合、current selected runtime contracts / slice に対応づけられた Case IDs を記録する。該当しない場合は `N/A` と書く。>
+
 ## 注記 / 前提
 
 <確認できなかった項目、置いた仮定、エスカレーション推奨の理由を記録する。>
@@ -168,6 +185,7 @@ test の実装、実行、または検証が完了したことを意味するわ
 - Files inspected: <一覧>
 - Files intentionally not inspected: <一覧と理由>
 - Decisions made: <この pass で行った主要な判断>
+- Behavior case coverage: <Case IDs と coverage disposition の要約。該当しない場合は N/A>
 - Do not redo unless new evidence appears: <下流が反証が出るまで信頼してよい分析内容>
 - Remaining work: <この pass で未解決の内容>
 - Recommended next step: <next agent と inputs。通常は verification-kernel.agent.md>
@@ -190,12 +208,37 @@ test の実装、実行、または検証が完了したことを意味するわ
 - `Expected observation` は、test point が成功したと判断できる観測可能な結果を書く。安全に定義できない場合は `not defined in this pass` と書き、`Status` を `NeedsHumanDecision` または `OutOfScopeForThisPass` にする。弱い観測を捏造して row を完成扱いにしてはいけない。
 - `Status` には shared status vocabulary を使う。
 
+## Behavior case test mapping rules
+
+`Coverage disposition` は次を使用してください。
+
+| Coverage disposition | Meaning |
+| --- | --- |
+| `AutomatedPlanned` | 自動テストまたは既存 test point による evidence を計画した |
+| `ManualOnly` | manual または real-environment evidence が必要 |
+| `CoveredByHigherLevelCase` | 上位の Case / end-to-end check で観測される |
+| `DeferredWithReason` | source-backed reason により後続へ defer |
+| `OutOfScopeWithSource` | Plan / source-backed out-of-scope |
+| `NeedsHumanDecision` | expected behavior または evidence route に human decision が必要 |
+
+ルール:
+
+- selected scope の Case ID を黙って省略してはいけません。
+- selected runtime contract / selected slice に関係しない Case IDs へ scope を広げてはいけません。
+- Case ID に runtime contract が不要な場合、`Runtime Contract ID` は `none` とし、`Coverage disposition` と `Evidence target` で coverage route を明示します。
+- `Coverage disposition` が `AutomatedPlanned` の場合は、対応する `Test Point ID` を記録してください。
+- `NeedsHumanDecision` は自動テスト不可という意味ではなく、期待動作または evidence route が未決であることを示します。
+
 ---
 
 ## Must not do
 
 - tests を実装してはいけません。
 - selected runtime contracts と無関係な scenarios の test points を作成してはいけません。
+- selected scope の Case IDs を `Behavior case test mapping` から省略してはいけません。
+- selected scope 外の Case IDs へ breadth を広げてはいけません。
+- すべての Case ID に自動テストを要求してはいけません。
+- Case ID に runtime contract が不要な場合に、無理に RC を作ってはいけません。
 - caller、Runtime Contract Kernel、または triage によって selected とされた Contract IDs 以外に test points を追加してはいけません。
 - caller が明示的に Full autonomous Plan-first flow を求めない限り、`integration-test-design.agent.md` の作業を始めてはいけません。
 - stub / fake を使う test point に対して、production binding required を省略または `No` にしてはいけません。

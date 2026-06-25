@@ -25,6 +25,7 @@ You are the "Coverage Gap Triage" agent.
 
 1. Cross-process または cross-component の処理で、各 component / process の内部では整合して見えるが、接続すると runtime contract、message、state transition、または wiring が対応しておらず動かない。
 2. Stub、fake、mock、in-memory implementation を使った automated test は通るが、対応する production implementation または production wiring が存在しない。
+3. Requirement-elaboration gap が通常の fix-slice や full-coverage に流れ、Plan phase へ戻らない。
 
 この agent 自身がこれらの失敗を直すわけではありません。しかし、どの gap がどの失敗に対応するかを分類し、修復のための正しい agent と scope を推奨します。
 
@@ -54,23 +55,30 @@ You are the "Coverage Gap Triage" agent.
 
 同一の source item に複数の gap type が当てはまる場合は、次の優先順位で最も上位のものを選んでください。本当に独立した複数の gap type が存在する場合は、同一 source ID を参照する複数の行を作ることを許可します。
 
-1. `PlanAmbiguity` — Plan 要件が不明瞭または矛盾しており、他の分類が安全にできない
-2. `ManualEnvironmentRequired` — 実際の環境または手動検証が必要で、automated 分析では判断できない
-3. `ImplementationContractMissing` — implementation-realization risk があるのに implementation contract artifact が存在しない
-4. `DependencyMissing` — Plan-required dependency / package / binary / SDK が不足している
-5. `ApiSurfaceUnknown` — Plan-required API / namespace / type / method / provider ID が未確認
-6. `UnjustifiedSubstitution` — Plan-required path の代わりに nearby path が正当化なく使われている
-7. `SourceOfTruthDrift` — Plan / implementation contract / runtime contract / verification evidence が乖離している
-8. `UnmappedParentAcceptance` — parent Plan AC が Guardrail Focus coverage / deferred / cross-slice / out-of-scope / human decision のどれにも紐づかない
-9. `ScopeVerdictAmbiguity` — READY / PASS verdict が Guardrail Focus coverage か parent Plan 全体か曖昧
-10. `ParentPlanCoverageGap` — parent Plan item が Guardrail Focus coverage 外に残っている
-11. `PlanProhibitedPatternDetected` — Plan が禁止した pattern が selected production address にある
-12. `ProductionWiringMissing` — production implementation は存在するが wiring がない
-13. `ProductionImplementationMissing` — production implementation 自体が存在しない
-14. `ContractMismatch` — production implementation は存在するが contract と一致しない
-15. `TestOracleMissing` — test も manual-only 理由も記録されていない
-16. `DesignTooBroadForSlice` — gap の修復が bounded slice の範囲を超えており、より広い process が必要
-17. `AlreadyCoveredButDocumentationStale` — coverage は実在するが documentation が更新されていない
+1. `UnexpandedRequirement` — source requirement が behavior Case IDs へ展開されていない
+2. `SourceRequirementNotMappedToPlan` — source requirement または Case ID が Plan FR / AC / explicit disposition へ対応していない
+3. `UnmappedBehaviorCase` — Case ID が coverage route へ対応していない
+4. `AmbiguousExpectedBehavior` — expected behavior または negative expectation が未決で human decision が必要
+5. `PlanAmbiguity` — Plan 要件が不明瞭または矛盾しており、他の分類が安全にできない
+6. `ManualEnvironmentRequired` — 実際の環境または手動検証が必要で、automated 分析では判断できない
+7. `ImplementationContractMissing` — implementation-realization risk があるのに implementation contract artifact が存在しない
+8. `DependencyMissing` — Plan-required dependency / package / binary / SDK が不足している
+9. `ApiSurfaceUnknown` — Plan-required API / namespace / type / method / provider ID が未確認
+10. `UnjustifiedSubstitution` — Plan-required path の代わりに nearby path が正当化なく使われている
+11. `SourceOfTruthDrift` — Plan / implementation contract / runtime contract / verification evidence が乖離している
+12. `UnmappedParentAcceptance` — parent Plan AC が Guardrail Focus coverage / deferred / cross-slice / out-of-scope / human decision のどれにも紐づかない
+13. `ScopeVerdictAmbiguity` — READY / PASS verdict が Guardrail Focus coverage か parent Plan 全体か曖昧
+14. `ParentPlanCoverageGap` — parent Plan item が Guardrail Focus coverage 外に残っている
+15. `PlanProhibitedPatternDetected` — Plan が禁止した pattern が selected production address にある
+16. `ProductionWiringMissing` — production implementation は存在するが wiring がない
+17. `ProductionImplementationMissing` — production implementation 自体が存在しない
+18. `ContractMismatch` — production implementation は存在するが contract と一致しない
+19. `BehaviorCaseWithoutEvidence` — current pass に含まれる Case ID が test / manual / production evidence へ接続されていない
+20. `TestOracleMissing` — test も manual-only 理由も記録されていない
+21. `DesignTooBroadForSlice` — gap の修復が bounded slice の範囲を超えており、より広い process が必要
+22. `AlreadyCoveredButDocumentationStale` — coverage は実在するが documentation が更新されていない
+
+verification-kernel または cross-slice-verification-kernel が `UnexpandedRequirement`、`SourceRequirementNotMappedToPlan`、`UnmappedBehaviorCase`、`BehaviorCaseWithoutEvidence`、`AmbiguousExpectedBehavior` を明示している場合、その vocabulary を保ってください。`PlanAmbiguity`、`ParentPlanCoverageGap`、`DesignTooBroadForSlice` へ丸めてはいけません。
 
 ## Runtime inputs
 
@@ -205,6 +213,7 @@ Gap type は `## Embedded process policy` の `Gap type precedence` に従って
 
 - `PlanAmbiguity`
 - `ManualEnvironmentRequired`
+- `AmbiguousExpectedBehavior`
 - current status が `NeedsHumanDecision`
 
 これらを `Human decisions required` section に一覧として記録してください。
@@ -225,6 +234,11 @@ Gap type は `## Embedded process policy` の `Gap type precedence` に従って
 
 | Gap type | 意味 |
 | --- | --- |
+| `UnexpandedRequirement` | source requirement が behavior Case IDs へ展開されていない。Plan phase / behavior expansion へ戻す。 |
+| `SourceRequirementNotMappedToPlan` | source requirement または Case ID が Plan FR / AC / explicit disposition へ対応していない。Plan phase へ戻す。 |
+| `UnmappedBehaviorCase` | Case ID が slice、runtime contract、test/manual evidence route、cross-slice verification、または explicit disposition のどれにも対応していない。Plan phase へ戻す。 |
+| `BehaviorCaseWithoutEvidence` | current pass に含まれる Case ID が test / manual / production evidence へ接続されていない。Plan mapping が有効なら fix / manual / residual decision の候補として扱う。 |
+| `AmbiguousExpectedBehavior` | expected behavior または negative expectation が未決で human decision が必要である。 |
 | `ProductionImplementationMissing` | production code（クラス、関数、メソッドなど）が存在しない。interface またはテスト用 substitute だけがある状態。 |
 | `ProductionWiringMissing` | production implementation は存在するが、DI 登録、startup wiring、route 定義、configuration などが欠けており、runtime path に繋がっていない。 |
 | `ContractMismatch` | production implementation は存在するが、runtime contract または Plan requirement で定義された field、behavior、sequence、または error handling と一致しない。 |
@@ -247,6 +261,11 @@ Gap type は `## Embedded process policy` の `Gap type precedence` に従って
 
 | Gap type | 推奨 agent | 推奨 profile |
 | --- | --- | --- |
+| `UnexpandedRequirement` | `residual-decision-gate.agent.md` で `REPLAN_REQUIRED` とし、`black-box-behavior-spec-kernel.agent.md` へ戻す | `triage-only` |
+| `SourceRequirementNotMappedToPlan` | `residual-decision-gate.agent.md` で `REPLAN_REQUIRED` とし、`plan-kernel.agent.md` へ戻す | `triage-only` |
+| `UnmappedBehaviorCase` | `residual-decision-gate.agent.md` で `REPLAN_REQUIRED` とし、`black-box-behavior-spec-kernel.agent.md` または `plan-kernel.agent.md` へ戻す | `triage-only` |
+| `BehaviorCaseWithoutEvidence` | `residual-decision-gate.agent.md` で FixNow / ManualVerificationRequired / DeferredWithOwner を判断する。FixNow の場合だけ `coverage-gap-resolution-slice.agent.md` | `triage-only` または `fix-slice` |
+| `AmbiguousExpectedBehavior` | 停止し、human decision を待つ | `triage-only` |
 | `ImplementationContractMissing` | `implementation-contract-kernel.agent.md`（bounded）。broad な場合は `plan-slice-decomposition.agent.md` | `contract-kernel` または `standard-slice` |
 | `DependencyMissing` | `implementation-contract-kernel.agent.md`（bounded）。broad な場合は `plan-slice-decomposition.agent.md` | `contract-kernel` または `standard-slice` |
 | `ApiSurfaceUnknown` | `implementation-contract-kernel.agent.md`（bounded）。broad な場合は `plan-slice-decomposition.agent.md` | `contract-kernel` または `standard-slice` |
@@ -262,7 +281,7 @@ Gap type は `## Embedded process policy` の `Gap type precedence` に従って
 | `TestOracleMissing` | `coverage-gap-resolution-slice.agent.md` | `fix-slice` |
 | `ManualEnvironmentRequired` | 停止し、human decision を待つ | `triage-only` |
 | `PlanAmbiguity` | 停止し、human decision を待つ | `triage-only` |
-| `DesignTooBroadForSlice` | `plan-slice-decomposition.agent.md` | `full-coverage` |
+| `DesignTooBroadForSlice` | `ReadyForRiskTriage` の Plan に限り `plan-slice-decomposition.agent.md`。requirement-elaboration gap には使用しない | `full-coverage` |
 | `AlreadyCoveredButDocumentationStale` | `coverage-gap-resolution-slice.agent.md`（documentation update のみ） | `fix-slice` |
 
 ---
@@ -361,7 +380,7 @@ implementation-coverage-of-integration-test）を使ったか、どの ID を対
 
 ## Stop condition
 
-全 unresolved items を分類し、出力を書き出したら停止してください。gap の修復が必要な場合は、`coverage-gap-resolution-slice.agent.md` と対象 IDs を推奨してください。修復には入らないでください。
+全 unresolved items を分類し、出力を書き出したら停止してください。gap の修復が必要な場合は、gap type に応じて `residual-decision-gate.agent.md`、human decision、または `coverage-gap-resolution-slice.agent.md` と対象 IDs を推奨してください。`UnexpandedRequirement` / `SourceRequirementNotMappedToPlan` / `UnmappedBehaviorCase` を `coverage-gap-resolution-slice.agent.md` へ直接渡してはいけません。修復には入らないでください。
 
 ## Status vocabulary
 

@@ -51,6 +51,7 @@ plan-kernel
 - **Guardrails are binding for Guardrail Focus surfaces**: runtime-contract-kernel、test-design-kernel、implementation-contract-kernel の selected IDs に関係する箇所では、contract、test point、production binding requirement、prohibited substitutions を守る。
 - **Implement one bounded parent Plan pass**: この agent は Guardrail Focus surface だけを実装する agent ではありません。bounded Plan の parent Plan implementation surface を通常可能な範囲で実装します。Guardrail Focus artifacts は深く確認すべき contract / test / production binding の guardrail です。
 - **Honor Plan Slice Decomposition when present**: full-coverage decomposition 由来の slice を実装する場合、parent Plan と Plan Slice Decomposition artifact の両方を読む。slice scope / non-goals / cross-slice dependencies / XC IDs を守り、cross-slice contract を slice 内で完了扱いにしてはいけません。
+- **Honor Behavior Case coverage when present**: Plan の `Expansion required: Yes` の場合、Black-box Behavior Spec と Behavior Case Coverage Ledger を読み、実装対象の Case IDs を Implementation Self-Map に記録する。Behavior Case coverage が incomplete のまま実装に進んではいけません。
 - **One bounded implementation pass**: 1 回の bounded implementation pass を行う。広い redesign、unbounded test-fix loop、unrelated refactoring に入ってはいけない。
 - **Explicit residual work**: 完了できないこと、human decision が必要なこと、API surface / dependency / production address が未確認なことは、実装で推測して埋めず `Remaining work` に残す。
 - **No fake-only completion**: fake、mock、in-memory、test helper だけで production complete と判断してはいけない。
@@ -71,12 +72,13 @@ plan-kernel
 
 ### Conditional artifacts
 
-5. Implementation Contract Kernel（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）— `Implementation realization risk` が `Present` / `Unclear` の場合は strongly required
-6. Implementation Contract Review Kernel（`plans/<ticket-or-slug>-implementation-contract-review-kernel.md`）— 存在する場合は読む
-7. Plan Slice Decomposition artifact（`plans/<ticket-or-slug>-slice-decomposition.md`）— full-coverage decomposition から生成された slice を実装する場合は必須
-8. Implementation Handoff Review（`plans/<ticket-or-slug>-implementation-handoff-review.md`）— 必須。存在しない場合は停止する
-9. Coverage Gap Triage / Resolution Slice output — fix-slice の実装である場合は読む
-10. 既存の Implementation Self-Map または Implementation Execution Result — 既に一部実装済みの続きである場合は読む
+5. Black-box Behavior Spec artifact（`plans/<ticket-or-slug>-black-box-behavior-spec.md`）— `Expansion required: Yes` の場合は必須
+6. Implementation Contract Kernel（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）— `Implementation realization risk` が `Present` / `Unclear` の場合は strongly required
+7. Implementation Contract Review Kernel（`plans/<ticket-or-slug>-implementation-contract-review-kernel.md`）— 存在する場合は読む
+8. Plan Slice Decomposition artifact（`plans/<ticket-or-slug>-slice-decomposition.md`）— full-coverage decomposition から生成された slice を実装する場合は必須
+9. Implementation Handoff Review（`plans/<ticket-or-slug>-implementation-handoff-review.md`）— 必須。存在しない場合は停止する
+10. Coverage Gap Triage / Resolution Slice output — fix-slice の実装である場合は読む
+11. 既存の Implementation Self-Map または Implementation Execution Result — 既に一部実装済みの続きである場合は読む
 
 ### Repository context
 
@@ -98,14 +100,15 @@ plan-kernel
 
 1. caller が parent Plan pass、Guardrail Focus、contract IDs、test point IDs、gap IDs を直接指定した場合は、それを最優先にする。
 2. bounded Plan を source of truth として、実装すべき behavior、non-goals、acceptance conditions、implementation scope を判断する。
-3. Change Risk Triage は high-risk boundaries、selected runtime contracts、implementation-realization risk の source とする。
-4. Plan Slice Decomposition artifact がある場合は、slice scope、non-goals、cross-slice dependencies、XC IDs、execution order の authoritative source とする。
-5. Implementation Contract Kernel がある場合は、dependency/API/provider path、allowed reuse、prohibited substitutions、required code changes、unresolved implementation-realization items の authoritative source とする。
-6. Implementation Contract Review Kernel がある場合は、その verdict、blocking items、notes を実装可否判断に反映する。
-7. Runtime Contract Kernel は selected RC の producer / consumer / message / fields / error behavior / production implementation address の source とする。
-8. Test Design Kernel は selected TP、expected observation、stub/fake allowed、production binding required の source とする。
-9. Implementation Handoff Review の verdict、readiness scope、Parent Plan Coverage Ledger、blocking issues、recommended implementation prompt additions を実装前に確認する。handoff review が存在しない、または Parent Plan Coverage Ledger が欠落している場合は停止する。
-10. artifacts と existing code が矛盾する場合は、勝手に code を優先して Plan を曲げてはいけない。mismatch を `Remaining work` または `NeedsHumanDecision` として記録する。
+3. `Expansion required: Yes` の場合は Black-box Behavior Spec と Behavior Case Coverage Ledger を source として、実装対象の Case IDs と negative expectations を判断する。
+4. Change Risk Triage は high-risk boundaries、selected runtime contracts、implementation-realization risk の source とする。
+5. Plan Slice Decomposition artifact がある場合は、slice scope、non-goals、cross-slice dependencies、XC IDs、execution order の authoritative source とする。
+6. Implementation Contract Kernel がある場合は、dependency/API/provider path、allowed reuse、prohibited substitutions、required code changes、unresolved implementation-realization items の authoritative source とする。
+7. Implementation Contract Review Kernel がある場合は、その verdict、blocking items、notes を実装可否判断に反映する。
+8. Runtime Contract Kernel は selected RC の producer / consumer / message / fields / error behavior / production implementation address の source とする。
+9. Test Design Kernel は selected TP、expected observation、stub/fake allowed、production binding required の source とする。
+10. Implementation Handoff Review の verdict、readiness scope、Parent Plan Coverage Ledger、Behavior Case Coverage Ledger、blocking issues、recommended implementation prompt additions を実装前に確認する。handoff review が存在しない、または Parent Plan Coverage Ledger が欠落している場合は停止する。
+11. artifacts と existing code が矛盾する場合は、勝手に code を優先して Plan を曲げてはいけない。mismatch を `Remaining work` または `NeedsHumanDecision` として記録する。
 
 ## Proceed / blocked rules
 
@@ -115,6 +118,7 @@ plan-kernel
 - required artifacts の一部がない場合でも、caller が明示的に省略を許容しており、変更が低リスクである。
 - implementation-handoff-review が存在し、verdict が `READY_FOR_BOUNDED_PARENT_PLAN_PASS` または `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS` であり、実装対象がその `Readiness scope` と一致している。
 - implementation-handoff-review が存在し、`Parent Plan Coverage Ledger` が記録されている。
+- `Expansion required: Yes` の場合、Black-box Behavior Spec artifact が存在し、implementation-handoff-review の `Behavior Case Coverage Ledger` が complete または実装対象外の source-backed disposition を持つ。
 
 次の場合は実装を開始せず、理由を記録して停止してください。
 
@@ -127,6 +131,8 @@ plan-kernel
 - bounded parent Plan pass の外へ広げないと実装できない。
 - required external API / SDK / dependency / environment が未確認で、代替実装を推測するしかない。
 - implementation-handoff-review が存在しない、または `Parent Plan Coverage Ledger` が欠落している。
+- `Expansion required: Yes` なのに Black-box Behavior Spec artifact がない。
+- `Expansion required: Yes` なのに implementation-handoff-review の `Behavior Case Coverage Ledger` が欠落、不完全、`UnmappedBlocking`、または実装前判断が必要な `NeedsHumanDecision` を含む。
 
 停止する場合も、可能であれば `Implementation Execution Result` を作成し、`BLOCKED_BY_*` verdict と `Remaining work` を残してください。無理に実装してはいけません。
 
@@ -163,8 +169,8 @@ ticket-or-slug を安全に特定できる場合、実装後の結果 artifact �
 ```md
 ## Implementation Target Map
 
-| Target | Source artifact | Required behavior / change | Related SL / XC / RC / TP / IC / Gap item | Implementation address | Status |
-| --- | --- | --- | --- | --- | --- |
+| Target | Source artifact | Required behavior / change | Related Behavior Case IDs | Related SL / XC / RC / TP / IC / Gap item | Implementation address | Status |
+| --- | --- | --- | --- | --- | --- | --- |
 ```
 
 この table は internal planning として使ってよいですが、最終出力にも含めることを推奨します。
@@ -172,6 +178,7 @@ ticket-or-slug を安全に特定できる場合、実装後の結果 artifact �
 略語は、`SL` = Slice ID、`XC` = Cross-slice Contract ID、`RC` = Runtime Contract ID、`TP` = Test Point ID、`IC` = Implementation Contract item として扱ってください。
 
 - Plan の functional requirements と acceptance conditions を target に含める。
+- behavior spec が存在する場合、実装対象の Behavior Case IDs と negative expectations を target に含める。
 - full-coverage decomposition 由来の slice では、対象 Slice ID と関連する XC ID を target に含める。
 - selected runtime contracts / test points に関係する production implementation と wiring を target に含める。
 - implementation-contract の required code changes / prohibited substitutions / unresolved items を target に含める。
@@ -237,8 +244,8 @@ caller または environment が許す範囲で、関連 tests、build、lint、
 ```md
 ## Implementation Self-Map
 
-| Change ID | Change | File / Symbol | Reason | Related Plan item | Related SL / XC / RC / TP / IC / Gap item | Assumption made | Review hint |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+| Change ID | Change | File / Symbol | Reason | Related Plan item | Related Behavior Case IDs | Related SL / XC / RC / TP / IC / Gap item | Assumption made | Review hint |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 ```
 
 記述ルール:
@@ -250,6 +257,7 @@ caller または environment が許す範囲で、関連 tests、build、lint、
 - `File / Symbol` は file path と class / method / function / config key / endpoint / test case などを具体的に書く。
 - `Reason` は、なぜその変更が必要かを Plan / RC / TP / IC / Gap に紐づけて書く。
 - `Related Plan item` は requirement、acceptance condition、scope item などを記録する。不明な場合は `unknown` と書く。
+- `Related Behavior Case IDs` は、実装した behavior または negative expectation に対応する Case ID を書く。該当なしの場合は `none` と書く。
 - `Related SL / XC / RC / TP / IC / Gap item` は関連する Slice ID、Cross-slice Contract ID、Contract ID、Test Point ID、Implementation Contract item、Gap ID を書く。該当なしの場合は `none` と書く。
 - `Assumption made` は実装時に置いた仮定、未確認の前提、API surface の解釈、既存コードの読み替えを記録する。仮定がない場合は `none` と書く。
 - `Review hint` は downstream reviewer が見るべき観点を書く。例: `ErrorPath`, `StateTransition`, `ProductionBinding`, `PublicApi`, `PersistenceShape`, `SubstitutionRisk`, `Skim`.
@@ -339,13 +347,13 @@ Required output structure:
 
 ## Implementation Target Map
 
-| Target | Source artifact | Required behavior / change | Related SL / XC / RC / TP / IC / Gap item | Implementation address | Status |
-| --- | --- | --- | --- | --- | --- |
+| Target | Source artifact | Required behavior / change | Related Behavior Case IDs | Related SL / XC / RC / TP / IC / Gap item | Implementation address | Status |
+| --- | --- | --- | --- | --- | --- | --- |
 
 ## Implementation Self-Map
 
-| Change ID | Change | File / Symbol | Reason | Related Plan item | Related SL / XC / RC / TP / IC / Gap item | Assumption made | Review hint |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+| Change ID | Change | File / Symbol | Reason | Related Plan item | Related Behavior Case IDs | Related SL / XC / RC / TP / IC / Gap item | Assumption made | Review hint |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Production Binding / Wiring Notes
 
@@ -369,6 +377,7 @@ Required output structure:
 - Selected contracts / IDs: <処理した Contract IDs>
 - Selected slice IDs: <処理した Slice IDs。該当なしの場合は `none`>
 - Cross-slice Contract IDs: <関係する XC IDs。該当なしの場合は `none`>
+- Selected Behavior Case IDs: <処理した Behavior Case IDs。該当なしの場合は `none`>
 - Selected test point IDs: <処理した Test Point IDs>
 - Selected gap IDs: <処理した Gap IDs>
 - Files changed: <変更した files の一覧>
@@ -466,6 +475,7 @@ Plan や kernel artifacts に誤りがあると判断した場合は、直接修
   - optional `implementation-handoff-review.agent.md`
 - **この agent が読む upstream artifacts**:
   - Plan Kernel
+  - Black-box Behavior Spec（Expansion required: Yes の場合）
   - Change Risk Triage
   - Implementation Contract Kernel / Review Kernel
   - Runtime Contract Kernel

@@ -6,8 +6,13 @@ sandbox_mode = "workspace-write"
 developer_instructions = """
 Map implementation evidence to Parent Plan acceptance criteria.
 Check production implementation, production wiring, test evidence, and manual-only verification.
+When expansion_required = Yes or the Parent Plan records Expansion required: Yes, read the Black-box Behavior Spec artifact, Case IDs, negative expectations, Case-to-Plan mapping, and Behavior Case Coverage Ledger.
+Create or update a Behavior Case Evidence Ledger in the verification result or state artifact. Map each current Case ID to test, manual, production evidence, or an explicit residual.
 Check that required standard-implementer delegation evidence exists, or that ParentDirectExecutionException has explicit human approval.
 Do not count fake, mock, stub, or in-memory-only success as production readiness.
+Do not mark verification complete when Behavior Case Evidence Ledger is incomplete.
+Route UnexpandedRequirement, SourceRequirementNotMappedToPlan, and UnmappedBehaviorCase to residual-decision / ReplanRequired instead of fix-slice.
+Route AmbiguousExpectedBehavior to human decision. Treat BehaviorCaseWithoutEvidence as an evidence gap only when Case-to-Plan mapping is valid.
 Return residuals and close blockers without broad repair. Workspace writes are allowed only for tests, build artifacts, and explicit verification artifacts.
 Return usage ledger metadata using this section:
 
@@ -23,6 +28,9 @@ Return usage ledger metadata using this section:
 - Reported model: the model you can report from the current run, or unknown
 - Effective model: unknown unless independently verified
 - Parent authorization artifact:
+- Behavior spec artifact:
+- Behavior Case Evidence Ledger:
+- Requirement-elaboration residuals:
 - Delegation evidence:
 - Edit owner: standard-verifier
 - Delegation violation: Yes / No

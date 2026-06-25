@@ -8,10 +8,14 @@
 
 - 短い依頼を cost-aware routing の入口として扱う。
 - まず source of truth、repo rules、既存 artifact、state artifact を確認する。
-- 必要な工程を Intake / Plan / Risk / Scan / Contract / Implementation / Verification / Close に分ける。
+- 必要な工程を Intake / Plan / Risk / Scan / Contract / Implementation handoff review / Implementation / Verification / Close に分ける。
 - 各工程を `HIGH_MODEL`、`STANDARD_MODEL`、`CHEAP_MODEL` の抽象 tier へ割り当てる。
 - state artifact に Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance を記録する。
 - state artifact では execution_mode と、model tier / configured model / hook model / reported model / effective model を分けて記録する。
+- Plan gate では behavior expansion decision、Case-to-Plan mapping、Plan readiness を記録し、`ReadyForRiskTriage` になるまで risk / full-coverage / implementation へ進めない。
+- `NeedsPlanBehaviorExpansion` は `black-box-behavior-spec-kernel` または Plan rerun へ戻し、full-coverage や fix-slice の代替ルートにしない。
+- Risk gate では `plans/<slug>-change-risk-triage.md` を作成または更新し、state artifact に `risk_triage_artifact` と `risk_triage_artifact_status` を記録する。
+- 実装前には `implementation-handoff-review` または明示的に同等の gate で parent authorization artifact を作成し、`Expansion required: Yes` の場合は `Behavior Case Coverage Ledger` が `Complete` になるまで `standard-implementer` へ渡さない。
 - read-heavy な scan / consistency check は、Routing Plan が要求する場合は低コスト subagent へ委譲する。
 - READY 後の通常実装は `standard-implementer` へ serial delegation する。write-heavy parallel editing を標準化しないことは、親が直接実装してよいことを意味しない。
 - READY 後の通常 verification は `standard-verifier` へ委譲し、危険な close 判定だけ高性能側へ戻す。
@@ -36,11 +40,13 @@
 
 1. `codex-first-cost-router` Skill で依頼を受ける。
 2. `plans/<slug>/codex-first-state.md` を作成または更新する。
-3. Plan / risk / scan / contract のうち、次に安全な工程を 1 つ選ぶ。
-4. READY gate を満たすまで implementation へ進まない。
-5. READY 後は bounded scope を `standard-implementer` に委譲する。
-6. verification は `standard-verifier` に委譲し、production implementation / wiring / manual-only を分類する。
-7. residual decision と DelegationCompliance で close 可否を判定し、必要なら最小の人間入力だけを提示する。
+3. Plan readiness を確認し、必要なら `black-box-behavior-spec-kernel` または Plan rerun へ戻す。
+4. Plan / risk / scan / contract のうち、次に安全な工程を 1 つ選ぶ。Risk gate を実行する場合は `plans/<slug>-change-risk-triage.md` を残す。
+5. READY gate を満たすまで implementation へ進まない。
+6. `risk_triage_artifact_status = Complete` を確認してから、`implementation-handoff-review` で parent authorization artifact、Parent Plan Coverage Ledger、必要な場合は Behavior Case Coverage Ledger を作成する。
+7. `Expansion required: Yes` の場合は Behavior Case Coverage Ledger が `Complete` のときだけ bounded scope を `standard-implementer` に委譲する。
+8. verification は `standard-verifier` に委譲し、production implementation / wiring / manual-only / Behavior Case evidence を分類する。
+9. residual decision と DelegationCompliance で close 可否を判定し、必要なら最小の人間入力だけを提示する。
 
 ## Advanced route
 

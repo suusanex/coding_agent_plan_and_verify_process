@@ -9,13 +9,21 @@ handoffs:
     agent: copilot-high-planner
     prompt: Create or update the bounded Plan and state artifact. Do not implement.
     model: GPT-5.5 (copilot)
+  - label: Expand behavior cases
+    agent: black-box-behavior-spec-kernel
+    prompt: Expand source requirements into black-box behavior cases when Plan readiness is NeedsPlanBehaviorExpansion. Do not implement.
+    model: GPT-5.5 (copilot)
   - label: Triage risk
     agent: copilot-risk-triage
-    prompt: Classify risk and decide whether the standard route can safely continue.
+    prompt: Classify risk, create or update `plans/<slug>-change-risk-triage.md`, and decide whether the standard route can safely continue.
+    model: GPT-5.5 (copilot)
+  - label: Review implementation handoff
+    agent: implementation-handoff-review
+    prompt: Create the pre-implementation parent authorization artifact and required coverage ledgers before implementation, using `plans/<slug>-change-risk-triage.md` as the required risk artifact. If no Guardrail Focus or selected runtime contracts exist, treat runtime-contract-kernel and test-design-kernel as N/A instead of blocking on missing artifacts.
     model: GPT-5.5 (copilot)
   - label: Implement READY scope
     agent: copilot-standard-implementer
-    prompt: Implement only the READY scope recorded in the state artifact.
+    prompt: Implement only after implementation-handoff-review authorizes the READY scope in the state artifact.
     model: GPT-5.5 (copilot)
   - label: Verify and close
     agent: copilot-standard-verifier
@@ -31,12 +39,22 @@ Accept ordinary requests such as "この issue を進めて", "このバグを�
 
 - Read repo-local instructions and existing artifacts first.
 - Locate or create `plans/<slug>/codex-first-state.md` for non-trivial work.
-- Select the next gate: Intake, Plan, Risk, Scan, Contract, Implementation, Verification, or Close.
+- Select the next gate: Intake, Plan, Risk, Scan, Contract, Implementation handoff review, Implementation, Verification, or Close.
 - Assign `COPILOT_HIGH_MODEL`, `COPILOT_STANDARD_MODEL`, or `COPILOT_CHEAP_MODEL`.
+- Record `Expansion required`, `behavior spec artifact`, `Case-to-Plan mapping`, and `Plan readiness`.
+- If Plan readiness is `NeedsPlanBehaviorExpansion`, route to behavior expansion or Plan rerun and do not select risk/profile/full-coverage.
+- If Plan readiness is `NeedsHumanDecision`, stop for human decision.
+- Select Risk only after `Plan readiness = ReadyForRiskTriage`.
+- Risk triage must create or update `plans/<slug>-change-risk-triage.md` and record `risk_triage_artifact_status`.
+- Do not route to implementation handoff review until `risk_triage_artifact_status = Complete`.
+- Before `copilot-standard-implementer`, route to `implementation-handoff-review` or an explicitly equivalent pre-implementation gate.
+- Record `behavior_case_coverage_ledger_artifact` and `behavior_case_coverage_ledger_status` in the state artifact.
+- If `Expansion required = Yes`, do not hand off to `copilot-standard-implementer` until `behavior_case_coverage_ledger_status = Complete`.
 - Update Routing Plan, Edit Permission, Agent Usage Ledger, `stop_reason`, and `next_action`.
 - Handoff to the specialized Copilot agent when needed.
 - Do not implement before READY.
 - Do not close with unresolved `ManualVerificationRequired`, `NeedsHumanDecision`, or `NeedsHigherModelReview`.
 - Keep full-coverage 3層運用 as an advanced route.
+- Do not use full-coverage or fix-slice as a substitute for requirement-elaboration gaps.
 
 When stopping, report only the next human input that is actually required.

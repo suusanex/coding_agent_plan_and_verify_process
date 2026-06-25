@@ -18,14 +18,15 @@ Use this instruction set when ordinary development work should start through Cod
 ## Required gates
 
 1. Intake gate: classify source of truth, ambiguity, repo rules, current state, and whether editing is allowed.
-2. Plan gate: create or consume a bounded Plan or equivalent parent artifact.
-3. Risk gate: classify external API, SDK, DI, config, public API, DB, auth, async, production wiring, and cross-slice risk.
+2. Plan gate: create or consume a bounded Plan or equivalent parent artifact, including behavior expansion decision, behavior spec path when required, Case-to-Plan mapping, and Plan readiness.
+3. Risk gate: classify external API, SDK, DI, config, public API, DB, auth, async, production wiring, and cross-slice risk only after `ReadyForRiskTriage`; create or update `plans/<slug>-change-risk-triage.md` and record `risk_triage_artifact_status`.
 4. Scan gate: delegate read-heavy discovery to low-cost workers when useful, and summarize evidence instead of flooding the main context.
 5. Contract gate: resolve implementation approach and human decisions before editing.
-6. READY gate: confirm Plan, selected scope, non-goals, contract/test handoff, and unresolved implementation-realization items before implementation.
-7. Implementation gate: delegate the selected READY scope to `standard-implementer` unless a recorded `ParentDirectExecutionException` has explicit human approval.
-8. Verification gate: delegate ordinary verification to `standard-verifier`; route dangerous close judgment to `high-closure-reviewer`.
-9. Close gate: do not close when unresolved items include `ManualVerificationRequired`, `NeedsHumanDecision`, `NeedsHigherModelReview`, missing delegation evidence, or failing `DelegationCompliance`.
+6. READY gate: confirm Plan, selected scope, non-goals, required contract/test handoff when Guardrail Focus exists, Behavior Case coverage when required, and unresolved implementation-realization items before implementation.
+7. Implementation handoff review gate: run `implementation-handoff-review` or an explicitly equivalent pre-implementation gate only after `plans/<slug>-change-risk-triage.md` exists and `risk_triage_artifact_status = Complete`; create the parent authorization artifact, Parent Plan Coverage Ledger, and Behavior Case Coverage Ledger when required.
+8. Implementation gate: delegate the selected READY scope to `standard-implementer` only after handoff authorization exists, unless a recorded `ParentDirectExecutionException` has explicit human approval.
+9. Verification gate: delegate ordinary verification to `standard-verifier`; route dangerous close judgment to `high-closure-reviewer`.
+10. Close gate: do not close when unresolved items include `ManualVerificationRequired`, `NeedsHumanDecision`, `NeedsHigherModelReview`, missing delegation evidence, or failing `DelegationCompliance`.
 
 ## Task weight and process selection
 
@@ -36,7 +37,8 @@ Record the result as `task_weight` and `selected_process`.
 - `small-bounded`: one component, clear acceptance, local checks available.
 - `medium-bounded`: multiple files or tests, clear source of truth, manageable production risk.
 - `high-risk-bounded`: auth, security, DB, public API, production wiring, external SDK, async/event boundary, or compatibility uncertainty.
-- `broad-full-coverage-candidate`: broad, ambiguous, strongly interconnected, cross-slice contracts, or previous sequence / production-binding gaps.
+- `needs-plan-behavior-expansion`: source requirements contain unexpanded behavior cases, negative expectations, recovery / rollback / retry / replay / cleanup, state transitions, or unmapped Case IDs.
+- `broad-full-coverage-candidate`: ready Plan is broad, strongly interconnected, has cross-slice contracts, or previous sequence / production-binding gaps.
 - `blocked-human-required`: missing human decision, secret, external service operation, production/billing/GitHub settings change, or manual-only verification owner.
 
 Allowed `selected_process` values are `normal`, `advanced-full-coverage`, `human-decision-wait`, `higher-model-review`, and `lower-cost-delegated-scan`.
@@ -51,6 +53,8 @@ Choose these internally; do not ask the user to select them.
 - `NeedsExternalOperation`
 - `NeedsSecretInput`
 - `TooCostlyForCurrentPass`
+- `NeedsPlanBehaviorExpansion`
+- `ReplanRequired`
 - `ReadyButAwaitingHumanApproval`
 - `DelegationRequired`
 - `DelegationUnavailable`
@@ -59,6 +63,8 @@ Choose these internally; do not ask the user to select them.
 - `ParentDirectExecutionNotAllowed`
 - `RoutingPolicyViolation`
 - `BlockedByMissingDelegationLedger`
+- `ReadyForImplementationHandoffReview`
+- `BlockedByBehaviorCaseCoverageLedger`
 - `ReadyForDelegatedImplementation`
 - `ReadyForDelegatedVerification`
 - `ReadyToClose`
@@ -67,10 +73,11 @@ Choose these internally; do not ask the user to select them.
 
 ## Cost-aware model routing
 
-- Use `HIGH_MODEL` for ambiguous requirements, bounded Plan framing, difficult risk triage, implementation contract decisions, security/auth/DB/public API/production wiring, and dangerous closure decisions.
+- Use `HIGH_MODEL` for ambiguous requirements, bounded Plan framing, behavior expansion, difficult risk triage, implementation handoff review, implementation contract decisions, security/auth/DB/public API/production wiring, and dangerous closure decisions.
 - Use `STANDARD_MODEL` for normal READY implementation, verification, test design/update, and moderate-risk repairs.
 - Use `CHEAP_MODEL` for repo scan, read-heavy inventory, documentation consistency, artifact formatting, and simple local fixes.
 - MUST delegate when the Routing Plan assigns a gate owner that differs from the parent tier or parent thread. Required delegated gates cannot be completed by parent-direct execution without a recorded exception and explicit human approval.
+- Run `implementation-handoff-review` before ordinary READY implementation, after the Risk gate has produced `plans/<slug>-change-risk-triage.md`. When `Expansion required = Yes`, require `Behavior Case Coverage Ledger` status `Complete` before handing off to `standard-implementer`.
 - Delegate ordinary READY implementation serially to `standard-implementer` and ordinary verification to `standard-verifier`. Do not standardize write-heavy parallel editing; serial delegated implementation is still required.
 - Do not count parent-direct work, trivial parent fixes, or delegation violations as cost-saving delegation.
 - Keep the main thread responsible for final implementation permission, state updates, delegation compliance audit, and close decisions.
@@ -81,3 +88,4 @@ The Codex custom agent TOML top-level `model` and `model_reasoning_effort` field
 ## Advanced route boundary
 
 Full-coverage 3-layer operation is an advanced route, not the default. Use it only when the work cannot be safely bounded inside the standard cost-router flow or when an experienced operator explicitly asks for broad parallelization.
+Do not use full-coverage for missing behavior expansion, missing Case-to-Plan mapping, or undecided expected behavior. Those stop in Plan gate as `NeedsPlanBehaviorExpansion` or `NeedsHumanDecision`.

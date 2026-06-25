@@ -24,22 +24,26 @@ The Plan網羅チェック・残件判定フロー is still a Plan-first flow. I
 
 The required high-level chain is:
 
-1. create a bounded Plan for the requested change
-2. classify Guardrail Focus coverage inside that Plan
-3. preserve guardrails for Guardrail Focus surfaces
-4. implement against the Plan as the source of truth
-5. verify Guardrail Focus contracts, test points, production implementation, and production wiring
-6. update Parent Plan Coverage Ledger and route unresolved items through coverage-gap-triage and residual-decision-gate
+1. decide whether source requirements need black-box behavior expansion
+2. create or consume behavior Case IDs when expansion is required
+3. create a bounded Plan and map relevant Case IDs to FR / AC or explicit disposition
+4. classify Guardrail Focus coverage inside a ready Plan
+5. preserve guardrails for Guardrail Focus surfaces
+6. implement against the Plan as the source of truth
+7. verify Guardrail Focus contracts, test points, production implementation, production wiring, and current Behavior Case evidence
+8. update Parent Plan Coverage Ledger / Behavior Case ledgers and route unresolved items through coverage-gap-triage and residual-decision-gate
 
 For Guardrail Focus surfaces, the process must still connect:
 
-1. Plan requirement / acceptance condition
-2. runtime contract
-3. test point
-4. stub / fake / in-memory usage
-5. production implementation
-6. production wiring / entrypoint
-7. explicit unresolved status
+1. source requirement
+2. black-box behavior case, when expansion is required
+3. Plan requirement / acceptance condition
+4. runtime contract
+5. test point
+6. stub / fake / in-memory usage
+7. production implementation
+8. production wiring / entrypoint
+9. explicit unresolved status
 
 ## Corrected process gap
 
@@ -58,6 +62,19 @@ Reasoning:
 - implementation agents need the overall Plan as the source of truth, plus kernel artifacts as guardrails.
 - a dedicated Plan Kernel keeps the lightweight flow Plan-first without forcing the full `plan-generation.agent.md` / `runtime-evidence.agent.md` / `integration-test-design.agent.md` chain.
 
+## Requirement-elaboration gap
+
+The process must also block a Plan before risk triage when source requirements have not been elaborated into required black-box behavior cases.
+
+`Requirement-elaboration gap` means the downstream artifacts can be internally consistent while the Plan itself fails to represent the source requirement's case-specific expected behavior, negative expectation, recovery / rollback / retry / replay / cleanup behavior, state transition, or idempotency.
+
+This is not a `full-coverage` trigger.
+
+- `NeedsPlanBehaviorExpansion` routes to `black-box-behavior-spec-kernel.agent.md` when source-to-case expansion is missing.
+- `NeedsPlanBehaviorExpansion` routes back to `plan-kernel.agent.md` when Case IDs exist but are not mapped to Plan FR / AC or explicit disposition.
+- `NeedsHumanDecision` stops when product semantics or policy is undecided.
+- `full-coverage` is available only after `Plan readiness: ReadyForRiskTriage`.
+
 ## Process profiles
 
 ### `plan-kernel`
@@ -72,6 +89,19 @@ Use when:
 - the downstream kernel agents need a Plan to map contracts, test points, implementation, and verification back to requirements
 
 Output is a bounded Plan. It is not implementation code, not runtime evidence, and not full test design.
+
+### `black-box-behavior-spec-kernel`
+
+Creates a source-to-case artifact when the Plan phase finds that source requirements need behavior expansion.
+
+Use when:
+
+- source requirements contain case-specific expected outcomes
+- negative expectations are central
+- behavior depends on input condition, pre-state, history, permission, phase, durable state, retry, replay, rollback, recovery, or cleanup
+- Plan readiness is `NeedsPlanBehaviorExpansion` because behavior Case IDs are missing or incomplete
+
+Output is `plans/<ticket-or-slug>-black-box-behavior-spec.md`. It does not edit the Plan. Case-to-Plan mapping remains owned by `plan-kernel.agent.md`.
 
 ### `triage-only`
 
@@ -111,19 +141,21 @@ Use when:
 
 ### `full-coverage`
 
-Indicates that the current bounded Plan is too broad, ambiguous, or strongly interconnected to be continued as a single Plan網羅チェック implementation pass.
+Indicates that the current ready bounded Plan is too broad or strongly interconnected to be continued as a single Plan網羅チェック implementation pass.
 
 Use when:
 
 - multiple runtime scenarios interact
 - external dependencies, retries, persistence, or recovery semantics are important
-- the feature is broad or ambiguous
+- the ready Plan is broad or strongly interconnected
 - human review needs detailed runtime evidence
 - prior implementation attempts already exposed sequence or production-binding gaps
 
 In the Plan網羅チェック・残件判定フロー, this is not an automatic handoff to Flow C.
 The immediate next step is the `plan-slice-decomposition` agent.
 Each resulting slice then re-enters the Plan網羅チェック・残件判定フロー as a bounded parent Plan pass. After slice verification, the parent flow runs `cross-slice-verification-kernel.agent.md` and then `residual-decision-gate.agent.md`.
+
+Missing source-to-case expansion, missing Case-to-Plan mapping, or undecided expected behavior must not be classified as `full-coverage`.
 
 Cross-slice verification is not only a structural wiring check. After producer action and production wiring run, the consumer observable must satisfy the parent acceptance condition runtime postcondition. Forbidden states from the parent acceptance condition must be copied into the cross-slice artifact and denied by evidence before a pass verdict is allowed.
 
@@ -144,9 +176,11 @@ Use when:
 Use for the main lightweight process this repository now targets.
 
 1. `plan-kernel.agent.md`
-2. `change-risk-triage.agent.md`
-3. If triage recommends `full-coverage`, run `plan-slice-decomposition.agent.md`
-4. Run each resulting slice through the bounded Plan網羅チェック・残件判定フロー:
+2. If Plan readiness is `NeedsPlanBehaviorExpansion` because source-to-case expansion is missing, run `black-box-behavior-spec-kernel.agent.md`
+3. Re-run `plan-kernel.agent.md` when behavior Case IDs must be mapped to FR / AC or explicit disposition
+4. `change-risk-triage.agent.md` only when Plan readiness is `ReadyForRiskTriage`
+5. If triage recommends `full-coverage`, run `plan-slice-decomposition.agent.md`
+6. Run each resulting slice through the bounded Plan網羅チェック・残件判定フロー:
    - `implementation-contract-kernel.agent.md`, when implementation-realization risk is present
    - `implementation-contract-review-kernel.agent.md` or bounded `implementation-contract-review.agent.md`, when the contract is non-trivial
    - `runtime-contract-kernel.agent.md`
@@ -154,14 +188,15 @@ Use for the main lightweight process this repository now targets.
    - `implementation-handoff-review.agent.md`
    - implementation by normal agent or human-guided implementation agent
    - `verification-kernel.agent.md`
-5. When step 3 was used, run `cross-slice-verification-kernel.agent.md`
-6. `coverage-gap-triage.agent.md`, when FixNow candidates or unresolved implementation coverage items need classification
-7. `residual-decision-gate.agent.md`, when residual / manual / human-decision candidates remain
-8. `coverage-gap-resolution-slice.agent.md`, only when coverage-gap-triage or residual-decision-gate emits an explicit FixNow selector
+7. When step 5 was used, run `cross-slice-verification-kernel.agent.md`
+8. `coverage-gap-triage.agent.md`, when FixNow candidates or unresolved implementation coverage items need classification
+9. `residual-decision-gate.agent.md`, when residual / manual / human-decision candidates remain
+10. `coverage-gap-resolution-slice.agent.md`, only when coverage-gap-triage or residual-decision-gate emits an explicit FixNow selector
 
 Implementation handoff must include:
 
 - the bounded Plan from `plan-kernel.agent.md`
+- Black-box Behavior Spec artifact, when expansion was required
 - `change-risk-triage` output
 - `plan-slice-decomposition` output when the bounded parent Plan pass comes from full-coverage decomposition
 - `implementation-contract-kernel` output when required
@@ -171,6 +206,7 @@ Implementation handoff must include:
 - `implementation-handoff-review` output
 - parent Plan implementation surface and non-goals
 - Parent Plan Coverage Ledger
+- Behavior Case Coverage Ledger, when expansion was required
 - Readiness scope: `ParentPlanPass`, `ParentPlanPassWithResidualRisks`, or `Blocked`
 - explicit parent Plan residuals when parent Plan implementation surface is narrower than the parent Plan
 - prohibited substitutions
@@ -192,7 +228,7 @@ The Plan網羅チェック process documentation must also enforce these points:
 
 ### Flow B: Minimal high-risk guardrail sub-flow
 
-Use only after a bounded Plan exists and the Guardrail Focus area is already clear.
+Use only after a bounded Plan exists, Plan readiness is `ReadyForRiskTriage`, and the Guardrail Focus area is already clear.
 
 1. `change-risk-triage.agent.md`
 2. `implementation-contract-kernel.agent.md`（when implementation-realization risk is present）
@@ -224,6 +260,48 @@ This flow remains available, but it is not the automatic interpretation of `full
 
 ## Shared output concepts
 
+### Black-box Behavior Spec
+
+When source requirements need expansion, `black-box-behavior-spec-kernel.agent.md` creates:
+
+```md
+# Black-box Behavior Spec
+
+## Scope
+
+## Source requirement inventory
+
+| Source ID | Requirement summary | Kind | Source | Notes |
+| --- | --- | --- | --- | --- |
+
+## Behavior axes
+
+| Axis ID | Axis | Relevant values | Why behavior changes | Notes |
+| --- | --- | --- | --- | --- |
+
+## Case matrix
+
+| Case ID | Source IDs | Input conditions / preconditions | Expected observable behavior | Negative expectation | Status |
+| --- | --- | --- | --- | --- | --- |
+
+## Derived invariants
+
+## Excluded combinations / non-goals
+
+## Unresolved requirement-elaboration items
+
+## Handoff Packet
+```
+
+Rules:
+
+- The behavior spec owns source-to-case traceability only.
+- It must not edit Plan FR / AC.
+- It must not choose runtime contracts, implementation contracts, or test points.
+- It must not enumerate every Cartesian product by default.
+- It must make negative expectations and unresolved product semantics explicit.
+- Case-to-Plan mapping belongs in the Plan Kernel artifact.
+
 ### Plan Kernel
 
 A bounded Plan artifact should use this shape unless the repository already has a stronger convention:
@@ -238,6 +316,8 @@ A bounded Plan artifact should use this shape unless the repository already has 
 ## Functional requirements
 
 ## Acceptance conditions
+
+## Black-box behavior coverage
 
 ## Affected components / modules
 
@@ -257,9 +337,37 @@ Rules:
 - The Plan Kernel is the implementation source of truth for the Plan網羅チェック・残件判定フロー.
 - It must describe the whole requested change at a useful implementation level, not only high-risk boundaries.
 - It must not expand into full runtime evidence or full integration test design.
+- It must decide `Expansion required` before FR / AC are finalized.
+- When expansion is required, it must record behavior spec path and map relevant Case IDs to FR / AC or explicit disposition.
+- It must not advance to `change-risk-triage.agent.md` unless `Plan readiness` is `ReadyForRiskTriage`.
 - It must identify known high-risk boundary candidates, but detailed selection belongs to `change-risk-triage.agent.md`.
 - It must include non-goals and out-of-scope items so implementation agents do not infer extra work.
 - It must include acceptance conditions that can later be mapped to test points or verification items.
+
+`Black-box behavior coverage` should use:
+
+```md
+## Black-box behavior coverage
+
+- Expansion required: Yes / No / Unclear
+- Behavior spec artifact: <path / N/A>
+- Plan readiness: ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision
+- Expansion decision reason:
+- Blocking requirement-elaboration items:
+
+### Case-to-Plan mapping
+
+| Case ID | Source IDs | FR / AC | Disposition | Notes |
+| --- | --- | --- | --- | --- |
+```
+
+Allowed dispositions:
+
+- `MappedToPlan`
+- `DeferredWithSource`
+- `OutOfScopeWithSource`
+- `NeedsHumanDecision`
+- `UnmappedBlocking`
 
 ### Parent Plan Coverage Ledger
 
@@ -365,6 +473,27 @@ Rules:
 - Every selected `Runtime Contract ID` must have at least one test point or an explicit reason why it cannot.
 - A test point must describe an observable result, not just an implementation detail.
 - If stub / fake / in-memory implementations are allowed, production binding must also be required unless explicitly out of scope.
+- When behavior spec exists, selected-scope Case IDs must be connected to a test point or explicit coverage disposition.
+
+Behavior case test mapping should use:
+
+```md
+## Behavior case test mapping
+
+| Case ID | Runtime Contract ID | Test Point ID | Expected behavior | Coverage disposition | Evidence target | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+```
+
+Allowed coverage dispositions:
+
+- `AutomatedPlanned`
+- `ManualOnly`
+- `CoveredByHigherLevelCase`
+- `DeferredWithReason`
+- `OutOfScopeWithSource`
+- `NeedsHumanDecision`
+
+Not every Case ID requires an automated test. Case IDs outside selected scope must not expand the test-design scope.
 
 ### Stub-to-Production Binding
 
@@ -414,6 +543,34 @@ When rerunning cross-slice verification, include this table:
 ```
 
 If a previous gap was left open because source-level evidence was insufficient, source-structure test plus CI green is not enough to close it.
+
+### Behavior Case Coverage and Evidence Ledgers
+
+Implementation handoff review should include this table when expansion was required:
+
+```md
+## Behavior Case Coverage Ledger
+
+| Case ID | Source IDs | FR / AC | Coverage route | Slice / RC / TP | Status | Residual / reason |
+| --- | --- | --- | --- | --- | --- | --- |
+```
+
+Verification should include this table when behavior Case IDs are in the current pass:
+
+```md
+## Behavior Case Evidence Ledger
+
+| Case ID | Source IDs | FR / AC | Coverage route | Evidence target | Evidence status | Residual / reason |
+| --- | --- | --- | --- | --- | --- | --- |
+```
+
+Rules:
+
+- All relevant Case IDs must appear when expansion was required.
+- `UnmappedBlocking` blocks implementation handoff.
+- `NeedsHumanDecision` blocks implementation when the decision is needed before implementation.
+- `BehaviorCaseWithoutEvidence` is an evidence gap; it may route to FixNow / manual / defer when the Plan mapping is already valid.
+- `UnexpandedRequirement`, `SourceRequirementNotMappedToPlan`, and `UnmappedBehaviorCase` are requirement-elaboration gaps and normally require replan.
 
 ### Agent version and verdict vocabulary
 
@@ -494,10 +651,19 @@ Use these statuses consistently unless an existing artifact has a stronger conve
 | `OutOfScopeByPlan` | Parent Plan item is explicitly excluded by Plan Non-goals / Out of scope |
 | `UnmappedBlocking` | Parent Plan item is not mapped to Guardrail Focus coverage, deferral, cross-slice verification, out-of-scope, or human decision |
 | `MappedButWeak` | Mapping exists but the oracle, binding, or observable acceptance is weak |
+| `ReadyForRiskTriage` | Plan readiness is complete and risk triage may proceed |
+| `NeedsPlanBehaviorExpansion` | Source-to-case expansion or Case-to-Plan mapping is missing and the flow must return to Plan phase |
+| `CoveredByParentPlanPass` | Behavior Case is covered by the bounded parent Plan pass |
+| `OutOfScopeWithSource` | Behavior Case is excluded by source-backed non-goal or out-of-scope decision |
 
 ### Shared gap type vocabulary
 
 - `plan-smoke-mismatch`: A Plan-prohibited pattern was found in selected production addresses. verification-kernel uses this in `未解決項目.Type` and keeps `Status` as `NotImplementedOrMismatch`.
+- `UnexpandedRequirement`: A source requirement that should have behavior Case IDs was not expanded.
+- `SourceRequirementNotMappedToPlan`: A source requirement or Case ID is not mapped to Plan FR / AC or explicit disposition.
+- `UnmappedBehaviorCase`: A Case ID has no coverage route.
+- `BehaviorCaseWithoutEvidence`: A mapped Case ID in the current pass lacks test / manual / production evidence.
+- `AmbiguousExpectedBehavior`: Expected behavior or negative expectation requires product / policy human decision.
 
 ## Shared bounded-pass rules
 
@@ -514,7 +680,64 @@ All Plan網羅チェック agents should follow these rules unless the user expl
 
 ## Agent requirements
 
-## 1. `plan-kernel.agent.md`
+## 1. `black-box-behavior-spec-kernel.agent.md`
+
+### Purpose
+
+Expand source requirements into stable black-box behavior Case IDs before Plan readiness.
+
+### Inputs
+
+- issue, prompt, specification, or high-level requirement
+- existing bounded Plan when present
+- relevant docs needed to understand source semantics
+
+### Required outputs
+
+```md
+# Black-box Behavior Spec
+
+## Scope
+
+## Source requirement inventory
+
+## Behavior axes
+
+## Case matrix
+
+## Derived invariants
+
+## Excluded combinations / non-goals
+
+## Unresolved requirement-elaboration items
+
+## Handoff Packet
+```
+
+### Required checks
+
+The agent must:
+
+- inventory source requirements with stable Source IDs
+- identify behavior axes that change observable outcomes
+- create stable Case IDs for required combinations
+- record negative expectations
+- record excluded combinations with reasons
+- record unresolved product semantics as `NeedsHumanDecision`
+
+### Must not do
+
+- edit Plan FR / AC
+- write code or tests
+- choose runtime contracts, implementation contracts, or test points
+- enumerate every Cartesian product by default
+- guess ambiguous expected behavior
+
+### Stop condition
+
+Stop after creating or updating `plans/<ticket-or-slug>-black-box-behavior-spec.md` and recommending `plan-kernel.agent.md` or human decision.
+
+## 2. `plan-kernel.agent.md`
 
 ### Purpose
 
@@ -539,6 +762,8 @@ Create a bounded Plan for the requested change. This Plan is the implementation 
 
 ## Acceptance conditions
 
+## Black-box behavior coverage
+
 ## Affected components / modules
 
 ## Expected implementation scope
@@ -557,6 +782,8 @@ Create a bounded Plan for the requested change. This Plan is the implementation 
 The agent must:
 
 - create a useful bounded Plan before risk triage
+- decide behavior expansion readiness before FR / AC are finalized
+- map relevant Case IDs to FR / AC or explicit disposition when behavior spec exists
 - state what is in scope and out of scope
 - identify functional requirements and acceptance conditions
 - identify affected components / modules at a practical implementation level
@@ -571,12 +798,18 @@ The agent must:
 - generate full integration test design
 - select final runtime contracts in place of `change-risk-triage.agent.md`
 - continue expanding repository exploration after the Plan is good enough for bounded implementation
+- send a Plan to `change-risk-triage.agent.md` when `Plan readiness` is not `ReadyForRiskTriage`
+- use `full-coverage` as a substitute for missing behavior expansion
 
 ### Stop condition
 
-Stop after creating or updating the bounded Plan and handoff to `change-risk-triage.agent.md`.
+Stop after creating or updating the bounded Plan and recording `Plan readiness`.
 
-## 2. `change-risk-triage.agent.md`
+If readiness is `ReadyForRiskTriage`, hand off to `change-risk-triage.agent.md`.
+If readiness is `NeedsPlanBehaviorExpansion`, hand off to `black-box-behavior-spec-kernel.agent.md` or rerun `plan-kernel.agent.md` for Case-to-Plan mapping.
+If readiness is `NeedsHumanDecision`, stop for human decision.
+
+## 3. `change-risk-triage.agent.md`
 
 ### Purpose
 
@@ -592,6 +825,8 @@ Classify the bounded Plan, identify high-risk runtime boundaries, and recommend 
 
 ```md
 # Change Risk Triage
+
+## Plan readiness check
 
 ## Recommended profile
 
@@ -611,6 +846,17 @@ Classify the bounded Plan, identify high-risk runtime boundaries, and recommend 
 ```
 
 ### Required checks
+
+Before risk triggers, the agent must run Plan readiness check:
+
+- expansion decision exists
+- behavior spec exists when required
+- relevant source requirements have Case IDs
+- relevant Case IDs are mapped to FR / AC or explicit disposition
+- negative expectations are represented
+- blocking requirement ambiguity is absent
+
+Only `ReadyForRiskTriage` may proceed to risk trigger scan and profile selection.
 
 The agent must look for risk triggers including:
 
@@ -635,10 +881,15 @@ The agent must look for risk triggers including:
 - create or revise tests
 - perform full Plan generation
 - resolve gaps
+- select runtime contracts or process profile when Plan readiness is not `ReadyForRiskTriage`
+- treat requirement-elaboration gaps as `full-coverage`
 
 ### Stop condition
 
-Stop after recommending a profile and Guardrail Focus contracts / IDs. If risk cannot be classified from available context, recommend `contract-kernel` or `standard-slice` rather than pretending the task is safe.
+Stop after Plan readiness check.
+
+If Plan readiness is not `ReadyForRiskTriage`, record the Plan-phase next agent or human decision and stop without profile selection.
+If ready, stop after recommending a profile and Guardrail Focus contracts / IDs. If risk cannot be classified from available context, recommend `contract-kernel` or `standard-slice` rather than pretending the task is safe.
 
 When implementation-realization risk is `Present` or `Unclear`, the next-step recommendation must be one of:
 
@@ -647,7 +898,7 @@ When implementation-realization risk is `Present` or `Unclear`, the next-step re
 
 Do not recommend immediate `runtime-contract-kernel.agent.md` in this condition. Recommend full `implementation-contract-generation.agent.md` only when the user explicitly chooses Flow C.
 
-## 3. `runtime-contract-kernel.agent.md`
+## 4. `runtime-contract-kernel.agent.md`
 
 ### Purpose
 
@@ -703,7 +954,7 @@ If the selected contracts need decomposition before safe bounded handling, send 
 If that reclassification returns `full-coverage`, hand off to `plan-slice-decomposition.agent.md`.
 Recommend `runtime-evidence.agent.md` only when the user explicitly wants to leave the Plan網羅チェック flow and run Flow C.
 
-## 4. `test-design-kernel.agent.md`
+## 5. `test-design-kernel.agent.md`
 
 ### Purpose
 
@@ -713,6 +964,7 @@ Create a compact test design mapped to Guardrail Focus runtime contracts.
 
 - Runtime Contract Kernel
 - Plan Kernel or bounded Plan artifact
+- Black-box Behavior Spec artifact when present
 - relevant existing test conventions
 
 ### Required outputs
@@ -728,6 +980,8 @@ Create a compact test design mapped to Guardrail Focus runtime contracts.
 
 ## Manual-only checks
 
+## Behavior case test mapping
+
 ## Handoff Packet
 ```
 
@@ -741,18 +995,21 @@ For each Guardrail Focus runtime contract:
 - require production binding verification when a substitute is used
 - also require production binding verification when selected contracts involve external SDK/API/provider selection, dependency/package/binary update, DI/startup/config wiring, Plan-named symbols, implementation-contract decisions, or substitution risk
 - include negative / error path checks for boundary contracts when relevant
+- when behavior spec exists, map current selected-scope Case IDs to test points or explicit coverage disposition
 
 ### Must not do
 
 - implement tests
 - expand to full integration test design unless requested
 - create test points not connected to Guardrail Focus runtime contracts
+- silently omit selected-scope Case IDs
+- require automated tests for every Case ID when manual / higher-level / deferred disposition is correct
 
 ### Escalation condition
 
 Recommend `full-coverage` / `plan-slice-decomposition.agent.md` when the bounded parent Plan pass cannot be handled safely as one Plan網羅チェック pass. Recommend `integration-test-design.agent.md` only when the user explicitly wants to leave the Plan網羅チェック flow and run Flow C.
 
-## 5. `verification-kernel.agent.md`
+## 6. `verification-kernel.agent.md`
 
 ### Purpose
 
@@ -761,6 +1018,7 @@ Verify Parent Plan coverage and Guardrail Focus runtime contracts/test points af
 ### Inputs
 
 - Plan Kernel or bounded Plan artifact
+- Black-box Behavior Spec artifact when present
 - Runtime Contract Kernel
 - Test Design Kernel or integration test points
 - implementation diff or repository state
@@ -790,6 +1048,8 @@ Verify Parent Plan coverage and Guardrail Focus runtime contracts/test points af
 
 ## Parent Plan smoke scan
 
+## Behavior Case Evidence Ledger
+
 ## Stub-to-Production Binding
 
 Include `Post-wiring behavior evidence / oracle reference` in the Stub-to-Production Binding table. `Bound` rows must cite concrete post-wiring behavior evidence or a runtime postcondition oracle row.
@@ -815,6 +1075,8 @@ For each selected test point:
 - whether Guardrail Focus runtime contract fields and error behavior are represented
 - whether the result is still consistent with the Plan requirement / acceptance condition
 - whether selected production addresses contain Plan-prohibited patterns or implementation-contract `RejectedSubstitute` paths
+- whether current selected-scope Case IDs connect to test / manual / production evidence
+- whether missing behavior expansion should be handed to residual-decision-gate as a replan candidate
 - when implementation-contract exists, whether runtime address and wiring are consistent with implementation-contract decisions
 - if nearby implementation is wired but Plan-required path is missing, classify as blocking mismatch/gap rather than pass
 - when Plan Slice Decomposition exists, keep slice scope / XC IDs visible and defer cross-slice binding to `cross-slice-verification-kernel.agent.md`
@@ -845,7 +1107,7 @@ Use one of:
 
 Stop after updating Parent Plan Coverage Ledger and classifying unresolved items. If FixNow candidates exist, hand them to `coverage-gap-triage.agent.md`. If residual / manual / human-decision candidates remain, hand them to `residual-decision-gate.agent.md`. Do not recommend `coverage-gap-resolution-slice.agent.md` directly unless an explicit FixNow selector already exists.
 
-## 6. `coverage-gap-triage.agent.md`
+## 7. `coverage-gap-triage.agent.md`
 
 ### Purpose
 
@@ -911,7 +1173,7 @@ Use a controlled vocabulary:
 - update status to complete without evidence
 - create new IDs
 
-## 7. `coverage-gap-resolution-slice.agent.md`
+## 8. `coverage-gap-resolution-slice.agent.md`
 
 ### Purpose
 
@@ -974,7 +1236,7 @@ For each selected ID:
 
 Stop after one bounded pass over selected IDs. Remaining issues must be recorded, not chased indefinitely.
 
-## 8. Revisions to existing agents
+## 9. Revisions to existing agents
 
 ### `plan-generation.agent.md`
 
@@ -1027,31 +1289,38 @@ Required changes:
 
 Recommended order after this correction:
 
-1. Create `plan-kernel.agent.md`
-2. Revise `change-risk-triage.agent.md` if needed so its primary input is the bounded Plan
-3. Revise README so Plan網羅チェック・残件判定フロー begins with `plan-kernel.agent.md`
-4. Verify the existing kernel agents still reference the Plan as source of truth where necessary
-5. Continue with any revisions to existing full-flow agents
+1. Create `black-box-behavior-spec-kernel.agent.md`
+2. Revise `plan-kernel.agent.md` so it records expansion decision, Case-to-Plan mapping, and Plan readiness
+3. Revise `change-risk-triage.agent.md` so it refuses non-ready Plans before risk/profile selection
+4. Revise README so Plan網羅チェック・残件判定フロー begins with Plan readiness and conditional behavior expansion
+5. Verify the existing kernel agents still reference the Plan as source of truth where necessary
+6. Continue with any revisions to existing full-flow agents
 
 For a fresh implementation of the Plan網羅チェック・残件判定フロー, the intended order is:
 
 1. `plan-kernel.agent.md`
-2. `change-risk-triage.agent.md`
-3. `implementation-contract-kernel.agent.md`（when implementation-realization risk is present）
-4. `implementation-contract-review-kernel.agent.md` or bounded `implementation-contract-review.agent.md`（when non-trivial）
-5. `runtime-contract-kernel.agent.md`
-6. `test-design-kernel.agent.md`
-7. implementation
-8. `verification-kernel.agent.md`
-9. `coverage-gap-triage.agent.md` when unresolved implementation coverage items need classification
-10. `residual-decision-gate.agent.md` when residual / manual / human-decision candidates remain
-11. `coverage-gap-resolution-slice.agent.md` only when an explicit FixNow selector exists
+2. `black-box-behavior-spec-kernel.agent.md` when Plan readiness is `NeedsPlanBehaviorExpansion` because behavior cases are missing
+3. `plan-kernel.agent.md` rerun when Case IDs must be mapped to FR / AC or explicit disposition
+4. `change-risk-triage.agent.md` only after `ReadyForRiskTriage`
+5. `implementation-contract-kernel.agent.md`（when implementation-realization risk is present）
+6. `implementation-contract-review-kernel.agent.md` or bounded `implementation-contract-review.agent.md`（when non-trivial）
+7. `runtime-contract-kernel.agent.md`
+8. `test-design-kernel.agent.md`
+9. implementation
+10. `verification-kernel.agent.md`
+11. `coverage-gap-triage.agent.md` when unresolved implementation coverage items need classification
+12. `residual-decision-gate.agent.md` when residual / manual / human-decision candidates remain
+13. `coverage-gap-resolution-slice.agent.md` only when an explicit FixNow selector exists
 
 ## Acceptance criteria for the corrected process
 
 The corrected process is acceptable when:
 
 - a bounded Plan is created before risk triage
+- expansion decision and Plan readiness are recorded before risk triage
+- behavior spec exists when expansion is required
+- all relevant Case IDs are mapped to FR / AC or explicit disposition before `ReadyForRiskTriage`
+- `NeedsPlanBehaviorExpansion` does not choose `full-coverage`
 - implementation agents receive the Plan plus kernel guardrail artifacts
 - a lightweight run can handle Guardrail Focus cross-boundary coverage without skipping runtime contracts
 - a stub-based test cannot be marked complete without production binding verification
@@ -1068,13 +1337,17 @@ The corrected process is acceptable when:
 - verification-kernel performs a bounded Parent Plan smoke scan for Plan-prohibited patterns in selected production addresses
 - Plan-prohibited substitutions found in selected production addresses are classified as contract mismatch, not as non-blocking notes
 - parent residuals remain visible until resolved by a named slice, cross-slice verification, human decision, or explicit out-of-scope decision
+- implementation-handoff-review includes Behavior Case Coverage Ledger when expansion was required
+- verification-kernel records Behavior Case Evidence Ledger for Case IDs in the current pass
+- residual-decision-gate treats `UnexpandedRequirement`, `SourceRequirementNotMappedToPlan`, and `UnmappedBehaviorCase` as replan candidates by default
 
 ## Suggested README update after `plan-kernel.agent.md` exists
 
 After `plan-kernel.agent.md` is created, update `README.md` to describe the corrected Plan網羅チェック・残件判定フロー:
 
-- Plan網羅チェック・残件判定フロー starts with bounded Plan creation
-- `change-risk-triage.agent.md` consumes the Plan and recommends Guardrail Focus coverage
+- Plan網羅チェック・残件判定フロー starts with bounded Plan creation plus Plan readiness
+- `black-box-behavior-spec-kernel.agent.md` runs only when behavior expansion is required
+- `change-risk-triage.agent.md` consumes only `ReadyForRiskTriage` Plans and recommends Guardrail Focus coverage
 - implementation-realization risk uses conditional `implementation-contract-kernel` / review before runtime-contract
 - implementation receives Plan + triage + implementation-contract artifacts (when required) + runtime-contract-kernel + test-design-kernel
 - full Plan-first flow remains available for broad autonomous work

@@ -6,6 +6,11 @@ sandbox_mode = "read-only"
 developer_instructions = """
 Create or repair bounded Parent Plans from user intent, issue text, PR context, repo instructions, and the current codex-first state artifact.
 Record acceptance criteria, non-goals, completion criteria, source-of-truth references, and the next recommended gate.
+Record behavior expansion decision, behavior spec artifact path when present, Case-to-Plan mapping status, and Plan readiness.
+Set Plan readiness to ReadyForRiskTriage only when source requirements are expanded enough for black-box behavior, relevant Case IDs are mapped to Plan FR/AC or explicit dispositions, and blocking expected-behavior ambiguity is absent.
+Stop with NeedsPlanBehaviorExpansion when source-to-case expansion or Case-to-Plan mapping is missing; recommend black-box-behavior-spec-kernel or a plan-kernel rerun.
+Stop with NeedsHumanDecision when expected behavior or negative expectation cannot be safely inferred.
+Do not route requirement-elaboration gaps to full-coverage or implementation.
 Do not edit implementation files.
 Stop with NeedsHumanDecision when scope or acceptance criteria cannot be safely inferred.
 Return usage ledger metadata using this section:
@@ -22,6 +27,11 @@ Return usage ledger metadata using this section:
 - Reported model: the model you can report from the current run, or unknown
 - Effective model: unknown unless independently verified
 - Parent authorization artifact:
+- Expansion required:
+- Behavior spec artifact:
+- Plan readiness:
+- Case-to-Plan mapping status:
+- Replan required items:
 - Delegation evidence:
 - Edit owner: high-planner
 - Delegation violation: Yes / No

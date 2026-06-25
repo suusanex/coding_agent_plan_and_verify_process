@@ -4,10 +4,12 @@
 
 This repository defines a Plan-first development process for GitHub Copilot agents.
 
-The original process intentionally combines Plan generation, runtime evidence, integration test design, implementation verification, and coverage gap resolution. That chain exists to prevent two recurring failure modes in AI-assisted implementation:
+The original process intentionally combines Plan generation, runtime evidence, integration test design, implementation verification, and coverage gap resolution. That chain exists to prevent recurring failure modes in AI-assisted implementation:
 
 1. Cross-process or cross-component sequences appear correct inside each process, but fail when connected because contracts, messages, state transitions, or wiring do not match.
 2. Automated tests pass against stubs, fakes, or in-memory implementations, while the corresponding production implementation or production wiring is missing.
+3. Guardrail Focus verification passes while parent Plan coverage or residual decisions are still incomplete.
+4. The Plan itself fails to elaborate source requirements into required black-box behavior cases, so downstream artifacts stay internally consistent while the final implementation misses the original expected behavior.
 
 As GitHub Copilot usage moves toward token-consumption-based cost awareness, the process must reduce avoidable re-reading, rework, and open-ended repair loops. However, the guardrails above are not optional decoration. Removing them would make the process cheaper but would also reintroduce the original quality failures.
 
@@ -19,12 +21,14 @@ The revised Plan網羅チェック・残件判定フロー is still a Plan-first
 
 The intended sequence is:
 
-1. Create a bounded Plan for the requested change.
-2. Use that Plan to identify Guardrail Focus coverage for deep runtime / production-binding checks.
-3. Preserve the guardrail chain for the Guardrail Focus surface.
-4. Implement against the Plan as the source of truth.
-5. Verify that Guardrail Focus contracts, test points, production implementation, and production wiring are aligned.
-6. Record unresolved work instead of continuing indefinitely.
+1. Read source requirements and decide whether black-box behavior expansion is required.
+2. Create or consume black-box behavior cases when source requirements need case expansion.
+3. Create a bounded Plan and map relevant Case IDs to FR / AC or explicit disposition.
+4. Use a ready Plan to identify Guardrail Focus coverage for deep runtime / production-binding checks.
+5. Preserve the guardrail chain for the Guardrail Focus surface.
+6. Implement against the Plan as the source of truth.
+7. Verify that Guardrail Focus contracts, test points, production implementation, production wiring, and current Behavior Case evidence are aligned.
+8. Record unresolved work instead of continuing indefinitely.
 
 When implementation-realization risk is present (for example: Plan-named external SDK/API/provider, unresolved dependency/API surface confirmation, or nearest-neighbor substitution risk), the Plan網羅チェック・残件判定フロー must add a conditional implementation-contract branch before runtime-contract work.
 
@@ -62,6 +66,7 @@ This improvement is not intended to:
 - make every agent run shorter by simply deleting important checks
 - replace runtime evidence with a shallow checklist
 - treat stub-based tests as sufficient proof of production readiness
+- treat requirement-elaboration gaps as `full-coverage` candidates
 - make full autonomous completion the default goal
 - force every task through the heaviest possible full process
 - turn Plan documents into detailed implementation task lists
@@ -71,14 +76,16 @@ This improvement is not intended to:
 
 For any Guardrail Focus coverage, the process must preserve the following chain:
 
-1. Plan requirement / acceptance condition
-2. Runtime contract identification
-3. Runtime participant and boundary mapping
-4. Test point mapping
-5. Stub / fake / in-memory usage identification
-6. Production implementation binding
-7. Production wiring / entrypoint verification
-8. Explicit unresolved status for anything not completed
+1. Source requirement
+2. Black-box behavior case, when expansion is required
+3. Plan requirement / acceptance condition
+4. Runtime contract identification
+5. Runtime participant and boundary mapping
+6. Test point mapping
+7. Stub / fake / in-memory usage identification
+8. Production implementation binding
+9. Production wiring / entrypoint verification
+10. Explicit unresolved status for anything not completed
 
 The full process may express this through detailed runtime evidence, scenario ledgers, integration test design, implementation coverage documents, and gap resolution.
 
@@ -132,6 +139,16 @@ The implementation handoff must therefore include:
 - the test design kernel
 - explicit scope and non-goals
 
+### 4. Requirement-elaboration gap
+
+Plan readiness can fail before runtime risk exists.
+
+A bounded Plan is not ready when source requirements contain case-specific expected outcomes, negative expectations, recovery / rollback / retry / replay / cleanup behavior, state transitions, idempotency, or history-dependent results that are not expanded into black-box behavior cases or mapped to FR / AC.
+
+This gap must not be handled by choosing `full-coverage`.
+
+`full-coverage` is a decomposition decision for a ready Plan. Requirement elaboration is a Plan readiness decision. When expansion is required but missing, the next step is `black-box-behavior-spec-kernel.agent.md`; when behavior cases exist but the Plan does not map them, the next step is `plan-kernel.agent.md`; when expected behavior itself is undecided, the flow stops for human decision.
+
 ## Core operating principles
 
 ### 1. Plan-first before risk-first
@@ -139,6 +156,8 @@ The implementation handoff must therefore include:
 The Plan網羅チェック・残件判定フロー must begin by creating a bounded Plan. `change-risk-triage.agent.md` should classify risk within that Plan, not replace the Plan.
 
 The Plan is the source of truth for implementation behavior. Kernel artifacts are guardrails for Guardrail Focus coverage, not substitutes for the Plan.
+
+Before `change-risk-triage.agent.md` classifies runtime or implementation risk, the Plan must record `Expansion required`, behavior spec artifact path when required, Case-to-Plan mapping, and `Plan readiness`. Only `ReadyForRiskTriage` may proceed to process profile selection.
 
 ### 2. Bounded pass over open-ended completion
 
@@ -200,6 +219,7 @@ Preferred profile names are based on scope and intent:
 
 | Profile | Purpose | Guardrail depth | Breadth |
 | --- | --- | --- | --- |
+| `black-box-behavior-spec-kernel` | Expand source requirements into stable behavior Case IDs before Plan readiness | Source-to-case traceability preserved | Narrow to source requirements |
 | `plan-kernel` | Create the bounded Plan that remains the implementation source of truth | Plan preserved | Narrow to moderate |
 | `contract-kernel` | Minimal high-risk guardrail for Guardrail Focus runtime coverage | Preserved | Narrow |
 | `standard-slice` | Normal bounded Plan-first process for Guardrail Focus contracts / IDs | Preserved | Moderate |
@@ -217,7 +237,9 @@ For the overall change:
 2. What is out of scope?
 3. Which components or modules are expected to change?
 4. What acceptance conditions define successful implementation?
-5. Which areas are suspected high-risk boundaries?
+5. Is black-box behavior expansion required?
+6. If required, which Case IDs map to FR / AC, explicit defer, out-of-scope, or human decision?
+7. Which areas are suspected high-risk boundaries?
 
 For each Guardrail Focus surface:
 
@@ -243,6 +265,8 @@ Full mode remains appropriate when:
 - human review needs detailed scenario evidence
 
 Full mode may continue to use detailed runtime evidence, scenario ledgers, integration test design, implementation coverage documents, and gap resolution.
+
+Full mode is not a substitute for missing Plan readiness. If the ambiguity is that source behavior has not been expanded or mapped to the Plan, the flow must return to behavior expansion or human decision before any full-coverage decomposition.
 
 ## Agent design implications
 
@@ -277,6 +301,8 @@ These documents are not intended to be runtime dependencies of the generated age
 This improvement succeeds when:
 
 - the Plan網羅チェック・残件判定フロー still begins with a bounded Plan
+- Plan readiness blocks risk triage until expansion decision and required Case-to-Plan mapping are present
+- Requirement-elaboration gaps route to `black-box-behavior-spec-kernel.agent.md`, `plan-kernel.agent.md`, or human decision, not to `full-coverage`
 - lightweight runs remain meaningfully cheaper than full runs
 - Guardrail Focus contracts still receive runtime and verification guardrails
 - implementation agents receive both the Plan and kernel guardrail artifacts
