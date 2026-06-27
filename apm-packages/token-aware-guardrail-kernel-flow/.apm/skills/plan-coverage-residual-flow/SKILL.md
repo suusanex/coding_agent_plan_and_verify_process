@@ -36,7 +36,7 @@ Do not use this skill when:
 - the change is a simple local fix that does not need a Plan artifact
 - the user explicitly selected the Full autonomous Plan-first flow
 - the task only needs the 3-layer operation after full-coverage decomposition
-- product semantics, policy, or expected behavior requires human decision before planning or implementation
+- the agent is trying to resolve product semantics, policy, or expected behavior by inference instead of recording `NeedsHumanDecision` and stopping
 - the agent is trying to treat a requirement-elaboration gap as implementation work
 
 For full-coverage decomposition after `plan-slice-decomposition.agent.md`, use `token-aware-full-coverage-3layer` or an equivalent advanced route.
@@ -77,10 +77,10 @@ Run the flow in this order unless a stop condition applies:
    - `runtime-contract-kernel.agent.md`
    - `test-design-kernel.agent.md`
    - `implementation-handoff-review.agent.md`
-8. Implement only after the handoff review allows implementation for the bounded parent Plan pass.
+8. Implement only after the handoff review allows implementation for the bounded parent Plan pass. Use `implementation-execution.agent.md` or a human-guided implementation route, according to the repository's available agent setup.
 9. Run `verification-kernel.agent.md`.
 10. If unresolved coverage items or FixNow candidates remain, run `coverage-gap-triage.agent.md`.
-11. If residual, manual, or human-decision candidates remain, run `residual-decision-gate.agent.md`.
+11. Before final close, run `residual-decision-gate.agent.md`. If no residual candidates remain, it may produce `READY_TO_CLOSE_WITH_NO_RESIDUALS`. If residual, manual, or human-decision candidates remain, it must classify them before close.
 12. If `coverage-gap-triage` or `residual-decision-gate` emits an explicit FixNow selector, run `coverage-gap-resolution-slice.agent.md`, then return to verification and residual decision as needed.
 
 The parent Plan FR / AC remain the implementation and verification source of truth throughout the route. Guardrail Focus artifacts are deep-check guardrails; they are not an implementation scope reduction.
@@ -97,7 +97,8 @@ When `change-risk-triage.agent.md` recommends `full-coverage`:
 2. Treat each resulting slice as a bounded parent Plan pass with parent Plan item mapping.
 3. Use `token-aware-full-coverage-3layer` or an equivalent advanced route for slice preparation, parent review, delegated slice implementation, and slice-local verification.
 4. After slice verification, run `cross-slice-verification-kernel.agent.md`.
-5. Run `residual-decision-gate.agent.md` for final residual, manual, delegated, deferred, aborted, or human-decision handling.
+5. If cross-slice verification emits unresolved coverage items or FixNow candidates, run `coverage-gap-triage.agent.md`.
+6. Run `residual-decision-gate.agent.md` for final residual, manual, delegated, deferred, aborted, or human-decision handling.
 
 Do not use `full-coverage` for:
 
