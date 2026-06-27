@@ -64,11 +64,13 @@ Source requirement
 | --- | --- |
 | `apm-packages/codex-first-ai-development-process` | Codex を第一優先にし、短い依頼から cost-aware routing、モデル tier 分担、READY / close gate、stateful resume に入りたい |
 | `apm-packages/copilot-fallback-ai-development-process` | Codex 枠が尽きた場合などに、GitHub Copilot Chat in VS Code へ同じ思想の cost-aware process を repo-local 導入したい |
-| `apm-packages/token-aware-guardrail-kernel-flow` | operator が Plan網羅チェック・残件判定フローを直接選べる。既存 agent 群をそのまま使いたい |
+| `apm-packages/token-aware-guardrail-kernel-flow` | operator が Plan網羅チェック・残件判定フローを直接選べる。通常利用では `plan-coverage-residual-flow` skill を入口にして既存 agent 群を進行管理したい |
 | `apm-packages/token-aware-full-coverage-3layer` | PR #10 由来の Codex 向け full-coverage 3層応用運用だけを直接使いたい |
 | `apm-packages/full-autonomous-plan-first-flow` | broad autonomous flow を明示的に選び、runtime evidence / integration test design を広く使いたい |
 
 `codex-first-ai-development-process` は既存 package の source を複製しません。同じ `.github/agents/*.agent.md` を参照しつつ、Codex-first の入口、instructions、Skill、停止語彙、tier 別 agent / profile テンプレート、state / stop templates、examples、user / maintainer guide を追加します。
+
+通常の Plan網羅チェック・残件判定フローを直接使う場合は、`apm-packages/token-aware-guardrail-kernel-flow` に含まれる `plan-coverage-residual-flow` skill を入口にします。Codex / Copilot には「この issue を `plan-coverage-residual-flow` で進めて」のように依頼できます。full-coverage 3層運用 skill は、`change-risk-triage.agent.md` が `full-coverage` を返し、`plan-slice-decomposition.agent.md` 後に使う advanced route です。
 
 ### 導入スクリプトの使い分け
 

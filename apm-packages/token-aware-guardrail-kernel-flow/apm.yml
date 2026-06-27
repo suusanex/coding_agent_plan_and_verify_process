@@ -1,6 +1,12 @@
 name: plan-coverage-residual-gate-flow
 version: 0.3.0
 description: Plan Coverage Check and Residual Decision Flow with bounded parent Plan passes, Guardrail Focus, and residual decision gating
+type: hybrid
+targets:
+  - copilot
+  - codex
+  - agent-skills
+includes: auto
 
 dependencies:
   apm:
