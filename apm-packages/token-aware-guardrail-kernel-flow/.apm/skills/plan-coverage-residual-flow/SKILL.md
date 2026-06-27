@@ -1,6 +1,6 @@
 ---
 name: plan-coverage-residual-flow
-description: Orchestrate the standard Plan Coverage Check and Residual Decision Flow for bounded Plan-first work. Use when Codex or GitHub Copilot should choose the next agent, stop condition, required artifacts, full-coverage decomposition boundary, residual decision gate, and close readiness for plan-kernel, change-risk-triage, runtime-contract-kernel, test-design-kernel, verification-kernel, coverage-gap-triage, and residual-decision-gate flows.
+description: Orchestrate the standard Plan Coverage Check and Residual Decision Flow for bounded Plan-first work. Use when Codex or GitHub Copilot should decide the next phase, required artifact, stop condition, full-coverage decomposition boundary, residual decision gate, and close readiness while preserving parent Plan FR / AC as the source of truth.
 ---
 
 # Plan Coverage Check and Residual Decision Flow
