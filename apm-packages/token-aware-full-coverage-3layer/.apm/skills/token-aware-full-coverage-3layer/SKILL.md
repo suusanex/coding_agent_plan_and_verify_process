@@ -273,7 +273,9 @@ Parent review gate は人間レビュー待ちではありません。親エー�
 
 `Can implement now?` が `No` の slice を `slice-impl` に渡してはいけません。
 
-`Human decision required` が空で、`Can implement now? = Yes` の slice が存在する場合、親エージェントは parent review gate で成功終了してはいけません。`DELEGATED_IMPLEMENTATION` mode では、直ちに対象 slice を `slice-impl` custom agent へ委譲してください。
+`DELEGATED_IMPLEMENTATION` mode では、`Can implement now? = Yes` の slice が1つでも存在する場合、親エージェントは parent review gate で成功終了してはいけません。`Human decision required` / `NEEDS_HUMAN_DECISION` の slice は停止対象として記録しつつ、実装可能な READY slice は必ず `slice-impl` custom agent へ委譲してください。
+
+停止できるのは、すべての slice が `Can implement now? = No` / `BLOCKED` / `NEEDS_HUMAN_DECISION` / `TRIAGE_ONLY` のいずれかであり、委譲可能な READY slice が存在しない場合、または custom agent / subagent 起動が利用できず `BlockedByMissingSliceImplDelegation` として記録した場合に限ります。
 
 ## Layer 3: implementation and verification
 

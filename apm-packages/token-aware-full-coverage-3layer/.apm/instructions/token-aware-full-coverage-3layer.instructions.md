@@ -29,7 +29,9 @@ Plan readiness が `NeedsPlanBehaviorExpansion` または `NeedsHumanDecision` �
 
 `DELEGATED_IMPLEMENTATION` mode では、親エージェントは production code / tests を直接編集してはいけません。親が編集できるのは orchestration artifact、parent review gate、Agent Usage Ledger、cross-slice verification、residual decision、final summary / handoff artifact に限定します。
 
-Parent review gate は人間レビュー待ちではありません。親エージェントが実装可否を判定する gate であり、`Human decision required` が空で `Can implement now? = Yes` の slice が存在する場合、親は停止せず `slice-impl` に委譲してください。
+Parent review gate は人間レビュー待ちではありません。親エージェントが実装可否を判定する gate です。`DELEGATED_IMPLEMENTATION` mode では、`Can implement now? = Yes` の slice が1つでも存在する場合、親は parent review gate で成功終了してはいけません。`Human decision required` / `NEEDS_HUMAN_DECISION` の slice は停止対象として記録しつつ、実装可能な READY slice は必ず `slice-impl` に委譲してください。
+
+停止できるのは、すべての slice が `Can implement now? = No` / `BLOCKED` / `NEEDS_HUMAN_DECISION` / `TRIAGE_ONLY` のいずれかであり、委譲可能な READY slice が存在しない場合、または custom agent / subagent 起動が利用できず `BlockedByMissingSliceImplDelegation` として記録した場合に限ります。
 
 ## 重要な禁止事項
 
