@@ -219,6 +219,8 @@ ExecutionMode:
 - PARENT_DIRECT_IMPLEMENTATION
 ```
 
+ユーザーが「実施」「進める」「このプロセスで実装する」と依頼し、かつ「実装はまだ行わない」「準備まで」「レビューまでで停止」と明示していない場合、既定の ExecutionMode は `DELEGATED_IMPLEMENTATION` とする。`PREP_ONLY` は明示的な準備・レビュー停止指示がある場合だけ選ぶ。
+
 ### `PREP_ONLY`
 
 - `slice-prep` と parent review gate まで進める
@@ -229,6 +231,8 @@ ExecutionMode:
 - READY slice の実装は必ず `slice-impl` custom agent に渡す
 - 親エージェントは production code / tests を直接編集しない
 - 親エージェントは parent review、結果集約、cross-slice verification を担当する
+- parent review gate は人間レビュー待ちではなく、親エージェントによる実装可否判定 gate とする
+- 成功完了には、READY slice の `slice-impl` 委譲、slice-local verification、cross-slice verification、residual-decision-gate までの証跡を必要とする
 
 ### `PARENT_DIRECT_IMPLEMENTATION`
 

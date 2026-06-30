@@ -25,7 +25,11 @@ Plan readiness が `NeedsPlanBehaviorExpansion` または `NeedsHumanDecision` �
 
 開始時に `ExecutionMode` を `PREP_ONLY` / `DELEGATED_IMPLEMENTATION` / `PARENT_DIRECT_IMPLEMENTATION` のいずれかとして `plans/*-agent-usage-ledger.md` に記録してください。
 
+ユーザーが「実施」「進める」「このプロセスで実装する」と依頼し、かつ「実装はまだ行わない」「準備まで」「レビューまでで停止」と明示していない場合、既定の `ExecutionMode` は `DELEGATED_IMPLEMENTATION` です。`PREP_ONLY` は明示的な準備・レビュー停止指示がある場合だけ選んでください。
+
 `DELEGATED_IMPLEMENTATION` mode では、親エージェントは production code / tests を直接編集してはいけません。親が編集できるのは orchestration artifact、parent review gate、Agent Usage Ledger、cross-slice verification、residual decision、final summary / handoff artifact に限定します。
+
+Parent review gate は人間レビュー待ちではありません。親エージェントが実装可否を判定する gate であり、`Human decision required` が空で `Can implement now? = Yes` の slice が存在する場合、親は停止せず `slice-impl` に委譲してください。
 
 ## 重要な禁止事項
 
@@ -42,9 +46,13 @@ Plan readiness が `NeedsPlanBehaviorExpansion` または `NeedsHumanDecision` �
 ## Codex での典型的な起動例
 
 ```text
-$token-aware-full-coverage-3layer を使って、この full-coverage decomposition を Plan網羅チェック・残件判定フローとして進めてください。
-まず slice preparation と parent review gate まで。実装はまだ行わない。
+$token-aware-full-coverage-3layer を使って進めてください。
+ExecutionMode は DELEGATED_IMPLEMENTATION とします。
+
+parent review gate で READY になった slice は、そこで停止せず必ず slice-impl に渡してください。
+各 slice の verification-kernel 後に cross-slice-verification-kernel と residual-decision-gate まで実行してください。
+
+人間判断が必要な slice だけ NEEDS_HUMAN_DECISION として止め、実装可能な slice は進めてください。
 ```
 
-実装まで進める場合も、parent review gate で READY になった slice だけを `slice-impl` に渡してください。
-このとき `ExecutionMode = DELEGATED_IMPLEMENTATION`、`EditOwner = slice-impl`、`DelegationRequired = Yes` を Agent Usage Ledger に記録し、親エージェントは production code / tests を直接編集しないでください。
+準備・レビューまでで止める場合は、依頼文で `ExecutionMode = PREP_ONLY` と明示し、実装はまだ行わないことを指定してください。

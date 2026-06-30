@@ -548,6 +548,8 @@ PR #10（`Codex向け full-coverage 3層運用を追加`）では、その局面
 4. 最後に親エージェントが cross-slice verification と residual decision をまとめる
 
 つまり、「full-coverage decomposition を Codex でそのまま分解実装させる」のではなく、「親が整合を握ったまま、準備と実装だけを bounded に委譲する」ための運用補助です。
+ユーザーが実施・進行・実装を依頼し、準備やレビューまでで止める明示指示がない場合、既定の `ExecutionMode` は `DELEGATED_IMPLEMENTATION` です。`PREP_ONLY` は「実装はまだ行わない」「準備まで」「レビューまでで停止」と明示された場合だけ使います。
+Parent review gate は人間レビュー待ちではなく、親エージェントが READY slice の実装可否を判定する gate です。`Can implement now? = Yes` の slice がある場合、親はそこで成功終了せず `slice-impl` へ委譲します。
 親エージェントは `DELEGATED_IMPLEMENTATION` で production code / tests を直接編集しません。READY slice に `slice-impl` run がない場合は `BlockedByMissingSliceImplDelegation` として停止します。
 
 この応用運用では、Codex App / Desktop thread path を primary path、CLI non-interactive / `codex exec` path を separate compatibility path として扱います。CLI 側で deterministic に同じ custom agent type を起動できると確認できるまでは、App / Desktop と同等扱いしません。

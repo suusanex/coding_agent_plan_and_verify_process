@@ -78,6 +78,12 @@ Final gate: 親エージェント
 
 親エージェントは開始時に `plans/<ticket-or-slug>-agent-usage-ledger.md` を作成または更新し、次のいずれかの `ExecutionMode` を必ず記録してください。
 
+### Default ExecutionMode
+
+ユーザーが「実施」「進める」「このプロセスで実装する」「複数 slice を進める」と依頼し、かつ「実装はまだ行わない」「準備まで」「レビューまでで停止」と明示していない場合、`ExecutionMode` は `DELEGATED_IMPLEMENTATION` とします。
+
+`PREP_ONLY` は、ユーザーが明示的に準備・レビューまでで停止すると指定した場合だけ選んでください。未指定時に安全側として `PREP_ONLY` へ倒してはいけません。
+
 | ExecutionMode | 意味 | production code / tests 編集 |
 | --- | --- | --- |
 | `PREP_ONLY` | slice-prep と parent review gate までで停止する | 禁止 |
@@ -96,6 +102,8 @@ Final gate: 親エージェント
 - final summary / handoff artifact
 
 委譲が必要な工程で custom agent / subagent を起動できない場合、親はその工程を自分で続行せず、`DelegationUnavailable` または `BlockedByMissingSliceImplDelegation` として停止してください。親直接実装は `PARENT_DIRECT_IMPLEMENTATION` と explicit human approval がある場合だけ許可されます。
+
+`DELEGATED_IMPLEMENTATION` mode の成功完了には、すべての executable slice が `slice-prep` を通過している、または `BLOCKED` / `NEEDS_HUMAN_DECISION` / `TRIAGE_ONLY` として記録されていることが必要です。さらに、parent review gate、すべての READY slice の `slice-impl` 委譲、各 slice の `Slice Implementation Result`、slice-local verification-kernel、親による cross-slice-verification-kernel、residual-decision-gate まで完了していなければ、成功完了として報告してはいけません。
 
 ## Layer 1: 親エージェント orchestration
 
@@ -217,6 +225,8 @@ executable slice は、次のいずれかを満たす必要があります。
 
 親エージェントは、すべての slice-prep 出力を実装前にレビューします。
 
+Parent review gate は人間レビュー待ちではありません。親エージェントが source artifact と slice-prep 出力をもとに、機械的に実装可否を判定する gate です。
+
 親レビューでは次を確認してください。
 
 - parent Plan の FR / AC が slice 群で保持されているか
@@ -262,6 +272,8 @@ executable slice は、次のいずれかを満たす必要があります。
 ```
 
 `Can implement now?` が `No` の slice を `slice-impl` に渡してはいけません。
+
+`Human decision required` が空で、`Can implement now? = Yes` の slice が存在する場合、親エージェントは parent review gate で成功終了してはいけません。`DELEGATED_IMPLEMENTATION` mode では、直ちに対象 slice を `slice-impl` custom agent へ委譲してください。
 
 ## Layer 3: implementation and verification
 
@@ -440,22 +452,25 @@ cross-slice verification では、見つけた gap をその場で修正しま�
 
 ## Codex への短い指示例
 
+標準の委譲実装として進める場合:
+
+```text
+$token-aware-full-coverage-3layer を使って進めてください。
+ExecutionMode は DELEGATED_IMPLEMENTATION とします。
+
+parent review gate で READY になった slice は、そこで停止せず必ず slice-impl に渡してください。
+各 slice の verification-kernel 後に cross-slice-verification-kernel と residual-decision-gate まで実行してください。
+
+人間判断が必要な slice だけ NEEDS_HUMAN_DECISION として止め、実装可能な slice は進めてください。
+```
+
 準備までで止める場合:
 
 ```text
 $token-aware-full-coverage-3layer を使って、この full-coverage decomposition を Plan網羅チェック・残件判定フローとして進めてください。
+ExecutionMode は PREP_ONLY とします。
 slice-prep で各 slice の準備 artifact を作り、parent review gate までで停止してください。
-実装はまだ行わない。
-```
-
-実装と cross-slice verification まで進める場合:
-
-```text
-$token-aware-full-coverage-3layer を使って進めてください。
-ExecutionMode は DELEGATED_IMPLEMENTATION とし、
-parent review gate で READY になった slice は必ず slice-impl に渡し、
-各 slice の verification-kernel 後に cross-slice-verification-kernel と residual-decision-gate まで実行してください。
-gap があれば修正せず coverage-gap-triage または residual-decision-gate への handoff を作って停止してください。
+実装はまだ行わないでください。
 ```
 
 ## 最終監査
