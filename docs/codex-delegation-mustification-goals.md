@@ -448,7 +448,7 @@ close可能な状態は、次のいずれかに限る。
   - final audit 強化
 
 - `apm-packages/token-aware-full-coverage-3layer/.apm/instructions/token-aware-full-coverage-3layer.instructions.md`
-  - 「実装まで進める場合も」ではなく、`DELEGATED_IMPLEMENTATION` mode では必ず `slice-impl` と明記
+  - 条件付きで弱く読める表現ではなく、`DELEGATED_IMPLEMENTATION` mode では必ず `slice-impl` と明記
   - 親の production code / tests 直接編集禁止を追加
 
 - `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-impl.agent.md`
