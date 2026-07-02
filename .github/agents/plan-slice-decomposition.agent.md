@@ -96,7 +96,7 @@ slice は、後続で `slice-prep`、parent review、`slice-impl`、verification
 - downstream slice を明確に block / unblock する
 - cross-slice contract の producer / consumer として独立させる必要がある
 
-小さい slice を独立させる場合は、`Small slice justification` を必ず記録してください。`Why not merged` を説明できない場合、その候補は executable slice ではなく `merge-candidate` または `too-small-to-delegate` として統合対象にします。
+小さい slice を独立させる場合は、`Small slice justification` を必ず記録してください。`Why not merged` を説明できない場合、その候補は executable slice ではなく `merge-candidate`、`too-small-to-delegate`、または `coalesce-with-SL-xxx` として統合対象にします。
 
 ### 2b. Coalescing rule
 
@@ -212,6 +212,8 @@ cross-slice contract の抜粋には、最低限次を含めます。
 - Why not merged:
 ```
 
+通常サイズの slice では `Small slice justification` を省略してよいです。小さい slice を独立 executable slice として残す場合だけ必須です。
+
 ### 6. Do not hide full-coverage risk by oversplitting
 
 危険な boundary を slice 外に追い出してはいけません。
@@ -309,7 +311,7 @@ slice が小さすぎる場合は統合してください。delegation overhead 
   - Owned by this slice:
   - Consumed by this slice:
   - Deferred / unresolved fields:
-- Small slice justification:
+- Small slice justification: N/A unless this is a small independent slice.
   - Independent verification: Yes / No
   - Independent rollback/discard: Yes / No
   - Different owner/model/profile needed: Yes / No
@@ -334,9 +336,11 @@ Recommended process profile は次から選んでください。
 
 `full-coverage` を slice の recommended profile として再利用してはいけません。slice に分けてもなお full-coverage 相当である場合は `needs-further-decomposition` としてください。
 
-小さすぎる候補、または統合すべき候補は executable slice として扱わず、次の disposition を使ってください。
+小さすぎる候補、または統合すべき候補は executable slice として扱わず、次の candidate slice disposition を使ってください。この語彙は `Slice granularity review` の `Decision` 列専用であり、Cross-slice contracts や Cross-slice field continuity の `Status` には使ってはいけません。
 
-| Disposition | When to use |
+#### Candidate slice disposition vocabulary
+
+| Disposition | Meaning |
 | --- | --- |
 | `merge-candidate` | 統合すべき候補だが、統合先がまだ確定していない場合 |
 | `too-small-to-delegate` | 単独で `slice-prep` / `slice-impl` を回す価値がない場合 |
@@ -349,7 +353,7 @@ decomposition artifact を書く前に、候補 slice の粒度を自己確認�
 ```md
 ## Slice granularity review
 
-| Slice ID | Too small? | Merge candidate | Reason to keep separate | Decision |
+| Slice ID | Too small? | Coalesce target | Reason to keep separate | Decision |
 | --- | --- | --- | --- | --- |
 ```
 
@@ -487,7 +491,7 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 
 ## Slice granularity review
 
-| Slice ID | Too small? | Merge candidate | Reason to keep separate | Decision |
+| Slice ID | Too small? | Coalesce target | Reason to keep separate | Decision |
 | --- | --- | --- | --- | --- |
 
 ## Slice 詳細
@@ -522,7 +526,7 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
   - Owned by this slice:
   - Consumed by this slice:
   - Deferred / unresolved fields:
-- Small slice justification:
+- Small slice justification: N/A unless this is a small independent slice.
   - Independent verification: Yes / No
   - Independent rollback/discard: Yes / No
   - Different owner/model/profile needed: Yes / No
@@ -572,7 +576,7 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 - Slice IDs:
 - Cross-slice Contract IDs:
 - Cross-slice field continuity items:
-- Slice granularity review result:
+- Slice granularity review:
 - Behavior spec artifact:
 - Behavior Case IDs:
 - Source artifacts:
@@ -625,7 +629,7 @@ Handoff Packet の `Required downstream guardrails` には、少なくとも次�
 
 `plans/<ticket-or-slug>-slice-decomposition.md` を作成または更新し、slice IDs、Slice granularity review、parent contract mapping、Behavior Case mapping、cross-slice contract IDs、cross-slice field continuity、execution order、final cross-slice verification requirements、Handoff Packet を記録したら停止してください。
 
-実装対象になる executable slice がある場合は、対応する `plans/<ticket-or-slug>-slice-SL-xxx.md` も作成してください。slice artifact を作れない場合、または `Small slice justification` の `Why not merged` を説明できない場合は、その slice を executable として扱わず、`NeedsFurtherDecomposition`、`NeedsHumanDecision`、`merge-candidate`、`too-small-to-delegate`、または `coalesce-with-SL-xxx` として記録してください。
+実装対象になる executable slice がある場合は、対応する `plans/<ticket-or-slug>-slice-SL-xxx.md` も作成してください。slice artifact を作れない場合、または小さい independent executable slice の `Small slice justification` で `Why not merged` を説明できない場合は、その slice を executable として扱わず、`NeedsFurtherDecomposition`、`NeedsHumanDecision`、または candidate slice disposition として記録してください。
 
 各 slice の実装、test design、runtime contract kernel、verification に進んではいけません。
 
@@ -641,8 +645,5 @@ Handoff Packet の `Required downstream guardrails` には、少なくとも次�
 | `NotImplementedOrMismatch` | implementation が欠けている、mismatch している、または test-side / fake-side にしか存在しない |
 | `OutOfScopeForThisPass` | 妥当な work だが、selected slice の外である |
 | `Bound` | test substitute に対して、production interface・production implementation・production wiring / entrypoint に加え、post-wiring behavior が required postcondition を満たすことが確認済みである |
-| `merge-candidate` | candidate slice は統合対象であり、単独 executable slice としてはまだ扱わない |
-| `too-small-to-delegate` | candidate slice は delegation overhead に見合わず、単独で `slice-prep` / `slice-impl` へ渡さない |
-| `coalesce-with-SL-xxx` | candidate slice を指定した `SL-xxx` に統合する |
 
 この agent は原則として `Bound` を使ってはいけません。production binding は slice verification または cross-slice verification で確認します。

@@ -155,7 +155,7 @@ In the Plan網羅チェック・残件判定フロー, this is not an automatic 
 The immediate next step is the `plan-slice-decomposition` agent.
 Each resulting slice then re-enters the Plan網羅チェック・残件判定フロー as a bounded parent Plan pass. After slice verification, the parent flow runs `cross-slice-verification-kernel.agent.md` and then `residual-decision-gate.agent.md`.
 
-`full-coverage` does not require many executable slices. If a small number of slices, including 2 slices, preserves parent acceptance conditions, cross-slice contracts, field continuity, and Behavior Case mapping, that is a valid decomposition. `plan-slice-decomposition.agent.md` must include a Slice granularity review before output and must coalesce candidates when delegation overhead would outweigh implementation value.
+`full-coverage` does not require many executable slices. If a small number of slices, including 2 slices, preserves parent acceptance conditions, cross-slice contracts, field continuity, and Behavior Case mapping, that is a valid decomposition. `plan-slice-decomposition.agent.md` must include a `Slice granularity review` before output and must coalesce candidates when delegation overhead would outweigh implementation value.
 
 The decomposition gate must avoid single-function, single-sequence-step, or single-mapping slices unless there is a documented independent verification route, rollback / discard boundary, different owner / model / profile need, blocking dependency, or producer / consumer contract reason. Small slices that remain independent require `Small slice justification`; otherwise they should be classified as `merge-candidate`, `too-small-to-delegate`, or `coalesce-with-SL-xxx` and should not proceed as executable slices.
 
