@@ -12,6 +12,10 @@ GitHub Copilot 向けの `.github/agents/*.agent.md` が既存の主成果物で
 
 `change-risk-triage.agent.md` が `ReadyForRiskTriage` の Plan に対して `full-coverage` を診断した場合、Codex は `plan-slice-decomposition.agent.md` の出力から直接実装に入ってはいけません。
 
+`full-coverage` は多数の executable slice が必要という意味ではありません。`plan-slice-decomposition.agent.md` の `Slice granularity review` と `Small slice justification` を読み、cross-slice contract、field continuity、Behavior Case mapping を保持できる少数 slice は正しい decomposition として扱ってください。
+
+`merge-candidate`、`too-small-to-delegate`、`coalesce-with-SL-xxx` と記録された候補は executable slice ではありません。親エージェントはこれらを `slice-prep` に渡さず、統合または除外理由を Agent Usage Ledger / parent review gate に残してください。
+
 Plan readiness が `NeedsPlanBehaviorExpansion` または `NeedsHumanDecision` の場合、この skill は使いません。要求展開不足、Case-to-Plan mapping 不足、期待動作の未決は full-coverage ではなく Plan フェーズへ戻します。
 
 その場合は、原則として `$token-aware-full-coverage-3layer` skill を使ってください。この skill 名は互換用の legacy invocation です。本文では Plan網羅チェック・残件判定フローとして扱います。
@@ -37,6 +41,8 @@ Parent review gate は人間レビュー待ちではありません。親エー�
 
 - `plan-slice-decomposition` の slice artifact を「実装準備完了」とみなしてはいけません。
 - Plan readiness が `ReadyForRiskTriage` ではない work を full-coverage decomposition に進めてはいけません。
+- `Slice granularity review` で統合対象になった候補を executable slice として扱ってはいけません。
+- `Small slice justification` の `Why not merged` が説明されていない小さい slice を `slice-prep` に渡してはいけません。
 - per-slice `change-risk-triage`、必要な `implementation-contract-kernel`、`runtime-contract-kernel`、`test-design-kernel` を飛ばしてはいけません。
 - executable slice は `slice-prep` に MUST delegate してください。blocked / human decision / triage only の場合は理由を Agent Usage Ledger に記録してください。
 - `DELEGATED_IMPLEMENTATION` で READY になった slice は `slice-impl` に MUST delegate してください。`slice-impl` run の証跡がない READY slice は `BlockedByMissingSliceImplDelegation` として停止してください。

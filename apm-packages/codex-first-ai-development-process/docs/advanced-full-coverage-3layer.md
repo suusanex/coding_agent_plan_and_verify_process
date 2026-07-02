@@ -32,6 +32,13 @@ codex-first-cost-router
 -> residual decision
 ```
 
+## Slice granularity
+
+- `full-coverage` does not mean many executable slices are required.
+- Prefer the smallest number of useful slices that preserves parent acceptance conditions, cross-slice contracts, field continuity, and Behavior Case mapping.
+- `plan-slice-decomposition` must coalesce candidates that share owner, module, production wiring, verification route, and parent acceptance condition.
+- Small slices need `Small slice justification`. Candidates marked `merge-candidate`, `too-small-to-delegate`, or `coalesce-with-SL-xxx` are not sent to `slice-prep`.
+
 ## Cost routing
 
 - Parent Plan, decomposition, and cross-slice close risk usually need `HIGH_MODEL`.

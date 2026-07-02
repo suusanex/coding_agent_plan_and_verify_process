@@ -9,9 +9,13 @@
 ## Policy
 
 - `full-coverage` means: a `ReadyForRiskTriage` parent Plan is too broad or strongly interconnected to implement as one bounded pass.
+- `full-coverage` does not mean that many executable slices are required. If parent acceptance conditions, cross-slice contracts, field continuity, and Behavior Case mapping remain traceable, few slices are valid, including a 2-slice decomposition.
 - `full-coverage` does not mean: missing behavior expansion, missing Case-to-Plan mapping, or undecided expected behavior. Those are Plan readiness failures and must return to `black-box-behavior-spec-kernel.agent.md`, `plan-kernel.agent.md`, or human decision.
 - `full-coverage` does not mean: run `plan-generation.agent.md`, `runtime-evidence.agent.md`, or `integration-test-design.agent.md`.
 - The next step is always `plan-slice-decomposition.agent.md`.
+- `plan-slice-decomposition.agent.md` must consider delegation overhead. A candidate slice should be executable only when running `slice-prep`, parent review, `slice-impl`, and verification separately has value.
+- Candidate slices that share owner, module, production wiring, verification route, and parent acceptance condition should be coalesced unless there is a documented reason to keep them separate.
+- Small independent slices require `Small slice justification`; otherwise they should be recorded as `merge-candidate`, `too-small-to-delegate`, or `coalesce-with-SL-xxx` and not sent to `slice-prep`.
 - The broad autonomous flow remains available only as an explicit, separate process choice; it is not the default interpretation of `full-coverage` inside Plan網羅チェック triage.
 - Each resulting slice re-enters the Plan網羅チェック・残件判定フロー as a bounded parent Plan pass.
 - Cross-slice contracts must remain explicit and must be verified after slice implementations.
