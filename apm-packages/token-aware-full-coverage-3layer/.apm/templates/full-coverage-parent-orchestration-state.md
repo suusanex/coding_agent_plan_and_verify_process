@@ -24,15 +24,17 @@ If this file grows too large, compact old completed slice rows into a short summ
 
 | Kind | Path | Status | Notes |
 | --- | --- | --- | --- |
-| Parent Plan | | current / stale / missing | |
-| Behavior Spec | | n/a / current / stale / missing | |
-| Parent triage | | current / stale / missing | |
-| Slice decomposition | | current / stale / missing | |
-| Agent Usage Ledger | | current / stale / missing | |
-| Slice execution table | | current / stale / missing | |
-| Parent review gate | | n/a / current / stale / missing | |
-| Cross-slice verification | | n/a / current / stale / missing | |
-| Residual decision gate | | n/a / current / stale / missing | |
+| Parent Plan | | current / stale / missing / contradicted | |
+| Behavior Spec | | n/a / current / stale / missing / contradicted | |
+| Parent triage | | current / stale / missing / contradicted | |
+| Slice decomposition | | current / stale / missing / contradicted | |
+| Agent Usage Ledger | | current / stale / missing / contradicted | |
+| Slice execution table | | current / stale / missing / contradicted | |
+| Parent review gate | | n/a / current / stale / missing / contradicted | |
+| Cross-slice verification | | n/a / current / stale / missing / contradicted | |
+| Residual decision gate | | n/a / current / stale / missing / contradicted | |
+
+`contradicted` means this artifact conflicts with the current branch, work item, slice queue, or newer listed artifact and must be reviewed before continuing.
 
 ## Slice queue
 
@@ -49,6 +51,11 @@ If this file grows too large, compact old completed slice rows into a short summ
 ## Pending parent decisions
 
 | Decision | Required evidence | Owner | Blocking? |
+| --- | --- | --- | --- |
+
+## Parent decisions made
+
+| Decision | Applies to | Evidence artifact | Status |
 | --- | --- | --- | --- |
 
 ## Recent checkpoint delta

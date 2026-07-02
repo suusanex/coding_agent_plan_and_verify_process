@@ -11,6 +11,16 @@ internal static class RepoAgentSetup
     private const string SliceImplFileName = "slice-impl.toml";
     private const string FrontmatterPhrase = "top-level frontmatter";
     private const string FrontmatterReplacement = "top-level TOML fields";
+    private static readonly string ParentStateTemplateSourceRelative = Path.Combine(
+        "apm-packages",
+        "token-aware-full-coverage-3layer",
+        ".apm",
+        "templates",
+        "full-coverage-parent-orchestration-state.md");
+    private static readonly string ParentStateTemplateTargetRelative = Path.Combine(
+        "plans",
+        "_templates",
+        "full-coverage-parent-orchestration-state.md");
 
     private static readonly string[] SlicePrepOrder =
     [
@@ -78,6 +88,17 @@ internal static class RepoAgentSetup
         string? FrontmatterFixLine
     );
 
+    private sealed record TemplateReport(
+        string SourcePath,
+        string TargetPath,
+        bool SourceExists,
+        bool TargetExists,
+        bool Changed,
+        bool ShouldFailCheck,
+        bool Applied,
+        string Decision
+    );
+
     public static async Task<int> RunAsync(string[] args)
     {
         Options options;
@@ -135,6 +156,7 @@ internal static class RepoAgentSetup
                 options.Verbose,
                 noWrite)
         };
+        var templateReport = await ProcessTemplateAsync(options.TargetRoot, options.Verbose, noWrite);
 
         var hasFailure = false;
         var hasChanges = false;
@@ -144,6 +166,10 @@ internal static class RepoAgentSetup
             hasChanges |= report.Changed;
             hasFailure |= report.ShouldFailCheck;
         }
+
+        PrintTemplateReport(templateReport);
+        hasChanges |= templateReport.Changed;
+        hasFailure |= templateReport.ShouldFailCheck;
 
         Console.WriteLine();
         if (options.Check)
@@ -531,6 +557,86 @@ internal static class RepoAgentSetup
             frontmatterFixLine);
     }
 
+    private static async Task<TemplateReport> ProcessTemplateAsync(
+        string targetRoot,
+        bool verbose,
+        bool noWrite)
+    {
+        var sourcePath = ResolveSourceTemplatePath();
+        var targetPath = Path.Combine(targetRoot, ParentStateTemplateTargetRelative);
+
+        if (sourcePath is null || !File.Exists(sourcePath))
+        {
+            return new TemplateReport(
+                sourcePath ?? ParentStateTemplateSourceRelative,
+                targetPath,
+                false,
+                File.Exists(targetPath),
+                true,
+                true,
+                false,
+                "missing-source");
+        }
+
+        var sourceText = EnsureNoUtf8Bom(await File.ReadAllTextAsync(sourcePath));
+        var targetExists = File.Exists(targetPath);
+        var targetText = targetExists ? EnsureNoUtf8Bom(await File.ReadAllTextAsync(targetPath)) : string.Empty;
+        var changed = !targetExists || !string.Equals(NormalizeNewlinesToLf(sourceText), NormalizeNewlinesToLf(targetText), StringComparison.Ordinal);
+
+        if (verbose)
+        {
+            Console.WriteLine(VerbosePrefix + $"template source: {sourcePath}");
+            Console.WriteLine(VerbosePrefix + $"template target: {targetPath}");
+        }
+
+        if (noWrite || !changed)
+        {
+            return new TemplateReport(
+                sourcePath,
+                targetPath,
+                true,
+                targetExists,
+                changed,
+                changed,
+                false,
+                changed ? "would-copy" : "keep");
+        }
+
+        var targetDirectory = Path.GetDirectoryName(targetPath);
+        if (!string.IsNullOrEmpty(targetDirectory))
+        {
+            Directory.CreateDirectory(targetDirectory);
+        }
+
+        await File.WriteAllTextAsync(targetPath, EnsureNoUtf8Bom(sourceText), Utf8NoBom);
+        return new TemplateReport(
+            sourcePath,
+            targetPath,
+            true,
+            targetExists,
+            true,
+            false,
+            true,
+            targetExists ? "updated" : "copied");
+    }
+
+    private static string? ResolveSourceTemplatePath()
+    {
+        var current = new DirectoryInfo(Directory.GetCurrentDirectory());
+        while (current is not null)
+        {
+            var candidate = Path.Combine(current.FullName, ParentStateTemplateSourceRelative);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            current = current.Parent;
+        }
+
+        return null;
+    }
+
     private static int FindFirstSectionIndex(IReadOnlyList<string> lines)
     {
         for (var i = 0; i < lines.Count; i++)
@@ -761,6 +867,24 @@ internal static class RepoAgentSetup
         {
             Console.WriteLine("  - developer_instructions wording: top-level frontmatter -> top-level TOML fields");
         }
+    }
+
+    private static void PrintTemplateReport(TemplateReport report)
+    {
+        var status = report.Applied
+            ? "updated"
+            : report.Changed
+                ? "would-update"
+                : "ok";
+
+        if (!report.SourceExists)
+        {
+            status = "missing-source";
+        }
+
+        Console.WriteLine($"[{status}] {report.TargetPath}");
+        Console.WriteLine($"  - source: {report.SourcePath}");
+        Console.WriteLine($"  - decision: {report.Decision}");
     }
 
     private static void PrintUsage()

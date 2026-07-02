@@ -108,7 +108,7 @@ Final gate: 親エージェント
 
 ## Parent Orchestration State
 
-親エージェントは `plans/<ticket-or-slug>-parent-orchestration-state.md` を作成または更新し、後続の親エージェントが会話履歴なしで再開できる single resume entrypoint として扱ってください。標準 template は `apm-packages/token-aware-full-coverage-3layer/.apm/templates/full-coverage-parent-orchestration-state.md` です。
+親エージェントは `plans/<ticket-or-slug>-parent-orchestration-state.md` を作成または更新し、後続の親エージェントが会話履歴なしで再開できる single resume entrypoint として扱ってください。標準 template は `apm-packages/token-aware-full-coverage-3layer/.apm/templates/full-coverage-parent-orchestration-state.md` です。`setup-work-repo-agents.cs` を使う consuming repo では `plans/_templates/full-coverage-parent-orchestration-state.md` にも配置されます。template file が見つからない場合でも、この section に列挙された required sections で state artifact を作成してください。
 
 この artifact は会話ログの再現ではなく、再開に必要な索引と差分だけを持ちます。parent Plan、slice artifact、triage、contract、verification result の本文をコピーしてはいけません。subagent output の全文、長い reasoning trace、append-only の長大な履歴ログも標準 artifact には入れません。source excerpt は原則禁止し、必要な場合だけ短い pointer に抑えてください。原則として path / status / next action / blocking reason を中心にしてください。file が大きくなりすぎた場合は、完了済み slice 行を短い summary に圧縮し、詳細は元の slice artifact に残します。
 
@@ -122,6 +122,17 @@ Parent Orchestration State は次を記録します。
 - cross-slice contract / field continuity / production wiring / Behavior Case の未検証項目
 - 親が下した判断、その evidence、保留中の判断
 - stop reason と resume safety
+
+Parent Orchestration State の required sections は次です。
+
+- `Resume header`
+- `Artifact index`
+- `Slice queue`
+- `Cross-slice blockers`
+- `Pending parent decisions`
+- `Parent decisions made`
+- `Recent checkpoint delta`
+- `Emergency checkpoint`
 
 MUST update:
 
@@ -148,15 +159,17 @@ token limit や tool failure が近い場合は、完全更新ではなく `Emer
 
 後続の親エージェントは、再開時に次の順で確認してください。
 
-1. `plans/*-parent-orchestration-state.md` を探して読む。
-2. `Resume header` の `Current phase`、`Next required action`、`Resume safety` を確認する。
-3. `Artifact index` に載っている source artifact だけを読む。missing / stale / contradicted の場合だけ追加調査する。
-4. `Slice queue` を見て、完了済み slice を不用意に再実行しない。
-5. `Cross-slice blockers` と `Pending parent decisions` を確認し、親判断が必要な gate を飛ばさない。
-6. `Agent Usage Ledger` と照合し、delegation evidence missing を成功扱いしない。
-7. 作業を再開する前に、state artifact の `Recent checkpoint delta` を更新する。
+1. 現在の ticket / slug / branch / work item / PR と一致する `plans/<ticket-or-slug>-parent-orchestration-state.md` を選ぶ。
+2. 複数の `plans/*-parent-orchestration-state.md` が見つかる場合は、各 file の `Resume header` だけを読み、`Work item / ticket`、`Repo / branch`、明示された slug が現在の作業と一致するものを1つに絞る。
+3. 一意に絞れない場合、または候補が現在の branch / work item と矛盾する場合は fail closed し、ユーザーに対象 state を確認する。別 ticket の state を推測で読んではいけません。
+4. 選んだ state の `Resume header` の `Current phase`、`Next required action`、`Resume safety` を確認する。
+5. `Artifact index` に載っている source artifact だけを読む。missing / stale / contradicted の場合だけ追加調査する。`contradicted` は現在 branch、work item、slice queue、またはより新しい listed artifact と矛盾している状態です。
+6. `Slice queue` を見て、完了済み slice を不用意に再実行しない。
+7. `Parent decisions made`、`Cross-slice blockers`、`Pending parent decisions` を確認し、既決の authorization / blocking decision を見落としたり、親判断が必要な gate を飛ばしたりしない。
+8. `Agent Usage Ledger` と照合し、delegation evidence missing を成功扱いしない。
+9. 作業を再開する前に、state artifact の `Recent checkpoint delta` を更新する。
 
-When switching parent tools or sessions, do not rely on prior conversation context. The next parent agent must treat `plans/*-parent-orchestration-state.md` as the resume entrypoint, then verify Agent Usage Ledger and listed artifacts before continuing.
+When switching parent tools or sessions, do not rely on prior conversation context. The next parent agent must select the matching `plans/<ticket-or-slug>-parent-orchestration-state.md`, treat that selected state as the resume entrypoint, then verify Agent Usage Ledger and listed artifacts before continuing.
 
 ## Layer 1: 親エージェント orchestration
 
