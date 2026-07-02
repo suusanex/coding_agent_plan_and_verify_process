@@ -29,6 +29,24 @@ Plan readiness が `NeedsPlanBehaviorExpansion` または `NeedsHumanDecision` �
 
 開始時に `ExecutionMode` を `PREP_ONLY` / `DELEGATED_IMPLEMENTATION` / `PARENT_DIRECT_IMPLEMENTATION` のいずれかとして `plans/*-agent-usage-ledger.md` に記録してください。
 
+同時に、親エージェントは `plans/<ticket-or-slug>-parent-orchestration-state.md` を作成または更新してください。これは会話履歴を共有しない後続の親エージェントが最初に読む single resume entrypoint です。標準 template は `apm-packages/token-aware-full-coverage-3layer/.apm/templates/full-coverage-parent-orchestration-state.md` にあります。
+
+Parent Orchestration State には、Current phase、Last completed checkpoint、Next required action、Stop reason、Resume safety、Artifact index、Slice queue、Cross-slice blockers、Pending parent decisions、Recent checkpoint delta、Emergency checkpoint を compact に記録します。parent Plan、slice artifact、subagent output、verification result の本文を貼らず、path / status / next action / blocking reason を中心にしてください。source excerpt は原則禁止し、必要な場合だけ短い pointer に抑えます。file が大きくなりすぎた場合は、完了済み slice 行を短い summary に圧縮し、詳細は元の slice artifact に残してください。
+
+Parent Orchestration State は次の major checkpoint と delegation boundary で更新してください。
+
+- full-coverage 3層運用の開始時
+- ExecutionMode 決定時
+- slice-prep batch の開始前と結果統合後
+- parent review gate 後
+- slice-impl batch の開始前と結果統合後
+- cross-slice verification の前後
+- residual decision gate 後
+- planned handoff / tool switch / model switch の前
+- token limit や tool failure が近い場合の `Emergency checkpoint`
+
+every turn、minor reasoning step、表記揺れだけの修正、source artifact / subagent output の全文転記では更新しないでください。token limit が近い場合は完全更新ではなく `Emergency checkpoint` の最小更新だけでよいです。
+
 ユーザーが「実施」「進める」「このプロセスで実装する」と依頼し、かつ「実装はまだ行わない」「準備まで」「レビューまでで停止」と明示していない場合、既定の `ExecutionMode` は `DELEGATED_IMPLEMENTATION` です。`PREP_ONLY` は明示的な準備・レビュー停止指示がある場合だけ選んでください。
 
 `DELEGATED_IMPLEMENTATION` mode では、親エージェントは production code / tests を直接編集してはいけません。親が編集できるのは orchestration artifact、parent review gate、Agent Usage Ledger、cross-slice verification、residual decision、final summary / handoff artifact に限定します。
@@ -37,9 +55,14 @@ Parent review gate は人間レビュー待ちではありません。親エー�
 
 停止できるのは、すべての slice が `Can implement now? = No` / `BLOCKED` / `NEEDS_HUMAN_DECISION` / `TRIAGE_ONLY` のいずれかであり、委譲可能な READY slice が存在しない場合、または custom agent / subagent 起動が利用できず `BlockedByMissingSliceImplDelegation` として記録した場合に限ります。
 
+再開時は、prior conversation context に依存してはいけません。最初に `plans/*-parent-orchestration-state.md` を読み、`Resume header` の `Current phase`、`Next required action`、`Resume safety` を確認してください。次に `Artifact index` に載っている source artifact だけを優先して読みます。`Slice queue` で完了済み slice を確認し、不用意に再実行してはいけません。`Cross-slice blockers` と `Pending parent decisions` を確認し、親判断が必要な gate を飛ばさないでください。最後に `Agent Usage Ledger` と照合し、delegation evidence missing を成功扱いしないでください。再開前に `Recent checkpoint delta` を更新します。
+
+`Agent Usage Ledger` は expected / observed delegation、model metadata、edit owner、changed files、checks run、delegation compliance の記録です。`Parent Orchestration State` は現在地、次 action、artifact index、slice queue、blocking decision の記録です。両者を重複させず、必要な場合は path で相互参照してください。
+
 ## 重要な禁止事項
 
 - `plan-slice-decomposition` の slice artifact を「実装準備完了」とみなしてはいけません。
+- `Parent Orchestration State` に full transcript、source artifact 本文、subagent output 全文、長い reasoning trace を貼ってはいけません。
 - Plan readiness が `ReadyForRiskTriage` ではない work を full-coverage decomposition に進めてはいけません。
 - `Slice granularity review` で統合対象になった候補を executable slice として扱ってはいけません。
 - `Small slice justification` の `Why not merged` が説明されていない小さい slice を `slice-prep` に渡してはいけません。

@@ -536,6 +536,7 @@ PR #10（`Codex向け full-coverage 3層運用を追加`）では、その局面
 | 親エージェントが呼ぶ skill | `apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md` |
 | slice 準備 subagent | `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-prep.agent.md` |
 | slice 実装 subagent | `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-impl.agent.md` |
+| 親 orchestration 再開 state template | `apm-packages/token-aware-full-coverage-3layer/.apm/templates/full-coverage-parent-orchestration-state.md` |
 | Codex project config | `.codex/config.toml` |
 
 ### 何をする応用か
@@ -551,6 +552,10 @@ PR #10（`Codex向け full-coverage 3層運用を追加`）では、その局面
 ユーザーが実施・進行・実装を依頼し、準備やレビューまでで止める明示指示がない場合、既定の `ExecutionMode` は `DELEGATED_IMPLEMENTATION` です。`PREP_ONLY` は「実装はまだ行わない」「準備まで」「レビューまでで停止」と明示された場合だけ使います。
 Parent review gate は人間レビュー待ちではなく、親エージェントが READY slice の実装可否を判定する gate です。`Can implement now? = Yes` の slice がある場合、親はそこで成功終了せず `slice-impl` へ委譲します。
 親エージェントは `DELEGATED_IMPLEMENTATION` で production code / tests を直接編集しません。READY slice に `slice-impl` run がない場合は `BlockedByMissingSliceImplDelegation` として停止します。
+
+親エージェントは `plans/<ticket-or-slug>-parent-orchestration-state.md` を軽量な再開入口として作成・更新します。この artifact は Codex / GitHub Copilot / 別セッション間で親 orchestration を移管するための tool-neutral な Markdown で、Current phase、Next required action、Artifact index、Slice queue、Cross-slice blockers、Pending parent decisions、Emergency checkpoint を path / status / next action 中心に記録します。full transcript、source artifact 本文、subagent output 全文、長い reasoning trace、source excerpt は保存しません。必要な場合は短い pointer に抑え、file が大きくなりすぎた場合は完了済み slice 行を短い summary に圧縮します。
+
+再開する親エージェントは prior conversation context に依存せず、まず `plans/*-parent-orchestration-state.md` を読みます。その後、state に列挙された source artifact と Agent Usage Ledger を照合し、完了済み slice を不用意に再実行せず、blocking decision や cross-slice 未検証項目を確認してから続行します。
 
 この応用運用では、Codex App / Desktop thread path を primary path、CLI non-interactive / `codex exec` path を separate compatibility path として扱います。CLI 側で deterministic に同じ custom agent type を起動できると確認できるまでは、App / Desktop と同等扱いしません。
 
@@ -760,6 +765,7 @@ Plan網羅チェック・残件判定フローでは、通常は次の成果物�
 | `plans/<ticket-or-slug>-implementation-execution.md` | 実装結果、Implementation Self-Map、Test / Check Summary、Remaining Work |
 | `plans/<ticket-or-slug>-code-review-focus-kernel.md` | 人手コードレビュー向けの重点確認箇所・読む順番・不確実性の整理 |
 | `plans/<ticket-or-slug>-verification-kernel.md` | Parent Plan Coverage Ledger 更新、production binding / wiring / contract の検証結果 |
+| `plans/<ticket-or-slug>-parent-orchestration-state.md` | full-coverage 3層運用の親 orchestration 再開入口。現在 phase、次 action、artifact index、slice queue、blocking decision |
 | `plans/<ticket-or-slug>-cross-slice-verification-kernel.md` | full-coverage decomposition 後の runtime postcondition oracle、forbidden-state oracle、previous gap closure delta、cross-slice verdict |
 | `plans/<ticket-or-slug>-coverage-gap-triage.md` | 未解決ギャップの分類、FixNow items、Residual decision candidates |
 | `plans/<ticket-or-slug>-residual-decision-gate.md` | Residual Decision Ledger と next-step verdict |
