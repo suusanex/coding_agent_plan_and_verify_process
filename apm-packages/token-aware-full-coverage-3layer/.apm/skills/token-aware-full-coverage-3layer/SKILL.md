@@ -114,12 +114,14 @@ Final gate: 親エージェント
 1. parent Plan の goal / non-goals / functional requirements / acceptance conditions を確認する。
 2. parent triage の high-risk boundaries / parent-level runtime contract candidates / implementation-realization risk summary を確認する。
 3. slice decomposition artifact から、各 slice の scope / non-goals / dependencies / related XC IDs / recommended profile / immediate next agent を抽出する。
-4. `Cross-slice Contracts` と `Cross-slice field continuity` を抽出する。
-5. parent-level contract mapping が消えていないか確認する。
-6. Behavior Case mapping と各 slice の Case-to-Slice mapping が消えていないか確認する。
-7. slice 実行表を作る。
-8. どの slice を並列で slice preparation に出せるかを仮決定する。
-9. 同じ production wiring、shared DTO、DB schema、DI registration、config、public API、migration、durable state owner を触る可能性がある slice は並列実装させない。
+4. `Slice granularity review` と `Small slice justification` を抽出する。
+5. `Cross-slice Contracts` と `Cross-slice field continuity` を抽出する。
+6. parent-level contract mapping が消えていないか確認する。
+7. Behavior Case mapping と各 slice の Case-to-Slice mapping が消えていないか確認する。
+8. `merge-candidate`、`too-small-to-delegate`、`coalesce-with-SL-xxx` の候補を executable slice から除外する。
+9. slice 実行表を作る。
+10. どの slice を並列で slice preparation に出せるかを仮決定する。
+11. 同じ production wiring、shared DTO、DB schema、DI registration、config、public API、migration、durable state owner を触る可能性がある slice は並列実装させない。
 
 ### Slice 実行表の形式
 
@@ -135,6 +137,8 @@ Final gate: 親エージェント
 ## Layer 2: slice preparation
 
 親エージェントは、executable な slice ごとに `slice-prep` custom agent へ MUST delegate してください。
+
+`merge-candidate`、`too-small-to-delegate`、`coalesce-with-SL-xxx` と記録された候補は executable slice ではありません。これらは slice 実行表に理由を残してよいですが、`slice-prep` へ委譲してはいけません。
 
 executable slice は、次のいずれかを満たす必要があります。
 
@@ -236,6 +240,9 @@ Parent review gate は人間レビュー待ちではありません。親エー�
 - `XC-xxx` の producer / consumer / required fields / mechanism が一致しているか
 - field continuity の source artifact / producer output / consumer requirement が traceable か
 - Behavior Case IDs が slice / cross-slice verification / explicit disposition のどこへ行ったか traceable か
+- `Slice granularity review` が存在し、小さすぎる slice が統合済みまたは明示的に正当化されているか
+- 小さい slice の `Small slice justification` に `Why not merged` があり、独立 verification / rollback / owner-profile / blocker / producer-consumer 境界のいずれかが成立しているか
+- `merge-candidate`、`too-small-to-delegate`、`coalesce-with-SL-xxx` が実装 authorization に混入していないか
 - shared DTO / DB schema / DI / config / public API / migration / durable state の ownership が重複していないか
 - parallel implementation してよい slice と、直列化すべき slice が分かれているか
 - source evidence のない fabricated value が `Done` 扱いされていないか
