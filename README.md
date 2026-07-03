@@ -80,7 +80,7 @@ Source requirement
 | Script | Use when | Installs / fixes |
 | --- | --- | --- |
 | `apm-packages/codex-first-ai-development-process/scripts/install-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、`.agents/skills/codex-first-cost-router/SKILL.md`、`templates/*.md` |
-| `scripts/setup-work-repo-agents.cs` | 既存の token-aware / full-coverage package を APM 経由で導入し、生成された Codex agent TOML を補正したい | `apm install` の実行、`.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level `model` / `model_reasoning_effort` / `sandbox_mode` 補正 |
+| `scripts/setup-work-repo-agents.cs` | 既存の token-aware / full-coverage package を APM 経由で導入し、生成された Codex agent TOML と full-coverage template 配置を補正したい | `apm install` の実行、`.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level `model` / `model_reasoning_effort` / `sandbox_mode` 補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置 |
 
 Codex-first を使いたい場合の入口は `install-codex-first-local.cs` です。
 `setup-work-repo-agents.cs` は legacy / existing package 向けの APM 補助であり、Codex-first local bootstrap には使いません。
@@ -96,6 +96,7 @@ apm を使用して agent.md 形式から Codex 向けの toml 形式を作成�
 - 対象リポジトリで `apm install --update --target copilot,codex,agent-skills ...` を実行する。
 - 生成された `.codex/agents/slice-prep.toml` と `.codex/agents/slice-impl.toml` を検査する。
 - 必要に応じて top-level `model` / `model_reasoning_effort` / `sandbox_mode` を追加・移動・補正する。
+- `plans/_templates/full-coverage-parent-orchestration-state.md` に親 orchestration 再開 state template を配置し、後続 parent agent が consuming repo 内で template を読めるようにする。
 
 次のように、セットアップ対象のリポジトリのルートパスを渡して実行する。
 
@@ -536,6 +537,7 @@ PR #10（`Codex向け full-coverage 3層運用を追加`）では、その局面
 | 親エージェントが呼ぶ skill | `apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md` |
 | slice 準備 subagent | `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-prep.agent.md` |
 | slice 実装 subagent | `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-impl.agent.md` |
+| 親 orchestration 再開 state template | `apm-packages/token-aware-full-coverage-3layer/.apm/templates/full-coverage-parent-orchestration-state.md` |
 | Codex project config | `.codex/config.toml` |
 
 ### 何をする応用か
@@ -552,6 +554,10 @@ PR #10（`Codex向け full-coverage 3層運用を追加`）では、その局面
 Parent review gate は人間レビュー待ちではなく、親エージェントが READY slice の実装可否を判定する gate です。`Can implement now? = Yes` の slice がある場合、親はそこで成功終了せず `slice-impl` へ委譲します。
 親エージェントは `DELEGATED_IMPLEMENTATION` で production code / tests を直接編集しません。READY slice に `slice-impl` run がない場合は `BlockedByMissingSliceImplDelegation` として停止します。
 
+親エージェントは `plans/<ticket-or-slug>-parent-orchestration-state.md` を軽量な再開入口として作成・更新します。この artifact は Codex / GitHub Copilot / 別セッション間で親 orchestration を移管するための tool-neutral な Markdown で、Current phase、Next required action、Artifact index、Slice queue、Parent decisions made、Cross-slice blockers、Pending parent decisions、Emergency checkpoint を path / status / next action 中心に記録します。full transcript、source artifact 本文、subagent output 全文、長い reasoning trace、source excerpt は保存しません。必要な場合は短い pointer に抑え、file が大きくなりすぎた場合は完了済み slice 行を短い summary に圧縮します。
+
+再開する親エージェントは prior conversation context に依存せず、現在の ticket / slug / branch / work item / PR と一致する `plans/<ticket-or-slug>-parent-orchestration-state.md` を選びます。複数候補を一意に絞れない場合は fail closed し、対象 state の確認を求めます。その後、state に列挙された source artifact と Agent Usage Ledger を照合し、完了済み slice を不用意に再実行せず、blocking decision や cross-slice 未検証項目を確認してから続行します。
+
 この応用運用では、Codex App / Desktop thread path を primary path、CLI non-interactive / `codex exec` path を separate compatibility path として扱います。CLI 側で deterministic に同じ custom agent type を起動できると確認できるまでは、App / Desktop と同等扱いしません。
 
 ### APM で取得できるもの / できないもの
@@ -562,9 +568,10 @@ Parent review gate は人間レビュー待ちではなく、親エージェン�
   - project guidance 相当の instructions
   - reusable skill
   - custom agent として使う `slice-prep` / `slice-impl`
+  - `full-coverage-parent-orchestration-state.md` template
 - APM で取得できないもの
   - workspace そのものの Codex 実行設定（例: `.codex/config.toml`）
-  - repository 固有のローカル配置や、利用者の作業環境に依存する設定値
+  - repository 固有のローカル配置や、利用者の作業環境に依存する設定値（`setup-work-repo-agents.cs` を使う場合は `plans/_templates/full-coverage-parent-orchestration-state.md` へ template を配置する）
 
 関係としては、APM で取得できるものが「何を守ってどう進めるか」を定義し、APM で取得できないものが「その workspace でどう実行するか」を補います。前者だけでは運用方針は入るけれど、並列度や再帰深さのようなローカル実行境界までは固定しません。
 
@@ -760,6 +767,7 @@ Plan網羅チェック・残件判定フローでは、通常は次の成果物�
 | `plans/<ticket-or-slug>-implementation-execution.md` | 実装結果、Implementation Self-Map、Test / Check Summary、Remaining Work |
 | `plans/<ticket-or-slug>-code-review-focus-kernel.md` | 人手コードレビュー向けの重点確認箇所・読む順番・不確実性の整理 |
 | `plans/<ticket-or-slug>-verification-kernel.md` | Parent Plan Coverage Ledger 更新、production binding / wiring / contract の検証結果 |
+| `plans/<ticket-or-slug>-parent-orchestration-state.md` | full-coverage 3層運用の親 orchestration 再開入口。現在 phase、次 action、artifact index、slice queue、Parent decisions made、blocking decision |
 | `plans/<ticket-or-slug>-cross-slice-verification-kernel.md` | full-coverage decomposition 後の runtime postcondition oracle、forbidden-state oracle、previous gap closure delta、cross-slice verdict |
 | `plans/<ticket-or-slug>-coverage-gap-triage.md` | 未解決ギャップの分類、FixNow items、Residual decision candidates |
 | `plans/<ticket-or-slug>-residual-decision-gate.md` | Residual Decision Ledger と next-step verdict |
