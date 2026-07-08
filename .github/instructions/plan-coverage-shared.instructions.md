@@ -1,7 +1,7 @@
 ---
 name: Plan Coverage Shared Guardrails
 description: Shared invariant guardrails for Plan Coverage Check and Residual Decision Flow agents
-# Copyright (c) 2026 suusanex (GitHub UserName)
+# Copyright (c) 2026 suusanex
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
 # Source: https://github.com/suusanex/coding_agent_plan_and_verify_process

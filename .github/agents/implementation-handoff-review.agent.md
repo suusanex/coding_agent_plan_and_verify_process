@@ -1,7 +1,7 @@
 ---
 name: implementation-handoff-review
 description: Review the kernel artifact chain immediately before implementation. Documents only. Distinguishes Guardrail Focus readiness from bounded parent Plan pass readiness, requires a Parent Plan Coverage Ledger, and blocks unmapped parent acceptance conditions. Does not implement code, does not read source files broadly, and does not produce a lengthy critique list.
-# Copyright (c) 2026 suusanex (GitHub UserName)
+# Copyright (c) 2026 suusanex
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
 # Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
@@ -116,7 +116,7 @@ Guardrail Focus coverage の guardrail chain が整っていても、parent Plan
 6. Implementation Contract Kernel（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）— `change-risk-triage` の `Implementation realization risk` が `Present` / `Unclear` の場合は必須
 7. Implementation Contract Review Kernel（`plans/<ticket-or-slug>-implementation-contract-review-kernel.md`）— explicit review-only fallback として存在する場合だけ読む
 8. Plan Slice Decomposition artifact（`plans/<ticket-or-slug>-slice-decomposition.md`）— full-coverage decomposition 由来の slice をレビューする場合は必須
-9. Black-box Behavior Spec artifact（`plans/<ticket-or-slug>-black-box-behavior-spec.md`）— Plan の `Expansion required: Yes` の場合は必須
+9. Black-box Behavior Spec artifact（`plans/<ticket-or-slug>-black-box-behavior-spec.md`）— Plan の `Behavior spec artifact required: Yes` の場合は必須。`Expansion required: Yes` でも inline behavior sketch sufficient の場合は、Plan / Lite artifact 内の Inline behavior sketch と Case-to-Plan mapping を source として扱う
 
 slug は、caller が渡した artifact path または file 名から安全に推定してください。安全に推定できない場合は、推測で別 artifact を読まず、`BLOCKED` として理由を記録してください。
 

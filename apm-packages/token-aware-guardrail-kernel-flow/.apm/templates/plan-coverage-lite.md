@@ -84,12 +84,12 @@ This section may replace a separate `plans/<slug>-implementation-handoff-review.
 | --- | --- | --- |
 | Source of truth is identified | PASS / FAIL / N/A | |
 | FR / AC coverage is complete for this bounded pass | PASS / FAIL / N/A | |
-| Behavior expansion is not required, or the required behavior artifact exists | PASS / FAIL / N/A | |
+| Behavior expansion is not required, or inline behavior sketch sufficient / required behavior artifact exists | PASS / FAIL / N/A | |
 | Case-to-Plan mapping is complete, or N/A with reason | PASS / FAIL / N/A | |
 | Risk checklist has no unresolved blocking item | PASS / FAIL / N/A | |
 | Implementation scope and non-goals are clear | PASS / FAIL / N/A | |
 | Human decisions are resolved or explicitly blocking | PASS / FAIL / N/A | |
-| Behavior Case Coverage Ledger is complete when `Expansion required: Yes` | PASS / FAIL / N/A | |
+| Behavior coverage is complete when `Behavior spec artifact required: Yes` or inline sketch has Case IDs | PASS / FAIL / N/A | |
 | Inline Ready Gate equivalent to implementation-handoff-review | PASS / FAIL / N/A | |
 | Implementation is allowed for the bounded pass | PASS / FAIL / N/A | |
 
