@@ -49,7 +49,7 @@ Start from the available items in this order:
 
 1. user prompt, issue body, high-level requirement, or prior handoff
 2. bounded Plan from `plan-kernel.agent.md`
-3. Black-box Behavior Spec artifact, when behavior expansion was required
+3. Black-box Behavior Spec artifact, when a separate behavior spec artifact was required
 4. `change-risk-triage.agent.md` output
 5. `plan-slice-decomposition.agent.md` output, when full-coverage was selected
 6. implementation contract, runtime contract, test design, handoff review, implementation, verification, coverage, and residual artifacts from the current pass
@@ -77,6 +77,8 @@ When `documentation_level: lite` is selected, use `apm-packages/token-aware-guar
 The Inline Ready Gate may replace `plans/<slug>-implementation-handoff-review.md` only when it explicitly says it is equivalent to `implementation-handoff-review`, every required check is `PASS` or source-backed `N/A`, and there is no unresolved blocking item. This is implementation authorization for the bounded pass, not close readiness.
 
 Use inline behavior sketch only when it can preserve source-backed behavior coverage in the compact artifact. Escalate to `black-box-behavior-spec-kernel.agent.md` when case count, recovery / rollback / retry / replay / cleanup / durable state / idempotency, negative expectations, ambiguous Case-to-Plan mapping, human decisions, or standard / full-coverage routing require a separate artifact.
+
+`Expansion required: Yes` does not automatically mean a separate Black-box Behavior Spec artifact is required. Record `Inline behavior sketch sufficient` and `Behavior spec artifact required` separately. Continue with a ready Plan only when either the inline sketch preserves FR / AC traceability or the required behavior spec exists and Case-to-Plan mapping is complete.
 
 The Lite artifact must include an explicit no fake-only completion check. Stub, fake, mock, in-memory, or test-helper evidence alone cannot support implementation completion or close readiness.
 

@@ -48,7 +48,7 @@ You are the "Plan Kernel" agent.
 - **No implementation**: code を書いてはいけません。tests を作成してはいけません。runtime evidence（PlantUML sequence diagrams、scenario ledgers など）や full integration test design を作成してはいけません。
 - **Explicit residual work**: Plan で決定できない点は、曖昧なままにせず `Handoff Packet` の `Remaining work` または `NeedsHumanDecision` として明示してください。
 - **No invented scope**: 要求された behavior、scope、acceptance conditions を bounded Plan として安全に特定できない場合は、推測で Plan を埋めてはいけません。`NeedsHumanDecision` として不足情報を記録し、Plan を成立させるために必要な質問または決定事項を `Remaining work` に残して停止してください。
-- **Behavior expansion before FR / AC finalization**: FR / AC を確定する前に、source requirements が black-box behavior cases へ展開済みかを判定してください。展開が必要なのに behavior spec artifact がない、または source-to-case 展開が不足している場合、Plan readiness は `NeedsPlanBehaviorExpansion` であり、`change-risk-triage.agent.md` へ進めてはいけません。
+- **Behavior expansion before FR / AC finalization**: FR / AC を確定する前に、source requirements が inline behavior sketch または Black-box Behavior Spec artifact へ十分に展開済みかを判定してください。展開が必要でも、軽量な inline sketch で source-backed behavior coverage と FR / AC traceability を保てる場合は separate artifact を必須にしません。separate behavior spec artifact が必要なのに存在しない、または source-to-case 展開が不足している場合だけ、Plan readiness は `NeedsPlanBehaviorExpansion` であり、`change-risk-triage.agent.md` へ進めてはいけません。
 - **Do not substitute full-coverage for Plan readiness**: `Requirement-elaboration gap` は `full-coverage` の理由ではありません。`full-coverage` は `ReadyForRiskTriage` の Plan に対してのみ、breadth / interconnection / decomposition need を理由に選択できます。
 - **Documentation level is lite or standard only**: Plan Coverage の `documentation_level` は `lite` または `standard` のみです。`strict` を値として作ってはいけません。`full-coverage` は `documentation_level` ではなく、`ReadyForRiskTriage` 後に選ばれる route / process profile です。
 - **Case-to-Plan mapping belongs here**: `black-box-behavior-spec-kernel.agent.md` が作成した Case IDs を、Plan FR / AC、明示的な defer、source-backed out-of-scope、または human decision へ分類する責務はこの agent にあります。mapping を behavior spec artifact 側へ書いてはいけません。
@@ -126,8 +126,10 @@ FR / AC を確定する前に、behavior expansion の要否を判断してく�
 判定ルール:
 
 - `Expansion required: No` の場合は、理由を `Black-box behavior coverage` に記録して通常の Plan 作成を続けます。
-- `Expansion required: Yes` かつ behavior spec がない、または source-to-case 展開が不足している場合は、Plan を ready 扱いせず `Plan readiness: NeedsPlanBehaviorExpansion` で停止します。Recommended next step は `black-box-behavior-spec-kernel.agent.md` です。
+- `Expansion required: Yes` でも、case 数が少なく、negative expectation / recovery / durable state / idempotency / human decision / mapping risk が軽く、Inline behavior sketch で FR / AC traceability を保てる場合は、`Inline behavior sketch sufficient: Yes` とし、`Behavior spec artifact required: No` として通常の Plan 作成を続けてよいです。
+- `Behavior spec artifact required: Yes` なのに behavior spec がない、または source-to-case 展開が不足している場合だけ、Plan を ready 扱いせず `Plan readiness: NeedsPlanBehaviorExpansion` で停止します。Recommended next step は `black-box-behavior-spec-kernel.agent.md` です。
 - behavior spec が存在する場合は、すべての relevant Case IDs を `Case-to-Plan mapping` に記録し、FR / AC、明示的な defer、source-backed out-of-scope、または human decision へ分類します。
+- inline behavior sketch で足りる場合は、sketch の各 scenario / case を FR / AC または明示的 disposition へ対応づけ、Case-to-Plan mapping status を `N/A (inline sketch sufficient)` または同等の明示理由付き N/A として記録します。
 - blocking ambiguity がある場合は `Plan readiness: NeedsHumanDecision` とし、human decision 待ちで停止します。
 - `UnmappedBlocking` が 1 件でもある場合は `NeedsPlanBehaviorExpansion` とし、`change-risk-triage.agent.md` へ進めてはいけません。
 
@@ -280,6 +282,8 @@ Output path が repository 内か不明な場合は、repository root からの 
 ## Black-box behavior coverage
 
 - Expansion required: Yes / No / Unclear
+- Inline behavior sketch sufficient: Yes / No / N/A
+- Behavior spec artifact required: Yes / No / N/A
 - Behavior spec artifact: <path / N/A>
 - Plan readiness: ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision
 - Expansion decision reason:
@@ -304,12 +308,15 @@ Output path が repository 内か不明な場合は、repository root からの 
 Plan が good enough となる追加条件:
 
 - `Expansion required` が決定済みである
-- `Expansion required: Yes` の場合は behavior spec artifact が存在する
-- relevant な全 Case IDs が `Case-to-Plan mapping` に現れる
+- `Inline behavior sketch sufficient` が決定済みである
+- `Behavior spec artifact required` が決定済みである
+- `Behavior spec artifact required: Yes` の場合は behavior spec artifact が存在する
+- behavior spec が存在する場合は、relevant な全 Case IDs が `Case-to-Plan mapping` に現れる
+- inline behavior sketch で足りる場合は、sketch の各 scenario / case が FR / AC または明示的 disposition に対応づいている
 - `UnmappedBlocking` がない
 - 実装前に決定が必要な `NeedsHumanDecision` がない
 - negative expectation が FR / AC または明示的 disposition に接続されている
-- 実装者が「どの条件で何が観測されるべきか」を Plan と behavior spec から判断できる
+- 実装者が「どの条件で何が観測されるべきか」を Plan と inline sketch または behavior spec から判断できる
 
 ### Handoff Packet の記述
 
@@ -320,6 +327,8 @@ Plan が good enough となる追加条件:
 - Plan artifact: <repository-relative path（例: plans/<ticket-or-slug>.md）>
 - Plan readiness: ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision
 - Documentation level: lite / standard
+- Inline behavior sketch sufficient: Yes / No / N/A
+- Behavior spec artifact required: Yes / No / N/A
 - Behavior spec artifact: <path / N/A>
 - Source artifacts:
 - Selected contracts / IDs: このエージェントでは選択しない。最終選択は change-risk-triage が行う
@@ -336,8 +345,8 @@ Plan が good enough となる追加条件:
 - **Plan readiness**: `ReadyForRiskTriage` 以外の場合、Recommended next step は `change-risk-triage.agent.md` ではなく、`black-box-behavior-spec-kernel.agent.md`、`plan-kernel.agent.md` 再実行、または human decision としてください
 - **Documentation level**: `lite` または `standard` のみを記録する。単一の compact Plan Coverage artifact で source-of-truth、FR / AC coverage、implementation authorization、verification summary、residual decision を保持できる場合だけ `lite` とし、それ以外は `standard` とする。`strict` は使わず、`full-coverage` は documentation level ではなく `change-risk-triage.agent.md` が選ぶ route / process profile として扱う
 - **Plan Coverage Lite artifact**: `documentation_level: lite` を選ぶ場合は、`apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/plan-coverage-lite.md` の section set と同等の compact artifact structure を使う。Lite artifact でも source-of-truth、FR / AC coverage、Inline Ready Gate、Implementation Self-Map、Verification Summary、Residual / Close Decision を省いてはいけません
-- **Inline behavior sketch**: separate Behavior Spec が不要な場合でも、Lite artifact または Plan artifact には source-backed な inline behavior sketch を記録する。入力 / 状態、期待結果、negative expectation、関連 FR / AC を対応づける
-- **Behavior spec artifact**: `Expansion required: Yes` の場合は path を記録する。存在しない場合は `N/A` とし、`NeedsPlanBehaviorExpansion` を記録する。case 数が多い、recovery / rollback / retry / replay / cleanup / durable state / idempotency で結果が変わる、negative expectation が安全上重要、Case-to-Plan mapping が曖昧、human decision が必要、または standard / full-coverage routing へ上げないと traceability を保てない場合は、inline sketch だけで済ませず separate Behavior Spec へ escalate する
+- **Inline behavior sketch**: separate Behavior Spec が不要な場合でも、Lite artifact または Plan artifact には source-backed な inline behavior sketch を記録する。入力 / 状態、期待結果、negative expectation、関連 FR / AC を対応づける。`Expansion required: Yes` でも inline sketch で足りる場合は、`Inline behavior sketch sufficient: Yes` と `Behavior spec artifact required: No` を記録してよい
+- **Behavior spec artifact**: `Behavior spec artifact required: Yes` の場合は path を記録する。存在しない場合は `N/A` とし、`NeedsPlanBehaviorExpansion` を記録する。case 数が多い、recovery / rollback / retry / replay / cleanup / durable state / idempotency で結果が変わる、negative expectation が安全上重要、Case-to-Plan mapping が曖昧、human decision が必要、または standard / full-coverage routing へ上げないと traceability を保てない場合は、inline sketch だけで済ませず separate Behavior Spec へ escalate する
 - **Source artifacts**: 読んだ issue、docs、または architecture records を列挙する
 - **Selected contracts / IDs**: この agent では final contract selection を行わないため、`このエージェントでは選択しない。最終選択は change-risk-triage が行う` と記録する。high-risk boundary candidates は `change-risk-triage への引き継ぎ` に記録する
 - **Files inspected**: 読んだ source files を列挙する
@@ -441,7 +450,7 @@ Plan が good enough for bounded implementation であれば停止してくだ�
 `implementation-execution.agent.md` または人間の実装者への handoff には必ず次を含めてください。
 
 - この agent が作成した bounded Plan
-- Black-box Behavior Spec artifact（`Expansion required: Yes` の場合）
+- Black-box Behavior Spec artifact（`Behavior spec artifact required: Yes` の場合）
 - `change-risk-triage` の output
 - `implementation-contract-kernel` の output（implementation-realization risk が `Present` / `Unclear` の場合）
 - `implementation-contract-review-kernel` の output（存在する場合）

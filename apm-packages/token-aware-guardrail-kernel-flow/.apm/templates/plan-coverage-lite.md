@@ -29,6 +29,8 @@ Lite は guardrail を削るものではありません。Plan source of truth�
 ## Plan Readiness
 
 - Expansion required: Yes / No / Unclear
+- Inline behavior sketch sufficient: Yes / No / N/A
+- Behavior spec artifact required: Yes / No / N/A
 - Behavior spec artifact: <path / N/A>
 - Plan readiness: ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision
 - Case-to-Plan mapping status: Complete / Incomplete / N/A
@@ -46,7 +48,7 @@ Lite は guardrail を削るものではありません。Plan source of truth�
 
 ## Inline Behavior Sketch
 
-Use this section only when a separate Black-box Behavior Spec is not required.
+Use this section only when a separate Black-box Behavior Spec is not required. If a separate spec is required, set Plan readiness to `NeedsPlanBehaviorExpansion` until the artifact exists and Case-to-Plan mapping is complete.
 
 | Scenario / case | Input or state | Expected behavior | Negative expectation | Related FR / AC |
 | --- | --- | --- | --- | --- |
@@ -124,6 +126,8 @@ No fake-only completion rule: do not claim implementation or close readiness usi
 - Plan artifact:
 - documentation_level: lite
 - Plan readiness:
+- Inline behavior sketch sufficient:
+- Behavior spec artifact required:
 - Source artifacts:
 - Files inspected:
 - Files intentionally not inspected:

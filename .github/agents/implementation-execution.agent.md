@@ -72,7 +72,7 @@ plan-kernel
 
 ### Conditional artifacts
 
-5. Black-box Behavior Spec artifact（`plans/<ticket-or-slug>-black-box-behavior-spec.md`）— `Expansion required: Yes` の場合は必須
+5. Black-box Behavior Spec artifact（`plans/<ticket-or-slug>-black-box-behavior-spec.md`）— `Behavior spec artifact required: Yes` の場合は必須
 6. Implementation Contract Kernel（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）— `Implementation realization risk` が `Present` / `Unclear` の場合は strongly required
 7. Implementation Contract Review Kernel（`plans/<ticket-or-slug>-implementation-contract-review-kernel.md`）— 存在する場合は読む
 8. Plan Slice Decomposition artifact（`plans/<ticket-or-slug>-slice-decomposition.md`）— full-coverage decomposition から生成された slice を実装する場合は必須
@@ -102,7 +102,7 @@ plan-kernel
 1. caller が parent Plan pass、Guardrail Focus、contract IDs、test point IDs、gap IDs を直接指定した場合は、それを最優先にする。
 2. bounded Plan を source of truth として、実装すべき behavior、non-goals、acceptance conditions、implementation scope を判断する。
 3. Plan Coverage Lite artifact がある場合は、Inline Ready Gate、Implementation Self-Map、Verification Summary、Residual / Close Decision を source として扱う。Inline Ready Gate が `implementation-handoff-review` 相当として明示的に PASS し、FR / AC coverage、Case-to-Plan mapping、risk checklist、human decision、implementation allowed の全 required row が PASS または根拠付き N/A であれば、その Lite artifact を bounded implementation pass の authorization source として扱ってよい。
-4. `Expansion required: Yes` の場合は Black-box Behavior Spec と Behavior Case Coverage Ledger を source として、実装対象の Case IDs と negative expectations を判断する。
+4. `Behavior spec artifact required: Yes` の場合は Black-box Behavior Spec と Behavior Case Coverage Ledger を source として、実装対象の Case IDs と negative expectations を判断する。`Expansion required: Yes` でも inline behavior sketch sufficient の場合は、Lite artifact または Plan artifact の inline behavior sketch と FR / AC mapping を source とする。
 5. Change Risk Triage は high-risk boundaries、selected runtime contracts、implementation-realization risk の source とする。
 6. Plan Slice Decomposition artifact がある場合は、slice scope、non-goals、cross-slice dependencies、XC IDs、execution order の authoritative source とする。
 7. Implementation Contract Kernel がある場合は、dependency/API/provider path、allowed reuse、prohibited substitutions、required code changes、unresolved implementation-realization items の authoritative source とする。
@@ -121,7 +121,8 @@ plan-kernel
 - 次のいずれかの parent authorization source がある:
   - implementation-handoff-review が存在し、verdict が `READY_FOR_BOUNDED_PARENT_PLAN_PASS` または `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS` であり、実装対象がその `Readiness scope` と一致し、`Parent Plan Coverage Ledger` が記録されている。
   - Plan Coverage Lite artifact の Inline Ready Gate が `implementation-handoff-review` 相当として明示的に PASS し、実装対象が Lite artifact の bounded scope と一致している。
-- `Expansion required: Yes` の場合、Black-box Behavior Spec artifact が存在し、implementation-handoff-review または Lite artifact の `Behavior Case Coverage Ledger` が complete または実装対象外の source-backed disposition を持つ。
+- `Behavior spec artifact required: Yes` の場合、Black-box Behavior Spec artifact が存在し、implementation-handoff-review または Lite artifact の `Behavior Case Coverage Ledger` が complete または実装対象外の source-backed disposition を持つ。
+- `Expansion required: Yes` かつ inline behavior sketch sufficient の場合、inline sketch の scenario / case が FR / AC または明示的 disposition に対応づいている。
 
 次の場合は実装を開始せず、理由を記録して停止してください。
 
@@ -135,8 +136,9 @@ plan-kernel
 - required external API / SDK / dependency / environment が未確認で、代替実装を推測するしかない。
 - implementation-handoff-review が存在せず、Plan Coverage Lite artifact の Inline Ready Gate も `implementation-handoff-review` 相当として PASS していない。
 - implementation-handoff-review が必要な route で `Parent Plan Coverage Ledger` が欠落している。
-- `Expansion required: Yes` なのに Black-box Behavior Spec artifact がない。
-- `Expansion required: Yes` なのに implementation-handoff-review または Lite artifact の `Behavior Case Coverage Ledger` が欠落、不完全、`UnmappedBlocking`、または実装前判断が必要な `NeedsHumanDecision` を含む。
+- `Behavior spec artifact required: Yes` なのに Black-box Behavior Spec artifact がない。
+- `Behavior spec artifact required: Yes` なのに implementation-handoff-review または Lite artifact の `Behavior Case Coverage Ledger` が欠落、不完全、`UnmappedBlocking`、または実装前判断が必要な `NeedsHumanDecision` を含む。
+- `Expansion required: Yes` かつ inline behavior sketch sufficient のはずなのに、inline sketch の scenario / case が FR / AC または明示的 disposition に対応づいていない。
 
 停止する場合も、可能であれば `Implementation Execution Result` を作成し、`BLOCKED_BY_*` verdict と `Remaining work` を残してください。無理に実装してはいけません。
 
@@ -481,7 +483,7 @@ Plan や kernel artifacts に誤りがあると判断した場合は、直接修
   - optional `implementation-handoff-review.agent.md`
 - **この agent が読む upstream artifacts**:
   - Plan Kernel
-  - Black-box Behavior Spec（Expansion required: Yes の場合）
+  - Black-box Behavior Spec（Behavior spec artifact required: Yes の場合）
   - Change Risk Triage
   - Implementation Contract Kernel / Review Kernel
   - Runtime Contract Kernel
