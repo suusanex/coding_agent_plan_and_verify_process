@@ -12,7 +12,7 @@ This skill turns full-coverage from "do everything in one enormous run" into a t
 
 ## Workflow
 
-1. Treat the parent Plan and `plans/<slug>/codex-first-state.md` as source of truth.
+1. Treat the parent Plan and `plans/<slug>/codex-first-state.md` as source of truth. Use `plans/<slug>/codex-first-audit.md` for delegation evidence and close audit.
 2. Stop and request experienced-operator confirmation unless the user already explicitly selected advanced full-coverage work.
 3. Run `plan-slice-decomposition.agent.md`.
 4. Read `Slice granularity review` before routing slices.
@@ -20,7 +20,7 @@ This skill turns full-coverage from "do everything in one enormous run" into a t
 6. Do not route `merge-candidate`, `too-small-to-delegate`, or `coalesce-with-SL-xxx` candidates to `slice-prep`.
 7. Route `slice-prep`, `slice-impl`, and cross-slice verification to appropriate model tiers.
 8. Few executable slices are valid when parent acceptance conditions, cross-slice contracts, field continuity, and Behavior Case mapping remain traceable.
-9. Record `ExecutionMode`, expected delegation, observed agent runs, and DelegationCompliance in Agent Usage Ledger.
+9. Record `ExecutionMode`, expected delegation, observed agent runs, and DelegationCompliance in the audit artifact Agent Usage Ledger.
 10. In `DELEGATED_IMPLEMENTATION`, every READY slice MUST have an observed `slice-impl` run. Missing evidence blocks with `BlockedByMissingSliceImplDelegation`.
 11. Do not mark parent acceptance conditions complete inside a single slice when cross-slice evidence is required.
 12. After slice work, run `cross-slice-verification-kernel.agent.md`.
@@ -44,6 +44,7 @@ Return:
 
 - parent Plan reference
 - state artifact path
+- audit artifact path
 - slice list
 - cross-slice contract list
 - per-slice next agent

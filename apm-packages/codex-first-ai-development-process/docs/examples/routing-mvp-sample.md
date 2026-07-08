@@ -103,7 +103,7 @@ stop_reason: ReadyForDelegatedImplementation
 ```
 
 The parent thread does not implement the READY scope directly.
-It delegates to `standard-implementer`, records the observed run in Agent Usage Ledger, then delegates verification to `standard-verifier`.
+It delegates to `standard-implementer`, records the observed run in the audit artifact Agent Usage Ledger, then delegates verification to `standard-verifier`.
 
 ## Expected non-READY output
 

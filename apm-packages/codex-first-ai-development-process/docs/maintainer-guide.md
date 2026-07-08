@@ -12,7 +12,7 @@
 - `codex-first-cost-router`
 - Codex-first model tier labels
 - close / stop vocabulary
-- state artifact templates
+- state / audit artifact templates
 - predefined routing agents / subagents
 - Routing Plan / Edit Permission / Agent Usage Ledger / DelegationCompliance
 - advanced full-coverage boundary
@@ -33,6 +33,7 @@ TOML の top-level field は Codex が解釈する configured execution defaults
 
 repository-local な継続運用のためには `scripts/install-codex-first-local.cs` も追加しておく。  
 このインストーラは `AGENTS.md` の managed section、`.codex/config.toml`、`.codex/agents/*.toml`、`.agents/skills/codex-first-cost-router/SKILL.md`、`templates/*.md` を安全に追加・マージする。
+`templates/*.md` には `codex-first-state.md` と `codex-first-audit.md` の両方が含まれる。
 標準 Codex-first route に必要な runtime はこのインストーラだけで揃え、別途 APM 実行を前提にしない。
 
 `.github/instructions/plan-coverage-shared.instructions.md` は APM 経由で `.github/agents/*.agent.md` と一緒に配布する shared instruction である。repository-local installer は現時点では `.github/instructions` をコピーしないため、`profiles/codex-first/agents/*.toml` はこの shared instruction を直接参照しない。local profile に必要な Plan Coverage invariant や lite / standard 互換条件は、profile `AGENTS.md` と各 TOML に明示する。
@@ -86,7 +87,7 @@ If an agent omits `sandbox_mode`, document the reason in this guide before rollo
 
 ## Delegation evidence and hooks
 
-process の成功条件は repository-tracked な Agent Usage Ledger を主証跡にする。Codex hooks は補助証跡として使えるが、hook payload の詳細だけに依存して close 判定を行わない。
+process の成功条件は repository-tracked な audit artifact の Agent Usage Ledger を主証跡にする。Codex hooks は補助証跡として使えるが、hook payload の詳細だけに依存して close 判定を行わない。
 
 補助ログを取りたい場合は、project-local または profile-local hooks で `SubagentStart` / `SubagentStop` を JSONL に保存する。例:
 
@@ -121,7 +122,7 @@ process の成功条件は repository-tracked な Agent Usage Ledger を主証�
 }
 ```
 
-hook の raw JSONL は Agent Usage Ledger の補助 evidence として参照する。ledger には、expected agent、observed run、model tier、configured model、configured reasoning effort、hook model、reported model、effective model、edit owner、changed files、checks run、outcome、parent direct exception、delegation violation の有無を必ず残す。
+hook の raw JSONL は audit artifact の Agent Usage Ledger の補助 evidence として参照する。ledger には、expected agent、observed run、model tier、configured model、configured reasoning effort、hook model、reported model、effective model、edit owner、changed files、checks run、outcome、parent direct exception、delegation violation の有無を必ず残す。
 
 `configured_model` は custom agent TOML の top-level `model`、`configured_reasoning_effort` は top-level `model_reasoning_effort` を指す。`hook_model` は hook payload から観測できた場合だけ、`reported_model` は agent 自己申告、`effective_model` は課金・実行実体として独立確認できた場合だけ記録する。通常 `effective_model` は `unknown` でよい。
 
@@ -179,7 +180,7 @@ full-coverage 3層運用は advanced route である。
 - user guide が process 名、agent 名、model tier、full-coverage 分岐を利用者へ要求していない。
 - `codex-first-cost-router` が state artifact、model tier、READY、close 不可条件を定義している。
 - high-risk-triage が `plans/<slug>-change-risk-triage.md` を作成し、handoff review の必須入力として扱われている。
-- Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance が template / skill / docs に揃っている。
+- Routing Plan、Edit Permission、audit artifact、Agent Usage Ledger、DelegationCompliance が template / skill / docs に揃っている。
 - implementation-handoff-review が standard implementation 前の parent authorization と Behavior Case Coverage Ledger gate として定義されている。
 - READY implementation は `standard-implementer`、READY verification は `standard-verifier` への serial delegation として定義されている。
 - close gate が delegation evidence missing を成功扱いしない。
@@ -187,7 +188,7 @@ full-coverage 3層運用は advanced route である。
 - `profiles/codex-first/agents/*.toml` に role-appropriate `sandbox_mode` がある。
 - `install-codex-first-local.cs` が `.agents/skills/codex-first-cost-router/SKILL.md` と `templates/*.md` を配置する。
 - `install-codex-first-local.cs` の `--dry-run` / `--check-only` がファイルやディレクトリを作成しない。
-- Agent Usage Ledger が configured / hook / reported / effective model と delegation violation を分離している。
+- audit artifact の Agent Usage Ledger が configured / hook / reported / effective model と delegation violation を分離している。
 - parent direct work と trivial parent fix が cost-saving delegation success として数えられない。
 - maintainer guide がモデル実名を固定せず、`same-model-lower-effort` default の確認責務を説明している。
 - advanced guide が full-coverage 3層運用を標準ルートから分離している。

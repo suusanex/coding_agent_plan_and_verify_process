@@ -7,11 +7,11 @@
 ## 運用原則
 
 - 短い依頼を cost-aware routing の入口として扱う。
-- まず source of truth、repo rules、既存 artifact、state artifact を確認する。
+- まず source of truth、repo rules、既存 artifact、state artifact を確認する。委譲証跡、model 観測詳細、route 履歴、close audit が必要な場合は audit artifact も確認する。
 - 必要な工程を Intake / Plan / Risk / Scan / Contract / Implementation handoff review / Implementation / Verification / Close に分ける。
 - 各工程を `HIGH_MODEL`、`STANDARD_MODEL`、`CHEAP_MODEL` の抽象 tier へ割り当てる。
-- state artifact に Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance を記録する。
-- state artifact では execution_mode と、model tier / configured model / hook model / reported model / effective model を分けて記録する。
+- state artifact には resume に必要な Routing Plan、Edit Permission、audit artifact path、DelegationCompliance summary を記録する。
+- audit artifact には Agent Usage Ledger、DelegationCompliance detail、route history、model tier / configured model / hook model / reported model / effective model の分離記録を残す。
 - Plan gate では behavior expansion decision、Case-to-Plan mapping、Plan readiness を記録し、`ReadyForRiskTriage` になるまで risk / full-coverage / implementation へ進めない。
 - `NeedsPlanBehaviorExpansion` は `black-box-behavior-spec-kernel` または Plan rerun へ戻し、full-coverage や fix-slice の代替ルートにしない。
 - Risk gate では `plans/<slug>-change-risk-triage.md` を作成または更新し、state artifact に `risk_triage_artifact` と `risk_triage_artifact_status` を記録する。
@@ -46,7 +46,7 @@
 6. `risk_triage_artifact_status = Complete` を確認してから、`implementation-handoff-review` で parent authorization artifact、Parent Plan Coverage Ledger、必要な場合は Behavior Case Coverage Ledger を作成する。
 7. `Expansion required: Yes` の場合は Behavior Case Coverage Ledger が `Complete` のときだけ bounded scope を `standard-implementer` に委譲する。
 8. verification は `standard-verifier` に委譲し、production implementation / wiring / manual-only / Behavior Case evidence を分類する。
-9. residual decision と DelegationCompliance で close 可否を判定し、必要なら最小の人間入力だけを提示する。
+9. residual decision と audit artifact の DelegationCompliance で close 可否を判定し、必要なら最小の人間入力だけを提示する。
 
 ## Advanced route
 

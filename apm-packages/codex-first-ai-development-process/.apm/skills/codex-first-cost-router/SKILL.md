@@ -15,13 +15,14 @@ The router owns:
 - agent / subagent delegation requirement
 - READY / implementation permission
 - routing plan and edit owner
-- agent usage ledger and delegation compliance
+- audit artifact, agent usage ledger, and delegation compliance
 - stop reason and residual classification
 - close permission
 
 ## State artifact
 
-Use `plans/<slug>/codex-first-state.md`.
+Use `plans/<slug>/codex-first-state.md` for resume-critical current state.
+Use `plans/<slug>/codex-first-audit.md` for delegation evidence, model-observability detail, route history, and close-time audit checks.
 If a better repo-local plan directory already exists, use that directory but preserve the same fields.
 
 Minimum fields:
@@ -31,6 +32,7 @@ Minimum fields:
 - task weight
 - documentation_level
 - selected process
+- audit artifact path
 - expansion required
 - behavior spec artifact
 - plan readiness
@@ -47,11 +49,6 @@ Minimum fields:
 - execution mode
 - selected agent name / type
 - agent / subagent plan
-- configured model
-- configured reasoning effort
-- hook model
-- reported model
-- effective model
 - routing plan
 - edit permission
 - delegation required
@@ -60,15 +57,32 @@ Minimum fields:
 - current status
 - stop reason
 - human required items
-- agent usage ledger
-- delegation compliance
+- delegation compliance summary
 - artifacts created / consumed
 - unresolved residuals
 - next action
 - operations not allowed in current state
 - last updated summary
 
+Audit artifact minimum fields:
+
+- task slug
+- state artifact path
+- agent usage ledger
+- expected delegation
+- observed runs
+- configured model
+- configured reasoning effort
+- hook model
+- reported model
+- effective model
+- delegation compliance
+- route history
+- parent direct exceptions
+- close audit
+
 For "続きやって", read the newest matching state artifact before deciding the next step.
+Read the matching audit artifact when the next step depends on delegation evidence, model-observability detail, route history, or close permission.
 
 ### Task Weight
 
@@ -141,7 +155,7 @@ The router chooses it and records the reason.
 Record one execution mode before treating a gate as complete.
 
 - `ROUTE_ONLY`: intake, plan, risk, contract, or close judgment only; do not edit production code or tests.
-- `DELEGATED_WORK`: the selected agent / subagent owns the bounded work; the parent owns aggregation, ledger update, and close judgment.
+- `DELEGATED_WORK`: the selected agent / subagent owns the bounded work; the parent owns aggregation, audit update, and close judgment.
 - `PARENT_DIRECT_WORK`: the parent works without agent / subagent delegation; record the reason and do not count it as cost-saving delegation.
 - `TRIVIAL_PARENT_FIX`: a low-risk, local, explicit fix by the parent; record the reason and do not count it as cost-saving delegation.
 
@@ -206,9 +220,10 @@ Replace the old single `allowed to edit` decision with this block.
 For READY implementation, default to `edit_owner = standard-implementer` and `parent_direct_edit_allowed = No`.
 For READY verification, default to `edit_owner = standard-verifier` and `parent_direct_edit_allowed = No`, except for final close permission retained by the parent or `high-closure-reviewer`.
 
-### Agent Usage Ledger
+### Audit artifact
 
-State artifacts must include expected vs observed delegation.
+Audit artifacts must include expected vs observed delegation.
+Keep only the audit path and short delegation summary in `codex-first-state.md`.
 
 ```md
 ## Agent Usage Ledger
@@ -444,6 +459,7 @@ Do not ask them to choose a gate, agent, or model.
 Return:
 
 - state artifact path
+- audit artifact path
 - task weight
 - documentation_level
 - expansion required
@@ -463,10 +479,10 @@ Return:
 - selected model tier
 - agent / subagent plan
 - selected agent name, if delegated
-- configured model, if known
-- configured reasoning effort, if known
-- hook model, if observed
-- reported model, if provided
+- configured model, if known from audit
+- configured reasoning effort, if known from audit
+- hook model, if observed in audit
+- reported model, if provided in audit
 - effective model, usually unknown
 - delegation required
 - required artifacts
@@ -479,6 +495,6 @@ Return:
 - stop reason, if any
 - human-required items
 - unresolved residuals
-- agent usage ledger summary
+- agent usage ledger summary from audit
 - artifacts created / consumed
 - next action

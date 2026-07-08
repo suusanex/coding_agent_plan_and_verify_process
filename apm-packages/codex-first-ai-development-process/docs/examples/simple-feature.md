@@ -32,7 +32,7 @@ ReadyForDelegatedImplementation
 SafeToClose
 - Acceptance conditions are mapped to verification evidence.
 - Production CLI entrypoint uses the config path.
-- DelegationCompliance is PASS.
+- Audit DelegationCompliance is PASS.
 - Remaining work is Deferred and not required for this request.
 ```
 

@@ -267,8 +267,9 @@ Existing state excerpt:
 ```text
 Routing Plan:
 - Resume reads newest matching codex-first-state.md first.
+- Resume reads matching codex-first-audit.md when delegation evidence or close permission is needed.
 - Verification remains STANDARD_MODEL and delegated.
-- Close is blocked until verification evidence and DelegationCompliance pass.
+- Close is blocked until verification evidence and audit DelegationCompliance pass.
 
 Edit Permission:
 - edit_owner: standard-verifier.

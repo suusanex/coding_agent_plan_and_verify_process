@@ -12,6 +12,7 @@
 - cost-aware routing
 - Plan / risk / scan / contract / implementation / verification / close gate
 - state artifact based resume
+- audit artifact based delegation evidence
 - READY 判定
 - delegated bounded implementation
 - residual decision
@@ -63,7 +64,7 @@ Close してよいのは、次が満たされるときだけ。
 - cost-saving delegation として数える run には、委譲実行の evidence があり、`delegation_violation` がない。
 - residual work がある場合は、FixNow / Deferred / Manual / HigherModel のいずれかに分類されている。
 
-## State artifact
+## State and audit artifacts
 
 通常は次の state artifact を使う。
 
@@ -71,9 +72,17 @@ Close してよいのは、次が満たされるときだけ。
 plans/<slug>/codex-first-state.md
 ```
 
-この artifact は、`task_weight`、`selected_process`、`current_gate`、`next_gate`、`recommended_model_tier`、`model_tier_recommendation`、`execution_mode`、`risk_triage_artifact`、`risk_triage_artifact_status`、`behavior_case_coverage_ledger_artifact`、`behavior_case_coverage_ledger_status`、Routing Plan、Agent / Subagent Plan、Edit Permission、`delegation_required`、`required_artifacts`、Stop / Ready Gate、Agent Usage Ledger、DelegationCompliance、`stop_reason`、`human_required_items`、`unresolved_residuals`、`next_action` を持つ。
-Agent Usage Ledger では `configured_model`、`hook_model`、`reported_model`、`effective_model` を混ぜない。
+この artifact は、`task_weight`、`documentation_level`、`selected_process`、`current_gate`、`next_gate`、`recommended_model_tier`、`model_tier_recommendation`、`execution_mode`、`risk_triage_artifact`、`risk_triage_artifact_status`、`behavior_case_coverage_ledger_artifact`、`behavior_case_coverage_ledger_status`、Routing Plan、Agent / Subagent Plan、Edit Permission、`delegation_required`、`required_artifacts`、Stop / Ready Gate、`audit_artifact`、DelegationCompliance summary、`stop_reason`、`human_required_items`、`unresolved_residuals`、`next_action` を持つ。
 ユーザーが「続きやって」と依頼したら、まずこの artifact を読む。
+
+委譲証跡、model 観測詳細、route 履歴、close audit は次の audit artifact に分ける。
+
+```text
+plans/<slug>/codex-first-audit.md
+```
+
+Agent Usage Ledger では `configured_model`、`hook_model`、`reported_model`、`effective_model` を混ぜない。
+close 可否が委譲証跡や DelegationCompliance に依存する場合は、state と audit の両方を読む。
 
 ## Executable profile templates
 

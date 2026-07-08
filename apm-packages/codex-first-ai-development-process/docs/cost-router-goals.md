@@ -21,10 +21,11 @@ Users do not choose process names, agent names, model tiers, subagents, READY ga
 
 - Read repo instructions and existing artifacts first.
 - Create or update `plans/<slug>/codex-first-state.md`.
+- Create or update `plans/<slug>/codex-first-audit.md` when delegation evidence, model-observability detail, route history, or close audit is needed.
 - Split work into gates.
 - Assign `HIGH_MODEL`, `STANDARD_MODEL`, or `CHEAP_MODEL`.
-- Write Routing Plan, Edit Permission, Agent Usage Ledger, and DelegationCompliance.
-- Record execution_mode and separate abstract model tier from configured, hook observed, reported, and effective model fields.
+- Write Routing Plan, Edit Permission, audit artifact path, and DelegationCompliance summary in state.
+- Record Agent Usage Ledger, DelegationCompliance detail, route history, execution_mode evidence, and separate abstract model tier from configured, hook observed, reported, and effective model fields in audit.
 - Delegate bounded read-heavy work when required by the Routing Plan.
 - Require the Risk gate to create or update `plans/<slug>-change-risk-triage.md` and record `risk_triage_artifact_status`.
 - Require `implementation-handoff-review` or an explicitly equivalent pre-implementation gate before normal READY implementation.
@@ -86,7 +87,7 @@ Classification axes:
 | Advanced full-coverage route | Ready Plan is broad, strongly interconnected, or unsafe to bound as one implementation pass | Advanced-route note, decomposition next action, no READY implementation until slice readiness exists |
 | Human decision wait | Required behavior, scope, priority, rollout target, secret, external operation, or manual evidence owner is missing | `NeedsHumanDecision`, `NeedsSecretInput`, `NeedsExternalOperation`, or `ManualVerificationRequired` |
 | Higher-model review | Close risk, security/auth/DB/API/provider decision, or residual acceptance is too risky for current tier | `NeedsHigherModelReview` or selected high-agent review gate |
-| Lower-cost delegated scan | Evidence collection is read-heavy, docs consistency, or artifact format checking | `CHEAP_MODEL` route with expected cheap agent and Agent Usage Ledger placeholder |
+| Lower-cost delegated scan | Evidence collection is read-heavy, docs consistency, or artifact format checking | `CHEAP_MODEL` route with expected cheap agent and audit ledger placeholder |
 
 READY implementation is only selected when the state has a bounded source of truth, complete change-risk-triage artifact, implementation-handoff-review parent authorization artifact, edit owner, allowed paths, required artifacts, and no unresolved stop reason. If `Expansion required = Yes`, `behavior_case_coverage_ledger_status` must be `Complete`.
 
@@ -106,7 +107,7 @@ READY implementation is only selected when the state has a bounded source of tru
 - No production, secret, billing, or external service side effect without explicit approval.
 - No fake / stub / mock-only result counted as production success.
 - No close with unresolved `ManualVerificationRequired`, `NeedsHumanDecision`, or `NeedsHigherModelReview`.
-- No close with `DelegationCompliance = FAIL` or missing Agent Usage Ledger.
+- No close with `DelegationCompliance = FAIL` or missing required audit evidence.
 - No hard-coded real model names.
 
 ## Executable model routing
