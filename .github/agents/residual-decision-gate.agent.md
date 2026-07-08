@@ -22,6 +22,7 @@ Residual Decision Gate は、parent Plan の未完了・未検証項目を、age
 重要な不変条件:
 
 - Parent Plan Coverage Ledger は parent Plan の FR / AC を source of truth として扱う。
+- `plans/<ticket-or-slug>-coverage-ledger.md` が存在する場合は canonical coverage ledger として読み、今回の residual decision で変わった行だけを `Coverage Ledger Delta` に記録する。存在しない場合は verification / triage artifact の Parent Plan Coverage Ledger を source とする。
 - Guardrail Focus は deep-check subset であり、implementation scope ではない。
 - residual candidate は記録されただけでは accepted ではない。
 - `ManualVerificationRequired` は close 不可の residual candidate status であり、accepted residual ではない。
@@ -40,6 +41,7 @@ Residual Decision Gate は、parent Plan の未完了・未検証項目を、age
 - `plans/<ticket-or-slug>-coverage-gap-triage.md`
 - optional: `plans/<ticket-or-slug>-cross-slice-verification-kernel.md`（full-coverage decomposition 後に存在する場合）
 - optional: `plans/<ticket-or-slug>-black-box-behavior-spec.md`（behavior expansion が必要な場合）
+- optional: `plans/<ticket-or-slug>-coverage-ledger.md`（存在する場合は canonical coverage ledger）
 - optional: previous `plans/<ticket-or-slug>-residual-decision-gate.md`（rerun の場合）
 - optional: human decision notes / issue comment / PR comment / user prompt
 
@@ -129,6 +131,8 @@ verification-kernel、coverage-gap-triage、cross-slice-verification-kernel、�
 - `AbortedWithReason`: explicit human decision により abort 理由が決まっている
 - `ReplanRequired`: parent Plan 変更が必要
 
+direct FixNow selector を出してよいのは、FixNow items が 1〜2 件で、source artifact、source section/table、existing ID、gap type、target file / address、Plan item が明確であり、human decision、manual verification、Plan ambiguity、requirement-elaboration residual、Behavior Case mapping residual を含まない場合だけです。条件を満たさない FixNow candidate は `coverage-gap-triage.agent.md` で分類してから `coverage-gap-resolution-slice.agent.md` へ渡してください。
+
 ### Step 6. Determine verdict
 
 次の verdict から 1 つを出してください。
@@ -182,6 +186,11 @@ verification-kernel、coverage-gap-triage、cross-slice-verification-kernel、�
 | Plan item | Type | Implementation status | Verification status | Evidence | Residual status | Blocking? |
 | --- | --- | --- | --- | --- | --- | --- |
 
+## Coverage Ledger Delta
+
+| Delta ID | Source artifact | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Blocking? |
+| --- | --- | --- | --- | --- | --- | --- |
+
 ## Residual decision table
 
 | Residual ID | Source item | Residual type | Options | Recommended option | Explicit human decision | Decision status | Owner / next step |
@@ -199,6 +208,8 @@ verification-kernel、coverage-gap-triage、cross-slice-verification-kernel、�
 ## Handoff Packet
 
 - Source artifacts:
+- Coverage ledger source:
+- Coverage Ledger Delta:
 - Decisions made:
 - Decisions not made:
 - Accepted residuals:

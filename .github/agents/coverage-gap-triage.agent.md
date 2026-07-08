@@ -35,6 +35,12 @@ You are the "Coverage Gap Triage" agent.
 
 一度の実行で classification を完了し、停止してください。修復ループに入ってはいけません。
 
+### Direct FixNow bypass boundary
+
+`verification-kernel.agent.md` または `residual-decision-gate.agent.md` が、source artifact、source section/table、existing ID、gap type、target file / address、Plan item を明示した direct FixNow selector を出している場合、この triage agent を省略して `coverage-gap-resolution-slice.agent.md` へ進めます。
+
+省略できるのは 1〜2 件の simple gap だけです。human decision、manual verification、Plan ambiguity、requirement-elaboration residual、Behavior Case mapping residual、implementation-realization uncertainty を含む場合は、この agent で分類してから次工程を選んでください。
+
 ### Classify only, never fix
 
 この agent は、既存の coverage gap を分類するだけです。production code・test code の変更・実装は行いません。source artifact の status を complete に更新してはいけません。すでに complete であるという evidence が input artifacts に存在する場合は、`AlreadyCoveredButDocumentationStale` として分類し、後続の documentation update slice に渡してください。
@@ -269,7 +275,7 @@ Gap type は `## Embedded process policy` の `Gap type precedence` に従って
 | `ImplementationContractMissing` | `implementation-contract-kernel.agent.md`（bounded）。broad な場合は `plan-slice-decomposition.agent.md` | `contract-kernel` または `standard-slice` |
 | `DependencyMissing` | `implementation-contract-kernel.agent.md`（bounded）。broad な場合は `plan-slice-decomposition.agent.md` | `contract-kernel` または `standard-slice` |
 | `ApiSurfaceUnknown` | `implementation-contract-kernel.agent.md`（bounded）。broad な場合は `plan-slice-decomposition.agent.md` | `contract-kernel` または `standard-slice` |
-| `UnjustifiedSubstitution` | `implementation-contract-kernel.agent.md`（再評価）必要時 `implementation-contract-review-kernel.agent.md` | `contract-kernel` |
+| `UnjustifiedSubstitution` | `implementation-contract-kernel.agent.md`（再評価）。self-check だけでは判断できない場合のみ `implementation-contract-review-kernel.agent.md` を explicit review-only fallback として使う | `contract-kernel` |
 | `SourceOfTruthDrift` | `implementation-contract-kernel.agent.md`。slice / XC drift の場合は `plan-slice-decomposition.agent.md` | `contract-kernel` または `standard-slice` |
 | `ParentPlanCoverageGap` | `coverage-gap-resolution-slice.agent.md` または `plan-slice-decomposition.agent.md`（new slice が必要な場合） | `fix-slice` または `standard-slice` |
 | `UnmappedParentAcceptance` | `implementation-handoff-review.agent.md` の再実行、または `plan-slice-decomposition.agent.md`（mapping を作る必要がある場合） | `triage-only` または `standard-slice` |

@@ -392,6 +392,7 @@ bounded Plan を作成し、その parent Plan を実装・検証の source of t
 - `change-risk-triage`、`runtime-contract-kernel`、`test-design-kernel`、`implementation-handoff-review` は parent Plan を縮小しません。
 - Guardrail Focus は deep runtime / production-binding verification の重点対象です。implementation scope ではありません。
 - Guardrail Focus 外の parent Plan item も Parent Plan Coverage Ledger で必ず分類します。
+- standard route で ledger の再掲が膨らむ場合は、`plans/<ticket-or-slug>-coverage-ledger.md` を canonical ledger とし、中間 artifact は `Coverage Ledger Delta` だけを出します。
 - residual は記録しただけでは accepted ではありません。`ManualVerificationRequired` は close 不可の candidate status です。explicit human decision により owner / method / required evidence が明示された場合だけ、`AcceptedResidual`、`ManualVerificationDelegated`、`DeferredWithOwner`、`AbortedWithReason` などの close 可能な decision status にできます。
 - final done は Parent Plan Coverage Ledger と Residual Decision Ledger で判定します。
 - full-coverage decomposition 後の cross-slice verification は、production interface / implementation / wiring の存在確認だけでは完了しません。producer から production wiring を通した後、consumer 側の runtime gate / durable state / async worker / recovery semantics が parent acceptance condition の runtime postcondition を満たすことを確認します。
@@ -405,7 +406,7 @@ bounded Plan を作成し、その parent Plan を実装・検証の source of t
 3. `plan-kernel.agent.md` 再実行（behavior spec の Case IDs を Plan FR / AC / explicit disposition へ mapping する場合）
 4. `change-risk-triage.agent.md`（`ReadyForRiskTriage` の場合だけ）
 5. `implementation-contract-kernel.agent.md`（implementation-realization risk がある場合）
-6. `implementation-contract-review-kernel.agent.md`（contract が non-trivial の場合）
+6. `implementation-contract-review-kernel.agent.md`（implementation-contract self-check に explicit review-only fallback が必要な場合だけ）
 7. `runtime-contract-kernel.agent.md`
 8. `test-design-kernel.agent.md`
 9. `implementation-handoff-review.agent.md`
@@ -413,9 +414,9 @@ bounded Plan を作成し、その parent Plan を実装・検証の source of t
 11. 必要に応じて `code-review-focus-kernel.agent.md`
 12. human code review
 13. `verification-kernel.agent.md`
-14. 未解決がある場合は `coverage-gap-triage.agent.md`
+14. 未解決があり、complete direct FixNow selector がない場合は `coverage-gap-triage.agent.md`
 15. `residual-decision-gate.agent.md`
-16. FixNow items がある場合だけ `coverage-gap-resolution-slice.agent.md`
+16. verification-kernel、coverage-gap-triage、または residual-decision-gate が explicit FixNow selector を出した場合だけ `coverage-gap-resolution-slice.agent.md`
 17. 必要に応じて `verification-kernel.agent.md` と `residual-decision-gate.agent.md` を再実行
 
 各 agent は 1 回の bounded な実行を行い、未解決項目は成果物に残して停止します。「直るまで修正し続ける」ことは目的ではありません。
@@ -446,7 +447,8 @@ cross-slice verification では、runtime postcondition oracle と forbidden-sta
 - `plans/<ticket-or-slug>-black-box-behavior-spec.md`（Expansion required: Yes の場合）
 - `plans/<ticket-or-slug>-change-risk-triage.md`
 - `plans/<ticket-or-slug>-implementation-contract-kernel.md`（implementation-realization risk が Present / Unclear の場合）
-- `plans/<ticket-or-slug>-implementation-contract-review-kernel.md`（存在する場合）
+- `plans/<ticket-or-slug>-coverage-ledger.md`（存在する場合）
+- `plans/<ticket-or-slug>-implementation-contract-review-kernel.md`（explicit review-only fallback が存在する場合）
 - `plans/<ticket-or-slug>-runtime-contract-kernel.md`
 - `plans/<ticket-or-slug>-test-design-kernel.md`
 - `plans/<ticket-or-slug>-implementation-handoff-review.md`
@@ -477,11 +479,11 @@ full-coverage 診断時に、parent Plan coverage を維持したまま bounded 
 
 ### `implementation-contract-kernel.agent.md`
 
-dependency / API / provider / substitution risk を確認し、unresolved implementation-realization items を guessed address に変換せず residual candidate として保持します。
+dependency / API / provider / substitution risk を確認し、unresolved implementation-realization items を guessed address に変換せず residual candidate として保持します。`Self-check / Readiness verdict` も同じ artifact に記録します。
 
 ### `implementation-contract-review-kernel.agent.md`
 
-source-of-truth drift、evidence 不足、unjustified substitution を review し、unresolved item を accepted residual と扱わず次工程へ渡します。
+`implementation-contract-kernel.agent.md` の `Self-check / Readiness verdict` を explicit review-only fallback として確認する compatibility shim です。通常ルートでは自動的に挟みません。
 
 ### `runtime-contract-kernel.agent.md`
 
@@ -506,10 +508,12 @@ human review 用の重点 surface を整理します。parent Plan item に影�
 ### `verification-kernel.agent.md`
 
 Parent Plan Coverage Ledger と Behavior Case Evidence Ledger を更新し、Guardrail Focus RC/TP については production binding / wiring / contract representation を深く確認します。final verdict は parent Plan verdict です。
+canonical coverage ledger が存在する場合は、変更行を `Coverage Ledger Delta` として出します。1〜2 件の simple gap で source artifact、source section/table、existing ID、gap type、target file / address、Plan item が明確な場合だけ direct FixNow selector を出せます。
 
 ### `coverage-gap-triage.agent.md`
 
 Parent Plan Coverage Ledger から unresolved items を抽出し、FixNow items、manual decision candidates、Residual decision candidates を分けます。defer / abort / manual delegation を承認しません。
+verification または residual gate が complete direct FixNow selector を出した simple gap では省略できます。
 
 ### `residual-decision-gate.agent.md`
 
@@ -517,7 +521,7 @@ coverage-gap-triage、verification-kernel、または cross-slice-verification-k
 
 ### `coverage-gap-resolution-slice.agent.md`
 
-post-verification repair subflow です。coverage-gap-triage または residual-decision-gate が出した explicit FixNow selector だけを修正し、修正後は verification-kernel と residual-decision-gate に戻します。
+post-verification repair subflow です。verification-kernel、coverage-gap-triage、または residual-decision-gate が出した explicit FixNow selector だけを修正し、修正後は verification-kernel と residual-decision-gate に戻します。
 
 ### `cross-slice-verification-kernel.agent.md`
 
@@ -702,7 +706,8 @@ implementation-execution.agent.md を使って、parent Plan に対する 1 boun
 - plans/<ticket-or-slug>-black-box-behavior-spec.md（Expansion required: Yes の場合）
 - plans/<ticket-or-slug>-change-risk-triage.md
 - plans/<ticket-or-slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
-- plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
+- plans/<ticket-or-slug>-coverage-ledger.md（存在する場合）
+- plans/<ticket-or-slug>-implementation-contract-review-kernel.md（explicit review-only fallback が存在する場合）
 - plans/<ticket-or-slug>-runtime-contract-kernel.md
 - plans/<ticket-or-slug>-test-design-kernel.md
 - plans/<ticket-or-slug>-implementation-handoff-review.md
@@ -743,7 +748,7 @@ previous RES-* または NeedsHumanDecision がある rerun では、Previous re
 ### 選択した FixNow だけを修正する
 
 ```text
-coverage-gap-triage または residual-decision-gate の FixNow selector だけを対象に、coverage-gap-resolution-slice.agent.md を実行してください。
+verification-kernel、coverage-gap-triage、または residual-decision-gate の FixNow selector だけを対象に、coverage-gap-resolution-slice.agent.md を実行してください。
 FixNow selector 外へ広げず、parent Plan との整合を崩さないでください。
 修正後、verification-kernel.agent.md と residual-decision-gate.agent.md の再実行を次のステップとして記録してください。
 ```
@@ -759,14 +764,15 @@ Plan網羅チェック・残件判定フローでは、通常は次の成果物�
 | `plans/<ticket-or-slug>.md` | bounded Plan。実装の source of truth |
 | `plans/<ticket-or-slug>-black-box-behavior-spec.md` | source requirements から Case IDs、negative expectation、derived invariant への展開 |
 | `plans/<ticket-or-slug>-change-risk-triage.md` | risk inventory、Guardrail Focus recommendation、Residual risk candidates |
-| `plans/<ticket-or-slug>-implementation-contract-kernel.md` | dependency/API/provider path の確認結果、required code changes、prohibited substitutions |
-| `plans/<ticket-or-slug>-implementation-contract-review-kernel.md` | implementation-contract の readiness / blocking verdict |
+| `plans/<ticket-or-slug>-implementation-contract-kernel.md` | dependency/API/provider path の確認結果、required code changes、prohibited substitutions、self-check readiness verdict |
+| `plans/<ticket-or-slug>-implementation-contract-review-kernel.md` | explicit review-only fallback としての implementation-contract self-check review |
+| `plans/<ticket-or-slug>-coverage-ledger.md` | canonical Parent Plan Coverage Ledger、Behavior Case coverage、Residual Decision Ledger、Coverage Ledger Delta |
 | `plans/<ticket-or-slug>-runtime-contract-kernel.md` | Guardrail Focus runtime contract・producer / consumer・メッセージ・フィールド・production 実装の所在 |
 | `plans/<ticket-or-slug>-test-design-kernel.md` | Guardrail Focus TP・stub/fake の使用有無・production binding 確認要件 |
 | `plans/<ticket-or-slug>-implementation-handoff-review.md` | 実装直前の lightweight review verdict と Parent Plan Coverage Ledger |
 | `plans/<ticket-or-slug>-implementation-execution.md` | 実装結果、Implementation Self-Map、Test / Check Summary、Remaining Work |
 | `plans/<ticket-or-slug>-code-review-focus-kernel.md` | 人手コードレビュー向けの重点確認箇所・読む順番・不確実性の整理 |
-| `plans/<ticket-or-slug>-verification-kernel.md` | Parent Plan Coverage Ledger 更新、production binding / wiring / contract の検証結果 |
+| `plans/<ticket-or-slug>-verification-kernel.md` | Parent Plan Coverage Ledger / Coverage Ledger Delta 更新、production binding / wiring / contract の検証結果 |
 | `plans/<ticket-or-slug>-parent-orchestration-state.md` | full-coverage 3層運用の親 orchestration 再開入口。現在 phase、次 action、artifact index、slice queue、Parent decisions made、blocking decision |
 | `plans/<ticket-or-slug>-cross-slice-verification-kernel.md` | full-coverage decomposition 後の runtime postcondition oracle、forbidden-state oracle、previous gap closure delta、cross-slice verdict |
 | `plans/<ticket-or-slug>-coverage-gap-triage.md` | 未解決ギャップの分類、FixNow items、Residual decision candidates |

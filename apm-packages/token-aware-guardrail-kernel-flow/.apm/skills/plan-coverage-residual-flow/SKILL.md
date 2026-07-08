@@ -76,6 +76,8 @@ When `documentation_level: lite` is selected, use `apm-packages/token-aware-guar
 
 The Inline Ready Gate may replace `plans/<slug>-implementation-handoff-review.md` only when it explicitly says it is equivalent to `implementation-handoff-review`, every required check is `PASS` or source-backed `N/A`, and there is no unresolved blocking item. This is implementation authorization for the bounded pass, not close readiness.
 
+For `documentation_level: standard`, use `apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/coverage-ledger.md` when a durable parent Plan coverage ledger is needed. `plans/<slug>-coverage-ledger.md` is the canonical ledger. Intermediate agents should emit `Coverage Ledger Delta` instead of repeating the full ledger when only a small set of rows changed.
+
 Use inline behavior sketch only when it can preserve source-backed behavior coverage in the compact artifact. Escalate to `black-box-behavior-spec-kernel.agent.md` when case count, recovery / rollback / retry / replay / cleanup / durable state / idempotency, negative expectations, ambiguous Case-to-Plan mapping, human decisions, or standard / full-coverage routing require a separate artifact.
 
 `Expansion required: Yes` does not automatically mean a separate Black-box Behavior Spec artifact is required. Record `Inline behavior sketch sufficient` and `Behavior spec artifact required` separately. Continue with a ready Plan only when either the inline sketch preserves FR / AC traceability or the required behavior spec exists and Case-to-Plan mapping is complete.
@@ -99,15 +101,15 @@ Run the flow in this order unless a stop condition applies:
    - `full-coverage`: follow the full-coverage route below.
 8. In a normal bounded pass, run the needed pre-implementation gates:
    - `implementation-contract-kernel.agent.md`, when implementation-realization risk is present or unclear
-   - `implementation-contract-review-kernel.agent.md`, when the implementation contract is non-trivial
+   - `implementation-contract-review-kernel.agent.md`, only as an explicit review-only fallback for the implementation contract self-check verdict
    - `runtime-contract-kernel.agent.md`
    - `test-design-kernel.agent.md`
    - `implementation-handoff-review.agent.md`
 9. Implement only after the handoff review or a documented equivalent Inline Ready Gate allows implementation for the bounded parent Plan pass. Use `implementation-execution.agent.md` or a human-guided implementation route, according to the repository's available agent setup.
 10. Run `verification-kernel.agent.md`.
-11. If unresolved coverage items or FixNow candidates remain, run `coverage-gap-triage.agent.md`.
+11. If unresolved coverage items or FixNow candidates remain, run `coverage-gap-triage.agent.md` unless `verification-kernel.agent.md` emitted a complete direct FixNow selector for 1〜2 simple gaps.
 12. Before final close, run `residual-decision-gate.agent.md`. If no residual candidates remain, it may produce `READY_TO_CLOSE_WITH_NO_RESIDUALS`. If residual, manual, or human-decision candidates remain, it must classify them before close.
-13. If `coverage-gap-triage` or `residual-decision-gate` emits an explicit FixNow selector, run `coverage-gap-resolution-slice.agent.md`, then return to verification and residual decision as needed.
+13. If `coverage-gap-triage`, `verification-kernel`, or `residual-decision-gate` emits an explicit FixNow selector, run `coverage-gap-resolution-slice.agent.md`, then return to verification and residual decision as needed.
 
 The parent Plan FR / AC remain the implementation and verification source of truth throughout the route. Guardrail Focus artifacts are deep-check guardrails; they are not an implementation scope reduction.
 
@@ -144,6 +146,7 @@ Close is allowed only when all of these are true:
 - unresolved items are absent, or explicit human decision accepted / delegated / deferred / aborted them with owner, method, and required evidence where applicable
 - `residual-decision-gate.agent.md` produced a close-ready verdict using its allowed verdict vocabulary
 - Parent Plan Coverage Ledger has no unclassified rows
+- Canonical Coverage Ledger and all relevant Coverage Ledger Delta rows have no unresolved contradiction
 
 Close is not allowed when any of these are true:
 
@@ -155,6 +158,7 @@ Close is not allowed when any of these are true:
 - source-structure tests or CI green are used as the only proof of runtime postcondition
 - production implementation or production wiring remains unverified
 - Parent Plan Coverage Ledger has unclassified rows
+- Coverage Ledger Delta contradicts the canonical coverage ledger and the contradiction has not been resolved
 
 Residual candidates are not accepted merely because they are recorded. Explicit human decision is required before they can become close-compatible decisions.
 

@@ -186,16 +186,16 @@ Use for the main lightweight process this repository now targets.
 5. If triage recommends `full-coverage`, run `plan-slice-decomposition.agent.md`
 6. Run each resulting slice through the bounded Plan網羅チェック・残件判定フロー:
    - `implementation-contract-kernel.agent.md`, when implementation-realization risk is present
-   - `implementation-contract-review-kernel.agent.md` or bounded `implementation-contract-review.agent.md`, when the contract is non-trivial
+   - `implementation-contract-review-kernel.agent.md`, only as an explicit review-only fallback for the implementation contract self-check verdict
    - `runtime-contract-kernel.agent.md`
    - `test-design-kernel.agent.md`
    - `implementation-handoff-review.agent.md`
    - implementation by normal agent or human-guided implementation agent
    - `verification-kernel.agent.md`
 7. When step 5 was used, run `cross-slice-verification-kernel.agent.md`
-8. `coverage-gap-triage.agent.md`, when FixNow candidates or unresolved implementation coverage items need classification
+8. `coverage-gap-triage.agent.md`, when FixNow candidates or unresolved implementation coverage items need classification and no complete direct FixNow selector exists
 9. `residual-decision-gate.agent.md`, when residual / manual / human-decision candidates remain
-10. `coverage-gap-resolution-slice.agent.md`, only when coverage-gap-triage or residual-decision-gate emits an explicit FixNow selector
+10. `coverage-gap-resolution-slice.agent.md`, only when verification-kernel, coverage-gap-triage, or residual-decision-gate emits an explicit FixNow selector
 
 Implementation handoff must include:
 
@@ -204,7 +204,8 @@ Implementation handoff must include:
 - `change-risk-triage` output
 - `plan-slice-decomposition` output when the bounded parent Plan pass comes from full-coverage decomposition
 - `implementation-contract-kernel` output when required
-- `implementation-contract-review-kernel` output when present
+- `coverage-ledger` output when present
+- `implementation-contract-review-kernel` output when an explicit review-only fallback exists
 - `runtime-contract-kernel` output
 - `test-design-kernel` output
 - `implementation-handoff-review` output
@@ -394,6 +395,12 @@ Rules:
 - Downstream agents must not infer completion from absence.
 - Handoff review must include both Guardrail Focus readiness and bounded parent-Plan pass readiness.
 
+### Canonical Coverage Ledger and Delta
+
+For standard route work that would otherwise repeat the full parent Plan ledger across many artifacts, create `plans/<ticket-or-slug>-coverage-ledger.md` from `apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/coverage-ledger.md`.
+
+The canonical ledger owns the full parent Plan FR / AC, Behavior Case coverage, and residual decision rows. Intermediate artifacts may emit a `Coverage Ledger Delta` table that records only changed rows. A delta never narrows the parent Plan and never replaces the canonical ledger. If a delta contradicts the canonical ledger, treat the mismatch as `SourceOfTruthDrift` and resolve it before claiming close readiness.
+
 ### Implementation Contract Kernel
 
 A lightweight implementation-realization artifact should use this shape:
@@ -426,6 +433,12 @@ A lightweight implementation-realization artifact should use this shape:
 
 ## Unresolved implementation-realization items
 
+## Self-check / Readiness verdict
+
+READY_FOR_RUNTIME_CONTRACT | READY_FOR_IMPLEMENTATION | BLOCKED_BY_DEPENDENCY_MISSING | BLOCKED_BY_API_SURFACE_UNKNOWN | BLOCKED_BY_UNJUSTIFIED_SUBSTITUTION | BLOCKED_BY_SOURCE_OF_TRUTH_DRIFT | NEEDS_HUMAN_DECISION
+
+## Self-check evidence
+
 ## Handoff Packet
 ```
 
@@ -439,6 +452,8 @@ Required statuses include:
 - `RejectedSubstitute`
 - `AllowedReuse`
 - `OutOfScopeForThisPass`
+
+`implementation-contract-kernel.agent.md` owns the primary readiness verdict. Use `implementation-contract-review-kernel.agent.md` only as an explicit review-only fallback when the self-check verdict itself needs independent documents-only review.
 
 ### Runtime Contract Kernel
 
@@ -1025,6 +1040,7 @@ Verify Parent Plan coverage and Guardrail Focus runtime contracts/test points af
 - Black-box Behavior Spec artifact when present
 - Runtime Contract Kernel
 - Test Design Kernel or integration test points
+- Coverage Ledger when present
 - implementation diff or repository state
 - relevant production startup / DI / entrypoint files
 - relevant test files
@@ -1049,6 +1065,8 @@ Verify Parent Plan coverage and Guardrail Focus runtime contracts/test points af
 ## Scope
 
 ## Runtime contract verification
+
+## Coverage Ledger Delta
 
 ## Parent Plan smoke scan
 
@@ -1085,6 +1103,8 @@ For each selected test point:
 - if nearby implementation is wired but Plan-required path is missing, classify as blocking mismatch/gap rather than pass
 - when Plan Slice Decomposition exists, keep slice scope / XC IDs visible and defer cross-slice binding to `cross-slice-verification-kernel.agent.md`
 - when parent Plan residuals remain outside the bounded parent Plan pass or Guardrail Focus, keep them visible in the Handoff Packet rather than implying parent Plan completion
+- when a canonical coverage ledger exists, emit only changed rows as `Coverage Ledger Delta`
+- emit a direct FixNow selector only for 1〜2 simple gaps with source artifact, source section/table, existing ID, gap type, target file/address, and Plan item clearly identified
 
 ### Verdicts
 
@@ -1109,13 +1129,14 @@ Use one of:
 
 ### Stop condition
 
-Stop after updating Parent Plan Coverage Ledger and classifying unresolved items. If FixNow candidates exist, hand them to `coverage-gap-triage.agent.md`. If residual / manual / human-decision candidates remain, hand them to `residual-decision-gate.agent.md`. Do not recommend `coverage-gap-resolution-slice.agent.md` directly unless an explicit FixNow selector already exists.
+Stop after updating Parent Plan Coverage Ledger and classifying unresolved items. If FixNow candidates exist, hand them to `coverage-gap-triage.agent.md` unless the direct FixNow selector conditions are fully met. If residual / manual / human-decision candidates remain, hand them to `residual-decision-gate.agent.md`. Do not recommend `coverage-gap-resolution-slice.agent.md` directly unless an explicit FixNow selector exists.
 
 ## 7. `coverage-gap-triage.agent.md`
 
 ### Purpose
 
 Classify unresolved implementation coverage items without fixing them.
+This agent can be skipped only when verification-kernel or residual-decision-gate emitted a complete direct FixNow selector for a simple gap.
 
 ### Inputs
 
@@ -1307,12 +1328,12 @@ For a fresh implementation of the Plan網羅チェック・残件判定フロー
 3. `plan-kernel.agent.md` rerun when Case IDs must be mapped to FR / AC or explicit disposition
 4. `change-risk-triage.agent.md` only after `ReadyForRiskTriage`
 5. `implementation-contract-kernel.agent.md`（when implementation-realization risk is present）
-6. `implementation-contract-review-kernel.agent.md` or bounded `implementation-contract-review.agent.md`（when non-trivial）
+6. `implementation-contract-review-kernel.agent.md`（implementation-contract self-check に explicit review-only fallback が必要な場合だけ）
 7. `runtime-contract-kernel.agent.md`
 8. `test-design-kernel.agent.md`
 9. implementation
 10. `verification-kernel.agent.md`
-11. `coverage-gap-triage.agent.md` when unresolved implementation coverage items need classification
+11. `coverage-gap-triage.agent.md` when unresolved implementation coverage items need classification and no complete direct FixNow selector exists
 12. `residual-decision-gate.agent.md` when residual / manual / human-decision candidates remain
 13. `coverage-gap-resolution-slice.agent.md` only when an explicit FixNow selector exists
 

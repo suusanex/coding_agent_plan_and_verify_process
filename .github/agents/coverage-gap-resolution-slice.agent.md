@@ -40,6 +40,8 @@ You are the "Coverage Gap Resolution Slice" agent.
 
 selected gap selector は、少なくとも source artifact、existing ID、gap type を特定できる必要があります。source section / table が分かる場合は selector に含めてください。同じ source ID に複数の gap type が存在する場合、gap type なしの指定を勝手に 1 つへ解釈してはいけません。
 
+`verification-kernel.agent.md` または `residual-decision-gate.agent.md` から direct FixNow selector を受け取る場合も同じです。direct selector は simple gap だけに許可され、source artifact、source section/table、existing ID、gap type、target file / address、Plan item が明示されていなければなりません。
+
 ### Minimal change only
 
 選択された ID の gap を解消するために必要な最小限の変更だけを加えてください。
@@ -57,6 +59,8 @@ selected gap selector は、少なくとも source artifact、existing ID、gap 
 triage 出力は fix scope の参考として使いますが、implementation behavior と completion の判断は常に Plan が基準です。triage の分類が Plan 要件と矛盾する場合は、Plan を優先し、矛盾を `残留作業` に記録してください。
 
 Parent Plan coverage gap を受け取った場合は、Guardrail Focus coverage を狭め直すことで完了扱いにしてはいけません。正確な parent Plan FR / AC に戻し、新しい slice、cross-slice verification update、implementation-contract update、または production implementation fix のどれが必要かをこの pass の範囲で判断してください。
+
+`plans/<ticket-or-slug>-coverage-ledger.md` が存在する場合は canonical coverage ledger として読み、repair で変わった item は output artifact の `Coverage Ledger Delta` に記録してください。canonical ledger が存在しない場合は、source verification / residual artifact の Parent Plan Coverage Ledger を input source とし、output artifact に必要な delta または local ledger を残してください。
 
 ### No local heuristics as substitutes for Plan behavior
 
@@ -111,6 +115,7 @@ consume または create した implementation contract artifact に、selected 
 - review されていない `RejectedSubstitute`
 
 この条件に該当する場合は `BLOCKED` または `PARTIAL_RESOLUTION` を記録し、`implementation-contract-review-kernel.agent.md` または human decision を推奨して停止してください。
+`implementation-contract-review-kernel.agent.md` は通常の次工程ではなく、unified implementation contract の self-check だけでは判断できない場合の explicit review-only fallback として推奨してください。
 
 ### Gap type が解消不能な場合
 
@@ -189,6 +194,7 @@ active status artifact が存在しない場合は、`not updated in this pass` 
 6. Integration test points（Test Design Kernel がない場合の代替）。
 
 7. `plans/<ticket-or-slug>-runtime-contract-kernel.md`（利用可能な場合）— contract fields、production implementation address の参照元。
+8. `plans/<ticket-or-slug>-coverage-ledger.md`（利用可能な場合）— canonical parent Plan coverage と delta の参照元。
 
 ## Workflow
 
@@ -320,6 +326,13 @@ stub / fake / in-memory が検出された ID について記入してくださ�
 | Plan item | Type | Status | Covered by Slice ID | Covered by RC ID | Covered by TP ID | Cross-slice Contract ID | Residual / reason |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 
+## Coverage Ledger Delta
+
+canonical coverage ledger が存在する場合、または source coverage artifact の status を変える場合に記録してください。該当しない場合は「なし」と書いてください。
+
+| Delta ID | Source artifact | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Blocking? |
+| --- | --- | --- | --- | --- | --- | --- |
+
 ## 残留作業
 
 解決できなかった項目、chain が不完全な項目、human decision が必要な項目を記述してください。空欄にしてはいけません。残留がない場合は「なし」と明示してください。
@@ -341,6 +354,8 @@ stub / fake / in-memory が検出された ID について記入してくださ�
 
 - Profile used: `fix-slice`
 - Source artifacts:
+- Coverage ledger source:
+- Coverage Ledger Delta:
 - Selected contracts / IDs:
 - Selected gap selectors:
 - Files inspected:
