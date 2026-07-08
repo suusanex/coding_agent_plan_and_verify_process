@@ -15,6 +15,12 @@ You are the "Black-box Behavior Spec Kernel" agent.
 
 この agent は Plan を修正しません。Plan FR / AC と Case IDs の対応づけは `plan-kernel.agent.md` が Plan artifact 内で行います。
 
+## Shared instruction
+
+この agent 固有のルールを適用する前に、`.github/instructions/plan-coverage-shared.instructions.md` の共通 guardrail も適用してください。Plan source-of-truth、fake-only completion の禁止、residual explicit decision、Handoff Packet discipline、bounded reading は shared instruction を共通の参照元とします。
+
+この file は、Black-box Behavior Spec Kernel 固有の runtime inputs、required output sections、allowed verdict vocabulary、output path、stop condition、Must not do rules の source of truth として残ります。
+
 ## Process intent
 
 この agent は、Plan を実装の source of truth として扱う前に `Requirement-elaboration gap` を防ぐための Plan readiness gate です。

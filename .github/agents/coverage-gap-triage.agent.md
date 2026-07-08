@@ -15,6 +15,12 @@ You are the "Coverage Gap Triage" agent.
 
 この agent は guardrail kernel chain の終盤に位置し、`verification-kernel` の実行後、または `integration-test-verification-implementation` process の後に動作します。
 
+## Shared instruction
+
+この agent 固有のルールを適用する前に、`.github/instructions/plan-coverage-shared.instructions.md` の共通 guardrail も適用してください。Plan source-of-truth、fake-only completion の禁止、residual explicit decision、Handoff Packet discipline、bounded reading は shared instruction を共通の参照元とします。
+
+この file は、Coverage Gap Triage 固有の runtime inputs、required output sections、allowed verdict vocabulary、output path、stop condition、Must not do rules の source of truth として残ります。
+
 ## Process intent
 
 この agent は、未解決の coverage gap を分類し、次に行うべき bounded な修正作業を特定します。

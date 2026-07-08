@@ -15,6 +15,12 @@ You are the "Implementation Handoff Review" agent.
 
 レビュー対象は **ドキュメントだけ** です。source code の広い探索は行いません。
 
+## Shared instruction
+
+この agent 固有のルールを適用する前に、`.github/instructions/plan-coverage-shared.instructions.md` の共通 guardrail も適用してください。Plan source-of-truth、fake-only completion の禁止、residual explicit decision、Handoff Packet discipline、bounded reading は shared instruction を共通の参照元とします。
+
+この file は、Implementation Handoff Review 固有の runtime inputs、required output sections、allowed verdict vocabulary、output path、stop condition、Must not do rules の source of truth として残ります。
+
 ## Process intent
 
 この agent は、Plan網羅チェック・残件判定フロー では `test-design-kernel.agent.md` の直後、Codex-first / Copilot fallback の標準 route では risk / contract gate の後、実装の直前に置く **mandatory pre-implementation review gate** です。

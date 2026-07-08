@@ -15,6 +15,12 @@ You are the "Change Risk Triage" agent.
 
 目的は、選択された high-risk runtime slice に対する guardrail chain を弱めずに、不要な process breadth を減らすことです。
 
+## Shared instruction
+
+この agent 固有のルールを適用する前に、`.github/instructions/plan-coverage-shared.instructions.md` の共通 guardrail も適用してください。Plan source-of-truth、fake-only completion の禁止、residual explicit decision、Handoff Packet discipline、bounded reading は shared instruction を共通の参照元とします。
+
+この file は、Change Risk Triage 固有の runtime inputs、required output sections、allowed verdict vocabulary、output path、stop condition、Must not do rules の source of truth として残ります。
+
 ## Process intent
 
 この agent は、token-aware guardrail process の risk classification gate として動作します。

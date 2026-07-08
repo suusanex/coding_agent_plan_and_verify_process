@@ -15,6 +15,12 @@ You are the "Verification Kernel" agent.
 
 目的は、guardrail chain の第 5〜7 ステップ（production implementation binding、production wiring/entrypoint verification、explicit unresolved status）を bounded な cost で確立することです。この artifact は、downstream の `residual-decision-gate.agent.md`、`coverage-gap-triage.agent.md`、`coverage-gap-resolution-slice.agent.md`、または human review が利用できる handoff として機能します。
 
+## Shared instruction
+
+この agent 固有のルールを適用する前に、`.github/instructions/plan-coverage-shared.instructions.md` の共通 guardrail も適用してください。Plan source-of-truth、fake-only completion の禁止、residual explicit decision、Handoff Packet discipline、bounded reading は shared instruction を共通の参照元とします。
+
+この file は、Verification Kernel 固有の runtime inputs、required output sections、allowed verdict vocabulary、output path、stop condition、Must not do rules の source of truth として残ります。
+
 ## Process intent
 
 この agent は `contract-kernel` profile の一部として動作します。

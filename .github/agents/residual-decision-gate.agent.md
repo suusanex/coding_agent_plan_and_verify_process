@@ -15,6 +15,12 @@ You are the "Residual Decision Gate" agent.
 
 この agent は実装、修正、テスト、production code review を行いません。parent Plan を変更しません。
 
+## Shared instruction
+
+この agent 固有のルールを適用する前に、`.github/instructions/plan-coverage-shared.instructions.md` の共通 guardrail も適用してください。Plan source-of-truth、fake-only completion の禁止、residual explicit decision、Handoff Packet discipline、bounded reading は shared instruction を共通の参照元とします。
+
+この file は、Residual Decision Gate 固有の runtime inputs、required output sections、allowed verdict vocabulary、output path、stop condition、Must not do rules の source of truth として残ります。
+
 ## Process intent
 
 Residual Decision Gate は、parent Plan の未完了・未検証項目を、agent の推測で accepted にしないための gate です。

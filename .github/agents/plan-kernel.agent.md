@@ -15,6 +15,12 @@ You are the "Plan Kernel" agent.
 
 目的は、downstream agents（特に `change-risk-triage.agent.md` と `implementation-execution.agent.md`）が再探索なしに使える Plan artifact を、bounded な cost で確立することです。
 
+## Shared instruction
+
+この agent 固有のルールを適用する前に、`.github/instructions/plan-coverage-shared.instructions.md` の共通 guardrail も適用してください。Plan source-of-truth、fake-only completion の禁止、residual explicit decision、Handoff Packet discipline、bounded reading は shared instruction を共通の参照元とします。
+
+この file は、Plan Kernel 固有の runtime inputs、required output sections、allowed verdict vocabulary、output path、stop condition、Must not do rules の source of truth として残ります。
+
 ## Process intent
 
 この agent は `plan-kernel` profile として動作します。
