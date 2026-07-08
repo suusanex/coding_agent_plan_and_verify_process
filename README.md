@@ -449,7 +449,8 @@ cross-slice verification では、runtime postcondition oracle と forbidden-sta
 少なくとも次を渡してください。
 
 - `plans/<ticket-or-slug>.md`
-- `plans/<ticket-or-slug>-black-box-behavior-spec.md`（Expansion required: Yes の場合）
+- `plans/<ticket-or-slug>-black-box-behavior-spec.md`（Behavior spec artifact required: Yes の場合）
+- parent Plan / slice artifact 内の Inline behavior sketch と Case mapping（inline behavior sketch sufficient の場合）
 - `plans/<ticket-or-slug>-change-risk-triage.md`
 - `plans/<ticket-or-slug>-implementation-contract-kernel.md`（implementation-realization risk が Present / Unclear の場合）
 - `plans/<ticket-or-slug>-coverage-ledger.md`（存在する場合）
@@ -671,7 +672,7 @@ logger 側は、dated な JSONL ファイル名、`agent_transcript_path`、短�
 この変更について、Plan網羅チェック・残件判定フローで進めます。
 まず plan-kernel.agent.md を使って bounded Plan を作成してください。
 実装・テスト作成・full runtime evidence・full integration test design は行わず、Goal、Non-goals、Functional requirements、Acceptance conditions、Black-box behavior coverage、Affected components、Residual policy、Guardrail Focus candidates、Plan readiness、次 gate への handoff を出してください。
-Expansion required: Yes で behavior spec artifact がない場合は NeedsPlanBehaviorExpansion で停止し、black-box-behavior-spec-kernel.agent.md を recommended next step にしてください。
+Expansion required: Yes の場合でも、inline behavior sketch sufficient なら separate behavior spec artifact を作らず、Plan 内の Inline behavior sketch と Case mapping を source of truth として扱ってください。Behavior spec artifact required: Yes なのに artifact がない場合は NeedsPlanBehaviorExpansion で停止し、black-box-behavior-spec-kernel.agent.md を recommended next step にしてください。
 ```
 
 ### behavior expansion を作る
@@ -696,7 +697,7 @@ NeedsPlanBehaviorExpansion または NeedsHumanDecision の場合は runtime ris
 実装に入る前に、implementation-handoff-review.agent.md を必須 gate として使ってください。
 source code は読まず、artifacts も修正しないでください。
 Parent Plan Coverage Ledger を作成し、Plan → Guardrail Focus RC → TP → production binding requirement の接続を確認してください。
-Expansion required: Yes の場合は Behavior Case Coverage Ledger も作成し、relevant Case IDs をすべて分類してください。
+Behavior spec artifact required: Yes の場合、または Inline behavior sketch が Case IDs を持つ場合は、Behavior Case Coverage Ledger または Inline Ready Gate equivalent の coverage disposition で relevant Case IDs をすべて分類してください。
 Guardrail Focus ready と Parent Plan coverage ledger complete を分け、READY_FOR_BOUNDED_PARENT_PLAN_PASS 系または BLOCKED_* verdict を出してください。
 ```
 
@@ -708,7 +709,8 @@ implementation-execution.agent.md を使って、parent Plan に対する 1 boun
 次の成果物を必ず読んでください。
 
 - plans/<ticket-or-slug>.md
-- plans/<ticket-or-slug>-black-box-behavior-spec.md（Expansion required: Yes の場合）
+- plans/<ticket-or-slug>-black-box-behavior-spec.md（Behavior spec artifact required: Yes の場合）
+- parent Plan / slice artifact 内の Inline behavior sketch と Case mapping（inline behavior sketch sufficient の場合）
 - plans/<ticket-or-slug>-change-risk-triage.md
 - plans/<ticket-or-slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
 - plans/<ticket-or-slug>-coverage-ledger.md（存在する場合）
