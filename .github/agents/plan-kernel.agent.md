@@ -392,7 +392,7 @@ Plan Kernel 内で status が必要な場合は、次の vocabulary を使用し
 
 ## Stop condition
 
-bounded Plan を repository 内の Plan artifact に作成または更新し、`Black-box behavior coverage` と `Handoff Packet` に `Plan readiness`、`Plan artifact`、behavior spec path を記録した後に停止してください。
+bounded Plan を repository 内の Plan artifact に作成または更新し、`Black-box behavior coverage` と `Handoff Packet` に `Plan readiness`、`Plan artifact`、`documentation_level`、behavior spec path を記録した後に停止してください。
 
 Plan Kernel is good enough when an implementation agent can answer:
 

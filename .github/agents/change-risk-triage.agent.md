@@ -112,7 +112,8 @@ Plan に `Black-box behavior coverage` が存在しない場合、または `Exp
 
 - `ReadyForRiskTriage` 以外では runtime contracts を選択してはいけません。
 - `ReadyForRiskTriage` 以外では process profile を `contract-kernel`、`standard-slice`、`full-coverage`、`fix-slice` のいずれにも決定してはいけません。
-- `Documentation level` が `Missing` の場合は Plan artifact または handoff を更新してから risk / profile 分類へ進みます。`strict` または `full-coverage` が documentation level として記録されている場合は Plan フェーズへ差し戻します。
+- `Documentation level` が `Missing` の場合、この agent は risk / profile 分類へ進んではいけません。Plan artifact または handoff の更新が必要であることを記録し、`plan-kernel.agent.md` の再実行または upstream handoff 修正を recommended next step として停止します。この agent 自身は Plan artifact を変更しません。
+- `strict` または `full-coverage` が documentation level として記録されている場合は Plan フェーズへ差し戻します。
 - `NeedsPlanBehaviorExpansion` は Plan フェーズへ差し戻し、source-to-case 展開不足なら `black-box-behavior-spec-kernel.agent.md`、Case-to-Plan mapping 不足なら `plan-kernel.agent.md` を next agent とします。
 - `NeedsHumanDecision` は停止し、必要な product / policy / priority decision を記録します。
 - `full-coverage` は ready な Plan に対して、scope breadth、runtime sequence の相互接続、slice decomposition の必要性を理由にのみ選択します。
