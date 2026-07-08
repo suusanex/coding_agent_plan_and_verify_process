@@ -225,6 +225,21 @@ For READY verification, default to `edit_owner = standard-verifier` and `parent_
 Audit artifacts must include expected vs observed delegation.
 Keep only the audit path and short delegation summary in `codex-first-state.md`.
 
+### Audit creation / update rule
+
+Create or update `plans/<slug>/codex-first-audit.md` before marking any delegated gate successful.
+
+Audit is required when:
+
+- `DelegationRequired = Yes`
+- observed run evidence is needed
+- parent-direct exception is claimed
+- model-observability fields are used
+- `DelegationCompliance` is evaluated
+- close permission depends on delegation evidence
+
+Do not mark implementation, verification, or close as complete if the required audit artifact is missing or stale.
+
 ```md
 ## Agent Usage Ledger
 
