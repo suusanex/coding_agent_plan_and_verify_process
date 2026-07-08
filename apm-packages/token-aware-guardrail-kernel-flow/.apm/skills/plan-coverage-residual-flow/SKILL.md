@@ -57,6 +57,21 @@ Start from the available items in this order:
 
 If a required upstream artifact is absent, route to the agent that creates or refreshes it. Do not proceed by reconstructing missing decisions from source inspection alone.
 
+## Documentation level
+
+The flow records `documentation_level` as routing metadata for the amount of Plan Coverage artifact structure required for the current bounded work.
+
+Allowed values:
+
+| Value | Meaning |
+| --- | --- |
+| `lite` | Use a compact Plan Coverage artifact for a small, bounded change when the Plan can still preserve source-of-truth, FR / AC coverage, implementation authorization, verification summary, and residual decision fields without separate guardrail artifacts. |
+| `standard` | Use the normal compressed Plan Coverage chain when the work needs separate risk, behavior, contract, verification, or residual-decision artifacts to remain traceable. |
+
+Do not add `strict` as a `documentation_level`. When more rigor is needed, route to `standard` and then to the appropriate guardrail or advanced route.
+
+`full-coverage` is not a `documentation_level`. It remains a process profile / route selected after `Plan readiness: ReadyForRiskTriage` when a ready parent Plan is too broad or interconnected for one bounded pass.
+
 ## Standard route
 
 Run the flow in this order unless a stop condition applies:
@@ -65,23 +80,24 @@ Run the flow in this order unless a stop condition applies:
 2. If Plan readiness is `NeedsPlanBehaviorExpansion` because source-to-case expansion is missing, run `black-box-behavior-spec-kernel.agent.md`.
 3. If behavior Case IDs exist but are not mapped to Plan FR / AC or explicit disposition, return to `plan-kernel.agent.md`.
 4. If Plan readiness is `NeedsHumanDecision`, stop and request the human decision. Do not proceed to risk triage or implementation.
-5. Run `change-risk-triage.agent.md` only when Plan readiness is `ReadyForRiskTriage`.
-6. Follow the `change-risk-triage` result:
+5. Record `documentation_level: lite / standard`. Use `lite` only when the compact Plan Coverage artifact can preserve all required source-of-truth, coverage, implementation authorization, verification, and residual-decision fields. Use `standard` when separate guardrail artifacts are needed.
+6. Run `change-risk-triage.agent.md` only when Plan readiness is `ReadyForRiskTriage` and `documentation_level` has been recorded.
+7. Follow the `change-risk-triage` result:
    - `contract-kernel`: run the needed implementation contract, runtime contract, and test-design kernel steps.
    - `standard-slice`: run one bounded parent Plan pass.
    - `fix-slice`: run only the explicitly selected FixNow items.
    - `full-coverage`: follow the full-coverage route below.
-7. In a normal bounded pass, run the needed pre-implementation gates:
+8. In a normal bounded pass, run the needed pre-implementation gates:
    - `implementation-contract-kernel.agent.md`, when implementation-realization risk is present or unclear
    - `implementation-contract-review-kernel.agent.md`, when the implementation contract is non-trivial
    - `runtime-contract-kernel.agent.md`
    - `test-design-kernel.agent.md`
    - `implementation-handoff-review.agent.md`
-8. Implement only after the handoff review allows implementation for the bounded parent Plan pass. Use `implementation-execution.agent.md` or a human-guided implementation route, according to the repository's available agent setup.
-9. Run `verification-kernel.agent.md`.
-10. If unresolved coverage items or FixNow candidates remain, run `coverage-gap-triage.agent.md`.
-11. Before final close, run `residual-decision-gate.agent.md`. If no residual candidates remain, it may produce `READY_TO_CLOSE_WITH_NO_RESIDUALS`. If residual, manual, or human-decision candidates remain, it must classify them before close.
-12. If `coverage-gap-triage` or `residual-decision-gate` emits an explicit FixNow selector, run `coverage-gap-resolution-slice.agent.md`, then return to verification and residual decision as needed.
+9. Implement only after the handoff review or a documented equivalent inline gate allows implementation for the bounded parent Plan pass. Use `implementation-execution.agent.md` or a human-guided implementation route, according to the repository's available agent setup.
+10. Run `verification-kernel.agent.md`.
+11. If unresolved coverage items or FixNow candidates remain, run `coverage-gap-triage.agent.md`.
+12. Before final close, run `residual-decision-gate.agent.md`. If no residual candidates remain, it may produce `READY_TO_CLOSE_WITH_NO_RESIDUALS`. If residual, manual, or human-decision candidates remain, it must classify them before close.
+13. If `coverage-gap-triage` or `residual-decision-gate` emits an explicit FixNow selector, run `coverage-gap-resolution-slice.agent.md`, then return to verification and residual decision as needed.
 
 The parent Plan FR / AC remain the implementation and verification source of truth throughout the route. Guardrail Focus artifacts are deep-check guardrails; they are not an implementation scope reduction.
 
@@ -139,6 +155,7 @@ Every parent-agent turn using this skill should report:
 - current phase
 - source artifacts read
 - Plan readiness
+- documentation_level
 - next agent to use
 - why that agent is next
 - whether implementation is allowed now

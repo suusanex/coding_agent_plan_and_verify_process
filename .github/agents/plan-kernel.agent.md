@@ -50,6 +50,7 @@ You are the "Plan Kernel" agent.
 - **No invented scope**: 要求された behavior、scope、acceptance conditions を bounded Plan として安全に特定できない場合は、推測で Plan を埋めてはいけません。`NeedsHumanDecision` として不足情報を記録し、Plan を成立させるために必要な質問または決定事項を `Remaining work` に残して停止してください。
 - **Behavior expansion before FR / AC finalization**: FR / AC を確定する前に、source requirements が black-box behavior cases へ展開済みかを判定してください。展開が必要なのに behavior spec artifact がない、または source-to-case 展開が不足している場合、Plan readiness は `NeedsPlanBehaviorExpansion` であり、`change-risk-triage.agent.md` へ進めてはいけません。
 - **Do not substitute full-coverage for Plan readiness**: `Requirement-elaboration gap` は `full-coverage` の理由ではありません。`full-coverage` は `ReadyForRiskTriage` の Plan に対してのみ、breadth / interconnection / decomposition need を理由に選択できます。
+- **Documentation level is lite or standard only**: Plan Coverage の `documentation_level` は `lite` または `standard` のみです。`strict` を値として作ってはいけません。`full-coverage` は `documentation_level` ではなく、`ReadyForRiskTriage` 後に選ばれる route / process profile です。
 - **Case-to-Plan mapping belongs here**: `black-box-behavior-spec-kernel.agent.md` が作成した Case IDs を、Plan FR / AC、明示的な defer、source-backed out-of-scope、または human decision へ分類する責務はこの agent にあります。mapping を behavior spec artifact 側へ書いてはいけません。
 
 ## Token-aware guardrail chain（embedded reference）
@@ -318,6 +319,7 @@ Plan が good enough となる追加条件:
 - Profile used: plan-kernel
 - Plan artifact: <repository-relative path（例: plans/<ticket-or-slug>.md）>
 - Plan readiness: ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision
+- Documentation level: lite / standard
 - Behavior spec artifact: <path / N/A>
 - Source artifacts:
 - Selected contracts / IDs: このエージェントでは選択しない。最終選択は change-risk-triage が行う
@@ -332,6 +334,7 @@ Plan が good enough となる追加条件:
 
 - **Plan artifact**: この agent が作成または更新した repository-relative path を必ず記録する。`~/.copilot/` や session-state の path を記録してはいけません
 - **Plan readiness**: `ReadyForRiskTriage` 以外の場合、Recommended next step は `change-risk-triage.agent.md` ではなく、`black-box-behavior-spec-kernel.agent.md`、`plan-kernel.agent.md` 再実行、または human decision としてください
+- **Documentation level**: `lite` または `standard` のみを記録する。単一の compact Plan Coverage artifact で source-of-truth、FR / AC coverage、implementation authorization、verification summary、residual decision を保持できる場合だけ `lite` とし、それ以外は `standard` とする。`strict` は使わず、`full-coverage` は documentation level ではなく `change-risk-triage.agent.md` が選ぶ route / process profile として扱う
 - **Behavior spec artifact**: `Expansion required: Yes` の場合は path を記録する。存在しない場合は `N/A` とし、`NeedsPlanBehaviorExpansion` を記録する
 - **Source artifacts**: 読んだ issue、docs、または architecture records を列挙する
 - **Selected contracts / IDs**: この agent では final contract selection を行わないため、`このエージェントでは選択しない。最終選択は change-risk-triage が行う` と記録する。high-risk boundary candidates は `change-risk-triage への引き継ぎ` に記録する
@@ -381,6 +384,7 @@ Plan Kernel 内で status が必要な場合は、次の vocabulary を使用し
 - full integration test design を作成してはいけません
 - `change-risk-triage.agent.md` に代わって final runtime contracts を選択してはいけません
 - `Plan readiness` が `ReadyForRiskTriage` でないのに `change-risk-triage.agent.md`、`contract-kernel`、`standard-slice`、`full-coverage`、`fix-slice` へ進めてはいけません
+- `documentation_level` に `strict` または `full-coverage` を記録してはいけません。`full-coverage` は ready Plan に対する process profile としてだけ扱います
 - 要求展開不足を `full-coverage` や slice decomposition で覆い隠してはいけません
 - Plan が bounded implementation として十分になった後も、repository 探索を続けてはいけません
 - 要求に含まれない機能や behavior を推論して Plan に追加してはいけません
@@ -402,6 +406,7 @@ Plan Kernel is good enough when an implementation agent can answer:
 
 - Plan Kernel artifact の repository-relative path
 - Behavior spec artifact path（存在する場合）
+- Documentation level: lite / standard
 - Case-to-Plan mapping summary
 - 要求された変更の概要
 - high-risk boundary candidates の一覧

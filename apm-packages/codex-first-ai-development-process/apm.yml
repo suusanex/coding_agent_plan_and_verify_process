@@ -9,6 +9,9 @@ includes: auto
 
 dependencies:
   apm:
+    # Shared Plan Coverage guardrails used by repository agent files.
+    - git: parent
+      path: .github/instructions/plan-coverage-shared.instructions.md
     # Standard cost-aware route kernels.
     - git: parent
       path: .github/agents/plan-kernel.agent.md

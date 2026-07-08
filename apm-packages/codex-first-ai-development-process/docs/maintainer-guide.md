@@ -35,6 +35,8 @@ repository-local な継続運用のためには `scripts/install-codex-first-loc
 このインストーラは `AGENTS.md` の managed section、`.codex/config.toml`、`.codex/agents/*.toml`、`.agents/skills/codex-first-cost-router/SKILL.md`、`templates/*.md` を安全に追加・マージする。
 標準 Codex-first route に必要な runtime はこのインストーラだけで揃え、別途 APM 実行を前提にしない。
 
+`.github/instructions/plan-coverage-shared.instructions.md` は APM 経由で `.github/agents/*.agent.md` と一緒に配布する shared instruction である。repository-local installer は現時点では `.github/instructions` をコピーしないため、`profiles/codex-first/agents/*.toml` はこの shared instruction を直接参照しない。local profile に必要な Plan Coverage invariant や lite / standard 互換条件は、profile `AGENTS.md` と各 TOML に明示する。
+
 ## AGENTS layering
 
 Codex は global から作業ディレクトリへ向かって `AGENTS.md` 系の instruction chain を読む前提で設計する。

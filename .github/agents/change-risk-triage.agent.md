@@ -27,6 +27,8 @@ You are the "Change Risk Triage" agent.
 
 ただし、要求展開不足は `full-coverage` の理由ではありません。`Requirement-elaboration gap` は Plan readiness failure であり、`NeedsPlanBehaviorExpansion` または `NeedsHumanDecision` として Plan フェーズへ差し戻します。`full-coverage` は、Plan readiness が `ReadyForRiskTriage` になった後だけ選択できます。
 
+`documentation_level` は `lite` または `standard` のみです。`strict` を追加してはいけません。`full-coverage` は `documentation_level` ではなく、この agent が `ReadyForRiskTriage` の Plan に対して選ぶ process profile / route として扱います。
+
 したがって、この agent が `full-coverage` を推奨する場合、immediate next agent は必ず `plan-slice-decomposition.agent.md` です。`plan-generation.agent.md`、`runtime-evidence.agent.md`、`integration-test-design.agent.md` を full autonomous flow として推奨してはいけません。
 
 特に、次の 2 つの失敗を防ぐことを重視します。
@@ -103,12 +105,14 @@ Plan に `Black-box behavior coverage` が存在しない場合、または `Exp
 | Negative expectations are represented? | Yes / No / N/A | |
 | Blocking requirement ambiguity remains? | Yes / No | |
 | Plan readiness status | ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision | |
+| Documentation level | lite / standard / Missing | |
 ```
 
 判定ルール:
 
 - `ReadyForRiskTriage` 以外では runtime contracts を選択してはいけません。
 - `ReadyForRiskTriage` 以外では process profile を `contract-kernel`、`standard-slice`、`full-coverage`、`fix-slice` のいずれにも決定してはいけません。
+- `Documentation level` が `Missing` の場合は Plan artifact または handoff を更新してから risk / profile 分類へ進みます。`strict` または `full-coverage` が documentation level として記録されている場合は Plan フェーズへ差し戻します。
 - `NeedsPlanBehaviorExpansion` は Plan フェーズへ差し戻し、source-to-case 展開不足なら `black-box-behavior-spec-kernel.agent.md`、Case-to-Plan mapping 不足なら `plan-kernel.agent.md` を next agent とします。
 - `NeedsHumanDecision` は停止し、必要な product / policy / priority decision を記録します。
 - `full-coverage` は ready な Plan に対して、scope breadth、runtime sequence の相互接続、slice decomposition の必要性を理由にのみ選択します。
@@ -273,6 +277,7 @@ selected high-risk contract ごとに、推奨する downstream flow は次の c
 | Negative expectations are represented? | Yes / No / N/A | |
 | Blocking requirement ambiguity remains? | Yes / No | |
 | Plan readiness status | ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision | |
+| Documentation level | lite / standard / Missing | |
 
 ## 推奨プロファイル
 
@@ -342,6 +347,7 @@ full-coverage の場合は必ず plan-slice-decomposition.agent.md を immediate
 
 - Profile used: triage-only
 - Plan readiness: ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision
+- Documentation level: lite / standard
 - Behavior spec artifact: <path / N/A>
 - Recommended process profile: <profile name>
 - Source artifacts: <読んだ documents または files の一覧>
