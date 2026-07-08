@@ -72,6 +72,10 @@ Do not add `strict` as a `documentation_level`. When more rigor is needed, route
 
 `full-coverage` is not a `documentation_level`. It remains a process profile / route selected after `Plan readiness: ReadyForRiskTriage` when a ready parent Plan is too broad or interconnected for one bounded pass.
 
+When `documentation_level: lite` is selected, use `apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/plan-coverage-lite.md` as the compact artifact shape. The Lite artifact must still preserve source-of-truth, FR / AC coverage, Inline Ready Gate, Implementation Self-Map, Verification Summary, and Residual / Close Decision sections.
+
+The Lite artifact must include an explicit no fake-only completion check. Stub, fake, mock, in-memory, or test-helper evidence alone cannot support implementation completion or close readiness.
+
 ## Standard route
 
 Run the flow in this order unless a stop condition applies:
@@ -80,7 +84,7 @@ Run the flow in this order unless a stop condition applies:
 2. If Plan readiness is `NeedsPlanBehaviorExpansion` because source-to-case expansion is missing, run `black-box-behavior-spec-kernel.agent.md`.
 3. If behavior Case IDs exist but are not mapped to Plan FR / AC or explicit disposition, return to `plan-kernel.agent.md`.
 4. If Plan readiness is `NeedsHumanDecision`, stop and request the human decision. Do not proceed to risk triage or implementation.
-5. Record `documentation_level: lite / standard`. Use `lite` only when the compact Plan Coverage artifact can preserve all required source-of-truth, coverage, implementation authorization, verification, and residual-decision fields. Use `standard` when separate guardrail artifacts are needed.
+5. Record `documentation_level: lite / standard`. Use `lite` only when the compact Plan Coverage artifact can preserve all required source-of-truth, coverage, implementation authorization, verification, and residual-decision fields. Use `standard` when separate guardrail artifacts are needed. For `lite`, use the Plan Coverage Lite template shape and keep the no fake-only completion checks in the Verification Summary.
 6. Run `change-risk-triage.agent.md` only when Plan readiness is `ReadyForRiskTriage` and `documentation_level` has been recorded.
 7. Follow the `change-risk-triage` result:
    - `contract-kernel`: run the needed implementation contract, runtime contract, and test-design kernel steps.

@@ -5,6 +5,7 @@ original_user_intent:
 source_of_truth:
 
 task_weight:
+documentation_level: lite / standard / Unknown
 expansion_required: Yes / No / Unknown
 behavior_spec_artifact:
 plan_readiness: ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision / Unknown
@@ -69,8 +70,10 @@ allowed_stop_reasons:
 ## Task Weight
 
 - task_weight: trivial-local / small-bounded / medium-bounded / high-risk-bounded / needs-plan-behavior-expansion / broad-full-coverage-candidate / blocked-human-required
+- documentation_level: lite / standard / Unknown
 - classification_reason:
 - selected_process: normal / advanced-full-coverage / human-decision-wait / higher-model-review / lower-cost-delegated-scan
+- documentation_level_reason:
 
 ## Plan Readiness
 
@@ -133,6 +136,7 @@ unresolved_residuals:
 
 operations_not_allowed_in_current_state:
 - Do not implement before READY.
+- Do not record `strict` or `full-coverage` as documentation_level; use only `lite` or `standard`.
 - Do not select risk/profile/full-coverage before plan_readiness = ReadyForRiskTriage.
 - Do not route requirement-elaboration gaps to full-coverage or fix-slice.
 - Do not route to implementation-handoff-review until risk_triage_artifact_status = Complete and `plans/<ticket-or-slug>-change-risk-triage.md` exists.

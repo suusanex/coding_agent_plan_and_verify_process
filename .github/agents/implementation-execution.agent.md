@@ -76,9 +76,10 @@ plan-kernel
 6. Implementation Contract Kernel（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）— `Implementation realization risk` が `Present` / `Unclear` の場合は strongly required
 7. Implementation Contract Review Kernel（`plans/<ticket-or-slug>-implementation-contract-review-kernel.md`）— 存在する場合は読む
 8. Plan Slice Decomposition artifact（`plans/<ticket-or-slug>-slice-decomposition.md`）— full-coverage decomposition から生成された slice を実装する場合は必須
-9. Implementation Handoff Review（`plans/<ticket-or-slug>-implementation-handoff-review.md`）— 必須。存在しない場合は停止する
-10. Coverage Gap Triage / Resolution Slice output — fix-slice の実装である場合は読む
-11. 既存の Implementation Self-Map または Implementation Execution Result — 既に一部実装済みの続きである場合は読む
+9. Plan Coverage Lite artifact — `documentation_level: lite` の bounded pass で caller が提示した場合は読む。Inline Ready Gate、Implementation Self-Map、Verification Summary、Residual / Close Decision を確認する
+10. Implementation Handoff Review（`plans/<ticket-or-slug>-implementation-handoff-review.md`）— 必須。存在しない場合は停止する
+11. Coverage Gap Triage / Resolution Slice output — fix-slice の実装である場合は読む
+12. 既存の Implementation Self-Map または Implementation Execution Result — 既に一部実装済みの続きである場合は読む
 
 ### Repository context
 
@@ -100,15 +101,16 @@ plan-kernel
 
 1. caller が parent Plan pass、Guardrail Focus、contract IDs、test point IDs、gap IDs を直接指定した場合は、それを最優先にする。
 2. bounded Plan を source of truth として、実装すべき behavior、non-goals、acceptance conditions、implementation scope を判断する。
-3. `Expansion required: Yes` の場合は Black-box Behavior Spec と Behavior Case Coverage Ledger を source として、実装対象の Case IDs と negative expectations を判断する。
-4. Change Risk Triage は high-risk boundaries、selected runtime contracts、implementation-realization risk の source とする。
-5. Plan Slice Decomposition artifact がある場合は、slice scope、non-goals、cross-slice dependencies、XC IDs、execution order の authoritative source とする。
-6. Implementation Contract Kernel がある場合は、dependency/API/provider path、allowed reuse、prohibited substitutions、required code changes、unresolved implementation-realization items の authoritative source とする。
-7. Implementation Contract Review Kernel がある場合は、その verdict、blocking items、notes を実装可否判断に反映する。
-8. Runtime Contract Kernel は selected RC の producer / consumer / message / fields / error behavior / production implementation address の source とする。
-9. Test Design Kernel は selected TP、expected observation、stub/fake allowed、production binding required の source とする。
-10. Implementation Handoff Review の verdict、readiness scope、Parent Plan Coverage Ledger、Behavior Case Coverage Ledger、blocking issues、recommended implementation prompt additions を実装前に確認する。handoff review が存在しない、または Parent Plan Coverage Ledger が欠落している場合は停止する。
-11. artifacts と existing code が矛盾する場合は、勝手に code を優先して Plan を曲げてはいけない。mismatch を `Remaining work` または `NeedsHumanDecision` として記録する。
+3. Plan Coverage Lite artifact がある場合は、Inline Ready Gate、Implementation Self-Map、Verification Summary、Residual / Close Decision を source として扱う。ただし、別途明示された authorization がない限り、この artifact だけで handoff review requirement を満たしたとは扱わない。
+4. `Expansion required: Yes` の場合は Black-box Behavior Spec と Behavior Case Coverage Ledger を source として、実装対象の Case IDs と negative expectations を判断する。
+5. Change Risk Triage は high-risk boundaries、selected runtime contracts、implementation-realization risk の source とする。
+6. Plan Slice Decomposition artifact がある場合は、slice scope、non-goals、cross-slice dependencies、XC IDs、execution order の authoritative source とする。
+7. Implementation Contract Kernel がある場合は、dependency/API/provider path、allowed reuse、prohibited substitutions、required code changes、unresolved implementation-realization items の authoritative source とする。
+8. Implementation Contract Review Kernel がある場合は、その verdict、blocking items、notes を実装可否判断に反映する。
+9. Runtime Contract Kernel は selected RC の producer / consumer / message / fields / error behavior / production implementation address の source とする。
+10. Test Design Kernel は selected TP、expected observation、stub/fake allowed、production binding required の source とする。
+11. Implementation Handoff Review の verdict、readiness scope、Parent Plan Coverage Ledger、Behavior Case Coverage Ledger、blocking issues、recommended implementation prompt additions を実装前に確認する。handoff review が存在しない、または Parent Plan Coverage Ledger が欠落している場合は停止する。
+12. artifacts と existing code が矛盾する場合は、勝手に code を優先して Plan を曲げてはいけない。mismatch を `Remaining work` または `NeedsHumanDecision` として記録する。
 
 ## Proceed / blocked rules
 
@@ -238,6 +240,8 @@ caller または environment が許す範囲で、関連 tests、build、lint、
 実装後、必ず `Implementation Self-Map` を作成してください。
 
 通常は `plans/<ticket-or-slug>-implementation-execution.md` に含めます。既存の result artifact がある場合は、今回の pass に関係する内容だけを更新または追記してください。
+
+caller が Plan Coverage Lite artifact を active result location として指定している場合は、その artifact の `Implementation Self-Map` section を今回の pass に関係する内容だけ更新してもよいです。その場合でも、final response には同じ内容の要約を含めてください。指定がない場合は、通常どおり Implementation Execution Result に記録してください。
 
 必須 table:
 

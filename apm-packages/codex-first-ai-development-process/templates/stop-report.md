@@ -3,6 +3,7 @@
 task_slug:
 state_artifact:
 task_weight:
+documentation_level:
 selected_process:
 current_gate:
 next_gate:

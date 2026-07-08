@@ -335,6 +335,7 @@ Plan が good enough となる追加条件:
 - **Plan artifact**: この agent が作成または更新した repository-relative path を必ず記録する。`~/.copilot/` や session-state の path を記録してはいけません
 - **Plan readiness**: `ReadyForRiskTriage` 以外の場合、Recommended next step は `change-risk-triage.agent.md` ではなく、`black-box-behavior-spec-kernel.agent.md`、`plan-kernel.agent.md` 再実行、または human decision としてください
 - **Documentation level**: `lite` または `standard` のみを記録する。単一の compact Plan Coverage artifact で source-of-truth、FR / AC coverage、implementation authorization、verification summary、residual decision を保持できる場合だけ `lite` とし、それ以外は `standard` とする。`strict` は使わず、`full-coverage` は documentation level ではなく `change-risk-triage.agent.md` が選ぶ route / process profile として扱う
+- **Plan Coverage Lite artifact**: `documentation_level: lite` を選ぶ場合は、`apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/plan-coverage-lite.md` の section set と同等の compact artifact structure を使う。Lite artifact でも source-of-truth、FR / AC coverage、Inline Ready Gate、Implementation Self-Map、Verification Summary、Residual / Close Decision を省いてはいけません
 - **Behavior spec artifact**: `Expansion required: Yes` の場合は path を記録する。存在しない場合は `N/A` とし、`NeedsPlanBehaviorExpansion` を記録する
 - **Source artifacts**: 読んだ issue、docs、または architecture records を列挙する
 - **Selected contracts / IDs**: この agent では final contract selection を行わないため、`このエージェントでは選択しない。最終選択は change-risk-triage が行う` と記録する。high-risk boundary candidates は `change-risk-triage への引き継ぎ` に記録する
@@ -385,6 +386,7 @@ Plan Kernel 内で status が必要な場合は、次の vocabulary を使用し
 - `change-risk-triage.agent.md` に代わって final runtime contracts を選択してはいけません
 - `Plan readiness` が `ReadyForRiskTriage` でないのに `change-risk-triage.agent.md`、`contract-kernel`、`standard-slice`、`full-coverage`、`fix-slice` へ進めてはいけません
 - `documentation_level` に `strict` または `full-coverage` を記録してはいけません。`full-coverage` は ready Plan に対する process profile としてだけ扱います
+- `documentation_level: lite` を選ぶ場合でも、stub / fake / mock / in-memory only で完了扱いしてはいけません。Lite artifact の Verification Summary に production implementation と production wiring / entrypoint の確認状態を記録してください
 - 要求展開不足を `full-coverage` や slice decomposition で覆い隠してはいけません
 - Plan が bounded implementation として十分になった後も、repository 探索を続けてはいけません
 - 要求に含まれない機能や behavior を推論して Plan に追加してはいけません

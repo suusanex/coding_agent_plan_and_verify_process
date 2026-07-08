@@ -29,6 +29,7 @@ Minimum fields:
 - task slug
 - original user intent
 - task weight
+- documentation_level
 - selected process
 - expansion required
 - behavior spec artifact
@@ -72,7 +73,7 @@ For "続きやって", read the newest matching state artifact before deciding t
 ### Task Weight
 
 Classify task weight before selecting the next gate.
-Record the result in state as `task_weight` and `selected_process`.
+Record the result in state as `task_weight`, `documentation_level`, and `selected_process`.
 
 | Weight | Typical signals | Default process |
 | --- | --- | --- |
@@ -105,6 +106,35 @@ Use `selected_process` values:
 
 Do not ask the user to choose these values.
 The router chooses them and records the reason.
+
+### Documentation Level
+
+Record `documentation_level` as routing metadata for how much Plan Coverage artifact structure the current bounded work needs.
+
+Allowed values:
+
+| Value | Meaning |
+| --- | --- |
+| `lite` | Use a compact Plan Coverage artifact for a small bounded change when source-of-truth, FR / AC coverage, implementation authorization, verification summary, and residual decision can stay in one artifact without losing traceability. |
+| `standard` | Use the normal compressed Plan Coverage chain when separate risk, behavior, contract, verification, or residual-decision artifacts are needed. |
+
+Default selection:
+
+| Task weight | Default `documentation_level` |
+| --- | --- |
+| `trivial-local` | `lite` when a state artifact is required; otherwise state may remain optional |
+| `small-bounded` | `lite` unless behavior expansion, high-risk boundary, manual verification, or separate guardrail artifact is needed |
+| `medium-bounded` | `standard` |
+| `high-risk-bounded` | `standard` |
+| `needs-plan-behavior-expansion` | `standard` |
+| `broad-full-coverage-candidate` | `standard` |
+| `blocked-human-required` | `standard` |
+
+If the classification is unclear, choose `standard`.
+Do not add `strict` as a `documentation_level`.
+`full-coverage` is not a `documentation_level`; it remains `selected_process = advanced-full-coverage` after `Plan readiness = ReadyForRiskTriage`.
+Do not ask the user to choose `documentation_level`.
+The router chooses it and records the reason.
 
 ### Execution Mode
 
@@ -249,6 +279,7 @@ Do not:
 
 - treat requirement-elaboration gaps as `broad-full-coverage-candidate`
 - select `advanced-full-coverage` before `ReadyForRiskTriage`
+- record `strict` or `full-coverage` as `documentation_level`
 - implement before Plan readiness is recorded
 
 ### Risk triage
@@ -414,6 +445,7 @@ Return:
 
 - state artifact path
 - task weight
+- documentation_level
 - expansion required
 - behavior spec artifact
 - plan readiness
