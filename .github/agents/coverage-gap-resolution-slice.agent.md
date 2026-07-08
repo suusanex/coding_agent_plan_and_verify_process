@@ -36,7 +36,7 @@ You are the "Coverage Gap Resolution Slice" agent.
 
 ## Embedded process policy
 
-### Bounded pass
+### Single fix pass
 
 1 回の bounded pass で選択 ID を処理し、停止してください。すべての問題が消えるまでループしてはいけません。修正できなかった残留事項は `残留作業` セクションと Handoff Packet の `Remaining work` に明示して停止します。
 
@@ -150,7 +150,7 @@ consume または create した implementation contract artifact に、selected 
 - `PlanProhibitedPatternDetected`: Plan が禁止した production pattern を修正する。明示的に不可能な場合を除き、negative test または verification hook を追加・更新する。
 - Parent Plan Coverage Ledger が missing の場合、この agent の output/status artifact に作成する。upstream Plan / Runtime Contract Kernel / Test Design Kernel を勝手に変更してはいけない。
 
-### Explicit residual work
+### Residual recording
 
 不明点、未確認点、human decision が必要な点は、空欄や曖昧な成功扱いにせず、shared status vocabulary と `残留作業` セクション、および Handoff Packet の `Remaining work` で明示してください。
 
@@ -393,18 +393,11 @@ canonical coverage ledger が存在する場合、または source coverage arti
 
 ## Status vocabulary
 
-| Status | 意味 |
-| --- | --- |
-| `Done` | この pass でこの ID の修正が完了し、guardrail chain（runtime participant / boundary → contract → test point → production implementation → wiring）がすべて確認できた |
-| `PartiallyDone` | 一部の修正は完了したが、chain のいずれかのリンクが未確認のまま残っている |
-| `Deferred` | この pass では意図的に扱わない |
-| `ManualOnly` | 実際の環境または手動検証が必要であり、自動修正できない |
-| `NeedsHumanDecision` | Plan 要件の曖昧さや設計判断が必要であり、安全に進めない |
-| `NotImplementedOrMismatch` | production implementation が存在しないか、または contract と一致しない |
-| `OutOfScopeForThisPass` | 修正が bounded cascade を超えるため、この slice では扱わない |
-| `Bound` | stub/fake を使う test point に対して production interface・concrete implementation・wiring/entrypoint・post-wiring behavior against required postcondition が確認済みであることを示す formal verification status。この agent は source artifact に既に存在する `Bound` を引用できるが、新規付与はしない。 |
+`.github/instructions/plan-coverage-shared.instructions.md` の shared status vocabulary を使ってください。
 
 `Done` はこの pass での修正完了を意味します。feature 全体の完了や、選択 scope 外の gap が存在しないことを意味しません。
+
+`Bound` は、この agent で新規付与しません。source artifact に既に存在する `Bound` を引用する場合だけ使ってください。
 
 selected ID は、次の条件を満たす場合に test 未実行でも `Done` にできます。
 

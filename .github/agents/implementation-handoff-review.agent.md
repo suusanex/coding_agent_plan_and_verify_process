@@ -509,18 +509,12 @@ verdict を出力し、`引き継ぎ必須 inputs` と `Handoff Packet` を記�
 
 ## Status vocabulary
 
-Handoff Packet の `Remaining work`、`ブロッキング問題`、`非ブロッキング注記`、および `Handoff Packet` を記録する際は、必要に応じて shared status vocabulary を使ってください。
+Handoff Packet の `Remaining work`、`ブロッキング問題`、`非ブロッキング注記`、および `Handoff Packet` を記録する際は、`.github/instructions/plan-coverage-shared.instructions.md` の shared status vocabulary を使ってください。
+
+この agent 固有の parent coverage / mapping status は次を使います。
 
 | Status | Meaning |
 | --- | --- |
-| `Done` | この pass で review と判定が完了した |
-| `PartiallyDone` | 有用な review はできたが、artifact 不足や ambiguity が残る |
-| `Deferred` | この pass では意図的に扱わない |
-| `ManualOnly` | manual または human review が必要である |
-| `NeedsHumanDecision` | product、architecture、policy、または risk に関する human decision なしでは安全に進められない |
-| `NotImplementedOrMismatch` | artifact 間の対応が欠けている、mismatch している、または source-of-truth の接続が崩れている |
-| `OutOfScopeForThisPass` | 妥当な確認項目だが、この bounded review の外である |
-| `Bound` | Production interface、production implementation、production wiring / entrypoint、post-wiring behavior against required postcondition が test substitute に対して確認済みである |
 | `CoveredByGuardrailFocus` | parent Plan item が Guardrail Focus RC / TP / slice で実装・検証対象になっている |
 | `CoveredByCrossSliceVerification` | parent Plan item が cross-slice verification 対象として明示されている |
 | `DeferredToKnownSlice` | parent Plan item が別 slice / RC / gap ID に明示的に残されている |

@@ -34,16 +34,13 @@ You are the "Test Design Kernel" agent.
 
 ## Embedded process policy
 
-この agent は、実行時に外部の設計ドキュメントが存在しない環境でも単体で動作できる必要があります。以下の policy を、この agent の runtime 前提として扱ってください。
+この agent は、実行時に外部の設計ドキュメントが存在しない環境でも単体で動作できる必要があります。共通の Plan source-of-truth、No fake-only completion、Residual explicit decision、bounded reading、Handoff Packet discipline は `.github/instructions/plan-coverage-shared.instructions.md` に従います。
 
-- **Reduce breadth, not depth**: token cost を下げるために扱う contracts の数を絞る。selected contracts に対する guardrail の深さを削ってはいけない。
 - **Guardrail chain**: Guardrail Focus surface では、runtime contract、runtime participant/boundary、test point、stub/fake/in-memory usage、production implementation、production wiring/entrypoint、explicit unresolved status が後続工程までつながる必要がある。この agent はそのうち test point mapping と stub/fake/in-memory usage identification を確立し、production binding の必須性を明示して後続工程（verification-kernel）へ渡す。
-- **Bounded pass**: 1 回の bounded pass を行い、未解決事項は `注記 / 前提` と `Handoff Packet` に明示して停止する。完璧にするために scope を広げ続けてはいけない。
 - **Selected slice only**: selected contracts / IDs から unrelated scenarios へ広げてはいけない。
 - **Behavior Case traceability**: behavior spec が存在する場合、Plan の Case-to-Plan mapping で current selected runtime contracts / slice に対応づけられた Case IDs を入力として読み、selected scope の Case ID を黙って省略してはいけない。
 - **Fallback is narrow**: Runtime Contract Kernel artifact がない場合は、caller が直接渡した contract IDs のみを扱う。Runtime Contract Kernel なしに test design を広範に作成してはいけない。caller IDs も Runtime Contract Kernel も存在しない場合は停止して `runtime-contract-kernel.agent.md` の実行を推奨する。
-- **Explicit residual work**: 不明点、未確認点、human decision が必要な点は、空欄や曖昧な成功扱いにせず、shared status vocabulary と `Remaining work` で明示する。
-- **No test-only production proof**: test-side、fake-side、mock-side の存在を production implementation の存在として扱ってはいけない。stub / fake を使う test point には、必ず production binding の検証要件を明示する。
+- **Production binding requirement**: stub / fake を使う test point には、必ず production binding の検証要件を明示する。
 
 ## Runtime inputs
 
@@ -261,18 +258,7 @@ test point を定義するために必要な情報が不足している場合は
 
 ## Status vocabulary
 
-`Status` 列や `Remaining work` を記録する際は、shared status vocabulary を使ってください。
-
-| Status | Meaning |
-| --- | --- |
-| `Done` | この pass で完了した |
-| `PartiallyDone` | 有用な前進はあったが、item は未完了である |
-| `Deferred` | この pass では意図的に扱わない |
-| `ManualOnly` | manual または real-environment validation が必要である |
-| `NeedsHumanDecision` | product、architecture、policy、または risk に関する human decision なしでは安全に進められない |
-| `NotImplementedOrMismatch` | implementation が欠けている、mismatch している、または test-side / fake-side にしか存在しない |
-| `OutOfScopeForThisPass` | 妥当な work だが、selected slice の外である |
-| `Bound` | test substitute に対して、production interface・production implementation・production wiring / entrypoint に加え、post-wiring behavior が required postcondition を満たすことが確認済みである |
+`Status` 列や `Remaining work` を記録する際は、`.github/instructions/plan-coverage-shared.instructions.md` の shared status vocabulary を使ってください。
 
 この agent は production binding verification の要求を設計する agent であり、production binding を実際に確認する agent ではありません。既存 artifact に production interface・production implementation・production wiring / entrypoint と post-wiring behavior against required postcondition が確認済みである明確な evidence がある場合を除き、`Bound` を付けてはいけません。通常は `必須 production binding 確認事項` に verification-kernel への確認事項として渡してください。
 

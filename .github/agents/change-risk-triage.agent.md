@@ -399,18 +399,12 @@ classification に追加情報が必要な場合でも、Plan readiness が `Rea
 
 ## Status vocabulary
 
-selected contracts、residual work、handoff items を記録する際は、shared status vocabulary を使ってください。
+selected contracts、residual work、handoff items を記録する際は、`.github/instructions/plan-coverage-shared.instructions.md` の shared status vocabulary を使ってください。
+
+この agent 固有の readiness / mapping status は次を使います。
 
 | Status | Meaning |
 | --- | --- |
-| `Done` | この pass で完了した |
-| `PartiallyDone` | 有用な前進はあったが、item は未完了である |
-| `Deferred` | この pass では意図的に扱わない。full-coverage では Plan slice decomposition に渡す |
-| `ManualOnly` | manual または real-environment validation が必要である |
-| `NeedsHumanDecision` | product、architecture、policy、または risk に関する human decision なしでは安全に進められない |
-| `NotImplementedOrMismatch` | implementation が欠けている、mismatch している、または test-side / fake-side にしか存在しない |
-| `OutOfScopeForThisPass` | 妥当な work だが、selected slice の外である |
-| `Bound` | test substitute に対して、production interface・production implementation・production wiring / entrypoint に加え、post-wiring behavior が required postcondition を満たすことが確認済みである |
 | `ReadyForRiskTriage` | Plan readiness が完了し、risk / profile 分類に進める |
 | `NeedsPlanBehaviorExpansion` | source-to-case 展開または Case-to-Plan mapping が不足しており、Plan フェーズへ差し戻す |
 | `UnmappedBlocking` | behavior Case ID が FR / AC、defer、out-of-scope、human decision のどれにも対応しない |

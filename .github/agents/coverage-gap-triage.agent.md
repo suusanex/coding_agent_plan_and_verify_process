@@ -37,7 +37,7 @@ You are the "Coverage Gap Triage" agent.
 
 ## Embedded process policy
 
-### Bounded pass
+### Single classification pass
 
 一度の実行で classification を完了し、停止してください。修復ループに入ってはいけません。
 
@@ -396,15 +396,6 @@ implementation-coverage-of-integration-test）を使ったか、どの ID を対
 
 ## Status vocabulary
 
-この agent は、出力内で次の shared status vocabulary を使用してください。
+この agent は、出力内で `.github/instructions/plan-coverage-shared.instructions.md` の shared status vocabulary を使用してください。
 
-| Status | 意味 |
-| --- | --- |
-| `Done` | この pass でその item の classification が完了した。修復または実装が完了したことを意味しない。 |
-| `PartiallyDone` | 一部は分類できたが、残件がある。 |
-| `Deferred` | この pass では対象外として意図的に後回しにした。 |
-| `ManualOnly` | automated な検証が不可能であり、手動での確認のみが適切。 |
-| `NeedsHumanDecision` | human input なしに次の step を安全に選べない。 |
-| `NotImplementedOrMismatch` | source artifact に記録されている未実装または不一致の状態を転記する場合に使用。 |
-| `OutOfScopeForThisPass` | この triage の scope 外として意図的に除外した。 |
-| `Bound` | production interface・production implementation・production wiring / entrypoint に加え、post-wiring behavior が required postcondition を満たすことが test substitute に対して確認済みであることを示す。この agent は既存 artifact から転記する場合を除き、新たに `Bound` を付けない。 |
+`Done` は classification が完了したことだけを意味し、修復または実装の完了を意味しません。`Bound` は既存 artifact から転記する場合を除き、新たに付けないでください。

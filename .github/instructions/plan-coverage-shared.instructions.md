@@ -26,6 +26,21 @@ These rules apply to Plan Coverage Check and Residual Decision Flow agents when 
 - When a shared `Handoff Packet` is used, keep common fields stable while leaving agent-specific verdicts and required sections in the agent that owns them.
 - Do not drop a parent Plan item because it is outside the current Guardrail Focus. Classify it as implemented, verified, manual, residual, deferred, out of scope by source, or human-decision required.
 
+## Shared status vocabulary
+
+Use these statuses when an agent needs common progress, residual, or handoff classification. Agent-specific verdicts, profile recommendations, output paths, and stop rules remain in the owning agent file.
+
+| Status | Meaning |
+| --- | --- |
+| `Done` | The item is complete for the current agent pass. It does not imply feature-level completion unless the owning agent explicitly says so. |
+| `PartiallyDone` | Useful progress was made, but the item is not complete. |
+| `Deferred` | The item is intentionally not handled in the current pass. |
+| `ManualOnly` | Manual or real-environment validation is required. |
+| `NeedsHumanDecision` | A product, architecture, policy, or risk decision is needed before safe progress. |
+| `NotImplementedOrMismatch` | The implementation is missing, mismatched, or only present in test-side / fake-side form. |
+| `OutOfScopeForThisPass` | The work is valid but outside the selected scope for the current pass. |
+| `Bound` | A formal production-binding status for test substitutes. Use only when the owning agent's local rules allow it and the required production interface, concrete implementation, wiring / entrypoint, and post-wiring behavior evidence are present. |
+
 ## Bounded reading
 
 - Read the Plan and upstream artifacts needed for the current phase before reading source code broadly.

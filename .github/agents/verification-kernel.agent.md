@@ -36,16 +36,12 @@ You are the "Verification Kernel" agent.
 
 ## Embedded process policy
 
-この agent は、実行時に外部の設計ドキュメントが存在しない環境でも単体で動作できる必要があります。以下の policy を、この agent の runtime 前提として扱ってください。
+この agent は、実行時に外部の設計ドキュメントが存在しない環境でも単体で動作できる必要があります。共通の Plan source-of-truth、No fake-only completion、Residual explicit decision、bounded reading、Handoff Packet discipline は `.github/instructions/plan-coverage-shared.instructions.md` に従います。
 
-- **Reduce breadth, not depth**: token cost を下げるために扱う contracts / test points の数を絞る。Guardrail Focus coverage に対する検証の深さを削ってはいけない。
 - **Guardrail chain**: この agent は guardrail chain の step 5〜7 を担当する。step 5（production implementation binding）、step 6（production wiring/entrypoint verification）、step 7（explicit unresolved status）を確立し、後続へ渡す。前工程（test-design-kernel）が確立した test point mapping と stub/fake/in-memory usage identification を信頼して利用する。
-- **Bounded pass**: 1 回の bounded pass を行い、未解決事項は `未解決項目` と `Handoff Packet` に明示して停止する。gap をすべて修正しようとしてはいけない。
 - **Selected slice only**: selected contracts / test point IDs から unrelated scenarios へ広げてはいけない。
 - **Respect Plan Slice Decomposition**: full-coverage decomposition 由来の slice を検証する場合、Plan Slice Decomposition artifact の slice scope、cross-slice dependencies、XC IDs を読む。cross-slice contract や slice 間 production binding はこの agent だけで `Bound` / pass 扱いせず、`cross-slice-verification-kernel.agent.md` に残す。
 - **Fallback is narrow**: 次のいずれかが存在する場合は proceed できる：caller が渡した selected test point IDs、Test Design Kernel artifact、integration test points、Runtime Contract Kernel の `Verification hook` 列に concrete test point、manual check、または existing verification artifact を明示している参照がある場合。`to be assigned` や曖昧な hook しかない場合は proceed せず、`test-design-kernel.agent.md` の実行を推奨する。
-- **Explicit residual work**: 不明点、未確認点、human decision が必要な点は、空欄や曖昧な成功扱いにせず、shared status vocabulary と `Remaining work` で明示する。
-- **No test-only production proof**: test-side、fake-side、mock-side の存在を production implementation の存在として扱ってはいけない。test が通ることは production binding の確認ではない。
 - **Parent Plan Coverage Ledger required**: parent Plan FR / AC を implemented / verified / manual / residual / unmapped のいずれかへ分類する。Guardrail Focus deep verification だけで parent Plan completion を主張してはいけません。
 - **Canonical coverage ledger aware**: `plans/<ticket-or-slug>-coverage-ledger.md` が存在する場合は canonical Parent Plan Coverage Ledger として読み、今回の verification で変わった行だけを `Coverage Ledger Delta` に記録する。canonical ledger が存在しない場合は、この artifact に full Parent Plan Coverage Ledger を出力する。full ledger と delta が矛盾する場合は `SourceOfTruthDrift` として扱う。
 - **Behavior Case evidence required when present**: Requirement-elaboration gap 対策として、behavior spec が存在する場合、current pass に含まれる Case IDs を test / manual / production evidence へ接続できるか確認する。Case ID が期待動作または negative expectation の evidence へ接続されない場合は unresolved status を残し、parent Plan pass として成功扱いしてはいけない。
@@ -481,18 +477,9 @@ Requirement-elaboration gap（`UnexpandedRequirement`、`SourceRequirementNotMap
 
 ## Status vocabulary
 
-`Status` 列や `Remaining work` を記録する際は、shared status vocabulary を使ってください。
+`Status` 列や `Remaining work` を記録する際は、`.github/instructions/plan-coverage-shared.instructions.md` の shared status vocabulary を使ってください。
 
-| Status | Meaning |
-| --- | --- |
-| `Done` | この pass で verification が完了した。substitute を使わない test point では、test artifact または manual-only reason があり、production implementation / wiring / entrypoint との対応が確認できた場合にのみ使う |
-| `Bound` | test substitute に対して、production interface + production concrete implementation + production wiring/entrypoint + post-wiring behavior against required postcondition が確認済みである（substitute を使う test point にのみ使う） |
-| `PartiallyDone` | 有用な前進はあったが、item は未完了である |
-| `Deferred` | この pass では意図的に扱わない |
-| `ManualOnly` | manual または real-environment validation が必要であり、その理由が記録されている |
-| `NeedsHumanDecision` | product、architecture、policy、または risk に関する human decision なしでは安全に進められない |
-| `NotImplementedOrMismatch` | implementation が欠けている、mismatch している、または test-side / fake-side にしか存在しない |
-| `OutOfScopeForThisPass` | 妥当な work だが、selected slice の外である |
+`Done` は、この pass で verification が完了した場合にだけ使います。substitute を使わない test point では、test artifact または manual-only reason があり、production implementation / wiring / entrypoint との対応が確認できた場合にのみ使ってください。
 
 `Bound` は、production interface + concrete implementation + wiring/entrypoint + post-wiring behavior against required postcondition が確認できた場合にのみ付けてください。いずれか一つでも未確認の場合は `PartiallyDone` または `NotImplementedOrMismatch` を使い、残件を `Remaining work` に明記してください。
 

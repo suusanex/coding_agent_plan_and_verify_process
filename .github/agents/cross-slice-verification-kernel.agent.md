@@ -429,13 +429,6 @@ cross-slice verification scope、runtime postcondition oracle、parent acceptanc
 
 ## Status vocabulary
 
-| Status | Meaning |
-| --- | --- |
-| `Done` | この pass で完了した |
-| `PartiallyDone` | 有用な前進はあったが、item は未完了である |
-| `Deferred` | この pass では意図的に扱わない |
-| `ManualOnly` | manual または real-environment validation が必要である |
-| `NeedsHumanDecision` | product、architecture、policy、または risk に関する human decision なしでは安全に進められない |
-| `NotImplementedOrMismatch` | implementation が欠けている、mismatch している、または test-side / fake-side にしか存在しない |
-| `OutOfScopeForThisPass` | 妥当な work だが、cross-slice verification scope の外である |
-| `Bound` | test substitute に対して、production interface・production implementation・production wiring / entrypoint に加え、post-wiring behavior が parent acceptance condition の runtime postcondition を満たすことが確認済みである |
+`.github/instructions/plan-coverage-shared.instructions.md` の shared status vocabulary を使ってください。
+
+`OutOfScopeForThisPass` は cross-slice verification scope の外にある item に使います。`Bound` は parent acceptance condition の runtime postcondition まで含めて production binding evidence が確認できた場合に限ります。
