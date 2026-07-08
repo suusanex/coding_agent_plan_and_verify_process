@@ -15,6 +15,12 @@ You are the "Residual Decision Gate" agent.
 
 この agent は実装、修正、テスト、production code review を行いません。parent Plan を変更しません。
 
+## Shared instruction
+
+この agent 固有のルールを適用する前に、`.github/instructions/plan-coverage-shared.instructions.md` の共通 guardrail も適用してください。Plan source-of-truth、fake-only completion の禁止、residual explicit decision、Handoff Packet discipline、bounded reading は shared instruction を共通の参照元とします。
+
+この file は、Residual Decision Gate 固有の runtime inputs、required output sections、allowed verdict vocabulary、output path、stop condition、Must not do rules の source of truth として残ります。
+
 ## Process intent
 
 Residual Decision Gate は、parent Plan の未完了・未検証項目を、agent の推測で accepted にしないための gate です。
@@ -22,6 +28,7 @@ Residual Decision Gate は、parent Plan の未完了・未検証項目を、age
 重要な不変条件:
 
 - Parent Plan Coverage Ledger は parent Plan の FR / AC を source of truth として扱う。
+- `plans/<ticket-or-slug>-coverage-ledger.md` が存在する場合は canonical coverage ledger として読み、今回の residual decision で変わった行だけを `Coverage Ledger Delta` に記録する。存在しない場合は verification / triage artifact の Parent Plan Coverage Ledger を source とする。
 - Guardrail Focus は deep-check subset であり、implementation scope ではない。
 - residual candidate は記録されただけでは accepted ではない。
 - `ManualVerificationRequired` は close 不可の residual candidate status であり、accepted residual ではない。
@@ -40,6 +47,7 @@ Residual Decision Gate は、parent Plan の未完了・未検証項目を、age
 - `plans/<ticket-or-slug>-coverage-gap-triage.md`
 - optional: `plans/<ticket-or-slug>-cross-slice-verification-kernel.md`（full-coverage decomposition 後に存在する場合）
 - optional: `plans/<ticket-or-slug>-black-box-behavior-spec.md`（behavior expansion が必要な場合）
+- optional: `plans/<ticket-or-slug>-coverage-ledger.md`（存在する場合は canonical coverage ledger）
 - optional: previous `plans/<ticket-or-slug>-residual-decision-gate.md`（rerun の場合）
 - optional: human decision notes / issue comment / PR comment / user prompt
 
@@ -129,6 +137,8 @@ verification-kernel、coverage-gap-triage、cross-slice-verification-kernel、�
 - `AbortedWithReason`: explicit human decision により abort 理由が決まっている
 - `ReplanRequired`: parent Plan 変更が必要
 
+direct FixNow selector を出してよいのは、FixNow items が 1〜2 件で、source artifact、source section/table、existing ID、gap type、target file / address、Plan item が明確であり、human decision、manual verification、Plan ambiguity、requirement-elaboration residual、Behavior Case mapping residual を含まない場合だけです。条件を満たさない FixNow candidate は `coverage-gap-triage.agent.md` で分類してから `coverage-gap-resolution-slice.agent.md` へ渡してください。
+
 ### Step 6. Determine verdict
 
 次の verdict から 1 つを出してください。
@@ -182,10 +192,25 @@ verification-kernel、coverage-gap-triage、cross-slice-verification-kernel、�
 | Plan item | Type | Implementation status | Verification status | Evidence | Residual status | Blocking? |
 | --- | --- | --- | --- | --- | --- | --- |
 
+## Coverage Ledger Delta
+
+| Delta ID | Source artifact | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Blocking? |
+| --- | --- | --- | --- | --- | --- | --- |
+
 ## Residual decision table
 
 | Residual ID | Source item | Residual type | Options | Recommended option | Explicit human decision | Decision status | Owner / next step |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+
+## Direct FixNow selectors
+
+| Selector ID | Source artifact | Source section / table | Existing ID | Gap type | Plan item / Case ID | Target files / addresses | Why direct FixNow is safe |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+
+<!--
+この表を出してよいのは、direct FixNow bypass 条件を満たす 1〜2 件の simple gap のみ。
+条件を満たさない場合は "N/A - route through coverage-gap-triage" と記録する。
+-->
 
 ## Human decisions required
 
@@ -199,6 +224,9 @@ verification-kernel、coverage-gap-triage、cross-slice-verification-kernel、�
 ## Handoff Packet
 
 - Source artifacts:
+- Coverage ledger source:
+- Coverage Ledger Delta:
+- Direct FixNow selectors:
 - Decisions made:
 - Decisions not made:
 - Accepted residuals:

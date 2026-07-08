@@ -15,13 +15,14 @@ The router owns:
 - agent / subagent delegation requirement
 - READY / implementation permission
 - routing plan and edit owner
-- agent usage ledger and delegation compliance
+- audit artifact, agent usage ledger, and delegation compliance
 - stop reason and residual classification
 - close permission
 
 ## State artifact
 
-Use `plans/<slug>/codex-first-state.md`.
+Use `plans/<slug>/codex-first-state.md` for resume-critical current state.
+Use `plans/<slug>/codex-first-audit.md` for delegation evidence, model-observability detail, route history, and close-time audit checks.
 If a better repo-local plan directory already exists, use that directory but preserve the same fields.
 
 Minimum fields:
@@ -29,7 +30,9 @@ Minimum fields:
 - task slug
 - original user intent
 - task weight
+- documentation_level
 - selected process
+- audit artifact path
 - expansion required
 - behavior spec artifact
 - plan readiness
@@ -46,11 +49,6 @@ Minimum fields:
 - execution mode
 - selected agent name / type
 - agent / subagent plan
-- configured model
-- configured reasoning effort
-- hook model
-- reported model
-- effective model
 - routing plan
 - edit permission
 - delegation required
@@ -59,20 +57,37 @@ Minimum fields:
 - current status
 - stop reason
 - human required items
-- agent usage ledger
-- delegation compliance
+- delegation compliance summary
 - artifacts created / consumed
 - unresolved residuals
 - next action
 - operations not allowed in current state
 - last updated summary
 
+Audit artifact minimum fields:
+
+- task slug
+- state artifact path
+- agent usage ledger
+- expected delegation
+- observed runs
+- configured model
+- configured reasoning effort
+- hook model
+- reported model
+- effective model
+- delegation compliance
+- route history
+- parent direct exceptions
+- close audit
+
 For "続きやって", read the newest matching state artifact before deciding the next step.
+Read the matching audit artifact when the next step depends on delegation evidence, model-observability detail, route history, or close permission.
 
 ### Task Weight
 
 Classify task weight before selecting the next gate.
-Record the result in state as `task_weight` and `selected_process`.
+Record the result in state as `task_weight`, `documentation_level`, and `selected_process`.
 
 | Weight | Typical signals | Default process |
 | --- | --- | --- |
@@ -106,12 +121,41 @@ Use `selected_process` values:
 Do not ask the user to choose these values.
 The router chooses them and records the reason.
 
+### Documentation Level
+
+Record `documentation_level` as routing metadata for how much Plan Coverage artifact structure the current bounded work needs.
+
+Allowed values:
+
+| Value | Meaning |
+| --- | --- |
+| `lite` | Use a compact Plan Coverage artifact for a small bounded change when source-of-truth, FR / AC coverage, implementation authorization, verification summary, and residual decision can stay in one artifact without losing traceability. |
+| `standard` | Use the normal compressed Plan Coverage chain when separate risk, behavior, contract, verification, or residual-decision artifacts are needed. |
+
+Default selection:
+
+| Task weight | Default `documentation_level` |
+| --- | --- |
+| `trivial-local` | `lite` when a state artifact is required; otherwise state may remain optional |
+| `small-bounded` | `lite` unless behavior expansion, high-risk boundary, manual verification, or separate guardrail artifact is needed |
+| `medium-bounded` | `standard` |
+| `high-risk-bounded` | `standard` |
+| `needs-plan-behavior-expansion` | `standard` |
+| `broad-full-coverage-candidate` | `standard` |
+| `blocked-human-required` | `standard` |
+
+If the classification is unclear, choose `standard`.
+Do not add `strict` as a `documentation_level`.
+`full-coverage` is not a `documentation_level`; it remains `selected_process = advanced-full-coverage` after `Plan readiness = ReadyForRiskTriage`.
+Do not ask the user to choose `documentation_level`.
+The router chooses it and records the reason.
+
 ### Execution Mode
 
 Record one execution mode before treating a gate as complete.
 
 - `ROUTE_ONLY`: intake, plan, risk, contract, or close judgment only; do not edit production code or tests.
-- `DELEGATED_WORK`: the selected agent / subagent owns the bounded work; the parent owns aggregation, ledger update, and close judgment.
+- `DELEGATED_WORK`: the selected agent / subagent owns the bounded work; the parent owns aggregation, audit update, and close judgment.
 - `PARENT_DIRECT_WORK`: the parent works without agent / subagent delegation; record the reason and do not count it as cost-saving delegation.
 - `TRIVIAL_PARENT_FIX`: a low-risk, local, explicit fix by the parent; record the reason and do not count it as cost-saving delegation.
 
@@ -134,9 +178,9 @@ Rules:
 - `STANDARD_MODEL` READY implementation MUST delegate to `standard-implementer` when the parent is running as `HIGH_MODEL` or otherwise owns orchestration.
 - `STANDARD_MODEL` READY verification MUST delegate to `standard-verifier` before close, unless close risk requires `high-closure-reviewer`.
 - `HIGH_MODEL` plan, behavior expansion, risk, implementation handoff review, implementation contract, and dangerous close judgment may stay with the parent or high agents.
-- Normal READY implementation requires an `implementation-handoff-review` artifact, or an explicitly equivalent pre-implementation gate, before selecting `standard-implementer`.
+- Normal READY implementation requires an `implementation-handoff-review` artifact, or an explicitly equivalent pre-implementation gate such as a Plan Coverage Lite artifact whose Inline Ready Gate is PASS, before selecting `standard-implementer`.
 - Implementation handoff review requires the durable risk artifact `plans/<slug>-change-risk-triage.md`. Do not select `implementation-handoff-review` until `risk_triage_artifact_status = Complete`.
-- When `Expansion required = Yes`, the handoff artifact must include `Behavior Case Coverage Ledger` and state must record `behavior_case_coverage_ledger_status = Complete` before selecting `standard-implementer`.
+- When `Expansion required = Yes`, the implementation-handoff-review artifact or Plan Coverage Lite artifact must include `Behavior Case Coverage Ledger` and state must record `behavior_case_coverage_ledger_status = Complete` before selecting `standard-implementer`.
 - A gate with `Delegation required = Yes` cannot be marked successful without observed delegation or an accepted parent-direct exception.
 - A parent-direct exception is not a delegated cost-saving success. Record it as an exception, not as saved cost.
 
@@ -154,7 +198,7 @@ The state artifact must include the selected owner for each relevant gate.
 `DelegationRequired` is `Yes` for normal READY implementation and normal READY verification.
 It may also be `Yes` for read-heavy scan or docs consistency when the Routing Plan chooses cheaper delegated work.
 
-`Required artifacts` should name the bounded Plan, state artifact, implementation contract, implementation-handoff-review artifact, behavior case coverage ledger, test evidence, or human decision needed before the gate can proceed.
+`Required artifacts` should name the bounded Plan, state artifact, implementation contract, implementation-handoff-review artifact or Plan Coverage Lite Inline Ready Gate equivalent, behavior case coverage ledger, test evidence, or human decision needed before the gate can proceed.
 
 `Stop / Ready Gate` must show either the blocking reason or the condition that makes the next gate READY.
 
@@ -176,9 +220,25 @@ Replace the old single `allowed to edit` decision with this block.
 For READY implementation, default to `edit_owner = standard-implementer` and `parent_direct_edit_allowed = No`.
 For READY verification, default to `edit_owner = standard-verifier` and `parent_direct_edit_allowed = No`, except for final close permission retained by the parent or `high-closure-reviewer`.
 
-### Agent Usage Ledger
+### Audit artifact
 
-State artifacts must include expected vs observed delegation.
+Audit artifacts must include expected vs observed delegation.
+Keep only the audit path and short delegation summary in `codex-first-state.md`.
+
+### Audit creation / update rule
+
+Create or update `plans/<slug>/codex-first-audit.md` before marking any delegated gate successful.
+
+Audit is required when:
+
+- `DelegationRequired = Yes`
+- observed run evidence is needed
+- parent-direct exception is claimed
+- model-observability fields are used
+- `DelegationCompliance` is evaluated
+- close permission depends on delegation evidence
+
+Do not mark implementation, verification, or close as complete if the required audit artifact is missing or stale.
 
 ```md
 ## Agent Usage Ledger
@@ -249,6 +309,7 @@ Do not:
 
 - treat requirement-elaboration gaps as `broad-full-coverage-candidate`
 - select `advanced-full-coverage` before `ReadyForRiskTriage`
+- record `strict` or `full-coverage` as `documentation_level`
 - implement before Plan readiness is recorded
 
 ### Risk triage
@@ -298,9 +359,9 @@ Do:
 
 - run `implementation-handoff-review` or an explicitly equivalent pre-implementation gate before normal READY implementation
 - require `risk_triage_artifact_status = Complete` and the `plans/<slug>-change-risk-triage.md` artifact before starting handoff review
-- create or update the parent authorization artifact, normally `plans/<slug>-implementation-handoff-review.md`
+- create or update the parent authorization artifact, normally `plans/<slug>-implementation-handoff-review.md`; for `documentation_level: lite`, a Plan Coverage Lite artifact may serve as the authorization artifact only when Inline Ready Gate is explicitly PASS and equivalent to `implementation-handoff-review`
 - record `behavior_case_coverage_ledger_artifact` and `behavior_case_coverage_ledger_status` in state
-- require `Behavior Case Coverage Ledger` when `Expansion required = Yes`
+- require `Behavior Case Coverage Ledger` in the implementation-handoff-review artifact or Lite artifact when `Expansion required = Yes`
 - keep `standard-implementer` unavailable until the ledger status is `Complete`
 - stop with `BlockedByBehaviorCaseCoverageLedger` when the ledger is missing, incomplete, `UnmappedBlocking`, or has pre-implementation `NeedsHumanDecision`
 
@@ -312,7 +373,7 @@ Use `CHEAP_MODEL` only for simple, local, low-risk edits.
 Do:
 
 - set `Delegation required = Yes` and `Edit owner = standard-implementer` for normal READY implementation
-- require the implementation-handoff-review parent authorization artifact before selecting `standard-implementer`
+- require either the implementation-handoff-review parent authorization artifact or a Plan Coverage Lite artifact with Inline Ready Gate equivalence before selecting `standard-implementer`
 - when `Expansion required = Yes`, require `behavior_case_coverage_ledger_status = Complete`
 - delegate READY implementation serially to `standard-implementer`; serial delegation is required even when write-heavy parallel editing is not allowed
 - implement only READY scope
@@ -413,7 +474,9 @@ Do not ask them to choose a gate, agent, or model.
 Return:
 
 - state artifact path
+- audit artifact path
 - task weight
+- documentation_level
 - expansion required
 - behavior spec artifact
 - plan readiness
@@ -431,10 +494,10 @@ Return:
 - selected model tier
 - agent / subagent plan
 - selected agent name, if delegated
-- configured model, if known
-- configured reasoning effort, if known
-- hook model, if observed
-- reported model, if provided
+- configured model, if known from audit
+- configured reasoning effort, if known from audit
+- hook model, if observed in audit
+- reported model, if provided in audit
 - effective model, usually unknown
 - delegation required
 - required artifacts
@@ -447,6 +510,6 @@ Return:
 - stop reason, if any
 - human-required items
 - unresolved residuals
-- agent usage ledger summary
+- agent usage ledger summary from audit
 - artifacts created / consumed
 - next action

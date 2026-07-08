@@ -28,7 +28,7 @@ codex-first-cost-router
 -> Parent Orchestration State
 -> slice-prep
 -> slice-impl
--> Agent Usage Ledger / DelegationCompliance
+-> audit artifact Agent Usage Ledger / DelegationCompliance
 -> cross-slice-verification
 -> residual decision
 ```
@@ -60,8 +60,8 @@ codex-first-cost-router
 - If the file grows too large, compact old completed slice rows into a short summary and keep details in the original slice artifacts.
 - Update it at major checkpoints and delegation boundaries, including start, ExecutionMode decision, slice-prep and slice-impl batch boundaries, parent review gate, cross-slice verification, residual decision, planned handoff, tool switch, model switch, and emergency checkpoint.
 - When switching between Codex, GitHub Copilot, sessions, or tools, the next parent agent first selects the state matching the current ticket, slug, branch, work item, or PR. If multiple candidates match or none can be matched, fail closed and ask for the target state.
-- Then the next parent agent reads the selected state, verifies the Agent Usage Ledger and listed artifacts, and continues.
-- Agent Usage Ledger records delegation evidence. Parent Orchestration State records current phase, next action, artifact index, slice queue, parent decisions made, cross-slice blockers, and pending parent decisions.
+- Then the next parent agent reads the selected state, verifies the audit artifact Agent Usage Ledger and listed artifacts, and continues.
+- Agent Usage Ledger records delegation evidence in the audit artifact. Parent Orchestration State records current phase, next action, artifact index, slice queue, parent decisions made, cross-slice blockers, and pending parent decisions.
 
 ## Closure
 

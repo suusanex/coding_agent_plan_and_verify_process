@@ -360,13 +360,13 @@ Recommended flow:
 1. plan-kernel
 2. change-risk-triage
 3. implementation-contract-kernel, when implementation-realization risk is present
-4. implementation-contract-review-kernel or bounded implementation-contract-review, when the contract is non-trivial
+4. implementation-contract-review-kernel, only as an explicit review-only fallback for the implementation-contract self-check verdict
 5. runtime-contract-kernel
 6. test-design-kernel
 7. implementation
 8. verification-kernel
-9. coverage-gap-triage, when unresolved items remain
-10. coverage-gap-resolution-slice, for selected bounded gaps
+9. coverage-gap-triage, when unresolved items remain and no complete direct FixNow selector exists
+10. coverage-gap-resolution-slice, for selected bounded gaps with explicit FixNow selectors
 ```
 
 The documentation must clearly state:

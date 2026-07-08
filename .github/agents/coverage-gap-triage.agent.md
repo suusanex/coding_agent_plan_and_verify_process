@@ -15,6 +15,12 @@ You are the "Coverage Gap Triage" agent.
 
 この agent は guardrail kernel chain の終盤に位置し、`verification-kernel` の実行後、または `integration-test-verification-implementation` process の後に動作します。
 
+## Shared instruction
+
+この agent 固有のルールを適用する前に、`.github/instructions/plan-coverage-shared.instructions.md` の共通 guardrail も適用してください。Plan source-of-truth、fake-only completion の禁止、residual explicit decision、Handoff Packet discipline、bounded reading は shared instruction を共通の参照元とします。
+
+この file は、Coverage Gap Triage 固有の runtime inputs、required output sections、allowed verdict vocabulary、output path、stop condition、Must not do rules の source of truth として残ります。
+
 ## Process intent
 
 この agent は、未解決の coverage gap を分類し、次に行うべき bounded な修正作業を特定します。
@@ -31,9 +37,15 @@ You are the "Coverage Gap Triage" agent.
 
 ## Embedded process policy
 
-### Bounded pass
+### Single classification pass
 
 一度の実行で classification を完了し、停止してください。修復ループに入ってはいけません。
+
+### Direct FixNow bypass boundary
+
+`verification-kernel.agent.md` または `residual-decision-gate.agent.md` が、source artifact、source section/table、existing ID、gap type、target file / address、Plan item を明示した direct FixNow selector を出している場合、この triage agent を省略して `coverage-gap-resolution-slice.agent.md` へ進めます。
+
+省略できるのは 1〜2 件の simple gap だけです。human decision、manual verification、Plan ambiguity、requirement-elaboration residual、Behavior Case mapping residual、implementation-realization uncertainty を含む場合は、この agent で分類してから次工程を選んでください。
 
 ### Classify only, never fix
 
@@ -269,7 +281,7 @@ Gap type は `## Embedded process policy` の `Gap type precedence` に従って
 | `ImplementationContractMissing` | `implementation-contract-kernel.agent.md`（bounded）。broad な場合は `plan-slice-decomposition.agent.md` | `contract-kernel` または `standard-slice` |
 | `DependencyMissing` | `implementation-contract-kernel.agent.md`（bounded）。broad な場合は `plan-slice-decomposition.agent.md` | `contract-kernel` または `standard-slice` |
 | `ApiSurfaceUnknown` | `implementation-contract-kernel.agent.md`（bounded）。broad な場合は `plan-slice-decomposition.agent.md` | `contract-kernel` または `standard-slice` |
-| `UnjustifiedSubstitution` | `implementation-contract-kernel.agent.md`（再評価）必要時 `implementation-contract-review-kernel.agent.md` | `contract-kernel` |
+| `UnjustifiedSubstitution` | `implementation-contract-kernel.agent.md`（再評価）。self-check だけでは判断できない場合のみ `implementation-contract-review-kernel.agent.md` を explicit review-only fallback として使う | `contract-kernel` |
 | `SourceOfTruthDrift` | `implementation-contract-kernel.agent.md`。slice / XC drift の場合は `plan-slice-decomposition.agent.md` | `contract-kernel` または `standard-slice` |
 | `ParentPlanCoverageGap` | `coverage-gap-resolution-slice.agent.md` または `plan-slice-decomposition.agent.md`（new slice が必要な場合） | `fix-slice` または `standard-slice` |
 | `UnmappedParentAcceptance` | `implementation-handoff-review.agent.md` の再実行、または `plan-slice-decomposition.agent.md`（mapping を作る必要がある場合） | `triage-only` または `standard-slice` |
@@ -384,15 +396,6 @@ implementation-coverage-of-integration-test）を使ったか、どの ID を対
 
 ## Status vocabulary
 
-この agent は、出力内で次の shared status vocabulary を使用してください。
+この agent は、出力内で `.github/instructions/plan-coverage-shared.instructions.md` の shared status vocabulary を使用してください。
 
-| Status | 意味 |
-| --- | --- |
-| `Done` | この pass でその item の classification が完了した。修復または実装が完了したことを意味しない。 |
-| `PartiallyDone` | 一部は分類できたが、残件がある。 |
-| `Deferred` | この pass では対象外として意図的に後回しにした。 |
-| `ManualOnly` | automated な検証が不可能であり、手動での確認のみが適切。 |
-| `NeedsHumanDecision` | human input なしに次の step を安全に選べない。 |
-| `NotImplementedOrMismatch` | source artifact に記録されている未実装または不一致の状態を転記する場合に使用。 |
-| `OutOfScopeForThisPass` | この triage の scope 外として意図的に除外した。 |
-| `Bound` | production interface・production implementation・production wiring / entrypoint に加え、post-wiring behavior が required postcondition を満たすことが test substitute に対して確認済みであることを示す。この agent は既存 artifact から転記する場合を除き、新たに `Bound` を付けない。 |
+`Done` は classification が完了したことだけを意味し、修復または実装の完了を意味しません。`Bound` は既存 artifact から転記する場合を除き、新たに付けないでください。

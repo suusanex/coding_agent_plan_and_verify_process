@@ -15,6 +15,12 @@ You are the "Coverage Gap Resolution Slice" agent.
 
 この agent は guardrail kernel chain の最後の segment に位置し、`coverage-gap-triage.agent.md` または `verification-kernel.agent.md` の実行後に動作します。
 
+## Shared instruction
+
+この agent 固有のルールを適用する前に、`.github/instructions/plan-coverage-shared.instructions.md` の共通 guardrail も適用してください。Plan source-of-truth、fake-only completion の禁止、residual explicit decision、Handoff Packet discipline、bounded reading は shared instruction を共通の参照元とします。
+
+この file は、Coverage Gap Resolution Slice 固有の runtime inputs、required output sections、allowed verdict vocabulary、output path、stop condition、Must not do rules の source of truth として残ります。
+
 ## Process intent
 
 この agent は選択された gap を修復します。discovery・triage は行いません。
@@ -30,7 +36,7 @@ You are the "Coverage Gap Resolution Slice" agent.
 
 ## Embedded process policy
 
-### Bounded pass
+### Single fix pass
 
 1 回の bounded pass で選択 ID を処理し、停止してください。すべての問題が消えるまでループしてはいけません。修正できなかった残留事項は `残留作業` セクションと Handoff Packet の `Remaining work` に明示して停止します。
 
@@ -39,6 +45,8 @@ You are the "Coverage Gap Resolution Slice" agent.
 この agent は discovery や triage を行う agent ではありません。caller が selected gap selectors を明示していない場合、または bare ID だけで gap type / source artifact / source section が安全に特定できない場合は、修正を開始してはいけません。その場合は `coverage-gap-triage.agent.md` の実行を推奨し、`BLOCKED` として停止してください。
 
 selected gap selector は、少なくとも source artifact、existing ID、gap type を特定できる必要があります。source section / table が分かる場合は selector に含めてください。同じ source ID に複数の gap type が存在する場合、gap type なしの指定を勝手に 1 つへ解釈してはいけません。
+
+`verification-kernel.agent.md` または `residual-decision-gate.agent.md` から direct FixNow selector を受け取る場合も同じです。direct selector は simple gap だけに許可され、source artifact、source section/table、existing ID、gap type、target file / address、Plan item が明示されていなければなりません。
 
 ### Minimal change only
 
@@ -57,6 +65,8 @@ selected gap selector は、少なくとも source artifact、existing ID、gap 
 triage 出力は fix scope の参考として使いますが、implementation behavior と completion の判断は常に Plan が基準です。triage の分類が Plan 要件と矛盾する場合は、Plan を優先し、矛盾を `残留作業` に記録してください。
 
 Parent Plan coverage gap を受け取った場合は、Guardrail Focus coverage を狭め直すことで完了扱いにしてはいけません。正確な parent Plan FR / AC に戻し、新しい slice、cross-slice verification update、implementation-contract update、または production implementation fix のどれが必要かをこの pass の範囲で判断してください。
+
+`plans/<ticket-or-slug>-coverage-ledger.md` が存在する場合は canonical coverage ledger として読み、repair で変わった item は output artifact の `Coverage Ledger Delta` に記録してください。canonical ledger が存在しない場合は、source verification / residual artifact の Parent Plan Coverage Ledger を input source とし、output artifact に必要な delta または local ledger を残してください。
 
 ### No local heuristics as substitutes for Plan behavior
 
@@ -111,6 +121,7 @@ consume または create した implementation contract artifact に、selected 
 - review されていない `RejectedSubstitute`
 
 この条件に該当する場合は `BLOCKED` または `PARTIAL_RESOLUTION` を記録し、`implementation-contract-review-kernel.agent.md` または human decision を推奨して停止してください。
+`implementation-contract-review-kernel.agent.md` は通常の次工程ではなく、unified implementation contract の self-check だけでは判断できない場合の explicit review-only fallback として推奨してください。
 
 ### Gap type が解消不能な場合
 
@@ -139,7 +150,7 @@ consume または create した implementation contract artifact に、selected 
 - `PlanProhibitedPatternDetected`: Plan が禁止した production pattern を修正する。明示的に不可能な場合を除き、negative test または verification hook を追加・更新する。
 - Parent Plan Coverage Ledger が missing の場合、この agent の output/status artifact に作成する。upstream Plan / Runtime Contract Kernel / Test Design Kernel を勝手に変更してはいけない。
 
-### Explicit residual work
+### Residual recording
 
 不明点、未確認点、human decision が必要な点は、空欄や曖昧な成功扱いにせず、shared status vocabulary と `残留作業` セクション、および Handoff Packet の `Remaining work` で明示してください。
 
@@ -189,6 +200,7 @@ active status artifact が存在しない場合は、`not updated in this pass` 
 6. Integration test points（Test Design Kernel がない場合の代替）。
 
 7. `plans/<ticket-or-slug>-runtime-contract-kernel.md`（利用可能な場合）— contract fields、production implementation address の参照元。
+8. `plans/<ticket-or-slug>-coverage-ledger.md`（利用可能な場合）— canonical parent Plan coverage と delta の参照元。
 
 ## Workflow
 
@@ -320,6 +332,13 @@ stub / fake / in-memory が検出された ID について記入してくださ�
 | Plan item | Type | Status | Covered by Slice ID | Covered by RC ID | Covered by TP ID | Cross-slice Contract ID | Residual / reason |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 
+## Coverage Ledger Delta
+
+canonical coverage ledger が存在する場合、または source coverage artifact の status を変える場合に記録してください。該当しない場合は「なし」と書いてください。
+
+| Delta ID | Source artifact | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Blocking? |
+| --- | --- | --- | --- | --- | --- | --- |
+
 ## 残留作業
 
 解決できなかった項目、chain が不完全な項目、human decision が必要な項目を記述してください。空欄にしてはいけません。残留がない場合は「なし」と明示してください。
@@ -341,6 +360,8 @@ stub / fake / in-memory が検出された ID について記入してくださ�
 
 - Profile used: `fix-slice`
 - Source artifacts:
+- Coverage ledger source:
+- Coverage Ledger Delta:
 - Selected contracts / IDs:
 - Selected gap selectors:
 - Files inspected:
@@ -372,18 +393,11 @@ stub / fake / in-memory が検出された ID について記入してくださ�
 
 ## Status vocabulary
 
-| Status | 意味 |
-| --- | --- |
-| `Done` | この pass でこの ID の修正が完了し、guardrail chain（runtime participant / boundary → contract → test point → production implementation → wiring）がすべて確認できた |
-| `PartiallyDone` | 一部の修正は完了したが、chain のいずれかのリンクが未確認のまま残っている |
-| `Deferred` | この pass では意図的に扱わない |
-| `ManualOnly` | 実際の環境または手動検証が必要であり、自動修正できない |
-| `NeedsHumanDecision` | Plan 要件の曖昧さや設計判断が必要であり、安全に進めない |
-| `NotImplementedOrMismatch` | production implementation が存在しないか、または contract と一致しない |
-| `OutOfScopeForThisPass` | 修正が bounded cascade を超えるため、この slice では扱わない |
-| `Bound` | stub/fake を使う test point に対して production interface・concrete implementation・wiring/entrypoint・post-wiring behavior against required postcondition が確認済みであることを示す formal verification status。この agent は source artifact に既に存在する `Bound` を引用できるが、新規付与はしない。 |
+`.github/instructions/plan-coverage-shared.instructions.md` の shared status vocabulary を使ってください。
 
 `Done` はこの pass での修正完了を意味します。feature 全体の完了や、選択 scope 外の gap が存在しないことを意味しません。
+
+`Bound` は、この agent で新規付与しません。source artifact に既に存在する `Bound` を引用する場合だけ使ってください。
 
 selected ID は、次の条件を満たす場合に test 未実行でも `Done` にできます。
 

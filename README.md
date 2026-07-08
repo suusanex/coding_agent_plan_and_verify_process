@@ -143,12 +143,13 @@ full-coverage 3層運用は advanced route として分離されています。
 
 `codex-first-cost-router` が内部で source of truth、repo rules、state artifact、次 gate、model tier、agent / subagent 候補を決めます。
 利用者に process 名、skill 名、agent 名、full-coverage 分岐を選ばせません。
+内部では `documentation_level: lite / standard` も決めます。`strict` は documentation level ではなく、full-coverage は advanced route です。
 
 ### 内部 routing
 
 1. `codex-first-cost-router` が依頼と既存 state を読む
 2. Intake / Plan / Risk / Scan / Contract / Implementation handoff review / Implementation / Verification / Close のうち次 gate を選ぶ
-3. gate ごとに `HIGH_MODEL` / `STANDARD_MODEL` / `CHEAP_MODEL` と agent / subagent を割り当て、Routing Plan / Edit Permission / Agent Usage Ledger を state artifact に記録する
+3. gate ごとに `HIGH_MODEL` / `STANDARD_MODEL` / `CHEAP_MODEL` と agent / subagent を割り当て、state artifact には Routing Plan / Edit Permission / audit artifact path / DelegationCompliance summary / next action を記録し、audit artifact には Agent Usage Ledger / DelegationCompliance detail / model observability / route history / close audit を記録する
 4. READY でない場合は実装せず、state artifact と stop reason を更新する
 5. 実装前に `implementation-handoff-review` または明示的に同等の gate で parent authorization artifact を作る
 6. READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する
@@ -189,7 +190,7 @@ $codex-first-cost-router を使って、このバグを修正してください�
 $codex-first-cost-router を使って、続きやって。
 ```
 
-この場合も、利用者は model tier、agent、full-coverage 分岐を選びません。`codex-first-cost-router` が repo rules、既存 artifact、state artifact、Routing Plan、Edit Permission、Agent Usage Ledger を見て次 gate を決めます。
+この場合も、利用者は model tier、agent、full-coverage 分岐を選びません。`codex-first-cost-router` が repo rules、既存 artifact、state artifact、必要な audit artifact を見て次 gate を決めます。
 
 #### 自動で呼ばせたい場合
 
@@ -204,7 +205,8 @@ $codex-first-cost-router を使って、続きやって。
 - 利用者に process 名、skill 名、agent 名、model tier、full-coverage 分岐を選ばせない。
 - `codex-first-cost-router` skill の振る舞いで、source of truth、repo rules、既存 artifact、state artifact を確認する。
 - 非自明な作業では `plans/<slug>/codex-first-state.md` を作成または更新する。
-- state artifact には Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance を記録する。
+- state artifact には Routing Plan、Edit Permission、audit artifact path、DelegationCompliance summary、next action を記録する。
+- audit artifact には Agent Usage Ledger、DelegationCompliance detail、model observability、route history、close audit を記録する。
 - 実装前に `implementation-handoff-review` または明示的に同等の gate で parent authorization artifact を作成し、`Expansion required: Yes` の場合は Behavior Case Coverage Ledger が complete になるまで `standard-implementer` へ渡さない。
 - READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する。
 - `DelegationRequired = Yes` の gate は observed run または explicit human approval 付き `ParentDirectExecutionException` がない限り成功扱いしない。
@@ -217,6 +219,7 @@ $codex-first-cost-router を使って、続きやって。
 - `.agents/skills/codex-first-cost-router/SKILL.md`
 - `.codex/agents/*.toml`（`standard-implementer`、`standard-verifier`、必要な high / cheap agents）
 - `templates/codex-first-state.md`
+- `templates/codex-first-audit.md`
 
 Codex-first をこの repository の package からローカル導入する場合は、次のインストーラで標準 bootstrap を追加できます。
 この経路では別途 APM を実行しなくても、標準ルートに必要な skill / agent / template を対象 repository に配置します。
@@ -245,6 +248,7 @@ VS Code の Codex 拡張や Codex App では、インストール済みリポジ
 - `apm-packages/codex-first-ai-development-process/docs/codex-first-ai-development-process.md`
 - `apm-packages/codex-first-ai-development-process/docs/user-guide.md`
 - `apm-packages/codex-first-ai-development-process/docs/maintainer-guide.md`
+- `apm-packages/codex-first-ai-development-process/docs/examples/lite-standard-validation.md`
 
 ---
 
@@ -252,6 +256,7 @@ VS Code の Codex 拡張や Codex App では、インストール済みリポジ
 
 Codex 枠が尽きた場合や利用者環境の都合で Codex を使えない場合に、GitHub Copilot Chat in VS Code へ fallback するための repo-local package です。
 Codex-first と state artifact、stop vocabulary、gate 設計、READY / close policy は共有します。ただし導入面は Codex 用 `.codex/agents/*.toml` や `.codex/config.toml` ではなく、VS Code Copilot が読む `.github/` 配下の custom instructions / custom agents / prompt files へ置きます。
+Issue #38 の lite / standard 実装、Codex-first core / audit state 分離、profile TOML 互換更新は Codex-first 経路を対象にしており、Copilot fallback への移植は必要に応じて後続 issue で扱います。
 
 標準入口は `copilot-cost-router` です。full-coverage 3層運用は standard route ではなく advanced route であり、初心者向け導入では判断させません。
 
@@ -392,6 +397,7 @@ bounded Plan を作成し、その parent Plan を実装・検証の source of t
 - `change-risk-triage`、`runtime-contract-kernel`、`test-design-kernel`、`implementation-handoff-review` は parent Plan を縮小しません。
 - Guardrail Focus は deep runtime / production-binding verification の重点対象です。implementation scope ではありません。
 - Guardrail Focus 外の parent Plan item も Parent Plan Coverage Ledger で必ず分類します。
+- standard route で ledger の再掲が膨らむ場合は、`plans/<ticket-or-slug>-coverage-ledger.md` を canonical ledger とし、中間 artifact は `Coverage Ledger Delta` だけを出します。canonical ledger がある場合、handoff / verification artifact は full ledger を再掲せず、その section から canonical ledger を参照します。
 - residual は記録しただけでは accepted ではありません。`ManualVerificationRequired` は close 不可の candidate status です。explicit human decision により owner / method / required evidence が明示された場合だけ、`AcceptedResidual`、`ManualVerificationDelegated`、`DeferredWithOwner`、`AbortedWithReason` などの close 可能な decision status にできます。
 - final done は Parent Plan Coverage Ledger と Residual Decision Ledger で判定します。
 - full-coverage decomposition 後の cross-slice verification は、production interface / implementation / wiring の存在確認だけでは完了しません。producer から production wiring を通した後、consumer 側の runtime gate / durable state / async worker / recovery semantics が parent acceptance condition の runtime postcondition を満たすことを確認します。
@@ -405,7 +411,7 @@ bounded Plan を作成し、その parent Plan を実装・検証の source of t
 3. `plan-kernel.agent.md` 再実行（behavior spec の Case IDs を Plan FR / AC / explicit disposition へ mapping する場合）
 4. `change-risk-triage.agent.md`（`ReadyForRiskTriage` の場合だけ）
 5. `implementation-contract-kernel.agent.md`（implementation-realization risk がある場合）
-6. `implementation-contract-review-kernel.agent.md`（contract が non-trivial の場合）
+6. `implementation-contract-review-kernel.agent.md`（implementation-contract self-check に explicit review-only fallback が必要な場合だけ）
 7. `runtime-contract-kernel.agent.md`
 8. `test-design-kernel.agent.md`
 9. `implementation-handoff-review.agent.md`
@@ -413,9 +419,9 @@ bounded Plan を作成し、その parent Plan を実装・検証の source of t
 11. 必要に応じて `code-review-focus-kernel.agent.md`
 12. human code review
 13. `verification-kernel.agent.md`
-14. 未解決がある場合は `coverage-gap-triage.agent.md`
+14. 未解決があり、complete `Direct FixNow selectors` table がない場合は `coverage-gap-triage.agent.md`
 15. `residual-decision-gate.agent.md`
-16. FixNow items がある場合だけ `coverage-gap-resolution-slice.agent.md`
+16. verification-kernel、coverage-gap-triage、または residual-decision-gate が explicit FixNow selector を出した場合だけ `coverage-gap-resolution-slice.agent.md`
 17. 必要に応じて `verification-kernel.agent.md` と `residual-decision-gate.agent.md` を再実行
 
 各 agent は 1 回の bounded な実行を行い、未解決項目は成果物に残して停止します。「直るまで修正し続ける」ことは目的ではありません。
@@ -443,10 +449,12 @@ cross-slice verification では、runtime postcondition oracle と forbidden-sta
 少なくとも次を渡してください。
 
 - `plans/<ticket-or-slug>.md`
-- `plans/<ticket-or-slug>-black-box-behavior-spec.md`（Expansion required: Yes の場合）
+- `plans/<ticket-or-slug>-black-box-behavior-spec.md`（Behavior spec artifact required: Yes の場合）
+- parent Plan / slice artifact 内の Inline behavior sketch と Case mapping（inline behavior sketch sufficient の場合）
 - `plans/<ticket-or-slug>-change-risk-triage.md`
 - `plans/<ticket-or-slug>-implementation-contract-kernel.md`（implementation-realization risk が Present / Unclear の場合）
-- `plans/<ticket-or-slug>-implementation-contract-review-kernel.md`（存在する場合）
+- `plans/<ticket-or-slug>-coverage-ledger.md`（存在する場合）
+- `plans/<ticket-or-slug>-implementation-contract-review-kernel.md`（explicit review-only fallback が存在する場合）
 - `plans/<ticket-or-slug>-runtime-contract-kernel.md`
 - `plans/<ticket-or-slug>-test-design-kernel.md`
 - `plans/<ticket-or-slug>-implementation-handoff-review.md`
@@ -477,11 +485,11 @@ full-coverage 診断時に、parent Plan coverage を維持したまま bounded 
 
 ### `implementation-contract-kernel.agent.md`
 
-dependency / API / provider / substitution risk を確認し、unresolved implementation-realization items を guessed address に変換せず residual candidate として保持します。
+dependency / API / provider / substitution risk を確認し、unresolved implementation-realization items を guessed address に変換せず residual candidate として保持します。`Self-check / Readiness verdict` も同じ artifact に記録します。
 
 ### `implementation-contract-review-kernel.agent.md`
 
-source-of-truth drift、evidence 不足、unjustified substitution を review し、unresolved item を accepted residual と扱わず次工程へ渡します。
+`implementation-contract-kernel.agent.md` の `Self-check / Readiness verdict` を explicit review-only fallback として確認する compatibility shim です。通常ルートでは自動的に挟みません。
 
 ### `runtime-contract-kernel.agent.md`
 
@@ -506,10 +514,12 @@ human review 用の重点 surface を整理します。parent Plan item に影�
 ### `verification-kernel.agent.md`
 
 Parent Plan Coverage Ledger と Behavior Case Evidence Ledger を更新し、Guardrail Focus RC/TP については production binding / wiring / contract representation を深く確認します。final verdict は parent Plan verdict です。
+canonical coverage ledger が存在する場合は、変更行を `Coverage Ledger Delta` として出します。1〜2 件の simple gap で source artifact、source section/table、existing ID、gap type、Plan item / Case ID、target files / addresses、direct FixNow が安全な理由を明確にできる場合だけ `Direct FixNow selectors` table を出せます。
 
 ### `coverage-gap-triage.agent.md`
 
 Parent Plan Coverage Ledger から unresolved items を抽出し、FixNow items、manual decision candidates、Residual decision candidates を分けます。defer / abort / manual delegation を承認しません。
+verification または residual gate が complete `Direct FixNow selectors` table を出した simple gap では省略できます。
 
 ### `residual-decision-gate.agent.md`
 
@@ -517,7 +527,7 @@ coverage-gap-triage、verification-kernel、または cross-slice-verification-k
 
 ### `coverage-gap-resolution-slice.agent.md`
 
-post-verification repair subflow です。coverage-gap-triage または residual-decision-gate が出した explicit FixNow selector だけを修正し、修正後は verification-kernel と residual-decision-gate に戻します。
+post-verification repair subflow です。verification-kernel、coverage-gap-triage、または residual-decision-gate が出した explicit FixNow selector だけを修正し、修正後は verification-kernel と residual-decision-gate に戻します。
 
 ### `cross-slice-verification-kernel.agent.md`
 
@@ -662,7 +672,7 @@ logger 側は、dated な JSONL ファイル名、`agent_transcript_path`、短�
 この変更について、Plan網羅チェック・残件判定フローで進めます。
 まず plan-kernel.agent.md を使って bounded Plan を作成してください。
 実装・テスト作成・full runtime evidence・full integration test design は行わず、Goal、Non-goals、Functional requirements、Acceptance conditions、Black-box behavior coverage、Affected components、Residual policy、Guardrail Focus candidates、Plan readiness、次 gate への handoff を出してください。
-Expansion required: Yes で behavior spec artifact がない場合は NeedsPlanBehaviorExpansion で停止し、black-box-behavior-spec-kernel.agent.md を recommended next step にしてください。
+Expansion required: Yes の場合でも、inline behavior sketch sufficient なら separate behavior spec artifact を作らず、Plan 内の Inline behavior sketch と Case mapping を source of truth として扱ってください。Behavior spec artifact required: Yes なのに artifact がない場合は NeedsPlanBehaviorExpansion で停止し、black-box-behavior-spec-kernel.agent.md を recommended next step にしてください。
 ```
 
 ### behavior expansion を作る
@@ -687,7 +697,7 @@ NeedsPlanBehaviorExpansion または NeedsHumanDecision の場合は runtime ris
 実装に入る前に、implementation-handoff-review.agent.md を必須 gate として使ってください。
 source code は読まず、artifacts も修正しないでください。
 Parent Plan Coverage Ledger を作成し、Plan → Guardrail Focus RC → TP → production binding requirement の接続を確認してください。
-Expansion required: Yes の場合は Behavior Case Coverage Ledger も作成し、relevant Case IDs をすべて分類してください。
+Behavior spec artifact required: Yes の場合、または Inline behavior sketch が Case IDs を持つ場合は、Behavior Case Coverage Ledger または Inline Ready Gate equivalent の coverage disposition で relevant Case IDs をすべて分類してください。
 Guardrail Focus ready と Parent Plan coverage ledger complete を分け、READY_FOR_BOUNDED_PARENT_PLAN_PASS 系または BLOCKED_* verdict を出してください。
 ```
 
@@ -699,10 +709,12 @@ implementation-execution.agent.md を使って、parent Plan に対する 1 boun
 次の成果物を必ず読んでください。
 
 - plans/<ticket-or-slug>.md
-- plans/<ticket-or-slug>-black-box-behavior-spec.md（Expansion required: Yes の場合）
+- plans/<ticket-or-slug>-black-box-behavior-spec.md（Behavior spec artifact required: Yes の場合）
+- parent Plan / slice artifact 内の Inline behavior sketch と Case mapping（inline behavior sketch sufficient の場合）
 - plans/<ticket-or-slug>-change-risk-triage.md
 - plans/<ticket-or-slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
-- plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
+- plans/<ticket-or-slug>-coverage-ledger.md（存在する場合）
+- plans/<ticket-or-slug>-implementation-contract-review-kernel.md（explicit review-only fallback が存在する場合）
 - plans/<ticket-or-slug>-runtime-contract-kernel.md
 - plans/<ticket-or-slug>-test-design-kernel.md
 - plans/<ticket-or-slug>-implementation-handoff-review.md
@@ -743,7 +755,7 @@ previous RES-* または NeedsHumanDecision がある rerun では、Previous re
 ### 選択した FixNow だけを修正する
 
 ```text
-coverage-gap-triage または residual-decision-gate の FixNow selector だけを対象に、coverage-gap-resolution-slice.agent.md を実行してください。
+verification-kernel、coverage-gap-triage、または residual-decision-gate の FixNow selector だけを対象に、coverage-gap-resolution-slice.agent.md を実行してください。
 FixNow selector 外へ広げず、parent Plan との整合を崩さないでください。
 修正後、verification-kernel.agent.md と residual-decision-gate.agent.md の再実行を次のステップとして記録してください。
 ```
@@ -759,14 +771,15 @@ Plan網羅チェック・残件判定フローでは、通常は次の成果物�
 | `plans/<ticket-or-slug>.md` | bounded Plan。実装の source of truth |
 | `plans/<ticket-or-slug>-black-box-behavior-spec.md` | source requirements から Case IDs、negative expectation、derived invariant への展開 |
 | `plans/<ticket-or-slug>-change-risk-triage.md` | risk inventory、Guardrail Focus recommendation、Residual risk candidates |
-| `plans/<ticket-or-slug>-implementation-contract-kernel.md` | dependency/API/provider path の確認結果、required code changes、prohibited substitutions |
-| `plans/<ticket-or-slug>-implementation-contract-review-kernel.md` | implementation-contract の readiness / blocking verdict |
+| `plans/<ticket-or-slug>-implementation-contract-kernel.md` | dependency/API/provider path の確認結果、required code changes、prohibited substitutions、self-check readiness verdict |
+| `plans/<ticket-or-slug>-implementation-contract-review-kernel.md` | explicit review-only fallback としての implementation-contract self-check review |
+| `plans/<ticket-or-slug>-coverage-ledger.md` | canonical Parent Plan Coverage Ledger、Behavior Case coverage、Residual Decision Ledger、Coverage Ledger Delta |
 | `plans/<ticket-or-slug>-runtime-contract-kernel.md` | Guardrail Focus runtime contract・producer / consumer・メッセージ・フィールド・production 実装の所在 |
 | `plans/<ticket-or-slug>-test-design-kernel.md` | Guardrail Focus TP・stub/fake の使用有無・production binding 確認要件 |
 | `plans/<ticket-or-slug>-implementation-handoff-review.md` | 実装直前の lightweight review verdict と Parent Plan Coverage Ledger |
 | `plans/<ticket-or-slug>-implementation-execution.md` | 実装結果、Implementation Self-Map、Test / Check Summary、Remaining Work |
 | `plans/<ticket-or-slug>-code-review-focus-kernel.md` | 人手コードレビュー向けの重点確認箇所・読む順番・不確実性の整理 |
-| `plans/<ticket-or-slug>-verification-kernel.md` | Parent Plan Coverage Ledger 更新、production binding / wiring / contract の検証結果 |
+| `plans/<ticket-or-slug>-verification-kernel.md` | Parent Plan Coverage Ledger / Coverage Ledger Delta 更新、production binding / wiring / contract の検証結果 |
 | `plans/<ticket-or-slug>-parent-orchestration-state.md` | full-coverage 3層運用の親 orchestration 再開入口。現在 phase、次 action、artifact index、slice queue、Parent decisions made、blocking decision |
 | `plans/<ticket-or-slug>-cross-slice-verification-kernel.md` | full-coverage decomposition 後の runtime postcondition oracle、forbidden-state oracle、previous gap closure delta、cross-slice verdict |
 | `plans/<ticket-or-slug>-coverage-gap-triage.md` | 未解決ギャップの分類、FixNow items、Residual decision candidates |

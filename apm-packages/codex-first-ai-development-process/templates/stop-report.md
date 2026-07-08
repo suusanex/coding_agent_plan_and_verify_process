@@ -2,7 +2,9 @@
 
 task_slug:
 state_artifact:
+audit_artifact:
 task_weight:
+documentation_level:
 selected_process:
 current_gate:
 next_gate:
@@ -38,7 +40,7 @@ stop_reason:
 - Implementation outside READY scope
 - Parent-direct execution of a delegated gate without ParentDirectExecutionException and explicit human approval
 - Counting parent-direct work or trivial parent fixes as cost-saving delegation
-- Close when DelegationCompliance is FAIL or Agent Usage Ledger is missing
+- Close when DelegationCompliance is FAIL or required audit evidence is missing
 - Close / completion claim
 - Secret, external service, billing, or production operation
 
@@ -47,6 +49,7 @@ stop_reason:
 - Expected agent:
 - Missing observed run:
 - Required artifact:
+- Audit artifact:
 - Required configured model / reasoning evidence:
 - Required hook / reported / effective model distinction:
 

@@ -9,9 +9,11 @@
 ## Expected behavior
 
 - Locate the latest matching `codex-first-state.md`.
-- Read `current_gate`, `next_gate`, Routing Plan, Edit Permission, DelegationCompliance, and `stop_reason`.
+- Read `current_gate`, `next_gate`, Routing Plan, Edit Permission, DelegationCompliance summary, audit artifact path, and `stop_reason`.
+- Read the matching `codex-first-audit.md` when the next gate depends on delegation evidence, model-observability detail, or close permission.
 - Execute only the next allowed gate.
 - Update the state artifact.
+- Update the audit artifact if delegation or close-audit evidence changes.
 - Do not ask the user to choose an agent or model.
 
 ## Stop example

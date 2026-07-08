@@ -15,6 +15,12 @@ You are the "Runtime Contract Kernel" agent.
 
 目的は、guardrail chain の最初の 2 ステップ（runtime contract identification と participant/boundary mapping）を bounded な cost で確立することです。この artifact は、downstream の test-design-kernel や verification-kernel が再探索なしに利用できる handoff として機能します。
 
+## Shared instruction
+
+この agent 固有のルールを適用する前に、`.github/instructions/plan-coverage-shared.instructions.md` の共通 guardrail も適用してください。Plan source-of-truth、fake-only completion の禁止、residual explicit decision、Handoff Packet discipline、bounded reading は shared instruction を共通の参照元とします。
+
+この file は、Runtime Contract Kernel 固有の runtime inputs、required output sections、allowed verdict vocabulary、output path、stop condition、Must not do rules の source of truth として残ります。
+
 ## Process intent
 
 この agent は `contract-kernel` profile の一部として動作します。
@@ -28,15 +34,11 @@ You are the "Runtime Contract Kernel" agent.
 
 ## Embedded process policy
 
-この agent は、実行時に外部の設計ドキュメントが存在しない環境でも単体で動作できる必要があります。以下の policy を、この agent の runtime 前提として扱ってください。
+この agent は、実行時に外部の設計ドキュメントが存在しない環境でも単体で動作できる必要があります。共通の Plan source-of-truth、No fake-only completion、Residual explicit decision、bounded reading、Handoff Packet discipline は `.github/instructions/plan-coverage-shared.instructions.md` に従います。
 
-- **Reduce breadth, not depth**: token cost を下げるために扱う contracts の数を絞る。selected contracts に対する guardrail の深さを削ってはいけない。
 - **Guardrail chain**: Guardrail Focus surface では、runtime contract、runtime participant/boundary、test point、stub/fake/in-memory usage、production implementation、production wiring/entrypoint、explicit unresolved status が後続工程までつながる必要がある。この agent はそのうち runtime contract と participant/boundary を確立し、production implementation address と verification hook を後続工程へ渡す。
-- **Bounded pass**: 1 回の bounded pass を行い、未解決事項は `注記 / 前提` と `Handoff Packet` に明示して停止する。完璧にするために scope を広げ続けてはいけない。
 - **Selected slice only**: selected contracts / IDs から unrelated scenarios へ広げてはいけない。
 - **Fallback is narrow**: caller-provided selected contract IDs も change-risk-triage output もない場合は、task / Plan に明示的に書かれた、または強く示唆された contracts だけを扱う。triage の代わりに broad な risk discovery をしてはいけない。安全に selected slice を決められない場合は停止して `change-risk-triage.agent.md` の実行を推奨する。
-- **Explicit residual work**: 不明点、未確認点、human decision が必要な点は、空欄や曖昧な成功扱いにせず、shared status vocabulary と `Remaining work` で明示する。
-- **No test-only production proof**: test-side、fake-side、mock-side の存在を production implementation の存在として扱ってはいけない。
 
 ## Runtime inputs
 
@@ -209,18 +211,7 @@ contract を記録するために必要な情報が不足している場合は�
 
 ## Status vocabulary
 
-`注記 / 前提` や `Handoff Packet` の `Remaining work` を記録する際は、shared status vocabulary を使ってください。
-
-| Status | Meaning |
-| --- | --- |
-| `Done` | この pass で完了した |
-| `PartiallyDone` | 有用な前進はあったが、item は未完了である |
-| `Deferred` | この pass では意図的に扱わない |
-| `ManualOnly` | manual または real-environment validation が必要である |
-| `NeedsHumanDecision` | product、architecture、policy、または risk に関する human decision なしでは安全に進められない |
-| `NotImplementedOrMismatch` | implementation が欠けている、mismatch している、または test-side / fake-side にしか存在しない |
-| `OutOfScopeForThisPass` | 妥当な work だが、selected slice の外である |
-| `Bound` | test substitute に対して、production interface・production implementation・production wiring / entrypoint に加え、post-wiring behavior が required postcondition を満たすことが確認済みである |
+`注記 / 前提` や `Handoff Packet` の `Remaining work` を記録する際は、`.github/instructions/plan-coverage-shared.instructions.md` の shared status vocabulary を使ってください。
 
 `Contract ID`、`Scenario`、`Producer`、`Consumer`、`Message / API / Event`、`Required fields` などの table 列には status ではなく具体的な情報を書いてください。status はこれらの情報が得られなかった場合の `注記 / 前提` や Handoff Packet の `Remaining work` での記録に使います。
 

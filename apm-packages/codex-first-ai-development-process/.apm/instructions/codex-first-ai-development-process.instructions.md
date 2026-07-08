@@ -6,11 +6,12 @@ Use this instruction set when ordinary development work should start through Cod
 
 - Treat short requests such as "この issue を進めて", "このバグを直して", and "続きやって" as Codex-first cost-aware routing requests.
 - Do not ask the user to choose `plan-kernel`, `full-coverage`, a subagent, or a model tier.
-- Start by reading repo-local instructions, existing artifacts, and the latest `plans/<slug>/codex-first-state.md` if present.
+- Start by reading repo-local instructions, existing artifacts, and the latest `plans/<slug>/codex-first-state.md` if present. Read `plans/<slug>/codex-first-audit.md` when delegation evidence, model-observability detail, route history, or close permission depends on it.
 - Create or update state so the next "続きやって" request can resume safely.
+- Keep `codex-first-state.md` focused on resume-critical current state. Put Agent Usage Ledger, DelegationCompliance detail, model-observability detail, and route history in `codex-first-audit.md`.
 - Keep the user-facing entry small, but keep internal gates explicit in artifacts.
-- Write task weight, selected process, Routing Plan, Agent / Subagent Plan, Edit Permission block, Agent Usage Ledger, and DelegationCompliance into the state artifact before treating a delegated gate as successful.
-- Keep abstract model tier, configured model, hook observed model, reported model, and effective model as separate ledger fields.
+- Write task weight, documentation level, selected process, Routing Plan, Agent / Subagent Plan, Edit Permission block, audit artifact path, and delegation compliance summary into the state artifact before treating a delegated gate as successful.
+- Keep abstract model tier, configured model, hook observed model, reported model, and effective model as separate audit ledger fields.
 - Record execution_mode as `ROUTE_ONLY`, `DELEGATED_WORK`, `PARENT_DIRECT_WORK`, or `TRIVIAL_PARENT_FIX`.
 - Use Codex as the primary execution environment.
 - Treat GitHub Copilot as a later fallback route, not the first deliverable.
@@ -26,12 +27,12 @@ Use this instruction set when ordinary development work should start through Cod
 7. Implementation handoff review gate: run `implementation-handoff-review` or an explicitly equivalent pre-implementation gate only after `plans/<slug>-change-risk-triage.md` exists and `risk_triage_artifact_status = Complete`; create the parent authorization artifact, Parent Plan Coverage Ledger, and Behavior Case Coverage Ledger when required.
 8. Implementation gate: delegate the selected READY scope to `standard-implementer` only after handoff authorization exists, unless a recorded `ParentDirectExecutionException` has explicit human approval.
 9. Verification gate: delegate ordinary verification to `standard-verifier`; route dangerous close judgment to `high-closure-reviewer`.
-10. Close gate: do not close when unresolved items include `ManualVerificationRequired`, `NeedsHumanDecision`, `NeedsHigherModelReview`, missing delegation evidence, or failing `DelegationCompliance`.
+10. Close gate: do not close when unresolved items include `ManualVerificationRequired`, `NeedsHumanDecision`, `NeedsHigherModelReview`, missing required audit evidence, or failing `DelegationCompliance`.
 
 ## Task weight and process selection
 
 Classify task weight before selecting the next gate.
-Record the result as `task_weight` and `selected_process`.
+Record the result as `task_weight`, `documentation_level`, and `selected_process`.
 
 - `trivial-local`: obvious typo, formatting-only edit, no behavior change.
 - `small-bounded`: one component, clear acceptance, local checks available.
@@ -43,6 +44,13 @@ Record the result as `task_weight` and `selected_process`.
 
 Allowed `selected_process` values are `normal`, `advanced-full-coverage`, `human-decision-wait`, `higher-model-review`, and `lower-cost-delegated-scan`.
 Choose these internally; do not ask the user to select them.
+
+Allowed `documentation_level` values are `lite` and `standard`.
+Use `lite` only when one compact Plan Coverage artifact can preserve source-of-truth, FR / AC coverage, implementation authorization, verification summary, and residual decision fields.
+Use `standard` when separate risk, behavior, contract, verification, or residual-decision artifacts are needed, and default to `standard` whenever the classification is unclear.
+Do not add `strict` as a `documentation_level`.
+`full-coverage` is not a `documentation_level`; it remains an advanced `selected_process` after `Plan readiness = ReadyForRiskTriage`.
+Choose `documentation_level` internally; do not ask the user to select it.
 
 ## Stop vocabulary
 

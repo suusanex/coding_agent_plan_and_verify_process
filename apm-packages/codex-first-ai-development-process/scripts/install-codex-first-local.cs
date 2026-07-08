@@ -844,13 +844,14 @@ static string BuildAgentsSection(string packageRoot)
     sb.AppendLine("このリポジトリには Codex-first コスト意識ルーティングの導入手順を追加した。");
     sb.AppendLine("- 利用者は process 名・agent 名・model 名・full-coverage 分岐を選ぶ必要がない。");
     sb.AppendLine("- repo-local の AGENTS.md / 制約は引き続き最優先で読む。");
-    sb.AppendLine("- `.agents/skills/codex-first-cost-router/SKILL.md` の振る舞いで source of truth、repo rules、既存 artifact、state artifact を確認する。");
+    sb.AppendLine("- `.agents/skills/codex-first-cost-router/SKILL.md` の振る舞いで source of truth、repo rules、既存 artifact、state artifact を確認する。委譲証跡、model 観測詳細、route 履歴、close audit が必要な場合は audit artifact も確認する。");
     sb.AppendLine("- README の指示と `.codex/config.toml` / `.codex/agents/*.toml` / `.agents/skills/codex-first-cost-router/SKILL.md` / `templates/*.md` を使って `codex-first` 標準ルートを使う。");
-    sb.AppendLine("- state artifact には Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance を記録する。");
+    sb.AppendLine("- state artifact には resume に必要な Routing Plan、Edit Permission、audit artifact path、DelegationCompliance summary を記録する。");
+    sb.AppendLine("- audit artifact には Agent Usage Ledger、DelegationCompliance detail、route history、model tier / configured model / hook model / reported model / effective model の分離記録を残す。");
     sb.AppendLine("- Plan gate では behavior expansion decision、Case-to-Plan mapping、Plan readiness を記録し、`ReadyForRiskTriage` になるまで risk / full-coverage / implementation へ進めない。");
     sb.AppendLine("- `NeedsPlanBehaviorExpansion` または `ReplanRequired` は Plan phase へ戻し、配置済みの `black-box-behavior-spec-kernel` または `high-planner` / Plan rerun へ渡す。`full-coverage` や fix-slice の代替ルートにしない。");
     sb.AppendLine("- Risk gate では `plans/<slug>-change-risk-triage.md` を作成または更新し、state artifact に `risk_triage_artifact` と `risk_triage_artifact_status` を記録する。");
-    sb.AppendLine("- state artifact では execution_mode と、model tier / configured model / hook model / reported model / effective model を分けて記録する。");
+    sb.AppendLine("- state artifact では execution_mode と audit artifact path を記録する。model 観測詳細は audit artifact 側に記録する。");
     sb.AppendLine("- 実装前には `risk_triage_artifact_status = Complete` を確認し、`implementation-handoff-review` または明示的に同等の gate で parent authorization artifact を作成し、`Expansion required: Yes` の場合は Behavior Case Coverage Ledger が `Complete` になるまで `standard-implementer` へ渡さない。");
     sb.AppendLine("- READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する。");
     sb.AppendLine("- `DelegationRequired = Yes` の gate は observed run または explicit human approval 付き `ParentDirectExecutionException` がない限り成功扱いしない。");

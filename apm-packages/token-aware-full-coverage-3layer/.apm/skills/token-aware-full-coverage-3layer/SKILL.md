@@ -22,6 +22,8 @@ Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
 
 この skill は「全部をサブエージェントに丸投げする」ためのものではありません。親エージェントが設計整合を握り、サブエージェントには bounded な準備・実装・検証だけを任せます。
 
+この package は Plan網羅チェック・残件判定フローの kernel agents を前提にします。APM manifest では `token-aware-guardrail-kernel-flow` と同じ shared instruction / kernel agent paths を dependency として含めます。手動で一部だけコピーする場合も、`plan-kernel`、`black-box-behavior-spec-kernel`、`change-risk-triage`、`implementation-contract-kernel`、`implementation-handoff-review`、`verification-kernel`、`cross-slice-verification-kernel`、`residual-decision-gate` などの Plan Coverage kernel agents を同時に利用可能にしてください。
+
 ## 発動条件
 
 次のいずれかに当てはまる場合に使ってください。
@@ -44,8 +46,8 @@ Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
 親エージェントは、少なくとも次を source artifact として読む必要があります。
 
 - parent bounded Plan
-- Black-box Behavior Spec artifact（Expansion required: Yes の場合）
-- parent Plan の Black-box behavior coverage / Case-to-Plan mapping
+- Black-box Behavior Spec artifact（Behavior spec artifact required: Yes の場合）
+- parent Plan の inline behavior sketch または Black-box behavior coverage / Case-to-Plan mapping
 - parent `change-risk-triage.agent.md` の出力
 - `plans/<ticket-or-slug>-slice-decomposition.md`
 - 各 executable slice artifact: `plans/<ticket-or-slug>-slice-SL-xxx.md`
@@ -215,7 +217,8 @@ executable slice は、次のいずれかを満たす必要があります。
 `slice-prep` に渡す入力は、少なくとも次です。
 
 - parent Plan
-- Black-box Behavior Spec artifact（Expansion required: Yes の場合）
+- Black-box Behavior Spec artifact（Behavior spec artifact required: Yes の場合）
+- Expansion required: Yes でも inline behavior sketch sufficient の場合は、parent Plan / slice artifact 内の Inline behavior sketch と Case mapping
 - parent triage output
 - parent slice decomposition artifact
 - assigned slice artifact
@@ -230,7 +233,7 @@ executable slice は、次のいずれかを満たす必要があります。
 2. assigned slice の Case-to-Slice mapping を確認し、Case IDs が slice-local / cross-slice verification / explicit disposition のどこへ行くかを記録する。
 3. per-slice `change-risk-triage` を実行する。
 4. implementation-realization risk が `Present` または `Unclear` の場合、per-slice `implementation-contract-kernel` を下書きする。
-5. implementation contract に non-trivial な判断がある場合、per-slice `implementation-contract-review-kernel` の下書きまたは review requirement を作る。
+5. implementation-contract-kernel の `Self-check / Readiness verdict` を記録する。`implementation-contract-review-kernel` は、self-check verdict に対する独立 review が明示的に必要な場合だけ explicit review-only fallback として扱い、通常の non-trivial 判断だけを理由に作成しない。
 6. selected slice-local RC IDs について `runtime-contract-kernel` を下書きする。
 7. `test-design-kernel` を下書きし、selected slice に関係する Behavior Case IDs を test / manual / cross-slice route へ接続する。
 8. 実装は行わない。
@@ -366,17 +369,18 @@ READY slice は、次の証跡を満たす必要があります。
 `slice-impl` に渡す入力は、少なくとも次です。
 
 - parent Plan
-- Black-box Behavior Spec artifact（Expansion required: Yes の場合）
+- Black-box Behavior Spec artifact（Behavior spec artifact required: Yes の場合）
+- Expansion required: Yes でも inline behavior sketch sufficient の場合は、parent Plan / slice artifact 内の Inline behavior sketch と Case-to-Slice mapping
 - parent triage output
 - parent slice decomposition artifact
 - assigned slice artifact
 - assigned slice の Black-box behavior coverage / Case-to-Slice mapping
 - per-slice change-risk-triage
 - per-slice implementation-contract-kernel（必要な場合）
-- per-slice implementation-contract-review-kernel（存在する場合）
+- per-slice implementation-contract-review-kernel（explicit review-only fallback が存在する場合）
 - per-slice runtime-contract-kernel
 - per-slice test-design-kernel
-- implementation-handoff-review の Behavior Case Coverage Ledger（Expansion required: Yes の場合）
+- implementation-handoff-review または Inline Ready Gate equivalent の Behavior Case Coverage Ledger / Case mapping（Behavior spec artifact required: Yes の場合、または inline sketch の Case IDs を実装条件として扱う場合）
 - parent review gate の implementation authorization
 - bounded parent Plan pass / Guardrail Focus coverage / non-goals / stop condition
 
@@ -384,7 +388,7 @@ READY slice は、次の証跡を満たす必要があります。
 
 1. `implementation-handoff-review` を実行する。
 2. READY でない場合は実装せず停止する。
-3. `Expansion required: Yes` の場合は Black-box Behavior Spec、Case-to-Slice mapping、Behavior Case Coverage Ledger が complete であることを確認する。欠落・不完全・`UnmappedBlocking`・実装前 `NeedsHumanDecision` がある場合は実装せず停止する。
+3. `Behavior spec artifact required: Yes` の場合は Black-box Behavior Spec、Case-to-Slice mapping、Behavior Case Coverage Ledger が complete であることを確認する。`Expansion required: Yes` でも inline behavior sketch sufficient の場合は、parent Plan / slice artifact 内の Inline behavior sketch、Case-to-Slice mapping、Inline Ready Gate equivalent の coverage disposition を確認する。必要な behavior evidence が欠落・不完全・`UnmappedBlocking`・実装前 `NeedsHumanDecision` を含む場合は実装せず停止する。
 4. 親が承認した assigned slice-local bounded parent Plan pass を実装する。Guardrail Focus artifacts は deep-check guardrail として扱い、implementation scope として扱わない。Behavior Case IDs と negative expectations は実装条件として扱う。
 5. 無関係な refactoring や redesign を行わない。
 6. required checks を実行する。実行できない check は理由を明記する。
@@ -493,7 +497,7 @@ READY slice は、次の証跡を満たす必要があります。
 - 各 slice-prep artifact
 - 各 slice-impl result
 - 各 verification-kernel result
-- Black-box Behavior Spec artifact と Behavior Case mapping（Expansion required: Yes の場合）
+- Black-box Behavior Spec artifact と Behavior Case mapping（Behavior spec artifact required: Yes の場合）、または Inline behavior sketch と Case mapping（inline behavior sketch sufficient の場合）
 
 cross-slice verification では次を確認してください。
 

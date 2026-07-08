@@ -12,6 +12,7 @@
 - cost-aware routing
 - Plan / risk / scan / contract / implementation / verification / close gate
 - state artifact based resume
+- audit artifact based delegation evidence
 - READY 判定
 - delegated bounded implementation
 - residual decision
@@ -49,6 +50,23 @@ write-heavy parallel editing is not the default. That is separate from delegatio
 If the parent directly performs work that was expected to be delegated, the state records `PARENT_DIRECT_WORK` or `TRIVIAL_PARENT_FIX` and does not count it as cost-saving delegation.
 Before normal READY implementation, the Risk gate must create `plans/<slug>-change-risk-triage.md` and set `risk_triage_artifact_status = Complete`. Then `implementation-handoff-review` or an explicitly equivalent pre-implementation gate must create the parent authorization artifact. When behavior expansion is required, the state must record `behavior_case_coverage_ledger_status = Complete` before `standard-implementer` can start.
 
+## Documentation level
+
+`documentation_level` records how much planning and verification structure is needed for the current bounded work.
+It is selected by Codex-first routing, not by the user.
+
+| Level | Use when | Required guardrail |
+| --- | --- | --- |
+| `lite` | Work is small, bounded, local, and has clear FR / AC and verification evidence | A Lite artifact or equivalent section keeps source of truth, FR / AC coverage, Inline Ready Gate, Implementation Self-Map, Verification Summary, and residual / close decision together |
+| `standard` | Work has compatibility risk, behavior expansion, implementation-realization risk, repeated coverage ledger needs, or non-trivial verification | Separate or canonical artifacts preserve Plan readiness, risk, coverage ledger / delta, implementation contract, handoff / readiness, verification, and residual decision |
+
+`strict` is not a documentation level.
+`full-coverage` is an advanced `selected_process` / route, not a documentation level.
+If the task is broad enough for full-coverage decomposition, the documentation level remains `standard` while the selected process moves to `advanced-full-coverage`.
+
+Lite may replace a separate `implementation-handoff-review` artifact only when the Inline Ready Gate is explicitly equivalent and complete.
+If behavior expansion, human decision, manual verification, or implementation-realization ambiguity remains, the route must use `standard` or stop before implementation.
+
 ## Close rules
 
 Close してよいのは、次が満たされるときだけ。
@@ -63,7 +81,7 @@ Close してよいのは、次が満たされるときだけ。
 - cost-saving delegation として数える run には、委譲実行の evidence があり、`delegation_violation` がない。
 - residual work がある場合は、FixNow / Deferred / Manual / HigherModel のいずれかに分類されている。
 
-## State artifact
+## State and audit artifacts
 
 通常は次の state artifact を使う。
 
@@ -71,9 +89,17 @@ Close してよいのは、次が満たされるときだけ。
 plans/<slug>/codex-first-state.md
 ```
 
-この artifact は、`task_weight`、`selected_process`、`current_gate`、`next_gate`、`recommended_model_tier`、`model_tier_recommendation`、`execution_mode`、`risk_triage_artifact`、`risk_triage_artifact_status`、`behavior_case_coverage_ledger_artifact`、`behavior_case_coverage_ledger_status`、Routing Plan、Agent / Subagent Plan、Edit Permission、`delegation_required`、`required_artifacts`、Stop / Ready Gate、Agent Usage Ledger、DelegationCompliance、`stop_reason`、`human_required_items`、`unresolved_residuals`、`next_action` を持つ。
-Agent Usage Ledger では `configured_model`、`hook_model`、`reported_model`、`effective_model` を混ぜない。
+この artifact は、`task_weight`、`documentation_level`、`selected_process`、`current_gate`、`next_gate`、`recommended_model_tier`、`model_tier_recommendation`、`execution_mode`、`risk_triage_artifact`、`risk_triage_artifact_status`、`behavior_case_coverage_ledger_artifact`、`behavior_case_coverage_ledger_status`、Routing Plan、Agent / Subagent Plan、Edit Permission、`delegation_required`、`required_artifacts`、Stop / Ready Gate、`audit_artifact`、DelegationCompliance summary、`stop_reason`、`human_required_items`、`unresolved_residuals`、`next_action` を持つ。
 ユーザーが「続きやって」と依頼したら、まずこの artifact を読む。
+
+委譲証跡、model 観測詳細、route 履歴、close audit は次の audit artifact に分ける。
+
+```text
+plans/<slug>/codex-first-audit.md
+```
+
+Agent Usage Ledger では `configured_model`、`hook_model`、`reported_model`、`effective_model` を混ぜない。
+close 可否が委譲証跡や DelegationCompliance に依存する場合は、state と audit の両方を読む。
 
 ## Executable profile templates
 

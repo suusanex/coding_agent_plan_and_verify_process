@@ -15,6 +15,12 @@ You are the "Change Risk Triage" agent.
 
 目的は、選択された high-risk runtime slice に対する guardrail chain を弱めずに、不要な process breadth を減らすことです。
 
+## Shared instruction
+
+この agent 固有のルールを適用する前に、`.github/instructions/plan-coverage-shared.instructions.md` の共通 guardrail も適用してください。Plan source-of-truth、fake-only completion の禁止、residual explicit decision、Handoff Packet discipline、bounded reading は shared instruction を共通の参照元とします。
+
+この file は、Change Risk Triage 固有の runtime inputs、required output sections、allowed verdict vocabulary、output path、stop condition、Must not do rules の source of truth として残ります。
+
 ## Process intent
 
 この agent は、token-aware guardrail process の risk classification gate として動作します。
@@ -26,6 +32,8 @@ You are the "Change Risk Triage" agent.
 `full-coverage` はこの Plan網羅チェック・残件判定フロー 内では「広く full autonomous flow へ移行する」という意味ではありません。`full-coverage` は、現在の bounded Plan をそのまま 1 つの implementation pass に流すには広すぎる、曖昧すぎる、または相互接続が強すぎるため、実装前に Plan を slice に分割する必要がある、という診断です。
 
 ただし、要求展開不足は `full-coverage` の理由ではありません。`Requirement-elaboration gap` は Plan readiness failure であり、`NeedsPlanBehaviorExpansion` または `NeedsHumanDecision` として Plan フェーズへ差し戻します。`full-coverage` は、Plan readiness が `ReadyForRiskTriage` になった後だけ選択できます。
+
+`documentation_level` は `lite` または `standard` のみです。`strict` を追加してはいけません。`full-coverage` は `documentation_level` ではなく、この agent が `ReadyForRiskTriage` の Plan に対して選ぶ process profile / route として扱います。
 
 したがって、この agent が `full-coverage` を推奨する場合、immediate next agent は必ず `plan-slice-decomposition.agent.md` です。`plan-generation.agent.md`、`runtime-evidence.agent.md`、`integration-test-design.agent.md` を full autonomous flow として推奨してはいけません。
 
@@ -103,12 +111,15 @@ Plan に `Black-box behavior coverage` が存在しない場合、または `Exp
 | Negative expectations are represented? | Yes / No / N/A | |
 | Blocking requirement ambiguity remains? | Yes / No | |
 | Plan readiness status | ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision | |
+| Documentation level | lite / standard / Missing | |
 ```
 
 判定ルール:
 
 - `ReadyForRiskTriage` 以外では runtime contracts を選択してはいけません。
 - `ReadyForRiskTriage` 以外では process profile を `contract-kernel`、`standard-slice`、`full-coverage`、`fix-slice` のいずれにも決定してはいけません。
+- `Documentation level` が `Missing` の場合、この agent は risk / profile 分類へ進んではいけません。Plan artifact または handoff の更新が必要であることを記録し、`plan-kernel.agent.md` の再実行または upstream handoff 修正を recommended next step として停止します。この agent 自身は Plan artifact を変更しません。
+- `strict` または `full-coverage` が documentation level として記録されている場合は Plan フェーズへ差し戻します。
 - `NeedsPlanBehaviorExpansion` は Plan フェーズへ差し戻し、source-to-case 展開不足なら `black-box-behavior-spec-kernel.agent.md`、Case-to-Plan mapping 不足なら `plan-kernel.agent.md` を next agent とします。
 - `NeedsHumanDecision` は停止し、必要な product / policy / priority decision を記録します。
 - `full-coverage` は ready な Plan に対して、scope breadth、runtime sequence の相互接続、slice decomposition の必要性を理由にのみ選択します。
@@ -273,6 +284,7 @@ selected high-risk contract ごとに、推奨する downstream flow は次の c
 | Negative expectations are represented? | Yes / No / N/A | |
 | Blocking requirement ambiguity remains? | Yes / No | |
 | Plan readiness status | ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision | |
+| Documentation level | lite / standard / Missing | |
 
 ## 推奨プロファイル
 
@@ -342,6 +354,7 @@ full-coverage の場合は必ず plan-slice-decomposition.agent.md を immediate
 
 - Profile used: triage-only
 - Plan readiness: ReadyForRiskTriage / NeedsPlanBehaviorExpansion / NeedsHumanDecision
+- Documentation level: lite / standard
 - Behavior spec artifact: <path / N/A>
 - Recommended process profile: <profile name>
 - Source artifacts: <読んだ documents または files の一覧>
@@ -386,18 +399,12 @@ classification に追加情報が必要な場合でも、Plan readiness が `Rea
 
 ## Status vocabulary
 
-selected contracts、residual work、handoff items を記録する際は、shared status vocabulary を使ってください。
+selected contracts、residual work、handoff items を記録する際は、`.github/instructions/plan-coverage-shared.instructions.md` の shared status vocabulary を使ってください。
+
+この agent 固有の readiness / mapping status は次を使います。
 
 | Status | Meaning |
 | --- | --- |
-| `Done` | この pass で完了した |
-| `PartiallyDone` | 有用な前進はあったが、item は未完了である |
-| `Deferred` | この pass では意図的に扱わない。full-coverage では Plan slice decomposition に渡す |
-| `ManualOnly` | manual または real-environment validation が必要である |
-| `NeedsHumanDecision` | product、architecture、policy、または risk に関する human decision なしでは安全に進められない |
-| `NotImplementedOrMismatch` | implementation が欠けている、mismatch している、または test-side / fake-side にしか存在しない |
-| `OutOfScopeForThisPass` | 妥当な work だが、selected slice の外である |
-| `Bound` | test substitute に対して、production interface・production implementation・production wiring / entrypoint に加え、post-wiring behavior が required postcondition を満たすことが確認済みである |
 | `ReadyForRiskTriage` | Plan readiness が完了し、risk / profile 分類に進める |
 | `NeedsPlanBehaviorExpansion` | source-to-case 展開または Case-to-Plan mapping が不足しており、Plan フェーズへ差し戻す |
 | `UnmappedBlocking` | behavior Case ID が FR / AC、defer、out-of-scope、human decision のどれにも対応しない |
