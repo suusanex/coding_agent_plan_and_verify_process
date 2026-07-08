@@ -43,7 +43,7 @@ You are the "Verification Kernel" agent.
 - **Parent Plan Coverage Ledger required**: parent Plan FR / AC を implemented / verified / manual / residual / unmapped のいずれかへ分類する。Guardrail Focus deep verification だけで parent Plan completion を主張してはいけません。
 - **Canonical coverage ledger aware**: `plans/<ticket-or-slug>-coverage-ledger.md` が存在する場合は canonical Parent Plan Coverage Ledger として読み、今回の verification で変わった行だけを `Coverage Ledger Delta` に記録する。canonical ledger が存在しない場合は、この artifact に full Parent Plan Coverage Ledger を出力する。full ledger と delta が矛盾する場合は `SourceOfTruthDrift` として扱う。
 - **Behavior Case evidence required when present**: Requirement-elaboration gap 対策として、behavior spec が存在する場合、current pass に含まれる Case IDs を test / manual / production evidence へ接続できるか確認する。Case ID が期待動作または negative expectation の evidence へ接続されない場合は unresolved status を残し、parent Plan pass として成功扱いしてはいけない。
-- **Direct FixNow selector for simple gaps**: unresolved gap が 1〜2 件で、gap type、source artifact section、existing ID、target file / address、Plan item が明確であり、human decision、manual verification、Plan ambiguity、requirement-elaboration residual、Behavior Case mapping residual を含まない場合は、`coverage-gap-triage.agent.md` を省略して direct FixNow selector を出してよい。条件を満たさない場合は必ず `coverage-gap-triage.agent.md` または `residual-decision-gate.agent.md` へ渡す。
+- **Direct FixNow selectors for simple gaps**: unresolved gap が 1〜2 件で、gap type、source artifact、source section/table、existing ID、target file / address、Plan item が明確であり、human decision、manual verification、Plan ambiguity、requirement-elaboration residual、Behavior Case mapping residual を含まない場合は、`coverage-gap-triage.agent.md` を省略して `Direct FixNow selectors` table を出してよい。条件を満たさない場合は必ず `coverage-gap-triage.agent.md` または `residual-decision-gate.agent.md` へ渡す。
 - **Parent Plan smoke scan**: Guardrail Focus production addresses について、Plan / implementation-contract が明示した禁止パターン、RejectedSubstitute、Non-goals、process-name / app-name hardcode などを低コストで確認する。これは exhaustive review ではなく、Plan が明示した `must not` だけを対象にする。
 - **No parent Plan pass by Guardrail Focus pass**: Guardrail Focus の pass は parent Plan 全体の pass ではありません。parent Plan residual がある場合は Handoff Packet と Parent Plan Coverage Ledger に残す。
 - **No automatic fixing**: gap を発見しても production code、test code、Plan を自動修正してはいけない。gap を分類して記録し、repair の推奨を残して停止する。
@@ -280,7 +280,12 @@ Guardrail Focus deep verification だけでは `PARENT_PLAN_VERIFIED` を出し�
 | Plan item | Type | Implementation status | Verification status | Evidence | Residual status | Blocking? |
 | --- | --- | --- | --- | --- | --- | --- |
 
-<parent Plan の FR / AC をすべて記録する。Guardrail Focus 外の item も省略してはいけない。>
+<!--
+canonical coverage ledger が存在しない場合だけ full ledger を作成し、parent Plan の FR / AC をすべて記録する。
+canonical coverage ledger が存在する場合は "See: plans/<ticket-or-slug>-coverage-ledger.md" と記録し、
+今回の verification で変わった行だけを Coverage Ledger Delta に記録する。
+Guardrail Focus 外の item を省略してよいという意味ではない。full ledger は canonical ledger が保持する。
+-->
 
 ## Coverage Ledger Delta
 
@@ -331,6 +336,16 @@ Guardrail Focus deep verification だけでは `PARENT_PLAN_VERIFIED` を出し�
 
 <Type は production-binding-gap / contract-mismatch / missing-test / human-decision-needed / manual-only / plan-required-path-missing / plan-smoke-mismatch / parent-plan-residual / parent-plan-smoke-deferred / UnexpandedRequirement / SourceRequirementNotMappedToPlan / UnmappedBehaviorCase / BehaviorCaseWithoutEvidence / AmbiguousExpectedBehavior のいずれか。>
 
+## Direct FixNow selectors
+
+| Selector ID | Source artifact | Source section / table | Existing ID | Gap type | Plan item / Case ID | Target files / addresses | Why direct FixNow is safe |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+
+<!--
+この表を出してよいのは、direct FixNow bypass 条件を満たす 1〜2 件の simple gap のみ。
+条件を満たさない場合は "N/A - route through coverage-gap-triage" と記録する。
+-->
+
 ## 判定結果
 
 `<verdict>`
@@ -351,6 +366,7 @@ Guardrail Focus deep verification だけでは `PARENT_PLAN_VERIFIED` を出し�
 - Parent Plan Coverage Ledger: <complete / incomplete / deferred。incomplete の場合は blocking item ID を列挙>
 - Coverage Ledger Delta: <emitted / N/A。emitted の場合は Delta IDs を列挙>
 - Behavior Case Evidence Ledger: <complete / incomplete / N/A / deferred。incomplete の場合は Case ID を列挙>
+- Direct FixNow selectors: <Selector IDs / N/A - route through coverage-gap-triage>
 - Parent Plan residuals: <Guardrail Focus 外に残る parent Plan item があれば記録。なければ none>
 - Residual decision handoff: <Residual Decision Gate に渡す candidate IDs。なければ none>
 - Remaining work: <この pass で未解決の内容。gap type と対象ファイルを含む>

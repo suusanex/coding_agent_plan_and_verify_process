@@ -193,7 +193,7 @@ Use for the main lightweight process this repository now targets.
    - implementation by normal agent or human-guided implementation agent
    - `verification-kernel.agent.md`
 7. When step 5 was used, run `cross-slice-verification-kernel.agent.md`
-8. `coverage-gap-triage.agent.md`, when FixNow candidates or unresolved implementation coverage items need classification and no complete direct FixNow selector exists
+8. `coverage-gap-triage.agent.md`, when FixNow candidates or unresolved implementation coverage items need classification and no complete `Direct FixNow selectors` table exists
 9. `residual-decision-gate.agent.md`, when residual / manual / human-decision candidates remain
 10. `coverage-gap-resolution-slice.agent.md`, only when verification-kernel, coverage-gap-triage, or residual-decision-gate emits an explicit FixNow selector
 
@@ -399,7 +399,7 @@ Rules:
 
 For standard route work that would otherwise repeat the full parent Plan ledger across many artifacts, create `plans/<ticket-or-slug>-coverage-ledger.md` from `apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/coverage-ledger.md`.
 
-The canonical ledger owns the full parent Plan FR / AC, Behavior Case coverage, and residual decision rows. Intermediate artifacts may emit a `Coverage Ledger Delta` table that records only changed rows. A delta never narrows the parent Plan and never replaces the canonical ledger. If a delta contradicts the canonical ledger, treat the mismatch as `SourceOfTruthDrift` and resolve it before claiming close readiness.
+The canonical ledger owns the full parent Plan FR / AC, Behavior Case coverage, and residual decision rows. Intermediate artifacts may emit a `Coverage Ledger Delta` table that records only changed rows. When the canonical ledger exists, handoff and verification artifacts should point their Parent Plan Coverage Ledger section to `plans/<ticket-or-slug>-coverage-ledger.md` instead of restating every FR / AC. A delta never narrows the parent Plan and never replaces the canonical ledger. If a delta contradicts the canonical ledger, treat the mismatch as `SourceOfTruthDrift` and resolve it before claiming close readiness.
 
 ### Implementation Contract Kernel
 
@@ -1080,6 +1080,8 @@ Include `Post-wiring behavior evidence / oracle reference` in the Stub-to-Produc
 
 ## Unresolved items
 
+## Direct FixNow selectors
+
 ## Verdict
 
 ## Handoff Packet
@@ -1104,7 +1106,7 @@ For each selected test point:
 - when Plan Slice Decomposition exists, keep slice scope / XC IDs visible and defer cross-slice binding to `cross-slice-verification-kernel.agent.md`
 - when parent Plan residuals remain outside the bounded parent Plan pass or Guardrail Focus, keep them visible in the Handoff Packet rather than implying parent Plan completion
 - when a canonical coverage ledger exists, emit only changed rows as `Coverage Ledger Delta`
-- emit a direct FixNow selector only for 1〜2 simple gaps with source artifact, source section/table, existing ID, gap type, target file/address, and Plan item clearly identified
+- emit a `Direct FixNow selectors` table only for 1〜2 simple gaps with source artifact, source section/table, existing ID, gap type, Plan item / Case ID, target files / addresses, and why direct FixNow is safe
 
 ### Verdicts
 
@@ -1129,14 +1131,14 @@ Use one of:
 
 ### Stop condition
 
-Stop after updating Parent Plan Coverage Ledger and classifying unresolved items. If FixNow candidates exist, hand them to `coverage-gap-triage.agent.md` unless the direct FixNow selector conditions are fully met. If residual / manual / human-decision candidates remain, hand them to `residual-decision-gate.agent.md`. Do not recommend `coverage-gap-resolution-slice.agent.md` directly unless an explicit FixNow selector exists.
+Stop after updating Parent Plan Coverage Ledger and classifying unresolved items. If FixNow candidates exist, hand them to `coverage-gap-triage.agent.md` unless the direct FixNow selector conditions are fully met and the `Direct FixNow selectors` table is complete. If residual / manual / human-decision candidates remain, hand them to `residual-decision-gate.agent.md`. Do not recommend `coverage-gap-resolution-slice.agent.md` directly unless an explicit FixNow selector exists.
 
 ## 7. `coverage-gap-triage.agent.md`
 
 ### Purpose
 
 Classify unresolved implementation coverage items without fixing them.
-This agent can be skipped only when verification-kernel or residual-decision-gate emitted a complete direct FixNow selector for a simple gap.
+This agent can be skipped only when verification-kernel or residual-decision-gate emitted a complete `Direct FixNow selectors` table for a simple gap.
 
 ### Inputs
 
@@ -1333,7 +1335,7 @@ For a fresh implementation of the Plan網羅チェック・残件判定フロー
 8. `test-design-kernel.agent.md`
 9. implementation
 10. `verification-kernel.agent.md`
-11. `coverage-gap-triage.agent.md` when unresolved implementation coverage items need classification and no complete direct FixNow selector exists
+11. `coverage-gap-triage.agent.md` when unresolved implementation coverage items need classification and no complete `Direct FixNow selectors` table exists
 12. `residual-decision-gate.agent.md` when residual / manual / human-decision candidates remain
 13. `coverage-gap-resolution-slice.agent.md` only when an explicit FixNow selector exists
 

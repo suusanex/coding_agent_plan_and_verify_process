@@ -10,7 +10,8 @@
 | --- | --- |
 | Parent Plan | `plans/<slug>.md` |
 | Documentation level | `lite / standard` |
-| Selected process / route | `standard / full-coverage / other` |
+| Selected process | `normal / advanced-full-coverage / human-decision-wait / higher-model-review / lower-cost-delegated-scan / other` |
+| Route note | `standard-slice / full-coverage / fix-slice / direct-fixnow / other` |
 | Last full ledger update | `<artifact path and timestamp>` |
 | Last delta applied | `<artifact path and delta ID>` |
 

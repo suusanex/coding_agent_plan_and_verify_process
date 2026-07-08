@@ -411,7 +411,7 @@ READY_FOR_BOUNDED_PARENT_PLAN_PASS | READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DEC
 - plans/<ticket-or-slug>-black-box-behavior-spec.md（Expansion required: Yes の場合）
 - plans/<ticket-or-slug>-change-risk-triage.md
 - plans/<ticket-or-slug>-implementation-contract-kernel.md（implementation-realization risk が Present / Unclear の場合）
-- plans/<ticket-or-slug>-implementation-contract-review-kernel.md（存在する場合）
+- plans/<ticket-or-slug>-implementation-contract-review-kernel.md（explicit review-only fallback が存在する場合）
 - plans/<ticket-or-slug>-runtime-contract-kernel.md（Guardrail Focus / selected runtime contracts がある場合）
 - plans/<ticket-or-slug>-test-design-kernel.md（Guardrail Focus / selected runtime contracts がある場合）
 - plans/<ticket-or-slug>-slice-decomposition.md（full-coverage decomposition 由来の slice の場合）
@@ -421,7 +421,11 @@ READY_FOR_BOUNDED_PARENT_PLAN_PASS | READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DEC
 | Plan item | Type | Status | Covered by Slice ID | Covered by RC ID | Covered by TP ID | Cross-slice Contract ID | Residual / reason |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 
-<!-- 全 FR / AC を省略せず記録する。該当なしは none。 -->
+<!--
+canonical coverage ledger が存在しない場合だけ full ledger を作成し、全 FR / AC を省略せず記録する。
+canonical coverage ledger が存在する場合は "See: plans/<ticket-or-slug>-coverage-ledger.md" と記録し、
+今回の handoff で変わった行だけを Coverage Ledger Delta に記録する。
+-->
 
 ## Coverage Ledger Delta
 

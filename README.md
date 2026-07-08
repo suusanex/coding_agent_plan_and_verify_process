@@ -392,7 +392,7 @@ bounded Plan を作成し、その parent Plan を実装・検証の source of t
 - `change-risk-triage`、`runtime-contract-kernel`、`test-design-kernel`、`implementation-handoff-review` は parent Plan を縮小しません。
 - Guardrail Focus は deep runtime / production-binding verification の重点対象です。implementation scope ではありません。
 - Guardrail Focus 外の parent Plan item も Parent Plan Coverage Ledger で必ず分類します。
-- standard route で ledger の再掲が膨らむ場合は、`plans/<ticket-or-slug>-coverage-ledger.md` を canonical ledger とし、中間 artifact は `Coverage Ledger Delta` だけを出します。
+- standard route で ledger の再掲が膨らむ場合は、`plans/<ticket-or-slug>-coverage-ledger.md` を canonical ledger とし、中間 artifact は `Coverage Ledger Delta` だけを出します。canonical ledger がある場合、handoff / verification artifact は full ledger を再掲せず、その section から canonical ledger を参照します。
 - residual は記録しただけでは accepted ではありません。`ManualVerificationRequired` は close 不可の candidate status です。explicit human decision により owner / method / required evidence が明示された場合だけ、`AcceptedResidual`、`ManualVerificationDelegated`、`DeferredWithOwner`、`AbortedWithReason` などの close 可能な decision status にできます。
 - final done は Parent Plan Coverage Ledger と Residual Decision Ledger で判定します。
 - full-coverage decomposition 後の cross-slice verification は、production interface / implementation / wiring の存在確認だけでは完了しません。producer から production wiring を通した後、consumer 側の runtime gate / durable state / async worker / recovery semantics が parent acceptance condition の runtime postcondition を満たすことを確認します。
@@ -414,7 +414,7 @@ bounded Plan を作成し、その parent Plan を実装・検証の source of t
 11. 必要に応じて `code-review-focus-kernel.agent.md`
 12. human code review
 13. `verification-kernel.agent.md`
-14. 未解決があり、complete direct FixNow selector がない場合は `coverage-gap-triage.agent.md`
+14. 未解決があり、complete `Direct FixNow selectors` table がない場合は `coverage-gap-triage.agent.md`
 15. `residual-decision-gate.agent.md`
 16. verification-kernel、coverage-gap-triage、または residual-decision-gate が explicit FixNow selector を出した場合だけ `coverage-gap-resolution-slice.agent.md`
 17. 必要に応じて `verification-kernel.agent.md` と `residual-decision-gate.agent.md` を再実行
@@ -508,12 +508,12 @@ human review 用の重点 surface を整理します。parent Plan item に影�
 ### `verification-kernel.agent.md`
 
 Parent Plan Coverage Ledger と Behavior Case Evidence Ledger を更新し、Guardrail Focus RC/TP については production binding / wiring / contract representation を深く確認します。final verdict は parent Plan verdict です。
-canonical coverage ledger が存在する場合は、変更行を `Coverage Ledger Delta` として出します。1〜2 件の simple gap で source artifact、source section/table、existing ID、gap type、target file / address、Plan item が明確な場合だけ direct FixNow selector を出せます。
+canonical coverage ledger が存在する場合は、変更行を `Coverage Ledger Delta` として出します。1〜2 件の simple gap で source artifact、source section/table、existing ID、gap type、Plan item / Case ID、target files / addresses、direct FixNow が安全な理由を明確にできる場合だけ `Direct FixNow selectors` table を出せます。
 
 ### `coverage-gap-triage.agent.md`
 
 Parent Plan Coverage Ledger から unresolved items を抽出し、FixNow items、manual decision candidates、Residual decision candidates を分けます。defer / abort / manual delegation を承認しません。
-verification または residual gate が complete direct FixNow selector を出した simple gap では省略できます。
+verification または residual gate が complete `Direct FixNow selectors` table を出した simple gap では省略できます。
 
 ### `residual-decision-gate.agent.md`
 

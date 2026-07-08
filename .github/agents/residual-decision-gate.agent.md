@@ -196,6 +196,16 @@ direct FixNow selector を出してよいのは、FixNow items が 1〜2 件で�
 | Residual ID | Source item | Residual type | Options | Recommended option | Explicit human decision | Decision status | Owner / next step |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 
+## Direct FixNow selectors
+
+| Selector ID | Source artifact | Source section / table | Existing ID | Gap type | Plan item / Case ID | Target files / addresses | Why direct FixNow is safe |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+
+<!--
+この表を出してよいのは、direct FixNow bypass 条件を満たす 1〜2 件の simple gap のみ。
+条件を満たさない場合は "N/A - route through coverage-gap-triage" と記録する。
+-->
+
 ## Human decisions required
 
 | Residual ID | Question | Why human decision is required | Safe default |
@@ -210,6 +220,7 @@ direct FixNow selector を出してよいのは、FixNow items が 1〜2 件で�
 - Source artifacts:
 - Coverage ledger source:
 - Coverage Ledger Delta:
+- Direct FixNow selectors:
 - Decisions made:
 - Decisions not made:
 - Accepted residuals:
