@@ -164,9 +164,9 @@ Rules:
 - `STANDARD_MODEL` READY implementation MUST delegate to `standard-implementer` when the parent is running as `HIGH_MODEL` or otherwise owns orchestration.
 - `STANDARD_MODEL` READY verification MUST delegate to `standard-verifier` before close, unless close risk requires `high-closure-reviewer`.
 - `HIGH_MODEL` plan, behavior expansion, risk, implementation handoff review, implementation contract, and dangerous close judgment may stay with the parent or high agents.
-- Normal READY implementation requires an `implementation-handoff-review` artifact, or an explicitly equivalent pre-implementation gate, before selecting `standard-implementer`.
+- Normal READY implementation requires an `implementation-handoff-review` artifact, or an explicitly equivalent pre-implementation gate such as a Plan Coverage Lite artifact whose Inline Ready Gate is PASS, before selecting `standard-implementer`.
 - Implementation handoff review requires the durable risk artifact `plans/<slug>-change-risk-triage.md`. Do not select `implementation-handoff-review` until `risk_triage_artifact_status = Complete`.
-- When `Expansion required = Yes`, the handoff artifact must include `Behavior Case Coverage Ledger` and state must record `behavior_case_coverage_ledger_status = Complete` before selecting `standard-implementer`.
+- When `Expansion required = Yes`, the implementation-handoff-review artifact or Plan Coverage Lite artifact must include `Behavior Case Coverage Ledger` and state must record `behavior_case_coverage_ledger_status = Complete` before selecting `standard-implementer`.
 - A gate with `Delegation required = Yes` cannot be marked successful without observed delegation or an accepted parent-direct exception.
 - A parent-direct exception is not a delegated cost-saving success. Record it as an exception, not as saved cost.
 
@@ -184,7 +184,7 @@ The state artifact must include the selected owner for each relevant gate.
 `DelegationRequired` is `Yes` for normal READY implementation and normal READY verification.
 It may also be `Yes` for read-heavy scan or docs consistency when the Routing Plan chooses cheaper delegated work.
 
-`Required artifacts` should name the bounded Plan, state artifact, implementation contract, implementation-handoff-review artifact, behavior case coverage ledger, test evidence, or human decision needed before the gate can proceed.
+`Required artifacts` should name the bounded Plan, state artifact, implementation contract, implementation-handoff-review artifact or Plan Coverage Lite Inline Ready Gate equivalent, behavior case coverage ledger, test evidence, or human decision needed before the gate can proceed.
 
 `Stop / Ready Gate` must show either the blocking reason or the condition that makes the next gate READY.
 
@@ -329,9 +329,9 @@ Do:
 
 - run `implementation-handoff-review` or an explicitly equivalent pre-implementation gate before normal READY implementation
 - require `risk_triage_artifact_status = Complete` and the `plans/<slug>-change-risk-triage.md` artifact before starting handoff review
-- create or update the parent authorization artifact, normally `plans/<slug>-implementation-handoff-review.md`
+- create or update the parent authorization artifact, normally `plans/<slug>-implementation-handoff-review.md`; for `documentation_level: lite`, a Plan Coverage Lite artifact may serve as the authorization artifact only when Inline Ready Gate is explicitly PASS and equivalent to `implementation-handoff-review`
 - record `behavior_case_coverage_ledger_artifact` and `behavior_case_coverage_ledger_status` in state
-- require `Behavior Case Coverage Ledger` when `Expansion required = Yes`
+- require `Behavior Case Coverage Ledger` in the implementation-handoff-review artifact or Lite artifact when `Expansion required = Yes`
 - keep `standard-implementer` unavailable until the ledger status is `Complete`
 - stop with `BlockedByBehaviorCaseCoverageLedger` when the ledger is missing, incomplete, `UnmappedBlocking`, or has pre-implementation `NeedsHumanDecision`
 
@@ -343,7 +343,7 @@ Use `CHEAP_MODEL` only for simple, local, low-risk edits.
 Do:
 
 - set `Delegation required = Yes` and `Edit owner = standard-implementer` for normal READY implementation
-- require the implementation-handoff-review parent authorization artifact before selecting `standard-implementer`
+- require either the implementation-handoff-review parent authorization artifact or a Plan Coverage Lite artifact with Inline Ready Gate equivalence before selecting `standard-implementer`
 - when `Expansion required = Yes`, require `behavior_case_coverage_ledger_status = Complete`
 - delegate READY implementation serially to `standard-implementer`; serial delegation is required even when write-heavy parallel editing is not allowed
 - implement only READY scope

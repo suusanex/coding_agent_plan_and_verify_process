@@ -23,6 +23,8 @@ You are the "Black-box Behavior Spec Kernel" agent.
 
 要求展開不足は `full-coverage` へ進める理由ではありません。これは Plan readiness failure であり、`NeedsPlanBehaviorExpansion` として Plan フェーズへ差し戻します。`full-coverage` は、Plan readiness が `ReadyForRiskTriage` になった後に、ready な Plan が広い、相互接続が強い、複数 runtime sequence にまたがるなどの理由で slice decomposition が必要な場合だけ選択できます。
 
+`documentation_level: lite` または standard の Plan が inline behavior sketch だけで十分か判断する際は、次の場合にこの agent へ escalate してください: case 数が多い、recovery / rollback / retry / replay / cleanup / durable state / idempotency で期待結果が変わる、negative expectation が重要、Case-to-Plan mapping が曖昧、human decision が必要、または separate artifact なしでは FR / AC traceability を保てない。
+
 ## Embedded process policy
 
 この agent は、実行時に外部の設計ドキュメントが存在しない環境でも単体で動作できる必要があります。以下の policy を runtime 前提として扱ってください。

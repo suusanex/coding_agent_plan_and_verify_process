@@ -11,11 +11,11 @@ If Plan readiness is NeedsPlanBehaviorExpansion, do not select runtime contracts
 If Plan readiness is NeedsHumanDecision, stop for human decision.
 Treat full-coverage 3-layer operation as an advanced route, not the default.
 Use full-coverage only for a ReadyForRiskTriage Plan whose scope is broad, strongly interconnected, cross-slice, or unsafe to bound as one implementation pass.
-Create or update the durable risk artifact `plans/<ticket-or-slug>-change-risk-triage.md` before handing off to implementation-handoff-review.
+Create or update the durable risk artifact `plans/<ticket-or-slug>-change-risk-triage.md` before handing off to implementation-handoff-review or an explicitly equivalent Plan Coverage Lite Inline Ready Gate.
 Update the state artifact with `risk_triage_artifact`, `risk_triage_artifact_status`, risk classification, Guardrail Focus requirement, selected runtime contracts, implementation-realization risk, recommended process, and recommended next step.
-Do not hand off to implementation-handoff-review while the durable change-risk-triage artifact is missing or incomplete.
-When the standard route can continue, route to implementation-handoff-review before standard-implementer.
-If Expansion required = Yes, do not mark implementation READY until implementation-handoff-review records Behavior Case Coverage Ledger status Complete.
+Do not hand off to implementation-handoff-review or an Inline Ready Gate equivalent while the durable change-risk-triage artifact is missing or incomplete.
+When the standard route can continue, route to implementation-handoff-review or a Plan Coverage Lite Inline Ready Gate equivalent before standard-implementer.
+If Expansion required = Yes, do not mark implementation READY until implementation-handoff-review or the Lite artifact records Behavior Case Coverage Ledger status Complete.
 Do not implement. Do not edit production code, tests, Plan FR/AC, behavior spec, runtime contracts, test design, or implementation artifacts.
 Stop with NeedsHigherModelReview when the risk cannot be bounded confidently.
 The change-risk-triage artifact must include at minimum:
@@ -42,7 +42,7 @@ The change-risk-triage artifact must include at minimum:
 
 ## Handoff packet
 
-- Required before implementation-handoff-review:
+- Required before implementation-handoff-review or Inline Ready Gate equivalent:
 - Allowed standard route scope:
 - Blocking issues:
 - Residual risks:

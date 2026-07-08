@@ -51,6 +51,14 @@ Use this section only when a separate Black-box Behavior Spec is not required.
 | Scenario / case | Input or state | Expected behavior | Negative expectation | Related FR / AC |
 | --- | --- | --- | --- | --- |
 
+Escalate to a separate `plans/<slug>-black-box-behavior-spec.md` instead of using only this inline sketch when any of these are true:
+
+- more than a few behavior cases are needed to preserve source requirement coverage
+- expected behavior changes across recovery, rollback, retry, replay, cleanup, durable state, or idempotency paths
+- negative expectations are numerous or safety-critical
+- Case-to-Plan mapping is incomplete, ambiguous, or requires human decision
+- standard or full-coverage routing is needed to keep behavior coverage traceable
+
 ## Risk Checklist
 
 | Risk item | Status | Evidence / notes |
@@ -68,14 +76,19 @@ Use this section only when a separate Black-box Behavior Spec is not required.
 
 Implementation is allowed only when every required row is `PASS` or `N/A` with evidence.
 
+This section may replace a separate `plans/<slug>-implementation-handoff-review.md` only when `Inline Ready Gate equivalent to implementation-handoff-review` is `PASS`, every required row has source-backed evidence, and no blocking item remains. This equivalence is limited to authorization for the bounded implementation pass. It is not parent Plan close readiness.
+
 | Check | Status | Evidence |
 | --- | --- | --- |
 | Source of truth is identified | PASS / FAIL / N/A | |
 | FR / AC coverage is complete for this bounded pass | PASS / FAIL / N/A | |
 | Behavior expansion is not required, or the required behavior artifact exists | PASS / FAIL / N/A | |
+| Case-to-Plan mapping is complete, or N/A with reason | PASS / FAIL / N/A | |
 | Risk checklist has no unresolved blocking item | PASS / FAIL / N/A | |
 | Implementation scope and non-goals are clear | PASS / FAIL / N/A | |
 | Human decisions are resolved or explicitly blocking | PASS / FAIL / N/A | |
+| Behavior Case Coverage Ledger is complete when `Expansion required: Yes` | PASS / FAIL / N/A | |
+| Inline Ready Gate equivalent to implementation-handoff-review | PASS / FAIL / N/A | |
 | Implementation is allowed for the bounded pass | PASS / FAIL / N/A | |
 
 ## Implementation Self-Map

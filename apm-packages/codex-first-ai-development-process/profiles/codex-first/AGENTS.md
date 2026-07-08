@@ -14,6 +14,7 @@ Use `codex-first-cost-router` behavior:
 - create or update `plans/<slug>-change-risk-triage.md` during Risk gate and record `risk_triage_artifact_status`
 - do not run `implementation-handoff-review` until the change-risk-triage artifact is complete
 - run `implementation-handoff-review` or an explicitly equivalent pre-implementation gate before normal READY implementation
+- for `documentation_level: lite`, treat the Plan Coverage Lite Inline Ready Gate as equivalent to `implementation-handoff-review` only when it is explicitly PASS and covers source of truth, FR / AC coverage, Case-to-Plan mapping, risk checklist, implementation scope, human decisions, required Behavior Case Coverage Ledger, and implementation allowed
 - when `Expansion required: Yes`, require `Behavior Case Coverage Ledger` status `Complete` before handing off to `standard-implementer`
 - route hard judgment to high agents
 - MUST delegate normal READY implementation serially to `standard-implementer`

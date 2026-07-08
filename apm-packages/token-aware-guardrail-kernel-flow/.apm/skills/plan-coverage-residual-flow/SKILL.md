@@ -74,6 +74,10 @@ Do not add `strict` as a `documentation_level`. When more rigor is needed, route
 
 When `documentation_level: lite` is selected, use `apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/plan-coverage-lite.md` as the compact artifact shape. The Lite artifact must still preserve source-of-truth, FR / AC coverage, Inline Ready Gate, Implementation Self-Map, Verification Summary, and Residual / Close Decision sections.
 
+The Inline Ready Gate may replace `plans/<slug>-implementation-handoff-review.md` only when it explicitly says it is equivalent to `implementation-handoff-review`, every required check is `PASS` or source-backed `N/A`, and there is no unresolved blocking item. This is implementation authorization for the bounded pass, not close readiness.
+
+Use inline behavior sketch only when it can preserve source-backed behavior coverage in the compact artifact. Escalate to `black-box-behavior-spec-kernel.agent.md` when case count, recovery / rollback / retry / replay / cleanup / durable state / idempotency, negative expectations, ambiguous Case-to-Plan mapping, human decisions, or standard / full-coverage routing require a separate artifact.
+
 The Lite artifact must include an explicit no fake-only completion check. Stub, fake, mock, in-memory, or test-helper evidence alone cannot support implementation completion or close readiness.
 
 ## Standard route
@@ -97,7 +101,7 @@ Run the flow in this order unless a stop condition applies:
    - `runtime-contract-kernel.agent.md`
    - `test-design-kernel.agent.md`
    - `implementation-handoff-review.agent.md`
-9. Implement only after the handoff review or a documented equivalent inline gate allows implementation for the bounded parent Plan pass. Use `implementation-execution.agent.md` or a human-guided implementation route, according to the repository's available agent setup.
+9. Implement only after the handoff review or a documented equivalent Inline Ready Gate allows implementation for the bounded parent Plan pass. Use `implementation-execution.agent.md` or a human-guided implementation route, according to the repository's available agent setup.
 10. Run `verification-kernel.agent.md`.
 11. If unresolved coverage items or FixNow candidates remain, run `coverage-gap-triage.agent.md`.
 12. Before final close, run `residual-decision-gate.agent.md`. If no residual candidates remain, it may produce `READY_TO_CLOSE_WITH_NO_RESIDUALS`. If residual, manual, or human-decision candidates remain, it must classify them before close.
