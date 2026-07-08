@@ -149,7 +149,7 @@ full-coverage 3層運用は advanced route として分離されています。
 
 1. `codex-first-cost-router` が依頼と既存 state を読む
 2. Intake / Plan / Risk / Scan / Contract / Implementation handoff review / Implementation / Verification / Close のうち次 gate を選ぶ
-3. gate ごとに `HIGH_MODEL` / `STANDARD_MODEL` / `CHEAP_MODEL` と agent / subagent を割り当て、Routing Plan / Edit Permission / Agent Usage Ledger を state artifact に記録する
+3. gate ごとに `HIGH_MODEL` / `STANDARD_MODEL` / `CHEAP_MODEL` と agent / subagent を割り当て、state artifact には Routing Plan / Edit Permission / audit artifact path / DelegationCompliance summary / next action を記録し、audit artifact には Agent Usage Ledger / DelegationCompliance detail / model observability / route history / close audit を記録する
 4. READY でない場合は実装せず、state artifact と stop reason を更新する
 5. 実装前に `implementation-handoff-review` または明示的に同等の gate で parent authorization artifact を作る
 6. READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する
@@ -190,7 +190,7 @@ $codex-first-cost-router を使って、このバグを修正してください�
 $codex-first-cost-router を使って、続きやって。
 ```
 
-この場合も、利用者は model tier、agent、full-coverage 分岐を選びません。`codex-first-cost-router` が repo rules、既存 artifact、state artifact、Routing Plan、Edit Permission、Agent Usage Ledger を見て次 gate を決めます。
+この場合も、利用者は model tier、agent、full-coverage 分岐を選びません。`codex-first-cost-router` が repo rules、既存 artifact、state artifact、必要な audit artifact を見て次 gate を決めます。
 
 #### 自動で呼ばせたい場合
 
@@ -205,7 +205,8 @@ $codex-first-cost-router を使って、続きやって。
 - 利用者に process 名、skill 名、agent 名、model tier、full-coverage 分岐を選ばせない。
 - `codex-first-cost-router` skill の振る舞いで、source of truth、repo rules、既存 artifact、state artifact を確認する。
 - 非自明な作業では `plans/<slug>/codex-first-state.md` を作成または更新する。
-- state artifact には Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance を記録する。
+- state artifact には Routing Plan、Edit Permission、audit artifact path、DelegationCompliance summary、next action を記録する。
+- audit artifact には Agent Usage Ledger、DelegationCompliance detail、model observability、route history、close audit を記録する。
 - 実装前に `implementation-handoff-review` または明示的に同等の gate で parent authorization artifact を作成し、`Expansion required: Yes` の場合は Behavior Case Coverage Ledger が complete になるまで `standard-implementer` へ渡さない。
 - READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する。
 - `DelegationRequired = Yes` の gate は observed run または explicit human approval 付き `ParentDirectExecutionException` がない限り成功扱いしない。
@@ -218,6 +219,7 @@ $codex-first-cost-router を使って、続きやって。
 - `.agents/skills/codex-first-cost-router/SKILL.md`
 - `.codex/agents/*.toml`（`standard-implementer`、`standard-verifier`、必要な high / cheap agents）
 - `templates/codex-first-state.md`
+- `templates/codex-first-audit.md`
 
 Codex-first をこの repository の package からローカル導入する場合は、次のインストーラで標準 bootstrap を追加できます。
 この経路では別途 APM を実行しなくても、標準ルートに必要な skill / agent / template を対象 repository に配置します。
@@ -254,6 +256,7 @@ VS Code の Codex 拡張や Codex App では、インストール済みリポジ
 
 Codex 枠が尽きた場合や利用者環境の都合で Codex を使えない場合に、GitHub Copilot Chat in VS Code へ fallback するための repo-local package です。
 Codex-first と state artifact、stop vocabulary、gate 設計、READY / close policy は共有します。ただし導入面は Codex 用 `.codex/agents/*.toml` や `.codex/config.toml` ではなく、VS Code Copilot が読む `.github/` 配下の custom instructions / custom agents / prompt files へ置きます。
+Issue #38 の lite / standard 実装、Codex-first core / audit state 分離、profile TOML 互換更新は Codex-first 経路を対象にしており、Copilot fallback への移植は必要に応じて後続 issue で扱います。
 
 標準入口は `copilot-cost-router` です。full-coverage 3層運用は standard route ではなく advanced route であり、初心者向け導入では判断させません。
 

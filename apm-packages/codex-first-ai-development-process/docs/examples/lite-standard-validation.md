@@ -273,7 +273,7 @@ Verification summary:
 | task_weight | `small-bounded` fix pass |
 | documentation_level | preserve current Plan level |
 | selected_process | `normal` |
-| required artifact | Direct FixNow selector with target ID, target file, expected fix, verification command |
+| required artifact | Direct FixNow selector with source artifact, source section/table, existing ID, gap type, Plan item, target files/addresses, expected fix, verification command, and reason why direct FixNow is safe |
 | ready / stop gate | may skip `coverage-gap-triage` only when direct selector is complete |
 | guardrail invariant | FixNow scope cannot expand beyond selected gap |
 
