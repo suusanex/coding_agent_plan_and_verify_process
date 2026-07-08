@@ -141,6 +141,7 @@ Route policy を変えるときは、次を一緒に確認する。
 - `docs/cost-router-goals.md`
 - `docs/team-profile-launcher.md`
 - `docs/bootstrap-and-merge-policy.md`
+- `docs/examples/lite-standard-validation.md`
 
 ## Copilot fallback
 
@@ -194,4 +195,8 @@ full-coverage 3層運用は advanced route である。
 - advanced guide が full-coverage 3層運用を標準ルートから分離している。
 - bootstrap policy が `AGENTS.override.md` と size limit risk を説明している。
 - examples が novice request、resume、simple local fix、ambiguous high-risk change、existing AGENTS layering を示している。
+- `docs/examples/lite-standard-validation.md` が VAL-001 から VAL-010、artifact count / sections read 比較、negative scan を示している。
+- `documentation_level` は `lite` / `standard` のみで、`strict` が enum として残っていない。
+- full-coverage は documentation level ではなく advanced route として説明されている。
+- Codex-first profile TOML が `.github/instructions/plan-coverage-shared.instructions.md` を直接参照していない。
 - 既存 `token-aware-guardrail-kernel-flow` と `full-autonomous-plan-first-flow` を壊していない。

@@ -50,6 +50,23 @@ write-heavy parallel editing is not the default. That is separate from delegatio
 If the parent directly performs work that was expected to be delegated, the state records `PARENT_DIRECT_WORK` or `TRIVIAL_PARENT_FIX` and does not count it as cost-saving delegation.
 Before normal READY implementation, the Risk gate must create `plans/<slug>-change-risk-triage.md` and set `risk_triage_artifact_status = Complete`. Then `implementation-handoff-review` or an explicitly equivalent pre-implementation gate must create the parent authorization artifact. When behavior expansion is required, the state must record `behavior_case_coverage_ledger_status = Complete` before `standard-implementer` can start.
 
+## Documentation level
+
+`documentation_level` records how much planning and verification structure is needed for the current bounded work.
+It is selected by Codex-first routing, not by the user.
+
+| Level | Use when | Required guardrail |
+| --- | --- | --- |
+| `lite` | Work is small, bounded, local, and has clear FR / AC and verification evidence | A Lite artifact or equivalent section keeps source of truth, FR / AC coverage, Inline Ready Gate, Implementation Self-Map, Verification Summary, and residual / close decision together |
+| `standard` | Work has compatibility risk, behavior expansion, implementation-realization risk, repeated coverage ledger needs, or non-trivial verification | Separate or canonical artifacts preserve Plan readiness, risk, coverage ledger / delta, implementation contract, handoff / readiness, verification, and residual decision |
+
+`strict` is not a documentation level.
+`full-coverage` is an advanced `selected_process` / route, not a documentation level.
+If the task is broad enough for full-coverage decomposition, the documentation level remains `standard` while the selected process moves to `advanced-full-coverage`.
+
+Lite may replace a separate `implementation-handoff-review` artifact only when the Inline Ready Gate is explicitly equivalent and complete.
+If behavior expansion, human decision, manual verification, or implementation-realization ambiguity remains, the route must use `standard` or stop before implementation.
+
 ## Close rules
 
 Close してよいのは、次が満たされるときだけ。

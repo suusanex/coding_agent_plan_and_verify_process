@@ -14,6 +14,8 @@ Codex には普通に依頼すればよい。
 
 process 名、agent 名、model 名、full-coverage かどうかは利用者が選ばない。
 Codex 側が repo rules と既存 artifact を読み、次に安全な工程を決める。
+Codex は内部で `documentation_level: lite` または `documentation_level: standard` も記録するが、これも利用者が選ぶものではない。
+`strict` は documentation level ではなく、full-coverage は advanced route である。
 
 ## Codex が内部で行うこと
 
@@ -87,3 +89,6 @@ Codex-first を導入した直後は、このサンプルで state artifact、au
 
 より広い MVP 検証には `docs/examples/routing-mvp-validation.md` を使う。
 この validation suite は、軽量修正、通常実装、full-coverage 候補、中断再開、Hook / Plugin 変更を並べて、Task Weight、Selected Process、Model Tier Recommendation、Agent / Subagent Plan、DelegationRequired、Stop / Ready Gate の分類を確認するための maintainer 向け artifact である。
+
+Lite / standard の検証には `docs/examples/lite-standard-validation.md` を使う。
+この validation suite は、`documentation_level`、Lite artifact、Inline Ready Gate、canonical coverage ledger、direct FixNow、unified implementation contract、artifact count / sections read、negative scan を確認するための maintainer 向け artifact である。

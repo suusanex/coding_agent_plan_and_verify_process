@@ -173,6 +173,25 @@ Use when:
 - the user wants to spend tokens on a known bounded repair
 - unresolved work should not expand into unrelated implementation changes
 
+## Lite / standard documentation level
+
+`documentation_level` controls how much artifact structure the bounded Plan網羅チェック pass uses.
+It does not change the source of truth, residual decision, or production-binding guardrails.
+
+| Level | Use when | Artifact shape |
+| --- | --- | --- |
+| `lite` | The change is small, local, clear, and has low behavior / implementation-realization risk | A single Lite artifact or equivalent section includes source of truth, FR / AC coverage, Inline Ready Gate, Implementation Self-Map, Verification Summary, and Residual / Close Decision |
+| `standard` | The change has compatibility risk, behavior expansion, implementation-realization risk, canonical ledger / delta needs, non-trivial verification, or residual ambiguity | Separate or canonical artifacts preserve Plan readiness, risk, implementation contract, handoff / readiness, coverage ledger / delta, verification, and residual decision |
+
+`strict` is not a documentation level.
+`full-coverage` is a route / selected process for a ready but broad parent Plan, not a documentation level.
+When full-coverage decomposition is selected, the documentation level remains `standard` while the selected process records the advanced route.
+
+Lite may use Inline Ready Gate as an implementation authorization source only when the gate is explicitly equivalent to implementation handoff review and complete.
+Otherwise, the flow must use `standard` or stop before implementation.
+
+Maintainers should validate this split with `apm-packages/codex-first-ai-development-process/docs/examples/lite-standard-validation.md`, including artifact count / sections read comparison and the negative scans listed there.
+
 ## Recommended process flows
 
 ### Main flow: Plan網羅チェック・残件判定フロー

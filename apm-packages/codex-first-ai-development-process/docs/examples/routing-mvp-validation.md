@@ -9,6 +9,9 @@ This suite validates the routing contract and expected classifications.
 It does not yet prove that a fresh Codex session will automatically load and invoke the installed `$codex-first-cost-router` skill.
 Operator validation must capture that runtime trigger separately before broader rollout.
 
+For Issue #38 lite / standard validation, use `docs/examples/lite-standard-validation.md`.
+That suite checks `documentation_level`, Lite artifact shape, canonical ledger / delta behavior, direct FixNow conditions, unified implementation contract behavior, artifact count, and negative scans.
+
 ## Validation rule
 
 各サンプルは次の項目を確認する。

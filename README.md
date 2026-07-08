@@ -143,6 +143,7 @@ full-coverage 3層運用は advanced route として分離されています。
 
 `codex-first-cost-router` が内部で source of truth、repo rules、state artifact、次 gate、model tier、agent / subagent 候補を決めます。
 利用者に process 名、skill 名、agent 名、full-coverage 分岐を選ばせません。
+内部では `documentation_level: lite / standard` も決めます。`strict` は documentation level ではなく、full-coverage は advanced route です。
 
 ### 内部 routing
 
@@ -245,6 +246,7 @@ VS Code の Codex 拡張や Codex App では、インストール済みリポジ
 - `apm-packages/codex-first-ai-development-process/docs/codex-first-ai-development-process.md`
 - `apm-packages/codex-first-ai-development-process/docs/user-guide.md`
 - `apm-packages/codex-first-ai-development-process/docs/maintainer-guide.md`
+- `apm-packages/codex-first-ai-development-process/docs/examples/lite-standard-validation.md`
 
 ---
 
