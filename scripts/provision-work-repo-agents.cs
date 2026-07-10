@@ -890,7 +890,7 @@ internal static class RepoAgentSetup
     private static void PrintUsage()
     {
         Console.WriteLine("Usage:");
-        Console.WriteLine("dotnet run --file scripts/setup-work-repo-agents.cs -- <targetRoot> [--force] [--dry-run] [--check] [--verbose]");
+        Console.WriteLine("dotnet run --file scripts/provision-work-repo-agents.cs -- <targetRoot> [--force] [--dry-run] [--check] [--verbose]");
         Console.WriteLine("Options:");
         Console.WriteLine("  --force       overwrite existing runtime setting values");
         Console.WriteLine("  --dry-run     show planned changes only");

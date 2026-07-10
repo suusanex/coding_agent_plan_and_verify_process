@@ -31,7 +31,7 @@ global guidance は短く保つ。
 組織の契約や利用枠に合わせて、これらの TOML を編集してから配布する。
 TOML の top-level field は Codex が解釈する configured execution defaults であり、本文中の自然言語や output template は source of truth ではない。
 
-repository-local な継続運用のためには `scripts/install-codex-first-local.cs` も追加しておく。  
+repository-local な継続運用のためには `scripts/apply-codex-first-local.cs` も追加しておく。
 このインストーラは `AGENTS.md` の managed section、`.codex/config.toml`、`.codex/agents/*.toml`、`.agents/skills/codex-first-cost-router/SKILL.md`、`templates/*.md` を安全に追加・マージする。
 `templates/*.md` には `codex-first-state.md` と `codex-first-audit.md` の両方が含まれる。
 標準 Codex-first route に必要な runtime はこのインストーラだけで揃え、別途 APM 実行を前提にしない。
@@ -187,8 +187,8 @@ full-coverage 3層運用は advanced route である。
 - close gate が delegation evidence missing を成功扱いしない。
 - `profiles/codex-first/agents/*.toml` に `model` と `model_reasoning_effort` の実行可能な初期値がある。
 - `profiles/codex-first/agents/*.toml` に role-appropriate `sandbox_mode` がある。
-- `install-codex-first-local.cs` が `.agents/skills/codex-first-cost-router/SKILL.md` と `templates/*.md` を配置する。
-- `install-codex-first-local.cs` の `--dry-run` / `--check-only` がファイルやディレクトリを作成しない。
+- `apply-codex-first-local.cs` が `.agents/skills/codex-first-cost-router/SKILL.md` と `templates/*.md` を配置する。
+- `apply-codex-first-local.cs` の `--dry-run` / `--check-only` がファイルやディレクトリを作成しない。
 - audit artifact の Agent Usage Ledger が configured / hook / reported / effective model と delegation violation を分離している。
 - parent direct work と trivial parent fix が cost-saving delegation success として数えられない。
 - maintainer guide がモデル実名を固定せず、`same-model-lower-effort` default の確認責務を説明している。
