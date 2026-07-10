@@ -418,7 +418,7 @@ To verify the actual `$codex-first-cost-router` runtime trigger, an operator sho
 1. Prepare a disposable validation repository or this repository worktree.
 2. Ensure one of the following is true:
    - the Codex-first profile is active, including `profiles/codex-first/AGENTS.md`
-   - the target repository has been prepared with `install-codex-first-local.cs`
+   - the target repository has been prepared with `apply-codex-first-local.cs`
    - the local skill path `.agents/skills/codex-first-cost-router/SKILL.md` is available to the Codex session
 3. Start a fresh Codex thread for each sample.
 4. Paste the sample's Manual prompt exactly.

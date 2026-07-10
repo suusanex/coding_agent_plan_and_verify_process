@@ -36,9 +36,9 @@ audit には、委譲実行の証跡、親が直接作業した場合の理由�
 `codex-first-start.ps1` は一時 launcher なので、VS Code 拡張のようにリポジトリごとに標準運用を残したい場合は、次のインストーラを先に実行する。
 
 ```powershell
-dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- <target-repo-path> --dry-run
-dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- <target-repo-path>
-dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- <target-repo-path> --check-only
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs -- <target-repo-path> --dry-run
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs -- <target-repo-path>
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs -- <target-repo-path> --check-only
 ```
 
 このインストーラは次を対象リポジトリへ追加します。

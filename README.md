@@ -79,19 +79,19 @@ Source requirement
 
 | Script | Use when | Installs / fixes |
 | --- | --- | --- |
-| `apm-packages/codex-first-ai-development-process/scripts/install-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、`.agents/skills/codex-first-cost-router/SKILL.md`、`templates/*.md` |
-| `scripts/setup-work-repo-agents.cs` | 既存の token-aware / full-coverage package を APM 経由で導入し、生成された Codex agent TOML と full-coverage template 配置を補正したい | `apm install` の実行、`.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level `model` / `model_reasoning_effort` / `sandbox_mode` 補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置 |
+| `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、`.agents/skills/codex-first-cost-router/SKILL.md`、`templates/*.md` |
+| `scripts/provision-work-repo-agents.cs` | 既存の token-aware / full-coverage package を APM 経由で導入し、生成された Codex agent TOML と full-coverage template 配置を補正したい | `apm install` の実行、`.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level `model` / `model_reasoning_effort` / `sandbox_mode` 補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置 |
 
-Codex-first を使いたい場合の入口は `install-codex-first-local.cs` です。
-`setup-work-repo-agents.cs` は legacy / existing package 向けの APM 補助であり、Codex-first local bootstrap には使いません。
+Codex-first を使いたい場合の入口は `apply-codex-first-local.cs` です。
+`provision-work-repo-agents.cs` は legacy / existing package 向けの APM 補助であり、Codex-first local bootstrap には使いません。
 
-### 既存APM向け補助スクリプト setup-work-repo-agents
+### 既存APM向け補助スクリプト provision-work-repo-agents
 
 この章は、`token-aware-guardrail-kernel-flow` や `token-aware-full-coverage-3layer` を APM 経由で対象リポジトリへ導入する場合だけ参照します。
 Codex-first の導入手順ではありません。
 
 apm を使用して agent.md 形式から Codex 向けの toml 形式を作成すると、一部の top-level TOML field が欠落する動作が確認されています。(2026/6/8)
-`setup-work-repo-agents.cs` は、その欠落を補うために次を行います。
+`provision-work-repo-agents.cs` は、その欠落を補うために次を行います。
 
 - 対象リポジトリで `apm install --update --target copilot,codex,agent-skills ...` を実行する。
 - 生成された `.codex/agents/slice-prep.toml` と `.codex/agents/slice-impl.toml` を検査する。
@@ -101,10 +101,10 @@ apm を使用して agent.md 形式から Codex 向けの toml 形式を作成�
 次のように、セットアップ対象のリポジトリのルートパスを渡して実行する。
 
 ```powershell
-dotnet run --file scripts/setup-work-repo-agents.cs -- "C:\\path\\to\\work-repo" --dry-run
-dotnet run --file scripts/setup-work-repo-agents.cs -- "C:\\path\\to\\work-repo"
-dotnet run --file scripts/setup-work-repo-agents.cs -- "C:\\path\\to\\work-repo" --check
-dotnet run --file scripts/setup-work-repo-agents.cs -- "C:\\path\\to\\work-repo" --force
+dotnet run --file scripts/provision-work-repo-agents.cs -- "C:\\path\\to\\work-repo" --dry-run
+dotnet run --file scripts/provision-work-repo-agents.cs -- "C:\\path\\to\\work-repo"
+dotnet run --file scripts/provision-work-repo-agents.cs -- "C:\\path\\to\\work-repo" --check
+dotnet run --file scripts/provision-work-repo-agents.cs -- "C:\\path\\to\\work-repo" --force
 ```
 
 `--dry-run` と `--check` では `apm` 実行やファイル書き込みは行いません。
@@ -223,12 +223,12 @@ $codex-first-cost-router を使って、続きやって。
 
 Codex-first をこの repository の package からローカル導入する場合は、次のインストーラで標準 bootstrap を追加できます。
 この経路では別途 APM を実行しなくても、標準ルートに必要な skill / agent / template を対象 repository に配置します。
-既存APM向けの `scripts/setup-work-repo-agents.cs` は使いません。
+既存APM向けの `scripts/provision-work-repo-agents.cs` は使いません。
 
 ```powershell
-dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- . --dry-run
-dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- .
-dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\install-codex-first-local.cs -- . --check-only
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs -- . --dry-run
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs -- .
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs -- . --check-only
 ```
 
 これで対象リポジトリに次を追加します。
@@ -581,7 +581,7 @@ Parent review gate は人間レビュー待ちではなく、親エージェン�
   - `full-coverage-parent-orchestration-state.md` template
 - APM で取得できないもの
   - workspace そのものの Codex 実行設定（例: `.codex/config.toml`）
-  - repository 固有のローカル配置や、利用者の作業環境に依存する設定値（`setup-work-repo-agents.cs` を使う場合は `plans/_templates/full-coverage-parent-orchestration-state.md` へ template を配置する）
+  - repository 固有のローカル配置や、利用者の作業環境に依存する設定値（`provision-work-repo-agents.cs` を使う場合は `plans/_templates/full-coverage-parent-orchestration-state.md` へ template を配置する）
 
 関係としては、APM で取得できるものが「何を守ってどう進めるか」を定義し、APM で取得できないものが「その workspace でどう実行するか」を補います。前者だけでは運用方針は入るけれど、並列度や再帰深さのようなローカル実行境界までは固定しません。
 

@@ -110,7 +110,7 @@ Final gate: 親エージェント
 
 ## Parent Orchestration State
 
-親エージェントは `plans/<ticket-or-slug>-parent-orchestration-state.md` を作成または更新し、後続の親エージェントが会話履歴なしで再開できる single resume entrypoint として扱ってください。標準 template は `apm-packages/token-aware-full-coverage-3layer/.apm/templates/full-coverage-parent-orchestration-state.md` です。`setup-work-repo-agents.cs` を使う consuming repo では `plans/_templates/full-coverage-parent-orchestration-state.md` にも配置されます。template file が見つからない場合でも、この section に列挙された required sections で state artifact を作成してください。
+親エージェントは `plans/<ticket-or-slug>-parent-orchestration-state.md` を作成または更新し、後続の親エージェントが会話履歴なしで再開できる single resume entrypoint として扱ってください。標準 template は `apm-packages/token-aware-full-coverage-3layer/.apm/templates/full-coverage-parent-orchestration-state.md` です。`provision-work-repo-agents.cs` を使う consuming repo では `plans/_templates/full-coverage-parent-orchestration-state.md` にも配置されます。template file が見つからない場合でも、この section に列挙された required sections で state artifact を作成してください。
 
 この artifact は会話ログの再現ではなく、再開に必要な索引と差分だけを持ちます。parent Plan、slice artifact、triage、contract、verification result の本文をコピーしてはいけません。subagent output の全文、長い reasoning trace、append-only の長大な履歴ログも標準 artifact には入れません。source excerpt は原則禁止し、必要な場合だけ短い pointer に抑えてください。原則として path / status / next action / blocking reason を中心にしてください。file が大きくなりすぎた場合は、完了済み slice 行を短い summary に圧縮し、詳細は元の slice artifact に残します。
 

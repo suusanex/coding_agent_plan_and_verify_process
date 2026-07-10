@@ -230,7 +230,7 @@ static InstallOptions ParseArguments(string[] args)
 static void ShowUsage()
 {
     WriteLine("Usage:");
-    WriteLine("  dotnet run --file apm-packages/codex-first-ai-development-process/scripts/install-codex-first-local.cs -- <target-repo-root> [options]");
+    WriteLine("  dotnet run --file apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs -- <target-repo-root> [options]");
     WriteLine();
     WriteLine("Arguments:");
     WriteLine("  <target-repo-root>   導入先リポジトリのルートフォルダ");
