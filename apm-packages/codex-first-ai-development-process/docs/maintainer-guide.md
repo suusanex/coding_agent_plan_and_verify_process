@@ -31,7 +31,7 @@ global guidance は短く保つ。
 組織の契約や利用枠に合わせて、これらの TOML を編集してから配布する。
 TOML の top-level field は Codex が解釈する configured execution defaults であり、本文中の自然言語や output template は source of truth ではない。
 
-repository-local な継続運用のためには `scripts/apply-codex-first-local.cs` も追加しておく。
+repository-local な継続運用のためには `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` も追加しておく。
 このインストーラは `AGENTS.md` の managed section、`.codex/config.toml`、`.codex/agents/*.toml`、`.agents/skills/codex-first-cost-router/SKILL.md`、`templates/*.md` を安全に追加・マージする。
 `templates/*.md` には `codex-first-state.md` と `codex-first-audit.md` の両方が含まれる。
 標準 Codex-first route に必要な runtime はこのインストーラだけで揃え、別途 APM 実行を前提にしない。
