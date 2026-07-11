@@ -54,8 +54,8 @@ Codex hooks には `SubagentStart` / `SubagentStop` があり、`agent_id` / `ag
 - `slice-impl` が親承認済み slice を実装し、slice-local verification-kernel まで進める。
 - 最後に親が cross-slice-verification-kernel と residual-decision-gate を行う。
 
-`slice-prep` agent は read-only で、production code / tests の編集を禁止している。  
-`slice-prep` agent は `gpt-5.6-terra` / medium / read-only、`slice-impl` agent は `gpt-5.6-luna` / high / workspace-write として定義され、親が READY と承認した slice のみ実装する前提になっている。
+`slice-prep` agent は `gpt-5.6-terra` / medium / read-only で、production code / tests を編集せず、per-slice artifact を準備する。
+`slice-impl` agent は `gpt-5.6-luna` / high / workspace-write で、親が READY と承認した slice だけを実装する。
 
 ### 2.2 現状の問題点
 

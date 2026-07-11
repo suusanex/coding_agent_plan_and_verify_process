@@ -173,7 +173,11 @@ write-heavy parallel editing を標準化しないことは、親エージェン
 
 実名モデルは固定しません。組織の契約、利用枠、品質要求に合わせて mapping してください。
 この package には、そのまま使える profile / agent file テンプレート例として `profiles/codex-first/` を含めます。
-現行 default では `STANDARD_MODEL` が `HIGH_MODEL` と同じ実名モデルの medium effort になる場合があります。この場合は `same-model-lower-effort` として扱い、導入時に lower-cost mapping へ変更するか、effort 差で十分かを確認してください。
+現行 default では、抽象 tier と実モデルは一対一対応ではなく、agent ごとの責務に応じて model / reasoning effort を設定します。
+
+- `standard-implementer`: Luna / high
+- `standard-verifier`: Terra / medium
+- `HIGH_MODEL` agents: 原則 Terra。reasoning effort は agent ごとに medium または high
 
 ### 導入方法
 
