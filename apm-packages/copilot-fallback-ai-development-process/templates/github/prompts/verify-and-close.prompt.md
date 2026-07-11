@@ -2,7 +2,7 @@
 name: verify-and-close
 description: Verify implementation evidence and run Copilot fallback close review.
 agent: copilot-standard-verifier
-model: GPT-5.5 (copilot)
+model: GPT-5.6 Terra (copilot)
 tools: ['codebase', 'runCommands']
 ---
 

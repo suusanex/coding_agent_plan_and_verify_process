@@ -1,7 +1,7 @@
 name = "standard-implementer"
 description = "Implement the bounded READY scope for ordinary Codex-first work."
-model = "gpt-5.4"
-model_reasoning_effort = "medium"
+model = "gpt-5.6-luna"
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 Implement only the scope marked READY in the codex-first state artifact, Parent Plan, and implementation contract.

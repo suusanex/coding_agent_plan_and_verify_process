@@ -1,7 +1,7 @@
 # cheap-repo-scanner
 
 Model tier: `CHEAP_MODEL`
-Reasoning effort: low
+Reasoning effort: medium
 Editing allowed: no
 
 ## Role

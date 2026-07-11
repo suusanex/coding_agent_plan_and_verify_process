@@ -2,7 +2,7 @@
 name: fix-selected-residual
 description: Fix only selected residual IDs after Copilot fallback verification.
 agent: copilot-standard-implementer
-model: GPT-5.5 (copilot)
+model: GPT-5.6 Terra (copilot)
 tools: ['codebase', 'editFiles', 'runCommands']
 ---
 

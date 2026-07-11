@@ -67,7 +67,11 @@ team profile の global `AGENTS.md` は repo-local `AGENTS.md` を置き換え�
 ただし、実行可能な初期値がないと導入検証できないため、`profiles/codex-first/agents/*.toml` には configured defaults を置く。
 具体値は TOML の top-level `model` / `model_reasoning_effort` を確認する。docs 本文へ自然言語の固定推奨として複製しない。
 
-現行 default では `STANDARD_MODEL` と `HIGH_MODEL` が同じ実名モデルを使う場合がある。この場合の cost-aware routing は `same-model-lower-effort` として扱い、reasoning effort 差で十分か、組織の価格・品質・利用枠に照らして必ず確認する。lower-cost の実名モデルへ置き換えられる場合は、team profile の `standard-implementer` / `standard-verifier` を更新する。
+現行 default では、抽象 tier と実モデルは一対一対応ではなく、agent ごとの責務に応じて model / reasoning effort を設定する。
+
+- `standard-implementer`: Luna / high
+- `standard-verifier`: Terra / medium
+- `HIGH_MODEL` agents: 原則 Terra。reasoning effort は agent ごとに medium または high
 
 この値は公式推奨、利用可能モデル、価格、品質要求の変化に合わせて見直す。
 
@@ -191,7 +195,7 @@ full-coverage 3層運用は advanced route である。
 - `apply-codex-first-local.cs` の `--dry-run` / `--check-only` がファイルやディレクトリを作成しない。
 - audit artifact の Agent Usage Ledger が configured / hook / reported / effective model と delegation violation を分離している。
 - parent direct work と trivial parent fix が cost-saving delegation success として数えられない。
-- maintainer guide がモデル実名を固定せず、`same-model-lower-effort` default の確認責務を説明している。
+- maintainer guide が agent-specific model / effort mapping と、設定値の確認責務を説明している。
 - advanced guide が full-coverage 3層運用を標準ルートから分離している。
 - bootstrap policy が `AGENTS.override.md` と size limit risk を説明している。
 - examples が novice request、resume、simple local fix、ambiguous high-risk change、existing AGENTS layering を示している。

@@ -173,7 +173,11 @@ write-heavy parallel editing を標準化しないことは、親エージェン
 
 実名モデルは固定しません。組織の契約、利用枠、品質要求に合わせて mapping してください。
 この package には、そのまま使える profile / agent file テンプレート例として `profiles/codex-first/` を含めます。
-現行 default では `STANDARD_MODEL` が `HIGH_MODEL` と同じ実名モデルの medium effort になる場合があります。この場合は `same-model-lower-effort` として扱い、導入時に lower-cost mapping へ変更するか、effort 差で十分かを確認してください。
+現行 default では、抽象 tier と実モデルは一対一対応ではなく、agent ごとの責務に応じて model / reasoning effort を設定します。
+
+- `standard-implementer`: Luna / high
+- `standard-verifier`: Terra / medium
+- `HIGH_MODEL` agents: 原則 Terra。reasoning effort は agent ごとに medium または high
 
 ### 導入方法
 
@@ -603,7 +607,7 @@ Parent review gate は人間レビュー待ちではなく、親エージェン�
 
 logger 側は、dated な JSONL ファイル名、`agent_transcript_path`、短い `last_assistant_message_preview` の保存を推奨します。ただし transcript 全文 scraping を前提にせず、repository-tracked な Agent Usage Ledger を主証跡、hook log を補助証跡として扱ってください。
 
-`gpt-5.4` から `gpt-5.5` への migration notice の実影響と、CLI 経路で `agent_type = default` になり得る問題は、今回の本番修正とは切り分けた未解決事項です。詳細な修正要求は [docs/codex-full-coverage-3layer-fixes.md](docs/codex-full-coverage-3layer-fixes.md) に置いています。
+歴史記録（model-routing-history allowlist）として、`gpt-5.4` から `gpt-5.5` への migration notice の実影響と、CLI 経路で `agent_type = default` になり得る問題は、今回の本番修正とは切り分けた未解決事項です。詳細な修正要求は [docs/codex-full-coverage-3layer-fixes.md](docs/codex-full-coverage-3layer-fixes.md) に置いています。
 
 ---
 

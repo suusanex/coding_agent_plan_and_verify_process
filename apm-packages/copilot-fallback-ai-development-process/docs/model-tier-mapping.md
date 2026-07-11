@@ -6,11 +6,21 @@ VS Code / GitHub Copilot 側で利用可能な model 名、組織 policy、premi
 
 | Tier | Example model | Use |
 | --- | --- | --- |
-| `COPILOT_HIGH_MODEL` | `GPT-5.5 (copilot)` | 曖昧な要求整理、high-risk planning、auth/security/production close 判断 |
-| `COPILOT_STANDARD_MODEL` | `GPT-5.5 (copilot)` | READY 後の通常実装、通常 verification |
-| `COPILOT_CHEAP_MODEL` | `GPT-5.4 mini (copilot)` | read-heavy scan、docs consistency、trivial local fix |
+| `COPILOT_HIGH_MODEL` | `GPT-5.6 Terra (copilot)` | 曖昧な要求整理、high-risk planning、auth/security/production close 判断 |
+| `COPILOT_STANDARD_MODEL` | `GPT-5.6 Luna/Terra (copilot)` | READY 後の通常実装は Luna、通常 verification は Terra |
+| `COPILOT_CHEAP_MODEL` | `GPT-5.6 Luna (copilot)` | read-heavy scan、docs consistency、trivial local fix |
 
-`STANDARD` と `HIGH` が同じ実名 model の場合は、cost-aware routing として弱い default です。組織が lower-cost model を使えるなら `copilot-standard-implementer`、`copilot-standard-verifier`、`copilot-cheap-repo-scanner` の frontmatter を調整してください。
+## Agent / handoff mapping
 
-未指定の場合は VS Code の model picker の現在値が使われます。この package は route policy を固定しますが、実名 model は固定しません。
+```text
+high-planner, risk-triage, implementation-handoff-review, close-reviewer = Terra
+standard-implementer (通常 handoff) = Luna
+standard-verifier = Terra
+cheap-repo-scanner = Luna
+residual fix handoff = Terra
+higher-risk recheck handoff = Terra
+```
 
+Recommended runtime reasoning is Terra/high for planner, risk, contract, and close decisions; Terra/medium for handoff review, verification, and residual fix; Luna/high for standard implementation; and Luna/medium for repository scanning. Copilot templates do not add a reasoning frontmatter field.
+
+未指定の場合は VS Code の model picker の現在値が使われます。この package は route policy と template model を固定しますが、selected / observed reasoning、reported model、effective model は Agent Usage Ledger で別々に記録します。

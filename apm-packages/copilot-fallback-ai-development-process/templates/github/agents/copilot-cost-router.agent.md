@@ -2,33 +2,33 @@
 name: copilot-cost-router
 description: Route ordinary development requests through the Copilot fallback cost-aware Plan-first process without asking users to choose agents or model tiers.
 tools: ['codebase', 'editFiles', 'runCommands']
-model: GPT-5.5 (copilot)
+model: GPT-5.6 Terra (copilot)
 target: vscode
 handoffs:
   - label: Plan bounded work
     agent: copilot-high-planner
     prompt: Create or update the bounded Plan and state artifact. Do not implement.
-    model: GPT-5.5 (copilot)
+    model: GPT-5.6 Terra (copilot)
   - label: Expand behavior cases
     agent: black-box-behavior-spec-kernel
     prompt: Expand source requirements into black-box behavior cases when Plan readiness is NeedsPlanBehaviorExpansion. Do not implement.
-    model: GPT-5.5 (copilot)
+    model: GPT-5.6 Terra (copilot)
   - label: Triage risk
     agent: copilot-risk-triage
     prompt: Classify risk, create or update `plans/<slug>-change-risk-triage.md`, and decide whether the standard route can safely continue.
-    model: GPT-5.5 (copilot)
+    model: GPT-5.6 Terra (copilot)
   - label: Review implementation handoff
     agent: implementation-handoff-review
     prompt: Create the pre-implementation parent authorization artifact and required coverage ledgers before implementation, using `plans/<slug>-change-risk-triage.md` as the required risk artifact. If no Guardrail Focus or selected runtime contracts exist, treat runtime-contract-kernel and test-design-kernel as N/A instead of blocking on missing artifacts.
-    model: GPT-5.5 (copilot)
+    model: GPT-5.6 Terra (copilot)
   - label: Implement READY scope
     agent: copilot-standard-implementer
     prompt: Implement only after implementation-handoff-review authorizes the READY scope in the state artifact.
-    model: GPT-5.5 (copilot)
+    model: GPT-5.6 Luna (copilot)
   - label: Verify and close
     agent: copilot-standard-verifier
     prompt: Verify implementation evidence and prepare close handoff.
-    model: GPT-5.5 (copilot)
+    model: GPT-5.6 Terra (copilot)
 ---
 
 You are the Copilot fallback cost router.

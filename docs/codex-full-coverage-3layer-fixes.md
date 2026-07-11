@@ -9,18 +9,18 @@
 1. `slice-prep` / `slice-impl` の model / reasoning / sandbox 設定を、Codex が実際に解釈する top-level field として明示する。現行のこのリポジトリでは frontmatter で保持している。
 2. `developer_instructions` 内の説明文・出力テンプレートが、実行設定と矛盾しないようにする。
 3. 3層運用の実績ログ・Agent Usage Ledger で、`hook_model` / `configured_model` / `reported_model` / `effective_model` を混同しないようにする。
-4. `gpt-5.4 -> gpt-5.5` migration notice と CLI/App 差分など、未解決事項を本番修正とは分離して扱えるようにする。
+4. 歴史記録（model-routing-history allowlist）である `gpt-5.4 -> gpt-5.5` migration notice と CLI/App 差分など、未解決事項を本番修正とは分離して扱えるようにする。
 
 ## 背景
 
-実験リポジトリでの調査により、当初の「subagent が gpt-5.4 ではなく gpt-5.5 で動いているように見える」問題は、主に custom agent 定義の書き方に起因する可能性が高いと判明した。
+実験リポジトリでの調査により、当初の「subagent が gpt-5.4 ではなく gpt-5.5 で動いているように見える」問題（model-routing-history allowlist）は、主に custom agent 定義の書き方に起因する可能性が高いと判明した。
 
 重要な切り分け結果:
 
 - `slice-prep` / `slice-impl` の original definition では、`model` / `model_reasoning_effort` が Codex に解釈される top-level field として存在せず、`developer_instructions` 内の説明文にしか書かれていなかった。
 - 実験で top-level field を追加したところ、Desktop/App 経路では Hook log の `model` が configured child model を反映した。
 - したがって、少なくとも Desktop/App 経路では「Hook の `model` が常に親modelを返している」という説明は主因ではない。
-- `gpt-5.4 -> gpt-5.5` の migration notice が user-level config に存在したが、`model = "gpt-5.4"` を明示した child agent が migration されるかは未確認。
+- 歴史記録（model-routing-history allowlist）として、`gpt-5.4 -> gpt-5.5` の migration notice が user-level config に存在したが、`model = "gpt-5.4"` を明示した child agent が migration されるかは未確認。
 - CLI 経路では自然言語委譲時に `agent_type = default` となり、App/Desktop の `slice-prep` / `slice-impl` 呼び出しと apples-to-apples な比較になっていない。
 
 ## 参照した事実
@@ -39,7 +39,7 @@ Hook payload の `model` はログ上の observed value として扱う。ただ
 
 Desktop/App 経路では、top-level `model` を追加した custom agent の Hook log が configured model を反映した。
 
-ただし、`gpt-5.4` migration notice の影響と CLI 経路の agent type 指定は未解決。
+ただし、歴史記録（model-routing-history allowlist）である `gpt-5.4` migration notice の影響と CLI 経路の agent type 指定は未解決。
 
 ## 対象リポジトリ
 
@@ -83,7 +83,7 @@ docs/codex-full-coverage-3layer-fixes.md
 name = "slice-prep"
 description = "..."
 
-model = "gpt-5.4"
+model = "gpt-5.6-terra"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 
@@ -98,8 +98,8 @@ developer_instructions = """
 name = "slice-impl"
 description = "..."
 
-model = "gpt-5.4"
-model_reasoning_effort = "medium"
+model = "gpt-5.6-luna"
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
@@ -109,10 +109,10 @@ developer_instructions = """
 
 ### 注意
 
-`gpt-5.4` が user-level migration により `gpt-5.5` に移行される可能性は未解決。したがって、本番修正では次のどちらかを明示する。
+歴史記録（model-routing-history allowlist）として、`gpt-5.4` が user-level migration により `gpt-5.5` に移行される可能性は未解決だった。現在の本番設定は GPT-5.6 系へ更新し、この migration 実験は別タスクとして扱う。
 
-- `model = "gpt-5.4"` を維持し、migration notice 影響確認を別タスクにする
-- 一時的に `model = "gpt-5.4-mini"` など migration 影響がないモデルで運用する
+- 旧設定の `model = "gpt-5.4"` を維持する選択肢
+- 旧設定の `model = "gpt-5.4-mini"` など migration 影響がないモデルで運用する選択肢
 - `STANDARD_MODEL` のような抽象名を文書上で使い、実ファイルでは現在使える実名モデルを明示する
 
 ただし、TOML上では Codex が解釈できる実名モデルを置くこと。
@@ -125,9 +125,9 @@ developer_instructions = """
 
 ```text
 推奨実行境界:
-- model: gpt-5.4
-- reasoning effort: medium
-- sandbox mode: workspace-write
+- model / reasoning / sandbox は、この custom agent file の top-level field を参照する。
+- `slice-prep` は gpt-5.6-terra / medium / read-only。
+- `slice-impl` は gpt-5.6-luna / high / workspace-write。
 ```
 
 ### 対応
@@ -145,7 +145,7 @@ developer_instructions = """
 
 ### 問題
 
-agent 出力テンプレートに `Model: gpt-5.4` のような固定値を書くと、top-level field や Hook log と不整合になりやすい。
+agent 出力テンプレートに固定の `Model` 値を書くと、top-level field や Hook log と不整合になりやすい。
 
 ### 対応
 
@@ -319,23 +319,24 @@ Diagnostics marker (...)
 
 ## 9. 未解決事項を本番修正とは分けて扱う
 
-### 未解決1: `notice.model_migrations` の影響
+### 未解決1（model-routing-history allowlist）: `notice.model_migrations` の影響
 
 user-level config に次が観測された。
 
 ```toml
 [notice.model_migrations]
+# Historical model-routing-history allowlist; not active repository routing.
 "gpt-5.4" = "gpt-5.5"
 ```
 
-これは通知・移行確認済み状態の可能性があるが、`model = "gpt-5.4"` の custom agent が実際に `gpt-5.5` へ移行されるかは未確認。
+これは通知・移行確認済み状態の可能性があるが、`model = "gpt-5.4"` の custom agent が実際に `gpt-5.5` へ移行されるかは未確認だった。
 
 ### 対応
 
 本番修正とは別に、次の最小実験を行う。
 
 ```text
-1. model = "gpt-5.4" の sentinel agent を作る
+1. model = "gpt-5.4" の sentinel agent を作る（歴史実験）
 2. App/Desktop 経路で起動する
 3. Hook log の hook_model を確認する
 4. gpt-5.4 / gpt-5.5 のどちらになるか記録する
@@ -391,7 +392,7 @@ CLI non-interactive / codex exec path:
 
 ### 未解決事項
 
-- `gpt-5.4` migration notice の実影響は別実験として残す
+- 歴史記録（model-routing-history allowlist）として `gpt-5.4` migration notice の実影響は別実験として残す
 - CLI custom agent invocation の deterministic path は別実験として残す
 
 ## 変更対象の優先順位
@@ -412,7 +413,7 @@ CLI non-interactive / codex exec path:
 
 ### Priority 3: 別タスク
 
-- `gpt-5.4` migration notice の実験
+- 歴史記録（model-routing-history allowlist）として `gpt-5.4` migration notice の実験
 - CLIで `slice-prep` / `slice-impl` を deterministic に起動する方法の調査
 - diagnostics sentinel agent の整備
 - Hook logger のC#化・OTEL連携
@@ -429,7 +430,7 @@ CLI non-interactive / codex exec path:
 4. Skill に ExecutionMode を導入し、DELEGATED_IMPLEMENTATION では READY slice の実装を必ず slice-impl に委譲する。
 5. 親が production code / tests を直接編集した場合は delegation violation として Agent Usage Ledger に記録する。
 6. 本番agentに diagnostics sentinel marker を残さない。
-7. gpt-5.4 migration notice と CLI agent_type=default 問題は未解決事項として別タスクに残す。
+7. 歴史記録（model-routing-history allowlist）として gpt-5.4 migration notice と CLI agent_type=default 問題は未解決事項として別タスクに残す。
 ```
 
 ## 完了条件
