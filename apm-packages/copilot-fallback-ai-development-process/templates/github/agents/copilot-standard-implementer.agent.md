@@ -2,17 +2,17 @@
 name: copilot-standard-implementer
 description: Implement only the bounded READY scope recorded by the Copilot fallback state artifact.
 tools: ['codebase', 'editFiles', 'runCommands']
-model: GPT-5.5 (copilot)
+model: GPT-5.6 Luna (copilot)
 target: vscode
 handoffs:
   - label: Verify implementation
     agent: copilot-standard-verifier
     prompt: Verify the implemented READY scope against acceptance criteria and production wiring.
-    model: GPT-5.5 (copilot)
+    model: GPT-5.6 Terra (copilot)
   - label: Re-plan uncertainty
     agent: copilot-high-planner
     prompt: Re-plan because implementation found design uncertainty.
-    model: GPT-5.5 (copilot)
+    model: GPT-5.6 Terra (copilot)
 ---
 
 You are the Copilot standard implementer.

@@ -55,7 +55,7 @@ Codex hooks には `SubagentStart` / `SubagentStop` があり、`agent_id` / `ag
 - 最後に親が cross-slice-verification-kernel と residual-decision-gate を行う。
 
 `slice-prep` agent は read-only で、production code / tests の編集を禁止している。  
-`slice-impl` agent は `gpt-5.4` / medium / workspace-write として定義され、親が READY と承認した slice のみ実装する前提になっている。
+`slice-prep` agent は `gpt-5.6-terra` / medium / read-only、`slice-impl` agent は `gpt-5.6-luna` / high / workspace-write として定義され、親が READY と承認した slice のみ実装する前提になっている。
 
 ### 2.2 現状の問題点
 
@@ -140,16 +140,16 @@ Codex-first の設計では、write-heavy な並列編集を標準にしない�
 つまり、標準実装は `standard-implementer` に1本ずつ委譲し、必要なら直列化すればよい。  
 並列化しないことと、委譲しないことは別問題である。
 
-#### PCF-003: `standard-implementer` / `standard-verifier` が実際には `gpt-5.5` になっている
+#### PCF-003: `standard-implementer` / `standard-verifier` の model と effort を明示する
 
-現在の profile では、`standard-implementer` と `standard-verifier` が `gpt-5.5` / medium に設定されている。  
-これは `HIGH_MODEL` が `gpt-5.5` / high or xhigh であれば reasoning effort 差でコスト差は出る可能性があるが、利用者が期待する「高価なモデルから安価なモデルへ委譲」という見え方とはズレやすい。
+現在の profile では、`standard-implementer` は `gpt-5.6-luna` / high、`standard-verifier` は `gpt-5.6-terra` / medium に設定する。
+この差は tier label の単純な一律 mapping ではなく、実装と検証の責務に応じた意図的な agent-specific mapping である。
 
 この package は抽象 tier を使う方針なので、実名モデル固定そのものは非ゴールだが、少なくとも default profile では次を明確にすべきである。
 
-- `STANDARD_MODEL` は `HIGH_MODEL` より低コストであること
+- `STANDARD_MODEL` は agent ごとの model / effort を mapping 文書で明示すること
 - `CHEAP_MODEL` は read-heavy / simple local work 用であること
-- 実名モデルが同一でも effort差だけでよい場合は、それを明示的に `same-model-lower-effort` として扱うこと
+- `standard-implementer` は Luna / high、`standard-verifier` は Terra / medium として扱うこと
 - 組織導入時に model-tier mapping を必ず確認すること
 
 #### PCF-004: state artifact に「期待された委譲」と「実際の委譲」の記録欄がない
@@ -372,7 +372,7 @@ profile の default mapping は、導入時に次を満たす必要がある。
 - `STANDARD_MODEL` は通常実装・検証用で、`HIGH_MODEL` より低コストまたは低effortである。
 - `CHEAP_MODEL` は read-heavy / format / docs / simple local fix 用。
 - `STANDARD_MODEL` と `HIGH_MODEL` が同じ実名モデルを使う場合、reasoning effort差で cost-aware routing として許容するのか、明示する。
-- default profile の `standard-implementer` / `standard-verifier` が `gpt-5.5` のままなら、少なくとも `same-model-lower-effort` として意図を文書化する。可能なら `gpt-5.4` 等の低コスト側へ変更する。
+- default profile の agent-specific model / effort と、configured / recommended / observed / reported / effective の各値を混同しないこと。
 
 ### 6.6 Codex-first State に Agent Usage Ledger を統合する
 

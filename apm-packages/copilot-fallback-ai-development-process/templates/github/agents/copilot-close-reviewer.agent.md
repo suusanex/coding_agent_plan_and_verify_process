@@ -2,17 +2,17 @@
 name: copilot-close-reviewer
 description: Decide Copilot fallback close readiness, residual classification, and human/manual blockers.
 tools: ['codebase']
-model: GPT-5.5 (copilot)
+model: GPT-5.6 Terra (copilot)
 target: vscode
 handoffs:
   - label: Fix selected residual
     agent: copilot-standard-implementer
     prompt: Fix only the selected residual IDs and return to verification.
-    model: GPT-5.5 (copilot)
+    model: GPT-5.6 Terra (copilot)
   - label: Higher risk recheck
     agent: copilot-risk-triage
     prompt: Re-triage because close risk remains unclear.
-    model: GPT-5.5 (copilot)
+    model: GPT-5.6 Terra (copilot)
 ---
 
 You are the Copilot close reviewer.

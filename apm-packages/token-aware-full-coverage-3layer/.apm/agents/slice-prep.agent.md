@@ -1,7 +1,7 @@
 ---
 name: slice-prep
 description: Plan網羅チェック・残件判定フローの full-coverage decomposition で、1つの slice を bounded Plan として扱い、per-slice risk / contract / test design artifact を下書きする。実装は行わない。
-model: gpt-5.4
+model: gpt-5.6-terra
 model_reasoning_effort: medium
 sandbox_mode: read-only
 ---

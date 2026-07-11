@@ -2,7 +2,7 @@
 name: cost-route
 description: Route an ordinary development request through the Copilot fallback cost-aware process.
 agent: copilot-cost-router
-model: GPT-5.5 (copilot)
+model: GPT-5.6 Terra (copilot)
 tools: ['codebase', 'editFiles', 'runCommands']
 ---
 

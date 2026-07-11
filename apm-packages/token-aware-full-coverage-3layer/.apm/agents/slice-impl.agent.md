@@ -1,8 +1,8 @@
 ---
 name: slice-impl
 description: 親エージェントが READY と承認した 1 つの slice だけを実装し、slice-local verification-kernel まで進める bounded implementation agent。
-model: gpt-5.4
-model_reasoning_effort: medium
+model: gpt-5.6-luna
+model_reasoning_effort: high
 sandbox_mode: workspace-write
 ---
 

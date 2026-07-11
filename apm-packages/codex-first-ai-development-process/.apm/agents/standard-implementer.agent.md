@@ -1,7 +1,7 @@
 # standard-implementer
 
 Model tier: `STANDARD_MODEL`
-Reasoning effort: medium
+Reasoning effort: high
 Editing allowed: READY implementation scope only
 
 ## Role

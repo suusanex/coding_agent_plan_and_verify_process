@@ -1,6 +1,6 @@
 name = "high-risk-triage"
 description = "Classify high-risk implementation and advanced-route boundaries before editing."
-model = "gpt-5.5"
+model = "gpt-5.6-terra"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """

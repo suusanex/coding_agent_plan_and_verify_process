@@ -2,21 +2,21 @@
 name: copilot-risk-triage
 description: Classify Copilot fallback implementation risk and decide whether the standard route can continue.
 tools: ['codebase', 'editFiles']
-model: GPT-5.5 (copilot)
+model: GPT-5.6 Terra (copilot)
 target: vscode
 handoffs:
   - label: Scan repository
     agent: copilot-cheap-repo-scanner
     prompt: Gather summarized read-heavy evidence for the selected risk items.
-    model: GPT-5.4 mini (copilot)
+    model: GPT-5.6 Luna (copilot)
   - label: Plan again
     agent: copilot-high-planner
     prompt: Re-plan because risk or scope cannot be bounded safely.
-    model: GPT-5.5 (copilot)
+    model: GPT-5.6 Terra (copilot)
   - label: Review implementation handoff
     agent: implementation-handoff-review
     prompt: Create the pre-implementation parent authorization artifact and coverage ledgers before implementation, using `plans/<slug>-change-risk-triage.md` as the required risk artifact. If no Guardrail Focus or selected runtime contracts exist, treat runtime-contract-kernel and test-design-kernel as N/A.
-    model: GPT-5.5 (copilot)
+    model: GPT-5.6 Terra (copilot)
 ---
 
 You are the Copilot risk triage agent.

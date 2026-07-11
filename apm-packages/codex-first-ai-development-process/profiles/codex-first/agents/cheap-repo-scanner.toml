@@ -1,6 +1,6 @@
 name = "cheap-repo-scanner"
 description = "Run read-heavy repository inventory and summarize evidence for the main thread."
-model = "gpt-5.4-mini"
+model = "gpt-5.6-luna"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 developer_instructions = """

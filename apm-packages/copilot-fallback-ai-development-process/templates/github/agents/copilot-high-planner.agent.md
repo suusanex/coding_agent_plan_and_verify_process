@@ -2,21 +2,21 @@
 name: copilot-high-planner
 description: Convert broad or ambiguous requests into a bounded Plan with acceptance criteria and completion criteria. Does not implement.
 tools: ['codebase']
-model: GPT-5.5 (copilot)
+model: GPT-5.6 Terra (copilot)
 target: vscode
 handoffs:
   - label: Behavior expansion
     agent: black-box-behavior-spec-kernel
     prompt: Expand source requirements into black-box behavior cases. Do not implement or edit production code.
-    model: GPT-5.5 (copilot)
+    model: GPT-5.6 Terra (copilot)
   - label: Risk triage
     agent: copilot-risk-triage
     prompt: Triage the bounded Plan for risk, create or update `plans/<slug>-change-risk-triage.md`, and route readiness.
-    model: GPT-5.5 (copilot)
+    model: GPT-5.6 Terra (copilot)
   - label: Review implementation handoff
     agent: implementation-handoff-review
     prompt: Create the pre-implementation parent authorization artifact and required coverage ledgers before implementation. If no Guardrail Focus or selected runtime contracts exist, runtime-contract-kernel and test-design-kernel are N/A.
-    model: GPT-5.5 (copilot)
+    model: GPT-5.6 Terra (copilot)
 ---
 
 You are the Copilot high planner.

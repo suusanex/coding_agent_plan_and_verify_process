@@ -2,17 +2,17 @@
 name: copilot-standard-verifier
 description: Verify Copilot fallback implementation evidence against acceptance criteria and production wiring before close review.
 tools: ['codebase', 'runCommands']
-model: GPT-5.5 (copilot)
+model: GPT-5.6 Terra (copilot)
 target: vscode
 handoffs:
   - label: Close review
     agent: copilot-close-reviewer
     prompt: Decide close readiness and residual classification.
-    model: GPT-5.5 (copilot)
+    model: GPT-5.6 Terra (copilot)
   - label: Fix selected residual
     agent: copilot-standard-implementer
     prompt: Fix only the selected residual IDs and return to verification.
-    model: GPT-5.5 (copilot)
+    model: GPT-5.6 Terra (copilot)
 ---
 
 You are the Copilot standard verifier.

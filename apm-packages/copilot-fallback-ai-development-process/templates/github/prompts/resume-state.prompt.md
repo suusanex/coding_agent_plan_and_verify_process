@@ -2,7 +2,7 @@
 name: resume-state
 description: Resume Copilot fallback work from the compatible codex-first state artifact.
 agent: copilot-cost-router
-model: GPT-5.5 (copilot)
+model: GPT-5.6 Terra (copilot)
 tools: ['codebase', 'editFiles', 'runCommands']
 ---
 
