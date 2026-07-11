@@ -47,15 +47,15 @@ internal static class RepoAgentSetup
 
     private static readonly IReadOnlyDictionary<string, string> SlicePrepDefaults = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        ["model"] = "gpt-5.4",
+        ["model"] = "gpt-5.6-terra",
         ["model_reasoning_effort"] = "medium",
         ["sandbox_mode"] = "read-only"
     };
 
     private static readonly IReadOnlyDictionary<string, string> SliceImplDefaults = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        ["model"] = "gpt-5.4",
-        ["model_reasoning_effort"] = "medium",
+        ["model"] = "gpt-5.6-luna",
+        ["model_reasoning_effort"] = "high",
         ["sandbox_mode"] = "workspace-write"
     };
 
