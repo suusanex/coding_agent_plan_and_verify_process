@@ -24,6 +24,7 @@ sandbox_mode: read-only
 - parent change-risk-triage output
 - parent Architecture Slice Readiness artifact
 - `ReadyForSliceDecomposition`の場合はparent slice architecture artifactとassigned sliceに関係するexcerpt
+- `ArchitectureNotRequired`の場合はreadiness artifact内のLightweight architecture baseline（このartifactをbaseline authorityとする）
 - parent plan-slice-decomposition artifact
 - assigned slice artifact
 - assigned slice の Black-box behavior coverage / Case-to-Slice mapping
@@ -40,7 +41,7 @@ sandbox_mode: read-only
 6. selected slice-local RC IDs について runtime-contract-kernel を下書きする。
 7. test-design-kernel を下書きし、selected slice に関係する Behavior Case IDs を Behavior case test mapping へ接続する。
 8. cross-slice contract のうち、この slice が owns / consumes / defers するものを整理する。
-9. state owner、precedence、identity、sequence、retry / release、capacity、schema、production wiringがarchitecture baselineと一致するか確認する。
+9. state owner、precedence、identity、sequence、retry / release、capacity、schema、production wiringがarchitecture baseline authorityと一致するか確認する。`ArchitectureNotRequired`ではreadiness artifactのLightweight architecture baselineと比較し、新しいshared semanticsを導入していないことを確認する。
 10. shared semanticsの変更が必要ならslice-localに決めず、`BLOCKED`と`Architecture gate rerun required`を返す。
 11. source evidence のない field / state / identifier を fabricated value で埋めない。
 12. READY_FOR_PARENT_REVIEW / BLOCKED / NEEDS_HUMAN_DECISION のいずれかで停止する。
@@ -103,7 +104,10 @@ sandbox_mode: read-only
 ## Architecture conformance
 
 - Readiness verdict:
+- Architecture baseline authority: Slice Architecture artifact / Architecture Slice Readiness artifact
 - Architecture artifact / source:
+- Baseline identity current: Yes / No / Unclear
+- Conformance: Match / Drift / Unclear
 - Shared semantics changed: Yes / No
 - Architecture gate rerun required: Yes / No
 

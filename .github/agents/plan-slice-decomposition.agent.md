@@ -59,7 +59,7 @@ decomposition 開始前に readiness verdict を確認してください。
 - `NeedsArchitectureElaboration` / `NeedsHumanDecision`: executable slice を作らず停止する。
 - `ArchitectureCritical` / `NeedsHumanDecision` residual が1件でも残る場合は、verdict 表記にかかわらず fail closed する。
 
-readiness artifact または required architecture artifact が missing / stale / contradicted なら decomposition を開始してはいけません。
+readiness artifact または required architecture artifact が missing / stale / contradicted なら decomposition を開始してはいけません。`stale`は、readiness評価後にbaseline sourceのrevision/hash、inspected production evidenceに影響するrepository commit、human decision source、architecture artifact revisionのいずれかが意味変更された状態です。path一致だけではcurrentと判定せず、baseline identityを現在値と比較してください。
 
 repository 全体を読んではいけません。decomposition に必要な範囲だけを読みます。
 
@@ -305,6 +305,12 @@ slice が小さすぎる場合は統合してください。delegation overhead 
 - Internal high-risk boundary candidates:
 - Cross-slice dependencies:
 - Related Cross-slice Contract IDs:
+- Architecture readiness verdict:
+- Architecture baseline: <slice architecture path / readiness artifact path>
+- Architecture baseline identity: <repository commit + artifact revision/hash>
+- Architecture source IDs / sections:
+- Shared invariants consumed:
+- Architecture residuals assigned to this slice:
 - Black-box behavior coverage:
   - Parent behavior spec artifact:
   - Expansion required:
@@ -318,6 +324,7 @@ slice が小さすぎる場合は統合してください。delegation overhead 
   - Disposition:
 - Cross-slice contract excerpt:
   - XC ID:
+  - Architecture source:
   - This slice role: Producer / Consumer / Both
   - Mechanism:
   - Required fields / state / identifiers:
@@ -529,6 +536,12 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 - Internal high-risk boundary candidates:
 - Cross-slice dependencies:
 - Related Cross-slice Contract IDs:
+- Architecture readiness verdict:
+- Architecture baseline: <slice architecture path / readiness artifact path>
+- Architecture baseline identity: <repository commit + artifact revision/hash>
+- Architecture source IDs / sections:
+- Shared invariants consumed:
+- Architecture residuals assigned to this slice:
 - Black-box behavior coverage:
   - Parent behavior spec artifact:
   - Expansion required:
@@ -542,6 +555,7 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
   - Disposition:
 - Cross-slice contract excerpt:
   - XC ID:
+  - Architecture source:
   - This slice role: Producer / Consumer / Both
   - Mechanism:
   - Required fields / state / identifiers:

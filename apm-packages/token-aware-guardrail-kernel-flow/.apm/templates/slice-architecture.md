@@ -5,6 +5,18 @@ Do not use it to redesign requirements, choose slice count, or specify class / m
 
 ## Requirement baseline and source artifacts
 
+```yaml
+baseline:
+  repository_ref:
+  repository_commit:
+  parent_plan: { path: "", revision_or_hash: "" }
+  behavior_spec: { path: "N/A", revision_or_hash: "N/A" }
+  change_risk_triage: { path: "", revision_or_hash: "" }
+  architecture_readiness: { path: "", revision_or_hash: "" }
+  architecture_artifact_revision:
+  generated_at:
+```
+
 - Parent Plan:
 - Black-box Behavior Spec:
 - Change Risk Triage:
@@ -13,13 +25,13 @@ Do not use it to redesign requirements, choose slice count, or specify class / m
 
 ## Runtime participants and responsibilities
 
-| Participant | Responsibility | Owned state | Allowed writes | Forbidden writes |
-| --- | --- | --- | --- | --- |
+| Participant | Responsibility | Owned state | Allowed writes | Forbidden writes | Evidence mode | Source / production evidence address |
+| --- | --- | --- | --- | --- | --- | --- |
 
 ## Source-of-truth matrix
 
-| Concept | Owner / canonical source | Readers | Precedence | Conflict handling |
-| --- | --- | --- | --- | --- |
+| Concept | Owner / canonical source | Readers | Precedence | Conflict handling | Evidence mode | Source / production evidence address |
+| --- | --- | --- | --- | --- | --- | --- |
 
 ## Canonical state model
 
@@ -54,8 +66,8 @@ Describe prepare, activation, active, failure / retry, human-required, PR / resu
 
 ## Production entrypoints and wiring
 
-| Entrypoint | Production participant | Wiring / provider | Required state / config | Failure behavior |
-| --- | --- | --- | --- | --- |
+| Entrypoint | Production participant | Wiring / provider | Required state / config | Failure behavior | Evidence mode | Production evidence address |
+| --- | --- | --- | --- | --- | --- | --- |
 
 ## Cross-slice verification postconditions
 
@@ -68,6 +80,20 @@ Describe prepare, activation, active, failure / retry, human-required, PR / resu
 | --- | --- | --- | --- | --- | --- | --- |
 
 Allowed classifications: `ArchitectureCritical`, `NeedsHumanDecision`, `SliceLocalContract`, `ImplementationDetail`, `OutOfScopeWithSource`.
+
+## Files inspected
+
+| File / address | Why inspected | Architecture decisions supported |
+| --- | --- | --- |
+
+## Files intentionally not inspected
+
+| File / area | Why not required | Revisit trigger |
+| --- | --- | --- |
+
+## Freshness rule
+
+This artifact is `stale` when an upstream baseline revision/hash, repository commit affecting an inspected production evidence address, human decision source, or this artifact revision changes after readiness evaluation. Path equality alone never proves freshness.
 
 ## Readiness handoff
 

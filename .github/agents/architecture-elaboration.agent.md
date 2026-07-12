@@ -25,6 +25,8 @@ You are the "Architecture Elaboration" agent.
 - `plans/<ticket-or-slug>-architecture-slice-readiness.md`
 - readiness artifact が指した既存 architecture / state / schema / sequence source
 - `apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/slice-architecture.md`
+- Plan / triage / readinessが指す関連production files
+- architecture判断に必要なproduction entrypoint、DI / startup configuration、persistence schema、public DTO / message schema、state owner module、retry / cleanup path
 
 ## Elaboration rules
 
@@ -36,6 +38,12 @@ You are the "Architecture Elaboration" agent.
 - resource coordinationはacquire、retain、release、cleanupを記録する。
 - parent AC由来のruntime postconditionとforbidden stateをcross-slice verification oracleとして残す。
 - class / method / file構成、slice数、full integration test designは決めない。
+- 各architecture decisionを`GreenfieldDesignDecision`または`ExistingProductionBinding`として分類する。既存systemではproduction evidence addressを確認し、Planの記述だけを循環参照してownerやwiringを確定しない。
+- repository全体は探索せず、readiness residualとarchitecture checkに必要なproduction surfaceだけを読む。読んだfileと意図的に読まなかったfileを記録する。
+
+## Baseline identity and freshness
+
+outputにはrepository ref / commit、parent Plan、Behavior Spec、Change Risk Triage、readiness artifactのpathとrevision or content hash、architecture artifact revision、generated_atを記録します。upstream baselineが比較不能または評価中に変更された場合はartifactをreadyにせず、baselineをrefreshしてください。
 
 ## Human decision rule
 
@@ -44,6 +52,8 @@ product semantics、authority、policy、risk acceptanceをsourceから確定で
 ## Output
 
 `plans/<ticket-or-slug>-slice-architecture.md` を作成または更新します。templateの全sectionを保持し、該当しないsectionはsource-backed理由付きで `N/A` とします。
+
+各decision / matrix rowにはsource artifactだけでなく、該当する場合はproduction evidence addressを記録します。`Files inspected`と`Files intentionally not inspected`を必須sectionとして保持します。
 
 Architecture residualは次で分類します。
 

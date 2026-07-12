@@ -51,6 +51,7 @@ Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
 - parent `change-risk-triage.agent.md` の出力
 - `plans/<ticket-or-slug>-architecture-slice-readiness.md`
 - verdictが`ReadyForSliceDecomposition`の場合は`plans/<ticket-or-slug>-slice-architecture.md`
+- verdictが`ArchitectureNotRequired`の場合はreadiness artifact内のLightweight architecture baseline。readiness artifact自身をbaseline authorityとする
 - `plans/<ticket-or-slug>-slice-decomposition.md`
 - 各 executable slice artifact: `plans/<ticket-or-slug>-slice-SL-xxx.md`
 - 既存の関連 docs / architecture docs / domain docs（必要な範囲のみ）
@@ -179,13 +180,15 @@ When switching parent tools or sessions, do not rely on prior conversation conte
 
 親エージェントは最初に、`plan-slice-decomposition` の出力を実装指示ではなく「slice 実行候補」として扱ってください。
 
-readiness verdictが`NeedsArchitectureElaboration`または`NeedsHumanDecision`、blocking architecture residualが残る、required architecture artifactがmissing / stale / contradictedのいずれかなら、このskillを開始せずArchitecture Slice Readiness Gateへ戻してください。
+readiness verdictが`NeedsArchitectureElaboration`または`NeedsHumanDecision`、blocking architecture residualが残る、baseline identityが現在値と一致しない、required baseline authorityがmissing / stale / contradictedのいずれかなら、このskillを開始せずArchitecture Slice Readiness Gateへ戻してください。path一致だけでcurrentと判断してはいけません。
 
 親エージェントは次を行います。
 
 1. parent Plan の goal / non-goals / functional requirements / acceptance conditions を確認する。
 2. parent triage の high-risk boundaries / parent-level runtime contract candidates / implementation-realization risk summaryを確認する。
 3. Architecture Slice Readiness verdictと、存在する場合はslice architecture baselineを確認する。
+   - `ReadyForSliceDecomposition`: currentなslice architecture artifactがbaseline authority。
+   - `ArchitectureNotRequired`: currentなreadiness artifactのLightweight architecture baselineがbaseline authority。
 4. slice decomposition artifactから、各sliceのscope / non-goals / dependencies / related XC IDs / architecture traceability / recommended profileを抽出する。
 5. `Slice granularity review` と `Small slice justification` を抽出する。
 6. `Cross-slice Contracts` と `Cross-slice field continuity` を抽出する。
@@ -224,6 +227,7 @@ executable slice は、次のいずれかを満たす必要があります。
 - parent triage output
 - Architecture Slice Readiness artifact
 - `ReadyForSliceDecomposition`の場合はslice architecture artifactとassigned sliceに関係するarchitecture excerpt
+- `ArchitectureNotRequired`の場合はreadiness artifact内のLightweight architecture baseline
 - parent slice decomposition artifact
 - assigned slice artifact
 - assigned slice の Black-box behavior coverage / Case-to-Slice mapping
@@ -320,8 +324,9 @@ Parent review gate は人間レビュー待ちではありません。親エー�
 - parallel implementation してよい slice と、直列化すべき slice が分かれているか
 - source evidence のない fabricated value が `Done` 扱いされていないか
 - production binding requirement が test-only stub / fake で代替されていないか
-- state owner、source precedence、identity、temporal sequence、retry / release、capacity、schema、production wiringがslice architectureからdriftしていないか
+- state owner、source precedence、identity、temporal sequence、retry / release、capacity、schema、production wiringがselected baseline authorityからdriftしていないか
 - slice-prepがshared semanticsの変更を提案していないか。提案している場合は`Can implement now? = No`としてArchitecture Slice Readiness Gateへ戻す
+- baseline identityのrepository commitとupstream artifact revision/hashが現在値に一致するか。意味変更後は`stale`としてreadinessを再実行する
 
 親レビューの出力は次の形式にしてください。
 
@@ -345,8 +350,10 @@ Parent review gate は人間レビュー待ちではありません。親エー�
 
 ## Architecture drift review
 
-| Slice ID | Architecture source | Observed semantics | Match / Drift / Unclear | Required action |
-| --- | --- | --- | --- | --- |
+| Slice ID | Readiness verdict | Baseline authority | Baseline identity | Observed semantics | Match / Drift / Unclear | Required action |
+| --- | --- | --- | --- | --- | --- | --- |
+
+`ArchitectureNotRequired`でもdrift reviewを省略しません。readiness artifactのLightweight architecture baselineに対し、新しいshared semanticsが導入されていなければ`Match`、導入されていれば`Drift`、証明不足またはbaseline freshness不明なら`Unclear`です。slice-impl authorizationはcurrent baselineに対する`Match`だけを許可します。
 
 ## Implementation authorization
 
@@ -385,6 +392,7 @@ READY slice は、次の証跡を満たす必要があります。
 - parent triage output
 - Architecture Slice Readiness artifact
 - `ReadyForSliceDecomposition`の場合はslice architecture artifact
+- `ArchitectureNotRequired`の場合はreadiness artifact内のLightweight architecture baseline
 - parent slice decomposition artifact
 - assigned slice artifact
 - assigned slice の Black-box behavior coverage / Case-to-Slice mapping

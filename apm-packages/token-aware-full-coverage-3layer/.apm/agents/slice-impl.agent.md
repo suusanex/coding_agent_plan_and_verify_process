@@ -23,6 +23,7 @@ sandbox_mode: workspace-write
 - parent change-risk-triage output
 - parent Architecture Slice Readiness artifact
 - `ReadyForSliceDecomposition`の場合はparent slice architecture artifact
+- `ArchitectureNotRequired`の場合はreadiness artifact内のLightweight architecture baseline
 - parent plan-slice-decomposition artifact
 - assigned slice artifact
 - assigned slice の Black-box behavior coverage / Case-to-Slice mapping
@@ -39,7 +40,7 @@ sandbox_mode: workspace-write
 1. implementation-handoff-review を行い、Plan → Guardrail Focus runtime contract → RC → TP → production binding requirement の接続、Parent Plan Coverage Ledger、必要な場合は Behavior Case Coverage Ledger を確認する。
 2. parent review gate が存在しない、assigned slice が READY ではない、または Agent Usage Ledger / parent authorization artifact に `ExecutionMode = DELEGATED_IMPLEMENTATION`、`DelegationRequired = Yes`、`EditOwner = slice-impl` が記録されていない場合は実装せず、`BLOCKED_MISSING_PARENT_AUTHORIZATION` と Remaining Work を出して停止する。
 3. `Expansion required: Yes` なのに Black-box Behavior Spec、Case-to-Slice mapping、または Behavior Case Coverage Ledger が欠落・不完全・`UnmappedBlocking`・実装前 `NeedsHumanDecision` を含む場合は実装せず、`BLOCKED_BY_BEHAVIOR_CASE_COVERAGE` と Remaining Work を出して停止する。
-4. parent review gateのArchitecture drift reviewが`Match`であることを確認する。`Drift` / `Unclear`またはrequired architecture artifact欠落なら`BLOCKED_BY_ARCHITECTURE_DRIFT`で停止する。
+4. parent review gateのArchitecture drift reviewが`Match`であり、baseline identityがcurrentであることを確認する。`ArchitectureNotRequired`ではreadiness artifactをbaseline authorityとし、「新しいshared semanticsなし」が`Match`の根拠です。`Drift` / `Unclear`、stale baseline、またはverdictに応じたrequired baseline authority欠落なら`BLOCKED_BY_ARCHITECTURE_DRIFT`で停止する。
 5. 親が承認した assigned slice-local bounded parent Plan pass を実装する。Guardrail Focus artifacts は deep-check guardrail として扱い、implementation scope として扱わない。Behavior Case IDs と negative expectations は実装条件として扱う。
 6. unrelated refactoring / redesign / scope expansion を避ける。
 7. 必要な checks を実行する。実行できない check は理由を明記する。

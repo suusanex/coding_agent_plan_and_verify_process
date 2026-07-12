@@ -1,0 +1,36 @@
+name: Validate Architecture Slice Readiness Contracts
+
+on:
+  pull_request:
+    paths:
+      - '.github/agents/**'
+      - '.github/workflows/validate-architecture-slice-readiness.yml'
+      - 'apm-packages/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'scripts/validate-architecture-slice-readiness.ps1'
+  push:
+    paths:
+      - '.github/agents/**'
+      - '.github/workflows/validate-architecture-slice-readiness.yml'
+      - 'apm-packages/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'scripts/validate-architecture-slice-readiness.ps1'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-contracts:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Validate architecture readiness contracts
+        shell: pwsh
+        run: ./scripts/validate-architecture-slice-readiness.ps1
+      - name: Check commit whitespace
+        shell: pwsh
+        run: git show --check --format= HEAD

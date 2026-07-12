@@ -64,6 +64,13 @@ No new participant, durable state, identity, retry, capacity, cross-boundary con
 | architecture artifact | `N/A` |
 | readiness artifact | required, with source-backed simple-structure reason |
 | decomposition allowed | `Yes` |
+| architecture baseline authority | readiness artifactの`Lightweight architecture baseline` |
+| slice-prep conformance | `Match` when no new shared semantics are introduced |
+| parent drift verdict | `Match` |
+| parent implementation authorization | `Can implement now? = Yes` when other gates pass |
+| slice-impl architecture gate | current readiness baseline + `Match`で通過 |
+
+This fixture is not complete at decomposition. Continue it through slice-prep, Parent Review Gate, and slice-impl authorization to prove the lightweight baseline path is closed.
 
 ## ASR-004: Slice-local details do not block readiness
 
@@ -115,6 +122,8 @@ rg -n "architecture-slice-readiness.agent.md|architecture-elaboration.agent.md|s
 ```
 
 ## Validation result template
+
+The current executed result is stored in `docs/architecture-slice-readiness-validation-result.md`. Keep this template for future reruns.
 
 ```md
 # Architecture Slice Readiness Validation Result

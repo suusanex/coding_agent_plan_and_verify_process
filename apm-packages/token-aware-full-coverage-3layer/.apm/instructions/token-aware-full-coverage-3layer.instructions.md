@@ -14,6 +14,10 @@ GitHub Copilot 向けの `.github/agents/*.agent.md` が既存の主成果物で
 
 `ReadyForSliceDecomposition` では `plans/<ticket-or-slug>-slice-architecture.md` が必須です。`ArchitectureNotRequired` だけは source-backed readiness verdict があれば独立 architecture artifact を省略できます。`ArchitectureCritical` / `NeedsHumanDecision` residual、missing / stale / contradicted artifact がある場合は fail closed します。
 
+`ArchitectureNotRequired`ではreadiness artifact内のLightweight architecture baselineをbaseline authorityとします。slice-prepとParent Reviewは、新しいshared semanticsがなければ`Match`、導入されていれば`Drift`、freshnessまたはevidenceが不明なら`Unclear`を返します。slice-implはcurrent baselineに対する`Match`だけを受け入れます。
+
+artifactのcurrent判定はpathではなくbaseline identityで行います。repository commit、upstream artifact revision/hash、architecture revision、human decision source、inspected production evidenceのいずれかがreadiness評価後に意味変更された場合は`stale`としてreadinessを再実行します。
+
 `full-coverage` は多数の executable slice が必要という意味ではありません。`plan-slice-decomposition.agent.md` の `Slice granularity review` と `Small slice justification` を読み、cross-slice contract、field continuity、Behavior Case mapping を保持できる少数 slice は正しい decomposition として扱ってください。
 
 `merge-candidate`、`too-small-to-delegate`、`coalesce-with-SL-xxx` と記録された候補は executable slice ではありません。親エージェントはこれらを `slice-prep` に渡さず、統合または除外理由を Agent Usage Ledger / parent review gate に残してください。

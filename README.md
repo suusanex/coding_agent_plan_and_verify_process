@@ -81,9 +81,17 @@ Source requirement
 | --- | --- | --- |
 | `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、`.agents/skills/codex-first-cost-router/SKILL.md`、`templates/*.md` |
 | `scripts/provision-work-repo-agents.cs` | 既存の token-aware / full-coverage package を APM 経由で導入し、生成された Codex agent TOML と full-coverage template 配置を補正したい | `apm install` の実行、`.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level `model` / `model_reasoning_effort` / `sandbox_mode` 補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置 |
+| `scripts/validate-architecture-slice-readiness.ps1` | Architecture Slice Readinessのagent、manifest、template、routing、validation resultを静的検証したい | dependency path、frontmatter、必須contract、旧direct routeの残存を検証 |
 
 Codex-first を使いたい場合の入口は `apply-codex-first-local.cs` です。
 `provision-work-repo-agents.cs` は legacy / existing package 向けの APM 補助であり、Codex-first local bootstrap には使いません。
+
+Architecture Slice Readiness contractを変更した場合は、repository rootで次を実行してください。このcheckはGitHub Actionsでも実行されます。
+
+```powershell
+./scripts/validate-architecture-slice-readiness.ps1
+git diff --check
+```
 
 ### 既存APM向け補助スクリプト provision-work-repo-agents
 
@@ -492,9 +500,13 @@ Plan readiness check を行い、`ReadyForRiskTriage` の場合だけ parent Pla
 
 Requirement readinessとは別に、state owner、source precedence、identity、temporal sequence、retry / release、capacity、schema、invariants、production wiringがslice可能な精度か判定します。`ReadyForSliceDecomposition`、`NeedsArchitectureElaboration`、`ArchitectureNotRequired`、`NeedsHumanDecision`のいずれかを返します。
 
+`ArchitectureNotRequired`ではreadiness artifact自身が軽量baseline authorityとなり、後続は新しいshared semanticsを導入していないことを`Match`として確認します。すべてのverdictはrepository commitとupstream artifact revision/hashをbaseline identityとして持ち、いずれかが意味変更された場合は`stale`として再判定します。
+
 ### `architecture-elaboration.agent.md`
 
 requirement baselineを変更せず、`plans/<ticket-or-slug>-slice-architecture.md`へshared architecture semanticsを確定します。完了後はreadiness checkへ戻り、直接decompositionへ進みません。
+
+既存systemでは、関連production entrypoint、DI / startup、schema、DTO / message、state owner、retry / cleanup pathをboundedに確認し、production evidence addressとinspection範囲をartifactへ残します。
 
 ### `plan-slice-decomposition.agent.md`
 

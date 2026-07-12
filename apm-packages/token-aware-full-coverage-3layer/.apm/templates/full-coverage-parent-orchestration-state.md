@@ -19,6 +19,9 @@ If this file grows too large, compact old completed slice rows into a short summ
 - Next required action:
 - Stop reason: none / token-limit / tool-failure / manual-stop / model-switch / planned-handoff / unknown
 - Resume safety: Safe / NeedsReview / NeedsHumanDecision / Blocked
+- Repository ref:
+- Repository commit:
+- Architecture readiness evaluated at:
 
 ## Artifact index
 
@@ -37,6 +40,8 @@ If this file grows too large, compact old completed slice rows into a short summ
 | Residual decision gate | | n/a / current / stale / missing / contradicted | |
 
 `contradicted` means this artifact conflicts with the current branch, work item, slice queue, or newer listed artifact and must be reviewed before continuing.
+
+`stale` means an upstream baseline revision/hash, repository commit affecting inspected production evidence, human decision source, or architecture artifact revision changed after readiness evaluation. Path equality alone does not make an artifact `current`. If baseline identity is missing or cannot be compared, use `stale` and rerun Architecture Slice Readiness.
 
 ## Slice queue
 

@@ -26,8 +26,24 @@ You are the "Architecture Slice Readiness" agent.
 - `change-risk-triage.agent.md` の `full-coverage` output と architecture-readiness triggers
 - 既存の architecture / state / schema / sequence docs（triage または Plan が参照するものだけ）
 - 既存の `plans/<ticket-or-slug>-slice-architecture.md`（再判定の場合）
+- Plan / triage / architecture docs が指す関連 production files
+- architecture 判断に必要な production entrypoint、DI / startup configuration、persistence schema、public DTO / message schema、state owner module、retry / cleanup path
 
 upstream requirement、Case-to-Plan mapping、期待動作が未確定なら architecture で補わず、Plan phase または human decision へ戻してください。
+
+repository全体は探索しません。各readiness checkについて、要求artifactだけを根拠にした`GreenfieldDesignDecision`か、既存production sourceを確認した`ExistingProductionBinding`かを区別し、production evidence addressを記録してください。既存systemのownerやwiringをPlanの記述だけで`PASS`にしてはいけません。
+
+## Baseline identity and freshness
+
+readiness評価時に、repository ref / commit、各upstream artifactのpathとrevision or content hash、architecture artifact revision、評価時刻を保存してください。厳密な暗号hashが利用できない場合は、artifact内revisionとupdated_atを併記します。
+
+`stale` は、readiness評価後に次のいずれかが意味変更された状態です。
+
+- parent Plan、Behavior Spec、Change Risk Triage、slice architectureのrevision / hash
+- inspected production evidence addressの内容またはproduction wiringに影響するrepository commit
+- readiness verdictの根拠となったhuman decision / architecture source
+
+pathが同じだけでは`current`と判定できません。baseline identityがmissing、比較不能、または現在値と一致しない場合は`stale`としてfail closedし、readinessを再実行してください。
 
 ## Architecture readiness checks
 
@@ -47,6 +63,8 @@ upstream requirement、Case-to-Plan mapping、期待動作が未確定なら arc
 12. cross-slice verification が確認すべき runtime postcondition
 
 単一 component、stateless、既存 schema 内で完結し、上記の shared semantics を新たに決めない変更は `ArchitectureNotRequired` にできます。単純であるという推測だけでは付与してはいけません。
+
+`ArchitectureNotRequired`の場合、readiness artifact自身を軽量architecture baseline authorityとして扱います。artifact内の`Lightweight architecture baseline`に「既存shared semanticsを変更しない」「新しいparticipant、owner、precedence、cross-run identity、temporal protocol、retry / release、capacity、schema、invariant、production wiringを導入しない」をsource-backedで記録します。後続はこのartifactと比較し、新しいshared semanticsがなければ`Match`、導入していれば`Drift`、証明できなければ`Unclear`とします。
 
 ## Residual classification
 
@@ -78,12 +96,28 @@ upstream requirement、Case-to-Plan mapping、期待動作が未確定なら arc
 
 ## Inputs and requirement baseline
 
+```yaml
+baseline:
+  repository_ref:
+  repository_commit:
+  parent_plan: { path: "", revision_or_hash: "" }
+  behavior_spec: { path: "N/A", revision_or_hash: "N/A" }
+  change_risk_triage: { path: "", revision_or_hash: "" }
+  architecture: { path: "N/A", revision_or_hash: "N/A" }
+  evaluated_at:
+```
+
 ## Architecture readiness verdict
 
 - Verdict: ReadyForSliceDecomposition / NeedsArchitectureElaboration / ArchitectureNotRequired / NeedsHumanDecision
 - Architecture artifact: <path / N/A>
+- Architecture baseline authority: Slice Architecture artifact / this readiness artifact
 - Immediate next agent:
 - Decomposition allowed now: Yes / No
+
+## Lightweight architecture baseline
+
+<`ArchitectureNotRequired`の場合だけ記録する。既存shared semanticsを変更しないことと、各architecture triggerがAbsentであるsource / production evidence addressを示す。その他はN/A。>
 
 ## Architecture-readiness triggers
 
@@ -92,8 +126,8 @@ upstream requirement、Case-to-Plan mapping、期待動作が未確定なら arc
 
 ## Readiness checklist
 
-| Check | PASS / FAIL / N/A | Source | Notes |
-| --- | --- | --- | --- |
+| Check | PASS / FAIL / N/A | Evidence mode | Source artifact | Production evidence address | Notes |
+| --- | --- | --- | --- | --- | --- |
 
 ## Architecture residual ledger
 
@@ -101,6 +135,10 @@ upstream requirement、Case-to-Plan mapping、期待動作が未確定なら arc
 | --- | --- | --- | --- | --- | --- | --- |
 
 ## Cross-slice verification postconditions
+
+## Files inspected
+
+## Files intentionally not inspected
 
 ## Handoff Packet
 ```
@@ -114,4 +152,4 @@ upstream requirement、Case-to-Plan mapping、期待動作が未確定なら arc
 
 ## Stop condition
 
-readiness artifactに verdict、checklist、residual ledger、next actionを記録したら停止してください。Elaborationやdecompositionを同じpassで実行してはいけません。
+readiness artifactにbaseline identity、verdict、baseline authority、checklist、production evidence、residual ledger、next actionを記録したら停止してください。Elaborationやdecompositionを同じpassで実行してはいけません。
