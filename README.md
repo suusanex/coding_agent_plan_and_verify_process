@@ -70,7 +70,7 @@ Source requirement
 
 `codex-first-ai-development-process` は既存 package の source を複製しません。同じ `.github/agents/*.agent.md` を参照しつつ、Codex-first の入口、instructions、Skill、停止語彙、tier 別 agent / profile テンプレート、state / stop templates、examples、user / maintainer guide を追加します。
 
-通常の Plan網羅チェック・残件判定フローを直接使う場合は、`apm-packages/token-aware-guardrail-kernel-flow` に含まれる `plan-coverage-residual-flow` skill を入口にします。Codex / Copilot には「この issue を `plan-coverage-residual-flow` で進めて」のように依頼できます。full-coverage 3層運用 skill は、`change-risk-triage.agent.md` が `full-coverage` を返し、`plan-slice-decomposition.agent.md` 後に使う advanced route です。
+通常の Plan網羅チェック・残件判定フローを直接使う場合は、`apm-packages/token-aware-guardrail-kernel-flow` に含まれる `plan-coverage-residual-flow` skill を入口にします。Codex / Copilot には「この issue を `plan-coverage-residual-flow` で進めて」のように依頼できます。full-coverage 3層運用 skill は、`change-risk-triage.agent.md` が `full-coverage` を返し、Architecture Slice Readiness Gate が decomposition を許可した後に使う advanced route です。
 
 ### 導入スクリプトの使い分け
 
@@ -414,19 +414,16 @@ bounded Plan を作成し、その parent Plan を実装・検証の source of t
 2. `black-box-behavior-spec-kernel.agent.md`（behavior expansion が必要だが artifact が不足する場合）
 3. `plan-kernel.agent.md` 再実行（behavior spec の Case IDs を Plan FR / AC / explicit disposition へ mapping する場合）
 4. `change-risk-triage.agent.md`（`ReadyForRiskTriage` の場合だけ）
-5. `implementation-contract-kernel.agent.md`（implementation-realization risk がある場合）
-6. `implementation-contract-review-kernel.agent.md`（implementation-contract self-check に explicit review-only fallback が必要な場合だけ）
-7. `runtime-contract-kernel.agent.md`
-8. `test-design-kernel.agent.md`
-9. `implementation-handoff-review.agent.md`
-10. `implementation-execution.agent.md` または人間主導で bounded parent Plan pass を実行
-11. 必要に応じて `code-review-focus-kernel.agent.md`
-12. human code review
-13. `verification-kernel.agent.md`
-14. 未解決があり、complete `Direct FixNow selectors` table がない場合は `coverage-gap-triage.agent.md`
-15. `residual-decision-gate.agent.md`
-16. verification-kernel、coverage-gap-triage、または residual-decision-gate が explicit FixNow selector を出した場合だけ `coverage-gap-resolution-slice.agent.md`
-17. 必要に応じて `verification-kernel.agent.md` と `residual-decision-gate.agent.md` を再実行
+5. `full-coverage` の場合は `architecture-slice-readiness.agent.md`。`NeedsArchitectureElaboration` なら `architecture-elaboration.agent.md` 後に再判定する
+6. `ReadyForSliceDecomposition` または `ArchitectureNotRequired` の場合だけ `plan-slice-decomposition.agent.md`
+7. 通常passまたは各sliceで必要なimplementation contract / runtime contract / test design / handoff reviewを実行
+8. `implementation-execution.agent.md` または人間主導で bounded parent Plan pass を実行
+9. 必要に応じて `code-review-focus-kernel.agent.md` と human code review
+10. `verification-kernel.agent.md`
+11. full-coverage slice完了後は`cross-slice-verification-kernel.agent.md`
+12. 未解決がありcomplete `Direct FixNow selectors` tableがない場合は`coverage-gap-triage.agent.md`
+13. `residual-decision-gate.agent.md`
+14. explicit FixNow selectorがある場合だけ`coverage-gap-resolution-slice.agent.md`を実行し、verificationとresidual decisionへ戻る
 
 各 agent は 1 回の bounded な実行を行い、未解決項目は成果物に残して停止します。「直るまで修正し続ける」ことは目的ではありません。
 
@@ -436,7 +433,13 @@ bounded Plan を作成し、その parent Plan を実装・検証の source of t
 
 ```text
 full-coverage
-  -> plan-slice-decomposition.agent.md
+  -> architecture-slice-readiness.agent.md
+     -> ReadyForSliceDecomposition / ArchitectureNotRequired
+        -> plan-slice-decomposition.agent.md
+     -> NeedsArchitectureElaboration
+        -> architecture-elaboration.agent.md
+        -> architecture-slice-readiness.agent.md (rerun)
+     -> NeedsHumanDecision (stop)
   -> per-slice bounded parent Plan pass
   -> cross-slice-verification-kernel.agent.md
   -> residual-decision-gate.agent.md
@@ -456,6 +459,8 @@ cross-slice verification では、runtime postcondition oracle と forbidden-sta
 - `plans/<ticket-or-slug>-black-box-behavior-spec.md`（Behavior spec artifact required: Yes の場合）
 - parent Plan / slice artifact 内の Inline behavior sketch と Case mapping（inline behavior sketch sufficient の場合）
 - `plans/<ticket-or-slug>-change-risk-triage.md`
+- `plans/<ticket-or-slug>-architecture-slice-readiness.md`（full-coverageの場合）
+- `plans/<ticket-or-slug>-slice-architecture.md`（`ReadyForSliceDecomposition`の場合）
 - `plans/<ticket-or-slug>-implementation-contract-kernel.md`（implementation-realization risk が Present / Unclear の場合）
 - `plans/<ticket-or-slug>-coverage-ledger.md`（存在する場合）
 - `plans/<ticket-or-slug>-implementation-contract-review-kernel.md`（explicit review-only fallback が存在する場合）
@@ -483,9 +488,17 @@ source requirements を external black-box behavior cases へ展開し、stable 
 
 Plan readiness check を行い、`ReadyForRiskTriage` の場合だけ parent Plan 全体の risk inventory、implementation-realization risk、Guardrail Focus recommendation、Residual risk candidates、Recommended process path を出します。実装 scope は縮小しません。
 
+### `architecture-slice-readiness.agent.md`
+
+Requirement readinessとは別に、state owner、source precedence、identity、temporal sequence、retry / release、capacity、schema、invariants、production wiringがslice可能な精度か判定します。`ReadyForSliceDecomposition`、`NeedsArchitectureElaboration`、`ArchitectureNotRequired`、`NeedsHumanDecision`のいずれかを返します。
+
+### `architecture-elaboration.agent.md`
+
+requirement baselineを変更せず、`plans/<ticket-or-slug>-slice-architecture.md`へshared architecture semanticsを確定します。完了後はreadiness checkへ戻り、直接decompositionへ進みません。
+
 ### `plan-slice-decomposition.agent.md`
 
-full-coverage 診断時に、parent Plan coverage を維持したまま bounded execution slice に分解します。各 slice は parent Plan item mapping と cross-slice verification requirements を持ちます。
+Architecture Slice Readiness Gateが許可したfull-coverage Planについて、確定済みarchitectureをbounded execution sliceへ射影します。各sliceはparent Plan item mapping、architecture traceability、cross-slice verification requirementsを持ち、shared semanticsを新しく発明しません。
 
 ### `implementation-contract-kernel.agent.md`
 
@@ -541,7 +554,7 @@ slice ごとの pass を parent Plan completion と扱わず、parent acceptance
 
 ## 応用運用: PR #10 で追加した Codex 向け full-coverage 3層運用
 
-これは基本プロセスそのものではなく、`change-risk-triage.agent.md` が `full-coverage` を返し、`plan-slice-decomposition.agent.md` で複数 slice に分けたあとに使う Codex 向けの応用運用です。
+これは基本プロセスそのものではなく、`change-risk-triage.agent.md` が `full-coverage` を返し、Architecture Slice Readiness Gateを通過して`plan-slice-decomposition.agent.md`で複数sliceに分けたあとに使うCodex向けの応用運用です。
 
 PR #10（`Codex向け full-coverage 3層運用を追加`）では、その局面で slice を安全に扱うための補助一式を追加しました。現在の `main` では、その内容は主に `apm-packages/token-aware-full-coverage-3layer/` を source of truth として管理しています。
 
@@ -552,11 +565,14 @@ PR #10（`Codex向け full-coverage 3層運用を追加`）では、その局面
 | slice 準備 subagent | `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-prep.agent.md` |
 | slice 実装 subagent | `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-impl.agent.md` |
 | 親 orchestration 再開 state template | `apm-packages/token-aware-full-coverage-3layer/.apm/templates/full-coverage-parent-orchestration-state.md` |
+| Slice Architecture template | `apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/slice-architecture.md` |
 | Codex project config | `.codex/config.toml` |
 
 ### 何をする応用か
 
 この 3 層運用は、`plan-slice-decomposition.agent.md` の出力をそのまま実装開始条件にしないためのものです。
+
+開始前にArchitecture Slice Readiness verdictと、`ReadyForSliceDecomposition`の場合のslice architecture artifactがcurrentであることも必須です。slice-prepまたはslice-implがshared semanticsを変更する場合、parent reviewは実装をBLOCKし、Architecture Slice Readiness Gateへ戻します。
 
 1. 親エージェントが slice 実行表と parent review gate を管理する
 2. `slice-prep` が slice ごとの kernel artifact を下書きする

@@ -12,7 +12,9 @@
 - `full-coverage` does not mean that many executable slices are required. If parent acceptance conditions, cross-slice contracts, field continuity, and Behavior Case mapping remain traceable, few slices are valid, including a 2-slice decomposition.
 - `full-coverage` does not mean: missing behavior expansion, missing Case-to-Plan mapping, or undecided expected behavior. Those are Plan readiness failures and must return to `black-box-behavior-spec-kernel.agent.md`, `plan-kernel.agent.md`, or human decision.
 - `full-coverage` does not mean: run `plan-generation.agent.md`, `runtime-evidence.agent.md`, or `integration-test-design.agent.md`.
-- The next step is always `plan-slice-decomposition.agent.md`.
+- The next step is always `architecture-slice-readiness.agent.md`; `full-coverage` must not transition directly to decomposition.
+- `ReadyForSliceDecomposition` requires a current `plans/<slug>-slice-architecture.md`. `ArchitectureNotRequired` permits decomposition without that artifact only when the readiness verdict gives a source-backed simple-structure reason.
+- `NeedsArchitectureElaboration` routes to `architecture-elaboration.agent.md` and then reruns readiness. `NeedsHumanDecision`, `ArchitectureCritical`, missing, stale, or contradicted architecture artifacts block decomposition.
 - `plan-slice-decomposition.agent.md` must consider delegation overhead. A candidate slice should be executable only when running `slice-prep`, parent review, `slice-impl`, and verification separately has value.
 - Candidate slices that share owner, module, production wiring, verification route, and parent acceptance condition should be coalesced unless there is a documented reason to keep them separate.
 - Small independent slices require `Small slice justification`; otherwise they should be recorded as `merge-candidate`, `too-small-to-delegate`, or `coalesce-with-SL-xxx` and not sent to `slice-prep`.
@@ -33,6 +35,8 @@ Parent Plan Kernel
 → Black-box Behavior Spec Kernel when Plan readiness requires it
 → Parent Plan Kernel rerun for Case-to-Plan mapping when needed
 → Change Risk Triage
+→ Architecture Slice Readiness
+  → Architecture Elaboration and readiness rerun when needed
 → Plan Slice Decomposition
 → Per-slice Plan網羅チェック・残件判定フロー
 → Cross-Slice Verification Kernel
@@ -41,6 +45,8 @@ Parent Plan Kernel
 ```
 
 ## Synthetic self-check fixture
+
+This fixture assumes the Architecture Slice Readiness Gate has already approved the architecture baseline. The broader readiness routing fixtures are defined in `docs/architecture-slice-readiness-validation.md`.
 
 Use this anonymous fixture when reviewing cross-slice verification behavior:
 

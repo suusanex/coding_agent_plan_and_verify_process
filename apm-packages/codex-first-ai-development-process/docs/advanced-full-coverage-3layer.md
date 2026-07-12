@@ -24,6 +24,8 @@ It is not the standard user path for Codex-first cost-aware routing.
 codex-first-cost-router
 -> parent Plan / codex-first-state
 -> advanced-route confirmation
+-> architecture-slice-readiness
+-> architecture-elaboration + readiness rerun when needed
 -> plan-slice-decomposition
 -> Parent Orchestration State
 -> slice-prep
@@ -39,6 +41,14 @@ codex-first-cost-router
 - Prefer the smallest number of useful slices that preserves parent acceptance conditions, cross-slice contracts, field continuity, and Behavior Case mapping.
 - `plan-slice-decomposition` must coalesce candidates that share owner, module, production wiring, verification route, and parent acceptance condition.
 - Small slices need `Small slice justification`. Candidates marked `merge-candidate`, `too-small-to-delegate`, or `coalesce-with-SL-xxx` are not sent to `slice-prep`.
+
+## Architecture readiness
+
+- `full-coverage` first routes to `architecture-slice-readiness`, not decomposition.
+- `ReadyForSliceDecomposition` requires a current `plans/<slug>-slice-architecture.md`.
+- `ArchitectureNotRequired` is the lightweight path for a source-backed simple structure.
+- `NeedsArchitectureElaboration` runs elaboration and readiness again; `NeedsHumanDecision` stops.
+- Parent review blocks any slice-prep drift in state ownership, precedence, identity, temporal sequence, retry / release, capacity, schema, invariant, or production wiring.
 
 ## Cost routing
 

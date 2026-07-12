@@ -27,6 +27,8 @@ If this file grows too large, compact old completed slice rows into a short summ
 | Parent Plan | | current / stale / missing / contradicted | |
 | Behavior Spec | | n/a / current / stale / missing / contradicted | |
 | Parent triage | | current / stale / missing / contradicted | |
+| Architecture readiness | | current / stale / missing / contradicted | |
+| Slice architecture | | n/a / current / stale / missing / contradicted | |
 | Slice decomposition | | current / stale / missing / contradicted | |
 | Agent Usage Ledger | | current / stale / missing / contradicted | |
 | Slice execution table | | current / stale / missing / contradicted | |
@@ -47,6 +49,8 @@ If this file grows too large, compact old completed slice rows into a short summ
 | ID | Kind | Status | Next check |
 | --- | --- | --- | --- |
 | XC-xxx | contract / field-continuity / production-wiring / behavior-case | open / blocked / verified / stale | |
+
+Architecture drift is also a cross-slice blocker. If slice-prep or slice-impl changes shared state ownership, precedence, identity, sequence, retry / release, capacity, schema, invariant, or production wiring, record it here and return to Architecture Slice Readiness before implementation continues.
 
 ## Pending parent decisions
 

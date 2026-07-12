@@ -21,6 +21,8 @@ sandbox_mode: workspace-write
 - parent bounded Plan
 - Black-box Behavior Spec artifact（Expansion required: Yes の場合）
 - parent change-risk-triage output
+- parent Architecture Slice Readiness artifact
+- `ReadyForSliceDecomposition`の場合はparent slice architecture artifact
 - parent plan-slice-decomposition artifact
 - assigned slice artifact
 - assigned slice の Black-box behavior coverage / Case-to-Slice mapping
@@ -37,11 +39,12 @@ sandbox_mode: workspace-write
 1. implementation-handoff-review を行い、Plan → Guardrail Focus runtime contract → RC → TP → production binding requirement の接続、Parent Plan Coverage Ledger、必要な場合は Behavior Case Coverage Ledger を確認する。
 2. parent review gate が存在しない、assigned slice が READY ではない、または Agent Usage Ledger / parent authorization artifact に `ExecutionMode = DELEGATED_IMPLEMENTATION`、`DelegationRequired = Yes`、`EditOwner = slice-impl` が記録されていない場合は実装せず、`BLOCKED_MISSING_PARENT_AUTHORIZATION` と Remaining Work を出して停止する。
 3. `Expansion required: Yes` なのに Black-box Behavior Spec、Case-to-Slice mapping、または Behavior Case Coverage Ledger が欠落・不完全・`UnmappedBlocking`・実装前 `NeedsHumanDecision` を含む場合は実装せず、`BLOCKED_BY_BEHAVIOR_CASE_COVERAGE` と Remaining Work を出して停止する。
-4. 親が承認した assigned slice-local bounded parent Plan pass を実装する。Guardrail Focus artifacts は deep-check guardrail として扱い、implementation scope として扱わない。Behavior Case IDs と negative expectations は実装条件として扱う。
-5. unrelated refactoring / redesign / scope expansion を避ける。
-6. 必要な checks を実行する。実行できない check は理由を明記する。
-7. slice-local verification-kernel を実行し、Behavior Case Evidence Ledger が current Case IDs を扱っているか確認する。
-8. slice-local verification-kernel の verdict（例: PARENT_PLAN_VERIFIED / PARENT_PLAN_NEEDS_RESIDUAL_DECISION / PARENT_PLAN_PARTIAL_WITH_FIX_CANDIDATES / BLOCKED_*）と Remaining Work / residual candidates を出して停止する。
+4. parent review gateのArchitecture drift reviewが`Match`であることを確認する。`Drift` / `Unclear`またはrequired architecture artifact欠落なら`BLOCKED_BY_ARCHITECTURE_DRIFT`で停止する。
+5. 親が承認した assigned slice-local bounded parent Plan pass を実装する。Guardrail Focus artifacts は deep-check guardrail として扱い、implementation scope として扱わない。Behavior Case IDs と negative expectations は実装条件として扱う。
+6. unrelated refactoring / redesign / scope expansion を避ける。
+7. 必要な checks を実行する。実行できない check は理由を明記する。
+8. slice-local verification-kernel を実行し、Behavior Case Evidence Ledger が current Case IDs を扱っているか確認する。
+9. slice-local verification-kernel の verdictとRemaining Work / residual candidatesを出して停止する。
 
 slice-local verification-kernel の `PARENT_PLAN_VERIFIED` は assigned slice-local bounded parent Plan pass に限定され、global parent Plan completion を意味しない。
 
@@ -50,6 +53,7 @@ slice-local verification-kernel の `PARENT_PLAN_VERIFIED` は assigned slice-lo
 - 親承認 artifact または Agent Usage Ledger がない slice を実装しない。
 - 親が承認した bounded parent Plan pass 外の変更をしない。
 - Behavior Case ID、negative expectation、Case-to-Slice mapping を読まずに実装しない。
+- slice architectureと異なるshared semanticsを導入しない。必要ならArchitecture Slice Readiness Gateへ戻す。
 - cross-slice-verification-kernel を実行しない。
 - XC-xxx を単一 slice 内で完了扱いにしない。
 - verification-kernel の gap をその場で修正し続けない。

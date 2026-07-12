@@ -293,7 +293,7 @@ Gap type は `## Embedded process policy` の `Gap type precedence` に従って
 | `TestOracleMissing` | `coverage-gap-resolution-slice.agent.md` | `fix-slice` |
 | `ManualEnvironmentRequired` | 停止し、human decision を待つ | `triage-only` |
 | `PlanAmbiguity` | 停止し、human decision を待つ | `triage-only` |
-| `DesignTooBroadForSlice` | `ReadyForRiskTriage` の Plan に限り `plan-slice-decomposition.agent.md`。requirement-elaboration gap には使用しない | `full-coverage` |
+| `DesignTooBroadForSlice` | `ReadyForRiskTriage` の Plan に限り `architecture-slice-readiness.agent.md`。approved verdict後だけdecompositionへ進む。requirement-elaboration gapには使用しない | `full-coverage` |
 | `AlreadyCoveredButDocumentationStale` | `coverage-gap-resolution-slice.agent.md`（documentation update のみ） | `fix-slice` |
 
 ---

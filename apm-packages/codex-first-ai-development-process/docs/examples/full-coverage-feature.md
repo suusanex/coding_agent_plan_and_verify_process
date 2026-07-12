@@ -24,6 +24,9 @@ codex-first-cost-router
 -> parent Plan / state artifact
 -> risk triage
 -> advanced-route confirmation
+-> architecture-slice-readiness.agent.md
+-> architecture-elaboration.agent.md
+-> architecture-slice-readiness.agent.md (rerun: ReadyForSliceDecomposition)
 -> plan-slice-decomposition.agent.md
 -> slice-prep for executable slices
 -> slice-impl for READY slices

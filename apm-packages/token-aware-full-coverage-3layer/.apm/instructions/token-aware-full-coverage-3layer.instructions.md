@@ -10,7 +10,9 @@ GitHub Copilot 向けの `.github/agents/*.agent.md` が既存の主成果物で
 
 ## Plan網羅チェック・残件判定フロー の扱い
 
-`change-risk-triage.agent.md` が `ReadyForRiskTriage` の Plan に対して `full-coverage` を診断した場合、Codex は `plan-slice-decomposition.agent.md` の出力から直接実装に入ってはいけません。
+`change-risk-triage.agent.md` が `ReadyForRiskTriage` の Plan に対して `full-coverage` を診断した場合、Codex はまず `architecture-slice-readiness.agent.md` を実行します。`NeedsArchitectureElaboration` なら `architecture-elaboration.agent.md` の後に readiness check を再実行し、`ReadyForSliceDecomposition` または `ArchitectureNotRequired` の場合だけ `plan-slice-decomposition.agent.md` へ進めます。
+
+`ReadyForSliceDecomposition` では `plans/<ticket-or-slug>-slice-architecture.md` が必須です。`ArchitectureNotRequired` だけは source-backed readiness verdict があれば独立 architecture artifact を省略できます。`ArchitectureCritical` / `NeedsHumanDecision` residual、missing / stale / contradicted artifact がある場合は fail closed します。
 
 `full-coverage` は多数の executable slice が必要という意味ではありません。`plan-slice-decomposition.agent.md` の `Slice granularity review` と `Small slice justification` を読み、cross-slice contract、field continuity、Behavior Case mapping を保持できる少数 slice は正しい decomposition として扱ってください。
 
@@ -64,6 +66,8 @@ Parent review gate は人間レビュー待ちではありません。親エー�
 ## 重要な禁止事項
 
 - `plan-slice-decomposition` の slice artifact を「実装準備完了」とみなしてはいけません。
+- Architecture Slice Readiness verdict なしで decomposition または3層運用を開始してはいけません。
+- slice-prep / slice-impl が shared architecture semantics を変更する場合は局所判断せず、Architecture Slice Readiness Gate へ戻してください。
 - `Parent Orchestration State` に full transcript、source artifact 本文、subagent output 全文、長い reasoning trace を貼ってはいけません。
 - Plan readiness が `ReadyForRiskTriage` ではない work を full-coverage decomposition に進めてはいけません。
 - `Slice granularity review` で統合対象になった候補を executable slice として扱ってはいけません。
