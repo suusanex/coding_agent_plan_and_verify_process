@@ -424,7 +424,7 @@ Rules:
 
 ### Canonical Coverage Ledger and Delta
 
-For standard route work that would otherwise repeat the full parent Plan ledger across many artifacts, create `plans/<ticket-or-slug>-coverage-ledger.md` from `apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/coverage-ledger.md`.
+For standard route work that would otherwise repeat the full parent Plan ledger across many artifacts, create `plans/<ticket-or-slug>-coverage-ledger.md` from the `plan-coverage-residual-flow` Skill's bundled `references/coverage-ledger.md`.
 
 The canonical ledger owns the full parent Plan FR / AC, Behavior Case coverage, and residual decision rows. Intermediate artifacts may emit a `Coverage Ledger Delta` table that records only changed rows. When the canonical ledger exists, handoff and verification artifacts should point their Parent Plan Coverage Ledger section to `plans/<ticket-or-slug>-coverage-ledger.md` instead of restating every FR / AC. A delta never narrows the parent Plan and never replaces the canonical ledger. If a delta contradicts the canonical ledger, treat the mismatch as `SourceOfTruthDrift` and resolve it before claiming close readiness.
 

@@ -15,13 +15,16 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | Contract | UTF-8/LF normalized SHA-256 |
 | --- | --- |
 | `.github/agents/architecture-slice-readiness.agent.md` | `c2f93ce3004a309d8430bea7e7875e38a2fd983843c95a1abca0324654bf5259` |
-| `.github/agents/architecture-elaboration.agent.md` | `38aa865223e600100124b004106e72c07d9afcc011015e8f3dc7f774cf696e9e` |
+| `.github/agents/architecture-elaboration.agent.md` | `8f53674b988131d847d8c32ca01d850c90820fddb40595a6ca6ff54382948344` |
 | `.github/agents/plan-slice-decomposition.agent.md` | `7ec0e6ce0d5fef4fdd87fee35ec71adf1f12d39defb6c057f8a7ddc18af341ff` |
 | `slice-prep.agent.md` | `2c40d67eb97a010ce0b4da746c37f0862e2bf2ff9a6a3a600ec1ce28ecc7aff1` |
 | `slice-impl.agent.md` | `ad0fece9d83e5c63743f4834cc1b4c656e6b0c02c5e9856ad3607cbd873f6365` |
-| `token-aware-full-coverage-3layer/SKILL.md` | `2ca81f44da22ed83dcecd7cdd6f27e123e806074062bd0688bdb9987a6f14ca3` |
-| `plan-coverage-residual-flow/SKILL.md` | `c071f08a01516192d450c221025c4d2e53e9c0ef814be25c99c9a3d092f80318` |
+| `token-aware-full-coverage-3layer/SKILL.md` | `0fa77a63cc895caf4941189f9246785cf93315295915709918834afe260538df` |
+| `plan-coverage-residual-flow/SKILL.md` | `5be4209f20cfa18841044766ec80a010507bc1d3df1daea345af3cb3db02b856` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
+| `coverage-ledger.md` template | `ade0fe7ffb6635a155cd44165e2820715d13fb611647d4a27a1f3b4d18266169` |
+| `plan-coverage-lite.md` template | `8e5962ea4549e96011ed587e81246d17a02ce35230f835649624fb927c520bd1` |
+| `full-coverage-parent-orchestration-state.md` template | `25d5bc72e85e0c91c318706ef93fe258906cbe1f23caeb255d9ff90926571131` |
 
 ## Durable fixture evidence
 

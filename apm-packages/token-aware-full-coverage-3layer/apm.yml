@@ -1,5 +1,5 @@
 name: token-aware-full-coverage-3layer
-version: 0.2.0
+version: 0.2.1
 description: 3-layer full-coverage workflow package with Architecture Slice Readiness, parent review gate, slice prep, and slice impl
 type: hybrid
 targets:
@@ -24,7 +24,7 @@ dependencies:
     - git: parent
       path: .github/agents/architecture-elaboration.agent.md
     - git: parent
-      path: apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/slice-architecture.md
+      path: apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow
     - git: parent
       path: .github/agents/plan-slice-decomposition.agent.md
     - git: parent

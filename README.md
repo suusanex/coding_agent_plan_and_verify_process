@@ -580,8 +580,8 @@ PR #10（`Codex向け full-coverage 3層運用を追加`）では、その局面
 | 親エージェントが呼ぶ skill | `apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md` |
 | slice 準備 subagent | `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-prep.agent.md` |
 | slice 実装 subagent | `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-impl.agent.md` |
-| 親 orchestration 再開 state template | `apm-packages/token-aware-full-coverage-3layer/.apm/templates/full-coverage-parent-orchestration-state.md` |
-| Slice Architecture template | `apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/slice-architecture.md` |
+| 親 orchestration 再開 state template | `token-aware-full-coverage-3layer` Skill の `references/full-coverage-parent-orchestration-state.md` |
+| Slice Architecture template | `plan-coverage-residual-flow` Skill の `references/slice-architecture.md` |
 | Codex project config | `.codex/config.toml` |
 
 ### 何をする応用か

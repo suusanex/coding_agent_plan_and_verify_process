@@ -24,7 +24,7 @@ You are the "Architecture Elaboration" agent.
 - parent `change-risk-triage` output
 - `plans/<ticket-or-slug>-architecture-slice-readiness.md`
 - readiness artifact が指した既存 architecture / state / schema / sequence source
-- `apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/slice-architecture.md`
+- `plan-coverage-residual-flow` Skill に bundled された `references/slice-architecture.md`
 - Plan / triage / readinessが指す関連production files
 - architecture判断に必要なproduction entrypoint、DI / startup configuration、persistence schema、public DTO / message schema、state owner module、retry / cleanup path
 

@@ -67,6 +67,8 @@ foreach ($manifest in $manifests) {
             }
         }
     }
+
+    Assert-FileNotContains $manifest '\.apm/templates/.*\.md' 'unsupported standalone template file dependency'
 }
 
 $agents = @(
@@ -95,10 +97,10 @@ Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'watc
 Assert-FileContains '.github/agents/architecture-elaboration.agent.md' 'production evidence address' 'bounded production inspection'
 Assert-FileContains '.github/agents/plan-slice-decomposition.agent.md' 'Architecture source IDs / sections' 'slice-local architecture traceability'
 Assert-FileContains 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md' 'Architecture drift review' 'parent architecture drift gate'
-Assert-FileContains 'apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/slice-architecture.md' 'artifact_revision' 'explicit slice architecture revision'
-Assert-FileContains 'apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/slice-architecture.md' 'elaboration_trigger' 'immutable elaboration trigger snapshot'
-Assert-FileContains 'apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/slice-architecture.md' 'freshness_dependency: false' 'non-freshness elaboration trigger'
-Assert-FileNotContains 'apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/slice-architecture.md' 'role:\s*architecture_readiness_input' 'readiness as architecture tracked source'
+Assert-FileContains 'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md' 'artifact_revision' 'explicit slice architecture revision'
+Assert-FileContains 'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md' 'elaboration_trigger' 'immutable elaboration trigger snapshot'
+Assert-FileContains 'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md' 'freshness_dependency: false' 'non-freshness elaboration trigger'
+Assert-FileNotContains 'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md' 'role:\s*architecture_readiness_input' 'readiness as architecture tracked source'
 Assert-FileContains 'docs/architecture-slice-readiness-validation-result.md' 'ASR-006' 'executed validation result'
 
 $fixtureRoot = Join-Path $repoRoot 'tests/architecture-slice-readiness'
@@ -211,7 +213,10 @@ $validatedContracts = @(
     'apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-impl.agent.md',
     'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md',
     'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md',
-    'apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/slice-architecture.md'
+    'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md',
+    'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md',
+    'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md',
+    'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/references/full-coverage-parent-orchestration-state.md'
 )
 
 foreach ($contract in $validatedContracts) {

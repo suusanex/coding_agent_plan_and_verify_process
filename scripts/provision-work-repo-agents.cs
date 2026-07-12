@@ -15,7 +15,9 @@ internal static class RepoAgentSetup
         "apm-packages",
         "token-aware-full-coverage-3layer",
         ".apm",
-        "templates",
+        "skills",
+        "token-aware-full-coverage-3layer",
+        "references",
         "full-coverage-parent-orchestration-state.md");
     private static readonly string ParentStateTemplateTargetRelative = Path.Combine(
         "plans",
