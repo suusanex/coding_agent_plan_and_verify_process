@@ -18,6 +18,8 @@ GitHub Copilot 向けの `.github/agents/*.agent.md` が既存の主成果物で
 
 artifactのcurrent判定はHEAD一致ではなくbaseline identityで行います。tracked sourceのcontent hash / explicit revisionを比較し、source repository commit以降のdiffがwatch pathへ影響するか確認します。generated gate artifactだけのcommitはself-invalidationさせず、baseline sourceへ意味変更がある場合だけ`stale`としてreadinessを再実行します。
 
+Elaboration前readiness R1はSlice Architectureの`elaboration_trigger`へ監査snapshotとして保存しますが`freshness_dependency: false`です。Elaboration後に同じreadiness pathをR2へ更新してもA1をstaleにせず、R2がA1の外部content hashをtracked sourceとして保持します。
+
 `full-coverage` は多数の executable slice が必要という意味ではありません。`plan-slice-decomposition.agent.md` の `Slice granularity review` と `Small slice justification` を読み、cross-slice contract、field continuity、Behavior Case mapping を保持できる少数 slice は正しい decomposition として扱ってください。
 
 `merge-candidate`、`too-small-to-delegate`、`coalesce-with-SL-xxx` と記録された候補は executable slice ではありません。親エージェントはこれらを `slice-prep` に渡さず、統合または除外理由を Agent Usage Ledger / parent review gate に残してください。

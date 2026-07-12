@@ -33,6 +33,15 @@ Missing: canonical state owner, source precedence, release sequence, cross-run i
 | next agent | `architecture-elaboration.agent.md` |
 | decomposition allowed | `No` |
 
+### Elaboration rerun freshness regression
+
+1. R1=`NeedsArchitectureElaboration`を標準readiness pathへ出力する。
+2. A1を作成し、R1を`elaboration_trigger`、`freshness_dependency: false`として保存する。
+3. 同じreadiness pathをR2=`ReadyForSliceDecomposition`へ更新する。
+4. A1がcurrentのままで、R2がA1の外部content hashを追跡することを確認する。
+5. decompositionが許可されることを確認する。
+6. R2後にParent Planまたはproduction watch pathを変更するとA1 / R2がstaleになり、decompositionがBLOCKされることを確認する。
+
 ## ASR-002: Architecture-critical deferred item blocks decomposition
 
 ### Fixture

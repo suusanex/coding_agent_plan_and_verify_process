@@ -22,6 +22,15 @@ function Assert-FileContains([string]$RelativePath, [string]$Pattern, [string]$L
     }
 }
 
+function Assert-FileNotContains([string]$RelativePath, [string]$Pattern, [string]$Label) {
+    $path = Join-Path $repoRoot $RelativePath
+    if (Test-Path -LiteralPath $path) {
+        if (Select-String -LiteralPath $path -Pattern $Pattern -Quiet) {
+            Add-Failure("Prohibited contract '${Label}' remains in $RelativePath")
+        }
+    }
+}
+
 $manifests = @(
     'apm-packages/token-aware-guardrail-kernel-flow/apm.yml',
     'apm-packages/token-aware-full-coverage-3layer/apm.yml',
@@ -72,6 +81,9 @@ Assert-FileContains '.github/agents/architecture-elaboration.agent.md' 'producti
 Assert-FileContains '.github/agents/plan-slice-decomposition.agent.md' 'Architecture source IDs / sections' 'slice-local architecture traceability'
 Assert-FileContains 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md' 'Architecture drift review' 'parent architecture drift gate'
 Assert-FileContains 'apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/slice-architecture.md' 'artifact_revision' 'explicit slice architecture revision'
+Assert-FileContains 'apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/slice-architecture.md' 'elaboration_trigger' 'immutable elaboration trigger snapshot'
+Assert-FileContains 'apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/slice-architecture.md' 'freshness_dependency: false' 'non-freshness elaboration trigger'
+Assert-FileNotContains 'apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/slice-architecture.md' 'role:\s*architecture_readiness_input' 'readiness as architecture tracked source'
 Assert-FileContains 'docs/architecture-slice-readiness-validation-result.md' 'ASR-006' 'executed validation result'
 
 $fixtureRoot = Join-Path $repoRoot 'tests/architecture-slice-readiness'
@@ -147,6 +159,23 @@ foreach ($fixtureId in 1..6 | ForEach-Object { 'ASR-{0:D3}' -f $_ }) {
     }
     if ($actual.parent_review_authorized -and -not $auditText.Contains('Can implement now: `Yes`', [StringComparison]::Ordinal)) {
         Add-Failure("${fixtureId}: parent authorization is true but full output lacks 'Can implement now: Yes'")
+    }
+    if ($fixtureId -eq 'ASR-001') {
+        if (-not $actual.architecture_current_after_readiness_rerun -or
+            -not $actual.architecture_stale_after_parent_plan_change -or
+            -not $actual.architecture_stale_after_watch_path_change) {
+            Add-Failure('ASR-001: freshness regression booleans are not all true')
+        }
+        foreach ($freshnessEvidence in @(
+            'freshness_dependency: false',
+            'A1 current after readiness rerun: `Yes`',
+            'A1 stale: `Yes`',
+            'R2 stale: `Yes`'
+        )) {
+            if (-not $auditText.Contains($freshnessEvidence, [StringComparison]::Ordinal)) {
+                Add-Failure("ASR-001: complete outputs lack freshness evidence '$freshnessEvidence'")
+            }
+        }
     }
 }
 

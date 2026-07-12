@@ -2,7 +2,7 @@
 
 ## Execution metadata
 
-- Executed at: `2026-07-12T15:15:00+09:00`
+- Executed at: `2026-07-12T15:30:00+09:00`
 - Executor: Codex, fresh bounded evaluation passes using the repository agent contracts
 - Branch: `codex/issue-42-architecture-readiness`
 - Base commit: `2cce8f1` plus the review-fix working tree captured by the contract hashes below
@@ -12,14 +12,14 @@
 
 | Contract | SHA-256 |
 | --- | --- |
-| `.github/agents/architecture-slice-readiness.agent.md` | `c865162e4d978ed0494a8378e8bda4e7f3a05029e0b24df217210c1f727915ed` |
-| `.github/agents/architecture-elaboration.agent.md` | `edf155a492819c7f9b8a3a02e85edf38d36f632d0d812a7bce8bfbab3944388f` |
+| `.github/agents/architecture-slice-readiness.agent.md` | `c2f93ce3004a309d8430bea7e7875e38a2fd983843c95a1abca0324654bf5259` |
+| `.github/agents/architecture-elaboration.agent.md` | `38aa865223e600100124b004106e72c07d9afcc011015e8f3dc7f774cf696e9e` |
 | `.github/agents/plan-slice-decomposition.agent.md` | `7c89f157c45e3ed709f801a1c1396c00c6f8485f08c625c02c98f4281345ef9a` |
 | `slice-prep.agent.md` | `1104a2a3265a2415c56c296cefb970ed66087d3fe8746baa2337d04f08f4c660` |
 | `slice-impl.agent.md` | `b15d706b18b86fa38507da8f7cb5ca58f38f62ac2c612147921b7f853afc4641` |
 | `token-aware-full-coverage-3layer/SKILL.md` | `8aa7dd226f240caa9108bb637f816e3c08bdb97947aa5116d23ec2f3f2415aca` |
-| `plan-coverage-residual-flow/SKILL.md` | `a460a9a9004bf6c661c8aacb65c18ea364b222f8501dbf4c9d6869d418e287cf` |
-| `slice-architecture.md` template | `c26c236d3c6f0a836eb163d5fc03c00be2ae1396691919b2ee1dbcaaf0cdd4ed` |
+| `plan-coverage-residual-flow/SKILL.md` | `59716b87978cf9819df6a5e31bdf537e1fb8cc63b07dc493a68bae8c839ed6a3` |
+| `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 
 ## Durable fixture evidence
 
@@ -27,7 +27,7 @@ Complete input, actual output, expected JSON, machine-readable actual JSON, and 
 
 | Fixture | Run ID | Complete evidence root |
 | --- | --- | --- |
-| ASR-001 | `asr-001-20260712-review-r2` | `tests/architecture-slice-readiness/ASR-001/` |
+| ASR-001 | `asr-001-20260712-review-r3` | `tests/architecture-slice-readiness/ASR-001/` |
 | ASR-002 | `asr-002-20260712-review-r2` | `tests/architecture-slice-readiness/ASR-002/` |
 | ASR-003 | `asr-003-20260712-review-r2` | `tests/architecture-slice-readiness/ASR-003/` |
 | ASR-004 | `asr-004-20260712-review-r2` | `tests/architecture-slice-readiness/ASR-004/` |
@@ -40,7 +40,7 @@ The validator compares every `actual.json` with `expected.json`, verifies all ru
 
 | Fixture | Actual triage / readiness result | Residual classification | Decomposition | Next action / authorization | Expected difference | Result |
 | --- | --- | --- | --- | --- | --- | --- |
-| ASR-001 | `full-coverage` → `NeedsArchitectureElaboration`; after synthetic elaboration rerun=`ReadyForSliceDecomposition` | `ArchitectureCritical`: state owner, precedence, release sequence, cross-run identity; rerun=0 blocking | Initially blocked; allowed only after rerun | `architecture-elaboration.agent.md`, readiness rerun, then decomposition | None | PASS |
+| ASR-001 | `full-coverage` → `NeedsArchitectureElaboration`; A1 stores R1 as non-freshness trigger; same-path R2 rerun=`ReadyForSliceDecomposition` and A1 remains current | `ArchitectureCritical`: state owner, precedence, release sequence, cross-run identity; rerun=0 blocking | Initially blocked; allowed only after current A1 + R2 pair | `architecture-elaboration.agent.md`, readiness rerun, freshness re-evaluation, then decomposition | None | PASS |
 | ASR-002 | `full-coverage` → readiness FAIL | `ArchitectureCritical`: source precedence and retry-exhaustion release | Blocked | Resolve in elaboration; no executable slice | None | PASS |
 | ASR-003 | `ArchitectureNotRequired`; readiness artifact is lightweight baseline authority | No blocking residual | Allowed | slice-prep=`Match`; Parent Review=`Can implement now? Yes`; slice-impl architecture gate passes on current baseline | Extended beyond original decomposition-only expectation | PASS |
 | ASR-004 | `ReadyForSliceDecomposition` | `ImplementationDetail` / `SliceLocalContract` only | Allowed | `plan-slice-decomposition.agent.md` | None | PASS |
@@ -68,6 +68,10 @@ Elaboration decisions:
 Rerun verdict: ReadyForSliceDecomposition
 Blocking architecture residuals: 0
 Decomposition allowed now: Yes
+R1 role in A1: elaboration_trigger / freshness_dependency: false
+A1 current after same-path R2 update: Yes
+Parent Plan mutation after R2: A1 stale / R2 stale / decomposition No
+Watch path mutation after R2: A1 stale / R2 stale / decomposition No
 ```
 
 ### ASR-002

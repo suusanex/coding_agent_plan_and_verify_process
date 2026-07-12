@@ -504,6 +504,8 @@ Requirement readinessとは別に、state owner、source precedence、identity�
 
 `ArchitectureNotRequired`ではreadiness artifact自身が軽量baseline authorityとなり、後続は新しいshared semanticsを導入していないことを`Match`として確認します。freshnessはHEAD一致ではなく、tracked sourceのcontent hash / explicit revision比較とsource commit以降のwatch path diffで判定します。artifact追加commitだけではself-invalidationせず、baseline sourceへ影響する変更だけを`stale`として再判定します。
 
+Elaboration前のreadiness R1はSlice Architectureの`elaboration_trigger`へ監査snapshotとして残しますが、freshness dependencyにはしません。Elaboration後に同じreadiness pathをR2へ更新してもSlice Architectureはcurrentのままで、R2がSlice Architectureの外部hashを保持します。
+
 ### `architecture-elaboration.agent.md`
 
 requirement baselineを変更せず、`plans/<ticket-or-slug>-slice-architecture.md`へshared architecture semanticsを確定します。完了後はreadiness checkへ戻り、直接decompositionへ進みません。

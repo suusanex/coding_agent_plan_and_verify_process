@@ -47,6 +47,8 @@ outputにはrepository ref、`source_repository_commit`、tracked sourceのpath�
 
 HEAD一致はfreshness条件にしません。tracked sourceのrevision比較と`source_repository_commit...current HEAD`のwatch path diffだけでbaselineへの影響を判定します。architecture artifact追加commitだけでself-invalidationさせてはいけません。
 
+初回readiness R1は`elaboration_trigger`としてreadiness path、明示revision、blocking residual IDs、decision sourcesをimmutable snapshotへ保存しますが、`freshness_dependency: false`とします。R1をSlice Architectureのtracked sourceへ入れてはいけません。Elaboration後に同じ標準pathがR2へ更新されても、Slice Architectureはstaleになりません。R2側がSlice Architectureの外部content hashをtracked sourceとして保持します。
+
 ## Human decision rule
 
 product semantics、authority、policy、risk acceptanceをsourceから確定できない場合、推測でbaselineを作らず `NeedsHumanDecision` residualを記録して停止します。human decision受領後はdecision sourceをartifactに追記して再開します。

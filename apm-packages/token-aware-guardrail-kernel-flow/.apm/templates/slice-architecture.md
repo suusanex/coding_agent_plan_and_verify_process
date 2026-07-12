@@ -13,13 +13,23 @@ baseline:
     - { role: parent_plan, path: "", revision_type: content_sha256, revision: "" }
     - { role: behavior_spec, path: "N/A", revision_type: N/A, revision: "N/A" }
     - { role: change_risk_triage, path: "", revision_type: content_sha256, revision: "" }
-    - { role: architecture_readiness_input, path: "", revision_type: content_sha256, revision: "" }
   watch_paths: []
   artifact_revision: 1
   generated_at:
 ```
 
+```yaml
+elaboration_trigger:
+  readiness_path:
+  readiness_revision:
+  blocking_residual_ids: []
+  decision_sources: []
+  freshness_dependency: false
+```
+
 `artifact_revision` is an explicit monotonically increasing ID, not this file's content hash. The readiness artifact records an externally computed content hash for this file.
+
+`elaboration_trigger` is an immutable audit snapshot explaining why elaboration started. It is not a tracked freshness source. Updating the standard readiness output from R1 to R2 at the same path must not make this Slice Architecture stale. Parent Plan, Behavior Spec, Change Risk Triage, human decision sources, production evidence, and watch paths remain freshness dependencies.
 
 Keep `watch_paths` bounded to baseline-affecting production, schema, config, and decision sources. Do not use a broad generated-artifact directory glob that would make this artifact's own commit invalidate the baseline.
 

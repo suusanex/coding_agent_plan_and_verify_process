@@ -39,6 +39,8 @@ readiness評価時に、`source_repository_commit`、tracked sourceごとのpath
 
 Slice Architecture自身の`artifact_revision`は、`3`や`arch-v3`のような明示的・単調増加するrevision IDです。artifact自身のcontent hashを書いてはいけません。Readiness artifactがSlice Architectureを評価するときだけ、外部から計算したcontent hashをtracked sourceとして保存します。
 
+Elaboration前のR1 readinessはSlice Architecture内の`elaboration_trigger`へ監査snapshotとして保存されますが、freshness dependencyではありません。Elaboration後のR2は同じ標準readiness pathを更新してよく、その更新だけでSlice Architectureをstaleにしてはいけません。R2はSlice Architectureの外部content hashをtracked sourceとして記録し、下流はR2とA1の組み合わせをbaseline authorityとして扱います。
+
 freshness判定は次の順で一意に行います。
 
 1. tracked sourceの現在content hash / explicit revisionを再計算し、recorded valueと比較する。
