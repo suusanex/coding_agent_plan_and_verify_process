@@ -125,6 +125,8 @@ rg -n "architecture-slice-readiness.agent.md|architecture-elaboration.agent.md|s
 
 The current executed result is stored in `docs/architecture-slice-readiness-validation-result.md`. Keep this template for future reruns.
 
+Complete durable evidence for the current run is stored under `tests/architecture-slice-readiness/ASR-001` through `ASR-006`. Each directory contains complete input artifacts, complete actual Markdown outputs, `expected.json`, `actual.json`, and `run.json`. The repository validator compares expected and actual values and verifies the run evidence.
+
 ```md
 # Architecture Slice Readiness Validation Result
 

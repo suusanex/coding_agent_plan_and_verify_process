@@ -43,7 +43,9 @@ You are the "Architecture Elaboration" agent.
 
 ## Baseline identity and freshness
 
-outputにはrepository ref / commit、parent Plan、Behavior Spec、Change Risk Triage、readiness artifactのpathとrevision or content hash、architecture artifact revision、generated_atを記録します。upstream baselineが比較不能または評価中に変更された場合はartifactをreadyにせず、baselineをrefreshしてください。
+outputにはrepository ref、`source_repository_commit`、tracked sourceのpathとcontent hash / explicit revision、watch path、明示的な`artifact_revision`、generated_atを記録します。`artifact_revision`は単調増加するIDであり自己content hashではありません。Readiness agentがこのartifactを読むときに外部content hashを計算します。
+
+HEAD一致はfreshness条件にしません。tracked sourceのrevision比較と`source_repository_commit...current HEAD`のwatch path diffだけでbaselineへの影響を判定します。architecture artifact追加commitだけでself-invalidationさせてはいけません。
 
 ## Human decision rule
 

@@ -65,12 +65,90 @@ foreach ($agent in $agents) {
 }
 
 Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'Lightweight architecture baseline' 'ArchitectureNotRequired baseline authority'
-Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'revision_or_hash' 'readiness baseline identity'
+Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'source_repository_commit' 'freshness source commit anchor'
+Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'tracked_sources' 'tracked source freshness'
+Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'watch_paths' 'watch path freshness'
 Assert-FileContains '.github/agents/architecture-elaboration.agent.md' 'production evidence address' 'bounded production inspection'
 Assert-FileContains '.github/agents/plan-slice-decomposition.agent.md' 'Architecture source IDs / sections' 'slice-local architecture traceability'
 Assert-FileContains 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md' 'Architecture drift review' 'parent architecture drift gate'
-Assert-FileContains 'apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/slice-architecture.md' 'architecture_artifact_revision' 'slice architecture revision'
+Assert-FileContains 'apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/slice-architecture.md' 'artifact_revision' 'explicit slice architecture revision'
 Assert-FileContains 'docs/architecture-slice-readiness-validation-result.md' 'ASR-006' 'executed validation result'
+
+$fixtureRoot = Join-Path $repoRoot 'tests/architecture-slice-readiness'
+$runIds = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+foreach ($fixtureId in 1..6 | ForEach-Object { 'ASR-{0:D3}' -f $_ }) {
+    $fixturePath = Join-Path $fixtureRoot $fixtureId
+    $requiredFiles = @('input-plan.md', 'input-triage.md', 'actual-readiness.md', 'expected.json', 'actual.json', 'run.json')
+    foreach ($requiredFile in $requiredFiles) {
+        if (-not (Test-Path -LiteralPath (Join-Path $fixturePath $requiredFile))) {
+            Add-Failure("${fixtureId}: missing durable fixture artifact $requiredFile")
+        }
+    }
+
+    if ($requiredFiles | ForEach-Object { Test-Path -LiteralPath (Join-Path $fixturePath $_) } | Where-Object { -not $_ }) {
+        continue
+    }
+
+    try {
+        $expected = Get-Content -LiteralPath (Join-Path $fixturePath 'expected.json') -Raw | ConvertFrom-Json
+        $actual = Get-Content -LiteralPath (Join-Path $fixturePath 'actual.json') -Raw | ConvertFrom-Json
+        $run = Get-Content -LiteralPath (Join-Path $fixturePath 'run.json') -Raw | ConvertFrom-Json
+    }
+    catch {
+        Add-Failure("${fixtureId}: invalid JSON artifact: $($_.Exception.Message)")
+        continue
+    }
+
+    $expectedJson = $expected | ConvertTo-Json -Depth 10 -Compress
+    $actualJson = $actual | ConvertTo-Json -Depth 10 -Compress
+    if (-not [string]::Equals($expectedJson, $actualJson, [StringComparison]::Ordinal)) {
+        Add-Failure("${fixtureId}: actual.json does not match expected.json")
+    }
+
+    if (-not $run.run_id -or -not $runIds.Add([string]$run.run_id)) {
+        Add-Failure("${fixtureId}: run_id is missing or duplicated")
+    }
+    if (-not $run.executed_at -or -not $run.executor -or -not $run.environment) {
+        Add-Failure("${fixtureId}: run evidence lacks executed_at, executor, or environment")
+    }
+
+    foreach ($artifact in @($run.inputs)) {
+        $artifactPath = Join-Path $fixturePath ([string]$artifact)
+        if (-not (Test-Path -LiteralPath $artifactPath)) {
+            Add-Failure("${fixtureId}: run.json references missing input artifact $artifact")
+        }
+    }
+
+    $outputText = [System.Text.StringBuilder]::new()
+    foreach ($artifact in @($run.outputs)) {
+        $artifactPath = Join-Path $fixturePath ([string]$artifact)
+        if (-not (Test-Path -LiteralPath $artifactPath)) {
+            Add-Failure("${fixtureId}: run.json references missing output artifact $artifact")
+            continue
+        }
+        if ([string]$artifact -like '*.md') {
+            [void]$outputText.AppendLine((Get-Content -LiteralPath $artifactPath -Raw))
+        }
+    }
+
+    $auditText = $outputText.ToString()
+    foreach ($requiredValue in @($actual.initial_verdict, $actual.final_verdict, $actual.next_action_initial)) {
+        if ($requiredValue -and -not $auditText.Contains([string]$requiredValue, [StringComparison]::Ordinal)) {
+            Add-Failure("${fixtureId}: complete artifacts do not contain expected observed value '$requiredValue'")
+        }
+    }
+    foreach ($classification in @($actual.blocking_residuals_initial)) {
+        if (-not $auditText.Contains([string]$classification, [StringComparison]::Ordinal)) {
+            Add-Failure("${fixtureId}: complete artifacts do not contain blocking classification '$classification'")
+        }
+    }
+    if ($actual.drift_result -ne 'NotRun' -and -not $auditText.Contains([string]$actual.drift_result, [StringComparison]::Ordinal)) {
+        Add-Failure("${fixtureId}: complete artifacts do not contain drift result '$($actual.drift_result)'")
+    }
+    if ($actual.parent_review_authorized -and -not $auditText.Contains('Can implement now: `Yes`', [StringComparison]::Ordinal)) {
+        Add-Failure("${fixtureId}: parent authorization is true but full output lacks 'Can implement now: Yes'")
+    }
+}
 
 $resultPath = Join-Path $repoRoot 'docs/architecture-slice-readiness-validation-result.md'
 $resultText = Get-Content -LiteralPath $resultPath -Raw

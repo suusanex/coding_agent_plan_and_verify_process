@@ -16,7 +16,7 @@ GitHub Copilot 向けの `.github/agents/*.agent.md` が既存の主成果物で
 
 `ArchitectureNotRequired`ではreadiness artifact内のLightweight architecture baselineをbaseline authorityとします。slice-prepとParent Reviewは、新しいshared semanticsがなければ`Match`、導入されていれば`Drift`、freshnessまたはevidenceが不明なら`Unclear`を返します。slice-implはcurrent baselineに対する`Match`だけを受け入れます。
 
-artifactのcurrent判定はpathではなくbaseline identityで行います。repository commit、upstream artifact revision/hash、architecture revision、human decision source、inspected production evidenceのいずれかがreadiness評価後に意味変更された場合は`stale`としてreadinessを再実行します。
+artifactのcurrent判定はHEAD一致ではなくbaseline identityで行います。tracked sourceのcontent hash / explicit revisionを比較し、source repository commit以降のdiffがwatch pathへ影響するか確認します。generated gate artifactだけのcommitはself-invalidationさせず、baseline sourceへ意味変更がある場合だけ`stale`としてreadinessを再実行します。
 
 `full-coverage` は多数の executable slice が必要という意味ではありません。`plan-slice-decomposition.agent.md` の `Slice granularity review` と `Small slice justification` を読み、cross-slice contract、field continuity、Behavior Case mapping を保持できる少数 slice は正しい decomposition として扱ってください。
 

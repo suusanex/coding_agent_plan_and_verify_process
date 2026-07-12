@@ -1,0 +1,11 @@
+{
+  "fixture_id": "ASR-005",
+  "initial_verdict": "ReadyForSliceDecomposition",
+  "final_verdict": "ReadyForSliceDecomposition",
+  "decomposition_allowed_initial": true,
+  "decomposition_allowed_final": true,
+  "blocking_residuals_initial": [],
+  "next_action_initial": "architecture-slice-readiness.agent.md",
+  "parent_review_authorized": false,
+  "drift_result": "Drift"
+}

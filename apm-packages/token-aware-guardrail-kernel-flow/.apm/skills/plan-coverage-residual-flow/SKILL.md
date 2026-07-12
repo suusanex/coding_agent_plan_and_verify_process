@@ -130,7 +130,7 @@ When `change-risk-triage.agent.md` recommends `full-coverage`:
    - `ArchitectureNotRequired`: use the current source-backed readiness artifact and its Lightweight architecture baseline as the baseline authority; continue without a separate architecture artifact.
    - `NeedsHumanDecision`: stop.
 3. Do not continue while any `ArchitectureCritical` or `NeedsHumanDecision` residual remains.
-   Compare repository commit and upstream artifact revision/hash from the readiness baseline with current values. Path equality is insufficient; any semantic baseline change makes the verdict stale and requires a readiness rerun.
+   Recompute tracked source content hashes / explicit revisions and inspect the source-repository-commit-to-current diff for declared watch paths. HEAD equality is not required, and generated readiness/architecture artifact commits do not self-invalidate the baseline. Path equality is insufficient; any semantic baseline change makes the verdict stale and requires a readiness rerun.
 4. Run `plan-slice-decomposition.agent.md` only after the architecture gate permits it.
 5. Treat each resulting slice as a bounded parent Plan pass with parent Plan item and architecture traceability.
 6. Use `token-aware-full-coverage-3layer` or an equivalent advanced route for slice preparation, architecture-drift review, delegated slice implementation, and slice-local verification.

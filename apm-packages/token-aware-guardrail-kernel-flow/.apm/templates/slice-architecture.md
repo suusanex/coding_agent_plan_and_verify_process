@@ -8,14 +8,20 @@ Do not use it to redesign requirements, choose slice count, or specify class / m
 ```yaml
 baseline:
   repository_ref:
-  repository_commit:
-  parent_plan: { path: "", revision_or_hash: "" }
-  behavior_spec: { path: "N/A", revision_or_hash: "N/A" }
-  change_risk_triage: { path: "", revision_or_hash: "" }
-  architecture_readiness: { path: "", revision_or_hash: "" }
-  architecture_artifact_revision:
+  source_repository_commit:
+  tracked_sources:
+    - { role: parent_plan, path: "", revision_type: content_sha256, revision: "" }
+    - { role: behavior_spec, path: "N/A", revision_type: N/A, revision: "N/A" }
+    - { role: change_risk_triage, path: "", revision_type: content_sha256, revision: "" }
+    - { role: architecture_readiness_input, path: "", revision_type: content_sha256, revision: "" }
+  watch_paths: []
+  artifact_revision: 1
   generated_at:
 ```
+
+`artifact_revision` is an explicit monotonically increasing ID, not this file's content hash. The readiness artifact records an externally computed content hash for this file.
+
+Keep `watch_paths` bounded to baseline-affecting production, schema, config, and decision sources. Do not use a broad generated-artifact directory glob that would make this artifact's own commit invalidate the baseline.
 
 - Parent Plan:
 - Black-box Behavior Spec:
@@ -93,7 +99,7 @@ Allowed classifications: `ArchitectureCritical`, `NeedsHumanDecision`, `SliceLoc
 
 ## Freshness rule
 
-This artifact is `stale` when an upstream baseline revision/hash, repository commit affecting an inspected production evidence address, human decision source, or this artifact revision changes after readiness evaluation. Path equality alone never proves freshness.
+This artifact is `stale` when a tracked source revision/content hash changes, a diff after `source_repository_commit` touches a declared watch path or inspected production evidence address, a human decision source changes, or the explicit artifact revision changes. A HEAD change containing only generated readiness/architecture artifacts does not invalidate the baseline. Path equality alone never proves freshness.
 
 ## Readiness handoff
 

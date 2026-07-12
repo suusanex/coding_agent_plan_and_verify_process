@@ -2,24 +2,39 @@
 
 ## Execution metadata
 
-- Executed at: `2026-07-12T14:39:34+09:00`
+- Executed at: `2026-07-12T15:15:00+09:00`
 - Executor: Codex, fresh bounded evaluation passes using the repository agent contracts
 - Branch: `codex/issue-42-architecture-readiness`
-- Base commit: `72b5c2e8ec2f72e0db5d0229f4d8541433d88813`
+- Base commit: `2cce8f1` plus the review-fix working tree captured by the contract hashes below
 - Scope: routing / artifact / authorization semantics only; no production code or external system changes
 
 ### Contract revisions evaluated
 
 | Contract | SHA-256 |
 | --- | --- |
-| `.github/agents/architecture-slice-readiness.agent.md` | `c3e70c6674a5c5a54fe11395acb77ea0c79fd6bb1c59a4cf975e920fec35a9b1` |
-| `.github/agents/architecture-elaboration.agent.md` | `1c8399dfa3124c65e1014fda319f98353063cae0a8bb8b95f109606e11ea0001` |
-| `.github/agents/plan-slice-decomposition.agent.md` | `ac6c5cdb2daeb5ba8620f5e47b01e4eb1ae2a1f27712bf6faff3440799f1d4d5` |
+| `.github/agents/architecture-slice-readiness.agent.md` | `c865162e4d978ed0494a8378e8bda4e7f3a05029e0b24df217210c1f727915ed` |
+| `.github/agents/architecture-elaboration.agent.md` | `edf155a492819c7f9b8a3a02e85edf38d36f632d0d812a7bce8bfbab3944388f` |
+| `.github/agents/plan-slice-decomposition.agent.md` | `7c89f157c45e3ed709f801a1c1396c00c6f8485f08c625c02c98f4281345ef9a` |
 | `slice-prep.agent.md` | `1104a2a3265a2415c56c296cefb970ed66087d3fe8746baa2337d04f08f4c660` |
 | `slice-impl.agent.md` | `b15d706b18b86fa38507da8f7cb5ca58f38f62ac2c612147921b7f853afc4641` |
-| `token-aware-full-coverage-3layer/SKILL.md` | `901d98326cd8b41f3350faec018e6ed101bb54b3a14b7a498f756c0c9352dce2` |
-| `plan-coverage-residual-flow/SKILL.md` | `36fdff25c076a0dbc14ca93af9069f36713cb21b3d729c8937cd9fd91cb76c58` |
-| `slice-architecture.md` template | `a9b4b16dcb833c80b852809b55a04c483f3131cbc0f625d92950a66c176a78cc` |
+| `token-aware-full-coverage-3layer/SKILL.md` | `8aa7dd226f240caa9108bb637f816e3c08bdb97947aa5116d23ec2f3f2415aca` |
+| `plan-coverage-residual-flow/SKILL.md` | `a460a9a9004bf6c661c8aacb65c18ea364b222f8501dbf4c9d6869d418e287cf` |
+| `slice-architecture.md` template | `c26c236d3c6f0a836eb163d5fc03c00be2ae1396691919b2ee1dbcaaf0cdd4ed` |
+
+## Durable fixture evidence
+
+Complete input, actual output, expected JSON, machine-readable actual JSON, and run metadata are stored under `tests/architecture-slice-readiness/ASR-001` through `ASR-006`.
+
+| Fixture | Run ID | Complete evidence root |
+| --- | --- | --- |
+| ASR-001 | `asr-001-20260712-review-r2` | `tests/architecture-slice-readiness/ASR-001/` |
+| ASR-002 | `asr-002-20260712-review-r2` | `tests/architecture-slice-readiness/ASR-002/` |
+| ASR-003 | `asr-003-20260712-review-r2` | `tests/architecture-slice-readiness/ASR-003/` |
+| ASR-004 | `asr-004-20260712-review-r2` | `tests/architecture-slice-readiness/ASR-004/` |
+| ASR-005 | `asr-005-20260712-review-r2` | `tests/architecture-slice-readiness/ASR-005/` |
+| ASR-006 | `asr-006-20260712-review-r2` | `tests/architecture-slice-readiness/ASR-006/` |
+
+The validator compares every `actual.json` with `expected.json`, verifies all run-referenced input/output files, checks unique run IDs and execution metadata, and confirms that verdict, residual, next action, drift, and parent authorization values are present in the complete Markdown outputs.
 
 ## Results
 
@@ -119,10 +134,12 @@ Immediate next action: stop until the decision source is recorded
 | Agent frontmatter | PASS | new readiness and elaboration agents have complete frontmatter delimiters, name, and description |
 | Direct `full-coverage → decomposition` route | PASS | remaining matches are prohibition or validation text only |
 | Slice Architecture template path | PASS | canonical template exists and all affected manifests reference an existing path |
+| Durable fixture artifacts | PASS | ASR-001〜006 input/output/run files exist and every run reference resolves |
+| Expected / actual comparison | PASS | validator compared every `actual.json` with `expected.json` and checked values against full Markdown outputs |
 | `git diff --check` | PASS | no whitespace errors; Windows line-ending warnings only |
 
 ## Limitations
 
-- These are bounded semantic evaluations of the repository agent contracts, not stochastic multi-model benchmark runs.
+- These are repository-captured bounded agent contract runs, not stochastic multi-model benchmark runs. Complete inputs, outputs, run IDs, and machine comparisons are retained for audit.
 - Production repositories, secrets, billing, GitHub settings, and external services were not accessed.
 - Rerun this suite when any contract revision above changes; hash mismatch makes this result stale.

@@ -180,7 +180,7 @@ When switching parent tools or sessions, do not rely on prior conversation conte
 
 親エージェントは最初に、`plan-slice-decomposition` の出力を実装指示ではなく「slice 実行候補」として扱ってください。
 
-readiness verdictが`NeedsArchitectureElaboration`または`NeedsHumanDecision`、blocking architecture residualが残る、baseline identityが現在値と一致しない、required baseline authorityがmissing / stale / contradictedのいずれかなら、このskillを開始せずArchitecture Slice Readiness Gateへ戻してください。path一致だけでcurrentと判断してはいけません。
+readiness verdictが`NeedsArchitectureElaboration`または`NeedsHumanDecision`、blocking architecture residualが残る、tracked source / watch path freshness checkが失敗する、required baseline authorityがmissing / stale / contradictedのいずれかなら、このskillを開始せずArchitecture Slice Readiness Gateへ戻してください。HEAD一致もpath一致も単独のfreshness条件にしてはいけません。
 
 親エージェントは次を行います。
 
@@ -326,7 +326,7 @@ Parent review gate は人間レビュー待ちではありません。親エー�
 - production binding requirement が test-only stub / fake で代替されていないか
 - state owner、source precedence、identity、temporal sequence、retry / release、capacity、schema、production wiringがselected baseline authorityからdriftしていないか
 - slice-prepがshared semanticsの変更を提案していないか。提案している場合は`Can implement now? = No`としてArchitecture Slice Readiness Gateへ戻す
-- baseline identityのrepository commitとupstream artifact revision/hashが現在値に一致するか。意味変更後は`stale`としてreadinessを再実行する
+- tracked sourceのrevision/content hashが一致し、`source_repository_commit...current HEAD`のdiffがwatch pathへ影響しないか。artifact追加だけのHEAD変更はself-invalidationさせない
 
 親レビューの出力は次の形式にしてください。
 

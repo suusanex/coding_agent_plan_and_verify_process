@@ -88,6 +88,8 @@ Codex-first を使いたい場合の入口は `apply-codex-first-local.cs` で�
 
 Architecture Slice Readiness contractを変更した場合は、repository rootで次を実行してください。このcheckはGitHub Actionsでも実行されます。
 
+ASR-001〜006の監査可能なinput、actual output、expected/actual JSON、run metadataは`tests/architecture-slice-readiness/`に保存されています。
+
 ```powershell
 ./scripts/validate-architecture-slice-readiness.ps1
 git diff --check
@@ -500,7 +502,7 @@ Plan readiness check を行い、`ReadyForRiskTriage` の場合だけ parent Pla
 
 Requirement readinessとは別に、state owner、source precedence、identity、temporal sequence、retry / release、capacity、schema、invariants、production wiringがslice可能な精度か判定します。`ReadyForSliceDecomposition`、`NeedsArchitectureElaboration`、`ArchitectureNotRequired`、`NeedsHumanDecision`のいずれかを返します。
 
-`ArchitectureNotRequired`ではreadiness artifact自身が軽量baseline authorityとなり、後続は新しいshared semanticsを導入していないことを`Match`として確認します。すべてのverdictはrepository commitとupstream artifact revision/hashをbaseline identityとして持ち、いずれかが意味変更された場合は`stale`として再判定します。
+`ArchitectureNotRequired`ではreadiness artifact自身が軽量baseline authorityとなり、後続は新しいshared semanticsを導入していないことを`Match`として確認します。freshnessはHEAD一致ではなく、tracked sourceのcontent hash / explicit revision比較とsource commit以降のwatch path diffで判定します。artifact追加commitだけではself-invalidationせず、baseline sourceへ影響する変更だけを`stale`として再判定します。
 
 ### `architecture-elaboration.agent.md`
 

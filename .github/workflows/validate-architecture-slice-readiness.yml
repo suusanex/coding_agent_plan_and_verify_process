@@ -9,6 +9,7 @@ on:
       - 'docs/**'
       - 'README.md'
       - 'scripts/validate-architecture-slice-readiness.ps1'
+      - 'tests/architecture-slice-readiness/**'
   push:
     paths:
       - '.github/agents/**'
@@ -17,6 +18,7 @@ on:
       - 'docs/**'
       - 'README.md'
       - 'scripts/validate-architecture-slice-readiness.ps1'
+      - 'tests/architecture-slice-readiness/**'
 
 permissions:
   contents: read
@@ -27,10 +29,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
       - name: Validate architecture readiness contracts
         shell: pwsh
         run: ./scripts/validate-architecture-slice-readiness.ps1
-      - name: Check commit whitespace
+      - name: Check branch or PR whitespace
         shell: pwsh
-        run: git show --check --format= HEAD
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          $zeroSha = '0000000000000000000000000000000000000000'
+          if ($env:GITHUB_EVENT_NAME -eq 'pull_request' -and $env:BASE_SHA) {
+            git diff --check "$env:BASE_SHA...HEAD"
+          }
+          elseif ($env:BEFORE_SHA -and $env:BEFORE_SHA -ne $zeroSha) {
+            git diff --check "$env:BEFORE_SHA...HEAD"
+          }
+          else {
+            git show --check --format= HEAD
+          }

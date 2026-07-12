@@ -20,7 +20,9 @@ If this file grows too large, compact old completed slice rows into a short summ
 - Stop reason: none / token-limit / tool-failure / manual-stop / model-switch / planned-handoff / unknown
 - Resume safety: Safe / NeedsReview / NeedsHumanDecision / Blocked
 - Repository ref:
-- Repository commit:
+- Source repository commit:
+- Tracked source revisions verified at:
+- Watch path diff verified through commit:
 - Architecture readiness evaluated at:
 
 ## Artifact index
@@ -41,7 +43,7 @@ If this file grows too large, compact old completed slice rows into a short summ
 
 `contradicted` means this artifact conflicts with the current branch, work item, slice queue, or newer listed artifact and must be reviewed before continuing.
 
-`stale` means an upstream baseline revision/hash, repository commit affecting inspected production evidence, human decision source, or architecture artifact revision changed after readiness evaluation. Path equality alone does not make an artifact `current`. If baseline identity is missing or cannot be compared, use `stale` and rerun Architecture Slice Readiness.
+`stale` means a tracked source revision/content hash changed, a diff after Source repository commit touched a declared watch path / inspected production evidence address, a human decision source changed, or an explicit architecture artifact revision changed. HEAD changes containing only generated readiness/architecture artifacts do not self-invalidate the baseline. HEAD equality and path equality are not freshness tests. If tracked source or watch path comparison cannot be completed, use `stale` and rerun Architecture Slice Readiness.
 
 ## Slice queue
 

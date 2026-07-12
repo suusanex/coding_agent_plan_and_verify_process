@@ -59,7 +59,7 @@ decomposition 開始前に readiness verdict を確認してください。
 - `NeedsArchitectureElaboration` / `NeedsHumanDecision`: executable slice を作らず停止する。
 - `ArchitectureCritical` / `NeedsHumanDecision` residual が1件でも残る場合は、verdict 表記にかかわらず fail closed する。
 
-readiness artifact または required architecture artifact が missing / stale / contradicted なら decomposition を開始してはいけません。`stale`は、readiness評価後にbaseline sourceのrevision/hash、inspected production evidenceに影響するrepository commit、human decision source、architecture artifact revisionのいずれかが意味変更された状態です。path一致だけではcurrentと判定せず、baseline identityを現在値と比較してください。
+readiness artifact または required architecture artifact が missing / stale / contradicted なら decomposition を開始してはいけません。`stale`はtracked sourceのrevision/content hashが変わった、または`source_repository_commit...current HEAD`のdiffがwatch path / inspected production evidenceへ影響した状態です。HEAD単純一致を要求せず、artifact追加だけのcommitでself-invalidationさせません。path一致だけでもcurrentと判定しません。
 
 repository 全体を読んではいけません。decomposition に必要な範囲だけを読みます。
 
@@ -307,7 +307,7 @@ slice が小さすぎる場合は統合してください。delegation overhead 
 - Related Cross-slice Contract IDs:
 - Architecture readiness verdict:
 - Architecture baseline: <slice architecture path / readiness artifact path>
-- Architecture baseline identity: <repository commit + artifact revision/hash>
+- Architecture baseline identity: <source repository commit + tracked source revisions + watch paths + explicit artifact revision>
 - Architecture source IDs / sections:
 - Shared invariants consumed:
 - Architecture residuals assigned to this slice:
@@ -538,7 +538,7 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 - Related Cross-slice Contract IDs:
 - Architecture readiness verdict:
 - Architecture baseline: <slice architecture path / readiness artifact path>
-- Architecture baseline identity: <repository commit + artifact revision/hash>
+- Architecture baseline identity: <source repository commit + tracked source revisions + watch paths + explicit artifact revision>
 - Architecture source IDs / sections:
 - Shared invariants consumed:
 - Architecture residuals assigned to this slice:

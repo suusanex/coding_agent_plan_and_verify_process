@@ -35,15 +35,26 @@ repository全体は探索しません。各readiness checkについて、要求a
 
 ## Baseline identity and freshness
 
-readiness評価時に、repository ref / commit、各upstream artifactのpathとrevision or content hash、architecture artifact revision、評価時刻を保存してください。厳密な暗号hashが利用できない場合は、artifact内revisionとupdated_atを併記します。
+readiness評価時に、`source_repository_commit`、tracked sourceごとのpathとcontent hash / explicit revision、baselineへ影響するwatch path、Slice Architecture artifactの外部content hash、評価時刻を保存してください。`source_repository_commit`は調査時点を示すanchorであり、現在HEADとの単純一致条件ではありません。
+
+Slice Architecture自身の`artifact_revision`は、`3`や`arch-v3`のような明示的・単調増加するrevision IDです。artifact自身のcontent hashを書いてはいけません。Readiness artifactがSlice Architectureを評価するときだけ、外部から計算したcontent hashをtracked sourceとして保存します。
+
+freshness判定は次の順で一意に行います。
+
+1. tracked sourceの現在content hash / explicit revisionを再計算し、recorded valueと比較する。
+2. `source_repository_commit...current HEAD`のdiffをwatch pathへ限定して確認する。tracked source以外でもbaselineへ影響する追加・削除・rename・wiring変更があればstaleとする。
+3. readiness / architecture artifactの追加・更新だけを含み、tracked sourceとwatch pathへ影響しないcommitはself-invalidationを起こさずcurrentのままとする。
+4. tracked sourceがmissing、比較不能、またはwatch pathへの影響を判定できない場合はstaleとしてfail closedする。
+
+`watch_paths`はbaselineへ影響するproduction / schema / config / decision sourceへboundedに設定します。生成先のreadiness / architecture / decomposition artifact pathを無差別なdirectory globで含めてはいけません。生成artifact自体を監視する場合はtracked sourceとして個別にrevisionを記録します。
 
 `stale` は、readiness評価後に次のいずれかが意味変更された状態です。
 
-- parent Plan、Behavior Spec、Change Risk Triage、slice architectureのrevision / hash
-- inspected production evidence addressの内容またはproduction wiringに影響するrepository commit
+- parent Plan、Behavior Spec、Change Risk Triage、slice architectureなどtracked sourceのrevision / content hash
+- watch pathまたはinspected production evidence addressへ影響するdiff
 - readiness verdictの根拠となったhuman decision / architecture source
 
-pathが同じだけでは`current`と判定できません。baseline identityがmissing、比較不能、または現在値と一致しない場合は`stale`としてfail closedし、readinessを再実行してください。
+HEADが変わっただけでは`stale`にしません。pathが同じだけでも`current`にしません。上記tracked source比較とwatch path diffで判定してください。
 
 ## Architecture readiness checks
 
@@ -99,11 +110,14 @@ pathが同じだけでは`current`と判定できません。baseline identity�
 ```yaml
 baseline:
   repository_ref:
-  repository_commit:
-  parent_plan: { path: "", revision_or_hash: "" }
-  behavior_spec: { path: "N/A", revision_or_hash: "N/A" }
-  change_risk_triage: { path: "", revision_or_hash: "" }
-  architecture: { path: "N/A", revision_or_hash: "N/A" }
+  source_repository_commit:
+  tracked_sources:
+    - { role: parent_plan, path: "", revision_type: content_sha256, revision: "" }
+    - { role: behavior_spec, path: "N/A", revision_type: N/A, revision: "N/A" }
+    - { role: change_risk_triage, path: "", revision_type: content_sha256, revision: "" }
+    - { role: slice_architecture, path: "N/A", revision_type: external_content_sha256, revision: "N/A" }
+  watch_paths: []
+  artifact_revision:
   evaluated_at:
 ```
 
