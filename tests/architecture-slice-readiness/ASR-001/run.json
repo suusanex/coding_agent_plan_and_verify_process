@@ -1,0 +1,8 @@
+{
+  "run_id": "asr-001-20260712-review-r3",
+  "executed_at": "2026-07-12T15:30:00+09:00",
+  "executor": "Codex primary agent",
+  "environment": "repository-local fresh bounded contract evaluation",
+  "inputs": ["input-plan.md", "input-triage.md"],
+  "outputs": ["actual-readiness.md", "actual-architecture.md", "actual-readiness-rerun.md", "actual-freshness.md", "actual-decomposition.md", "actual.json"]
+}

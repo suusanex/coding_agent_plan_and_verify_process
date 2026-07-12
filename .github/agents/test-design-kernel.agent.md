@@ -125,7 +125,7 @@ Plan に `Black-box behavior coverage` がある場合は、`Case-to-Plan mappin
 
 ### Step 3. Check for escalation conditions
 
-次のいずれかに該当する場合、token-aware route では `full-coverage` profile と `plan-slice-decomposition.agent.md` へのエスカレーションを推奨してください。`integration-test-design.agent.md` は、caller が明示的に Full autonomous Plan-first flow へ移ることを求めた場合だけ推奨してください。
+次のいずれかに該当する場合、token-aware route では `full-coverage` profile と `architecture-slice-readiness.agent.md` へのエスカレーションを推奨してください。readiness verdictなしでdecompositionへ進めません。`integration-test-design.agent.md` は、caller が明示的に Full autonomous Plan-first flow へ移ることを求めた場合だけ推奨してください。
 
 - selected contracts の検証に、feature 全体の動作、load、連続運転、または広範な error scenario の coverage が必要
 - 複数の contracts にまたがる end-to-end のシナリオを定義しないと、各 contract の test point が意味をなさない

@@ -1,6 +1,6 @@
 name: plan-coverage-residual-gate-flow
-version: 0.3.0
-description: Plan Coverage Check and Residual Decision Flow with bounded parent Plan passes, Guardrail Focus, and residual decision gating
+version: 0.4.0
+description: Plan Coverage Check and Residual Decision Flow with bounded parent Plan passes, Architecture Slice Readiness, Guardrail Focus, and residual decision gating
 type: hybrid
 targets:
   - copilot
@@ -18,6 +18,10 @@ dependencies:
       path: .github/agents/black-box-behavior-spec-kernel.agent.md
     - git: parent
       path: .github/agents/change-risk-triage.agent.md
+    - git: parent
+      path: .github/agents/architecture-slice-readiness.agent.md
+    - git: parent
+      path: .github/agents/architecture-elaboration.agent.md
     - git: parent
       path: .github/agents/plan-slice-decomposition.agent.md
     - git: parent

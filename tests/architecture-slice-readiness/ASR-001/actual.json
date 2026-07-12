@@ -1,0 +1,14 @@
+{
+  "fixture_id": "ASR-001",
+  "initial_verdict": "NeedsArchitectureElaboration",
+  "final_verdict": "ReadyForSliceDecomposition",
+  "decomposition_allowed_initial": false,
+  "decomposition_allowed_final": true,
+  "blocking_residuals_initial": ["ArchitectureCritical"],
+  "next_action_initial": "architecture-elaboration.agent.md",
+  "parent_review_authorized": false,
+  "drift_result": "NotRun",
+  "architecture_current_after_readiness_rerun": true,
+  "architecture_stale_after_parent_plan_change": true,
+  "architecture_stale_after_watch_path_change": true
+}

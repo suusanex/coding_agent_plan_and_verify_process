@@ -51,9 +51,11 @@ Start from the available items in this order:
 2. bounded Plan from `plan-kernel.agent.md`
 3. Black-box Behavior Spec artifact, when a separate behavior spec artifact was required
 4. `change-risk-triage.agent.md` output
-5. `plan-slice-decomposition.agent.md` output, when full-coverage was selected
-6. implementation contract, runtime contract, test design, handoff review, implementation, verification, coverage, and residual artifacts from the current pass
-7. relevant docs and source files only, selected from the artifacts above
+5. `architecture-slice-readiness.agent.md` output, when full-coverage was selected
+6. `architecture-elaboration.agent.md` output / `plans/<slug>-slice-architecture.md`, when readiness requires it
+7. `plan-slice-decomposition.agent.md` output, after the architecture gate permits decomposition
+8. implementation contract, runtime contract, test design, handoff review, implementation, verification, coverage, and residual artifacts from the current pass
+9. relevant docs and source files only, selected from the artifacts above
 
 If a required upstream artifact is absent, route to the agent that creates or refreshes it. Do not proceed by reconstructing missing decisions from source inspection alone.
 
@@ -121,12 +123,21 @@ Use `full-coverage` only after Plan readiness is `ReadyForRiskTriage`. It means 
 
 When `change-risk-triage.agent.md` recommends `full-coverage`:
 
-1. Run `plan-slice-decomposition.agent.md`.
-2. Treat each resulting slice as a bounded parent Plan pass with parent Plan item mapping.
-3. Use `token-aware-full-coverage-3layer` or an equivalent advanced route for slice preparation, parent review, delegated slice implementation, and slice-local verification.
-4. After slice verification, run `cross-slice-verification-kernel.agent.md`.
-5. If cross-slice verification emits unresolved coverage items or FixNow candidates, run `coverage-gap-triage.agent.md`.
-6. Run `residual-decision-gate.agent.md` for final residual, manual, delegated, deferred, aborted, or human-decision handling.
+1. Run `architecture-slice-readiness.agent.md`.
+2. Follow the readiness verdict:
+   - `ReadyForSliceDecomposition`: require the cited current `plans/<slug>-slice-architecture.md`, then continue.
+   - `NeedsArchitectureElaboration`: run `architecture-elaboration.agent.md`, then rerun readiness.
+   - `ArchitectureNotRequired`: use the current source-backed readiness artifact and its Lightweight architecture baseline as the baseline authority; continue without a separate architecture artifact.
+   - `NeedsHumanDecision`: stop.
+   When elaboration is required, preserve R1 as a non-freshness `elaboration_trigger` snapshot. R2 may update the same readiness path and must track the Slice Architecture external content hash; R1 path/hash changes do not stale the architecture.
+3. Do not continue while any `ArchitectureCritical` or `NeedsHumanDecision` residual remains.
+   Recompute tracked source content hashes / explicit revisions and inspect the source-repository-commit-to-current diff for declared watch paths. HEAD equality is not required, and generated readiness/architecture artifact commits do not self-invalidate the baseline. Path equality is insufficient; any semantic baseline change makes the verdict stale and requires a readiness rerun.
+4. Run `plan-slice-decomposition.agent.md` only after the architecture gate permits it.
+5. Treat each resulting slice as a bounded parent Plan pass with parent Plan item and architecture traceability.
+6. Use `token-aware-full-coverage-3layer` or an equivalent advanced route for slice preparation, architecture-drift review, delegated slice implementation, and slice-local verification.
+7. After slice verification, run `cross-slice-verification-kernel.agent.md`.
+8. If cross-slice verification emits unresolved coverage items or FixNow candidates, run `coverage-gap-triage.agent.md`.
+9. Run `residual-decision-gate.agent.md` for final residual, manual, delegated, deferred, aborted, or human-decision handling.
 
 Do not use `full-coverage` for:
 
@@ -169,6 +180,7 @@ Every parent-agent turn using this skill should report:
 - current phase
 - source artifacts read
 - Plan readiness
+- Architecture Slice Readiness verdict, when full-coverage was selected
 - documentation_level
 - next agent to use
 - why that agent is next

@@ -1,0 +1,51 @@
+name: Validate Architecture Slice Readiness Contracts
+
+on:
+  pull_request:
+    paths:
+      - '.github/agents/**'
+      - '.github/workflows/validate-architecture-slice-readiness.yml'
+      - 'apm-packages/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'scripts/validate-architecture-slice-readiness.ps1'
+      - 'tests/architecture-slice-readiness/**'
+  push:
+    paths:
+      - '.github/agents/**'
+      - '.github/workflows/validate-architecture-slice-readiness.yml'
+      - 'apm-packages/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'scripts/validate-architecture-slice-readiness.ps1'
+      - 'tests/architecture-slice-readiness/**'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-contracts:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate architecture readiness contracts
+        shell: pwsh
+        run: ./scripts/validate-architecture-slice-readiness.ps1
+      - name: Check branch or PR whitespace
+        shell: pwsh
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          $zeroSha = '0000000000000000000000000000000000000000'
+          if ($env:GITHUB_EVENT_NAME -eq 'pull_request' -and $env:BASE_SHA) {
+            git diff --check "$env:BASE_SHA...HEAD"
+          }
+          elseif ($env:BEFORE_SHA -and $env:BEFORE_SHA -ne $zeroSha) {
+            git diff --check "$env:BEFORE_SHA...HEAD"
+          }
+          else {
+            git show --check --format= HEAD
+          }

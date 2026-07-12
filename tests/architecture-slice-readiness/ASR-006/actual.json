@@ -1,0 +1,11 @@
+{
+  "fixture_id": "ASR-006",
+  "initial_verdict": "NeedsHumanDecision",
+  "final_verdict": "NeedsHumanDecision",
+  "decomposition_allowed_initial": false,
+  "decomposition_allowed_final": false,
+  "blocking_residuals_initial": ["NeedsHumanDecision"],
+  "next_action_initial": "STOP_FOR_HUMAN_DECISION",
+  "parent_review_authorized": false,
+  "drift_result": "NotRun"
+}

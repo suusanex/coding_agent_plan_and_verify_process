@@ -1,6 +1,6 @@
 name: codex-first-ai-development-process
-version: 0.2.0
-description: Codex-first cost-aware routing package for ordinary development requests, stateful resume, tiered agent delegation, and advanced full-coverage separation
+version: 0.3.0
+description: Codex-first cost-aware routing package for ordinary development requests, stateful resume, tiered agent delegation, and architecture-gated advanced full-coverage separation
 type: hybrid
 targets:
   - codex
@@ -19,6 +19,10 @@ dependencies:
       path: .github/agents/black-box-behavior-spec-kernel.agent.md
     - git: parent
       path: .github/agents/change-risk-triage.agent.md
+    - git: parent
+      path: .github/agents/architecture-slice-readiness.agent.md
+    - git: parent
+      path: .github/agents/architecture-elaboration.agent.md
     - git: parent
       path: .github/agents/implementation-contract-kernel.agent.md
     - git: parent
@@ -44,6 +48,8 @@ dependencies:
     # Advanced full-coverage route support. These are not the default beginner path.
     - git: parent
       path: .github/agents/plan-slice-decomposition.agent.md
+    - git: parent
+      path: apm-packages/token-aware-guardrail-kernel-flow/.apm/templates/slice-architecture.md
     - git: parent
       path: .github/agents/cross-slice-verification-kernel.agent.md
     # Compatibility with the existing full-autonomous Plan-first package.

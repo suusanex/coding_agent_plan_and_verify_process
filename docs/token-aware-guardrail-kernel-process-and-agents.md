@@ -152,8 +152,12 @@ Use when:
 - prior implementation attempts already exposed sequence or production-binding gaps
 
 In the Plan網羅チェック・残件判定フロー, this is not an automatic handoff to Flow C.
-The immediate next step is the `plan-slice-decomposition` agent.
-Each resulting slice then re-enters the Plan網羅チェック・残件判定フロー as a bounded parent Plan pass. After slice verification, the parent flow runs `cross-slice-verification-kernel.agent.md` and then `residual-decision-gate.agent.md`.
+The immediate next step is `architecture-slice-readiness.agent.md`, not decomposition. Requirement readiness and Architecture slice readiness are separate gates.
+`ReadyForSliceDecomposition` requires a current slice architecture artifact. `ArchitectureNotRequired` permits decomposition without one for a source-backed simple structure. `NeedsArchitectureElaboration` runs `architecture-elaboration.agent.md` and then reruns readiness; `NeedsHumanDecision` stops.
+For `ArchitectureNotRequired`, the readiness artifact itself is the lightweight baseline authority. Slice preparation and parent review return `Match` only when no new shared semantics are introduced; `Drift` or `Unclear` blocks implementation.
+Readiness and architecture artifacts record a source repository commit, tracked source content hashes / explicit revisions, watch paths, explicit artifact revision, and evaluation time. Freshness compares tracked sources and the source-commit-to-current diff on watch paths; HEAD changes containing only generated gate artifacts do not self-invalidate the baseline. A semantic baseline change is `stale`, even when paths are unchanged.
+The pre-elaboration readiness R1 is retained in Slice Architecture as an immutable `elaboration_trigger` audit snapshot with `freshness_dependency: false`. Replacing the standard readiness path with post-elaboration R2 does not stale the architecture; R2 instead tracks the Slice Architecture external content hash.
+Only an approved readiness verdict may proceed to `plan-slice-decomposition.agent.md`. Each resulting slice then re-enters the Plan網羅チェック・残件判定フロー as a bounded parent Plan pass. After slice verification, the parent flow runs `cross-slice-verification-kernel.agent.md` and then `residual-decision-gate.agent.md`.
 
 `full-coverage` does not require many executable slices. If a small number of slices, including 2 slices, preserves parent acceptance conditions, cross-slice contracts, field continuity, and Behavior Case mapping, that is a valid decomposition. `plan-slice-decomposition.agent.md` must include a `Slice granularity review` before output and must coalesce candidates when delegation overhead would outweigh implementation value.
 
@@ -202,8 +206,10 @@ Use for the main lightweight process this repository now targets.
 2. If Plan readiness is `NeedsPlanBehaviorExpansion` because source-to-case expansion is missing, run `black-box-behavior-spec-kernel.agent.md`
 3. Re-run `plan-kernel.agent.md` when behavior Case IDs must be mapped to FR / AC or explicit disposition
 4. `change-risk-triage.agent.md` only when Plan readiness is `ReadyForRiskTriage`
-5. If triage recommends `full-coverage`, run `plan-slice-decomposition.agent.md`
-6. Run each resulting slice through the bounded Plan網羅チェック・残件判定フロー:
+5. If triage recommends `full-coverage`, run `architecture-slice-readiness.agent.md`
+6. If needed, run `architecture-elaboration.agent.md` and rerun readiness; stop on human decision or blocking architecture residual
+7. Run `plan-slice-decomposition.agent.md` only for `ReadyForSliceDecomposition` or `ArchitectureNotRequired`
+8. Run each resulting slice through the bounded Plan網羅チェック・残件判定フロー:
    - `implementation-contract-kernel.agent.md`, when implementation-realization risk is present
    - `implementation-contract-review-kernel.agent.md`, only as an explicit review-only fallback for the implementation contract self-check verdict
    - `runtime-contract-kernel.agent.md`
@@ -211,16 +217,18 @@ Use for the main lightweight process this repository now targets.
    - `implementation-handoff-review.agent.md`
    - implementation by normal agent or human-guided implementation agent
    - `verification-kernel.agent.md`
-7. When step 5 was used, run `cross-slice-verification-kernel.agent.md`
-8. `coverage-gap-triage.agent.md`, when FixNow candidates or unresolved implementation coverage items need classification and no complete `Direct FixNow selectors` table exists
-9. `residual-decision-gate.agent.md`, when residual / manual / human-decision candidates remain
-10. `coverage-gap-resolution-slice.agent.md`, only when verification-kernel, coverage-gap-triage, or residual-decision-gate emits an explicit FixNow selector
+9. When decomposition was used, run `cross-slice-verification-kernel.agent.md`
+10. `coverage-gap-triage.agent.md`, when FixNow candidates or unresolved implementation coverage items need classification and no complete `Direct FixNow selectors` table exists
+11. `residual-decision-gate.agent.md`, when residual / manual / human-decision candidates remain
+12. `coverage-gap-resolution-slice.agent.md`, only when verification-kernel, coverage-gap-triage, or residual-decision-gate emits an explicit FixNow selector
 
 Implementation handoff must include:
 
 - the bounded Plan from `plan-kernel.agent.md`
 - Black-box Behavior Spec artifact, when expansion was required
 - `change-risk-triage` output
+- `architecture-slice-readiness` output for full-coverage work
+- current `slice-architecture` artifact when the readiness verdict is `ReadyForSliceDecomposition`
 - `plan-slice-decomposition` output when the bounded parent Plan pass comes from full-coverage decomposition
 - `implementation-contract-kernel` output when required
 - `coverage-ledger` output when present
@@ -671,6 +679,17 @@ Rules:
 
 ## Shared status vocabulary
 
+Architecture Slice Readiness verdicts are owned by `architecture-slice-readiness.agent.md` and are not generic progress statuses:
+
+| Verdict | Meaning |
+| --- | --- |
+| `ReadyForSliceDecomposition` | Shared architecture semantics are complete in a current architecture artifact and decomposition may proceed |
+| `NeedsArchitectureElaboration` | Requirements are ready but shared architecture needs elaboration before decomposition |
+| `ArchitectureNotRequired` | A source-backed simple structure can be decomposed safely without a separate architecture artifact |
+| `NeedsHumanDecision` | Product, architecture, policy, or risk authority is required before progress |
+
+Architecture residual classifications are `ArchitectureCritical`, `NeedsHumanDecision`, `SliceLocalContract`, `ImplementationDetail`, and `OutOfScopeWithSource`. The first two block decomposition.
+
 Use these statuses consistently unless an existing artifact has a stronger convention:
 
 | Status | Meaning |
@@ -989,7 +1008,7 @@ For each selected contract, verify or record:
 ### Escalation condition
 
 If the selected contracts need decomposition before safe bounded handling, send the work back to `change-risk-triage.agent.md` for reclassification.
-If that reclassification returns `full-coverage`, hand off to `plan-slice-decomposition.agent.md`.
+If that reclassification returns `full-coverage`, hand off to `architecture-slice-readiness.agent.md`; decomposition requires an approved readiness verdict.
 Recommend `runtime-evidence.agent.md` only when the user explicitly wants to leave the Plan網羅チェック flow and run Flow C.
 
 ## 5. `test-design-kernel.agent.md`
@@ -1045,7 +1064,7 @@ For each Guardrail Focus runtime contract:
 
 ### Escalation condition
 
-Recommend `full-coverage` / `plan-slice-decomposition.agent.md` when the bounded parent Plan pass cannot be handled safely as one Plan網羅チェック pass. Recommend `integration-test-design.agent.md` only when the user explicitly wants to leave the Plan網羅チェック flow and run Flow C.
+Recommend `full-coverage` / `architecture-slice-readiness.agent.md` when the bounded parent Plan pass cannot be handled safely as one Plan網羅チェック pass. Recommend `integration-test-design.agent.md` only when the user explicitly wants to leave the Plan網羅チェック flow and run Flow C.
 
 ## 6. `verification-kernel.agent.md`
 

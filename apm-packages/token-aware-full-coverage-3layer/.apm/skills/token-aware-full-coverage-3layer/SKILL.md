@@ -1,6 +1,6 @@
 ---
 name: token-aware-full-coverage-3layer
-description: Plan網羅チェック・残件判定フローで full-coverage 診断後の plan-slice-decomposition を、Codex の親エージェント・slice-prep・slice-impl の3層運用で安全に進めるための skill。full-coverage、plan-slice-decomposition、cross-slice-verification-kernel、residual-decision-gate が関係するときだけ使う。skill 名は互換用の legacy invocation として残す。
+description: Plan網羅チェック・残件判定フローで full-coverage 診断後、Architecture Slice Readiness Gateを通過したdecompositionをCodexの親エージェント・slice-prep・slice-implの3層運用で安全に進めるためのskill。
 ---
 
 # Plan網羅チェック full-coverage 3層運用 Skill
@@ -14,7 +14,7 @@ Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
 
 ## 目的
 
-この skill は、Plan網羅チェック・残件判定フローで `ReadyForRiskTriage` の Plan に対して `change-risk-triage.agent.md` が `full-coverage` を診断し、`plan-slice-decomposition.agent.md` によって複数の slice が作成された後に使います。
+この skill は、Plan網羅チェック・残件判定フローで `ReadyForRiskTriage` の Plan に対して `change-risk-triage.agent.md` が `full-coverage` を診断し、Architecture Slice Readiness Gateが`ReadyForSliceDecomposition`または`ArchitectureNotRequired`を返した後に使います。
 
 `token-aware-full-coverage-3layer` という skill 名と `$token-aware-full-coverage-3layer` の起動例は互換用の legacy invocation です。新しい作業では本文の概念を Plan網羅チェック・残件判定フロー、Guardrail Focus、Residual Decision Gate として扱ってください。
 
@@ -49,6 +49,9 @@ Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
 - Black-box Behavior Spec artifact（Behavior spec artifact required: Yes の場合）
 - parent Plan の inline behavior sketch または Black-box behavior coverage / Case-to-Plan mapping
 - parent `change-risk-triage.agent.md` の出力
+- `plans/<ticket-or-slug>-architecture-slice-readiness.md`
+- verdictが`ReadyForSliceDecomposition`の場合は`plans/<ticket-or-slug>-slice-architecture.md`
+- verdictが`ArchitectureNotRequired`の場合はreadiness artifact内のLightweight architecture baseline。readiness artifact自身をbaseline authorityとする
 - `plans/<ticket-or-slug>-slice-decomposition.md`
 - 各 executable slice artifact: `plans/<ticket-or-slug>-slice-SL-xxx.md`
 - 既存の関連 docs / architecture docs / domain docs（必要な範囲のみ）
@@ -177,19 +180,21 @@ When switching parent tools or sessions, do not rely on prior conversation conte
 
 親エージェントは最初に、`plan-slice-decomposition` の出力を実装指示ではなく「slice 実行候補」として扱ってください。
 
+readiness verdictが`NeedsArchitectureElaboration`または`NeedsHumanDecision`、blocking architecture residualが残る、tracked source / watch path freshness checkが失敗する、required baseline authorityがmissing / stale / contradictedのいずれかなら、このskillを開始せずArchitecture Slice Readiness Gateへ戻してください。HEAD一致もpath一致も単独のfreshness条件にしてはいけません。
+
 親エージェントは次を行います。
 
 1. parent Plan の goal / non-goals / functional requirements / acceptance conditions を確認する。
-2. parent triage の high-risk boundaries / parent-level runtime contract candidates / implementation-realization risk summary を確認する。
-3. slice decomposition artifact から、各 slice の scope / non-goals / dependencies / related XC IDs / recommended profile / immediate next agent を抽出する。
-4. `Slice granularity review` と `Small slice justification` を抽出する。
-5. `Cross-slice Contracts` と `Cross-slice field continuity` を抽出する。
-6. parent-level contract mapping が消えていないか確認する。
-7. Behavior Case mapping と各 slice の Case-to-Slice mapping が消えていないか確認する。
-8. `merge-candidate`、`too-small-to-delegate`、`coalesce-with-SL-xxx` の候補を executable slice から除外する。
-9. slice 実行表を作る。
-10. どの slice を並列で slice preparation に出せるかを仮決定する。
-11. 同じ production wiring、shared DTO、DB schema、DI registration、config、public API、migration、durable state owner を触る可能性がある slice は並列実装させない。
+2. parent triage の high-risk boundaries / parent-level runtime contract candidates / implementation-realization risk summaryを確認する。
+3. Architecture Slice Readiness verdictと、存在する場合はslice architecture baselineを確認する。
+   - `ReadyForSliceDecomposition`: currentなslice architecture artifactがbaseline authority。
+   - `ArchitectureNotRequired`: currentなreadiness artifactのLightweight architecture baselineがbaseline authority。
+4. slice decomposition artifactから、各sliceのscope / non-goals / dependencies / related XC IDs / architecture traceability / recommended profileを抽出する。
+5. `Slice granularity review` と `Small slice justification` を抽出する。
+6. `Cross-slice Contracts` と `Cross-slice field continuity` を抽出する。
+7. parent-level contract mappingとBehavior Case mappingが消えていないか確認する。
+8. candidate disposition対象をexecutable sliceから除外する。
+9. slice実行表を作り、architecture ownershipとshared resourceを考慮して並列可否を決める。
 
 ### Slice 実行表の形式
 
@@ -220,6 +225,9 @@ executable slice は、次のいずれかを満たす必要があります。
 - Black-box Behavior Spec artifact（Behavior spec artifact required: Yes の場合）
 - Expansion required: Yes でも inline behavior sketch sufficient の場合は、parent Plan / slice artifact 内の Inline behavior sketch と Case mapping
 - parent triage output
+- Architecture Slice Readiness artifact
+- `ReadyForSliceDecomposition`の場合はslice architecture artifactとassigned sliceに関係するarchitecture excerpt
+- `ArchitectureNotRequired`の場合はreadiness artifact内のLightweight architecture baseline
 - parent slice decomposition artifact
 - assigned slice artifact
 - assigned slice の Black-box behavior coverage / Case-to-Slice mapping
@@ -316,6 +324,9 @@ Parent review gate は人間レビュー待ちではありません。親エー�
 - parallel implementation してよい slice と、直列化すべき slice が分かれているか
 - source evidence のない fabricated value が `Done` 扱いされていないか
 - production binding requirement が test-only stub / fake で代替されていないか
+- state owner、source precedence、identity、temporal sequence、retry / release、capacity、schema、production wiringがselected baseline authorityからdriftしていないか
+- slice-prepがshared semanticsの変更を提案していないか。提案している場合は`Can implement now? = No`としてArchitecture Slice Readiness Gateへ戻す
+- tracked sourceのrevision/content hashが一致し、`source_repository_commit...current HEAD`のdiffがwatch pathへ影響しないか。artifact追加だけのHEAD変更はself-invalidationさせない
 
 親レビューの出力は次の形式にしてください。
 
@@ -336,6 +347,13 @@ Parent review gate は人間レビュー待ちではありません。親エー�
 
 | Field / state / identifier | Required by | Source / producer | Consumer | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
+
+## Architecture drift review
+
+| Slice ID | Readiness verdict | Baseline authority | Baseline identity | Observed semantics | Match / Drift / Unclear | Required action |
+| --- | --- | --- | --- | --- | --- | --- |
+
+`ArchitectureNotRequired`でもdrift reviewを省略しません。readiness artifactのLightweight architecture baselineに対し、新しいshared semanticsが導入されていなければ`Match`、導入されていれば`Drift`、証明不足またはbaseline freshness不明なら`Unclear`です。slice-impl authorizationはcurrent baselineに対する`Match`だけを許可します。
 
 ## Implementation authorization
 
@@ -372,6 +390,9 @@ READY slice は、次の証跡を満たす必要があります。
 - Black-box Behavior Spec artifact（Behavior spec artifact required: Yes の場合）
 - Expansion required: Yes でも inline behavior sketch sufficient の場合は、parent Plan / slice artifact 内の Inline behavior sketch と Case-to-Slice mapping
 - parent triage output
+- Architecture Slice Readiness artifact
+- `ReadyForSliceDecomposition`の場合はslice architecture artifact
+- `ArchitectureNotRequired`の場合はreadiness artifact内のLightweight architecture baseline
 - parent slice decomposition artifact
 - assigned slice artifact
 - assigned slice の Black-box behavior coverage / Case-to-Slice mapping
@@ -492,6 +513,8 @@ READY slice は、次の証跡を満たす必要があります。
 
 - parent Plan
 - parent triage output
+- Architecture Slice Readiness artifact
+- slice architecture artifact（`ArchitectureNotRequired`以外）
 - slice decomposition artifact
 - 各 slice artifact
 - 各 slice-prep artifact
@@ -508,6 +531,7 @@ cross-slice verification では次を確認してください。
 - stub-only success や production binding gap が残っていないか
 - Remaining Work が parent PASS を妨げるものかどうか分類されているか
 - Behavior Case IDs と negative expectations が slice-local verification または cross-slice verification evidence へ接続されているか
+- implementation後のshared semanticsがapproved slice architectureと一致し、driftが新しいexpected behaviorとしてfixture化されていないか
 
 cross-slice verification では、見つけた gap をその場で修正しません。必要なら `coverage-gap-triage.agent.md` に渡すための handoff を作成し、residual candidate は `residual-decision-gate.agent.md` で explicit human decision の有無を判定して停止します。
 
@@ -562,6 +586,8 @@ slice-prep で各 slice の準備 artifact を作り、parent review gate まで
 - `Parent Orchestration State` が作成・更新され、Current phase / Next required action / Resume safety / Slice queue が再開可能な状態になっている
 - `DELEGATED_IMPLEMENTATION` の場合、親が production code / tests を直接編集していない
 - `plan-slice-decomposition` から直接実装していない
+- Architecture Slice Readiness Gateを通過し、required architecture artifactがcurrentである
+- slice-prepまたはslice-implのarchitecture driftをparent reviewで見逃していない
 - slice-prep と parent review gate を通している
 - READY でない slice を実装していない
 - `Can implement now? = Yes` の slice はすべて `slice-impl` に渡されている
