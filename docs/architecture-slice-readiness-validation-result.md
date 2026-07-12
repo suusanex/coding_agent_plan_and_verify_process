@@ -2,23 +2,25 @@
 
 ## Execution metadata
 
-- Executed at: `2026-07-12T15:30:00+09:00`
+- Executed at: `2026-07-12T20:32:30+09:00`
 - Executor: Codex, fresh bounded evaluation passes using the repository agent contracts
 - Branch: `codex/issue-42-architecture-readiness`
-- Base commit: `2cce8f1` plus the review-fix working tree captured by the contract hashes below
+- Reviewed commit: `e336afb` plus the validator review-fix working tree captured by the contract hashes below
 - Scope: routing / artifact / authorization semantics only; no production code or external system changes
 
 ### Contract revisions evaluated
 
-| Contract | SHA-256 |
+Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR line endings to LF. This keeps the evidence stable across Git and operating-system checkout settings.
+
+| Contract | UTF-8/LF normalized SHA-256 |
 | --- | --- |
 | `.github/agents/architecture-slice-readiness.agent.md` | `c2f93ce3004a309d8430bea7e7875e38a2fd983843c95a1abca0324654bf5259` |
 | `.github/agents/architecture-elaboration.agent.md` | `38aa865223e600100124b004106e72c07d9afcc011015e8f3dc7f774cf696e9e` |
-| `.github/agents/plan-slice-decomposition.agent.md` | `7c89f157c45e3ed709f801a1c1396c00c6f8485f08c625c02c98f4281345ef9a` |
-| `slice-prep.agent.md` | `1104a2a3265a2415c56c296cefb970ed66087d3fe8746baa2337d04f08f4c660` |
-| `slice-impl.agent.md` | `b15d706b18b86fa38507da8f7cb5ca58f38f62ac2c612147921b7f853afc4641` |
-| `token-aware-full-coverage-3layer/SKILL.md` | `8aa7dd226f240caa9108bb637f816e3c08bdb97947aa5116d23ec2f3f2415aca` |
-| `plan-coverage-residual-flow/SKILL.md` | `59716b87978cf9819df6a5e31bdf537e1fb8cc63b07dc493a68bae8c839ed6a3` |
+| `.github/agents/plan-slice-decomposition.agent.md` | `7ec0e6ce0d5fef4fdd87fee35ec71adf1f12d39defb6c057f8a7ddc18af341ff` |
+| `slice-prep.agent.md` | `2c40d67eb97a010ce0b4da746c37f0862e2bf2ff9a6a3a600ec1ce28ecc7aff1` |
+| `slice-impl.agent.md` | `ad0fece9d83e5c63743f4834cc1b4c656e6b0c02c5e9856ad3607cbd873f6365` |
+| `token-aware-full-coverage-3layer/SKILL.md` | `2ca81f44da22ed83dcecd7cdd6f27e123e806074062bd0688bdb9987a6f14ca3` |
+| `plan-coverage-residual-flow/SKILL.md` | `c071f08a01516192d450c221025c4d2e53e9c0ef814be25c99c9a3d092f80318` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 
 ## Durable fixture evidence

@@ -10,6 +10,21 @@ function Add-Failure([string]$Message) {
     Write-Error $Message -ErrorAction Continue
 }
 
+function Get-NormalizedTextSha256([string]$LiteralPath) {
+    $content = [System.IO.File]::ReadAllText($LiteralPath)
+    $normalizedContent = $content.Replace("`r`n", "`n").Replace("`r", "`n")
+    $utf8WithoutBom = [System.Text.UTF8Encoding]::new($false)
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+
+    try {
+        $hashBytes = $sha256.ComputeHash($utf8WithoutBom.GetBytes($normalizedContent))
+        return [System.Convert]::ToHexString($hashBytes).ToLowerInvariant()
+    }
+    finally {
+        $sha256.Dispose()
+    }
+}
+
 function Assert-FileContains([string]$RelativePath, [string]$Pattern, [string]$Label) {
     $path = Join-Path $repoRoot $RelativePath
     if (-not (Test-Path -LiteralPath $path)) {
@@ -180,7 +195,14 @@ foreach ($fixtureId in 1..6 | ForEach-Object { 'ASR-{0:D3}' -f $_ }) {
 }
 
 $resultPath = Join-Path $repoRoot 'docs/architecture-slice-readiness-validation-result.md'
-$resultText = Get-Content -LiteralPath $resultPath -Raw
+$resultText = $null
+if (-not (Test-Path -LiteralPath $resultPath -PathType Leaf)) {
+    Add-Failure('Missing validation result: docs/architecture-slice-readiness-validation-result.md')
+}
+else {
+    $resultText = Get-Content -LiteralPath $resultPath -Raw
+}
+
 $validatedContracts = @(
     '.github/agents/architecture-slice-readiness.agent.md',
     '.github/agents/architecture-elaboration.agent.md',
@@ -193,8 +215,14 @@ $validatedContracts = @(
 )
 
 foreach ($contract in $validatedContracts) {
-    $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $repoRoot $contract)).Hash.ToLowerInvariant()
-    if (-not $resultText.Contains($hash, [StringComparison]::Ordinal)) {
+    $contractPath = Join-Path $repoRoot $contract
+    if (-not (Test-Path -LiteralPath $contractPath -PathType Leaf)) {
+        Add-Failure("Missing validated contract: $contract")
+        continue
+    }
+
+    $hash = Get-NormalizedTextSha256 -LiteralPath $contractPath
+    if ($null -ne $resultText -and -not $resultText.Contains($hash, [StringComparison]::Ordinal)) {
         Add-Failure("Validation result is stale for ${contract}; rerun ASR-001..006 and record SHA-256 $hash")
     }
 }
