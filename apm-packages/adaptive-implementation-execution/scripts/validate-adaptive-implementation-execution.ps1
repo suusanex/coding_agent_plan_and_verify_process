@@ -57,6 +57,25 @@ function Assert-NotContains {
     }
 }
 
+function Get-TomlString {
+    param(
+        [string]$RelativePath,
+        [string]$Key
+    )
+
+    $path = Join-Path $repoRoot $RelativePath
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        return $null
+    }
+
+    $match = Select-String -LiteralPath $path -Pattern ("^\s*" + [regex]::Escape($Key) + '\s*=\s*"([^"]+)"\s*$') | Select-Object -First 1
+    if ($null -eq $match) {
+        return $null
+    }
+
+    return $match.Matches[0].Groups[1].Value
+}
+
 $requiredFiles = @(
     '.github/agents/high-implementation-starter.agent.md',
     '.github/agents/standard-implementation-completer.agent.md',
@@ -101,23 +120,32 @@ if (Test-Path -LiteralPath $manifestPath) {
 
 $skill = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md'
 Assert-Contains $skill 'high-implementation-starter' 'HIGH_MODEL start route'
+Assert-Contains $skill 'standard-implementation-completer' 'STANDARD_MODEL completion route'
 Assert-Contains $skill 'READY_FOR_STANDARD_COMPLETION' 'standard delegation gate'
 Assert-Contains $skill 'NEEDS_HIGH_MODEL_REENTRY' 'HIGH_MODEL re-entry route'
 Assert-Contains $skill 'write-heavy agent を並列に起動しません' 'write-heavy serial execution rule'
 Assert-Contains $skill 'Plan Coverage artifacts が存在しないことは blocker ではありません' 'Plan Coverage independence'
 Assert-Contains $skill 'Final review status' 'final review boundary'
+Assert-Contains $skill 'Validation expectation: inferred from repository' 'validation inference reporting'
+Assert-Contains $skill 'acceptance status table' 'acceptance evidence output'
+Assert-Contains $skill 'delegation_surface_reduced' 'bounded re-delegation evidence'
+Assert-Contains $skill 'N/A.*理由' 'evidence-backed applicability N/A'
 
 $highAgent = '.github/agents/high-implementation-starter.agent.md'
 Assert-Contains $highAgent 'edit production code and tests' 'real implementation loop'
 Assert-Contains $highAgent 'CONTINUE_HIGH_IMPLEMENTATION' 'continue-high verdict'
 Assert-Contains $highAgent 'COMPLETED_BY_HIGH_MODEL' 'high completion verdict'
 Assert-Contains $highAgent 'Allowed edit surface' 'handoff allowed surface'
+Assert-Contains $highAgent 'acceptance status table' 'high-model acceptance evidence output'
+Assert-Contains $highAgent '一度 re-entry した後' 'high-model re-entry ownership'
 
 $standardAgent = '.github/agents/standard-implementation-completer.agent.md'
 Assert-Contains $standardAgent 'NEEDS_HIGH_MODEL_REENTRY' 're-entry verdict'
 Assert-Contains $standardAgent 'Locked decisions' 'locked decision boundary'
 Assert-Contains $standardAgent 'Allowed edit surface' 'allowed edit boundary'
 Assert-Contains $standardAgent 'Final code review performed|final review status' 'review boundary'
+Assert-Contains $standardAgent 'acceptance status table' 'standard-model acceptance evidence output'
+Assert-Contains $standardAgent '一度 re-entry した後' 'standard-model re-entry ownership'
 
 $handoff = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/references/implementation-completion-handoff.md'
 foreach ($field in @(
@@ -125,12 +153,17 @@ foreach ($field in @(
     'Handoff persistence',
     'Plan reference',
     'Validation performed',
+    'Acceptance status',
+    'Applicability evidence',
     'Implemented',
     'Locked decisions',
     'Remaining work',
     'Allowed edit surface',
     'Validation commands',
     'High-model re-entry triggers',
+    'reentry_count',
+    'previous_reentry_trigger',
+    'delegation_surface_reduced',
     'Known assumptions / unresolved observations'
 )) {
     Assert-Contains $handoff ([regex]::Escape($field)) "handoff field $field"
@@ -144,11 +177,29 @@ foreach ($toml in @($highToml, $standardToml)) {
     Assert-Contains $toml '(?m)^sandbox_mode\s*=\s*"workspace-write"\s*$' 'workspace-write sandbox'
 }
 
+$highAgentName = Get-TomlString $highToml 'name'
+$standardAgentName = Get-TomlString $standardToml 'name'
+$highModel = Get-TomlString $highToml 'model'
+$standardModel = Get-TomlString $standardToml 'model'
+if ($highAgentName -ne 'high-implementation-starter') {
+    Add-Failure "$highToml has an unexpected agent name: $highAgentName"
+}
+if ($standardAgentName -ne 'standard-implementation-completer') {
+    Add-Failure "$standardToml has an unexpected agent name: $standardAgentName"
+}
+if ($highAgentName -eq $standardAgentName) {
+    Add-Failure 'HIGH_MODEL and STANDARD_MODEL must reference different custom agents'
+}
+if ($highModel -eq $standardModel) {
+    Add-Failure 'HIGH_MODEL and STANDARD_MODEL must use distinct model mappings'
+}
+
 $profile = 'apm-packages/adaptive-implementation-execution/profiles/adaptive-implementation/AGENTS.md'
 Assert-Contains $profile 'Plan Coverage artifacts は必須ではない' 'ordinary Plan activation'
 Assert-Contains $profile 'parent / router は production code と tests を直接編集しない' 'parent edit prohibition'
 Assert-Contains $profile 'write-heavy work を並列実行しない' 'serial agent rule'
 Assert-Contains $profile 'final code review' 'final review boundary'
+Assert-Contains $profile 'installer の適用は通常の必須手順' 'mandatory profile installer'
 
 $validation = 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md'
 foreach ($id in 1..8) {
@@ -161,6 +212,12 @@ Assert-Contains $installer '--dry-run' 'dry-run option'
 Assert-Contains $installer '--check' 'check option'
 Assert-Contains $installer '--remove' 'remove option'
 Assert-Contains $installer 'adaptive-implementation-execution:start' 'managed AGENTS marker'
+Assert-Contains $installer 'ValidateProfileConfiguration' 'profile configuration validation'
+Assert-Contains $installer 'must use distinct model mappings' 'distinct model mapping check'
+Assert-Contains $installer 'must reference different custom agents' 'distinct custom agent check'
+
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '通常の必須手順' 'mandatory installer quick start'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' '--check.*次をすべて検証' 'documented installer checks'
 
 Assert-Contains 'README.md' 'apm-packages/adaptive-implementation-execution' 'root package link'
 
@@ -170,4 +227,3 @@ if ($failures.Count -gt 0) {
 }
 
 Write-Output 'Adaptive Implementation validation: PASS'
-

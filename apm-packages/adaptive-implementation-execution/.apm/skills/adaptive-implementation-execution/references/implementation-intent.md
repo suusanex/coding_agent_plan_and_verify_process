@@ -4,13 +4,13 @@
 
 ```yaml
 implementation_intent:
-  goal:
-  scope:
-  non_goals:
-  acceptance:
-  constraints:
-  validation:
-  plan_reference:
+  goal:                    # required
+  scope:                   # required
+  acceptance:              # required
+  non_goals:               # optional / inferable
+  constraints:             # optional / inferable
+  validation:              # optional / inferable from repository
+  plan_reference:          # optional / inferable from source request
 ```
 
 ## Readiness check
@@ -18,6 +18,6 @@ implementation_intent:
 - What changes is clear: Yes / No
 - Scope boundary is clear: Yes / No
 - Completion condition is clear: Yes / No
+- Validation expectation: explicit / inferred from repository
 - Missing product or policy decision:
 - Result: READY / REPLAN_REQUIRED / HUMAN_DECISION_REQUIRED
-

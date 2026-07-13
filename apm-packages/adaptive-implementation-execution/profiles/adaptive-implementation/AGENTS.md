@@ -4,6 +4,8 @@
 
 ## Activation
 
+この profile は、package 付属の profile installer を対象 repository に適用し、`--check` が成功した後に使用する。installer の適用は通常の必須手順であり、任意の model override として扱わない。
+
 次のように依頼された場合、この profile を使用する。
 
 ```text
@@ -21,10 +23,13 @@ Plan Coverage artifacts は必須ではない。goal、scope、acceptance を判
 - `high-implementation-starter` の run が完了し、`READY_FOR_STANDARD_COMPLETION` handoff が検証された後だけ `standard-implementation-completer` を起動する。
 - safe delegation point がなければ HIGH_MODEL が完了まで実装してよい。
 - STANDARD_MODEL が新しい design decision を発見した場合は、`NEEDS_HIGH_MODEL_REENTRY` で停止し、元 intent と handoff を保持して HIGH_MODEL に戻す。
+- 一度 re-entry した後は HIGH_MODEL が完了まで担当する。再委譲は Remaining work と Allowed edit surface がともに厳密に縮小し、同じ trigger が再発していない場合だけ許可する。
 
 ## Delegation gate
 
 STANDARD_MODEL へ渡せるのは、主要な責務配置、production path / wiring、signature、test seam が確定し、新しい dependency / module / class / interface の選択が不要で、remaining work と allowed edit surface を明示できる場合だけとする。
+
+production path / wiring、test harness、test seam、mock boundary が scope に該当しない場合は、根拠付き `N/A` を handoff に記録する。
 
 課題全体が small-bounded、low risk、少数ファイルであることだけを delegation 理由にしない。
 
@@ -36,9 +41,10 @@ STANDARD_MODEL へ渡せるのは、主要な責務配置、production path / wi
 
 各 implementation agent は関連する build、focused test、lint、format、type check を可能な範囲で実行する。
 
+完了 verdict は、scope 内の acceptance item がすべて `Complete` であり、各 item に実装または validation evidence がある場合だけ許可する。
+
 この profile は final code review、総合 architecture review、human review、独立 verification の完了を宣言しない。必要な review / verification は別工程として扱う。
 
 ## Model mapping
 
 `HIGH_MODEL` と `STANDARD_MODEL` は抽象 tier である。実モデル、reasoning effort、sandbox は `agents/*.toml` の top-level fields で設定し、instruction 本文へ実モデル名を埋め込まない。
-

@@ -4,6 +4,24 @@
 - Handoff persistence: inline / tracked
 - Plan reference:
 - Validation performed:
+- reentry_count: 0
+- previous_reentry_trigger: N/A
+- delegation_surface_reduced: N/A
+
+## Acceptance status
+
+| Acceptance item | Status | Evidence | Remaining work mapping |
+| --- | --- | --- | --- |
+| | Complete / Incomplete / Blocked | | |
+
+## Applicability evidence
+
+| Concern | Applicability | Evidence or N/A reason |
+| --- | --- | --- |
+| Production path and wiring | Applicable / N/A | |
+| Test harness | Applicable / N/A | |
+| Test seam | Applicable / N/A | |
+| Mock boundary | Applicable / N/A | |
 
 ## Implemented
 
@@ -49,4 +67,3 @@
 
 - Final code review performed: No
 - Independent verification performed: No
-

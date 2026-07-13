@@ -57,7 +57,7 @@ Templates are bundled as skill references instead of standalone manifest file de
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
 ```
 
-必要に応じて package profile の concrete model mapping を導入先へ同期します。
+APM install 後、通常の必須手順として package profile の concrete model mapping を導入先へ同期し、検証します。
 
 ```powershell
 dotnet run --file .\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --dry-run
@@ -65,7 +65,9 @@ dotnet run --file .\scripts\install-adaptive-implementation-local.cs -- C:\path\
 dotnet run --file .\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --check
 ```
 
-installer は File-based app であり、`.csproj` は不要です。`--force` は同名 custom agent との衝突内容を確認した後だけ使用してください。
+installer は File-based app であり、`.csproj` は不要です。APM が生成した同名 custom agent と package profile の内容が異なる場合は、衝突内容を確認した後に `--force` で package profile を適用します。`--check` が成功するまでこの profile を起動しないでください。
+
+`--check` は、skill と両 custom agents の配置、model / reasoning / workspace-write 設定、role ごとの agent 名、HIGH_MODEL と STANDARD_MODEL の異なる model mapping を検証します。
 
 起動例:
 
@@ -78,4 +80,3 @@ $adaptive-implementation-execution を使って、この Plan を実装してく
 - [Install guide](docs/install-guide.md)
 - [Usage guide](docs/usage-guide.md)
 - [Validation scenarios](docs/examples/adaptive-routing-validation.md)
-

@@ -39,9 +39,15 @@ read relevant code
 - goal
 - scope
 - acceptance
-- constraints または non-goals
+
+次は任意 input です。明示されていない場合は、repository instructions、existing code、original request から推定し、推定した内容を出力に記録します。
+
+- constraints
+- non-goals
 - validation expectation
 - Plan reference または source request
+
+validation expectation が明示されていない場合は repository standard を採用し、`Validation expectation: inferred from repository` と報告します。
 
 Plan Coverage、change-risk-triage、runtime-contract、test-design、coverage ledger、residual-decision artifact は必須ではありません。caller が binding input として渡した場合だけ守ってください。
 
@@ -88,7 +94,20 @@ Plan Coverage、change-risk-triage、runtime-contract、test-design、coverage l
 - STANDARD_MODEL が locked decisions を変えずに完了できる
 - 少なくとも focused verification を実行し、結果を記録している
 
+production path / wiring、test harness、test seam、mock boundary のいずれかが今回の scope に該当しない場合は、単に省略せず `N/A` と理由を evidence として記録します。
+
 委譲地点を作るために、build を壊したまま、代表経路が未接続のまま、または不自然な途中状態で停止してはいけません。
+
+## Re-entry ownership
+
+STANDARD_MODEL から一度 re-entry した後は、原則として HIGH_MODEL が完了まで担当します。再度 `READY_FOR_STANDARD_COMPLETION` を返せるのは、次をすべて満たす場合だけです。
+
+- `Remaining work` が前回 handoff より厳密に縮小している
+- `Allowed edit surface` が前回 handoff より厳密に縮小している
+- 前回と同じ re-entry trigger が再発していない
+- `delegation_surface_reduced: Yes` を evidence 付きで記録できる
+
+同じ trigger が再発した場合、または縮小を証明できない場合は、HIGH_MODEL が実装を続けます。handoff には `reentry_count`、`previous_reentry_trigger`、`delegation_surface_reduced` を記録します。
 
 ## Handoff
 
@@ -100,12 +119,17 @@ Plan Coverage、change-risk-triage、runtime-contract、test-design、coverage l
 - Handoff persistence
 - Plan reference
 - Validation performed
+- Acceptance status
+- Applicability evidence
 - Implemented
 - Locked decisions
 - Remaining work
 - Allowed edit surface
 - Validation commands
 - High-model re-entry triggers
+- reentry_count
+- previous_reentry_trigger
+- delegation_surface_reduced
 - Known assumptions / unresolved observations
 
 `Remaining work` は file / symbol / expected behavior 単位で記述します。`Allowed edit surface` は files と、必要なら symbols を明示します。
@@ -121,6 +145,8 @@ Plan Coverage、change-risk-triage、runtime-contract、test-design、coverage l
 
 `BLOCKED` は tool、dependency、permission、environment など implementation intent の判断以外の外部 blocker に使います。
 
+`COMPLETED_BY_HIGH_MODEL` は、scope 内の acceptance item がすべて `Complete` であり、各 item に実装または validation evidence がある場合だけ返します。未完了 item がある場合は実装を継続するか `REPLAN_REQUIRED` を返し、外部 blocker がある場合は `BLOCKED`、人の判断が必要な場合は `HUMAN_DECISION_REQUIRED` を返します。
+
 ## Output
 
 返却時は次を短くまとめます。
@@ -131,8 +157,8 @@ Plan Coverage、change-risk-triage、runtime-contract、test-design、coverage l
 - production path / wiring evidence
 - tests changed
 - validation commands and results
+- acceptance status table with evidence for every in-scope item
 - remaining decision surface
 - handoff persistence
 - Implementation Completion Handoff when delegating
 - final review status: `Not performed by this agent`
-

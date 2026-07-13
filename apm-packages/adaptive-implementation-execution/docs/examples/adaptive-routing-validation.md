@@ -11,6 +11,7 @@
 - implementation owner by phase
 - files changed by each agent
 - validation commands and results
+- acceptance status and evidence for every in-scope item
 - handoff persistence
 - re-entry handoff, if any
 - final review status
@@ -34,6 +35,7 @@ Checks:
 
 - HIGH_MODEL edited production code or tests before delegation
 - handoff names files, symbols, expected behavior, and allowed surface
+- handoff records acceptance status and applicability evidence, including reasons for any N/A concern
 - STANDARD_MODEL makes no structural change
 
 ## VAL-002: Mid-implementation delegation
@@ -72,6 +74,7 @@ Checks:
 
 - no artificial skeleton or broken intermediate state is created for delegation
 - HIGH_MODEL records completed scope and checks
+- every in-scope acceptance item is Complete with implementation or validation evidence
 
 ## VAL-004: Re-entry from STANDARD_MODEL
 
@@ -93,6 +96,7 @@ Checks:
 - STANDARD_MODEL does not redesign the seam or wiring
 - High-model Re-entry Handoff contains invalidating evidence and worktree state
 - agents run serially
+- HIGH_MODEL owns completion after the first re-entry unless Remaining work and Allowed edit surface both strictly shrink and the same trigger has not recurred
 
 ## VAL-005: Insufficient Plan
 
@@ -154,13 +158,14 @@ Steps:
 5. Run installer `--check`.
 6. Confirm Codex can select the skill and both custom agents.
 7. Review collision behavior with an existing `AGENTS.md` and same-name TOML.
-8. Dry-run removal before rollback.
+8. Dry-run APM uninstall, profile removal, and orphan prune before rollback.
 
 Expected:
 
 - skill, references, portable agents, profile guidance, both TOMLs, and docs are present in the package
 - installed skill references are available under `.agents/skills/adaptive-implementation-execution/references`
 - concrete agent TOMLs contain model, reasoning effort, and workspace-write sandbox fields
+- HIGH_MODEL and STANDARD_MODEL use different custom agent names and different model mappings
 - existing `AGENTS.md` content outside the managed section remains unchanged
 - collisions fail closed unless `--force` is explicit
 
@@ -185,7 +190,12 @@ Validated on 2026-07-13 with APM CLI 0.18.0 and a .NET 11 preview SDK targeting 
 | File-based app publish | PASS | `dotnet publish install-adaptive-implementation-local.cs` |
 | Skill local install | PASS | APM deployed `SKILL.md` and both `references/*.md` files under `.agents/skills/adaptive-implementation-execution` |
 | Profile dry-run / install / check | PASS | installer produced the managed `AGENTS.md` section and both `.codex/agents/*.toml` files, then `--check` returned OK |
+| Distinct mapping negative check | PASS | changing the installed STANDARD_MODEL mapping to the HIGH_MODEL mapping made `--check` fail with `must use distinct model mappings`; restoring the package profile returned OK |
 | Profile remove dry-run / remove / remove-check | PASS | managed content and package-owned TOMLs were removed, then `--remove --check` returned OK |
-| Full package local-path install | NOT APPLICABLE | APM 0.18.0 cannot inherit `git: parent` from a local path dependency; remote repository validation is required after publication |
+| Remote branch package install | PASS | APM resolved the virtual package and both `git: parent` portable agents from `#codex/issue-45` at `66e1234b`, then deployed the skill, references, and both Codex agents |
+| Remote rollback | PASS | `apm uninstall` removed the direct package and skill, profile removal deleted the managed guidance and TOMLs, and `apm prune` removed both orphaned portable agent packages; no integrated skill, agent, or package files remained |
+| Agent discovery contract | PASS | remote install created both named `.codex/agents` entries and the static validator confirmed that the skill routes to those names |
+| Runtime multi-agent orchestration | NOT RUN | installation validation does not execute the skill and both implementation agents; this remains a separate Codex runtime validation |
+| Full package local-path install | NOT APPLICABLE | APM 0.18.0 cannot inherit `git: parent` from a local path dependency; the supported remote repository route is validated separately above |
 
-The full-package local-path limitation does not change the package manifest. The manifest uses the same `git: parent` convention as the repository's existing subdirectory packages so that remote installation can resolve the root portable agents.
+The full-package local-path limitation does not change the package manifest. The remote branch validation confirms that the `git: parent` convention resolves the root portable agents when APM installs the repository subdirectory package.

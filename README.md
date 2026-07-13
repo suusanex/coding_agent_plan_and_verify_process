@@ -83,7 +83,7 @@ Source requirement
 
 | Script | Use when | Installs / fixes |
 | --- | --- | --- |
-| `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM 導入後に Adaptive Implementation の concrete Codex profile を repository-local に同期したい | `AGENTS.md` の managed section、`.codex/agents/high-implementation-starter.toml`、`.codex/agents/standard-implementation-completer.toml` |
+| `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM 導入後に Adaptive Implementation の必須 concrete Codex profile を repository-local に同期・検証したい | `AGENTS.md` の managed section、`.codex/agents/high-implementation-starter.toml`、`.codex/agents/standard-implementation-completer.toml` |
 | `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、`.agents/skills/codex-first-cost-router/SKILL.md`、`templates/*.md` |
 | `scripts/provision-work-repo-agents.cs` | 既存の token-aware / full-coverage package を APM 経由で導入し、生成された Codex agent TOML と full-coverage template 配置を補正したい | `apm install` の実行、`.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level `model` / `model_reasoning_effort` / `sandbox_mode` 補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置 |
 | `scripts/validate-architecture-slice-readiness.ps1` | Architecture Slice Readinessのagent、manifest、template、routing、validation resultを静的検証したい | dependency path、frontmatter、必須contract、旧direct routeの残存を検証 |
@@ -161,6 +161,8 @@ APM で導入する場合:
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
 ```
+
+APM install 後は、package 付属の profile installer を通常の必須手順として `--dry-run`、必要に応じた `--force`、`--check` の順で実行します。`--check` が成功するまで profile を起動しません。詳細は install guide を参照してください。
 
 起動例:
 

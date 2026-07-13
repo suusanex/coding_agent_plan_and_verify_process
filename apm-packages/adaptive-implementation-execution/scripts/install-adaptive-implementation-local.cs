@@ -58,6 +58,7 @@ if (options.Remove)
 }
 else
 {
+    ValidateProfileConfiguration(agentSources[0], agentSources[1], "Package", conflicts);
     PlanManagedInstructionsInstall(targetRoot, File.ReadAllText(profileInstructions), operations, conflicts);
     foreach (var source in agentSources)
     {
@@ -69,6 +70,14 @@ else
 
 if (options.Check)
 {
+    if (!options.Remove)
+    {
+        var installedAgents = agentSources
+            .Select(source => Path.Combine(targetRoot, ".codex", "agents", Path.GetFileName(source)))
+            .ToArray();
+        ValidateProfileConfiguration(installedAgents[0], installedAgents[1], "Installed", conflicts);
+    }
+
     var hasChanges = operations.Any(operation => operation.Kind != OperationKind.Unchanged);
     if (hasChanges || conflicts.Count > 0)
     {
@@ -88,7 +97,7 @@ if (options.Check)
 
     Console.WriteLine(options.Remove
         ? "Adaptive Implementation profile removal check: OK"
-        : "Adaptive Implementation profile check: OK");
+        : "Adaptive Implementation profile check: OK (skill and distinct custom agent mappings are installed).");
     return;
 }
 
@@ -359,6 +368,100 @@ static void ValidateInstalledSkill(string targetRoot, List<string> conflicts)
     }
 }
 
+static void ValidateProfileConfiguration(
+    string highPath,
+    string standardPath,
+    string sourceLabel,
+    List<string> conflicts)
+{
+    if (!File.Exists(highPath) || !File.Exists(standardPath))
+    {
+        foreach (var path in new[] { highPath, standardPath }.Where(path => !File.Exists(path)))
+        {
+            conflicts.Add(sourceLabel + " custom agent file is missing: " + path);
+        }
+
+        return;
+    }
+
+    var high = ReadTomlStrings(highPath);
+    var standard = ReadTomlStrings(standardPath);
+    var requiredKeys = new[] { "name", "model", "model_reasoning_effort", "sandbox_mode" };
+
+    foreach (var (role, values, path) in new[]
+    {
+        (Role: "HIGH_MODEL", Values: high, Path: highPath),
+        (Role: "STANDARD_MODEL", Values: standard, Path: standardPath)
+    })
+    {
+        foreach (var key in requiredKeys)
+        {
+            if (!values.TryGetValue(key, out var value) || string.IsNullOrWhiteSpace(value))
+            {
+                conflicts.Add(sourceLabel + " " + role + " custom agent requires a non-empty top-level " + key + ": " + path);
+            }
+        }
+
+        if (values.TryGetValue("sandbox_mode", out var sandbox) && sandbox != "workspace-write")
+        {
+            conflicts.Add(sourceLabel + " " + role + " custom agent sandbox_mode must be workspace-write: " + path);
+        }
+    }
+
+    ValidateExpectedAgentName(high, "high-implementation-starter", highPath, sourceLabel, conflicts);
+    ValidateExpectedAgentName(standard, "standard-implementation-completer", standardPath, sourceLabel, conflicts);
+
+    if (high.TryGetValue("name", out var highName)
+        && standard.TryGetValue("name", out var standardName)
+        && highName == standardName)
+    {
+        conflicts.Add(sourceLabel + " HIGH_MODEL and STANDARD_MODEL must reference different custom agents.");
+    }
+
+    if (high.TryGetValue("model", out var highModel)
+        && standard.TryGetValue("model", out var standardModel)
+        && highModel == standardModel)
+    {
+        conflicts.Add(sourceLabel + " HIGH_MODEL and STANDARD_MODEL must use distinct model mappings.");
+    }
+}
+
+static void ValidateExpectedAgentName(
+    Dictionary<string, string> values,
+    string expected,
+    string path,
+    string sourceLabel,
+    List<string> conflicts)
+{
+    if (values.TryGetValue("name", out var actual) && actual != expected)
+    {
+        conflicts.Add(sourceLabel + " custom agent name must be " + expected + ": " + path);
+    }
+}
+
+static Dictionary<string, string> ReadTomlStrings(string path)
+{
+    var result = new Dictionary<string, string>(StringComparer.Ordinal);
+    foreach (var rawLine in File.ReadLines(path))
+    {
+        var line = rawLine.Trim();
+        var separator = line.IndexOf('=');
+        if (separator <= 0)
+        {
+            continue;
+        }
+
+        var key = line[..separator].Trim();
+        var encodedValue = line[(separator + 1)..].Trim();
+        if (encodedValue.Length >= 2 && encodedValue[0] == '"' && encodedValue[^1] == '"')
+        {
+            result[key] = encodedValue[1..^1];
+        }
+    }
+
+    return result;
+}
+
 static void WriteText(string path, string content)
 {
     Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -391,4 +494,3 @@ internal sealed record PlannedOperation(
     public static PlannedOperation Unchanged(string description) =>
         new(OperationKind.Unchanged, description, null);
 }
-

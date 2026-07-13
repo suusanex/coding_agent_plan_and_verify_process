@@ -18,6 +18,8 @@
 
 ## Start after ordinary Plan Mode
 
+事前に APM install、必須 profile installer、installer の `--check` を完了してください。`--check` が失敗している repository ではこの flow を起動しません。
+
 ```text
 $adaptive-implementation-execution を使って、直前の Plan を実装してください。
 Plan の scope / non-goals / acceptance を維持し、final review は別工程として残してください。
@@ -56,7 +58,7 @@ Validation: focused unit tests と solution build。
 - test seam / mock boundary / harness
 - implementation trade-off
 
-安全な delegation point がない場合は `COMPLETED_BY_HIGH_MODEL` で完了して構いません。
+安全な delegation point がない場合は `COMPLETED_BY_HIGH_MODEL` で完了して構いません。完了 verdict は、scope 内の acceptance item がすべて `Complete` で、実装または validation evidence がある場合だけ返します。
 
 ## What STANDARD_MODEL does
 
@@ -85,6 +87,8 @@ READY_FOR_STANDARD_COMPLETION
 
 STANDARD_MODEL は registration を暗黙変更しません。re-entry handoff に invalidating evidence、変更済み files、実行した checks、必要な decision を記録します。
 
+一度 re-entry した後は HIGH_MODEL が完了まで担当します。再委譲は、前回より `Remaining work` と `Allowed edit surface` がともに厳密に縮小し、同じ trigger が再発していない場合だけ許可します。
+
 ## Inline and tracked handoff
 
 ### inline
@@ -105,7 +109,7 @@ tracked handoff は実コードの代替設計書ではありません。locked 
 
 HIGH_MODEL と STANDARD_MODEL は、それぞれの変更に関連する build、focused test、lint、format、type check を可能な範囲で実行します。
 
-この flow の `COMPLETED_BY_HIGH_MODEL` または `COMPLETED` は implementation scope の完了を表します。final code review、human review、総合 architecture review、独立 verification の完了は表しません。
+この flow の `COMPLETED_BY_HIGH_MODEL` または `COMPLETED` は、acceptance status table の全 in-scope item が evidence 付きで `Complete` になった implementation scope の完了を表します。final code review、human review、総合 architecture review、独立 verification の完了は表しません。
 
 最終報告は次を分けます。
 
@@ -124,4 +128,3 @@ HIGH_MODEL と STANDARD_MODEL は、それぞれの変更に関連する build�
 - `sandbox_mode`: implementation agent では `workspace-write`
 
 skill、portable agent、profile `AGENTS.md` の本文に具体的 model 名を追加しません。
-

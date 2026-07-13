@@ -45,7 +45,7 @@ implementation_intent:
   plan_reference:
 ```
 
-長い正規化 artifact を常に作成しません。最低限、何を変更するか、scope、完了条件を判断できれば inline intent のまま進めます。
+`goal`、`scope`、`acceptance` は必須です。`non_goals`、`constraints`、`validation`、`plan_reference` は任意であり、明示されていない場合は repository instructions、existing code、original request から推定します。長い正規化 artifact を常に作成しません。最低限、何を変更するか、scope、完了条件を判断できれば inline intent のまま進めます。
 
 入力不足によりこの3点を判断できない場合は、内部設計を推測せず `REPLAN_REQUIRED` または `HUMAN_DECISION_REQUIRED` で停止します。
 
@@ -73,9 +73,11 @@ ordinary Plan / short implementation intent
 ## Step 1: Validate the intent
 
 1. repository instructions と user constraints を確認する。
-2. goal、scope、acceptance、validation expectation、Plan reference を抽出する。
+2. goal、scope、acceptance を抽出する。constraints、non-goals、validation expectation、Plan reference があれば併せて抽出する。
 3. missing information が implementation detail か、product / scope / acceptance decision かを分ける。
 4. product / scope / acceptance が不足する場合は実装を開始しない。
+
+validation expectation が明示されていない場合は repository standard を採用し、agent input と最終出力に `Validation expectation: inferred from repository` と記録します。
 
 Plan Coverage artifacts が存在しないことは blocker ではありません。caller が binding artifact として明示した場合だけ追加 input として渡します。
 
@@ -98,7 +100,7 @@ HIGH_MODEL は code を読み、production code / tests を編集し、focused v
 
 ### COMPLETED_BY_HIGH_MODEL
 
-HIGH_MODEL が acceptance scope を完了し、checks と remaining uncertainty を報告した場合に受理します。小規模課題でも、安全な delegation point がなければこの経路で構いません。
+HIGH_MODEL が scope 内の acceptance item をすべて `Complete` とし、各 item の実装または validation evidence、checks、remaining uncertainty を報告した場合に受理します。未完了 item があれば実装継続または適切な stop verdict を求めます。小規模課題でも、安全な delegation point がなければこの経路で構いません。
 
 ### CONTINUE_HIGH_IMPLEMENTATION
 
@@ -109,7 +111,9 @@ HIGH_MODEL が acceptance scope を完了し、checks と remaining uncertainty 
 `references/implementation-completion-handoff.md` の必須 field がすべて存在し、次を満たす場合だけ受理します。
 
 - representative production path / wiring evidence がある
+- production path / wiring、test harness、test seam、mock boundary の applicability evidence がある。該当しない concern は `N/A` と理由がある
 - focused verification が実行済み
+- scope 内の全 acceptance item と現在の status / evidence が列挙されている
 - locked decisions が明示されている
 - remaining work が file / symbol / expected behavior 単位
 - allowed edit surface が明示されている
@@ -139,13 +143,15 @@ HIGH_MODEL と STANDARD_MODEL を同時に起動しません。STANDARD_MODEL �
 
 ### COMPLETED
 
-completion scope、validation results、locked-decision compliance を確認します。これは implementation completion であり final review 完了ではありません。
+completion scope、validation results、locked-decision compliance に加え、scope 内の全 acceptance item が `Complete` で evidence を持つことを確認します。未完了 item があれば `COMPLETED` を受理しません。これは implementation completion であり final review 完了ではありません。
 
 ### NEEDS_HIGH_MODEL_REENTRY
 
 STANDARD_MODEL の `High-model Re-entry Handoff`、元の Implementation Intent、元の locked decisions、current worktree state を保持して `high-implementation-starter` を直列に再実行します。
 
-STANDARD_MODEL に redesign を続行させません。re-entry 後の HIGH_MODEL は actual code と new evidence を読み、必要な設計判断と実装を行います。その後、安全なら新しい handoff を作成できます。
+STANDARD_MODEL に redesign を続行させません。re-entry 後の HIGH_MODEL は actual code と new evidence を読み、必要な設計判断と実装を行います。1 回 re-entry した後は HIGH_MODEL が完了まで担当することを既定とします。
+
+再委譲できるのは、前回 handoff と比較して `Remaining work` と `Allowed edit surface` の両方が厳密に縮小し、前回と同じ re-entry trigger が再発しておらず、`delegation_surface_reduced: Yes` を evidence 付きで記録できる場合だけです。それ以外は HIGH_MODEL が実装を継続します。各 handoff は `reentry_count`、`previous_reentry_trigger`、`delegation_surface_reduced` を保持します。
 
 ### Other stop verdicts
 
@@ -172,8 +178,8 @@ tracked handoff の推奨 path は `plans/<slug>-implementation-completion-hando
 - implementation owner by phase
 - files changed
 - validation performed and results
+- acceptance status table with evidence for every in-scope item
 - tracked handoff path, if any
 - re-entry events, if any
 - remaining work / human-required work / blockers
 - final review status
-
