@@ -26,7 +26,10 @@ VS Code は workspace の `.github/copilot-instructions.md` を always-on instru
 - README に導入方法と使い方がある
 - installer の dry-run が既存 `.github` を上書きしない
 - custom agents に `name`、`description`、`tools`、`model`、`handoffs` がある
+- canonical agent 名 `high-implementation-starter` と `standard-implementation-completer` が存在し、root agent contract の HIGH start、valid handoff、HIGH re-entry、serial ownership と同期している
+- `copilot-standard-implementer` は legacy compatibility route として標準 handoff から外れている
 - prompt files に `agent` と必要な `model` がある
 - `ManualVerificationRequired`、`NeedsHumanDecision`、`NeedsHigherModelReview` が close blocker として説明されている
 - full-coverage 3層運用が standard route ではなく advanced route として説明されている
+- installer dry-run と適用後確認で canonical agent templates と Adaptive state fields が配布される
 

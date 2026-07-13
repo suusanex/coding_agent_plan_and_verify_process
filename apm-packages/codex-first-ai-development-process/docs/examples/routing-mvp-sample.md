@@ -45,7 +45,8 @@ stop_reason: None
 | Plan | STANDARD_MODEL | No | parent or high-planner | parent | Yes | NeedsHumanDecision |
 | Risk | STANDARD_MODEL | No | parent or high-risk-triage | parent | Yes | NeedsHigherModelReview |
 | Implementation handoff review | HIGH_MODEL / STANDARD_MODEL | No | implementation-handoff-review | implementation-handoff-review | Yes | ReadyForImplementationHandoffReview |
-| Implementation | STANDARD_MODEL | Yes | standard-implementer | standard-implementer | No | ReadyForDelegatedImplementation |
+| Implementation start | HIGH_MODEL | Yes | high-implementation-starter | high-implementation-starter | No | ReadyForHighImplementationStart |
+| Bounded completion | STANDARD_MODEL | Yes | standard-implementation-completer | standard-implementation-completer | No | ReadyForStandardCompletion |
 | Verification | STANDARD_MODEL | Yes | standard-verifier | standard-verifier | No | ReadyForDelegatedVerification |
 | Close | STANDARD_MODEL | No | parent or high-closure-reviewer | parent | Yes | NeedsHigherModelReview |
 
@@ -55,7 +56,8 @@ stop_reason: None
 | --- | --- | --- | --- | --- | --- |
 | Plan | parent or high-planner | STANDARD_MODEL / HIGH_MODEL if ambiguity appears | No | Issue body, repo rules, state artifact | Ready when bounded Plan defines acceptance and non-goals |
 | Implementation handoff review | implementation-handoff-review | HIGH_MODEL / STANDARD_MODEL | No | Bounded Plan, `plans/<slug>-change-risk-triage.md`, state artifact | Stop with ReadyForImplementationHandoffReview until parent authorization artifact exists |
-| Implementation | standard-implementer | STANDARD_MODEL | Yes | Bounded Plan, `plans/<slug>-change-risk-triage.md`, implementation-handoff-review artifact, Edit Permission | Stop with ReadyForDelegatedImplementation until observed delegated run exists |
+| Implementation start | high-implementation-starter | HIGH_MODEL | Yes | Bounded Plan, `plans/<slug>-change-risk-triage.md`, implementation-handoff-review artifact, Edit Permission | Stop with ReadyForHighImplementationStart until observed delegated run exists |
+| Bounded completion | standard-implementation-completer | STANDARD_MODEL | Yes | Complete READY_FOR_STANDARD_COMPLETION handoff, completion scope, locked decisions | Stop with ReadyForStandardCompletion until a valid handoff is consumed |
 | Verification | standard-verifier | STANDARD_MODEL | Yes | Implementation result, local test command, acceptance mapping | Stop with ReadyForDelegatedVerification until observed delegated run exists |
 
 ## Edit Permission
@@ -94,16 +96,20 @@ After the handoff review creates the parent authorization artifact, the state ma
 current_gate: Implementation
 next_gate: Verification
 selected_process: normal
-recommended_model_tier: STANDARD_MODEL
+recommended_model_tier: HIGH_MODEL
 execution_mode: DELEGATED_WORK
-selected_agent_name: standard-implementer
+selected_agent_name: high-implementation-starter
 allowed_to_edit: Yes
 delegation_required: Yes
-stop_reason: ReadyForDelegatedImplementation
+shape_handoff_status: NotStarted
+remaining_design_uncertainty: Unknown
+completion_scope: N/A
+shape_reentry_reason: N/A
+stop_reason: ReadyForHighImplementationStart
 ```
 
 The parent thread does not implement the READY scope directly.
-It delegates to `standard-implementer`, records the observed run in the audit artifact Agent Usage Ledger, then delegates verification to `standard-verifier`.
+It delegates first to `high-implementation-starter` and records the observed run in the audit artifact Agent Usage Ledger. It delegates decision-free remainder to `standard-implementation-completer` only after a valid handoff, returns any re-entry to the high starter, then delegates verification to `standard-verifier`.
 
 ## Expected non-READY output
 

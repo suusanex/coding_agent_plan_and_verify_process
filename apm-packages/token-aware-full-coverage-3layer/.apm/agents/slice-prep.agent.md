@@ -49,8 +49,8 @@ sandbox_mode: read-only
 禁止:
 - production code を編集しない。
 - tests を作成・編集しない。
-- implementation-execution に進まない。
-- implementation-handoff-review を最終 gate として実行しない。これは親承認後または slice-impl の開始時に行う。
+- implementation-execution、high-implementation-starter、standard-implementation-completer に進まない。
+- implementation-handoff-review を最終 gate として実行しない。これは親承認後、adaptive slice implementation の開始前に行う。
 - cross-slice contract をこの slice 内で Done 扱いしない。
 - parent Plan や slice decomposition artifact と矛盾する scope 拡大をしない。
 - さらに subagent を起動しない。

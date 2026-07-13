@@ -11,6 +11,8 @@ Treat ordinary development requests as Copilot fallback cost-aware work unless t
 - Risk gate creates or updates `plans/<slug>-change-risk-triage.md` and records `risk_triage_artifact_status`.
 - Do not route to implementation handoff review until `risk_triage_artifact_status = Complete`.
 - Do not route to implementation before implementation-handoff-review or an explicitly equivalent pre-implementation gate creates the parent authorization artifact. If behavior expansion is required, require Behavior Case Coverage Ledger status Complete first.
+- Start every non-trivial READY implementation with `high-implementation-starter`. Use `standard-implementation-completer` only after a complete `READY_FOR_STANDARD_COMPLETION` handoff.
+- Route `NEEDS_HIGH_MODEL_REENTRY` back to `high-implementation-starter` and keep HIGH / STANDARD write ownership serial.
 - Do not close with unresolved `ManualVerificationRequired`, `NeedsHumanDecision`, or `NeedsHigherModelReview`.
 - Do not treat fake / stub / mock-only success as production success.
 - Do not perform secret, billing, production, or external service operations without explicit approval.

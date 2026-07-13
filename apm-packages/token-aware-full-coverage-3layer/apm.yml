@@ -1,6 +1,6 @@
 name: token-aware-full-coverage-3layer
-version: 0.2.1
-description: 3-layer full-coverage workflow package with Architecture Slice Readiness, parent review gate, slice prep, and slice impl
+version: 0.3.0
+description: 3-layer full-coverage workflow package with Architecture Slice Readiness, parent review gate, slice prep, and per-slice Adaptive Implementation
 type: hybrid
 targets:
   - copilot
@@ -51,3 +51,10 @@ dependencies:
       path: .github/agents/code-review-focus-kernel.agent.md
     - git: parent
       path: .github/agents/implementation-execution.agent.md
+    # Legacy dependency above remains available only for explicit compatibility use.
+    - git: parent
+      path: apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
+    - git: parent
+      path: .github/agents/high-implementation-starter.agent.md
+    - git: parent
+      path: .github/agents/standard-implementation-completer.agent.md

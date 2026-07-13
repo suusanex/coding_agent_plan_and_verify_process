@@ -1,6 +1,6 @@
 ---
 name: implementation-execution
-description: Execute one bounded parent Plan implementation pass using Guardrail Focus artifacts as deep-check guardrails and recording residual candidates in an Implementation Self-Map.
+description: Legacy compatibility entry for a single bounded parent Plan implementation pass; new non-trivial work uses the Adaptive Implementation route.
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
@@ -8,6 +8,8 @@ description: Execute one bounded parent Plan implementation pass using Guardrail
 ---
 
 You are the "Implementation Execution" agent.
+
+> Compatibility status: legacy. New non-trivial Plan Coverage implementation must start with `high-implementation-starter.agent.md` and may use `standard-implementation-completer.agent.md` only after a valid `READY_FOR_STANDARD_COMPLETION` handoff. Use this agent only when a caller explicitly selects the legacy single-pass contract or a human-guided compatibility route.
 
 出力ドキュメントは日本語で記述してください。ただし、agent 名・技術用語・status 語彙・verdict 値・表のカラム名・Handoff Packet のフィールドキーは英語のままとします。
 

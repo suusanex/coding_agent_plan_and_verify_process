@@ -23,7 +23,9 @@ CODEX_HOME/
     high-risk-triage.toml
     implementation-handoff-review.toml
     high-implementation-contract.toml
+    high-implementation-starter.toml
     high-closure-reviewer.toml
+    standard-implementation-completer.toml
     standard-implementer.toml
     standard-verifier.toml
     cheap-repo-scanner.toml
@@ -68,7 +70,7 @@ To install repo-local bootstrap files for repeated local use:
 ```powershell
 dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs -- . --dry-run
 dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs -- .
-dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs -- . --check-only
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs -- . --check
 ```
 
 Expected verification:
@@ -76,6 +78,7 @@ Expected verification:
 - `codex status` shows the custom `CODEX_HOME`.
 - A prompt such as `Summarize the current instructions.` includes the Codex-first global guidance.
 - Subagent work can use the TOML files under `agents/`, each of which sets `model` and `model_reasoning_effort`.
+- Non-trivial implementation starts with `high-implementation-starter`; `standard-implementation-completer` is selectable only after a valid handoff and re-entry returns to the high starter.
 - Audit artifact Agent Usage Ledger distinguishes configured model, hook observed model, reported model, and effective model when evidence is available.
 
 ## Launcher behavior

@@ -51,7 +51,7 @@ slice ごとの `verification-kernel.agent.md` は、assigned slice-local bounde
 - 各 slice の `implementation-contract-kernel` / review output（存在する場合）
 - 各 slice の `runtime-contract-kernel` output（存在する場合）
 - 各 slice の `test-design-kernel` output（存在する場合）
-- 各 slice の `implementation-execution` output または human implementation summary
+- 各 slice の Adaptive Implementation result artifact または human implementation summary
 - 各 slice の `verification-kernel` output
 - Behavior Case mapping / Case-to-Slice mapping（存在する場合）
 - previous `cross-slice-verification-kernel` output（rerun の場合）

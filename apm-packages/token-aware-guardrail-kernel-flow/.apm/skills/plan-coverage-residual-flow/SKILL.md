@@ -107,7 +107,13 @@ Run the flow in this order unless a stop condition applies:
    - `runtime-contract-kernel.agent.md`
    - `test-design-kernel.agent.md`
    - `implementation-handoff-review.agent.md`
-9. Implement only after the handoff review or a documented equivalent Inline Ready Gate allows implementation for the bounded parent Plan pass. Use `implementation-execution.agent.md` or a human-guided implementation route, according to the repository's available agent setup.
+9. Implement only after the handoff review or a documented equivalent Inline Ready Gate allows implementation for the bounded parent Plan pass. Every non-trivial pass starts with `high-implementation-starter.agent.md` on `HIGH_MODEL`; do not classify shape need from documents or route directly to a standard implementation agent.
+   - `READY_FOR_STANDARD_COMPLETION`: validate the complete Implementation Completion Handoff, then run `standard-implementation-completer.agent.md` on `STANDARD_MODEL` serially.
+   - `CONTINUE_HIGH_IMPLEMENTATION`: continue the same high-model run when possible; use it as a resume state only at an execution boundary.
+   - `COMPLETED_BY_HIGH_MODEL`: aggregate the implementation evidence and continue to verification.
+   - `NEEDS_HIGH_MODEL_REENTRY`: stop the completion agent, preserve its re-entry handoff and current worktree, then return serially to `high-implementation-starter.agent.md`.
+   - `REPLAN_REQUIRED`, `HUMAN_DECISION_REQUIRED`, or `BLOCKED`: preserve the worktree and evidence, record the stop reason, and do not continue to verification.
+   The orchestrator keeps `plans/<slug>-implementation-execution.md` as the durable result artifact, recording phase owners, verdict sequence, Implementation Self-Map, checks, acceptance evidence, and Remaining Work. Keep the completion handoff inline unless resume, another thread/model, or another worker requires a tracked `plans/<slug>-implementation-completion-handoff.md`.
 10. Run `verification-kernel.agent.md`.
 11. If unresolved coverage items or FixNow candidates remain, run `coverage-gap-triage.agent.md` unless `verification-kernel.agent.md` emitted a complete `Direct FixNow selectors` table for 1〜2 simple gaps.
 12. Before final close, run `residual-decision-gate.agent.md`. If no residual candidates remain, it may produce `READY_TO_CLOSE_WITH_NO_RESIDUALS`. If residual, manual, or human-decision candidates remain, it must classify them before close.
@@ -134,7 +140,7 @@ When `change-risk-triage.agent.md` recommends `full-coverage`:
    Recompute tracked source content hashes / explicit revisions and inspect the source-repository-commit-to-current diff for declared watch paths. HEAD equality is not required, and generated readiness/architecture artifact commits do not self-invalidate the baseline. Path equality is insufficient; any semantic baseline change makes the verdict stale and requires a readiness rerun.
 4. Run `plan-slice-decomposition.agent.md` only after the architecture gate permits it.
 5. Treat each resulting slice as a bounded parent Plan pass with parent Plan item and architecture traceability.
-6. Use `token-aware-full-coverage-3layer` or an equivalent advanced route for slice preparation, architecture-drift review, delegated slice implementation, and slice-local verification.
+6. Use `token-aware-full-coverage-3layer` or an equivalent advanced route for slice preparation, architecture-drift review, adaptive slice implementation, and slice-local verification. Every non-trivial READY slice starts with `high-implementation-starter`; `slice-impl` is a legacy compatibility entry and is not the default implementation owner.
 7. After slice verification, run `cross-slice-verification-kernel.agent.md`.
 8. If cross-slice verification emits unresolved coverage items or FixNow candidates, run `coverage-gap-triage.agent.md`.
 9. Run `residual-decision-gate.agent.md` for final residual, manual, delegated, deferred, aborted, or human-decision handling.
@@ -185,6 +191,8 @@ Every parent-agent turn using this skill should report:
 - next agent to use
 - why that agent is next
 - whether implementation is allowed now
+- current adaptive implementation owner and verdict sequence, once implementation has started
+- completion handoff status and high-model re-entry reason, when applicable
 - residual, manual, or human-decision candidates
 - close readiness
 - concrete next action

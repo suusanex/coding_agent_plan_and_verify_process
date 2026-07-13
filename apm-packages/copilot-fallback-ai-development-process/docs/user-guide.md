@@ -25,6 +25,8 @@ always-on instructions だけでなく明示的に起動したい場合は promp
 
 `/resume-state` は `plans/<slug>/codex-first-state.md` を読み、next gate だけを実行します。`/verify-and-close` は acceptance criteria と evidence を対応付け、close 不可条件を確認します。
 
+非自明な実装は `high-implementation-starter` から始まります。実コード上の構造判断が解消し、complete な completion handoff が作られた場合だけ `standard-implementation-completer` が残作業を担当します。STANDARD_MODEL で新しい構造判断が発生した場合は `NEEDS_HIGH_MODEL_REENTRY` として HIGH_MODEL に戻ります。
+
 ## 止まる理由
 
 次が残る場合は完了扱いしません。
@@ -34,6 +36,8 @@ always-on instructions だけでなく明示的に起動したい場合は promp
 - `NeedsHigherModelReview`
 - fake / stub / mock-only success
 - production implementation / wiring の未確認
+- invalid または incomplete な completion handoff
+- STANDARD_MODEL から HIGH_MODEL への必要な re-entry が未実施
 - secret / production / billing / external operation の未承認
 
 Copilot が止まった場合は、提示された最小の human decision または manual verification result を渡して再開してください。

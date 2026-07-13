@@ -26,7 +26,7 @@ plan-kernel
   -> implementation-contract-review-kernel (when present)
   -> runtime-contract-kernel
   -> test-design-kernel
-  -> implementation-execution / human implementation
+  -> Adaptive Implementation / human implementation
   -> ★ code-review-focus-kernel  ← この agent
   -> human code review
   -> verification-kernel
@@ -38,7 +38,7 @@ plan-kernel
 
 1. **High-risk diff がレビューで埋もれる**: queue、retry、error path、state transition、DI wiring、public API、persistence shape など、読むべき差分が大量の boilerplate や rename に隠れる。
 2. **Artifact chain と実装差分の断絶**: Plan、change-risk-triage、runtime-contract、test-design では危険箇所が特定されていたのに、実際の diff 上の review target に変換されていない。
-3. **AI 実装の前提誤りの見落とし**: `implementation-execution.agent.md` または同等の bounded 実装パスが置いた仮定、近傍実装への置換、不要または過剰な実装判断が human review で発見されにくい。
+3. **AI 実装の前提誤りの見落とし**: Adaptive Implementation route または同等の bounded 実装パスが置いた仮定、近傍実装への置換、不要または過剰な実装判断が human review で発見されにくい。
 4. **テストによる false confidence**: fake、mock、in-memory、helper-only test が通っても、production path、error path、wiring、state transition を十分に確認できていない。
 5. **安全に focused review できない変更の誤分類**: 変更が広すぎる、artifact が不足している、diff と artifacts の対応が薄い場合に、無理に focused review として扱ってしまう。
 
@@ -75,7 +75,7 @@ plan-kernel
 7. Implementation Handoff Review（`plans/<ticket-or-slug>-implementation-handoff-review.md`）— 存在する場合は読む
 8. Verification Kernel Result（`plans/<ticket-or-slug>-verification-kernel.md`）— 実行済みの場合は補助入力として読む
 9. Coverage Gap Triage / Resolution Slice output — 対象が fix-slice の場合は読む
-10. Implementation Self-Map — `implementation-execution.agent.md` または同等の bounded 実装パスが出力している場合は読む
+10. Implementation Self-Map — Adaptive Implementation route または同等の bounded 実装パスが出力している場合は読む
 11. Plan Slice Decomposition artifact（`plans/<ticket-or-slug>-slice-decomposition.md`）— full-coverage decomposition 由来の実装差分をレビューする場合は読む
 
 ### Implementation evidence
@@ -478,7 +478,7 @@ gap を修正したり、verification を完了させたり、coverage-gap-resol
 
 ## Relationship to other agents
 
-- **通常の前段 agent**: `implementation-execution.agent.md` または同等の bounded 実装パス
+- **通常の前段 agent**: `high-implementation-starter.agent.md`、必要な場合は `standard-implementation-completer.agent.md`
 - **任意の前段 gate**: `implementation-handoff-review.agent.md`
 - **後段**: human code review
 - **任意の後段**: `verification-kernel.agent.md`

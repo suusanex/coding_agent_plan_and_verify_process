@@ -29,8 +29,15 @@ dotnet run --file .\apm-packages\copilot-fallback-ai-development-process\scripts
 ## Verify in VS Code
 
 - custom agents に `copilot-cost-router` が見える
+- custom agents に canonical 名の `high-implementation-starter` と `standard-implementation-completer` が見える
 - prompt files に `/cost-route`、`/resume-state`、`/verify-and-close` が見える
 - 「この issue を進めて」で実装に直行しない
 - `plans/<slug>/codex-first-state.md` が作られる
+- 非自明な READY scope が `high-implementation-starter` から開始される
+- `standard-implementation-completer` は complete な `READY_FOR_STANDARD_COMPLETION` handoff 後だけ起動する
+- `NEEDS_HIGH_MODEL_REENTRY` の次の write owner が `high-implementation-starter` になる
+- HIGH_MODEL と STANDARD_MODEL の write owner が同時に active にならない
 - close blocker が残る場合に完了扱いしない
+
+確認結果は state artifact の `current_status`、`selected_agent_name`、`recommended_model_tier`、`edit_owner`、Adaptive Implementation fields と Agent Usage Ledger に記録してください。実モデルを使わない installer 確認では、品質・token cost・re-entry 回数は `NOT RUN` とします。
 

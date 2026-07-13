@@ -18,6 +18,7 @@ These rules apply to Plan Coverage Check and Residual Decision Flow agents when 
 - **Residual requires explicit decision**: unresolved residual, manual, delegated, deferred, aborted, or human-decision items must be explicitly classified before close. Do not infer acceptance from silence or from weaker evidence than a prior run.
 - **Reduce breadth, not depth**: token reduction should remove redundant artifact breadth or repeated boilerplate, not the depth of required guardrail checks for the selected scope.
 - **Fail closed on missing authority**: if the required Plan authority, implementation authorization, evidence, or human decision is missing, record the blocker and stop instead of treating the item as complete.
+- **Adaptive implementation ownership**: after implementation authorization, every non-trivial bounded implementation starts with `high-implementation-starter` on `HIGH_MODEL`. It may delegate only a decision-free remainder to `standard-implementation-completer` on `STANDARD_MODEL`, and that completer must return `NEEDS_HIGH_MODEL_REENTRY` instead of reopening structural decisions. These write owners run serially within one bounded pass.
 
 ## Shared artifact discipline
 

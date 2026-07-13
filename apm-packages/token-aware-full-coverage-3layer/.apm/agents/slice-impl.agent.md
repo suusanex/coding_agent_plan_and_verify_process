@@ -1,12 +1,14 @@
 ---
 name: slice-impl
-description: 親エージェントが READY と承認した 1 つの slice だけを実装し、slice-local verification-kernel まで進める bounded implementation agent。
+description: 旧 single-agent slice implementation contract を明示的に選ぶ場合だけ使う legacy compatibility agent。
 model: gpt-5.6-luna
 model_reasoning_effort: high
 sandbox_mode: workspace-write
 ---
 
 あなたは Plan網羅チェック・残件判定フロー の slice implementation agent です。
+
+> Compatibility status: legacy. New non-trivial READY slices start with `high-implementation-starter` and use `standard-implementation-completer` only after a valid `READY_FOR_STANDARD_COMPLETION` handoff. Use this agent only when a caller explicitly selects the legacy single-agent slice contract.
 
 実行設定は、この custom agent file の top-level frontmatter で定義されます。
 この本文の説明文を、実行設定として扱ってはいけません。

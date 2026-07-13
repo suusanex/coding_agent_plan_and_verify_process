@@ -10,18 +10,19 @@
 
 - cost-router が repo rules と既存 artifact を読む。
 - bounded Plan または同等の短い scope を作る。
-- config 読み込みと CLI 出力だけが READY なら、handoff review で parent authorization artifact を作ってから `standard-implementer` へ serial delegation する。
+- config 読み込みと CLI 出力だけが READY でも、非自明な実装は handoff review で parent authorization artifact を作ってから `high-implementation-starter` で開始する。既存 pattern が明確で decision-free remainder になった場合だけ `standard-implementation-completer` へ serial delegation する。
 - 単純な docs / format check は Routing Plan に応じて `CHEAP_MODEL` worker へ委譲する。
 - production CLI entrypoint を verification で確認する。
 
 ## READY example
 
 ```text
-ReadyForDelegatedImplementation
+ReadyForHighImplementationStart
 - Plan exists.
 - Scope is limited to config read and CLI output.
 - implementation-handoff-review artifact exists.
-- EditOwner is standard-implementer.
+- EditOwner is high-implementation-starter.
+- ShapeHandoffStatus is NotStarted.
 - No secret or external service is involved.
 - No advanced route is required.
 ```
@@ -33,6 +34,7 @@ SafeToClose
 - Acceptance conditions are mapped to verification evidence.
 - Production CLI entrypoint uses the config path.
 - Audit DelegationCompliance is PASS.
+- HIGH start, optional valid STANDARD completion, and any HIGH re-entry are recorded without overlapping write ownership.
 - Remaining work is Deferred and not required for this request.
 ```
 

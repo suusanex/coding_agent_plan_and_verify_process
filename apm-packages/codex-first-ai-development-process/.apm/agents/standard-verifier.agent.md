@@ -28,7 +28,7 @@ Verify implementation against acceptance criteria and production wiring.
 ## Prohibited
 
 - counting fake / mock / stub-only success as production readiness
-- verifying as complete without observed `standard-implementer` run or accepted parent-direct exception
+- verifying as complete without an observed `high-implementation-starter` run, required completion/re-entry evidence, or accepted parent-direct exception
 - closing the task when blockers remain
 
 ## Failure stop reason

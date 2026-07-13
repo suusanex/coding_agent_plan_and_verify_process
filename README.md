@@ -85,7 +85,7 @@ Source requirement
 | --- | --- | --- |
 | `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM 導入後に Adaptive Implementation の必須 concrete Codex profile を repository-local に同期・検証したい | `AGENTS.md` の managed section、`.codex/agents/high-implementation-starter.toml`、`.codex/agents/standard-implementation-completer.toml` |
 | `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、`.agents/skills/codex-first-cost-router/SKILL.md`、`templates/*.md` |
-| `scripts/provision-work-repo-agents.cs` | 既存の token-aware / full-coverage package を APM 経由で導入し、生成された Codex agent TOML と full-coverage template 配置を補正したい | `apm install` の実行、`.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level `model` / `model_reasoning_effort` / `sandbox_mode` 補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置 |
+| `scripts/provision-work-repo-agents.cs` | 既存の token-aware / full-coverage legacy profile を APM 経由で導入し、互換 agent TOML と template 配置を補正したい | `apm install` の実行、legacy `.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level 設定補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置。新規実装 route は canonical Adaptive agents を使う |
 | `scripts/validate-architecture-slice-readiness.ps1` | Architecture Slice Readinessのagent、manifest、template、routing、validation resultを静的検証したい | dependency path、frontmatter、必須contract、旧direct routeの残存を検証 |
 
 Codex-first を使いたい場合の入口は `apply-codex-first-local.cs` です。
@@ -117,7 +117,7 @@ apm を使用して agent.md 形式から Codex 向けの toml 形式を作成�
 `provision-work-repo-agents.cs` は、その欠落を補うために次を行います。
 
 - 対象リポジトリで `apm install --update --target copilot,codex,agent-skills ...` を実行する。
-- 生成された `.codex/agents/slice-prep.toml` と `.codex/agents/slice-impl.toml` を検査する。
+- 互換用に生成された `.codex/agents/slice-prep.toml` と legacy `.codex/agents/slice-impl.toml` を検査する。新規実装 route の検査は Adaptive validator で行う。
 - 必要に応じて top-level `model` / `model_reasoning_effort` / `sandbox_mode` を追加・移動・補正する。
 - `plans/_templates/full-coverage-parent-orchestration-state.md` に親 orchestration 再開 state template を配置し、後続 parent agent が consuming repo 内で template を読めるようにする。
 
@@ -219,8 +219,9 @@ full-coverage 3層運用は advanced route として分離されています。
 3. gate ごとに `HIGH_MODEL` / `STANDARD_MODEL` / `CHEAP_MODEL` と agent / subagent を割り当て、state artifact には Routing Plan / Edit Permission / audit artifact path / DelegationCompliance summary / next action を記録し、audit artifact には Agent Usage Ledger / DelegationCompliance detail / model observability / route history / close audit を記録する
 4. READY でない場合は実装せず、state artifact と stop reason を更新する
 5. 実装前に `implementation-handoff-review` または明示的に同等の gate で parent authorization artifact を作る
-6. READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する
-7. close 可否、residual、DelegationCompliance を state artifact に戻す
+6. READY 後の非自明な実装は `high-implementation-starter` で開始し、complete な handoff 後だけ `standard-implementation-completer` へ直列委譲する。構造判断が再発したら HIGH_MODEL に戻す
+7. 通常 verification は `standard-verifier` へ serial delegation する
+8. close 可否、residual、DelegationCompliance を state artifact に戻す
 
 Codex-first routing は「軽い処理」と「Plan網羅チェック・残件判定フロー」の二択ではありません。
 実際には `task_weight` / `selected_process` / `execution_mode` の 3 軸で分岐します。
@@ -234,15 +235,17 @@ write-heavy parallel editing を標準化しないことは、親エージェン
 
 | Label | Intended use |
 | --- | --- |
-| `HIGH_MODEL` | 曖昧な要求整理、bounded Plan、難しい risk triage、implementation contract、危険な close gate |
-| `STANDARD_MODEL` | READY 後の通常実装を担当する `standard-implementer`、通常 verification を担当する `standard-verifier`、test update |
+| `HIGH_MODEL` | 曖昧な要求整理、bounded Plan、難しい risk triage、非自明な実装開始・再入場、implementation contract、危険な close gate |
+| `STANDARD_MODEL` | valid handoff 後の bounded completion を担当する `standard-implementation-completer`、通常 verification を担当する `standard-verifier`、test update |
 | `CHEAP_MODEL` | read-heavy scan、docs consistency、artifact format check、単純局所修正 |
 
 実名モデルは固定しません。組織の契約、利用枠、品質要求に合わせて mapping してください。
 この package には、そのまま使える profile / agent file テンプレート例として `profiles/codex-first/` を含めます。
 現行 default では、抽象 tier と実モデルは一対一対応ではなく、agent ごとの責務に応じて model / reasoning effort を設定します。
 
-- `standard-implementer`: Luna / high
+- `high-implementation-starter`: Terra / high
+- `standard-implementation-completer`: Luna / high
+- `standard-implementer`: Luna / high（legacy compatibility only）
 - `standard-verifier`: Terra / medium
 - `HIGH_MODEL` agents: 原則 Terra。reasoning effort は agent ごとに medium または high
 
@@ -278,8 +281,8 @@ $codex-first-cost-router を使って、続きやって。
 - 非自明な作業では `plans/<slug>/codex-first-state.md` を作成または更新する。
 - state artifact には Routing Plan、Edit Permission、audit artifact path、DelegationCompliance summary、next action を記録する。
 - audit artifact には Agent Usage Ledger、DelegationCompliance detail、model observability、route history、close audit を記録する。
-- 実装前に `implementation-handoff-review` または明示的に同等の gate で parent authorization artifact を作成し、`Expansion required: Yes` の場合は Behavior Case Coverage Ledger が complete になるまで `standard-implementer` へ渡さない。
-- READY 後の通常実装は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation する。
+- 実装前に `implementation-handoff-review` または明示的に同等の gate で parent authorization artifact を作成し、`Expansion required: Yes` の場合は Behavior Case Coverage Ledger が complete になるまで `high-implementation-starter` へ渡さない。
+- READY 後の非自明な実装は `high-implementation-starter` から始め、valid handoff 後だけ `standard-implementation-completer`、re-entry は HIGH_MODEL、通常 verification は `standard-verifier` へ serial delegation する。
 - `DelegationRequired = Yes` の gate は observed run または explicit human approval 付き `ParentDirectExecutionException` がない限り成功扱いしない。
 - write-heavy parallel editing を標準化しないことは、親が直接実装してよいことを意味しない。
 - repo-local の build / test / security ルールと explicit user instructions を常に優先する。
@@ -288,7 +291,7 @@ $codex-first-cost-router を使って、続きやって。
 この記載に加えて、対象 repository で `codex-first-cost-router` skill と標準 agent / template を参照できるようにします。手作業で配置する場合の最小構成は次です。
 
 - `.agents/skills/codex-first-cost-router/SKILL.md`
-- `.codex/agents/*.toml`（`standard-implementer`、`standard-verifier`、必要な high / cheap agents）
+- `.codex/agents/*.toml`（`high-implementation-starter`、`standard-implementation-completer`、`standard-verifier`、必要な high / cheap agents。`standard-implementer` は互換用）
 - `templates/codex-first-state.md`
 - `templates/codex-first-audit.md`
 
@@ -299,7 +302,7 @@ Codex-first をこの repository の package からローカル導入する場�
 ```powershell
 dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs -- . --dry-run
 dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs -- .
-dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs -- . --check-only
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs -- . --check
 ```
 
 これで対象リポジトリに次を追加します。
@@ -310,7 +313,7 @@ dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\appl
 - `.agents/skills/codex-first-cost-router/SKILL.md`
 - `templates/*.md`
 
-`--dry-run` と `--check-only` はファイルやディレクトリを作成しません。
+`--dry-run` と `--check` はファイルやディレクトリを作成しません。`--check-only` は互換 alias です。
 VS Code の Codex 拡張や Codex App では、インストール済みリポジトリを開くと、ローカル `AGENTS.md` / `.agents/skills` / `.codex` を見て既定のルーティングに入ります。
 
 ### 詳細ドキュメント
@@ -355,6 +358,8 @@ dotnet run --file .\apm-packages\copilot-fallback-ai-development-process\scripts
 - `.github/agents/copilot-cost-router.agent.md`
 - `.github/agents/copilot-high-planner.agent.md`
 - `.github/agents/copilot-risk-triage.agent.md`
+- `.github/agents/high-implementation-starter.agent.md`
+- `.github/agents/standard-implementation-completer.agent.md`
 - `.github/agents/copilot-standard-implementer.agent.md`
 - `.github/agents/copilot-standard-verifier.agent.md`
 - `.github/agents/copilot-cheap-repo-scanner.agent.md`
@@ -484,7 +489,7 @@ bounded Plan を作成し、その parent Plan を実装・検証の source of t
 5. `full-coverage` の場合は `architecture-slice-readiness.agent.md`。`NeedsArchitectureElaboration` なら `architecture-elaboration.agent.md` 後に再判定する
 6. `ReadyForSliceDecomposition` または `ArchitectureNotRequired` の場合だけ `plan-slice-decomposition.agent.md`
 7. 通常passまたは各sliceで必要なimplementation contract / runtime contract / test design / handoff reviewを実行
-8. `implementation-execution.agent.md` または人間主導で bounded parent Plan pass を実行
+8. 非自明な実装を `high-implementation-starter.agent.md` で開始し、valid handoff 後だけ `standard-implementation-completer.agent.md` を実行。re-entry は HIGH_MODEL へ戻す
 9. 必要に応じて `code-review-focus-kernel.agent.md` と human code review
 10. `verification-kernel.agent.md`
 11. full-coverage slice完了後は`cross-slice-verification-kernel.agent.md`
@@ -516,9 +521,9 @@ slice decomposition は scope shrink ではありません。各 slice は paren
 
 cross-slice verification では、runtime postcondition oracle と forbidden-state oracle を作ります。stateful cross-slice contract では、producer state と consumer gate の両方が整合し、禁止状態が起きない evidence がない限り `CROSS_SLICE_VERIFIED` にできません。
 
-### `implementation-execution.agent.md` に渡すもの
+### Adaptive Implementation route に渡すもの
 
-`implementation-execution.agent.md` は parent Plan に対する 1 bounded implementation pass を行います。`runtime-contract-kernel` だけを渡してはいけません。
+`high-implementation-starter.agent.md` は parent Plan に対する非自明な実装を HIGH_MODEL で開始します。`standard-implementation-completer.agent.md` は complete な `READY_FOR_STANDARD_COMPLETION` handoff 後だけ bounded remainder を実装します。`runtime-contract-kernel` だけを渡してはいけません。`implementation-execution.agent.md` は既存 invocation の互換入口としてのみ残ります。
 
 少なくとも次を渡してください。
 
@@ -593,9 +598,9 @@ Guardrail Focus RC を Guardrail Focus TP に落とし、stub / fake / mock / in
 
 実装前 gate です。Plan → Guardrail Focus RC → TP → production binding requirement の接続、Parent Plan Coverage Ledger、必要な場合は Behavior Case Coverage Ledger を確認し、`READY_FOR_BOUNDED_PARENT_PLAN_PASS` 系または `BLOCKED_*` verdict を出します。
 
-### `implementation-execution.agent.md`
+### `high-implementation-starter.agent.md` / `standard-implementation-completer.agent.md`
 
-parent Plan に対する 1 bounded implementation pass を行い、Implementation Self-Map と item ごとの status を記録します。通常可能な FR / AC は実装し、残るものは residual candidate として明示します。
+非自明な実装は HIGH_MODEL から開始し、実コード上の decision surface が解消するまで `high-implementation-starter` が所有します。complete な handoff が作られた場合だけ `standard-implementation-completer` が残作業を担当し、構造判断が再発したら `NEEDS_HIGH_MODEL_REENTRY` で HIGH_MODEL に戻します。各 phase の owner、verdict、Implementation Self-Map、checks、acceptance evidence、Remaining Work は `plans/<ticket-or-slug>-implementation-execution.md` に集約します。
 
 ### `code-review-focus-kernel.agent.md`
 
@@ -636,7 +641,8 @@ PR #10（`Codex向け full-coverage 3層運用を追加`）では、その局面
 | Codex へのプロジェクト指示 | `apm-packages/token-aware-full-coverage-3layer/.apm/instructions/token-aware-full-coverage-3layer.instructions.md` |
 | 親エージェントが呼ぶ skill | `apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md` |
 | slice 準備 subagent | `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-prep.agent.md` |
-| slice 実装 subagent | `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-impl.agent.md` |
+| slice 実装 route | root `high-implementation-starter.agent.md` → valid handoff 後の `standard-implementation-completer.agent.md` → re-entry 時は HIGH_MODEL |
+| legacy slice 実装入口 | `apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-impl.agent.md` |
 | 親 orchestration 再開 state template | `token-aware-full-coverage-3layer` Skill の `references/full-coverage-parent-orchestration-state.md` |
 | Slice Architecture template | `plan-coverage-residual-flow` Skill の `references/slice-architecture.md` |
 | Codex project config | `.codex/config.toml` |
@@ -645,17 +651,17 @@ PR #10（`Codex向け full-coverage 3層運用を追加`）では、その局面
 
 この 3 層運用は、`plan-slice-decomposition.agent.md` の出力をそのまま実装開始条件にしないためのものです。
 
-開始前にArchitecture Slice Readiness verdictと、`ReadyForSliceDecomposition`の場合のslice architecture artifactがcurrentであることも必須です。slice-prepまたはslice-implがshared semanticsを変更する場合、parent reviewは実装をBLOCKし、Architecture Slice Readiness Gateへ戻します。
+開始前にArchitecture Slice Readiness verdictと、`ReadyForSliceDecomposition`の場合のslice architecture artifactがcurrentであることも必須です。slice-prepまたはAdaptive Implementationがshared semanticsを変更する場合、parent reviewは実装をBLOCKし、Architecture Slice Readiness Gateへ戻します。
 
 1. 親エージェントが slice 実行表と parent review gate を管理する
 2. `slice-prep` が slice ごとの kernel artifact を下書きする
-3. `DELEGATED_IMPLEMENTATION` mode では、親レビューで READY になった slice を必ず `slice-impl` が実装し、slice-local verification まで進める
+3. `DELEGATED_IMPLEMENTATION` mode では、親レビューで READY になった非自明な slice を必ず `high-implementation-starter` から開始し、valid handoff 後だけ STANDARD completion を行って slice-local verification まで進める
 4. 最後に親エージェントが cross-slice verification と residual decision をまとめる
 
 つまり、「full-coverage decomposition を Codex でそのまま分解実装させる」のではなく、「親が整合を握ったまま、準備と実装だけを bounded に委譲する」ための運用補助です。
 ユーザーが実施・進行・実装を依頼し、準備やレビューまでで止める明示指示がない場合、既定の `ExecutionMode` は `DELEGATED_IMPLEMENTATION` です。`PREP_ONLY` は「実装はまだ行わない」「準備まで」「レビューまでで停止」と明示された場合だけ使います。
-Parent review gate は人間レビュー待ちではなく、親エージェントが READY slice の実装可否を判定する gate です。`Can implement now? = Yes` の slice がある場合、親はそこで成功終了せず `slice-impl` へ委譲します。
-親エージェントは `DELEGATED_IMPLEMENTATION` で production code / tests を直接編集しません。READY slice に `slice-impl` run がない場合は `BlockedByMissingSliceImplDelegation` として停止します。
+Parent review gate は人間レビュー待ちではなく、親エージェントが READY slice の実装可否を判定する gate です。`Can implement now? = Yes` の slice がある場合、親はそこで成功終了せず Adaptive Implementation route へ委譲します。
+親エージェントは `DELEGATED_IMPLEMENTATION` で production code / tests を直接編集しません。非自明な READY slice に HIGH_MODEL start がない場合は `BlockedByMissingAdaptiveImplementationDelegation` として停止します。各 slice 内の HIGH → STANDARD → HIGH ownership は直列にし、slice 間の既存非重複条件だけを並列性の根拠にします。
 
 親エージェントは `plans/<ticket-or-slug>-parent-orchestration-state.md` を軽量な再開入口として作成・更新します。この artifact は Codex / GitHub Copilot / 別セッション間で親 orchestration を移管するための tool-neutral な Markdown で、Current phase、Next required action、Artifact index、Slice queue、Parent decisions made、Cross-slice blockers、Pending parent decisions、Emergency checkpoint を path / status / next action 中心に記録します。full transcript、source artifact 本文、subagent output 全文、長い reasoning trace、source excerpt は保存しません。必要な場合は短い pointer に抑え、file が大きくなりすぎた場合は完了済み slice 行を短い summary に圧縮します。
 
@@ -670,7 +676,7 @@ Parent review gate は人間レビュー待ちではなく、親エージェン�
 - APM で取得できるもの
   - project guidance 相当の instructions
   - reusable skill
-  - custom agent として使う `slice-prep` / `slice-impl`
+  - custom agent として使う `slice-prep` と canonical Adaptive Implementation agents（`slice-impl` は legacy compatibility only）
   - `full-coverage-parent-orchestration-state.md` template
 - APM で取得できないもの
   - workspace そのものの Codex 実行設定（例: `.codex/config.toml`）
@@ -794,10 +800,10 @@ Behavior spec artifact required: Yes の場合、または Inline behavior sketc
 Guardrail Focus ready と Parent Plan coverage ledger complete を分け、READY_FOR_BOUNDED_PARENT_PLAN_PASS 系または BLOCKED_* verdict を出してください。
 ```
 
-### implementation-execution に実装させる
+### Adaptive Implementation route で実装する
 
 ```text
-implementation-execution.agent.md を使って、parent Plan に対する 1 bounded implementation pass を行ってください。
+high-implementation-starter.agent.md を使って、parent Plan に対する非自明な実装を HIGH_MODEL から開始してください。READY_FOR_STANDARD_COMPLETION の complete handoff がある場合だけ standard-implementation-completer.agent.md へ残作業を直列委譲し、NEEDS_HIGH_MODEL_REENTRY は high-implementation-starter.agent.md に戻してください。
 
 次の成果物を必ず読んでください。
 

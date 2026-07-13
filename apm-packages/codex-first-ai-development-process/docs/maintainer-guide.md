@@ -69,7 +69,9 @@ team profile の global `AGENTS.md` は repo-local `AGENTS.md` を置き換え�
 
 現行 default では、抽象 tier と実モデルは一対一対応ではなく、agent ごとの責務に応じて model / reasoning effort を設定する。
 
-- `standard-implementer`: Luna / high
+- `high-implementation-starter`: Terra / high
+- `standard-implementation-completer`: Luna / high
+- `standard-implementer`: Luna / high（legacy compatibility only）
 - `standard-verifier`: Terra / medium
 - `HIGH_MODEL` agents: 原則 Terra。reasoning effort は agent ごとに medium または high
 
@@ -84,7 +86,9 @@ Codex-first profile agents should use the smallest practical sandbox boundary:
 | cheap repo scan / docs consistency / artifact format check | `read-only` | evidence collection and suggestions only |
 | high planning / contract / closure review | `read-only` | judgment and artifact review, not implementation |
 | high risk triage | `workspace-write` | creates or updates `plans/<slug>-change-risk-triage.md` and state risk fields, but does not implement |
-| standard implementer | `workspace-write` | bounded READY implementation owns edits |
+| high implementation starter | `workspace-write` | non-trivial READY implementation start and structural decisions own edits |
+| standard implementation completer | `workspace-write` | valid handoff の decision-free bounded completion owns edits |
+| standard implementer | `workspace-write` | legacy compatibility only; standard route does not select it |
 | standard verifier | `workspace-write` | tests, build artifacts, and verification artifacts may write locally |
 
 If an agent omits `sandbox_mode`, document the reason in this guide before rollout. For Codex-first defaults, omission should be treated as a maintainer action item.
@@ -187,12 +191,12 @@ full-coverage 3層運用は advanced route である。
 - high-risk-triage が `plans/<slug>-change-risk-triage.md` を作成し、handoff review の必須入力として扱われている。
 - Routing Plan、Edit Permission、audit artifact、Agent Usage Ledger、DelegationCompliance が template / skill / docs に揃っている。
 - implementation-handoff-review が standard implementation 前の parent authorization と Behavior Case Coverage Ledger gate として定義されている。
-- READY implementation は `standard-implementer`、READY verification は `standard-verifier` への serial delegation として定義されている。
+- READY implementation は `high-implementation-starter` から開始し、valid handoff 後だけ `standard-implementation-completer`、re-entry は HIGH_MODEL、READY verification は `standard-verifier` への serial delegation として定義されている。
 - close gate が delegation evidence missing を成功扱いしない。
 - `profiles/codex-first/agents/*.toml` に `model` と `model_reasoning_effort` の実行可能な初期値がある。
 - `profiles/codex-first/agents/*.toml` に role-appropriate `sandbox_mode` がある。
 - `apply-codex-first-local.cs` が `.agents/skills/codex-first-cost-router/SKILL.md` と `templates/*.md` を配置する。
-- `apply-codex-first-local.cs` の `--dry-run` / `--check-only` がファイルやディレクトリを作成しない。
+- `apply-codex-first-local.cs` の `--dry-run` / `--check`（`--check-only` 互換 alias）がファイルやディレクトリを作成しない。
 - audit artifact の Agent Usage Ledger が configured / hook / reported / effective model と delegation violation を分離している。
 - parent direct work と trivial parent fix が cost-saving delegation success として数えられない。
 - maintainer guide が agent-specific model / effort mapping と、設定値の確認責務を説明している。

@@ -10,7 +10,7 @@ When documentation_level = lite or a Plan Coverage Lite artifact is provided, re
 When expansion_required = Yes or the Parent Plan records Expansion required: Yes, read the Black-box Behavior Spec artifact, Case IDs, negative expectations, Case-to-Plan mapping, and Behavior Case Coverage Ledger.
 When a canonical coverage ledger or Coverage Ledger Delta is provided, use it to preserve parent Plan coverage status instead of reconstructing coverage from memory.
 Create or update a Behavior Case Evidence Ledger in the verification result or state artifact. Map each current Case ID to test, manual, production evidence, or an explicit residual.
-Check that required standard-implementer delegation evidence exists, or that ParentDirectExecutionException has explicit human approval.
+Check that a high-implementation-starter run exists before any standard completion, any standard-implementation-completer run has a valid handoff, re-entry returned to HIGH_MODEL, and write owners did not overlap, or that ParentDirectExecutionException has explicit human approval.
 Do not count fake, mock, stub, or in-memory-only success as production readiness.
 Do not mark verification complete when Behavior Case Evidence Ledger is incomplete.
 Route UnexpandedRequirement, SourceRequirementNotMappedToPlan, and UnmappedBehaviorCase to residual-decision / ReplanRequired instead of fix-slice.

@@ -97,7 +97,7 @@ slice は parent Plan を置き換えるものではありません。slice は 
 
 ### 2a. Minimum useful slice rule
 
-slice は、後続で `slice-prep`、parent review、`slice-impl`、verification を個別に回す価値がある単位にしてください。
+slice は、後続で `slice-prep`、parent review、Adaptive Implementation、verification を個別に回す価値がある単位にしてください。
 
 単一関数、単一 sequence step、単一 mapping だけの slice は原則として作らないでください。小さい候補 slice を独立させてよいのは、少なくとも次のいずれかが明確な場合だけです。
 
@@ -363,7 +363,7 @@ Recommended process profile は次から選んでください。
 | Disposition | Meaning |
 | --- | --- |
 | `merge-candidate` | 統合すべき候補だが、統合先がまだ確定していない場合 |
-| `too-small-to-delegate` | 単独で `slice-prep` / `slice-impl` を回す価値がない場合 |
+| `too-small-to-delegate` | 単独で `slice-prep` / Adaptive Implementation を回す価値がない場合 |
 | `coalesce-with-SL-xxx` | 既存または確定済みの `SL-xxx` に統合する場合 |
 
 ### Step 3a. Review slice granularity before output

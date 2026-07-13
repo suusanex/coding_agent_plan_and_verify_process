@@ -1,6 +1,6 @@
 ---
 name: token-aware-full-coverage-3layer
-description: Plan網羅チェック・残件判定フローで full-coverage 診断後、Architecture Slice Readiness Gateを通過したdecompositionをCodexの親エージェント・slice-prep・slice-implの3層運用で安全に進めるためのskill。
+description: Plan網羅チェック・残件判定フローで full-coverage 診断後、Architecture Slice Readiness Gateを通過したdecompositionを親エージェント・slice-prep・Adaptive Implementationの3層運用で安全に進めるためのskill。
 ---
 
 # Plan網羅チェック full-coverage 3層運用 Skill
@@ -70,8 +70,9 @@ Layer 2: slice-prep subagent
   per-slice risk / contract / test design artifact を下書きする。
   ここでは実装しない。
 
-Layer 3: slice-impl subagent
-  親が READY と判定した slice だけを実装し、
+Layer 3: Adaptive Implementation agents
+  親が READY と判定した slice を HIGH_MODEL から開始し、
+  valid handoff 後だけ STANDARD_MODEL completion を実行して、
   slice-local verification-kernel まで進めて停止する。
 
 Final gate: 親エージェント
@@ -92,7 +93,7 @@ Final gate: 親エージェント
 | ExecutionMode | 意味 | production code / tests 編集 |
 | --- | --- | --- |
 | `PREP_ONLY` | slice-prep と parent review gate までで停止する | 禁止 |
-| `DELEGATED_IMPLEMENTATION` | READY slice を `slice-impl` に委譲して実装する | 親は禁止、`slice-impl` のみ可 |
+| `DELEGATED_IMPLEMENTATION` | READY slice を Adaptive Implementation route に委譲して実装する | 親は禁止、active write owner のみ可 |
 | `PARENT_DIRECT_IMPLEMENTATION` | 例外的に親が直接実装する | 明示理由とユーザー承認が必要。3層委譲成功とは扱わない |
 
 `DELEGATED_IMPLEMENTATION` では、親エージェントは production code / tests を直接編集してはいけません。親が直接編集してよいのは、原則として orchestration / review / usage ledger / final summary / handoff artifact だけです。
@@ -107,9 +108,9 @@ Final gate: 親エージェント
 - `plans/*-agent-usage-ledger.md`
 - final summary / handoff artifact
 
-委譲が必要な工程で custom agent / subagent を起動できない場合、親はその工程を自分で続行せず、`DelegationUnavailable` または `BlockedByMissingSliceImplDelegation` として停止してください。親直接実装は `PARENT_DIRECT_IMPLEMENTATION` と explicit human approval がある場合だけ許可されます。
+委譲が必要な工程で custom agent / subagent を起動できない場合、親はその工程を自分で続行せず、`DelegationUnavailable` または `BlockedByMissingAdaptiveImplementationDelegation` として停止してください。親直接実装は `PARENT_DIRECT_IMPLEMENTATION` と explicit human approval がある場合だけ許可されます。
 
-`DELEGATED_IMPLEMENTATION` mode の成功完了には、すべての executable slice が `slice-prep` を通過している、または `BLOCKED` / `NEEDS_HUMAN_DECISION` / `TRIAGE_ONLY` として記録されていることが必要です。さらに、parent review gate、すべての READY slice の `slice-impl` 委譲、各 slice の `Slice Implementation Result`、slice-local verification-kernel、親による cross-slice-verification-kernel、residual-decision-gate まで完了していなければ、成功完了として報告してはいけません。
+`DELEGATED_IMPLEMENTATION` mode の成功完了には、すべての executable slice が `slice-prep` を通過している、または `BLOCKED` / `NEEDS_HUMAN_DECISION` / `TRIAGE_ONLY` として記録されていることが必要です。さらに、parent review gate、すべての READY slice の Adaptive Implementation 委譲、各 slice の `Slice Implementation Result`、slice-local verification-kernel、親による cross-slice-verification-kernel、residual-decision-gate まで完了していなければ、成功完了として報告してはいけません。
 
 ## Parent Orchestration State
 
@@ -146,8 +147,8 @@ MUST update:
 - slice-prep の batch を開始する前
 - slice-prep の batch 結果を親が統合した後
 - parent review gate を出した後
-- slice-impl の batch を開始する前
-- slice-impl の batch 結果を親が統合した後
+- Adaptive Implementation の batch を開始する前
+- Adaptive Implementation の batch 結果を親が統合した後
 - cross-slice verification の前後
 - residual decision gate の後
 - planned handoff / tool switch / model switch の前
@@ -353,7 +354,7 @@ Parent review gate は人間レビュー待ちではありません。親エー�
 | Slice ID | Readiness verdict | Baseline authority | Baseline identity | Observed semantics | Match / Drift / Unclear | Required action |
 | --- | --- | --- | --- | --- | --- | --- |
 
-`ArchitectureNotRequired`でもdrift reviewを省略しません。readiness artifactのLightweight architecture baselineに対し、新しいshared semanticsが導入されていなければ`Match`、導入されていれば`Drift`、証明不足またはbaseline freshness不明なら`Unclear`です。slice-impl authorizationはcurrent baselineに対する`Match`だけを許可します。
+`ArchitectureNotRequired`でもdrift reviewを省略しません。readiness artifactのLightweight architecture baselineに対し、新しいshared semanticsが導入されていなければ`Match`、導入されていれば`Drift`、証明不足またはbaseline freshness不明なら`Unclear`です。Adaptive Implementation authorizationはcurrent baselineに対する`Match`だけを許可します。
 
 ## Implementation authorization
 
@@ -362,29 +363,30 @@ Parent review gate は人間レビュー待ちではありません。親エー�
 - Blocked slices:
 - Human decision required:
 
-## Parent instructions for slice-impl
+## Parent instructions for adaptive slice implementation
 ```
 
-`Can implement now?` が `No` の slice を `slice-impl` に渡してはいけません。
+`Can implement now?` が `No` の slice を implementation agent に渡してはいけません。
 
-`DELEGATED_IMPLEMENTATION` mode では、`Can implement now? = Yes` の slice が1つでも存在する場合、親エージェントは parent review gate で成功終了してはいけません。`Human decision required` / `NEEDS_HUMAN_DECISION` の slice は停止対象として記録しつつ、実装可能な READY slice は必ず `slice-impl` custom agent へ委譲してください。
+`DELEGATED_IMPLEMENTATION` mode では、`Can implement now? = Yes` の slice が1つでも存在する場合、親エージェントは parent review gate で成功終了してはいけません。`Human decision required` / `NEEDS_HUMAN_DECISION` の slice は停止対象として記録しつつ、実装可能な READY slice は必ず `high-implementation-starter` から開始してください。
 
-停止できるのは、すべての slice が `Can implement now? = No` / `BLOCKED` / `NEEDS_HUMAN_DECISION` / `TRIAGE_ONLY` のいずれかであり、委譲可能な READY slice が存在しない場合、または custom agent / subagent 起動が利用できず `BlockedByMissingSliceImplDelegation` として記録した場合に限ります。
+停止できるのは、すべての slice が `Can implement now? = No` / `BLOCKED` / `NEEDS_HUMAN_DECISION` / `TRIAGE_ONLY` のいずれかであり、委譲可能な READY slice が存在しない場合、または custom agent / subagent 起動が利用できず `BlockedByMissingAdaptiveImplementationDelegation` として記録した場合に限ります。
 
 ## Layer 3: implementation and verification
 
-`DELEGATED_IMPLEMENTATION` mode では、親レビューで `Can implement now? = Yes` になった slice は必ず `slice-impl` custom agent に渡してください。親は READY slice を自分で実装してはいけません。
+`DELEGATED_IMPLEMENTATION` mode では、親レビューで `Can implement now? = Yes` になった非自明な slice は必ず `high-implementation-starter` custom agent から開始してください。親は READY slice を自分で実装してはいけません。`slice-impl` は明示的な legacy compatibility route に限ります。
 
 READY slice は、次の証跡を満たす必要があります。
 
-- `slice-impl` run が存在する。
-- `slice-impl` output が `Slice Implementation Result: SL-xxx` を持つ。
-- `Agent type: slice-impl` / `Configured model` / `Configured reasoning effort` / `Hook model` / `Effective model` / `Parent authorization artifact` が記録されている。
+- 最初の implementation run が `high-implementation-starter` / `HIGH_MODEL` である。
+- `READY_FOR_STANDARD_COMPLETION` のときだけ `standard-implementation-completer` / `STANDARD_MODEL` run が存在する。
+- completion が `NEEDS_HIGH_MODEL_REENTRY` を返した場合、次の write owner が `high-implementation-starter` である。
+- 各 run の agent type / model metadata / EditOwner / Parent authorization artifact / verdict が記録されている。
 - `Changed files` / `Checks run` / `Verification verdict` が記録されている。
 
-これを満たさない場合、親は `BlockedByMissingSliceImplDelegation` として停止し、成功扱いしてはいけません。
+これを満たさない場合、親は `BlockedByMissingAdaptiveImplementationDelegation` として停止し、成功扱いしてはいけません。
 
-`slice-impl` に渡す入力は、少なくとも次です。
+`high-implementation-starter` に渡す入力は、少なくとも次です。
 
 - parent Plan
 - Black-box Behavior Spec artifact（Behavior spec artifact required: Yes の場合）
@@ -405,27 +407,30 @@ READY slice は、次の証跡を満たす必要があります。
 - parent review gate の implementation authorization
 - bounded parent Plan pass / Guardrail Focus coverage / non-goals / stop condition
 
-`slice-impl` は次を行います。
+親 orchestration は各 READY slice で次を行います。
 
 1. `implementation-handoff-review` を実行する。
 2. READY でない場合は実装せず停止する。
 3. `Behavior spec artifact required: Yes` の場合は Black-box Behavior Spec、Case-to-Slice mapping、Behavior Case Coverage Ledger が complete であることを確認する。`Expansion required: Yes` でも inline behavior sketch sufficient の場合は、parent Plan / slice artifact 内の Inline behavior sketch、Case-to-Slice mapping、Inline Ready Gate equivalent の coverage disposition を確認する。必要な behavior evidence が欠落・不完全・`UnmappedBlocking`・実装前 `NeedsHumanDecision` を含む場合は実装せず停止する。
-4. 親が承認した assigned slice-local bounded parent Plan pass を実装する。Guardrail Focus artifacts は deep-check guardrail として扱い、implementation scope として扱わない。Behavior Case IDs と negative expectations は実装条件として扱う。
-5. 無関係な refactoring や redesign を行わない。
-6. required checks を実行する。実行できない check は理由を明記する。
-7. slice-local `verification-kernel` を実行し、Behavior Case Evidence Ledger が current Case IDs を扱っているか確認する。
-8. slice-local verification-kernel の verdict（例: `PARENT_PLAN_VERIFIED`、`PARENT_PLAN_NEEDS_RESIDUAL_DECISION`、`PARENT_PLAN_PARTIAL_WITH_FIX_CANDIDATES`、`BLOCKED_*`）と Remaining Work / residual candidates を出力して停止する。
+4. `high-implementation-starter` が actual code / tests / wiring を編集し、focused checks の evidence から remaining design uncertainty を判定する。
+5. `READY_FOR_STANDARD_COMPLETION` の場合だけ complete handoff を検証し、`standard-implementation-completer` を直列に実行する。`NEEDS_HIGH_MODEL_REENTRY` は元 intent と current worktree を保持して HIGH_MODEL へ戻す。
+6. `CONTINUE_HIGH_IMPLEMENTATION` は同一 HIGH_MODEL で継続し、`COMPLETED_BY_HIGH_MODEL` または completion の `COMPLETED` で implementation を終了する。stop verdict では verification へ進まない。
+7. 親は `plans/<ticket-or-slug>-implementation-execution.md` を durable result artifact として作成または更新し、各 phase の result を `Slice Implementation Result: SL-xxx` に集約する。Changed files / checks / acceptance evidence / Remaining Work / Implementation Self-Map / owner and verdict sequence を記録する。
+8. implementation 完了後だけ slice-local `verification-kernel` を実行し、Behavior Case Evidence Ledger が current Case IDs を扱っているか確認する。
+9. slice-local verification-kernel の verdict（例: `PARENT_PLAN_VERIFIED`、`PARENT_PLAN_NEEDS_RESIDUAL_DECISION`、`PARENT_PLAN_PARTIAL_WITH_FIX_CANDIDATES`、`BLOCKED_*`）と Remaining Work / residual candidates を出力して停止する。
 
-`slice-impl` は次を行ってはいけません。
+adaptive slice implementation は次を行ってはいけません。
 
 - parent review gate が承認した bounded parent Plan pass を広げる
 - cross-slice-verification-kernel を実行する
 - `XC-xxx` を単独で完了扱いにする
 - Behavior Case ID、negative expectation、Case-to-Slice mapping を読まずに実装する
 - gap を見つけた場で coverage-gap-resolution へ進む
-- さらに subagent を起動する
+- 同一 slice の HIGH_MODEL と STANDARD_MODEL write owner を並列に起動する
 
-### slice-impl の出力形式
+Implementation Completion Handoff は通常 `plans/<ticket-or-slug>-implementation-execution.md` の該当 slice section に inline で記録します。再開、別 thread、別 model、別 worker の境界を越える場合だけ `plans/<ticket-or-slug>-implementation-completion-handoff.md` または slice ID 付き同等 artifact として tracked にします。
+
+### adaptive slice implementation の出力形式
 
 ```md
 # Slice Implementation Result: SL-xxx
@@ -437,7 +442,8 @@ READY slice は、次の証跡を満たす必要があります。
 
 ## Agent metadata
 
-- Agent type: slice-impl
+- Agent route: high-implementation-starter -> standard-implementation-completer when delegable -> high-implementation-starter on re-entry
+- Owner and verdict sequence:
 - Configured model:
 - Configured reasoning effort:
 - Hook model:
@@ -500,7 +506,10 @@ READY slice は、次の証跡を満たす必要があります。
 | Rule | Status | Evidence |
 | --- | --- | --- |
 | All executable slices passed slice-prep or were blocked | PASS / FAIL | |
-| All READY slices were implemented by slice-impl | PASS / FAIL | |
+| All non-trivial READY slices started with high-implementation-starter | PASS / FAIL | |
+| Standard completion ran only after a valid READY_FOR_STANDARD_COMPLETION handoff | PASS / FAIL / N/A | |
+| NEEDS_HIGH_MODEL_REENTRY returned to high-implementation-starter | PASS / FAIL / N/A | |
+| HIGH and STANDARD write owners did not overlap within a slice | PASS / FAIL | |
 | Parent did not edit production code/tests | PASS / FAIL | |
 | Cross-slice verification was run by parent | PASS / FAIL | |
 ```
@@ -518,7 +527,7 @@ READY slice は、次の証跡を満たす必要があります。
 - slice decomposition artifact
 - 各 slice artifact
 - 各 slice-prep artifact
-- 各 slice-impl result
+- 各 adaptive slice implementation result
 - 各 verification-kernel result
 - Black-box Behavior Spec artifact と Behavior Case mapping（Behavior spec artifact required: Yes の場合）、または Inline behavior sketch と Case mapping（inline behavior sketch sufficient の場合）
 
@@ -563,7 +572,7 @@ cross-slice verification では、見つけた gap をその場で修正しま�
 $token-aware-full-coverage-3layer を使って進めてください。
 ExecutionMode は DELEGATED_IMPLEMENTATION とします。
 
-parent review gate で READY になった slice は、そこで停止せず必ず slice-impl に渡してください。
+parent review gate で READY になった非自明な slice は、そこで停止せず必ず high-implementation-starter から開始してください。
 各 slice の verification-kernel 後に cross-slice-verification-kernel と residual-decision-gate まで実行してください。
 
 人間判断が必要な slice だけ NEEDS_HUMAN_DECISION として止め、実装可能な slice は進めてください。
@@ -587,11 +596,12 @@ slice-prep で各 slice の準備 artifact を作り、parent review gate まで
 - `DELEGATED_IMPLEMENTATION` の場合、親が production code / tests を直接編集していない
 - `plan-slice-decomposition` から直接実装していない
 - Architecture Slice Readiness Gateを通過し、required architecture artifactがcurrentである
-- slice-prepまたはslice-implのarchitecture driftをparent reviewで見逃していない
+- slice-prepまたはAdaptive Implementationのarchitecture driftをparent reviewで見逃していない
 - slice-prep と parent review gate を通している
 - READY でない slice を実装していない
-- `Can implement now? = Yes` の slice はすべて `slice-impl` に渡されている
-- `slice-impl` run が存在しない READY slice は `BlockedByMissingSliceImplDelegation` として停止している
+- `Can implement now? = Yes` の非自明な slice はすべて `high-implementation-starter` から開始している
+- high-model start が存在しない READY slice は `BlockedByMissingAdaptiveImplementationDelegation` として停止している
+- `standard-implementation-completer` は valid handoff 後だけ実行され、re-entry trigger は HIGH_MODEL に戻っている
 - `Agent Usage Ledger` が作成・更新され、`DelegationCompliance` が PASS / FAIL / EXCEPTION_ACCEPTED で判定されている
 - `PARENT_DIRECT_IMPLEMENTATION` は明示理由とユーザー承認がある場合だけ使われ、3層委譲成功としてカウントされていない
 - cross-slice contract を slice 内で完了扱いにしていない

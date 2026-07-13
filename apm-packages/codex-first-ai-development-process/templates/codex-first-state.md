@@ -14,6 +14,10 @@ behavior_case_coverage_ledger_artifact:
 behavior_case_coverage_ledger_status: Complete / Incomplete / N/A / Unknown
 risk_triage_artifact:
 risk_triage_artifact_status: Complete / Incomplete / Missing / Unknown
+shape_handoff_status: NotStarted / Pending / Ready / Consumed / Invalidated / NotRequired / Blocked / Unknown
+remaining_design_uncertainty: None / Unknown / <evidence-backed summary>
+completion_scope: N/A / Unknown / <Work IDs and allowed edit surface>
+shape_reentry_reason: N/A / Unknown / <trigger and invalidating evidence>
 replan_required_items:
 - None
 
@@ -26,6 +30,7 @@ execution_mode: ROUTE_ONLY / DELEGATED_WORK / PARENT_DIRECT_WORK / TRIVIAL_PAREN
 selected_agent_name:
 selected_agent_type:
 agent_subagent_plan:
+edit_owner:
 
 allowed_to_edit: No
 delegation_required: No
@@ -57,6 +62,10 @@ allowed_stop_reasons:
 - RoutingPolicyViolation
 - BlockedByMissingDelegationLedger
 - ReadyForDelegatedImplementation
+- ReadyForHighImplementationStart
+- ReadyForStandardCompletion
+- NeedsHighModelReentry
+- BlockedByInvalidCompletionHandoff
 - ReadyForDelegatedVerification
 - ReadyForImplementationHandoffReview
 - BlockedByBehaviorCaseCoverageLedger
@@ -96,6 +105,16 @@ allowed_stop_reasons:
 - recommended_process: normal / advanced-full-coverage / human-decision-wait / higher-model-review / lower-cost-delegated-scan
 - recommended_next_step:
 
+## Adaptive Implementation
+
+- shape_handoff_status: NotStarted / Pending / Ready / Consumed / Invalidated / NotRequired / Blocked / Unknown
+- remaining_design_uncertainty: None / Unknown / <evidence-backed summary>
+- completion_scope: N/A / Unknown / <Work IDs and allowed edit surface>
+- shape_reentry_reason: N/A / Unknown / <trigger and invalidating evidence>
+- owner_and_verdict_sequence:
+- implementation_result_artifact: plans/<ticket-or-slug>-implementation-execution.md
+- tracked_completion_handoff: N/A / plans/<ticket-or-slug>-implementation-completion-handoff.md
+
 ## Execution Mode
 
 - execution_mode: ROUTE_ONLY / DELEGATED_WORK / PARENT_DIRECT_WORK / TRIVIAL_PARENT_FIX
@@ -107,7 +126,7 @@ allowed_stop_reasons:
 ## Edit Permission
 
 - allowed_to_edit: Yes / No
-- edit_owner: parent / standard-implementer / standard-verifier / high-planner / black-box-behavior-spec-kernel / implementation-handoff-review / high-implementation-contract / high-risk-triage / high-closure-reviewer / cheap-repo-scanner / cheap-doc-consistency / cheap-artifact-format-checker / human / none
+- edit_owner: parent / high-implementation-starter / standard-implementation-completer / standard-implementer-legacy / standard-verifier / high-planner / black-box-behavior-spec-kernel / implementation-handoff-review / high-implementation-contract / high-risk-triage / high-closure-reviewer / cheap-repo-scanner / cheap-doc-consistency / cheap-artifact-format-checker / human / none
 - parent_direct_edit_allowed: Yes / No
 - allowed_paths:
 - forbidden_paths:
@@ -140,15 +159,20 @@ unresolved_residuals:
 - None
 
 operations_not_allowed_in_current_state:
+- Keep `current_status` equal to the actual Adaptive verdict, and switch `selected_agent_name`, `recommended_model_tier`, and `edit_owner` to the active `high-implementation-starter`, `standard-implementation-completer`, or `standard-verifier` phase.
+- Record `delegation_required: Yes` for both HIGH implementation start/re-entry and STANDARD completion.
 - Do not implement before READY.
 - Do not record `strict` or `full-coverage` as documentation_level; use only `lite` or `standard`.
 - Do not select risk/profile/full-coverage before plan_readiness = ReadyForRiskTriage.
 - Do not route requirement-elaboration gaps to full-coverage or fix-slice.
 - Do not route to implementation-handoff-review until risk_triage_artifact_status = Complete and `plans/<ticket-or-slug>-change-risk-triage.md` exists.
-- Do not route to standard-implementer before implementation-handoff-review or an explicitly equivalent pre-implementation gate creates the parent authorization artifact.
-- If expansion_required = Yes, do not route to standard-implementer until behavior_case_coverage_ledger_status = Complete.
+- Do not route non-trivial READY implementation directly to standard-implementer or standard-implementation-completer. Start with high-implementation-starter after implementation-handoff-review or an explicitly equivalent pre-implementation gate creates the parent authorization artifact.
+- If expansion_required = Yes, do not route to high-implementation-starter until behavior_case_coverage_ledger_status = Complete.
+- Do not route to standard-implementation-completer until shape_handoff_status = Ready and a complete READY_FOR_STANDARD_COMPLETION handoff exists.
+- If standard-implementation-completer returns NEEDS_HIGH_MODEL_REENTRY, set shape_handoff_status = Invalidated and return to high-implementation-starter before any further implementation edit.
+- Do not overlap high-implementation-starter and standard-implementation-completer write ownership.
 - Do not parent-direct execute a gate with DelegationRequired = Yes unless ParentDirectExecutionException has explicit human approval.
-- Do not mark implementation complete without observed standard-implementer run or accepted exception in the audit artifact.
+- Do not mark implementation complete without an observed high-implementation-starter run and any required standard completion/re-entry runs, or an accepted exception in the audit artifact.
 - Do not mark verification complete without observed standard-verifier run or accepted exception in the audit artifact.
 - Do not perform secret, external service, billing, or production operations without explicit approval.
 - Do not close with unresolved ManualVerificationRequired, NeedsHumanDecision, or NeedsHigherModelReview.

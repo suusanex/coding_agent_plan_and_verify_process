@@ -110,7 +110,21 @@ $requiredFiles = @(
     'apm-packages/adaptive-implementation-execution/docs/usage-guide.md',
     'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md',
     'apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs',
-    'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1'
+    'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1',
+    'apm-packages/token-aware-guardrail-kernel-flow/apm.yml',
+    'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md',
+    'apm-packages/token-aware-full-coverage-3layer/apm.yml',
+    'apm-packages/token-aware-full-coverage-3layer/.apm/instructions/token-aware-full-coverage-3layer.instructions.md',
+    'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md',
+    'apm-packages/codex-first-ai-development-process/apm.yml',
+    'apm-packages/codex-first-ai-development-process/templates/codex-first-state.md',
+    'apm-packages/codex-first-ai-development-process/templates/codex-first-audit.md',
+    'apm-packages/codex-first-ai-development-process/profiles/codex-first/agents/high-implementation-starter.toml',
+    'apm-packages/codex-first-ai-development-process/profiles/codex-first/agents/standard-implementation-completer.toml',
+    'apm-packages/copilot-fallback-ai-development-process/apm.yml',
+    'apm-packages/copilot-fallback-ai-development-process/templates/codex-first-state.md',
+    'apm-packages/copilot-fallback-ai-development-process/templates/github/agents/high-implementation-starter.agent.md',
+    'apm-packages/copilot-fallback-ai-development-process/templates/github/agents/standard-implementation-completer.agent.md'
 )
 
 foreach ($file in $requiredFiles) {
@@ -124,6 +138,7 @@ if ($packageAgentsFiles.Count -gt 0) {
 
 $manifest = 'apm-packages/adaptive-implementation-execution/apm.yml'
 Assert-Contains $manifest '(?m)^name:\s*adaptive-implementation-execution\s*$' 'package name'
+Assert-Contains $manifest '(?m)^version:\s*0\.1\.1\s*$' 'package version 0.1.1'
 Assert-Contains $manifest '(?m)^\s*-\s+codex\s*$' 'codex target'
 Assert-Contains $manifest '(?m)^\s*-\s+agent-skills\s*$' 'agent-skills target'
 Assert-NotContains $manifest '(?m)^\s*-\s+copilot\s*$' 'unverified Copilot target'
@@ -158,6 +173,72 @@ if (Test-Path -LiteralPath $manifestPath) {
         }
     }
 }
+
+$integratedManifests = @(
+    @{ Path = 'apm-packages/token-aware-guardrail-kernel-flow/apm.yml'; Version = '0\.5\.0' },
+    @{ Path = 'apm-packages/token-aware-full-coverage-3layer/apm.yml'; Version = '0\.3\.0' },
+    @{ Path = 'apm-packages/codex-first-ai-development-process/apm.yml'; Version = '0\.4\.0' },
+    @{ Path = 'apm-packages/copilot-fallback-ai-development-process/apm.yml'; Version = '0\.2\.0' }
+)
+
+foreach ($integratedManifest in $integratedManifests) {
+    $integratedManifestPath = $integratedManifest.Path
+    Assert-Contains $integratedManifestPath ("(?m)^version:\s*" + $integratedManifest.Version + '\s*$') "expected package version $($integratedManifest.Version -replace '\\', '')"
+
+    $absoluteManifestPath = Join-Path $repoRoot $integratedManifestPath
+    if (-not (Test-Path -LiteralPath $absoluteManifestPath)) {
+        continue
+    }
+
+    $dependencyPaths = Select-String -LiteralPath $absoluteManifestPath -Pattern '^\s*path:\s*(.+?)\s*$' | ForEach-Object {
+        $_.Matches[0].Groups[1].Value.Trim()
+    }
+    foreach ($dependencyPath in $dependencyPaths) {
+        if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $dependencyPath))) {
+            Add-Failure "$integratedManifestPath dependency does not exist: $dependencyPath"
+        }
+    }
+}
+
+foreach ($integratedManifestPath in @(
+    'apm-packages/token-aware-guardrail-kernel-flow/apm.yml',
+    'apm-packages/token-aware-full-coverage-3layer/apm.yml',
+    'apm-packages/codex-first-ai-development-process/apm.yml'
+)) {
+    Assert-Contains $integratedManifestPath 'apm-packages/adaptive-implementation-execution/\.apm/skills/adaptive-implementation-execution' 'Adaptive Implementation skill dependency'
+    Assert-Contains $integratedManifestPath '\.github/agents/high-implementation-starter\.agent\.md' 'canonical HIGH agent dependency'
+    Assert-Contains $integratedManifestPath '\.github/agents/standard-implementation-completer\.agent\.md' 'canonical STANDARD agent dependency'
+    Assert-Contains $integratedManifestPath '\.github/agents/implementation-execution\.agent\.md' 'legacy implementation dependency'
+}
+
+$planCoverageSkill = 'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md'
+Assert-Contains $planCoverageSkill 'Every non-trivial pass starts with `high-implementation-starter\.agent\.md` on `HIGH_MODEL`' 'Plan Coverage HIGH_MODEL start'
+Assert-Contains $planCoverageSkill '`READY_FOR_STANDARD_COMPLETION`.*`standard-implementation-completer\.agent\.md`' 'Plan Coverage bounded STANDARD completion'
+Assert-Contains $planCoverageSkill '`NEEDS_HIGH_MODEL_REENTRY`.*`high-implementation-starter\.agent\.md`' 'Plan Coverage HIGH_MODEL re-entry'
+Assert-Contains $planCoverageSkill 'plans/<slug>-implementation-execution\.md' 'stable implementation result artifact name'
+Assert-Contains $planCoverageSkill 'completion handoff inline unless resume, another thread/model, or another worker requires a tracked' 'inline completion handoff default'
+Assert-Contains '.github/agents/change-risk-triage.agent.md' 'implementation-internal.*implementation phase' 'risk triage shape boundary'
+
+$fullCoverageSkill = 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md'
+Assert-Contains $fullCoverageSkill 'non-trivial READY slice.*high-implementation-starter' 'per-slice HIGH_MODEL start'
+Assert-Contains $fullCoverageSkill 'READY_FOR_STANDARD_COMPLETION.*standard-implementation-completer' 'per-slice STANDARD completion gate'
+Assert-Contains $fullCoverageSkill 'NEEDS_HIGH_MODEL_REENTRY.*high-implementation-starter' 'per-slice HIGH_MODEL re-entry'
+Assert-Contains $fullCoverageSkill 'HIGH and STANDARD write owners did not overlap' 'per-slice serial ownership audit'
+Assert-Contains $fullCoverageSkill '`slice-impl`.*legacy compatibility' 'legacy slice implementation notice'
+Assert-Contains $fullCoverageSkill 'BlockedByMissingAdaptiveImplementationDelegation' 'missing adaptive delegation blocker'
+Assert-Contains $fullCoverageSkill 'plans/<ticket-or-slug>-implementation-execution\.md' 'full-coverage durable implementation result artifact'
+Assert-Contains $fullCoverageSkill 'Completion Handoff.*inline' 'full-coverage inline completion handoff default'
+$fullCoverageInstruction = 'apm-packages/token-aware-full-coverage-3layer/.apm/instructions/token-aware-full-coverage-3layer.instructions.md'
+Assert-Contains $fullCoverageInstruction 'high-implementation-starter' 'full-coverage instruction HIGH start'
+Assert-Contains $fullCoverageInstruction 'standard-implementation-completer' 'full-coverage instruction STANDARD completion'
+Assert-Contains $fullCoverageInstruction 'NEEDS_HIGH_MODEL_REENTRY' 'full-coverage instruction HIGH re-entry'
+Assert-Contains $fullCoverageInstruction '`slice-impl`.*legacy compatibility' 'full-coverage instruction legacy notice'
+Assert-NotContains $fullCoverageInstruction 'BlockedByMissingSliceImplDelegation' 'obsolete missing slice-impl blocker'
+
+Assert-Contains '.github/agents/implementation-execution.agent.md' 'Compatibility status: legacy' 'legacy Plan Coverage implementation notice'
+Assert-Contains 'apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-impl.agent.md' 'Compatibility status: legacy' 'legacy slice implementation notice'
+Assert-Contains 'apm-packages/codex-first-ai-development-process/profiles/codex-first/agents/standard-implementer.toml' 'Compatibility status: legacy' 'legacy Codex-first implementation notice'
+Assert-Contains 'apm-packages/copilot-fallback-ai-development-process/templates/github/agents/copilot-standard-implementer.agent.md' 'Compatibility status: legacy' 'legacy Copilot implementation notice'
 
 $skill = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md'
 Assert-Contains $skill 'high-implementation-starter' 'HIGH_MODEL start route'
@@ -258,10 +339,78 @@ if ($standardConfigDescription -ne $standardPortableDescription) {
     Add-Failure 'STANDARD_MODEL TOML and portable agent descriptions must match for APM stub recognition'
 }
 
+$codexHighToml = 'apm-packages/codex-first-ai-development-process/profiles/codex-first/agents/high-implementation-starter.toml'
+$codexStandardToml = 'apm-packages/codex-first-ai-development-process/profiles/codex-first/agents/standard-implementation-completer.toml'
+foreach ($mapping in @(
+    @{ Adaptive = $highToml; CodexFirst = $codexHighToml },
+    @{ Adaptive = $standardToml; CodexFirst = $codexStandardToml }
+)) {
+    foreach ($key in @('name', 'model', 'model_reasoning_effort', 'sandbox_mode')) {
+        $adaptiveValue = Get-TomlString $mapping.Adaptive $key
+        $codexFirstValue = Get-TomlString $mapping.CodexFirst $key
+        if ($adaptiveValue -ne $codexFirstValue) {
+            Add-Failure "$($mapping.CodexFirst) $key must match $($mapping.Adaptive): expected '$adaptiveValue', got '$codexFirstValue'"
+        }
+    }
+}
+
+foreach ($stateTemplate in @(
+    'apm-packages/codex-first-ai-development-process/templates/codex-first-state.md',
+    'apm-packages/copilot-fallback-ai-development-process/templates/codex-first-state.md'
+)) {
+    Assert-Contains $stateTemplate 'shape_handoff_status: NotStarted / Pending / Ready / Consumed / Invalidated / NotRequired / Blocked / Unknown' 'shape handoff status enum'
+    Assert-Contains $stateTemplate 'remaining_design_uncertainty: None / Unknown / <evidence-backed summary>' 'remaining design uncertainty field'
+    Assert-Contains $stateTemplate 'completion_scope: N/A / Unknown / <Work IDs and allowed edit surface>' 'completion scope field'
+    Assert-Contains $stateTemplate 'shape_reentry_reason: N/A / Unknown / <trigger and invalidating evidence>' 'shape re-entry reason field'
+    foreach ($stopReason in @('ReadyForHighImplementationStart', 'ReadyForStandardCompletion', 'NeedsHighModelReentry', 'BlockedByInvalidCompletionHandoff', 'ReadyForDelegatedImplementation')) {
+        Assert-Contains $stateTemplate $stopReason "stop reason $stopReason"
+    }
+    Assert-Contains $stateTemplate 'high-implementation-starter' 'HIGH implementation owner'
+    Assert-Contains $stateTemplate 'standard-implementation-completer' 'STANDARD completion owner'
+    Assert-Contains $stateTemplate 'standard-verifier|copilot-standard-verifier' 'verification owner'
+    Assert-Contains $stateTemplate 'delegation_required.*(?:Yes|true).*HIGH implementation start/re-entry.*STANDARD completion|DelegationRequired = Yes.*HIGH implementation start/re-entry.*STANDARD completion' 'delegation required rule for both implementation owners'
+}
+
+$auditTemplate = 'apm-packages/codex-first-ai-development-process/templates/codex-first-audit.md'
+Assert-Contains $auditTemplate 'HIGH implementation started before any standard completion' 'HIGH start audit row'
+Assert-Contains $auditTemplate 'STANDARD completion delegated only after valid handoff' 'valid STANDARD handoff audit row'
+Assert-Contains $auditTemplate 'NEEDS_HIGH_MODEL_REENTRY returned to HIGH implementation' 'HIGH re-entry audit row'
+Assert-Contains $auditTemplate 'HIGH and STANDARD write ownership did not overlap' 'serial write ownership audit row'
+
+$copilotHighAgent = 'apm-packages/copilot-fallback-ai-development-process/templates/github/agents/high-implementation-starter.agent.md'
+$copilotStandardAgent = 'apm-packages/copilot-fallback-ai-development-process/templates/github/agents/standard-implementation-completer.agent.md'
+Assert-Contains $copilotHighAgent '(?m)^name:\s*high-implementation-starter\s*$' 'Copilot canonical HIGH agent name'
+Assert-Contains $copilotHighAgent '(?m)^model:\s*GPT-5\.6 Terra \(copilot\)\s*$' 'Copilot HIGH model mapping'
+Assert-Contains $copilotHighAgent 'agent: standard-implementation-completer' 'Copilot completion handoff'
+Assert-Contains $copilotHighAgent 'edit real production code and tests' 'Copilot real implementation loop'
+Assert-Contains $copilotHighAgent 'READY_FOR_STANDARD_COMPLETION' 'Copilot HIGH handoff verdict'
+Assert-Contains $copilotHighAgent 'COMPLETED_BY_HIGH_MODEL' 'Copilot HIGH completion verdict'
+Assert-Contains $copilotHighAgent 'Blocked acceptance items' 'Copilot blocked acceptance rejection'
+Assert-Contains $copilotHighAgent 'evidence for Complete items' 'Copilot complete acceptance evidence rule'
+Assert-Contains $copilotHighAgent 'Own completion unless both Remaining work and Allowed edit surface strictly shrink' 'Copilot re-entry ownership rule'
+Assert-Contains $copilotStandardAgent '(?m)^name:\s*standard-implementation-completer\s*$' 'Copilot canonical STANDARD agent name'
+Assert-Contains $copilotStandardAgent '(?m)^model:\s*GPT-5\.6 Luna \(copilot\)\s*$' 'Copilot STANDARD model mapping'
+Assert-Contains $copilotStandardAgent 'agent: high-implementation-starter' 'Copilot HIGH re-entry handoff'
+Assert-Contains $copilotStandardAgent 'NEEDS_HIGH_MODEL_REENTRY' 'Copilot HIGH re-entry verdict'
+Assert-Contains $copilotStandardAgent 'Allowed edit surface' 'Copilot bounded edit surface'
+Assert-Contains $copilotStandardAgent 'preserve Locked decisions' 'Copilot locked decision boundary'
+Assert-Contains $copilotStandardAgent 'incremented reentry count' 'Copilot re-entry count rule'
+Assert-Contains $copilotStandardAgent 'every in-scope acceptance item is Complete' 'Copilot completion evidence gate'
+Assert-Contains 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs' 'shape_handoff_status.*remaining_design_uncertainty.*completion_scope.*shape_reentry_reason' 'managed AGENTS Adaptive state guidance'
+
 $validation = 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md'
 foreach ($id in 1..8) {
     Assert-Contains $validation ("VAL-00$id") "validation scenario VAL-00$id"
 }
+foreach ($id in 1..5) {
+    Assert-Contains $validation ("INT-00$id") "integration validation scenario INT-00$id"
+}
+Assert-Contains $validation '新規 service \+ DI \+ tests' 'new service integration scenario'
+Assert-Contains $validation '大きな class からの責務分離' 'responsibility extraction integration scenario'
+Assert-Contains $validation 'async \+ retry \+ cancellation' 'async retry cancellation integration scenario'
+Assert-Contains $validation '既存 pattern が明確な早期 STANDARD 委譲' 'early STANDARD delegation integration scenario'
+Assert-Contains $validation 'STANDARD 中の構造判断再発と HIGH re-entry' 'HIGH re-entry integration scenario'
+Assert-Contains $validation '実モデル比較.*NOT RUN' 'manual runtime comparison status'
 
 $installer = 'apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs'
 Assert-Contains $installer '(?m)^#:property TargetFramework=net10\.0\s*$' 'File-based app target framework'
@@ -288,6 +437,15 @@ Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/ad
 
 $workflow = '.github/workflows/validate-adaptive-implementation-execution.yml'
 Assert-Contains $workflow 'validate-adaptive-implementation-execution\.ps1' 'Adaptive Implementation CI validator invocation'
+foreach ($pathFilter in @(
+    'apm-packages/token-aware-guardrail-kernel-flow/\*\*',
+    'apm-packages/token-aware-full-coverage-3layer/\*\*',
+    'apm-packages/codex-first-ai-development-process/\*\*',
+    'apm-packages/copilot-fallback-ai-development-process/\*\*',
+    'docs/\*\*'
+)) {
+    Assert-Contains $workflow $pathFilter "CI path filter $pathFilter"
+}
 
 Assert-Contains 'README.md' 'apm-packages/adaptive-implementation-execution' 'root package link'
 
