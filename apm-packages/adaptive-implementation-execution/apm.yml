@@ -1,0 +1,16 @@
+name: adaptive-implementation-execution
+version: 0.1.0
+description: Adaptive serial implementation routing from ordinary Plans through high-model implementation and bounded standard-model completion
+type: hybrid
+targets:
+  - codex
+  - agent-skills
+includes: auto
+
+dependencies:
+  apm:
+    - git: parent
+      path: .github/agents/high-implementation-starter.agent.md
+    - git: parent
+      path: .github/agents/standard-implementation-completer.agent.md
+

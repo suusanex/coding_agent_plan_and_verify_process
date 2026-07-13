@@ -4,7 +4,7 @@ GitHub Copilot / Codex で Plan-first 開発をするための agent（`.github/
 
 単純な Plan モードでは不十分と感じた点を、自分の用途向けに改善したものです。
 
-この repository には、大きく分けて 3 系統のプロセスがあります。
+この repository には、大きく分けて 4 系統のプロセスがあります。
 
 1. Full autonomous Plan-first flow
    runtime evidence・integration test の設計・検証・ギャップ解消を広く使い、ゴールまで自走しやすい従来型のフロー。
@@ -16,7 +16,10 @@ GitHub Copilot / Codex で Plan-first 開発をするための agent（`.github/
 
 Migration note: 旧称 `Token-aware guardrail kernel flow` は、この新フローへ移行済みの legacy name です。通常の prompt では新名称を使ってください。
 
-3. Codex-first AI Development Process
+3. Adaptive Implementation Execution
+   通常 Plan Mode 後の非自明な実装を HIGH_MODEL で開始し、実コードと focused verification の evidence に基づいて、安全な残作業だけを STANDARD_MODEL へ直列委譲する implementation-only flow。Plan Coverage artifacts は必須にしません。
+
+4. Codex-first AI Development Process
    Codex を第一優先にし、初心者でも短い依頼から cost-aware routing に入れる応用運用。中核はモデル tier の自動分担であり、full-coverage 3層運用は標準ルートではなく advanced route として分離します。
 
 ---
@@ -62,6 +65,7 @@ Source requirement
 
 | package | Use when |
 | --- | --- |
+| `apm-packages/adaptive-implementation-execution` | 通常 Plan Mode 後の非自明な実装を HIGH_MODEL で開始し、実コード上の decision surface が解消した場合だけ STANDARD_MODEL へ直列委譲したい |
 | `apm-packages/codex-first-ai-development-process` | Codex を第一優先にし、短い依頼から cost-aware routing、モデル tier 分担、READY / close gate、stateful resume に入りたい |
 | `apm-packages/copilot-fallback-ai-development-process` | Codex 枠が尽きた場合などに、GitHub Copilot Chat in VS Code へ同じ思想の cost-aware process を repo-local 導入したい |
 | `apm-packages/token-aware-guardrail-kernel-flow` | operator が Plan網羅チェック・残件判定フローを直接選べる。通常利用では `plan-coverage-residual-flow` skill を入口にして既存 agent 群を進行管理したい |
@@ -79,12 +83,21 @@ Source requirement
 
 | Script | Use when | Installs / fixes |
 | --- | --- | --- |
+| `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM 導入後に Adaptive Implementation の concrete Codex profile を repository-local に同期したい | `AGENTS.md` の managed section、`.codex/agents/high-implementation-starter.toml`、`.codex/agents/standard-implementation-completer.toml` |
 | `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、`.agents/skills/codex-first-cost-router/SKILL.md`、`templates/*.md` |
 | `scripts/provision-work-repo-agents.cs` | 既存の token-aware / full-coverage package を APM 経由で導入し、生成された Codex agent TOML と full-coverage template 配置を補正したい | `apm install` の実行、`.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level `model` / `model_reasoning_effort` / `sandbox_mode` 補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置 |
 | `scripts/validate-architecture-slice-readiness.ps1` | Architecture Slice Readinessのagent、manifest、template、routing、validation resultを静的検証したい | dependency path、frontmatter、必須contract、旧direct routeの残存を検証 |
 
 Codex-first を使いたい場合の入口は `apply-codex-first-local.cs` です。
 `provision-work-repo-agents.cs` は legacy / existing package 向けの APM 補助であり、Codex-first local bootstrap には使いません。
+
+Adaptive Implementation package を変更した場合は、次を実行してください。
+
+```powershell
+./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1
+dotnet publish ./apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs
+git diff --check
+```
 
 Architecture Slice Readiness contractを変更した場合は、repository rootで次を実行してください。このcheckはGitHub Actionsでも実行されます。
 
@@ -119,6 +132,48 @@ dotnet run --file scripts/provision-work-repo-agents.cs -- "C:\\path\\to\\work-r
 
 `--dry-run` と `--check` では `apm` 実行やファイル書き込みは行いません。
 既存値を上書きして補正したい場合だけ `--force` を使います。
+
+---
+
+## Adaptive Implementation Execution
+
+通常 Plan Mode output、手書き Plan、repository-tracked Plan、または Issue 内の実装計画を入力にする、独立した implementation-only flow です。
+
+すべての非自明な implementation は `high-implementation-starter` が開始し、production code / tests を実際に編集して focused verification を行います。残作業に新しい構造上の意思決定が不要になった場合だけ、`Implementation Completion Handoff` を介して `standard-implementation-completer` へ直列委譲します。
+
+```text
+ordinary Plan
+  -> high-implementation-starter [HIGH_MODEL]
+       -> READY_FOR_STANDARD_COMPLETION
+            -> standard-implementation-completer [STANDARD_MODEL]
+                 -> COMPLETED
+                 -> NEEDS_HIGH_MODEL_REENTRY
+                      -> high-implementation-starter [HIGH_MODEL]
+       -> COMPLETED_BY_HIGH_MODEL
+```
+
+課題全体が small-bounded、low risk、少数ファイルであることだけを STANDARD_MODEL 直行の理由にしません。安全な delegation point がなければ HIGH_MODEL が完了まで担当します。HIGH_MODEL と STANDARD_MODEL の write-heavy work は並列化しません。
+
+この package は Plan Coverage Lite / Standard / Full Coverage の縮小版ではありません。Plan Coverage artifacts、change-risk-triage、runtime contract、test design、coverage ledger、residual decision を必須にせず、final code review または総合 architecture review も置き換えません。
+
+APM で導入する場合:
+
+```powershell
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
+```
+
+起動例:
+
+```text
+$adaptive-implementation-execution を使って、直前の Plan を実装してください。
+```
+
+詳細:
+
+- `apm-packages/adaptive-implementation-execution/README.md`
+- `apm-packages/adaptive-implementation-execution/docs/install-guide.md`
+- `apm-packages/adaptive-implementation-execution/docs/usage-guide.md`
+- `apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md`
 
 ---
 
