@@ -1,0 +1,29 @@
+name: Validate Adaptive Implementation Contracts
+
+on:
+  pull_request:
+    paths:
+      - '.github/agents/high-implementation-starter.agent.md'
+      - '.github/agents/standard-implementation-completer.agent.md'
+      - '.github/workflows/validate-adaptive-implementation-execution.yml'
+      - 'apm-packages/adaptive-implementation-execution/**'
+      - 'README.md'
+  push:
+    paths:
+      - '.github/agents/high-implementation-starter.agent.md'
+      - '.github/agents/standard-implementation-completer.agent.md'
+      - '.github/workflows/validate-adaptive-implementation-execution.yml'
+      - 'apm-packages/adaptive-implementation-execution/**'
+      - 'README.md'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-adaptive-implementation:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Adaptive Implementation contracts
+        shell: pwsh
+        run: ./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1
