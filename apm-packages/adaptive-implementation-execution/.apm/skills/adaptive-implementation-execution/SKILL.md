@@ -45,7 +45,14 @@ implementation_intent:
   plan_reference:
 ```
 
-`goal`、`scope`、`acceptance` は必須です。`non_goals`、`constraints`、`validation`、`plan_reference` は任意であり、明示されていない場合は repository instructions、existing code、original request から推定します。長い正規化 artifact を常に作成しません。最低限、何を変更するか、scope、完了条件を判断できれば inline intent のまま進めます。
+`goal`、`scope`、`acceptance` は必須です。`non_goals`、`constraints`、`validation`、`plan_reference` は任意です。未指定時は次のように扱います。
+
+- `non_goals`: source request から明確に導ける場合だけ記録し、それ以外は `Not specified` とする。existing code から scope を狭めない
+- `constraints`: user request または repository instructions が強制する内容だけを記録する
+- `validation`: repository standard から推定できる
+- `plan_reference`: source request から特定できる場合だけ記録する
+
+長い正規化 artifact を常に作成しません。最低限、何を変更するか、scope、完了条件を判断できれば inline intent のまま進めます。
 
 入力不足によりこの3点を判断できない場合は、内部設計を推測せず `REPLAN_REQUIRED` または `HUMAN_DECISION_REQUIRED` で停止します。
 
@@ -114,6 +121,11 @@ HIGH_MODEL が scope 内の acceptance item をすべて `Complete` とし、各
 - production path / wiring、test harness、test seam、mock boundary の applicability evidence がある。該当しない concern は `N/A` と理由がある
 - focused verification が実行済み
 - scope 内の全 acceptance item と現在の status / evidence が列挙されている
+- `Blocked` の acceptance item が存在しない
+- すべての `Incomplete` acceptance item が1件以上の `Remaining work` Work ID に対応している
+- すべての `Remaining work` row が1件以上の `Incomplete` acceptance item に対応している
+- すべての `Complete` acceptance item に implementation または validation evidence がある
+- Acceptance status の mapping と Remaining work の acceptance item(s) が双方向に一致している
 - locked decisions が明示されている
 - remaining work が file / symbol / expected behavior 単位
 - allowed edit surface が明示されている
@@ -151,7 +163,13 @@ STANDARD_MODEL の `High-model Re-entry Handoff`、元の Implementation Intent�
 
 STANDARD_MODEL に redesign を続行させません。re-entry 後の HIGH_MODEL は actual code と new evidence を読み、必要な設計判断と実装を行います。1 回 re-entry した後は HIGH_MODEL が完了まで担当することを既定とします。
 
-再委譲できるのは、前回 handoff と比較して `Remaining work` と `Allowed edit surface` の両方が厳密に縮小し、前回と同じ re-entry trigger が再発しておらず、`delegation_surface_reduced: Yes` を evidence 付きで記録できる場合だけです。それ以外は HIGH_MODEL が実装を継続します。各 handoff は `reentry_count`、`previous_reentry_trigger`、`delegation_surface_reduced` を保持します。
+re-entry state は次の順に更新します。
+
+1. 初回 HIGH_MODEL handoff は `reentry_count: 0`、`previous_reentry_trigger: N/A`、`delegation_surface_reduced: N/A` とする。
+2. STANDARD_MODEL は `NEEDS_HIGH_MODEL_REENTRY` で、`Trigger` に今回の trigger、`reentry_count` に incoming value + 1、`previous_reentry_trigger` に incoming value を設定する。
+3. HIGH_MODEL が再委譲する場合、re-entry handoff の `reentry_count` を維持し、`previous_reentry_trigger` にその `Trigger` を設定し、`delegation_surface_reduced: Yes` とする。
+
+再委譲できるのは、前回 handoff と比較して `Remaining work` と `Allowed edit surface` の両方が厳密に縮小し、re-entry handoff の `Trigger` がその `previous_reentry_trigger` と異なり、`delegation_surface_reduced: Yes` を evidence 付きで記録できる場合だけです。それ以外は HIGH_MODEL が実装を継続します。
 
 ### Other stop verdicts
 

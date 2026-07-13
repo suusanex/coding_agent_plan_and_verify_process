@@ -40,12 +40,12 @@ read relevant code
 - scope
 - acceptance
 
-次は任意 input です。明示されていない場合は、repository instructions、existing code、original request から推定し、推定した内容を出力に記録します。
+次は任意 input です。明示されていない場合は、次の規則で扱い、推定した内容を出力に記録します。
 
-- constraints
-- non-goals
-- validation expectation
-- Plan reference または source request
+- constraints: user request または repository instructions が強制する内容だけを採用する
+- non-goals: source request から明確に導ける場合だけ採用し、それ以外は `Not specified` とする
+- validation expectation: repository standard から推定できる
+- Plan reference: source request から特定できる場合だけ採用する
 
 validation expectation が明示されていない場合は repository standard を採用し、`Validation expectation: inferred from repository` と報告します。
 
@@ -93,6 +93,10 @@ Plan Coverage、change-risk-triage、runtime-contract、test-design、coverage l
 - allowed edit surface を明示できる
 - STANDARD_MODEL が locked decisions を変えずに完了できる
 - 少なくとも focused verification を実行し、結果を記録している
+- `Blocked` の acceptance item が存在しない
+- すべての `Incomplete` acceptance item が1件以上の `Remaining work` Work ID に対応している
+- すべての `Remaining work` row が1件以上の `Incomplete` acceptance item に対応している
+- すべての `Complete` acceptance item に implementation または validation evidence がある
 
 production path / wiring、test harness、test seam、mock boundary のいずれかが今回の scope に該当しない場合は、単に省略せず `N/A` と理由を evidence として記録します。
 
@@ -107,7 +111,12 @@ STANDARD_MODEL から一度 re-entry した後は、原則として HIGH_MODEL �
 - 前回と同じ re-entry trigger が再発していない
 - `delegation_surface_reduced: Yes` を evidence 付きで記録できる
 
-同じ trigger が再発した場合、または縮小を証明できない場合は、HIGH_MODEL が実装を続けます。handoff には `reentry_count`、`previous_reentry_trigger`、`delegation_surface_reduced` を記録します。
+同じ trigger が再発した場合、または縮小を証明できない場合は、HIGH_MODEL が実装を続けます。handoff の re-entry state は次の規則で更新します。
+
+- 初回 handoff は `reentry_count: 0`、`previous_reentry_trigger: N/A`、`delegation_surface_reduced: N/A` とする
+- STANDARD_MODEL から戻った re-entry handoff の `reentry_count` と `Trigger` を読む
+- 再委譲する場合は re-entry handoff の `reentry_count` を維持し、`previous_reentry_trigger` にその `Trigger` を設定し、`delegation_surface_reduced: Yes` とする
+- re-entry handoff の `Trigger` がその `previous_reentry_trigger` と同じ場合は再発として扱い、再委譲しない
 
 ## Handoff
 
@@ -132,7 +141,7 @@ STANDARD_MODEL から一度 re-entry した後は、原則として HIGH_MODEL �
 - delegation_surface_reduced
 - Known assumptions / unresolved observations
 
-`Remaining work` は file / symbol / expected behavior 単位で記述します。`Allowed edit surface` は files と、必要なら symbols を明示します。
+`Remaining work` は一意な Work ID と acceptance item mapping を持ち、file / symbol / expected behavior 単位で記述します。`Acceptance status` の mapping と `Remaining work` の acceptance item(s) は双方向に一致させます。`Allowed edit surface` は files と、必要なら symbols を明示します。
 
 ## Verdicts
 

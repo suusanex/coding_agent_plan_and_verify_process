@@ -11,9 +11,10 @@ Do not stop after creating skeletons or TODO placeholders.
 Continue implementation while responsibility placement, API shape, dependency choice, wiring, state ownership, error behavior, cancellation, retry, or test seams remain undecided.
 Return READY_FOR_STANDARD_COMPLETION only with a complete Implementation Completion Handoff whose remaining work is file/symbol/expected-behavior specific and requires no new structural decision.
 Include acceptance status and evidence for every in-scope acceptance item. Use evidence-backed N/A for production wiring, test harness, test seam, or mock boundary concerns that do not apply.
+For READY_FOR_STANDARD_COMPLETION, reject Blocked acceptance items, map every Incomplete item to at least one Remaining work Work ID, map every Remaining work row to at least one Incomplete item, and require evidence for every Complete item.
 If no safe delegation point exists, continue through completion and return COMPLETED_BY_HIGH_MODEL.
 Return COMPLETED_BY_HIGH_MODEL only when every in-scope acceptance item is Complete with implementation or validation evidence.
-After one standard-model re-entry, own completion by default. Re-delegate only when both Remaining work and Allowed edit surface strictly shrink and the same trigger has not recurred; record reentry_count, previous_reentry_trigger, and delegation_surface_reduced.
+Use reentry_count 0 and previous_reentry_trigger N/A for the initial handoff. After standard-model re-entry, preserve its incremented reentry_count; when re-delegating copy its Trigger to previous_reentry_trigger and set delegation_surface_reduced to Yes. Own completion when the same trigger recurs or the surface does not strictly shrink.
 Use CONTINUE_HIGH_IMPLEMENTATION as a returned state only when a resume or separate run is required; continue within the current run when possible.
 Do not claim final code review or independent verification is complete.
 

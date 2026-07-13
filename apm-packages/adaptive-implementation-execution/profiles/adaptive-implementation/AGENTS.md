@@ -24,10 +24,13 @@ Plan Coverage artifacts は必須ではない。goal、scope、acceptance を判
 - safe delegation point がなければ HIGH_MODEL が完了まで実装してよい。
 - STANDARD_MODEL が新しい design decision を発見した場合は、`NEEDS_HIGH_MODEL_REENTRY` で停止し、元 intent と handoff を保持して HIGH_MODEL に戻す。
 - 一度 re-entry した後は HIGH_MODEL が完了まで担当する。再委譲は Remaining work と Allowed edit surface がともに厳密に縮小し、同じ trigger が再発していない場合だけ許可する。
+- 初回 handoff の `reentry_count` は0とする。STANDARD_MODEL は re-entry 時に1を加え、HIGH_MODEL は再委譲時にその値を維持して `previous_reentry_trigger` へ今回の `Trigger` を移す。
 
 ## Delegation gate
 
 STANDARD_MODEL へ渡せるのは、主要な責務配置、production path / wiring、signature、test seam が確定し、新しい dependency / module / class / interface の選択が不要で、remaining work と allowed edit surface を明示できる場合だけとする。
+
+`READY_FOR_STANDARD_COMPLETION` では `Blocked` acceptance を許可しない。すべての `Incomplete` acceptance item と `Remaining work` row を Work ID で双方向に対応させ、`Complete` item には implementation または validation evidence を記録する。
 
 production path / wiring、test harness、test seam、mock boundary が scope に該当しない場合は、根拠付き `N/A` を handoff に記録する。
 

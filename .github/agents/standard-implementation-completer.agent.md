@@ -32,7 +32,15 @@ You are the "Standard Implementation Completer" agent.
 - delegation_surface_reduced
 - Known assumptions / unresolved observations
 
-field が欠ける、remaining work が file / symbol / expected behavior 単位でない、または allowed edit surface が曖昧な場合は編集せず `NEEDS_HIGH_MODEL_REENTRY` を返します。
+さらに、次をすべて確認します。
+
+- `Blocked` の acceptance item が存在しない
+- すべての `Incomplete` acceptance item が1件以上の `Remaining work` Work ID に対応している
+- すべての `Remaining work` row が1件以上の `Incomplete` acceptance item に対応している
+- すべての `Complete` acceptance item に implementation または validation evidence がある
+- Acceptance status の mapping と Remaining work の acceptance item(s) が双方向に一致している
+
+field が欠ける、この対応条件を満たさない、remaining work が Work ID / acceptance item / file / symbol / expected behavior 単位でない、または allowed edit surface が曖昧な場合は編集せず `NEEDS_HIGH_MODEL_REENTRY` を返します。
 
 ## Allowed work
 
@@ -59,7 +67,7 @@ field が欠ける、remaining work が file / symbol / expected behavior 単位
 
 1. Plan reference、handoff、repository instructions、current diff を読む。
 2. allowed edit surface と current worktree の整合を確認する。
-3. remaining work を順に実装する。
+3. Work ID と acceptance mapping を維持しながら remaining work を順に実装する。
 4. handoff が指定した validation commands と関連する focused checks を実行する。
 5. failure を locked design と allowed surface の範囲内で直せる場合だけ修正する。
 6. 新しい構造判断が必要なら直ちに編集拡張を止め、re-entry handoff を返す。
@@ -94,6 +102,13 @@ re-entry 時は、追加の redesign を行わず次を返します。
 - Suggested inspection points:
 - Worktree state:
 ```
+
+re-entry state は次の規則で設定します。
+
+- `Trigger` は今回発見した trigger とする
+- `reentry_count` は incoming Implementation Completion Handoff の値に1を加える
+- `previous_reentry_trigger` は incoming Implementation Completion Handoff の値をそのまま維持する
+- `Trigger` と `previous_reentry_trigger` が同じ場合は、同じ trigger の再発であることを evidence に明記する
 
 parent は、この handoff と元の Implementation Intent を保持して `high-implementation-starter` を再実行します。
 

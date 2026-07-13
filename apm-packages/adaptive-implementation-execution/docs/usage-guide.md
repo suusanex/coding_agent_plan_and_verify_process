@@ -73,6 +73,10 @@ Validation: focused unit tests と solution build。
 
 locked decisions を変える必要がある場合は、局所的にねじ込まず `NEEDS_HIGH_MODEL_REENTRY` を返します。
 
+## Acceptance mapping in a handoff
+
+`READY_FOR_STANDARD_COMPLETION` handoff は、`Incomplete` acceptance item と `Remaining work` row を Work ID で双方向に対応させます。`Blocked` item を含む handoff は STANDARD_MODEL へ渡しません。`Complete` item には implementation または validation evidence が必要です。
+
 ## Re-entry example
 
 HIGH_MODEL が validation branches と tests を委譲した後、STANDARD_MODEL が production entrypoint の registration 変更を必要と判断した例:
@@ -88,6 +92,8 @@ READY_FOR_STANDARD_COMPLETION
 STANDARD_MODEL は registration を暗黙変更しません。re-entry handoff に invalidating evidence、変更済み files、実行した checks、必要な decision を記録します。
 
 一度 re-entry した後は HIGH_MODEL が完了まで担当します。再委譲は、前回より `Remaining work` と `Allowed edit surface` がともに厳密に縮小し、同じ trigger が再発していない場合だけ許可します。
+
+初回 HIGH_MODEL handoff は `reentry_count: 0` とします。STANDARD_MODEL は re-entry 時に incoming value へ1を加え、今回の `Trigger` と incoming `previous_reentry_trigger` を返します。HIGH_MODEL が再委譲する場合は count を維持し、今回の `Trigger` を新しい `previous_reentry_trigger` に設定します。
 
 ## Inline and tracked handoff
 

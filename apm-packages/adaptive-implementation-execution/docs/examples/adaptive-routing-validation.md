@@ -36,6 +36,7 @@ Checks:
 - HIGH_MODEL edited production code or tests before delegation
 - handoff names files, symbols, expected behavior, and allowed surface
 - handoff records acceptance status and applicability evidence, including reasons for any N/A concern
+- every Incomplete acceptance item and Remaining work row has a bidirectional Work ID mapping, no Blocked item exists, and every Complete item has evidence
 - STANDARD_MODEL makes no structural change
 
 ## VAL-002: Mid-implementation delegation
@@ -95,6 +96,8 @@ Checks:
 
 - STANDARD_MODEL does not redesign the seam or wiring
 - High-model Re-entry Handoff contains invalidating evidence and worktree state
+- STANDARD_MODEL increments incoming reentry_count and preserves incoming previous_reentry_trigger
+- HIGH_MODEL preserves the incremented count and copies the returned Trigger to previous_reentry_trigger only when a strictly smaller handoff is safe
 - agents run serially
 - HIGH_MODEL owns completion after the first re-entry unless Remaining work and Allowed edit surface both strictly shrink and the same trigger has not recurred
 
@@ -186,6 +189,7 @@ Validated on 2026-07-13 with APM CLI 0.18.0 and a .NET 11 preview SDK targeting 
 | Check | Result | Evidence |
 | --- | --- | --- |
 | Static package contract | PASS | `validate-adaptive-implementation-execution.ps1` |
+| Static validator CI wiring | PASS | `validate-adaptive-implementation-execution.yml` invokes the package validator for relevant agent, package, workflow, and README changes |
 | Full package local-path dry-run | PASS | APM accepted the package manifest and listed the local package install plan |
 | File-based app publish | PASS | `dotnet publish install-adaptive-implementation-local.cs` |
 | Skill local install | PASS | APM deployed `SKILL.md` and both `references/*.md` files under `.agents/skills/adaptive-implementation-execution` |

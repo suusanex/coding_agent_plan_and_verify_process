@@ -187,7 +187,7 @@ static Options ParseArguments(string[] arguments)
 
 static void PrintUsage()
 {
-    Console.WriteLine("Usage: dotnet run --file install-adaptive-implementation-local.cs -- [target-repository] [--dry-run | --check] [--force] [--remove]");
+    Console.WriteLine("Usage: dotnet run --file apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs -- [target-repository] [--dry-run | --check] [--force] [--remove]");
 }
 
 static string GetSourceFilePath([CallerFilePath] string path = "") => path;

@@ -79,6 +79,7 @@ function Get-TomlString {
 $requiredFiles = @(
     '.github/agents/high-implementation-starter.agent.md',
     '.github/agents/standard-implementation-completer.agent.md',
+    '.github/workflows/validate-adaptive-implementation-execution.yml',
     'apm-packages/adaptive-implementation-execution/apm.yml',
     'apm-packages/adaptive-implementation-execution/README.md',
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md',
@@ -130,6 +131,9 @@ Assert-Contains $skill 'Validation expectation: inferred from repository' 'valid
 Assert-Contains $skill 'acceptance status table' 'acceptance evidence output'
 Assert-Contains $skill 'delegation_surface_reduced' 'bounded re-delegation evidence'
 Assert-Contains $skill 'N/A.*理由' 'evidence-backed applicability N/A'
+Assert-Contains $skill 'incoming value \+ 1' 're-entry count increment rule'
+Assert-Contains $skill '双方向に一致' 'bidirectional acceptance mapping gate'
+Assert-Contains $skill 'existing code から scope を狭めない' 'safe non-goal inference rule'
 
 $highAgent = '.github/agents/high-implementation-starter.agent.md'
 Assert-Contains $highAgent 'edit production code and tests' 'real implementation loop'
@@ -138,6 +142,8 @@ Assert-Contains $highAgent 'COMPLETED_BY_HIGH_MODEL' 'high completion verdict'
 Assert-Contains $highAgent 'Allowed edit surface' 'handoff allowed surface'
 Assert-Contains $highAgent 'acceptance status table' 'high-model acceptance evidence output'
 Assert-Contains $highAgent '一度 re-entry した後' 'high-model re-entry ownership'
+Assert-Contains $highAgent 'すべての `Incomplete` acceptance item' 'high-model incomplete acceptance mapping gate'
+Assert-Contains $highAgent 're-entry handoff の `reentry_count` を維持' 'high-model re-entry count propagation'
 
 $standardAgent = '.github/agents/standard-implementation-completer.agent.md'
 Assert-Contains $standardAgent 'NEEDS_HIGH_MODEL_REENTRY' 're-entry verdict'
@@ -146,6 +152,8 @@ Assert-Contains $standardAgent 'Allowed edit surface' 'allowed edit boundary'
 Assert-Contains $standardAgent 'Final code review performed|final review status' 'review boundary'
 Assert-Contains $standardAgent 'acceptance status table' 'standard-model acceptance evidence output'
 Assert-Contains $standardAgent '一度 re-entry した後' 'standard-model re-entry ownership'
+Assert-Contains $standardAgent 'incoming Implementation Completion Handoff の値に1を加える' 'standard-model re-entry count increment'
+Assert-Contains $standardAgent '双方向に一致' 'standard-model acceptance mapping authorization'
 
 $handoff = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/references/implementation-completion-handoff.md'
 foreach ($field in @(
@@ -168,6 +176,9 @@ foreach ($field in @(
 )) {
     Assert-Contains $handoff ([regex]::Escape($field)) "handoff field $field"
 }
+Assert-Contains $handoff 'Remaining work mapping \(Work ID\)' 'acceptance-to-work mapping column'
+Assert-Contains $handoff 'Work ID.*Acceptance item\(s\)' 'work-to-acceptance mapping columns'
+Assert-Contains $handoff '`Blocked` を許可しない' 'blocked acceptance rejection'
 
 $highToml = 'apm-packages/adaptive-implementation-execution/profiles/adaptive-implementation/agents/high-implementation-starter.toml'
 $standardToml = 'apm-packages/adaptive-implementation-execution/profiles/adaptive-implementation/agents/standard-implementation-completer.toml'
@@ -215,9 +226,13 @@ Assert-Contains $installer 'adaptive-implementation-execution:start' 'managed AG
 Assert-Contains $installer 'ValidateProfileConfiguration' 'profile configuration validation'
 Assert-Contains $installer 'must use distinct model mappings' 'distinct model mapping check'
 Assert-Contains $installer 'must reference different custom agents' 'distinct custom agent check'
+Assert-Contains $installer 'apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local\.cs' 'repo-root usage path'
 
 Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '通常の必須手順' 'mandatory installer quick start'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' '--check.*次をすべて検証' 'documented installer checks'
+
+$workflow = '.github/workflows/validate-adaptive-implementation-execution.yml'
+Assert-Contains $workflow 'validate-adaptive-implementation-execution\.ps1' 'Adaptive Implementation CI validator invocation'
 
 Assert-Contains 'README.md' 'apm-packages/adaptive-implementation-execution' 'root package link'
 

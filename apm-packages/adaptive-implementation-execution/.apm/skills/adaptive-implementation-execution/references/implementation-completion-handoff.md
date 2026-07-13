@@ -8,11 +8,15 @@
 - previous_reentry_trigger: N/A
 - delegation_surface_reduced: N/A
 
+初回 handoff は上記の初期値を使用する。re-entry 後に再委譲する場合は、re-entry handoff の `reentry_count` を維持し、`previous_reentry_trigger` にその `Trigger` を設定し、`delegation_surface_reduced: Yes` とする。
+
 ## Acceptance status
 
-| Acceptance item | Status | Evidence | Remaining work mapping |
+| Acceptance item | Status | Evidence | Remaining work mapping (Work ID) |
 | --- | --- | --- | --- |
-| | Complete / Incomplete / Blocked | | |
+| | Complete / Incomplete | | |
+
+`READY_FOR_STANDARD_COMPLETION` では `Blocked` を許可しない。blocked item がある場合は handoff を作らず、適切な stop verdict を返す。すべての `Incomplete` item は1件以上の Work ID に対応し、すべての Remaining work row は1件以上の `Incomplete` item に対応する。`Complete` item には implementation または validation evidence を記録する。
 
 ## Applicability evidence
 
@@ -33,9 +37,9 @@
 
 ## Remaining work
 
-| File | Symbol | Expected behavior | Completion check |
-| --- | --- | --- | --- |
-| | | | |
+| Work ID | Acceptance item(s) | File | Symbol | Expected behavior | Completion check |
+| --- | --- | --- | --- | --- | --- |
+| RW-1 | | | | | |
 
 ## Allowed edit surface
 

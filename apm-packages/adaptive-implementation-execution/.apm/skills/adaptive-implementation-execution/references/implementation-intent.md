@@ -7,8 +7,8 @@ implementation_intent:
   goal:                    # required
   scope:                   # required
   acceptance:              # required
-  non_goals:               # optional / inferable
-  constraints:             # optional / inferable
+  non_goals:               # optional; Not specified unless clear in source request
+  constraints:             # optional; only enforced user/repository constraints
   validation:              # optional / inferable from repository
   plan_reference:          # optional / inferable from source request
 ```
