@@ -83,8 +83,8 @@ $requiredFiles = @(
     'apm-packages/adaptive-implementation-execution/apm.yml',
     'apm-packages/adaptive-implementation-execution/README.md',
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md',
-    'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/references/implementation-intent.md',
-    'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/references/implementation-completion-handoff.md',
+    'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/intent.md',
+    'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md',
     'apm-packages/adaptive-implementation-execution/profiles/adaptive-implementation/AGENTS.md',
     'apm-packages/adaptive-implementation-execution/profiles/adaptive-implementation/agents/high-implementation-starter.toml',
     'apm-packages/adaptive-implementation-execution/profiles/adaptive-implementation/agents/standard-implementation-completer.toml',
@@ -106,6 +106,17 @@ Assert-Contains $manifest '(?m)^\s*-\s+agent-skills\s*$' 'agent-skills target'
 Assert-NotContains $manifest '(?m)^\s*-\s+copilot\s*$' 'unverified Copilot target'
 Assert-NotContains $manifest 'token-aware|codex-first|plan-coverage' 'Plan Coverage or Codex-first dependency'
 Assert-NotContains $manifest 'path:\s+.*(?:implementation-intent|implementation-completion-handoff)\.md' 'standalone template dependency'
+
+$skillPayloadRoot = Join-Path $packageRoot '.apm\skills'
+if (Test-Path -LiteralPath $skillPayloadRoot -PathType Container) {
+    $maxWindowsPayloadPathLength = 110
+    Get-ChildItem -LiteralPath $skillPayloadRoot -File -Recurse | ForEach-Object {
+        $relativePath = [System.IO.Path]::GetRelativePath($repoRoot, $_.FullName)
+        if ($relativePath.Length -gt $maxWindowsPayloadPathLength) {
+            Add-Failure "APM skill payload path exceeds Windows compatibility budget ($($relativePath.Length) > $maxWindowsPayloadPathLength): $relativePath"
+        }
+    }
+}
 
 $manifestPath = Join-Path $repoRoot $manifest
 if (Test-Path -LiteralPath $manifestPath) {
@@ -155,7 +166,7 @@ Assert-Contains $standardAgent '一度 re-entry した後' 'standard-model re-en
 Assert-Contains $standardAgent 'incoming Implementation Completion Handoff の値に1を加える' 'standard-model re-entry count increment'
 Assert-Contains $standardAgent '双方向に一致' 'standard-model acceptance mapping authorization'
 
-$handoff = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/references/implementation-completion-handoff.md'
+$handoff = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md'
 foreach ($field in @(
     'Verdict',
     'Handoff persistence',

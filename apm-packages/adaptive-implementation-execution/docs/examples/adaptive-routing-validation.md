@@ -165,8 +165,8 @@ Steps:
 
 Expected:
 
-- skill, references, portable agents, profile guidance, both TOMLs, and docs are present in the package
-- installed skill references are available under `.agents/skills/adaptive-implementation-execution/references`
+- skill, refs, portable agents, profile guidance, both TOMLs, and docs are present in the package
+- installed skill refs are available under `.agents/skills/adaptive-implementation-execution/refs`
 - concrete agent TOMLs contain model, reasoning effort, and workspace-write sandbox fields
 - HIGH_MODEL and STANDARD_MODEL use different custom agent names and different model mappings
 - existing `AGENTS.md` content outside the managed section remains unchanged
@@ -192,7 +192,7 @@ Validated on 2026-07-13 with APM CLI 0.18.0 and a .NET 11 preview SDK targeting 
 | Static validator CI wiring | PASS | `validate-adaptive-implementation-execution.yml` invokes the package validator for relevant agent, package, workflow, and README changes |
 | Full package local-path dry-run | PASS | APM accepted the package manifest and listed the local package install plan |
 | File-based app publish | PASS | `dotnet publish install-adaptive-implementation-local.cs` |
-| Skill local install | PASS | APM deployed `SKILL.md` and both `references/*.md` files under `.agents/skills/adaptive-implementation-execution` |
+| Skill local install | PASS | APM deployed `SKILL.md` and both `refs/*.md` files under `.agents/skills/adaptive-implementation-execution` |
 | Profile dry-run / install / check | PASS | installer produced the managed `AGENTS.md` section and both `.codex/agents/*.toml` files, then `--check` returned OK |
 | Distinct mapping negative check | PASS | changing the installed STANDARD_MODEL mapping to the HIGH_MODEL mapping made `--check` fail with `must use distinct model mappings`; restoring the package profile returned OK |
 | Profile remove dry-run / remove / remove-check | PASS | managed content and package-owned TOMLs were removed, then `--remove --check` returned OK |

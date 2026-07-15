@@ -40,8 +40,8 @@ HIGH_MODEL と STANDARD_MODEL の write-heavy work は並列化しません。�
 | Content | Path |
 | --- | --- |
 | Orchestration skill | `.apm/skills/adaptive-implementation-execution/SKILL.md` |
-| Implementation Intent reference | skill の `references/implementation-intent.md` |
-| Completion Handoff reference | skill の `references/implementation-completion-handoff.md` |
+| Implementation Intent reference | skill の `refs/intent.md` |
+| Completion Handoff reference | skill の `refs/handoff.md` |
 | Portable HIGH_MODEL agent | repository root `.github/agents/high-implementation-starter.agent.md` |
 | Portable STANDARD_MODEL agent | repository root `.github/agents/standard-implementation-completer.agent.md` |
 | Codex profile guidance | `profiles/adaptive-implementation/AGENTS.md` |
@@ -49,7 +49,7 @@ HIGH_MODEL と STANDARD_MODEL の write-heavy work は並列化しません。�
 | Profile installer | `scripts/install-adaptive-implementation-local.cs` |
 | Static validator | `scripts/validate-adaptive-implementation-execution.ps1` |
 
-Templates are bundled as skill references instead of standalone manifest file dependencies. This keeps the package compatible with APM 0.18.0, which installs skill directories and their `references/` content but rejects standalone file paths as package dependencies.
+Templates are bundled inside the skill instead of being standalone manifest file dependencies. Their short `refs/` paths keep APM 0.18.0 remote installs below the legacy Windows path-length boundary while preserving separate template files.
 
 ## Quick start
 

@@ -358,8 +358,8 @@ static void ValidateInstalledSkill(string targetRoot, List<string> conflicts)
     var required = new[]
     {
         Path.Combine(skillRoot, "SKILL.md"),
-        Path.Combine(skillRoot, "references", "implementation-intent.md"),
-        Path.Combine(skillRoot, "references", "implementation-completion-handoff.md")
+        Path.Combine(skillRoot, "refs", "intent.md"),
+        Path.Combine(skillRoot, "refs", "handoff.md")
     };
 
     foreach (var path in required.Where(path => !File.Exists(path)))

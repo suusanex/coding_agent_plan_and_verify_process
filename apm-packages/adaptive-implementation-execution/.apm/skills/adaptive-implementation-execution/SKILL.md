@@ -56,7 +56,7 @@ implementation_intent:
 
 入力不足によりこの3点を判断できない場合は、内部設計を推測せず `REPLAN_REQUIRED` または `HUMAN_DECISION_REQUIRED` で停止します。
 
-任意 template は `references/implementation-intent.md` です。
+任意 template は `refs/intent.md` です。
 
 ## Required execution order
 
@@ -115,7 +115,7 @@ HIGH_MODEL が scope 内の acceptance item をすべて `Complete` とし、各
 
 ### READY_FOR_STANDARD_COMPLETION
 
-`references/implementation-completion-handoff.md` の必須 field がすべて存在し、次を満たす場合だけ受理します。
+`refs/handoff.md` の必須 field がすべて存在し、次を満たす場合だけ受理します。
 
 - representative production path / wiring evidence がある
 - production path / wiring、test harness、test seam、mock boundary の applicability evidence がある。該当しない concern は `N/A` と理由がある

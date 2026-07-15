@@ -22,8 +22,8 @@ APM install だけでは concrete model tier、reasoning、sandbox の profile c
 導入後、少なくとも次を確認します。
 
 - `.agents/skills/adaptive-implementation-execution/SKILL.md`
-- `.agents/skills/adaptive-implementation-execution/references/implementation-intent.md`
-- `.agents/skills/adaptive-implementation-execution/references/implementation-completion-handoff.md`
+- `.agents/skills/adaptive-implementation-execution/refs/intent.md`
+- `.agents/skills/adaptive-implementation-execution/refs/handoff.md`
 - Codex が生成した `high-implementation-starter` と `standard-implementation-completer` の custom agent entry
 
 APM が生成した Codex TOML は、次節で package profile の検証済み mapping に同期します。
@@ -40,6 +40,8 @@ dotnet run --file C:\path\to\adaptive-implementation-execution\scripts\install-a
 ```
 
 portable agent の `git: parent` dependency は static validator で path existence を確認します。repository URL と branch ref を使った remote install / rollback の実証結果は [Adaptive Routing Validation](examples/adaptive-routing-validation.md) に記録しています。
+
+APM 0.18.0 の Windows remote install は、Git cache の深い checkout path から package をコピーします。この package は skill 内 template を短い `refs/intent.md` と `refs/handoff.md` に配置し、legacy path-length boundary を超えないよう static validator で path budget を検証します。
 
 ## Apply the required Codex profile mapping
 
@@ -67,7 +69,7 @@ dotnet run --file C:\path\to\package\scripts\install-adaptive-implementation-loc
 
 `--check` は次をすべて検証します。
 
-- APM-installed skill と bundled references が存在する
+- APM-installed skill と bundled refs が存在する
 - `high-implementation-starter` と `standard-implementation-completer` の custom agent TOML が存在する
 - 両 TOML に non-empty `model` と `model_reasoning_effort` がある
 - 両 TOML の `sandbox_mode` が `workspace-write` である
