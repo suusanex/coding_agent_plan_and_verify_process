@@ -65,7 +65,7 @@ dotnet run --file .\scripts\install-adaptive-implementation-local.cs -- C:\path\
 dotnet run --file .\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --check
 ```
 
-installer は File-based app であり、`.csproj` は不要です。APM が生成した同名 custom agent と package profile の内容が異なる場合は、衝突内容を確認した後に `--force` で package profile を適用します。`--check` が成功するまでこの profile を起動しないでください。
+installer は File-based app であり、`.csproj` は不要です。APM が生成した model 未設定の同名 custom agent は、既知の APM stub shape と package metadata が一致する場合だけ `--force` なしで profile mapping に更新します。それ以外の異なる同名 TOML は衝突として停止するため、内容を確認して package-owned file と判断できる場合だけ `--force` を指定します。`--check` が成功するまでこの profile を起動しないでください。
 
 `--check` は、skill と両 custom agents の配置、model / reasoning / workspace-write 設定、role ごとの agent 名、HIGH_MODEL と STANDARD_MODEL の異なる model mapping を検証します。
 

@@ -1,5 +1,5 @@
 name = "high-implementation-starter"
-description = "Start and, when necessary, complete non-trivial implementation before deciding whether a bounded remainder is delegable."
+description = "Start and, when necessary, complete a non-trivial implementation from an ordinary Plan by editing real production code and tests before deciding whether a bounded remainder can be delegated."
 model = "gpt-5.6-terra"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"

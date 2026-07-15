@@ -60,7 +60,7 @@ profile installer は、既存 `AGENTS.md` を置き換えず managed section �
 dotnet run --file C:\path\to\package\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --dry-run
 ```
 
-APM が生成した同名 TOML を含め、同名 TOML が存在し内容が異なる場合、installer は既定で停止します。衝突内容を確認し、package profile を適用する場合だけ `--force` を指定します。
+APM が生成した model 未設定の同名 TOML は、`name`、`description`、`developer_instructions` だけを持つ既知の APM stub shape と package metadata が一致する場合、初回導入の中間状態として `--force` なしで profile mapping に更新します。model field を持つ、未知の key がある、metadata が異なるなど、APM stub と証明できない同名 TOML は既定で停止します。衝突内容を確認し、package-owned file と判断できる場合だけ `--force` を指定します。
 
 ```powershell
 dotnet run --file C:\path\to\package\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --force
@@ -81,7 +81,8 @@ dotnet run --file C:\path\to\package\scripts\install-adaptive-implementation-loc
 
 - root `AGENTS.md`: managed markers 外の既存内容を保持する
 - `.codex/agents/*.toml`: 内容が同一なら変更しない
-- 同名 TOML が異なる: 既定では停止し、`--force` の明示がある場合だけ置換する
+- APM-generated model-less stub: 既知の3 key shape、package metadata、agent instruction opening が一致する場合だけ自動で profile mapping に更新する
+- その他の異なる同名 TOML: 既定では停止し、`--force` の明示がある場合だけ置換する
 - skill: APM の ownership に従う。profile installer は skill を上書きしない
 - repository-specific coding / security / validation rules: root `AGENTS.md` の既存ルールを優先する
 

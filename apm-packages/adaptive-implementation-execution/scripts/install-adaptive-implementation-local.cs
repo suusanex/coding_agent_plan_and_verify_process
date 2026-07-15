@@ -2,6 +2,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 
 const string StartMarker = "<!-- adaptive-implementation-execution:start -->";
 const string EndMarker = "<!-- adaptive-implementation-execution:end -->";
@@ -293,6 +294,15 @@ static void PlanFileInstall(
         return;
     }
 
+    if (IsApmGeneratedAgentStub(existing, desired))
+    {
+        operations.Add(new PlannedOperation(
+            OperationKind.Update,
+            "Complete APM-generated agent profile: " + target,
+            () => WriteText(target, desired)));
+        return;
+    }
+
     if (!force)
     {
         conflicts.Add(target + " exists with different content.");
@@ -303,6 +313,109 @@ static void PlanFileInstall(
         OperationKind.Update,
         "Replace " + target,
         () => WriteText(target, desired)));
+}
+
+static bool IsApmGeneratedAgentStub(string existing, string desired)
+{
+    if (!TryReadFlatApmAgentToml(existing, out var existingValues) ||
+        !TryReadTomlString(desired, "name", out var desiredName) ||
+        !TryReadTomlString(desired, "description", out var desiredDescription))
+    {
+        return false;
+    }
+
+    if (existingValues["name"] != desiredName ||
+        existingValues["description"] != desiredDescription)
+    {
+        return false;
+    }
+
+    var expectedOpening = desiredName switch
+    {
+        "high-implementation-starter" => "You are the \"High Implementation Starter\" agent.",
+        "standard-implementation-completer" => "You are the \"Standard Implementation Completer\" agent.",
+        _ => ""
+    };
+
+    return expectedOpening.Length > 0 &&
+        existingValues["developer_instructions"].StartsWith(expectedOpening, StringComparison.Ordinal);
+}
+
+static bool TryReadFlatApmAgentToml(string content, out Dictionary<string, string> values)
+{
+    values = new Dictionary<string, string>(StringComparer.Ordinal);
+    var allowedKeys = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "name",
+        "description",
+        "developer_instructions"
+    };
+
+    foreach (var line in Normalize(content).Split('\n'))
+    {
+        if (string.IsNullOrWhiteSpace(line))
+        {
+            continue;
+        }
+
+        var match = Regex.Match(
+            line,
+            "^(?<key>[A-Za-z_][A-Za-z0-9_]*)\\s*=\\s*(?<value>\\\"(?:\\\\.|[^\\\"\\\\])*\\\")\\s*$",
+            RegexOptions.CultureInvariant);
+        if (!match.Success || !allowedKeys.Contains(match.Groups["key"].Value))
+        {
+            return false;
+        }
+
+        var key = match.Groups["key"].Value;
+        if (values.ContainsKey(key))
+        {
+            return false;
+        }
+
+        if (!TryUnescapeTomlBasicString(match.Groups["value"].Value, out var parsedValue))
+        {
+            return false;
+        }
+
+        values[key] = parsedValue;
+    }
+
+    return values.Count == allowedKeys.Count && allowedKeys.All(values.ContainsKey);
+}
+
+static bool TryReadTomlString(string content, string key, out string value)
+{
+    value = "";
+    var match = Regex.Match(
+        Normalize(content),
+        "(?m)^" + Regex.Escape(key) + "\\s*=\\s*(?<value>\\\"(?:\\\\.|[^\\\"\\\\])*\\\")\\s*$",
+        RegexOptions.CultureInvariant);
+    if (!match.Success)
+    {
+        return false;
+    }
+
+    return TryUnescapeTomlBasicString(match.Groups["value"].Value, out value);
+}
+
+static bool TryUnescapeTomlBasicString(string literal, out string value)
+{
+    value = "";
+    if (literal.Length < 2 || literal[0] != '"' || literal[^1] != '"')
+    {
+        return false;
+    }
+
+    try
+    {
+        value = Regex.Unescape(literal[1..^1]);
+        return true;
+    }
+    catch (ArgumentException)
+    {
+        return false;
+    }
 }
 
 static void PlanFileRemoval(

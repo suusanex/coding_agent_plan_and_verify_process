@@ -76,6 +76,25 @@ function Get-TomlString {
     return $match.Matches[0].Groups[1].Value
 }
 
+function Get-FrontmatterString {
+    param(
+        [string]$RelativePath,
+        [string]$Key
+    )
+
+    $path = Join-Path $repoRoot $RelativePath
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        return $null
+    }
+
+    $match = Select-String -LiteralPath $path -Pattern ("^" + [regex]::Escape($Key) + ':\s*(.+?)\s*$') | Select-Object -First 1
+    if ($null -eq $match) {
+        return $null
+    }
+
+    return $match.Matches[0].Groups[1].Value
+}
+
 $requiredFiles = @(
     '.github/agents/high-implementation-starter.agent.md',
     '.github/agents/standard-implementation-completer.agent.md',
@@ -161,6 +180,7 @@ Assert-Contains $highAgent 'acceptance status table' 'high-model acceptance evid
 Assert-Contains $highAgent '一度 re-entry した後' 'high-model re-entry ownership'
 Assert-Contains $highAgent 'すべての `Incomplete` acceptance item' 'high-model incomplete acceptance mapping gate'
 Assert-Contains $highAgent 're-entry handoff の `reentry_count` を維持' 'high-model re-entry count propagation'
+Assert-Contains $highAgent 'You are the "High Implementation Starter" agent\.' 'APM stub high-agent opening'
 
 $standardAgent = '.github/agents/standard-implementation-completer.agent.md'
 Assert-Contains $standardAgent 'NEEDS_HIGH_MODEL_REENTRY' 're-entry verdict'
@@ -171,6 +191,7 @@ Assert-Contains $standardAgent 'acceptance status table' 'standard-model accepta
 Assert-Contains $standardAgent '一度 re-entry した後' 'standard-model re-entry ownership'
 Assert-Contains $standardAgent 'incoming Implementation Completion Handoff の値に1を加える' 'standard-model re-entry count increment'
 Assert-Contains $standardAgent '双方向に一致' 'standard-model acceptance mapping authorization'
+Assert-Contains $standardAgent 'You are the "Standard Implementation Completer" agent\.' 'APM stub standard-agent opening'
 
 $handoff = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md'
 foreach ($field in @(
@@ -209,6 +230,10 @@ $highAgentName = Get-TomlString $highToml 'name'
 $standardAgentName = Get-TomlString $standardToml 'name'
 $highModel = Get-TomlString $highToml 'model'
 $standardModel = Get-TomlString $standardToml 'model'
+$highProfileDescription = Get-TomlString $highToml 'description'
+$standardProfileDescription = Get-TomlString $standardToml 'description'
+$highPortableDescription = Get-FrontmatterString $highAgent 'description'
+$standardPortableDescription = Get-FrontmatterString $standardAgent 'description'
 if ($highAgentName -ne 'high-implementation-starter') {
     Add-Failure "$highToml has an unexpected agent name: $highAgentName"
 }
@@ -220,6 +245,12 @@ if ($highAgentName -eq $standardAgentName) {
 }
 if ($highModel -eq $standardModel) {
     Add-Failure 'HIGH_MODEL and STANDARD_MODEL must use distinct model mappings'
+}
+if ($highProfileDescription -ne $highPortableDescription) {
+    Add-Failure 'HIGH_MODEL profile and portable agent descriptions must match for APM stub recognition'
+}
+if ($standardProfileDescription -ne $standardPortableDescription) {
+    Add-Failure 'STANDARD_MODEL profile and portable agent descriptions must match for APM stub recognition'
 }
 
 $profile = 'apm-packages/adaptive-implementation-execution/profiles/ai/AGENTS.md'
@@ -243,10 +274,13 @@ Assert-Contains $installer 'adaptive-implementation-execution:start' 'managed AG
 Assert-Contains $installer 'ValidateProfileConfiguration' 'profile configuration validation'
 Assert-Contains $installer 'must use distinct model mappings' 'distinct model mapping check'
 Assert-Contains $installer 'must reference different custom agents' 'distinct custom agent check'
+Assert-Contains $installer 'IsApmGeneratedAgentStub' 'APM-generated model-less agent completion gate'
+Assert-Contains $installer 'allowedKeys\.All\(values\.ContainsKey\)' 'exact APM-generated stub key validation'
 Assert-Contains $installer 'apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local\.cs' 'repo-root usage path'
 
 Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '通常の必須手順' 'mandatory installer quick start'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' '--check.*次をすべて検証' 'documented installer checks'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' 'APM-generated model-less stub' 'documented APM stub completion policy'
 
 $workflow = '.github/workflows/validate-adaptive-implementation-execution.yml'
 Assert-Contains $workflow 'validate-adaptive-implementation-execution\.ps1' 'Adaptive Implementation CI validator invocation'

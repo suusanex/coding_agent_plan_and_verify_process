@@ -170,7 +170,8 @@ Expected:
 - concrete agent TOMLs contain model, reasoning effort, and workspace-write sandbox fields
 - HIGH_MODEL and STANDARD_MODEL use different custom agent names and different model mappings
 - existing `AGENTS.md` content outside the managed section remains unchanged
-- collisions fail closed unless `--force` is explicit
+- APM-generated model-less stubs with matching package metadata are completed without `--force`
+- other same-name TOML collisions fail closed unless `--force` is explicit
 
 ## Repository static validation
 
@@ -184,7 +185,7 @@ The static validator checks the package layout, standalone dependency avoidance,
 
 ## Local validation result
 
-Validated on 2026-07-13 with APM CLI 0.18.0 and a .NET 11 preview SDK targeting `net10.0`:
+Originally validated on 2026-07-13 with APM CLI 0.18.0 and a .NET 11 preview SDK targeting `net10.0`; Windows path and APM-generated stub regression checks were updated on 2026-07-15:
 
 | Check | Result | Evidence |
 | --- | --- | --- |
@@ -194,6 +195,8 @@ Validated on 2026-07-13 with APM CLI 0.18.0 and a .NET 11 preview SDK targeting 
 | File-based app publish | PASS | `dotnet publish install-adaptive-implementation-local.cs` |
 | Skill local install | PASS | APM deployed `SKILL.md` and both `refs/*.md` files under `.agents/skills/adaptive-implementation-execution` |
 | Profile dry-run / install / check | PASS | installer produced the managed `AGENTS.md` section and both `.codex/agents/*.toml` files, then `--check` returned OK |
+| APM-generated stub completion | PASS | fresh APM 0.18.0 Codex TOMLs containing only `name`, `description`, and `developer_instructions` were completed without `--force`; both model mappings were written and `--check` returned OK |
+| Authored profile collision | PASS | changing an installed model mapping preserved the authored value and made a no-force install fail without changing files |
 | Distinct mapping negative check | PASS | changing the installed STANDARD_MODEL mapping to the HIGH_MODEL mapping made `--check` fail with `must use distinct model mappings`; restoring the package profile returned OK |
 | Profile remove dry-run / remove / remove-check | PASS | managed content and package-owned TOMLs were removed, then `--remove --check` returned OK |
 | Remote branch package install | PASS | APM resolved the virtual package and both `git: parent` portable agents from `#codex/issue-45` at `66e1234b`, then deployed the skill, references, and both Codex agents |

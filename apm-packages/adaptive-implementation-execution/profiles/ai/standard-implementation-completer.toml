@@ -1,5 +1,5 @@
 name = "standard-implementation-completer"
-description = "Complete a bounded high-model handoff without changing locked structural decisions."
+description = "Complete only a high-model handoff's bounded implementation remainder without changing locked structural decisions, and return to the high model when new design work appears."
 model = "gpt-5.6-luna"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
