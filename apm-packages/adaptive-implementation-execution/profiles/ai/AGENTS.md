@@ -50,4 +50,4 @@ production path / wiring、test harness、test seam、mock boundary が scope �
 
 ## Model mapping
 
-`HIGH_MODEL` と `STANDARD_MODEL` は抽象 tier である。実モデル、reasoning effort、sandbox は `agents/*.toml` の top-level fields で設定し、instruction 本文へ実モデル名を埋め込まない。
+`HIGH_MODEL` と `STANDARD_MODEL` は抽象 tier である。実モデル、reasoning effort、sandbox は同じ directory の `*.toml` の top-level fields で設定し、instruction 本文へ実モデル名を埋め込まない。

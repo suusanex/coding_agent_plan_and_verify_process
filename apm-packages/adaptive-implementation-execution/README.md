@@ -44,8 +44,8 @@ HIGH_MODEL と STANDARD_MODEL の write-heavy work は並列化しません。�
 | Completion Handoff reference | skill の `refs/handoff.md` |
 | Portable HIGH_MODEL agent | repository root `.github/agents/high-implementation-starter.agent.md` |
 | Portable STANDARD_MODEL agent | repository root `.github/agents/standard-implementation-completer.agent.md` |
-| Codex profile guidance | `profiles/adaptive-implementation/AGENTS.md` |
-| Codex model mappings | `profiles/adaptive-implementation/agents/*.toml` |
+| Codex profile guidance | `profiles/ai/AGENTS.md` |
+| Codex model mappings | `profiles/ai/*.toml` |
 | Profile installer | `scripts/install-adaptive-implementation-local.cs` |
 | Static validator | `scripts/validate-adaptive-implementation-execution.ps1` |
 

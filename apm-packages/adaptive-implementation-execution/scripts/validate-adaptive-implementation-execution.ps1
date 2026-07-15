@@ -85,9 +85,9 @@ $requiredFiles = @(
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md',
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/intent.md',
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md',
-    'apm-packages/adaptive-implementation-execution/profiles/adaptive-implementation/AGENTS.md',
-    'apm-packages/adaptive-implementation-execution/profiles/adaptive-implementation/agents/high-implementation-starter.toml',
-    'apm-packages/adaptive-implementation-execution/profiles/adaptive-implementation/agents/standard-implementation-completer.toml',
+    'apm-packages/adaptive-implementation-execution/profiles/ai/AGENTS.md',
+    'apm-packages/adaptive-implementation-execution/profiles/ai/high-implementation-starter.toml',
+    'apm-packages/adaptive-implementation-execution/profiles/ai/standard-implementation-completer.toml',
     'apm-packages/adaptive-implementation-execution/docs/install-guide.md',
     'apm-packages/adaptive-implementation-execution/docs/usage-guide.md',
     'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md',
@@ -107,14 +107,20 @@ Assert-NotContains $manifest '(?m)^\s*-\s+copilot\s*$' 'unverified Copilot targe
 Assert-NotContains $manifest 'token-aware|codex-first|plan-coverage' 'Plan Coverage or Codex-first dependency'
 Assert-NotContains $manifest 'path:\s+.*(?:implementation-intent|implementation-completion-handoff)\.md' 'standalone template dependency'
 
-$skillPayloadRoot = Join-Path $packageRoot '.apm\skills'
-if (Test-Path -LiteralPath $skillPayloadRoot -PathType Container) {
-    $maxWindowsPayloadPathLength = 110
-    Get-ChildItem -LiteralPath $skillPayloadRoot -File -Recurse | ForEach-Object {
-        $relativePath = [System.IO.Path]::GetRelativePath($repoRoot, $_.FullName)
-        if ($relativePath.Length -gt $maxWindowsPayloadPathLength) {
-            Add-Failure "APM skill payload path exceeds Windows compatibility budget ($($relativePath.Length) > $maxWindowsPayloadPathLength): $relativePath"
-        }
+# APM 0.18.0 materializes the complete package below a deep Git cache prefix on Windows.
+# Keep every repository-relative package path bounded instead of checking only deployed skill files.
+$maxWindowsPackagePathLength = 110
+$packageRelativeRoot = 'apm-packages/adaptive-implementation-execution'
+$packageFiles = @(& git -C $repoRoot ls-files --cached --others --exclude-standard -- $packageRelativeRoot)
+if ($LASTEXITCODE -ne 0) {
+    Add-Failure 'Cannot enumerate Git package payload for Windows path compatibility validation'
+}
+foreach ($relativePath in $packageFiles) {
+    if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $relativePath) -PathType Leaf)) {
+        continue
+    }
+    if ($relativePath.Length -gt $maxWindowsPackagePathLength) {
+        Add-Failure "APM package path exceeds Windows compatibility budget ($($relativePath.Length) > $maxWindowsPackagePathLength): $relativePath"
     }
 }
 
@@ -191,8 +197,8 @@ Assert-Contains $handoff 'Remaining work mapping \(Work ID\)' 'acceptance-to-wor
 Assert-Contains $handoff 'Work ID.*Acceptance item\(s\)' 'work-to-acceptance mapping columns'
 Assert-Contains $handoff '`Blocked` を許可しない' 'blocked acceptance rejection'
 
-$highToml = 'apm-packages/adaptive-implementation-execution/profiles/adaptive-implementation/agents/high-implementation-starter.toml'
-$standardToml = 'apm-packages/adaptive-implementation-execution/profiles/adaptive-implementation/agents/standard-implementation-completer.toml'
+$highToml = 'apm-packages/adaptive-implementation-execution/profiles/ai/high-implementation-starter.toml'
+$standardToml = 'apm-packages/adaptive-implementation-execution/profiles/ai/standard-implementation-completer.toml'
 foreach ($toml in @($highToml, $standardToml)) {
     Assert-Contains $toml '(?m)^model\s*=\s*"[^"]+"\s*$' 'top-level model'
     Assert-Contains $toml '(?m)^model_reasoning_effort\s*=\s*"[^"]+"\s*$' 'top-level reasoning effort'
@@ -216,7 +222,7 @@ if ($highModel -eq $standardModel) {
     Add-Failure 'HIGH_MODEL and STANDARD_MODEL must use distinct model mappings'
 }
 
-$profile = 'apm-packages/adaptive-implementation-execution/profiles/adaptive-implementation/AGENTS.md'
+$profile = 'apm-packages/adaptive-implementation-execution/profiles/ai/AGENTS.md'
 Assert-Contains $profile 'Plan Coverage artifacts は必須ではない' 'ordinary Plan activation'
 Assert-Contains $profile 'parent / router は production code と tests を直接編集しない' 'parent edit prohibition'
 Assert-Contains $profile 'write-heavy work を並列実行しない' 'serial agent rule'

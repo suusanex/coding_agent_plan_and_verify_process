@@ -127,7 +127,7 @@ HIGH_MODEL と STANDARD_MODEL は、それぞれの変更に関連する build�
 
 ## Changing model assignment
 
-抽象 tier と具体的 model の対応は `profiles/adaptive-implementation/agents/*.toml` で変更します。
+抽象 tier と具体的 model の対応は `profiles/ai/*.toml` で変更します。
 
 - `model`: runtime で利用可能な model
 - `model_reasoning_effort`: role に必要な reasoning

@@ -45,7 +45,7 @@ APM 0.18.0 の Windows remote install は、Git cache の深い checkout path �
 
 ## Apply the required Codex profile mapping
 
-package の `profiles/adaptive-implementation` には concrete model mapping の初期値があります。この installer の適用は任意の override ではなく、profile activation の通常の必須手順です。
+package の `profiles/ai` には concrete model mapping の初期値があります。この短い source path は Windows の APM cache 展開で path-length boundary を避けるためのもので、導入先の custom agent 名は変わりません。この installer の適用は任意の override ではなく、profile activation の通常の必須手順です。
 
 - `high-implementation-starter`: HIGH_MODEL mapping、high reasoning、workspace-write
 - `standard-implementation-completer`: STANDARD_MODEL mapping、high reasoning、workspace-write

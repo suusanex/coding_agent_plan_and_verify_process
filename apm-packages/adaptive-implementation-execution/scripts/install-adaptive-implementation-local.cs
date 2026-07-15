@@ -16,14 +16,14 @@ if (!options.IsValid)
 
 var sourceFile = GetSourceFilePath();
 var packageRoot = Directory.GetParent(Path.GetDirectoryName(sourceFile)!)!.FullName;
-var profileRoot = Path.Combine(packageRoot, "profiles", "adaptive-implementation");
+var profileRoot = Path.Combine(packageRoot, "profiles", "ai");
 var targetRoot = Path.GetFullPath(options.TargetRoot);
 
 var profileInstructions = Path.Combine(profileRoot, "AGENTS.md");
 var agentSources = new[]
 {
-    Path.Combine(profileRoot, "agents", "high-implementation-starter.toml"),
-    Path.Combine(profileRoot, "agents", "standard-implementation-completer.toml")
+    Path.Combine(profileRoot, "high-implementation-starter.toml"),
+    Path.Combine(profileRoot, "standard-implementation-completer.toml")
 };
 
 var missingSources = new[] { profileInstructions }.Concat(agentSources).Where(path => !File.Exists(path)).ToArray();
