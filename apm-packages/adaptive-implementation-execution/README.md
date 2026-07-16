@@ -44,9 +44,8 @@ HIGH_MODEL と STANDARD_MODEL の write-heavy work は並列化しません。�
 | Completion Handoff reference | skill の `refs/handoff.md` |
 | Portable HIGH_MODEL agent | repository root `.github/agents/high-implementation-starter.agent.md` |
 | Portable STANDARD_MODEL agent | repository root `.github/agents/standard-implementation-completer.agent.md` |
-| Codex profile guidance | `profiles/ai/AGENTS.md` |
-| Codex model mappings | `profiles/ai/*.toml` |
-| Profile installer | `scripts/install-adaptive-implementation-local.cs` |
+| Codex agent configuration sources | `codex-agents/*.toml` |
+| Compatibility installer | `scripts/install-adaptive-implementation-local.cs` |
 | Static validator | `scripts/validate-adaptive-implementation-execution.ps1` |
 
 Templates are bundled inside the skill instead of being standalone manifest file dependencies. Their short `refs/` paths keep APM 0.18.0 remote installs below the legacy Windows path-length boundary while preserving separate template files.
@@ -57,17 +56,19 @@ Templates are bundled inside the skill instead of being standalone manifest file
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
 ```
 
-APM install 後、通常の必須手順として package profile の concrete model mapping を導入先へ同期し、検証します。
+APM install が skill と portable custom agents を導入する本体です。現行 APM が `.codex/agents/*.toml` に concrete model 設定を生成しない場合だけ、互換処理として package 付属の設定を同期し、検証します。
 
 ```powershell
 dotnet run --file .\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --dry-run
-dotnet run --file .\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --force
+dotnet run --file .\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target
 dotnet run --file .\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --check
 ```
 
-installer は File-based app であり、`.csproj` は不要です。APM が生成した model 未設定の同名 custom agent は、既知の APM stub shape と package metadata が一致する場合だけ `--force` なしで profile mapping に更新します。それ以外の異なる同名 TOML は衝突として停止するため、内容を確認して package-owned file と判断できる場合だけ `--force` を指定します。`--check` が成功するまでこの profile を起動しないでください。
+installer は File-based app であり、`.csproj` は不要です。APM が生成した model 未設定の同名 custom agent は、既知の APM stub shape と package metadata が一致する場合だけ `--force` なしで補完します。それ以外の異なる同名 TOML は衝突として停止するため、内容を確認して package-owned file と判断できる場合だけ `--force` を指定します。
 
-`--check` は、skill と両 custom agents の配置、model / reasoning / workspace-write 設定、role ごとの agent 名、HIGH_MODEL と STANDARD_MODEL の異なる model mapping を検証します。
+補助スクリプトがアクセスする導入先ファイルは2つの `.codex/agents/*.toml` だけです。`AGENTS.md` を作成・変更・削除せず、実行しても skill の使用や自動選択を意味しません。`--check` は model / reasoning / workspace-write 設定、role ごとの agent 名、HIGH_MODEL と STANDARD_MODEL の異なる model mapping を検証します。APM が必要な設定を直接生成できるようになれば、この互換処理は不要になる可能性があります。
+
+skill の選択条件と、選択後の実行順序、handoff、re-entry、verification boundary の source of truth は `.apm/skills/adaptive-implementation-execution/SKILL.md` です。この package は repository 内のすべての Plan や実装作業へ skill を強制しません。
 
 起動例:
 

@@ -157,19 +157,19 @@ Steps:
 1. Install the package with APM for `codex,agent-skills`.
 2. Confirm skill and both reference templates are deployed.
 3. Confirm both portable agents are available to Codex.
-4. Apply the profile mapping with `install-adaptive-implementation-local.cs`.
+4. If APM leaves model-less custom agent TOMLs, complete their settings with `install-adaptive-implementation-local.cs`.
 5. Run installer `--check`.
 6. Confirm Codex can select the skill and both custom agents.
-7. Review collision behavior with an existing `AGENTS.md` and same-name TOML.
-8. Dry-run APM uninstall, profile removal, and orphan prune before rollback.
+7. Confirm the installer does not access an existing `AGENTS.md`, and review collision behavior with same-name TOML.
+8. Dry-run APM uninstall, custom agent configuration removal, and orphan prune before rollback.
 
 Expected:
 
-- skill, refs, portable agents, profile guidance, both TOMLs, and docs are present in the package
+- skill, refs, portable agents, both TOML sources, and docs are present in the package
 - installed skill refs are available under `.agents/skills/adaptive-implementation-execution/refs`
 - concrete agent TOMLs contain model, reasoning effort, and workspace-write sandbox fields
 - HIGH_MODEL and STANDARD_MODEL use different custom agent names and different model mappings
-- existing `AGENTS.md` content outside the managed section remains unchanged
+- the installer does not create, read, update, or remove `AGENTS.md`
 - APM-generated model-less stubs with matching package metadata are completed without `--force`
 - other same-name TOML collisions fail closed unless `--force` is explicit
 
@@ -181,11 +181,11 @@ dotnet publish ./scripts/install-adaptive-implementation-local.cs
 git diff --check
 ```
 
-The static validator checks the package layout, standalone dependency avoidance, Plan Coverage independence, verdict contracts, profile fields, root README entry, and presence of VAL-001 through VAL-008.
+The static validator checks the package layout, standalone dependency avoidance, Plan Coverage independence, verdict contracts, custom agent fields, absence of repository-wide guidance and installer `AGENTS.md` access, root README entry, and presence of VAL-001 through VAL-008.
 
 ## Local validation result
 
-Originally validated on 2026-07-13 with APM CLI 0.18.0 and a .NET 11 preview SDK targeting `net10.0`; Windows path and APM-generated stub regression checks were updated on 2026-07-15:
+Originally validated on 2026-07-13 with APM CLI 0.18.0 and a .NET 11 preview SDK targeting `net10.0`; Windows path, APM-generated stub, TOML-only installer, and `AGENTS.md` non-access regression checks were updated on 2026-07-16:
 
 | Check | Result | Evidence |
 | --- | --- | --- |
@@ -194,13 +194,13 @@ Originally validated on 2026-07-13 with APM CLI 0.18.0 and a .NET 11 preview SDK
 | Full package local-path dry-run | PASS | APM accepted the package manifest and listed the local package install plan |
 | File-based app publish | PASS | `dotnet publish install-adaptive-implementation-local.cs` |
 | Skill local install | PASS | APM deployed `SKILL.md` and both `refs/*.md` files under `.agents/skills/adaptive-implementation-execution` |
-| Profile dry-run / install / check | PASS | installer produced the managed `AGENTS.md` section and both `.codex/agents/*.toml` files, then `--check` returned OK |
+| Custom agent dry-run / install / check | PASS | installer completed both `.codex/agents/*.toml` files without accessing `AGENTS.md`, then `--check` returned OK |
 | APM-generated stub completion | PASS | fresh APM 0.18.0 Codex TOMLs containing only `name`, `description`, and `developer_instructions` were completed without `--force`; both model mappings were written and `--check` returned OK |
-| Authored profile collision | PASS | changing an installed model mapping preserved the authored value and made a no-force install fail without changing files |
-| Distinct mapping negative check | PASS | changing the installed STANDARD_MODEL mapping to the HIGH_MODEL mapping made `--check` fail with `must use distinct model mappings`; restoring the package profile returned OK |
-| Profile remove dry-run / remove / remove-check | PASS | managed content and package-owned TOMLs were removed, then `--remove --check` returned OK |
+| Authored TOML collision | PASS | changing an installed model mapping preserved the authored value and made a no-force install fail without changing files |
+| Distinct mapping negative check | PASS | changing the installed STANDARD_MODEL mapping to the HIGH_MODEL mapping made `--check` fail with `must use distinct model mappings`; restoring the package TOML returned OK |
+| Custom agent remove dry-run / remove / remove-check | PASS | package-owned TOMLs were removed, then `--remove --check` returned OK |
 | Remote branch package install | PASS | APM resolved the virtual package and both `git: parent` portable agents from `#codex/issue-45` at `66e1234b`, then deployed the skill, references, and both Codex agents |
-| Remote rollback | PASS | `apm uninstall` removed the direct package and skill, profile removal deleted the managed guidance and TOMLs, and `apm prune` removed both orphaned portable agent packages; no integrated skill, agent, or package files remained |
+| Remote rollback | PASS | `apm uninstall` removed the direct package and skill, custom agent removal deleted package-owned TOMLs, and `apm prune` removed both orphaned portable agent packages; no integrated skill, agent, or package files remained |
 | Agent discovery contract | PASS | remote install created both named `.codex/agents` entries and the static validator confirmed that the skill routes to those names |
 | Runtime multi-agent orchestration | NOT RUN | installation validation does not execute the skill and both implementation agents; this remains a separate Codex runtime validation |
 | Full package local-path install | NOT APPLICABLE | APM 0.18.0 cannot inherit `git: parent` from a local path dependency; the supported remote repository route is validated separately above |

@@ -1,6 +1,6 @@
 ---
 name: adaptive-implementation-execution
-description: Run non-trivial implementation from an ordinary Plan by starting with a high-model implementation agent, delegating only a decision-free bounded remainder to a standard-model completion agent, and returning to the high model when new structural decisions appear.
+description: Use when the user explicitly requests adaptive implementation execution, or when the task clearly requires this package's serial high-model-to-standard-model implementation workflow with high-model re-entry for new structural decisions.
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
@@ -9,7 +9,7 @@ description: Run non-trivial implementation from an ordinary Plan by starting wi
 
 # Adaptive Implementation Execution
 
-通常の Plan Mode output、手書き Plan、repository-tracked Plan、Issue 内の実装計画を入力に、実装中の evidence に基づいて HIGH_MODEL と STANDARD_MODEL を直列に切り替える implementation-only flow です。
+この skill が選択された後、通常の Plan Mode output、手書き Plan、repository-tracked Plan、Issue 内の実装計画を入力に、実装中の evidence に基づいて HIGH_MODEL と STANDARD_MODEL を直列に切り替える implementation-only flow です。package が導入されているだけで、repository 内の実装作業へ自動適用しません。
 
 Plan Coverage Lite / Standard / Full Coverage の縮小版ではありません。Plan Coverage artifacts、change-risk-triage、runtime contract、test design、coverage ledger、residual decision は必須入力にしません。
 

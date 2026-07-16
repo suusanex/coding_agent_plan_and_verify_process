@@ -162,7 +162,7 @@ APM で導入する場合:
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
 ```
 
-APM install 後は、package 付属の profile installer を通常の必須手順として `--dry-run`、必要に応じた `--force`、`--check` の順で実行します。`--check` が成功するまで profile を起動しません。詳細は install guide を参照してください。
+APM install が skill と portable custom agents を導入する本体です。現行 APM が model 未設定の custom agent TOML を生成する場合だけ、package 付属の補助スクリプトを `--dry-run`、install、`--check` の順で実行して具体的なmodel設定を補完します。補助スクリプトは `AGENTS.md` を変更せず、実行してもskillの使用を強制しません。詳細は install guide を参照してください。
 
 起動例:
 

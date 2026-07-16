@@ -4,9 +4,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
-const string StartMarker = "<!-- adaptive-implementation-execution:start -->";
-const string EndMarker = "<!-- adaptive-implementation-execution:end -->";
-
 var options = ParseArguments(args);
 if (!options.IsValid)
 {
@@ -17,17 +14,16 @@ if (!options.IsValid)
 
 var sourceFile = GetSourceFilePath();
 var packageRoot = Directory.GetParent(Path.GetDirectoryName(sourceFile)!)!.FullName;
-var profileRoot = Path.Combine(packageRoot, "profiles", "ai");
+var agentConfigRoot = Path.Combine(packageRoot, "codex-agents");
 var targetRoot = Path.GetFullPath(options.TargetRoot);
 
-var profileInstructions = Path.Combine(profileRoot, "AGENTS.md");
 var agentSources = new[]
 {
-    Path.Combine(profileRoot, "high-implementation-starter.toml"),
-    Path.Combine(profileRoot, "standard-implementation-completer.toml")
+    Path.Combine(agentConfigRoot, "high-implementation-starter.toml"),
+    Path.Combine(agentConfigRoot, "standard-implementation-completer.toml")
 };
 
-var missingSources = new[] { profileInstructions }.Concat(agentSources).Where(path => !File.Exists(path)).ToArray();
+var missingSources = agentSources.Where(path => !File.Exists(path)).ToArray();
 if (missingSources.Length > 0)
 {
     foreach (var path in missingSources)
@@ -51,7 +47,6 @@ var conflicts = new List<string>();
 
 if (options.Remove)
 {
-    PlanManagedInstructionsRemoval(targetRoot, operations, conflicts);
     foreach (var source in agentSources)
     {
         PlanFileRemoval(source, Path.Combine(targetRoot, ".codex", "agents", Path.GetFileName(source)), options.Force, operations, conflicts);
@@ -59,14 +54,11 @@ if (options.Remove)
 }
 else
 {
-    ValidateProfileConfiguration(agentSources[0], agentSources[1], "Package", conflicts);
-    PlanManagedInstructionsInstall(targetRoot, File.ReadAllText(profileInstructions), operations, conflicts);
+    ValidateAgentConfiguration(agentSources[0], agentSources[1], "Package", conflicts);
     foreach (var source in agentSources)
     {
         PlanFileInstall(source, Path.Combine(targetRoot, ".codex", "agents", Path.GetFileName(source)), options.Force, operations, conflicts);
     }
-
-    ValidateInstalledSkill(targetRoot, conflicts);
 }
 
 if (options.Check)
@@ -76,7 +68,7 @@ if (options.Check)
         var installedAgents = agentSources
             .Select(source => Path.Combine(targetRoot, ".codex", "agents", Path.GetFileName(source)))
             .ToArray();
-        ValidateProfileConfiguration(installedAgents[0], installedAgents[1], "Installed", conflicts);
+        ValidateAgentConfiguration(installedAgents[0], installedAgents[1], "Installed", conflicts);
     }
 
     var hasChanges = operations.Any(operation => operation.Kind != OperationKind.Unchanged);
@@ -97,8 +89,8 @@ if (options.Check)
     }
 
     Console.WriteLine(options.Remove
-        ? "Adaptive Implementation profile removal check: OK"
-        : "Adaptive Implementation profile check: OK (skill and distinct custom agent mappings are installed).");
+        ? "Adaptive Implementation custom agent configuration removal check: OK"
+        : "Adaptive Implementation custom agent configuration check: OK (distinct model mappings are installed).");
     return;
 }
 
@@ -114,7 +106,7 @@ foreach (var conflict in conflicts)
 
 if (conflicts.Count > 0)
 {
-    Console.Error.WriteLine("No files were changed. Review collisions and rerun with --force only for package-owned profile files.");
+    Console.Error.WriteLine("No files were changed. Review collisions and rerun with --force only for package-owned custom agent files.");
     Environment.ExitCode = 1;
     return;
 }
@@ -131,8 +123,8 @@ foreach (var operation in operations.Where(operation => operation.Apply is not n
 }
 
 Console.WriteLine(options.Remove
-    ? "Adaptive Implementation profile removal completed."
-    : "Adaptive Implementation profile installation completed.");
+    ? "Adaptive Implementation custom agent configuration removal completed."
+    : "Adaptive Implementation custom agent configuration installation completed.");
 
 static Options ParseArguments(string[] arguments)
 {
@@ -193,83 +185,6 @@ static void PrintUsage()
 
 static string GetSourceFilePath([CallerFilePath] string path = "") => path;
 
-static void PlanManagedInstructionsInstall(
-    string targetRoot,
-    string profileContent,
-    List<PlannedOperation> operations,
-    List<string> conflicts)
-{
-    var target = Path.Combine(targetRoot, "AGENTS.md");
-    var section = StartMarker + "\n" + Normalize(profileContent).Trim() + "\n" + EndMarker;
-    var existing = File.Exists(target) ? Normalize(File.ReadAllText(target)) : "";
-    var start = existing.IndexOf(StartMarker, StringComparison.Ordinal);
-    var end = existing.IndexOf(EndMarker, StringComparison.Ordinal);
-
-    if ((start >= 0) != (end >= 0) || (start >= 0 && end < start))
-    {
-        conflicts.Add("AGENTS.md contains incomplete Adaptive Implementation managed markers.");
-        return;
-    }
-
-    string updated;
-    if (start >= 0)
-    {
-        var after = end + EndMarker.Length;
-        updated = existing[..start] + section + existing[after..];
-    }
-    else if (string.IsNullOrWhiteSpace(existing))
-    {
-        updated = section + "\n";
-    }
-    else
-    {
-        updated = existing.TrimEnd() + "\n\n" + section + "\n";
-    }
-
-    PlanTextWrite(target, updated, existing, "AGENTS.md managed section", operations);
-}
-
-static void PlanManagedInstructionsRemoval(
-    string targetRoot,
-    List<PlannedOperation> operations,
-    List<string> conflicts)
-{
-    var target = Path.Combine(targetRoot, "AGENTS.md");
-    if (!File.Exists(target))
-    {
-        operations.Add(PlannedOperation.Unchanged("AGENTS.md managed section is already absent."));
-        return;
-    }
-
-    var existing = Normalize(File.ReadAllText(target));
-    var start = existing.IndexOf(StartMarker, StringComparison.Ordinal);
-    var end = existing.IndexOf(EndMarker, StringComparison.Ordinal);
-    if (start < 0 && end < 0)
-    {
-        operations.Add(PlannedOperation.Unchanged("AGENTS.md managed section is already absent."));
-        return;
-    }
-
-    if (start < 0 || end < start)
-    {
-        conflicts.Add("AGENTS.md contains incomplete Adaptive Implementation managed markers.");
-        return;
-    }
-
-    var after = end + EndMarker.Length;
-    var updated = (existing[..start].TrimEnd() + "\n\n" + existing[after..].TrimStart()).Trim();
-    if (updated.Length == 0)
-    {
-        operations.Add(new PlannedOperation(
-            OperationKind.Delete,
-            "Delete AGENTS.md because it contains only the managed section.",
-            () => File.Delete(target)));
-        return;
-    }
-
-    PlanTextWrite(target, updated + "\n", existing, "Remove AGENTS.md managed section", operations);
-}
-
 static void PlanFileInstall(
     string source,
     string target,
@@ -298,7 +213,7 @@ static void PlanFileInstall(
     {
         operations.Add(new PlannedOperation(
             OperationKind.Update,
-            "Complete APM-generated agent profile: " + target,
+            "Complete APM-generated custom agent configuration: " + target,
             () => WriteText(target, desired)));
         return;
     }
@@ -435,7 +350,7 @@ static void PlanFileRemoval(
     var targetContent = Normalize(File.ReadAllText(target));
     if (sourceContent != targetContent && !force)
     {
-        conflicts.Add(target + " differs from the package profile and will not be removed.");
+        conflicts.Add(target + " differs from the package custom agent configuration and will not be removed.");
         return;
     }
 
@@ -445,43 +360,7 @@ static void PlanFileRemoval(
         () => File.Delete(target)));
 }
 
-static void PlanTextWrite(
-    string target,
-    string desired,
-    string existing,
-    string label,
-    List<PlannedOperation> operations)
-{
-    if (Normalize(existing) == Normalize(desired))
-    {
-        operations.Add(PlannedOperation.Unchanged(label + " is unchanged."));
-        return;
-    }
-
-    var kind = File.Exists(target) ? OperationKind.Update : OperationKind.Create;
-    operations.Add(new PlannedOperation(
-        kind,
-        label + ": " + target,
-        () => WriteText(target, desired)));
-}
-
-static void ValidateInstalledSkill(string targetRoot, List<string> conflicts)
-{
-    var skillRoot = Path.Combine(targetRoot, ".agents", "skills", "adaptive-implementation-execution");
-    var required = new[]
-    {
-        Path.Combine(skillRoot, "SKILL.md"),
-        Path.Combine(skillRoot, "refs", "intent.md"),
-        Path.Combine(skillRoot, "refs", "handoff.md")
-    };
-
-    foreach (var path in required.Where(path => !File.Exists(path)))
-    {
-        conflicts.Add("APM-installed skill file is missing: " + path);
-    }
-}
-
-static void ValidateProfileConfiguration(
+static void ValidateAgentConfiguration(
     string highPath,
     string standardPath,
     string sourceLabel,

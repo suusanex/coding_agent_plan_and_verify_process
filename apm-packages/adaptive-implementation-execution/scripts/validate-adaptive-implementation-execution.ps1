@@ -104,9 +104,8 @@ $requiredFiles = @(
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md',
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/intent.md',
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md',
-    'apm-packages/adaptive-implementation-execution/profiles/ai/AGENTS.md',
-    'apm-packages/adaptive-implementation-execution/profiles/ai/high-implementation-starter.toml',
-    'apm-packages/adaptive-implementation-execution/profiles/ai/standard-implementation-completer.toml',
+    'apm-packages/adaptive-implementation-execution/codex-agents/high-implementation-starter.toml',
+    'apm-packages/adaptive-implementation-execution/codex-agents/standard-implementation-completer.toml',
     'apm-packages/adaptive-implementation-execution/docs/install-guide.md',
     'apm-packages/adaptive-implementation-execution/docs/usage-guide.md',
     'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md',
@@ -116,6 +115,11 @@ $requiredFiles = @(
 
 foreach ($file in $requiredFiles) {
     Assert-FileExists $file
+}
+
+$packageAgentsFiles = @(Get-ChildItem -LiteralPath (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution') -Filter 'AGENTS.md' -File -Recurse)
+if ($packageAgentsFiles.Count -gt 0) {
+    Add-Failure ('Package must not contain AGENTS.md guidance: ' + (($packageAgentsFiles.FullName) -join ', '))
 }
 
 $manifest = 'apm-packages/adaptive-implementation-execution/apm.yml'
@@ -170,6 +174,7 @@ Assert-Contains $skill 'N/A.*理由' 'evidence-backed applicability N/A'
 Assert-Contains $skill 'incoming value \+ 1' 're-entry count increment rule'
 Assert-Contains $skill '双方向に一致' 'bidirectional acceptance mapping gate'
 Assert-Contains $skill 'existing code から scope を狭めない' 'safe non-goal inference rule'
+Assert-Contains $skill 'package が導入されているだけで.*自動適用しません' 'non-automatic skill selection rule'
 
 $highAgent = '.github/agents/high-implementation-starter.agent.md'
 Assert-Contains $highAgent 'edit production code and tests' 'real implementation loop'
@@ -218,8 +223,8 @@ Assert-Contains $handoff 'Remaining work mapping \(Work ID\)' 'acceptance-to-wor
 Assert-Contains $handoff 'Work ID.*Acceptance item\(s\)' 'work-to-acceptance mapping columns'
 Assert-Contains $handoff '`Blocked` を許可しない' 'blocked acceptance rejection'
 
-$highToml = 'apm-packages/adaptive-implementation-execution/profiles/ai/high-implementation-starter.toml'
-$standardToml = 'apm-packages/adaptive-implementation-execution/profiles/ai/standard-implementation-completer.toml'
+$highToml = 'apm-packages/adaptive-implementation-execution/codex-agents/high-implementation-starter.toml'
+$standardToml = 'apm-packages/adaptive-implementation-execution/codex-agents/standard-implementation-completer.toml'
 foreach ($toml in @($highToml, $standardToml)) {
     Assert-Contains $toml '(?m)^model\s*=\s*"[^"]+"\s*$' 'top-level model'
     Assert-Contains $toml '(?m)^model_reasoning_effort\s*=\s*"[^"]+"\s*$' 'top-level reasoning effort'
@@ -230,8 +235,8 @@ $highAgentName = Get-TomlString $highToml 'name'
 $standardAgentName = Get-TomlString $standardToml 'name'
 $highModel = Get-TomlString $highToml 'model'
 $standardModel = Get-TomlString $standardToml 'model'
-$highProfileDescription = Get-TomlString $highToml 'description'
-$standardProfileDescription = Get-TomlString $standardToml 'description'
+$highConfigDescription = Get-TomlString $highToml 'description'
+$standardConfigDescription = Get-TomlString $standardToml 'description'
 $highPortableDescription = Get-FrontmatterString $highAgent 'description'
 $standardPortableDescription = Get-FrontmatterString $standardAgent 'description'
 if ($highAgentName -ne 'high-implementation-starter') {
@@ -246,19 +251,12 @@ if ($highAgentName -eq $standardAgentName) {
 if ($highModel -eq $standardModel) {
     Add-Failure 'HIGH_MODEL and STANDARD_MODEL must use distinct model mappings'
 }
-if ($highProfileDescription -ne $highPortableDescription) {
-    Add-Failure 'HIGH_MODEL profile and portable agent descriptions must match for APM stub recognition'
+if ($highConfigDescription -ne $highPortableDescription) {
+    Add-Failure 'HIGH_MODEL TOML and portable agent descriptions must match for APM stub recognition'
 }
-if ($standardProfileDescription -ne $standardPortableDescription) {
-    Add-Failure 'STANDARD_MODEL profile and portable agent descriptions must match for APM stub recognition'
+if ($standardConfigDescription -ne $standardPortableDescription) {
+    Add-Failure 'STANDARD_MODEL TOML and portable agent descriptions must match for APM stub recognition'
 }
-
-$profile = 'apm-packages/adaptive-implementation-execution/profiles/ai/AGENTS.md'
-Assert-Contains $profile 'Plan Coverage artifacts は必須ではない' 'ordinary Plan activation'
-Assert-Contains $profile 'parent / router は production code と tests を直接編集しない' 'parent edit prohibition'
-Assert-Contains $profile 'write-heavy work を並列実行しない' 'serial agent rule'
-Assert-Contains $profile 'final code review' 'final review boundary'
-Assert-Contains $profile 'installer の適用は通常の必須手順' 'mandatory profile installer'
 
 $validation = 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md'
 foreach ($id in 1..8) {
@@ -270,17 +268,23 @@ Assert-Contains $installer '(?m)^#:property TargetFramework=net10\.0\s*$' 'File-
 Assert-Contains $installer '--dry-run' 'dry-run option'
 Assert-Contains $installer '--check' 'check option'
 Assert-Contains $installer '--remove' 'remove option'
-Assert-Contains $installer 'adaptive-implementation-execution:start' 'managed AGENTS marker'
-Assert-Contains $installer 'ValidateProfileConfiguration' 'profile configuration validation'
+Assert-Contains $installer 'ValidateAgentConfiguration' 'custom agent configuration validation'
 Assert-Contains $installer 'must use distinct model mappings' 'distinct model mapping check'
 Assert-Contains $installer 'must reference different custom agents' 'distinct custom agent check'
 Assert-Contains $installer 'IsApmGeneratedAgentStub' 'APM-generated model-less agent completion gate'
 Assert-Contains $installer 'allowedKeys\.All\(values\.ContainsKey\)' 'exact APM-generated stub key validation'
 Assert-Contains $installer 'apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local\.cs' 'repo-root usage path'
+Assert-Contains $installer 'Path\.Combine\(packageRoot, "codex-agents"\)' 'custom agent source directory'
+Assert-NotContains $installer 'AGENTS\.md|adaptive-implementation-execution:start|PlanManagedInstructions' 'AGENTS.md access or managed marker logic'
 
-Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '通常の必須手順' 'mandatory installer quick start'
-Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' '--check.*次をすべて検証' 'documented installer checks'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' 'APM install が skill と portable custom agents を導入する本体' 'APM-first quick start'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '`AGENTS\.md` を作成・変更・削除せず' 'documented AGENTS.md non-access'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' '--check.*次を検証' 'documented installer checks'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' 'APM-generated model-less stub' 'documented APM stub completion policy'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' 'Migration from the former managed section' 'legacy managed section migration note'
+
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' '導入されているだけで.*自動適用しません' 'documented non-automatic skill selection'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'installer does not create, read, update, or remove `AGENTS\.md`' 'validation scenario for AGENTS.md non-access'
 
 $workflow = '.github/workflows/validate-adaptive-implementation-execution.yml'
 Assert-Contains $workflow 'validate-adaptive-implementation-execution\.ps1' 'Adaptive Implementation CI validator invocation'

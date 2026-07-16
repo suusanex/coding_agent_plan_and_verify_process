@@ -18,7 +18,9 @@
 
 ## Start after ordinary Plan Mode
 
-事前に APM install、必須 profile installer、installer の `--check` を完了してください。`--check` が失敗している repository ではこの flow を起動しません。
+APM install で skill と portable custom agents を導入します。この skill は、利用者が明示指定した場合、または現在の task がこの package の HIGH_MODEL → STANDARD_MODEL 直列 workflow を明確に必要とする場合に選択します。導入されているだけで repository 内の実装作業へ自動適用しません。
+
+現行 APM が model 未設定の custom agent TOML を生成した場合は、補助スクリプトで concrete model 設定を補完し、`--check` で確認します。この補完は runtime configuration の互換処理であり、skill の選択や使用を強制しません。
 
 ```text
 $adaptive-implementation-execution を使って、直前の Plan を実装してください。
@@ -127,10 +129,10 @@ HIGH_MODEL と STANDARD_MODEL は、それぞれの変更に関連する build�
 
 ## Changing model assignment
 
-抽象 tier と具体的 model の対応は `profiles/ai/*.toml` で変更します。
+抽象 tier と具体的 model の対応は `codex-agents/*.toml` で変更します。
 
 - `model`: runtime で利用可能な model
 - `model_reasoning_effort`: role に必要な reasoning
 - `sandbox_mode`: implementation agent では `workspace-write`
 
-skill、portable agent、profile `AGENTS.md` の本文に具体的 model 名を追加しません。
+skill や portable agent の本文に具体的 model 名を追加しません。skill 選択後の実行契約は `SKILL.md` を source of truth とします。
