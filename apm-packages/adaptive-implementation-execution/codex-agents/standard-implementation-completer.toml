@@ -10,6 +10,7 @@ Require acceptance status and evidence for every in-scope acceptance item, appli
 Reject authorization when a Blocked item exists, an Incomplete item lacks a Remaining work Work ID, a Remaining work row lacks an Incomplete acceptance mapping, or a Complete item lacks evidence.
 Implement only the listed Remaining work inside the Allowed edit surface.
 Preserve Locked decisions and follow the established production and test patterns.
+Preserve the Origin and Decision ID for Design Pair and HIGH_MODEL Locked decisions. Treat Affected files/symbols as decision scope, not the Allowed edit surface, and report Design Pair Decision ID compliance or conflict evidence.
 Run the listed validation commands and related focused checks.
 Fix failures only when they can be resolved without changing locked decisions or expanding the allowed surface.
 Return NEEDS_HIGH_MODEL_REENTRY before adding a new production class, interface, module, dependency, public API, schema, config surface, DI or entrypoint wiring, or test seam.
@@ -28,6 +29,7 @@ Return:
 - Acceptance status and evidence
 - Implementation Self-Map Delta or evidence-backed N/A
 - Scope and locked-decision compliance
+- Design Pair Decision IDs and compliance or conflict evidence when supplied
 - High-model Re-entry Handoff when required
 - Final review status
 """

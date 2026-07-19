@@ -51,6 +51,10 @@ validation expectation が明示されていない場合は repository standard 
 
 Plan Coverage、change-risk-triage、runtime-contract、test-design、coverage ledger、residual-decision artifact は必須ではありません。caller が binding input として渡した場合だけ守ってください。
 
+利用者が Design Pair route を明示選択した場合は、`Design Pair Implementation Handoff` を追加 input として受け取ります。handoff の `Locked Decisions` に Decision ID と explicit human confirmation がある entry だけを binding とし、Target Map、`Discussed but Unlocked`、`Adaptive-Owned`、Known Evidence、Known Assumptions、Knowledge Candidates は参考情報として扱ってください。Target Map と `Affected files / symbols` は allowed edit surface ではありません。
+
+Design Pair handoff がある場合も、通常の adaptive implementation と同じ authority を維持します。Locked Decisions 以外の責務配置、signature、dependency、wiring、state ownership、error / cancellation / retry、test seam 等は actual code と verification evidence に基づいて判断してください。
+
 入力不足により何を変更するか、scope、完了条件を確定できない場合は、code を推測で編集せず `REPLAN_REQUIRED` または `HUMAN_DECISION_REQUIRED` を返します。
 
 ## Implementation workflow
@@ -63,6 +67,8 @@ Plan Coverage、change-risk-triage、runtime-contract、test-design、coverage l
 6. 結果から、責務配置、signature、dependency、wiring、state ownership、error / cancellation / retry、test seam に未解決の decision surface が残るか判定する。
 7. 未解決の構造判断が残る場合は同じ run 内で実装を続ける。
 8. 残作業が明示的かつ構造変更不要になった場合だけ、`Implementation Completion Handoff` を作る。
+
+Design Pair handoff がある場合は、実装中に各 Design Pair Decision ID の compliance evidence を記録します。HIGH_MODEL が追加で確定した decision は別 ID と origin で記録し、Design Pair entry を上書きしません。
 
 ## Continue with HIGH_MODEL when
 
@@ -77,6 +83,23 @@ Plan Coverage、change-risk-triage、runtime-contract、test-design、coverage l
 - existing code への局所追加が不自然なねじ込みになる
 - 複数の妥当な実装案から trade-off 判断が必要
 - Plan と existing code の矛盾を解消するには scope または acceptance の変更が必要
+
+Locked Decision 以外の新しい decision surface は停止理由ではありません。この agent が通常どおり判断して実装を続けます。
+
+## Locked Decision conflict
+
+actual code、production wiring、dependency evidence により Design Pair Locked Decision が実現不能または不安全、Decision を変えないと acceptance を満たせない、または複数の Locked Decisions / upstream artifacts が矛盾すると判明した場合、Decision を黙って変更してはいけません。
+
+`HUMAN_DECISION_REQUIRED`、`REPLAN_REQUIRED`、または適切な既存 stop verdict とともに次を返します。
+
+- affected Design Pair Decision ID
+- actual code / production wiring / dependency evidence
+- Locked Decision を維持できない理由
+- files changed と current worktree state
+- checks performed
+- 利用者が次に判断すべき事項
+
+automatic Design Pair re-entry は行いません。
 
 同一 run 内で続行できる場合、`CONTINUE_HIGH_IMPLEMENTATION` を parent へ逐次返して handoff を増やさず、そのまま作業を続けてください。この verdict は session boundary、resume、実行時間上限、または別 run が必要なときだけ状態表現として使います。
 
@@ -131,7 +154,9 @@ STANDARD_MODEL から一度 re-entry した後は、原則として HIGH_MODEL �
 - Acceptance status
 - Applicability evidence
 - Implemented
-- Locked decisions
+- Locked decisions（Origin、Decision ID、Decision、Affected files / symbols、Validation expectation、Compliance evidence）
+- Design Pair handoff path または `N/A`
+- Design Pair Decision compliance
 - Remaining work
 - Allowed edit surface
 - Validation commands
@@ -180,6 +205,7 @@ Parent Plan Coverage、Behavior Case、slice、runtime-contract、test-point、i
 - tests changed
 - validation commands and results
 - acceptance status table with evidence for every in-scope item
+- Design Pair handoff path、Decision IDs、compliance / conflict evidence（存在する場合）
 - Implementation Self-Map Delta, or evidence-backed `N/A` when no Plan Coverage binding artifacts were supplied
 - remaining decision surface
 - handoff persistence

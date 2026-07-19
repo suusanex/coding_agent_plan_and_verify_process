@@ -41,6 +41,9 @@ Minimum fields:
 - behavior case coverage ledger status
 - `risk_triage_artifact`
 - `risk_triage_artifact_status`
+- implementation route
+- implementation route source
+- Design Pair handoff path
 - shape handoff status
 - remaining design uncertainty
 - completion scope
@@ -84,6 +87,26 @@ Audit artifact minimum fields:
 - route history
 - parent direct exceptions
 - close audit
+
+### Implementation Route
+
+Use this default unless the user explicitly selected Design Pair:
+
+```yaml
+implementation_route: adaptive
+implementation_route_source: default
+design_pair_handoff: N/A
+```
+
+Only explicit user selection may set:
+
+```yaml
+implementation_route: design-pair
+implementation_route_source: explicit-user-selection
+design_pair_handoff: plans/<slug>-design-pair-implementation-handoff.md
+```
+
+Do not choose, recommend, propose, or ask the user about Design Pair based on task weight, risk, size, architecture, or model-routing considerations. Persist the selected pair through state, handoff review, resume, implementation, verification, and close. If explicit Design Pair metadata is contradictory or its skill is unavailable, stop instead of silently falling back to Adaptive.
 
 For "続きやって", read the newest matching state artifact before deciding the next step.
 Read the matching audit artifact when the next step depends on delegation evidence, model-observability detail, route history, or close permission.
@@ -183,6 +206,7 @@ Rules:
 - `STANDARD_MODEL` READY verification MUST delegate to `standard-verifier` before close, unless close risk requires `high-closure-reviewer`.
 - `HIGH_MODEL` plan, behavior expansion, risk, implementation handoff review, implementation contract, and dangerous close judgment may stay with the parent or high agents.
 - Normal READY implementation requires an `implementation-handoff-review` artifact, or an explicitly equivalent pre-implementation gate such as a Plan Coverage Lite artifact whose Inline Ready Gate is PASS, before selecting `high-implementation-starter`.
+- When `implementation_route = design-pair`, the explicit Design Pair pre-stage runs after that authorization and before `high-implementation-starter`. It may write only `plans/<slug>-design-pair-implementation-handoff.md`, must not edit production code / tests, and must reach `READY_FOR_ADAPTIVE_IMPLEMENTATION` before implementation starts.
 - Implementation handoff review requires the durable risk artifact `plans/<slug>-change-risk-triage.md`. Do not select `implementation-handoff-review` until `risk_triage_artifact_status = Complete`.
 - When `Expansion required = Yes`, the implementation-handoff-review artifact or Plan Coverage Lite artifact must include `Behavior Case Coverage Ledger` and state must record `behavior_case_coverage_ledger_status = Complete` before selecting `high-implementation-starter`.
 - `READY_FOR_STANDARD_COMPLETION` sets `shape_handoff_status = Ready`; starting `standard-implementation-completer` sets it to `Consumed`; `NEEDS_HIGH_MODEL_REENTRY` sets it to `Invalidated` and requires the next implementation owner to be `high-implementation-starter`.
@@ -382,7 +406,8 @@ Use `STANDARD_MODEL` only for a bounded decision-free completion handoff. `CHEAP
 
 Do:
 
-- set `Delegation required = Yes` and `Edit owner = high-implementation-starter` for normal READY implementation start
+- for `implementation_route = design-pair`, set the pre-stage Edit owner to `design-pair-implementation-execution`, allow only its tracked handoff path, and require `READY_FOR_ADAPTIVE_IMPLEMENTATION` before changing the implementation owner
+- set `Delegation required = Yes` and `Edit owner = high-implementation-starter` for every non-trivial Adaptive implementation start after any explicit Design Pair pre-stage
 - require either the implementation-handoff-review parent authorization artifact or a Plan Coverage Lite artifact with Inline Ready Gate equivalence before selecting `high-implementation-starter`
 - when `Expansion required = Yes`, require `behavior_case_coverage_ledger_status = Complete`
 - delegate READY implementation serially to `high-implementation-starter`; use `standard-implementation-completer` only after a valid handoff and return to HIGH_MODEL on `NEEDS_HIGH_MODEL_REENTRY`
@@ -482,6 +507,8 @@ When parent-direct work is accepted, record `execution_mode = PARENT_DIRECT_WORK
 - `ReadyForDelegatedVerification`
 - `ReadyForImplementationHandoffReview`
 - `BlockedByBehaviorCaseCoverageLedger`
+- `ReadyForDesignPair`
+- `BlockedByMissingDesignPairSkill`
 
 Ask the user only for the minimum next input.
 Do not ask them to choose a gate, agent, or model.
@@ -502,6 +529,9 @@ Return:
 - behavior case coverage ledger status
 - `risk_triage_artifact`
 - `risk_triage_artifact_status`
+- implementation route
+- implementation route source
+- Design Pair handoff path
 - shape handoff status
 - remaining design uncertainty
 - completion scope

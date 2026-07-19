@@ -19,6 +19,7 @@ These rules apply to Plan Coverage Check and Residual Decision Flow agents when 
 - **Reduce breadth, not depth**: token reduction should remove redundant artifact breadth or repeated boilerplate, not the depth of required guardrail checks for the selected scope.
 - **Fail closed on missing authority**: if the required Plan authority, implementation authorization, evidence, or human decision is missing, record the blocker and stop instead of treating the item as complete.
 - **Adaptive implementation ownership**: after implementation authorization, every non-trivial bounded implementation starts with `high-implementation-starter` on `HIGH_MODEL`. It may delegate only a decision-free remainder to `standard-implementation-completer` on `STANDARD_MODEL`, and that completer must return `NEEDS_HIGH_MODEL_REENTRY` instead of reopening structural decisions. These write owners run serially within one bounded pass.
+- **Explicit implementation route selection**: default to `implementation_route: adaptive` and `implementation_route_source: default`. Use `implementation_route: design-pair` only when the user explicitly selected it, and preserve `implementation_route_source: explicit-user-selection` through durable artifacts and resume state. Do not infer, recommend, or propose Design Pair from risk, difficulty, size, or architecture. When explicitly selected, run `design-pair-implementation-execution` only after implementation authorization and before `high-implementation-starter`.
 
 ## Shared artifact discipline
 

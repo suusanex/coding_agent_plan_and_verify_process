@@ -99,6 +99,7 @@ $requiredFiles = @(
     '.github/agents/high-implementation-starter.agent.md',
     '.github/agents/standard-implementation-completer.agent.md',
     '.github/workflows/validate-adaptive-implementation-execution.yml',
+    '.github/workflows/validate-design-pair-implementation-execution.yml',
     'apm-packages/adaptive-implementation-execution/apm.yml',
     'apm-packages/adaptive-implementation-execution/README.md',
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md',
@@ -111,6 +112,9 @@ $requiredFiles = @(
     'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md',
     'apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs',
     'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1',
+    'apm-packages/design-pair-implementation-execution/apm.yml',
+    'apm-packages/design-pair-implementation-execution/.apm/skills/design-pair-implementation-execution/SKILL.md',
+    'apm-packages/design-pair-implementation-execution/.apm/skills/design-pair-implementation-execution/handoff.md',
     'apm-packages/token-aware-guardrail-kernel-flow/apm.yml',
     'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md',
     'apm-packages/token-aware-full-coverage-3layer/apm.yml',
@@ -139,7 +143,7 @@ if ($packageAgentsFiles.Count -gt 0) {
 
 $manifest = 'apm-packages/adaptive-implementation-execution/apm.yml'
 Assert-Contains $manifest '(?m)^name:\s*adaptive-implementation-execution\s*$' 'package name'
-Assert-Contains $manifest '(?m)^version:\s*0\.1\.1\s*$' 'package version 0.1.1'
+Assert-Contains $manifest '(?m)^version:\s*0\.2\.0\s*$' 'package version 0.2.0'
 Assert-Contains $manifest '(?m)^\s*-\s+codex\s*$' 'codex target'
 Assert-Contains $manifest '(?m)^\s*-\s+agent-skills\s*$' 'agent-skills target'
 Assert-NotContains $manifest '(?m)^\s*-\s+copilot\s*$' 'unverified Copilot target'
@@ -176,9 +180,9 @@ if (Test-Path -LiteralPath $manifestPath) {
 }
 
 $integratedManifests = @(
-    @{ Path = 'apm-packages/token-aware-guardrail-kernel-flow/apm.yml'; Version = '0\.5\.0' },
-    @{ Path = 'apm-packages/token-aware-full-coverage-3layer/apm.yml'; Version = '0\.3\.0' },
-    @{ Path = 'apm-packages/codex-first-ai-development-process/apm.yml'; Version = '0\.4\.0' },
+    @{ Path = 'apm-packages/token-aware-guardrail-kernel-flow/apm.yml'; Version = '0\.6\.0' },
+    @{ Path = 'apm-packages/token-aware-full-coverage-3layer/apm.yml'; Version = '0\.4\.0' },
+    @{ Path = 'apm-packages/codex-first-ai-development-process/apm.yml'; Version = '0\.5\.0' },
     @{ Path = 'apm-packages/copilot-fallback-ai-development-process/apm.yml'; Version = '0\.2\.0' }
 )
 
@@ -268,6 +272,10 @@ Assert-Contains $skill 'incoming value \+ 1' 're-entry count increment rule'
 Assert-Contains $skill '双方向に一致' 'bidirectional acceptance mapping gate'
 Assert-Contains $skill 'existing code から scope を狭めない' 'safe non-goal inference rule'
 Assert-Contains $skill 'package が導入されているだけで.*自動適用しません' 'non-automatic skill selection rule'
+Assert-Contains $skill 'Design Pair Implementation Handoff' 'Design Pair handoff input support'
+Assert-Contains $skill '(?s)binding なのは.*Locked Decisions.*だけ' 'Design Pair binding-only rule'
+Assert-Contains $skill 'Affected files / symbols.*Allowed edit surface.*扱いません' 'Design Pair file-symbol non-allowlist rule'
+Assert-Contains $skill 'automatic Design Pair re-entry' 'no automatic Design Pair re-entry'
 
 $highAgent = '.github/agents/high-implementation-starter.agent.md'
 Assert-Contains $highAgent 'edit production code and tests' 'real implementation loop'
@@ -281,6 +289,8 @@ Assert-Contains $highAgent 're-entry handoff の `reentry_count` を維持' 'hig
 Assert-Contains $highAgent 'You are the "High Implementation Starter" agent\.' 'APM stub high-agent opening'
 Assert-Contains $highAgent 'Implementation Self-Map Delta' 'HIGH_MODEL Self-Map delta output'
 Assert-Contains $highAgent 'Related Plan item.*Related Behavior Case IDs.*Related SL / XC / RC / TP / IC / Gap item.*Assumption made.*Review hint' 'HIGH_MODEL Self-Map schema'
+Assert-Contains $highAgent 'Design Pair Implementation Handoff' 'HIGH_MODEL Design Pair input support'
+Assert-Contains $highAgent 'Locked Decision conflict' 'HIGH_MODEL Locked Decision conflict stop'
 
 $standardAgent = '.github/agents/standard-implementation-completer.agent.md'
 Assert-Contains $standardAgent 'NEEDS_HIGH_MODEL_REENTRY' 're-entry verdict'
@@ -294,6 +304,7 @@ Assert-Contains $standardAgent '双方向に一致' 'standard-model acceptance m
 Assert-Contains $standardAgent 'You are the "Standard Implementation Completer" agent\.' 'APM stub standard-agent opening'
 Assert-Contains $standardAgent 'Implementation Self-Map Delta' 'STANDARD_MODEL Self-Map delta output'
 Assert-Contains $standardAgent 'Related Plan item.*Related Behavior Case IDs.*Related SL / XC / RC / TP / IC / Gap item.*Assumption made.*Review hint' 'STANDARD_MODEL Self-Map schema'
+Assert-Contains $standardAgent 'Design Pair Decision IDs' 'STANDARD_MODEL Design Pair Decision propagation'
 
 $handoff = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md'
 foreach ($field in @(
@@ -312,13 +323,16 @@ foreach ($field in @(
     'reentry_count',
     'previous_reentry_trigger',
     'delegation_surface_reduced',
-    'Known assumptions / unresolved observations'
+    'Known assumptions / unresolved observations',
+    'Design Pair handoff',
+    'Design Pair Decision compliance'
 )) {
     Assert-Contains $handoff ([regex]::Escape($field)) "handoff field $field"
 }
 Assert-Contains $handoff 'Remaining work mapping \(Work ID\)' 'acceptance-to-work mapping column'
 Assert-Contains $handoff 'Work ID.*Acceptance item\(s\)' 'work-to-acceptance mapping columns'
 Assert-Contains $handoff '`Blocked` を許可しない' 'blocked acceptance rejection'
+Assert-Contains $handoff 'Origin.*Decision ID.*Decision.*Affected files / symbols.*Validation expectation.*Compliance evidence' 'consolidated locked decision schema'
 
 $highToml = 'apm-packages/adaptive-implementation-execution/codex-agents/high-implementation-starter.toml'
 $standardToml = 'apm-packages/adaptive-implementation-execution/codex-agents/standard-implementation-completer.toml'
@@ -446,6 +460,7 @@ Assert-Contains 'apm-packages/codex-first-ai-development-process/scripts/apply-c
 
 $codexInstaller = 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs'
 Assert-Contains $codexInstaller 'sourceAdaptiveSkill' 'Adaptive skill bootstrap source'
+Assert-Contains $codexInstaller 'sourceDesignPairSkill' 'Design Pair skill bootstrap source'
 Assert-Contains $codexInstaller 'refs.*handoff\.md' 'complete handoff reference bootstrap check'
 Assert-Contains $codexInstaller 'CopyCanonicalAgentFiles' 'canonical root agent bootstrap'
 Assert-Contains $codexInstaller 'high-implementation-starter\.agent\.md' 'canonical HIGH agent bootstrap path'
@@ -492,6 +507,7 @@ Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/ad
 $workflow = '.github/workflows/validate-adaptive-implementation-execution.yml'
 Assert-Contains $workflow 'validate-adaptive-implementation-execution\.ps1' 'Adaptive Implementation CI validator invocation'
 foreach ($pathFilter in @(
+    'apm-packages/design-pair-implementation-execution/\*\*',
     'apm-packages/token-aware-guardrail-kernel-flow/\*\*',
     'apm-packages/token-aware-full-coverage-3layer/\*\*',
     'apm-packages/codex-first-ai-development-process/\*\*',
@@ -503,6 +519,7 @@ foreach ($pathFilter in @(
 }
 
 Assert-Contains 'README.md' 'apm-packages/adaptive-implementation-execution' 'root package link'
+Assert-Contains 'README.md' 'apm-packages/design-pair-implementation-execution' 'root Design Pair package link'
 Assert-Contains 'README.md' '`AGENTS\.md` は操作しない' 'Adaptive helper AGENTS.md non-access statement'
 Assert-NotContains 'README.md' 'install-adaptive-implementation-local\.cs[^\r\n]*`AGENTS\.md` の managed section' 'obsolete Adaptive helper AGENTS.md managed-section claim'
 

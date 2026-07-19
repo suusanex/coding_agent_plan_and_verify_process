@@ -173,6 +173,22 @@ Expected:
 - APM-generated model-less stubs with matching package metadata are completed without `--force`
 - other same-name TOML collisions fail closed unless `--force` is explicit
 
+## VAL-009: Explicit Design Pair handoff
+
+Input:
+
+- user explicitly selected Design Pair
+- tracked Design Pair handoff has one explicit Locked Decision and one Adaptive-Owned target
+
+Expected:
+
+- HIGH_MODEL preserves the Design Pair Decision ID and binds only the Locked Decision
+- Target Map and Affected files / symbols are not treated as the Allowed edit surface
+- HIGH_MODEL decides the Adaptive-Owned target from actual code and verification evidence
+- a valid Completion Handoff consolidates Design Pair and HIGH_MODEL decisions with Origin and Decision ID
+- STANDARD_MODEL receives Design Pair Decision IDs through the Completion Handoff
+- a Locked Decision conflict returns evidence and a stop verdict without automatic Design Pair re-entry
+
 ## Issue #44 integration validation matrix
 
 次のシナリオは standalone Adaptive package だけでなく、Plan Coverage、full-coverage slice、Codex-first、Copilot fallback の routing surface を同じ contract で検証します。`trivial-local` は対象外です。

@@ -3,6 +3,7 @@
 - Verdict: READY_FOR_STANDARD_COMPLETION
 - Handoff persistence: inline / tracked
 - Plan reference:
+- Design Pair handoff: N/A / plans/<slug>-design-pair-implementation-handoff.md
 - Validation performed:
 - reentry_count: 0
 - previous_reentry_trigger: N/A
@@ -33,7 +34,11 @@
 
 ## Locked decisions
 
-- 後段が再検討してはいけない責務配置、signature、dependency、wiring、state ownership、test seam
+| Origin | Decision ID | Decision | Affected files / symbols | Validation expectation | Compliance evidence |
+| --- | --- | --- | --- | --- | --- |
+| Design Pair / HIGH_MODEL | DP-D01 / HIGH-D01 | | | | Pending / evidence |
+
+Design Pair 由来の entry は origin と Design Pair Decision ID を維持する。HIGH_MODEL が実装中に確定した decision は別 ID で追加する。`Affected files / symbols` は decision の適用範囲であり、Allowed edit surface ではない。
 
 ## Remaining work
 
@@ -66,6 +71,12 @@
 ## Known assumptions / unresolved observations
 
 -
+
+## Design Pair Decision compliance
+
+| Design Pair Decision ID | Status | Implementation evidence | Validation evidence | Conflict |
+| --- | --- | --- | --- | --- |
+| DP-D01 | Compliant / Conflict / Pending | | | None / evidence |
 
 ## Review boundary
 

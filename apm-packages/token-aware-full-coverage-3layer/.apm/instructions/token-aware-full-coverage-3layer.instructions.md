@@ -37,9 +37,11 @@ Plan readiness が `NeedsPlanBehaviorExpansion` または `NeedsHumanDecision` �
 
 開始時に `ExecutionMode` を `PREP_ONLY` / `DELEGATED_IMPLEMENTATION` / `PARENT_DIRECT_IMPLEMENTATION` のいずれかとして `plans/*-agent-usage-ledger.md` に記録してください。
 
+同時に implementation route を記録してください。既定値は `implementation_route: adaptive` / `implementation_route_source: default` / `design_pair_handoff: N/A` です。利用者が Design Pair を明示選択した場合だけ `design-pair` / `explicit-user-selection` とし、自動選択、推奨、提案してはいけません。Design Pair route は Codex / agent-skills で別 package が導入済みの場合だけ実行し、GitHub Copilot 対応済みとは扱いません。
+
 同時に、親エージェントは `plans/<ticket-or-slug>-parent-orchestration-state.md` を作成または更新してください。これは会話履歴を共有しない後続の親エージェントが最初に読む single resume entrypoint です。標準 template はこの Skill に bundled された `references/full-coverage-parent-orchestration-state.md` にあります。`provision-work-repo-agents.cs` を使う consuming repo では `plans/_templates/full-coverage-parent-orchestration-state.md` にも配置されます。template file が見つからない場合でも、Resume header、Artifact index、Slice queue、Cross-slice blockers、Pending parent decisions、Parent decisions made、Recent checkpoint delta、Emergency checkpoint を持つ state artifact を作成してください。
 
-Parent Orchestration State には、Current phase、Last completed checkpoint、Next required action、Stop reason、Resume safety、Artifact index、Slice queue、Cross-slice blockers、Pending parent decisions、Parent decisions made、Recent checkpoint delta、Emergency checkpoint を compact に記録します。parent Plan、slice artifact、subagent output、verification result の本文を貼らず、path / status / next action / blocking reason を中心にしてください。source excerpt は原則禁止し、必要な場合だけ短い pointer に抑えます。file が大きくなりすぎた場合は、完了済み slice 行を短い summary に圧縮し、詳細は元の slice artifact に残してください。
+Parent Orchestration State には、Current phase、Last completed checkpoint、Next required action、Stop reason、Resume safety、implementation_route、implementation_route_source、design_pair_handoff、Artifact index、Slice queue、Cross-slice blockers、Pending parent decisions、Parent decisions made、Recent checkpoint delta、Emergency checkpoint を compact に記録します。parent Plan、slice artifact、subagent output、verification result の本文を貼らず、path / status / next action / blocking reason を中心にしてください。source excerpt は原則禁止し、必要な場合だけ短い pointer に抑えます。file が大きくなりすぎた場合は、完了済み slice 行を短い summary に圧縮し、詳細は元の slice artifact に残してください。
 
 Parent Orchestration State は次の major checkpoint と delegation boundary で更新してください。
 
@@ -57,7 +59,7 @@ every turn、minor reasoning step、表記揺れだけの修正、source artifac
 
 ユーザーが「実施」「進める」「このプロセスで実装する」と依頼し、かつ「実装はまだ行わない」「準備まで」「レビューまでで停止」と明示していない場合、既定の `ExecutionMode` は `DELEGATED_IMPLEMENTATION` です。`PREP_ONLY` は明示的な準備・レビュー停止指示がある場合だけ選んでください。
 
-`DELEGATED_IMPLEMENTATION` mode では、親エージェントは production code / tests を直接編集してはいけません。親が編集できるのは orchestration artifact、parent review gate、Agent Usage Ledger、cross-slice verification、residual decision、final summary / handoff artifact に限定します。
+`DELEGATED_IMPLEMENTATION` mode では、親エージェントは production code / tests を直接編集してはいけません。親が編集できるのは orchestration artifact、parent review gate、Agent Usage Ledger、cross-slice verification、residual decision、final summary / handoff artifact に限定します。`implementation_route: design-pair` の READY slice は Design Pair tracked handoff が `READY_FOR_ADAPTIVE_IMPLEMENTATION` になるまで production code / tests を編集せず、その後に `high-implementation-starter` を開始します。
 
 Parent review gate は人間レビュー待ちではありません。親エージェントが実装可否を判定する gate です。`DELEGATED_IMPLEMENTATION` mode では、`Can implement now? = Yes` の slice が1つでも存在する場合、親は parent review gate で成功終了してはいけません。`Human decision required` / `NEEDS_HUMAN_DECISION` の slice は停止対象として記録しつつ、実装可能な非自明な READY slice は必ず `high-implementation-starter` から開始してください。`standard-implementation-completer` は complete な `READY_FOR_STANDARD_COMPLETION` handoff 後だけ使い、`NEEDS_HIGH_MODEL_REENTRY` は HIGH_MODEL に戻します。
 

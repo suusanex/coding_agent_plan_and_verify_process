@@ -9,7 +9,7 @@ description: Use when the user explicitly requests adaptive implementation execu
 
 # Adaptive Implementation Execution
 
-この skill が選択された後、通常の Plan Mode output、手書き Plan、repository-tracked Plan、Issue 内の実装計画を入力に、実装中の evidence に基づいて HIGH_MODEL と STANDARD_MODEL を直列に切り替える implementation-only flow です。package が導入されているだけで、repository 内の実装作業へ自動適用しません。
+この skill が選択された後、通常の Plan Mode output、手書き Plan、repository-tracked Plan、Issue 内の実装計画、または明示選択された Design Pair Implementation Handoff を入力に、実装中の evidence に基づいて HIGH_MODEL と STANDARD_MODEL を直列に切り替える implementation-only flow です。package が導入されているだけで、repository 内の実装作業へ自動適用しません。
 
 Plan Coverage Lite / Standard / Full Coverage の縮小版ではありません。Plan Coverage artifacts、change-risk-triage、runtime contract、test design、coverage ledger、residual decision は必須入力にしません。
 
@@ -31,6 +31,7 @@ parent / router は production code や tests を横取りして直接実装し�
 - repository-tracked Plan file
 - caller が直接渡した短い実装計画
 - Issue / prompt 内の goal、scope、acceptance、constraints
+- `plans/<slug>-design-pair-implementation-handoff.md` の Design Pair Implementation Handoff（Design Pair route が明示選択された場合だけ）
 
 内部では必要な項目だけを次の形で解釈します。
 
@@ -58,10 +59,35 @@ implementation_intent:
 
 任意 template は `refs/intent.md` です。
 
+## Optional Design Pair input
+
+Design Pair Implementation Handoff が入力にある場合、次を検証します。
+
+- `implementation_route: design-pair`
+- `implementation_route_source: explicit-user-selection`
+- verdict が `READY_FOR_ADAPTIVE_IMPLEMENTATION`
+- original Plan / Implementation Intent reference、Target Map、Locked Decisions、readiness check が存在する
+- blocking な `Upstream-Decision-Required` がない
+- `Locked Decisions` の各 entry に Design Pair Decision ID と explicit human confirmation がある
+
+binding なのは `Locked Decisions` に明示された事項だけです。Target Map、`Discussed but Unlocked`、`Adaptive-Owned`、Known Evidence、Known Assumptions、Knowledge Candidates は参考情報であり、HIGH_MODEL の通常 authority を拘束しません。
+
+Design Pair handoff の `Affected files / symbols` と Target Map の file / symbol は Decision の適用対象または調査 evidence であり、Adaptive Implementation の `Allowed edit surface` として扱いません。HIGH_MODEL は goal、scope、acceptance を満たすために必要な関連 code / tests / production wiring を通常どおり調査・編集できます。
+
+Design Pair handoff がない通常 run では次の metadata を使用します。
+
+```yaml
+implementation_route: adaptive
+implementation_route_source: default
+```
+
+Design Pair route の場合も HIGH_MODEL は通常の adaptive implementation と同じ authority を維持し、Locked Decisions 以外の新しい decision surface を実コードと verification evidence に基づいて処理します。
+
 ## Required execution order
 
 ```text
 ordinary Plan / short implementation intent
+  or explicit Design Pair Implementation Handoff
   -> high-implementation-starter [HIGH_MODEL]
        -> READY_FOR_STANDARD_COMPLETION
             -> standard-implementation-completer [STANDARD_MODEL]
@@ -83,6 +109,7 @@ ordinary Plan / short implementation intent
 2. goal、scope、acceptance を抽出する。constraints、non-goals、validation expectation、Plan reference があれば併せて抽出する。
 3. missing information が implementation detail か、product / scope / acceptance decision かを分ける。
 4. product / scope / acceptance が不足する場合は実装を開始しない。
+5. Design Pair handoff がある場合は route metadata、readiness、blocking upstream decision、explicit Locked Decision entries を検証する。
 
 validation expectation が明示されていない場合は repository standard を採用し、agent input と最終出力に `Validation expectation: inferred from repository` と記録します。
 
@@ -102,6 +129,7 @@ Plan Coverage、Behavior Case、slice、runtime-contract、test-point、implemen
 - relevant source pointers already known
 - validation expectations
 - previous re-entry handoff when resuming
+- Design Pair Implementation Handoff path と Design Pair Decision IDs（存在する場合）
 
 HIGH_MODEL は code を読み、production code / tests を編集し、focused verification を行います。事前文書だけで `direct implementation` と `shape-then-complete` を分類しません。
 
@@ -129,6 +157,8 @@ HIGH_MODEL が scope 内の acceptance item をすべて `Complete` とし、各
 - すべての `Complete` acceptance item に implementation または validation evidence がある
 - Acceptance status の mapping と Remaining work の acceptance item(s) が双方向に一致している
 - locked decisions が明示されている
+- Design Pair 由来の Locked Decisions が origin と Design Pair Decision ID を保ったまま、HIGH_MODEL が実装中に確定した decisions と統合されている
+- Design Pair handoff path または `N/A` が明示されている
 - remaining work が file / symbol / expected behavior 単位
 - allowed edit surface が明示されている
 - high-model re-entry triggers が明示されている
@@ -140,6 +170,8 @@ HIGH_MODEL が scope 内の acceptance item をすべて `Complete` とし、各
 
 `REPLAN_REQUIRED`、`HUMAN_DECISION_REQUIRED`、`BLOCKED` は理由、既実装、worktree state、次に必要な input を保持して停止します。
 
+Locked Decision conflict で停止する場合は、少なくとも affected Design Pair Decision ID、actual code / production wiring / dependency evidence、Decision を維持できない理由、files changed、current worktree state、checks performed、利用者が次に判断すべき事項を報告します。Locked Decision を黙って変更せず、automatic Design Pair re-entry は行いません。
+
 ## Step 4: Delegate bounded completion
 
 `READY_FOR_STANDARD_COMPLETION` のときだけ `standard-implementation-completer` を起動します。
@@ -150,6 +182,7 @@ HIGH_MODEL が scope 内の acceptance item をすべて `Complete` とし、各
 - complete Implementation Completion Handoff
 - current diff / worktree status
 - repository instructions
+- Design Pair Decision IDs を含む統合済み Locked decisions
 
 HIGH_MODEL と STANDARD_MODEL を同時に起動しません。STANDARD_MODEL は completion scope と allowed edit surface だけを変更します。
 
@@ -157,7 +190,7 @@ HIGH_MODEL と STANDARD_MODEL を同時に起動しません。STANDARD_MODEL �
 
 ### COMPLETED
 
-completion scope、validation results、locked-decision compliance に加え、scope 内の全 acceptance item が `Complete` で evidence を持つことを確認します。未完了 item があれば `COMPLETED` を受理しません。これは implementation completion であり final review 完了ではありません。
+completion scope、validation results、Design Pair Decision ID ごとの locked-decision compliance に加え、scope 内の全 acceptance item が `Complete` で evidence を持つことを確認します。未完了 item があれば `COMPLETED` を受理しません。これは implementation completion であり final review 完了ではありません。
 
 ### NEEDS_HIGH_MODEL_REENTRY
 
@@ -175,7 +208,7 @@ re-entry state は次の順に更新します。
 
 ### Other stop verdicts
 
-`REPLAN_REQUIRED`、`HUMAN_DECISION_REQUIRED`、`BLOCKED` は変更内容と blocker を保持して停止します。
+`REPLAN_REQUIRED`、`HUMAN_DECISION_REQUIRED`、`BLOCKED` は変更内容と blocker を保持して停止します。Design Pair Locked Decision conflict が原因の場合は Decision ID と conflict evidence を保持します。
 
 ## Handoff persistence
 
@@ -193,6 +226,8 @@ tracked handoff の推奨 path は `plans/<slug>-implementation-completion-hando
 ## Final output
 
 - source Plan / Implementation Intent
+- implementation route metadata
+- Design Pair tracked handoff path、Target Map reference、Locked Decision IDs（Design Pair route の場合）
 - route taken
 - agent verdict sequence
 - implementation owner by phase
@@ -201,5 +236,6 @@ tracked handoff の推奨 path は `plans/<slug>-implementation-completion-hando
 - acceptance status table with evidence for every in-scope item
 - tracked handoff path, if any
 - re-entry events, if any
+- Locked Decision compliance evidence と conflict の有無（Design Pair route の場合）
 - remaining work / human-required work / blockers
 - final review status

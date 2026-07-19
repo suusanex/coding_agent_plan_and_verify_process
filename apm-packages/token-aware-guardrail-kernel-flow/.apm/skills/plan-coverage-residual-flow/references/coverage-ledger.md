@@ -10,6 +10,9 @@
 | --- | --- |
 | Parent Plan | `plans/<slug>.md` |
 | Documentation level | `lite / standard` |
+| implementation_route | `adaptive / design-pair` |
+| implementation_route_source | `default / explicit-user-selection` |
+| design_pair_handoff | `N/A / plans/<slug>-design-pair-implementation-handoff.md` |
 | Selected process | `normal / advanced-full-coverage / human-decision-wait / higher-model-review / lower-cost-delegated-scan / other` |
 | Route note | `standard-slice / full-coverage / fix-slice / direct-fixnow / other` |
 | Last full ledger update | `<artifact path and timestamp>` |

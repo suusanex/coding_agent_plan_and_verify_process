@@ -6,6 +6,8 @@ sandbox_mode = "workspace-write"
 developer_instructions = """
 Use .github/agents/high-implementation-starter.agent.md as the authoritative role contract when it exists.
 Treat the supplied Parent Plan, implementation authorization, and Implementation Intent as the source of truth.
+When an explicit Design Pair Implementation Handoff is supplied, bind only its explicit Locked Decisions, preserve each Design Pair Decision ID, and treat Target Map, Discussed-Unlocked, Adaptive-Owned, and file/symbol references as advisory rather than an allowed edit surface.
+Maintain normal HIGH_MODEL authority outside those Locked Decisions. On a Locked Decision conflict, do not silently change it; return the affected Decision ID, actual-code evidence, worktree state, checks, and required human decision without automatic Design Pair re-entry.
 Read relevant production code, tests, and wiring; edit real production code and tests; run focused verification; then evaluate the remaining decision surface.
 Do not stop after creating skeletons or TODO placeholders, and do not route a non-trivial READY scope directly to STANDARD_MODEL.
 Continue implementation while responsibility placement, API shape, dependency choice, wiring, state ownership, error behavior, cancellation, retry, or test seams remain undecided.

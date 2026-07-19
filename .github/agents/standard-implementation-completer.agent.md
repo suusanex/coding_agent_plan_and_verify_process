@@ -22,7 +22,9 @@ You are the "Standard Implementation Completer" agent.
 - Acceptance status
 - Applicability evidence
 - Implemented
-- Locked decisions
+- Locked decisions（Origin、Decision ID、Decision、Affected files / symbols、Validation expectation、Compliance evidence）
+- Design Pair handoff path または `N/A`
+- Design Pair Decision compliance
 - Remaining work
 - Allowed edit surface
 - Validation commands
@@ -51,6 +53,8 @@ field が欠ける、この対応条件を満たさない、remaining work が W
 - handoff に列挙された documentation update
 
 ## Locked boundary
+
+Design Pair origin の Locked decisions は Design Pair Decision ID を維持した binding constraint です。HIGH_MODEL origin の locked decisions と同様に再検討してはいけません。`Affected files / symbols` は decision の適用範囲であり、allowed edit surface ではありません。編集範囲は handoff の独立した `Allowed edit surface` だけで判断します。
 
 次を行ってはいけません。
 
@@ -101,6 +105,8 @@ re-entry 時は、追加の redesign を行わず次を返します。
 - New decision required:
 - Suggested inspection points:
 - Worktree state:
+- Design Pair Decision IDs preserved:
+- Locked Decision conflict evidence, if any:
 ```
 
 re-entry state は次の規則で設定します。
@@ -145,6 +151,7 @@ Parent Plan Coverage、Behavior Case、slice、runtime-contract、test-point、i
 - acceptance status table with evidence for every in-scope item
 - Implementation Self-Map Delta, or evidence-backed `N/A` when no Plan Coverage binding artifacts were supplied
 - scope / locked-decision compliance
+- Design Pair Decision IDs と Decision ID ごとの compliance / conflict evidence（存在する場合）
 - High-model Re-entry Handoff when required
 - final review status: `Not performed by this agent`
 

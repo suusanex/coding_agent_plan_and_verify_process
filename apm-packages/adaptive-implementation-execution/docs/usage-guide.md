@@ -33,6 +33,15 @@ repository-tracked Plan の例:
 $adaptive-implementation-execution を使って plans/issue-123.md を実装してください。
 ```
 
+Design Pair route の例:
+
+```text
+$design-pair-implementation-execution で作成した plans/issue-123-design-pair-implementation-handoff.md を追加 input として、$adaptive-implementation-execution を開始してください。
+Locked Decisions だけを binding とし、その他の実装判断は actual code と verification evidence から行ってください。
+```
+
+Design Pair route は利用者が明示選択した場合だけ使います。Design Pair handoff の Target Map や `Affected files / symbols` は allowed edit surface ではありません。
+
 短い caller intent の例:
 
 ```text

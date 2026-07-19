@@ -1,0 +1,18 @@
+name: design-pair-implementation-execution
+version: 0.1.0
+description: Explicit human-selected Design Pair discovery and Locked Decisions handoff before Adaptive Implementation
+type: hybrid
+targets:
+  - codex
+  - agent-skills
+includes: auto
+
+dependencies:
+  apm:
+    # Adaptive Implementation remains the only implementation orchestration source of truth.
+    - git: parent
+      path: apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
+    - git: parent
+      path: .github/agents/high-implementation-starter.agent.md
+    - git: parent
+      path: .github/agents/standard-implementation-completer.agent.md

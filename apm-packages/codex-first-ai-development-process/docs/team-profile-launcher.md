@@ -32,6 +32,9 @@ CODEX_HOME/
     cheap-doc-consistency.toml
     cheap-artifact-format-checker.toml
   skills/codex-first-cost-router/SKILL.md
+  skills/design-pair-implementation-execution/SKILL.md
+  skills/design-pair-implementation-execution/map.md
+  skills/design-pair-implementation-execution/handoff.md
   templates/codex-first-state.md
   templates/codex-first-audit.md
   templates/model-tier-mapping.example.md
@@ -53,6 +56,8 @@ New-Item -ItemType Directory -Force $profile | Out-Null
 Copy-Item -Recurse -Force .\apm-packages\codex-first-ai-development-process\profiles\codex-first\* $profile
 New-Item -ItemType Directory -Force "$profile\skills\codex-first-cost-router" | Out-Null
 Copy-Item -Recurse -Force .\apm-packages\codex-first-ai-development-process\.apm\skills\codex-first-cost-router\* "$profile\skills\codex-first-cost-router"
+New-Item -ItemType Directory -Force "$profile\skills\design-pair-implementation-execution" | Out-Null
+Copy-Item -Recurse -Force .\apm-packages\design-pair-implementation-execution\.apm\skills\design-pair-implementation-execution\* "$profile\skills\design-pair-implementation-execution"
 New-Item -ItemType Directory -Force "$profile\templates" | Out-Null
 Copy-Item -Recurse -Force .\apm-packages\codex-first-ai-development-process\templates\* "$profile\templates"
 $env:CODEX_HOME = $profile
@@ -79,6 +84,7 @@ Expected verification:
 - A prompt such as `Summarize the current instructions.` includes the Codex-first global guidance.
 - Subagent work can use the TOML files under `agents/`, each of which sets `model` and `model_reasoning_effort`.
 - Non-trivial implementation starts with `high-implementation-starter`; `standard-implementation-completer` is selectable only after a valid handoff and re-entry returns to the high starter.
+- The implementation route defaults to Adaptive. When the user explicitly selects Design Pair, its tracked handoff completes before `high-implementation-starter` begins production or test edits.
 - Audit artifact Agent Usage Ledger distinguishes configured model, hook observed model, reported model, and effective model when evidence is available.
 
 ## Launcher behavior

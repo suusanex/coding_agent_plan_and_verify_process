@@ -1,6 +1,6 @@
 name: codex-first-ai-development-process
-version: 0.4.0
-description: Codex-first cost-aware routing package with HIGH-first Adaptive Implementation, stateful resume, tiered delegation, and architecture-gated full-coverage separation
+version: 0.5.0
+description: Codex-first cost-aware routing package with default Adaptive Implementation, explicit Design Pair pre-stage, stateful resume, tiered delegation, and architecture-gated full-coverage separation
 type: hybrid
 targets:
   - codex
@@ -36,6 +36,8 @@ dependencies:
     - git: parent
       path: .github/agents/implementation-execution.agent.md
     # Legacy dependency above remains available only for explicit compatibility use.
+    - git: parent
+      path: apm-packages/design-pair-implementation-execution/.apm/skills/design-pair-implementation-execution
     - git: parent
       path: apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
     - git: parent

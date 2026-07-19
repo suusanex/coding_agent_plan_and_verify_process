@@ -1,6 +1,6 @@
 # Adaptive Implementation Execution
 
-通常の Plan Mode output または短い実装計画から、非自明な実装を HIGH_MODEL が開始し、残作業から構造上の意思決定がなくなった場合だけ STANDARD_MODEL へ直列委譲する APM package です。
+通常の Plan Mode output、短い実装計画、または明示選択された Design Pair handoff から、非自明な実装を HIGH_MODEL が開始し、残作業から構造上の意思決定がなくなった場合だけ STANDARD_MODEL へ直列委譲する APM package です。
 
 ## 解決する問題
 
@@ -18,6 +18,12 @@
 - final code review や総合 architecture review を置き換えない
 
 Plan Coverage Flow が必要な課題は、既存の `plan-coverage-residual-flow` を使用してください。
+
+## Design Pair input
+
+`design-pair-implementation-execution` を利用者が明示選択した場合、この package は tracked Design Pair handoff を追加 input として受け取ります。binding なのは handoff の `Locked Decisions` に Decision ID と explicit human confirmation がある entry だけです。
+
+Target Map、Discussed-Unlocked、Adaptive-Owned、Known Evidence、file / symbol references は HIGH_MODEL の通常 authority または allowed edit surface を拘束しません。Locked Decision conflict は黙って変更せず、Decision ID と actual-code evidence を伴う stop verdict で返します。Design Pair 未使用時の通常 Adaptive route は変わりません。
 
 ## Flow
 
