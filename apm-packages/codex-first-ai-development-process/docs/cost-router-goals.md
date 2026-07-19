@@ -30,7 +30,8 @@ Users do not choose process names, agent names, model tiers, subagents, READY ga
 - Require the Risk gate to create or update `plans/<slug>-change-risk-triage.md` and record `risk_triage_artifact_status`.
 - Require `implementation-handoff-review` or an explicitly equivalent pre-implementation gate before normal READY implementation.
 - Require `Behavior Case Coverage Ledger` status `Complete` before implementation when behavior expansion is required.
-- MUST delegate normal READY implementation to `standard-implementer`.
+- MUST start normal non-trivial READY implementation with `high-implementation-starter`.
+- MUST use `standard-implementation-completer` only after a valid decision-free completion handoff and return re-entry to `high-implementation-starter`.
 - MUST delegate normal READY verification to `standard-verifier`.
 - Prevent implementation before READY.
 - Prevent parent-direct execution of delegated gates without explicit exception approval.
@@ -50,7 +51,8 @@ Users do not choose process names, agent names, model tiers, subagents, READY ga
 | Scan | collect summarized evidence | `CHEAP_MODEL` |
 | Contract | decide implementation approach and human decisions | `HIGH_MODEL` |
 | Implementation handoff review | create parent authorization and coverage ledgers before implementation | `HIGH_MODEL` / `STANDARD_MODEL` |
-| Implementation | edit READY scope only through delegated owner | `STANDARD_MODEL` / `CHEAP_MODEL` |
+| Implementation start / re-entry | edit non-trivial READY scope through delegated high owner | `HIGH_MODEL` |
+| Bounded completion | edit only valid handoff remainder through delegated standard owner | `STANDARD_MODEL` |
 | Verification | map evidence to acceptance criteria through delegated owner | `STANDARD_MODEL` |
 | Close | decide residuals and closure | `STANDARD_MODEL` / `HIGH_MODEL` |
 
@@ -62,7 +64,7 @@ This classification is not a user-facing menu; it is written into the state arti
 | Weight | Typical signals | Default route |
 | --- | --- | --- |
 | `trivial-local` | Single obvious docs typo, formatting-only edit, no behavior change, no external dependency | Cheap or parent `TRIVIAL_PARENT_FIX`; state artifact optional unless the repo requires it |
-| `small-bounded` | One component, clear acceptance criteria, low production risk, local tests available | Standard route with READY gate; implementation delegated to `standard-implementer` when edits are non-trivial |
+| `small-bounded` | One component, clear acceptance criteria, low production risk, local tests available | Standard route with READY gate; non-trivial implementation starts with `high-implementation-starter` |
 | `medium-bounded` | Multiple files or tests, clear source of truth, manageable risk, no broad cross-slice contract | Standard route with bounded Plan, change-risk-triage artifact, implementation contract if needed |
 | `high-risk-bounded` | Auth, security, DB, public API, production wiring, migration, async/event boundary, external SDK, or ambiguous compatibility policy | High model planning / risk / contract before READY; may stop with `NeedsHumanDecision` or `NeedsHigherModelReview` |
 | `needs-plan-behavior-expansion` | Source requirements have unexpanded cases, negative expectations, recovery / rollback / retry / replay / cleanup, state transitions, or unmapped Case IDs | Plan gate stop; run `black-box-behavior-spec-kernel` or rerun `plan-kernel`, not full-coverage |
@@ -100,7 +102,8 @@ READY implementation is only selected when the state has a bounded source of tru
 - No standard implementation before implementation-handoff-review or an explicitly equivalent pre-implementation gate.
 - No standard implementation with `Expansion required = Yes` unless `Behavior Case Coverage Ledger` is `Complete`.
 - No parent-direct implementation when `DelegationRequired = Yes`, except recorded `ParentDirectExecutionException` with explicit human approval.
-- No READY implementation success without observed `standard-implementer` run or accepted exception.
+- No READY implementation success without an observed `high-implementation-starter` run or accepted exception.
+- No `standard-implementation-completer` edit without a valid handoff, no unresolved HIGH re-entry, and no overlapping implementation write owners.
 - No verification success without observed `standard-verifier` run or accepted exception.
 - No cost-reduction claim from tier recommendation alone; count cost-saving delegation only when delegated run evidence exists in the ledger.
 - No mixing `configured_model`, `hook_model`, `reported_model`, and `effective_model`.

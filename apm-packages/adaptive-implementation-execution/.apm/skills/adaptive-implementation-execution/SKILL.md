@@ -88,6 +88,8 @@ validation expectation が明示されていない場合は repository standard 
 
 Plan Coverage artifacts が存在しないことは blocker ではありません。caller が binding artifact として明示した場合だけ追加 input として渡します。
 
+Plan Coverage、Behavior Case、slice、runtime-contract、test-point、implementation-contract、または gap binding artifact が supplied input に含まれる場合は、各 implementation owner に canonical agent contract の `Implementation Self-Map Delta` を返させます。orchestrator は phase ごとの delta を stable Change ID で `plans/<slug>-implementation-execution.md` の canonical `Implementation Self-Map` に集約します。binding artifacts がない standalone run では、この traceability extension は evidence-backed `N/A` でよく、Plan Coverage artifact を新規要求しません。
+
 ## Step 2: Start with HIGH_MODEL
 
 `high-implementation-starter` custom agent / subagent を一度だけ起動し、完了するまで待ちます。

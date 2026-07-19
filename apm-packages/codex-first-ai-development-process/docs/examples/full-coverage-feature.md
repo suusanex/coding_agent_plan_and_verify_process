@@ -29,12 +29,14 @@ codex-first-cost-router
 -> architecture-slice-readiness.agent.md (rerun: ReadyForSliceDecomposition)
 -> plan-slice-decomposition.agent.md
 -> slice-prep for executable slices
--> slice-impl for READY slices
+-> high-implementation-starter for each non-trivial READY slice
+-> standard-implementation-completer only after a valid slice-local handoff
+-> high-implementation-starter on re-entry
 -> cross-slice-verification-kernel.agent.md
 -> residual decision
 ```
 
-In `DELEGATED_IMPLEMENTATION` mode, READY slices require observed `slice-impl` runs. Missing `slice-impl` evidence blocks the run with `BlockedByMissingSliceImplDelegation`.
+In `DELEGATED_IMPLEMENTATION` mode, non-trivial READY slices require observed `high-implementation-starter` runs. Missing HIGH start evidence blocks the run with `BlockedByMissingAdaptiveImplementationDelegation`. STANDARD completion is valid only after a complete handoff, and each slice keeps HIGH -> STANDARD -> HIGH ownership serial.
 
 ## Slice example
 

@@ -34,7 +34,7 @@ plan-kernel
   -> runtime-contract-kernel (when Guardrail Focus / selected runtime contracts exist)
   -> test-design-kernel (when Guardrail Focus / selected runtime contracts exist)
   -> ★ implementation-handoff-review  ← この agent
-  -> implementation-execution / human implementation
+  -> high-implementation-starter / human implementation
   -> (optional) code-review-focus-kernel
   -> human code review
   -> verification-kernel
@@ -412,7 +412,7 @@ READY_FOR_BOUNDED_PARENT_PLAN_PASS | READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DEC
 
 ## 引き継ぎ必須 inputs
 
-<!-- implementation-execution.agent.md または人間の実装者に渡すべき artifacts を列挙する -->
+<!-- high-implementation-starter.agent.md または人間の実装者に渡すべき artifacts を列挙する -->
 - plans/<ticket-or-slug>.md（Plan Kernel — 唯一の基準）
 - plans/<ticket-or-slug>-black-box-behavior-spec.md（Expansion required: Yes の場合）
 - plans/<ticket-or-slug>-change-risk-triage.md
@@ -467,14 +467,14 @@ canonical coverage ledger が存在する場合は "See: plans/<ticket-or-slug>-
 - Decisions made: <verdict、ブロッキング判定、注記判定の要約>
 - Do not redo unless new evidence appears: <下流が反証を示すまで信頼してよいマッピング / 判定>
 - Remaining work: <ブロッキング問題、注記、NeedsHumanDecision、欠落 artifact など>
-- Recommended next step: <implementation-execution.agent.md または差し戻し先 agent / 人手判断>
+- Recommended next step: <high-implementation-starter.agent.md または差し戻し先 agent / 人手判断>
 ```
 
 ## Output rules
 
 - **ブロッキング問題**: 箇条書きで、何が問題か、どの artifact のどの項目かを明記する。理由なく長くしない。
 - **非ブロッキング注記**: 軽微な改善候補のみ。実装者が無視しても安全に進めるレベルにとどめる。
-- **引き継ぎ必須 inputs**: `implementation-execution.agent.md` または人間の実装者が受け取るべき artifact の一覧。Plan が source of truth であることを明示する。
+- **引き継ぎ必須 inputs**: `high-implementation-starter.agent.md` または人間の実装者が受け取るべき artifact の一覧。Plan が source of truth であることを明示する。
 - **欠落または不一致のマッピング**: Check 1〜5 および Check 10 で発見した具体的な接続の欠落を表形式で示す。問題がなければ "None" と記載する。
   - `Slice ID` は、full-coverage decomposition 由来の slice に関係する欠落または不一致の場合だけ `SL-xxx` を記載する。該当しない場合は `none`。
   - `Cross-slice Contract ID` は、欠落または不一致が `XC-xxx` に関係する場合だけ記載する。該当しない場合は `none`。
@@ -504,7 +504,7 @@ canonical coverage ledger が存在する場合は "See: plans/<ticket-or-slug>-
 
 verdict を出力し、`引き継ぎ必須 inputs` と `Handoff Packet` を記録した後に停止してください。
 
-- `READY_FOR_BOUNDED_PARENT_PLAN_PASS` / `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS` の場合: `implementation-execution.agent.md` または人間の実装者への handoff に必要な情報を `引き継ぎ必須 inputs`、`Readiness scope`、`Parent Plan Coverage Ledger`、`Residual Decision Ledger`、`Handoff Packet` に記録し、停止してください。
+- `READY_FOR_BOUNDED_PARENT_PLAN_PASS` / `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS` の場合: `high-implementation-starter.agent.md` または人間の実装者への handoff に必要な情報を `引き継ぎ必須 inputs`、`Readiness scope`、`Parent Plan Coverage Ledger`、`Residual Decision Ledger`、`Handoff Packet` に記録し、停止してください。非自明な実装を STANDARD_MODEL へ直接渡してはいけません。
 - `BLOCKED_BY_UNMAPPED_PARENT_ACCEPTANCE` / `BLOCKED_BY_ARTIFACT_MISMATCH` / `BLOCKED_BY_HUMAN_DECISION` / `BLOCKED` の場合: blocking issues を記録し、修正すべき artifact と担当 agent、または必要な human decision を示して停止してください。修正は行いません。
 
 ## Status vocabulary
@@ -529,7 +529,7 @@ Handoff Packet の `Remaining work`、`ブロッキング問題`、`非ブロッ
 ## Relationship to other agents
 
 - **通常の直前の agent**: Guardrail Focus がある場合は `test-design-kernel.agent.md`、Guardrail Focus がない標準 route では risk / contract gate — この agent の入力を生成する
-- **直後の agent**: `implementation-execution.agent.md` または人間の実装者 — この agent の `引き継ぎ必須 inputs` と `Handoff Packet` を受け取って実装を開始する
+- **直後の agent**: `high-implementation-starter.agent.md` または人間の実装者 — この agent の `引き継ぎ必須 inputs` と `Handoff Packet` を受け取って実装を開始する
 - **任意の実装後 gate**: `code-review-focus-kernel.agent.md` — human code review 用の読み順と重点箇所を整理する
 - **この agent は代替しない**: `plan-review.agent.md`（full Plan review）、`verification-kernel.agent.md`（実装後の production binding 検証）
 - **BLOCKED 時の修正先**:

@@ -14,7 +14,7 @@ GitHub Copilot 向けの `.github/agents/*.agent.md` が既存の主成果物で
 
 `ReadyForSliceDecomposition` では `plans/<ticket-or-slug>-slice-architecture.md` が必須です。`ArchitectureNotRequired` だけは source-backed readiness verdict があれば独立 architecture artifact を省略できます。`ArchitectureCritical` / `NeedsHumanDecision` residual、missing / stale / contradicted artifact がある場合は fail closed します。
 
-`ArchitectureNotRequired`ではreadiness artifact内のLightweight architecture baselineをbaseline authorityとします。slice-prepとParent Reviewは、新しいshared semanticsがなければ`Match`、導入されていれば`Drift`、freshnessまたはevidenceが不明なら`Unclear`を返します。slice-implはcurrent baselineに対する`Match`だけを受け入れます。
+`ArchitectureNotRequired`ではreadiness artifact内のLightweight architecture baselineをbaseline authorityとします。slice-prepとParent Reviewは、新しいshared semanticsがなければ`Match`、導入されていれば`Drift`、freshnessまたはevidenceが不明なら`Unclear`を返します。Adaptive Implementationはcurrent baselineに対する`Match`だけを受け入れます。
 
 artifactのcurrent判定はHEAD一致ではなくbaseline identityで行います。tracked sourceのcontent hash / explicit revisionを比較し、source repository commit以降のdiffがwatch pathへ影響するか確認します。generated gate artifactだけのcommitはself-invalidationさせず、baseline sourceへ意味変更がある場合だけ`stale`としてreadinessを再実行します。
 
@@ -32,7 +32,7 @@ Plan readiness が `NeedsPlanBehaviorExpansion` または `NeedsHumanDecision` �
 
 1. 親エージェントによる orchestration と parent review gate
 2. slice-prep subagent による slice 単位の kernel artifact 下書き
-3. slice-impl subagent による親承認済み slice-local bounded parent Plan pass の実装と verification-kernel
+3. `high-implementation-starter` と、valid handoff 後だけ使う `standard-implementation-completer` による親承認済み slice-local bounded parent Plan pass の実装と verification-kernel
 4. 親エージェントによる cross-slice-verification-kernel と residual-decision-gate
 
 開始時に `ExecutionMode` を `PREP_ONLY` / `DELEGATED_IMPLEMENTATION` / `PARENT_DIRECT_IMPLEMENTATION` のいずれかとして `plans/*-agent-usage-ledger.md` に記録してください。
@@ -47,7 +47,7 @@ Parent Orchestration State は次の major checkpoint と delegation boundary �
 - ExecutionMode 決定時
 - slice-prep batch の開始前と結果統合後
 - parent review gate 後
-- slice-impl batch の開始前と結果統合後
+- Adaptive Implementation batch の開始前と結果統合後
 - cross-slice verification の前後
 - residual decision gate 後
 - planned handoff / tool switch / model switch の前
@@ -59,9 +59,9 @@ every turn、minor reasoning step、表記揺れだけの修正、source artifac
 
 `DELEGATED_IMPLEMENTATION` mode では、親エージェントは production code / tests を直接編集してはいけません。親が編集できるのは orchestration artifact、parent review gate、Agent Usage Ledger、cross-slice verification、residual decision、final summary / handoff artifact に限定します。
 
-Parent review gate は人間レビュー待ちではありません。親エージェントが実装可否を判定する gate です。`DELEGATED_IMPLEMENTATION` mode では、`Can implement now? = Yes` の slice が1つでも存在する場合、親は parent review gate で成功終了してはいけません。`Human decision required` / `NEEDS_HUMAN_DECISION` の slice は停止対象として記録しつつ、実装可能な READY slice は必ず `slice-impl` に委譲してください。
+Parent review gate は人間レビュー待ちではありません。親エージェントが実装可否を判定する gate です。`DELEGATED_IMPLEMENTATION` mode では、`Can implement now? = Yes` の slice が1つでも存在する場合、親は parent review gate で成功終了してはいけません。`Human decision required` / `NEEDS_HUMAN_DECISION` の slice は停止対象として記録しつつ、実装可能な非自明な READY slice は必ず `high-implementation-starter` から開始してください。`standard-implementation-completer` は complete な `READY_FOR_STANDARD_COMPLETION` handoff 後だけ使い、`NEEDS_HIGH_MODEL_REENTRY` は HIGH_MODEL に戻します。
 
-停止できるのは、すべての slice が `Can implement now? = No` / `BLOCKED` / `NEEDS_HUMAN_DECISION` / `TRIAGE_ONLY` のいずれかであり、委譲可能な READY slice が存在しない場合、または custom agent / subagent 起動が利用できず `BlockedByMissingSliceImplDelegation` として記録した場合に限ります。
+停止できるのは、すべての slice が `Can implement now? = No` / `BLOCKED` / `NEEDS_HUMAN_DECISION` / `TRIAGE_ONLY` のいずれかであり、委譲可能な READY slice が存在しない場合、または custom agent / subagent 起動が利用できず `BlockedByMissingAdaptiveImplementationDelegation` として記録した場合に限ります。
 
 再開時は、prior conversation context に依存してはいけません。まず現在の ticket / slug / branch / work item / PR と一致する `plans/<ticket-or-slug>-parent-orchestration-state.md` を選びます。複数の `plans/*-parent-orchestration-state.md` が見つかる場合は、各 file の `Resume header` だけを読み、`Work item / ticket`、`Repo / branch`、明示された slug が現在の作業と一致するものを1つに絞ってください。一意に絞れない場合、または候補が現在の branch / work item と矛盾する場合は fail closed し、ユーザーに対象 state を確認してください。別 ticket の state を推測で読んではいけません。
 
@@ -73,14 +73,14 @@ Parent review gate は人間レビュー待ちではありません。親エー�
 
 - `plan-slice-decomposition` の slice artifact を「実装準備完了」とみなしてはいけません。
 - Architecture Slice Readiness verdict なしで decomposition または3層運用を開始してはいけません。
-- slice-prep / slice-impl が shared architecture semantics を変更する場合は局所判断せず、Architecture Slice Readiness Gate へ戻してください。
+- slice-prep / Adaptive Implementation が shared architecture semantics を変更する場合は局所判断せず、Architecture Slice Readiness Gate へ戻してください。
 - `Parent Orchestration State` に full transcript、source artifact 本文、subagent output 全文、長い reasoning trace を貼ってはいけません。
 - Plan readiness が `ReadyForRiskTriage` ではない work を full-coverage decomposition に進めてはいけません。
 - `Slice granularity review` で統合対象になった候補を executable slice として扱ってはいけません。
 - `Small slice justification` の `Why not merged` が説明されていない小さい slice を `slice-prep` に渡してはいけません。
 - per-slice `change-risk-triage`、必要な `implementation-contract-kernel`、`runtime-contract-kernel`、`test-design-kernel` を飛ばしてはいけません。
 - executable slice は `slice-prep` に MUST delegate してください。blocked / human decision / triage only の場合は理由を Agent Usage Ledger に記録してください。
-- `DELEGATED_IMPLEMENTATION` で READY になった slice は `slice-impl` に MUST delegate してください。`slice-impl` run の証跡がない READY slice は `BlockedByMissingSliceImplDelegation` として停止してください。
+- `DELEGATED_IMPLEMENTATION` で READY になった非自明な slice は `high-implementation-starter` に MUST delegate してください。HIGH start の証跡がない READY slice は `BlockedByMissingAdaptiveImplementationDelegation` として停止してください。STANDARD completion は valid handoff 後だけ、re-entry は HIGH_MODEL、同一 slice の write owner は直列にします。`slice-impl` は explicit legacy compatibility invocation に限ります。
 - 親直接実装は `PARENT_DIRECT_IMPLEMENTATION`、明示理由、explicit human approval がある場合だけ許可します。これは3層委譲成功として扱いません。
 - cross-slice contract (`XC-xxx`) を単一 slice 内で完了扱いにしてはいけません。
 - source evidence のない field / state / identifier を fallback、空文字、推測、本文からの生成値で埋めて `Done` にしてはいけません。
@@ -92,7 +92,7 @@ Parent review gate は人間レビュー待ちではありません。親エー�
 $token-aware-full-coverage-3layer を使って進めてください。
 ExecutionMode は DELEGATED_IMPLEMENTATION とします。
 
-parent review gate で READY になった slice は、そこで停止せず必ず slice-impl に渡してください。
+parent review gate で READY になった非自明な slice は、そこで停止せず必ず high-implementation-starter から開始してください。valid handoff 後だけ standard-implementation-completer へ渡し、re-entry は HIGH_MODEL に戻してください。
 各 slice の verification-kernel 後に cross-slice-verification-kernel と residual-decision-gate まで実行してください。
 
 人間判断が必要な slice だけ NEEDS_HUMAN_DECISION として止め、実装可能な slice は進めてください。

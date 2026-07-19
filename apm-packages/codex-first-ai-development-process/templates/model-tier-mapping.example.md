@@ -22,10 +22,11 @@ HIGH_MODEL:
   high-implementation-contract  = Terra / high
   high-closure-reviewer         = Terra / high
   implementation-handoff-review = Terra / medium
+  high-implementation-starter    = Terra / high
 
 STANDARD_MODEL:
-  standard-implementer = Luna / high
-  standard-verifier    = Terra / medium
+  standard-implementation-completer = Luna / high
+  standard-verifier                 = Terra / medium
 
 CHEAP_MODEL:
   cheap-repo-scanner            = Luna / medium
@@ -38,9 +39,9 @@ The configured model and configured reasoning effort come from the runnable TOML
 ## Mapping review checklist
 
 - `HIGH_MODEL` is reserved for hard planning, risk, implementation contract, and dangerous close judgment.
-- `STANDARD_MODEL` follows the per-agent mapping; `standard-implementer` intentionally uses Luna/high while `standard-verifier` uses Terra/medium.
+- Non-trivial READY implementation starts with `high-implementation-starter` on Terra/high. `standard-implementation-completer` uses Luna/high only after a valid delegation handoff, while `standard-verifier` remains Terra/medium.
 - `CHEAP_MODEL` is suitable for read-heavy scan, docs consistency, artifact format check, and simple local fixes.
 - Implementation handoff review creates the parent authorization artifact before standard implementation.
 - When behavior expansion is required, the Behavior Case Coverage Ledger is Complete before standard implementation.
-- READY implementation delegates to `standard-implementer`.
+- READY implementation starts with `high-implementation-starter`, delegates only a decision-free remainder to `standard-implementation-completer`, and returns to HIGH_MODEL when structural decisions reappear.
 - READY verification delegates to `standard-verifier`.

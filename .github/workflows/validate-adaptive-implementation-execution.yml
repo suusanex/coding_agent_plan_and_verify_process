@@ -5,15 +5,31 @@ on:
     paths:
       - '.github/agents/high-implementation-starter.agent.md'
       - '.github/agents/standard-implementation-completer.agent.md'
+      - '.github/agents/**'
+      - '.github/instructions/plan-coverage-shared.instructions.md'
       - '.github/workflows/validate-adaptive-implementation-execution.yml'
       - 'apm-packages/adaptive-implementation-execution/**'
+      - 'apm-packages/token-aware-guardrail-kernel-flow/**'
+      - 'apm-packages/token-aware-full-coverage-3layer/**'
+      - 'apm-packages/codex-first-ai-development-process/**'
+      - 'apm-packages/copilot-fallback-ai-development-process/**'
+      - 'scripts/provision-work-repo-agents.cs'
+      - 'docs/**'
       - 'README.md'
   push:
     paths:
       - '.github/agents/high-implementation-starter.agent.md'
       - '.github/agents/standard-implementation-completer.agent.md'
+      - '.github/agents/**'
+      - '.github/instructions/plan-coverage-shared.instructions.md'
       - '.github/workflows/validate-adaptive-implementation-execution.yml'
       - 'apm-packages/adaptive-implementation-execution/**'
+      - 'apm-packages/token-aware-guardrail-kernel-flow/**'
+      - 'apm-packages/token-aware-full-coverage-3layer/**'
+      - 'apm-packages/codex-first-ai-development-process/**'
+      - 'apm-packages/copilot-fallback-ai-development-process/**'
+      - 'scripts/provision-work-repo-agents.cs'
+      - 'docs/**'
       - 'README.md'
 
 permissions:

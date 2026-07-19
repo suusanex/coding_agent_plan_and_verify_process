@@ -25,7 +25,7 @@ Use this instruction set when ordinary development work should start through Cod
 5. Contract gate: resolve implementation approach and human decisions before editing.
 6. READY gate: confirm Plan, selected scope, non-goals, required contract/test handoff when Guardrail Focus exists, Behavior Case coverage when required, and unresolved implementation-realization items before implementation.
 7. Implementation handoff review gate: run `implementation-handoff-review` or an explicitly equivalent pre-implementation gate only after `plans/<slug>-change-risk-triage.md` exists and `risk_triage_artifact_status = Complete`; create the parent authorization artifact, Parent Plan Coverage Ledger, and Behavior Case Coverage Ledger when required.
-8. Implementation gate: delegate the selected READY scope to `standard-implementer` only after handoff authorization exists, unless a recorded `ParentDirectExecutionException` has explicit human approval.
+8. Implementation gate: delegate the selected non-trivial READY scope first to `high-implementation-starter` after handoff authorization exists. Delegate only a valid decision-free remainder to `standard-implementation-completer`, and return to HIGH_MODEL on re-entry, unless a recorded `ParentDirectExecutionException` has explicit human approval.
 9. Verification gate: delegate ordinary verification to `standard-verifier`; route dangerous close judgment to `high-closure-reviewer`.
 10. Close gate: do not close when unresolved items include `ManualVerificationRequired`, `NeedsHumanDecision`, `NeedsHigherModelReview`, missing required audit evidence, or failing `DelegationCompliance`.
 
@@ -82,11 +82,12 @@ Choose `documentation_level` internally; do not ask the user to select it.
 ## Cost-aware model routing
 
 - Use `HIGH_MODEL` for ambiguous requirements, bounded Plan framing, behavior expansion, difficult risk triage, implementation handoff review, implementation contract decisions, security/auth/DB/public API/production wiring, and dangerous closure decisions.
-- Use `STANDARD_MODEL` for normal READY implementation, verification, test design/update, and moderate-risk repairs.
+- Use `HIGH_MODEL` for non-trivial READY implementation start and re-entry. Use `STANDARD_MODEL` for bounded completion, verification, test design/update, and moderate-risk repairs.
 - Use `CHEAP_MODEL` for repo scan, read-heavy inventory, documentation consistency, artifact formatting, and simple local fixes.
 - MUST delegate when the Routing Plan assigns a gate owner that differs from the parent tier or parent thread. Required delegated gates cannot be completed by parent-direct execution without a recorded exception and explicit human approval.
-- Run `implementation-handoff-review` before ordinary READY implementation, after the Risk gate has produced `plans/<slug>-change-risk-triage.md`. When `Expansion required = Yes`, require `Behavior Case Coverage Ledger` status `Complete` before handing off to `standard-implementer`.
-- Delegate ordinary READY implementation serially to `standard-implementer` and ordinary verification to `standard-verifier`. Do not standardize write-heavy parallel editing; serial delegated implementation is still required.
+- Run `implementation-handoff-review` before ordinary READY implementation, after the Risk gate has produced `plans/<slug>-change-risk-triage.md`. When `Expansion required = Yes`, require `Behavior Case Coverage Ledger` status `Complete` before handing off to `high-implementation-starter`.
+- Delegate ordinary non-trivial READY implementation serially to `high-implementation-starter`, then conditionally to `standard-implementation-completer`, and ordinary verification to `standard-verifier`. Do not overlap write owners.
+- At every implementation phase boundary, update the four Adaptive state fields and the active verdict, selected agent, recommended tier, and edit owner.
 - Do not count parent-direct work, trivial parent fixes, or delegation violations as cost-saving delegation.
 - Keep the main thread responsible for final implementation permission, state updates, delegation compliance audit, and close decisions.
 

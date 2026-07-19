@@ -15,9 +15,10 @@
 - Plan gate では behavior expansion decision、Case-to-Plan mapping、Plan readiness を記録し、`ReadyForRiskTriage` になるまで risk / full-coverage / implementation へ進めない。
 - `NeedsPlanBehaviorExpansion` は `black-box-behavior-spec-kernel` または Plan rerun へ戻し、full-coverage や fix-slice の代替ルートにしない。
 - Risk gate では `plans/<slug>-change-risk-triage.md` を作成または更新し、state artifact に `risk_triage_artifact` と `risk_triage_artifact_status` を記録する。
-- 実装前には `implementation-handoff-review` または明示的に同等の gate で parent authorization artifact を作成し、`Expansion required: Yes` の場合は `Behavior Case Coverage Ledger` が `Complete` になるまで `standard-implementer` へ渡さない。
+- 実装前には `implementation-handoff-review` または明示的に同等の gate で parent authorization artifact を作成し、`Expansion required: Yes` の場合は `Behavior Case Coverage Ledger` が `Complete` になるまで `high-implementation-starter` へ渡さない。
 - read-heavy な scan / consistency check は、Routing Plan が要求する場合は低コスト subagent へ委譲する。
-- READY 後の通常実装は `standard-implementer` へ serial delegation する。write-heavy parallel editing を標準化しないことは、親が直接実装してよいことを意味しない。
+- READY 後の非自明な通常実装は `high-implementation-starter` へ serial delegation し、decision-free な残作業だけを `standard-implementation-completer` へ渡す。re-entry は HIGH_MODEL に戻し、write-heavy owner を重ねない。
+- state artifact の `shape_handoff_status`、`remaining_design_uncertainty`、`completion_scope`、`shape_reentry_reason` と、各 phase の実 verdict / agent / tier / edit owner を更新する。
 - READY 後の通常 verification は `standard-verifier` へ委譲し、危険な close 判定だけ高性能側へ戻す。
 - `DelegationRequired = Yes` の gate は、observed run または explicit human approval 付き `ParentDirectExecutionException` がない限り成功扱いしない。
 - 親が委譲予定の作業を直接実行した場合、`PARENT_DIRECT_WORK` または `TRIVIAL_PARENT_FIX` として記録し、cost-saving delegation 成功として扱わない。
@@ -30,8 +31,8 @@
 
 | Label | Intended use |
 | --- | --- |
-| `HIGH_MODEL` | 曖昧な要求整理、bounded Plan、難しい risk triage、implementation contract、危険な close 判定 |
-| `STANDARD_MODEL` | READY 後の通常実装、通常 verification、test update、moderate risk の修正 |
+| `HIGH_MODEL` | 曖昧な要求整理、bounded Plan、難しい risk triage、implementation contract、implementation start / re-entry、危険な close 判定 |
+| `STANDARD_MODEL` | bounded completion、通常 verification、test update、moderate risk の修正 |
 | `CHEAP_MODEL` | repo scan、read-heavy inventory、docs consistency、artifact format check、単純局所修正 |
 
 実名モデルはここでは固定しない。組織の契約、利用枠、品質要求に合わせて保守者が対応表を作る。
@@ -44,7 +45,7 @@
 4. Plan / risk / scan / contract のうち、次に安全な工程を 1 つ選ぶ。Risk gate を実行する場合は `plans/<slug>-change-risk-triage.md` を残す。
 5. READY gate を満たすまで implementation へ進まない。
 6. `risk_triage_artifact_status = Complete` を確認してから、`implementation-handoff-review` で parent authorization artifact、Parent Plan Coverage Ledger、必要な場合は Behavior Case Coverage Ledger を作成する。
-7. `Expansion required: Yes` の場合は Behavior Case Coverage Ledger が `Complete` のときだけ bounded scope を `standard-implementer` に委譲する。
+7. `Expansion required: Yes` の場合は Behavior Case Coverage Ledger が `Complete` のときだけ bounded scope を `high-implementation-starter` に委譲し、valid handoff 後だけ `standard-implementation-completer` を使う。
 8. verification は `standard-verifier` に委譲し、production implementation / wiring / manual-only / Behavior Case evidence を分類する。
 9. residual decision と audit artifact の DelegationCompliance で close 可否を判定し、必要なら最小の人間入力だけを提示する。
 

@@ -16,7 +16,8 @@ Use `copilot-cost-router` as the default route for ordinary development requests
 | Scan | collect summarized read-heavy repo evidence | `COPILOT_CHEAP_MODEL` |
 | Contract | decide implementation approach and unresolved human decisions | `COPILOT_HIGH_MODEL` |
 | Implementation handoff review | create parent authorization and coverage ledgers before implementation | `COPILOT_HIGH_MODEL` / `COPILOT_STANDARD_MODEL` |
-| Implementation | edit only READY scope | `COPILOT_STANDARD_MODEL` |
+| Implementation start / re-entry | edit READY scope and resolve structural decisions | `COPILOT_HIGH_MODEL` |
+| Bounded completion | complete only a valid decision-free handoff | `COPILOT_STANDARD_MODEL` |
 | Verification | map evidence to acceptance criteria and production wiring | `COPILOT_STANDARD_MODEL` |
 | Close | decide residuals and close readiness | `COPILOT_STANDARD_MODEL` / `COPILOT_HIGH_MODEL` |
 
@@ -29,10 +30,12 @@ Use `copilot-cost-router` as the default route for ordinary development requests
 - If Plan readiness is `NeedsPlanBehaviorExpansion`, route to behavior expansion / Plan rerun and do not select full-coverage.
 - `copilot-risk-triage` must create or update `plans/<slug>-change-risk-triage.md` and record `risk_triage_artifact_status`.
 - Do not route to implementation handoff review until `risk_triage_artifact_status = Complete`.
-- Use `implementation-handoff-review` or an explicitly equivalent pre-implementation gate before `copilot-standard-implementer`.
+- Use `implementation-handoff-review` or an explicitly equivalent pre-implementation gate before `high-implementation-starter`.
 - When no Guardrail Focus or selected runtime contracts exist, handoff review records runtime-contract-kernel and test-design-kernel as `N/A` instead of blocking for missing artifacts.
-- If `Expansion required = Yes`, use `copilot-standard-implementer` only after `behavior_case_coverage_ledger_status = Complete`.
-- Use `copilot-standard-implementer` only after READY and pre-implementation handoff authorization.
+- If `Expansion required = Yes`, use `high-implementation-starter` only after `behavior_case_coverage_ledger_status = Complete`.
+- Start non-trivial READY implementation with `high-implementation-starter`; use `standard-implementation-completer` only after a valid handoff and return to HIGH_MODEL on re-entry.
+- Set `delegation_required = true` for both HIGH implementation start/re-entry and STANDARD completion; the router only aggregates state, audit, and result artifacts for those gates.
+- Keep HIGH_MODEL and STANDARD_MODEL write ownership serial.
 - Use `copilot-standard-verifier` after implementation.
 - Use `copilot-close-reviewer` before final close.
 - Do not turn full-coverage 3層運用 into the standard route.

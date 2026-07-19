@@ -34,7 +34,10 @@ This artifact holds delegation evidence, model-observability detail, route histo
 | Check | Status | Evidence |
 | --- | --- | --- |
 | CHEAP work delegated when required | PASS / FAIL / N/A | |
-| STANDARD implementation delegated | PASS / FAIL / N/A | |
+| HIGH implementation started before any standard completion | PASS / FAIL / N/A | |
+| STANDARD completion delegated only after valid handoff | PASS / FAIL / N/A | |
+| NEEDS_HIGH_MODEL_REENTRY returned to HIGH implementation | PASS / FAIL / N/A | |
+| HIGH and STANDARD write ownership did not overlap | PASS / FAIL / N/A | |
 | STANDARD verification delegated | PASS / FAIL / N/A | |
 | Parent direct execution exception documented | PASS / FAIL / N/A | |
 | Delegation violation absent or accepted | PASS / FAIL / N/A | |

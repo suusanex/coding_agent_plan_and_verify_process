@@ -116,11 +116,11 @@ Issue summary:
 | --- | --- |
 | Task Weight | `small-bounded` |
 | Selected Process | `normal` |
-| Model Tier Recommendation | `STANDARD_MODEL` for implementation and verification |
-| Agent / Subagent Plan | `implementation-handoff-review` before READY implementation, `standard-implementer` for delegated implementation, `standard-verifier` for verification |
-| Edit Permission | `allowed_to_edit: No` before Plan / risk / handoff review; `edit_owner: standard-implementer` after parent authorization artifact exists |
+| Model Tier Recommendation | `HIGH_MODEL` for implementation start, conditional `STANDARD_MODEL` completion, `STANDARD_MODEL` for verification |
+| Agent / Subagent Plan | `implementation-handoff-review` before READY implementation, `high-implementation-starter` first, `standard-implementation-completer` only after valid handoff, `standard-verifier` for verification |
+| Edit Permission | `allowed_to_edit: No` before Plan / risk / handoff review; `edit_owner: high-implementation-starter` after parent authorization artifact exists |
 | DelegationRequired | `Yes` for implementation and verification |
-| Stop / Ready Gate | `ReadyForImplementationHandoffReview` after bounded Plan, `plans/<slug>-change-risk-triage.md`, allowed paths, and compatibility rule exist; `ReadyForDelegatedImplementation` after parent authorization artifact exists |
+| Stop / Ready Gate | `ReadyForImplementationHandoffReview` after bounded Plan, `plans/<slug>-change-risk-triage.md`, allowed paths, and compatibility rule exist; `ReadyForHighImplementationStart` after parent authorization artifact exists |
 
 ### Expected Routing Plan excerpt
 
@@ -129,12 +129,14 @@ Routing Plan:
 - Plan: STANDARD_MODEL or HIGH_MODEL if ambiguity appears.
 - Risk: STANDARD_MODEL.
 - Implementation handoff review: HIGH_MODEL or STANDARD_MODEL, edit_owner = implementation-handoff-review.
-- Implementation: STANDARD_MODEL, DelegationRequired = Yes, edit_owner = standard-implementer.
+- Implementation start: HIGH_MODEL, DelegationRequired = Yes, edit_owner = high-implementation-starter.
+- Bounded completion: STANDARD_MODEL only after valid handoff, DelegationRequired = Yes, edit_owner = standard-implementation-completer.
 - Verification: STANDARD_MODEL, DelegationRequired = Yes, edit_owner = standard-verifier.
 
 Stop / Ready Gate:
 - Stop with ReadyForImplementationHandoffReview until parent authorization artifact exists.
-- Stop with ReadyForDelegatedImplementation until observed standard-implementer run exists.
+- Stop with ReadyForHighImplementationStart until observed high-implementation-starter run exists.
+- Stop with ReadyForStandardCompletion only after a valid handoff exists.
 - Stop with ReadyForDelegatedVerification until observed standard-verifier run exists.
 ```
 
@@ -150,15 +152,19 @@ selected_process: normal
 current_gate: Plan
 next_gate: Risk
 recommended_model_tier: STANDARD_MODEL
-model_tier_recommendation: STANDARD_MODEL for bounded implementation and verification; HIGH_MODEL only if compatibility ambiguity appears
+model_tier_recommendation: HIGH_MODEL for implementation start; STANDARD_MODEL for valid bounded completion and verification
 execution_mode: ROUTE_ONLY before READY and handoff review, then DELEGATED_WORK
-selected_agent_name: implementation-handoff-review before implementation; standard-implementer for READY implementation; standard-verifier for verification
+selected_agent_name: implementation-handoff-review before implementation; high-implementation-starter for READY implementation start; standard-implementation-completer only after valid handoff; standard-verifier for verification
 delegation_required: Yes for Implementation and Verification
 allowed_to_edit: No before READY
-edit_owner: standard-implementer after READY implementation is authorized
+edit_owner: high-implementation-starter after READY implementation is authorized; standard-implementation-completer only while consuming a valid handoff
 parent_direct_edit_allowed: No
-stop_ready_gate: ReadyForImplementationHandoffReview after bounded Plan, plans/<slug>-change-risk-triage.md, allowed paths, and compatibility rule exist; ReadyForDelegatedImplementation after parent authorization artifact exists
-stop_reason: ReadyForDelegatedImplementation until an observed standard-implementer run exists
+shape_handoff_status: NotStarted before HIGH start; Ready only after a complete handoff; Consumed while STANDARD owns the bounded remainder
+remaining_design_uncertainty: Unknown before HIGH start; None before STANDARD completion
+completion_scope: N/A before handoff; Work IDs and allowed edit surface after handoff
+shape_reentry_reason: N/A unless STANDARD returns NEEDS_HIGH_MODEL_REENTRY
+stop_ready_gate: ReadyForImplementationHandoffReview after bounded Plan, plans/<slug>-change-risk-triage.md, allowed paths, and compatibility rule exist; ReadyForHighImplementationStart after parent authorization artifact exists
+stop_reason: ReadyForHighImplementationStart until an observed high-implementation-starter run exists
 delegation_violation: No while no parent-direct edit occurs
 cost_saving_delegation_countable: No until observed delegated run evidence exists
 ```
@@ -384,7 +390,7 @@ cost_saving_delegation_countable: No
 | --- | --- | --- | --- |
 | Manual skill prompt exists | Samples 1-5 include `$codex-first-cost-router` prompts | implemented | This validation suite |
 | Lightweight fix classification | Sample 1 records expected and dry-run routing | verified | `trivial-local`, `CHEAP_MODEL` |
-| Normal implementation classification | Sample 2 records READY delegation gates | verified | `standard-implementer`, `standard-verifier` |
+| Normal implementation classification | Sample 2 records HIGH start, conditional STANDARD completion, re-entry, and verification gates | verified | `high-implementation-starter`, `standard-implementation-completer`, `standard-verifier` |
 | Full-coverage candidate classification | Sample 3 stops before implementation | verified | `advanced-full-coverage` |
 | Resume classification | Sample 4 reads existing state first | verified | state excerpt |
 | Hook / Plugin classification | Sample 5 stops with human decision | verified | `NeedsHumanDecision` |

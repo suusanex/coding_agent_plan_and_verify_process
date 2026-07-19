@@ -173,6 +173,56 @@ Expected:
 - APM-generated model-less stubs with matching package metadata are completed without `--force`
 - other same-name TOML collisions fail closed unless `--force` is explicit
 
+## Issue #44 integration validation matrix
+
+次のシナリオは standalone Adaptive package だけでなく、Plan Coverage、full-coverage slice、Codex-first、Copilot fallback の routing surface を同じ contract で検証します。`trivial-local` は対象外です。
+
+| ID | Scenario | Expected verdict sequence | Expected implementation owner sequence | Required state / audit evidence |
+| --- | --- | --- | --- | --- |
+| `INT-001` | 新規 service + DI + tests | `READY_FOR_STANDARD_COMPLETION -> COMPLETED -> verification` | HIGH が service responsibility、DI、代表 test seam を固定し、STANDARD が Work-ID-mapped remainder だけを完了 | HIGH start、valid handoff、serial owner、production wiring evidence |
+| `INT-002` | 大きな class からの責務分離 | `COMPLETED_BY_HIGH_MODEL -> verification` | `high-implementation-starter` が責務境界と移動を完了 | `shape_handoff_status = NotRequired`、STANDARD run は N/A、抽出後の behavior evidence |
+| `INT-003` | async + retry + cancellation | `COMPLETED_BY_HIGH_MODEL -> verification` | HIGH が state ownership、retry、cancellation、error semantics を完了 | HIGH owner、runtime postcondition、forbidden-state evidence、STANDARD run は N/A |
+| `INT-004` | 既存 pattern が明確な早期 STANDARD 委譲 | `READY_FOR_STANDARD_COMPLETION -> COMPLETED -> verification` | HIGH が representative production case と focused check を実行後、STANDARD が同型 remainder を完了 | `Pending -> Ready -> Consumed`、complete handoff、no write-owner overlap |
+| `INT-005` | STANDARD 中の構造判断再発と HIGH re-entry | `READY_FOR_STANDARD_COMPLETION -> NEEDS_HIGH_MODEL_REENTRY -> COMPLETED_BY_HIGH_MODEL -> verification` | HIGH -> STANDARD -> HIGH | `Ready -> Invalidated -> NotRequired`、`shape_reentry_reason`、incremented re-entry count、HIGH return evidence |
+
+### Surface expectations
+
+| Surface | Start / completion / verification owner | Result and state evidence |
+| --- | --- | --- |
+| Plan Coverage | `high-implementation-starter` -> conditional `standard-implementation-completer` -> `verification-kernel` | `plans/<slug>-implementation-execution.md` に phase owner、verdict、Implementation Self-Map、checks、acceptance evidence、Remaining Work。Completion Handoff は通常 inline |
+| full-coverage | 各非自明な READY slice ごとに HIGH -> conditional STANDARD -> HIGH re-entry、slice-local verification | slice 間は既存の非重複条件でのみ並列化し、各 slice 内 owner は直列。parent audit に HIGH-first、valid handoff、re-entry、owner non-overlap |
+| Codex-first | `high-implementation-starter` -> conditional `standard-implementation-completer` -> `standard-verifier` | state の `current_status`、`selected_agent_name`、`recommended_model_tier`、`edit_owner` と4つの Adaptive fields、audit の observed-run evidence |
+| Copilot fallback | `high-implementation-starter` -> conditional `standard-implementation-completer` -> `copilot-standard-verifier` | Codex-first 互換 state、Copilot frontmatter model/handoff、HIGH -> STANDARD -> HIGH discovery と serial ownership evidence |
+
+### State transition oracle
+
+| Phase | shape_handoff_status | selected_agent_name | recommended_model_tier | edit_owner | stop_reason |
+| --- | --- | --- | --- | --- | --- |
+| Authorized start | `NotStarted` / `Pending` | `high-implementation-starter` | `HIGH_MODEL` | `high-implementation-starter` | `ReadyForHighImplementationStart` |
+| Valid bounded handoff | `Ready` | `standard-implementation-completer` | `STANDARD_MODEL` | `standard-implementation-completer` | `ReadyForStandardCompletion` |
+| Handoff consumed | `Consumed` | `standard-implementation-completer` or verifier after completion | `STANDARD_MODEL` | current serial owner | next verification gate |
+| Structural re-entry | `Invalidated` | `high-implementation-starter` | `HIGH_MODEL` | `high-implementation-starter` | `NeedsHighModelReentry` |
+| Invalid handoff | `Blocked` | none / parent router | N/A | none | `BlockedByInvalidCompletionHandoff` |
+
+`current_status` には各 phase の実 verdict をそのまま記録します。HIGH start と STANDARD completion はともに `DelegationRequired = Yes` です。`ParentDirectExecutionException` は明示承認付き互換例外として残しますが、cost-saving delegation 成功には数えません。
+
+### 実モデル比較 runbook
+
+1. 同じ source Plan、repository revision、acceptance criteria、検証環境を固定する。
+2. 旧 single-pass route と Adaptive route で `INT-001` から `INT-005` を個別に実行する。
+3. agent ごとの configured / observed model、input / output token、wall time、handoff verdict、re-entry count、changed files、checks を記録する。
+4. 同じ human reviewer が、acceptance miss、production wiring miss、unnecessary structural change、review finding count を記録する。
+5. 品質差、token cost、re-entry 回数、人間レビュー指摘数をシナリオ別と合計で比較する。静的 contract 合格だけから品質改善を推論しない。
+
+| Run | Quality / acceptance | Token cost | Re-entry count | Human review findings | Status |
+| --- | --- | --- | --- | --- | --- |
+| Legacy single-pass baseline | 未計測 | 未計測 | 未計測 | 未計測 | `NOT RUN` |
+| Adaptive HIGH -> STANDARD -> HIGH | 未計測 | 未計測 | 未計測 | 未計測 | `NOT RUN` |
+
+実モデル比較は `NOT RUN` です。CI と static validation は routing contract を検証しますが、実証済みの品質改善や token cost 削減を宣言しません。
+
+人手での作業が必要: 同一の Plan、revision、環境を固定して legacy / Adaptive の両 route を実モデルで実行し、同じ reviewer が品質、token cost、re-entry、review finding を記録してください。この実モデル比較は repository static contract の merge gate ではなく、品質改善を実証済みと宣言する前の運用 evidence gate です。
+
 ## Repository static validation
 
 ```powershell
@@ -181,7 +231,7 @@ dotnet publish ./scripts/install-adaptive-implementation-local.cs
 git diff --check
 ```
 
-The static validator checks the package layout, standalone dependency avoidance, Plan Coverage independence, verdict contracts, custom agent fields, absence of repository-wide guidance and installer `AGENTS.md` access, root README entry, and presence of VAL-001 through VAL-008.
+The static validator checks the package layout and Windows path budget, standalone dependency avoidance, Plan Coverage independence, verdict contracts, custom agent fields and APM stub compatibility, absence of package-owned repository-wide `AGENTS.md` guidance, integrated package versions and dependencies, Codex-first profile synchronization, state and audit transitions, Copilot handoffs, legacy compatibility notices, workflow path filters, root README entry, and presence of VAL-001 through VAL-008 and INT-001 through INT-005.
 
 ## Local validation result
 

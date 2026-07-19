@@ -58,9 +58,9 @@ delegation_suitability     : cheap / standard / high agent へ分けやすいか
 | `PARENT_DIRECT_WORK` | 親が直接作業する例外経路。理由記録が必要で、cost-saving delegation には数えない |
 | `TRIVIAL_PARENT_FIX` | 明示的な低リスク局所修正だけ親が直接行う。これも cost-saving delegation には数えない |
 
-通常の READY implementation は `standard-implementer`、通常 verification は `standard-verifier` へ serial delegation します。write-heavy parallel editing を標準化しないことは、親が直接実装してよいことを意味しません。
+通常の非自明な READY implementation は `high-implementation-starter` から始め、complete な handoff 後だけ `standard-implementation-completer`、re-entry は HIGH_MODEL へ serial delegation します。通常 verification は `standard-verifier` が担当します。write-heavy parallel editing を標準化しないことは、親が直接実装してよいことを意味しません。
 
-通常の READY implementation の前には、Risk gate が `plans/<slug>-change-risk-triage.md` を作成し、state artifact の `risk_triage_artifact_status` を `Complete` にします。その後、`implementation-handoff-review` または明示的に同等の pre-implementation gate が parent authorization artifact を作成します。`Expansion required: Yes` の場合は、`behavior_case_coverage_ledger_status = Complete` になるまで `standard-implementer` へ渡してはいけません。
+通常の READY implementation の前には、Risk gate が `plans/<slug>-change-risk-triage.md` を作成し、state artifact の `risk_triage_artifact_status` を `Complete` にします。その後、`implementation-handoff-review` または明示的に同等の pre-implementation gate が parent authorization artifact を作成します。`Expansion required: Yes` の場合は、`behavior_case_coverage_ledger_status = Complete` になるまで `high-implementation-starter` へ渡してはいけません。
 
 ## 典型的な分岐例
 
@@ -74,7 +74,7 @@ small-bounded / medium-bounded
   -> risk: plans/<slug>-change-risk-triage.md を作成
   -> implementation handoff review: parent authorization artifact を作成
   -> execution_mode: ROUTE_ONLY then DELEGATED_WORK
-  -> implementation: standard-implementer
+  -> implementation: high-implementation-starter -> conditional standard-implementation-completer -> high re-entry
   -> verification: standard-verifier
 
 needs-plan-behavior-expansion
@@ -87,7 +87,7 @@ high-risk-bounded だが scope は明確
   -> selected_process: normal または higher-model-review
   -> HIGH_MODEL で plan / risk artifact / implementation contract / close を厚くする
   -> implementation handoff review: Parent Plan Coverage Ledger と必要な Behavior Case Coverage Ledger を作成
-  -> 実装・検証は standard agent へ委譲
+  -> 実装は HIGH start、valid handoff 後だけ STANDARD completion、検証は standard verifier へ委譲
   -> external / production / destructive operation は accepted residual または human-decision-wait に分離
 
 broad-full-coverage-candidate
@@ -114,9 +114,10 @@ task_weight: high-risk-bounded
 selected_process: normal
 execution_mode: DELEGATED_WORK
 Plan / risk / implementation contract / close: HIGH_MODEL
-implementation / verification: STANDARD_MODEL delegated agents
+implementation: HIGH_MODEL start / re-entry, conditional STANDARD_MODEL completion
+verification: STANDARD_MODEL delegated verifier
 change-risk-triage artifact: implementation handoff review の前に必須
-implementation handoff review: standard implementation の前に必須
+implementation handoff review: HIGH implementation start の前に必須
 real tenant mutation / credentials / destructive approval: out of scope or human-decision-wait
 ```
 

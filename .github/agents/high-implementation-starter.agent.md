@@ -143,6 +143,19 @@ STANDARD_MODEL から一度 re-entry した後は、原則として HIGH_MODEL �
 
 `Remaining work` は一意な Work ID と acceptance item mapping を持ち、file / symbol / expected behavior 単位で記述します。`Acceptance status` の mapping と `Remaining work` の acceptance item(s) は双方向に一致させます。`Allowed edit surface` は files と、必要なら symbols を明示します。
 
+## Plan Coverage traceability extension
+
+Parent Plan Coverage、Behavior Case、slice、runtime-contract、test-point、implementation-contract、または gap binding artifact が入力にある場合、今回の HIGH_MODEL phase で実際に変更した行だけを次の schema で返してください。
+
+```md
+## Implementation Self-Map Delta
+
+| Change ID | Change | File / Symbol | Reason | Related Plan item | Related Behavior Case IDs | Related SL / XC / RC / TP / IC / Gap item | Assumption made | Review hint |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+```
+
+`none` は該当しないことを確認できた場合、`unknown` は source artifact から解決できない場合だけ使います。既存 phase の row は書き換えず、安定した Change ID で current-phase delta を返します。orchestrator がこの delta を `plans/<slug>-implementation-execution.md` の canonical `Implementation Self-Map` に集約します。Plan Coverage binding artifacts が供給されていない standalone Adaptive run では、この extension は `N/A` と理由を記録してよいです。
+
 ## Verdicts
 
 - `READY_FOR_STANDARD_COMPLETION`
@@ -167,6 +180,7 @@ STANDARD_MODEL から一度 re-entry した後は、原則として HIGH_MODEL �
 - tests changed
 - validation commands and results
 - acceptance status table with evidence for every in-scope item
+- Implementation Self-Map Delta, or evidence-backed `N/A` when no Plan Coverage binding artifacts were supplied
 - remaining decision surface
 - handoff persistence
 - Implementation Completion Handoff when delegating

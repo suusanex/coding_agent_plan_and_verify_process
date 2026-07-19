@@ -31,6 +31,6 @@ If source-to-case expansion or Case-to-Plan mapping is missing, stop with `Needs
 
 Do not route requirement-elaboration gaps to full-coverage or implementation.
 
-When Plan readiness is `ReadyForRiskTriage`, risk triage must create or update `plans/<slug>-change-risk-triage.md` and set `risk_triage_artifact_status = Complete` before implementation handoff review. Later standard implementation still requires `implementation-handoff-review` before `copilot-standard-implementer`. If `Expansion required = Yes`, the state artifact must record `behavior_case_coverage_ledger_status = Complete` before implementation starts.
+When Plan readiness is `ReadyForRiskTriage`, risk triage must create or update `plans/<slug>-change-risk-triage.md` and set `risk_triage_artifact_status = Complete` before implementation handoff review. Every later non-trivial implementation starts with `high-implementation-starter`; `standard-implementation-completer` is allowed only after a valid `READY_FOR_STANDARD_COMPLETION` handoff. If `Expansion required = Yes`, the state artifact must record `behavior_case_coverage_ledger_status = Complete` before implementation starts.
 
 If scope or acceptance criteria cannot be safely inferred, stop with `NeedsHumanDecision`.

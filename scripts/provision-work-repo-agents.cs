@@ -9,6 +9,12 @@ internal static class RepoAgentSetup
     private const string VerbosePrefix = "VERBOSE: ";
     private const string SlicePrepFileName = "slice-prep.toml";
     private const string SliceImplFileName = "slice-impl.toml";
+    private const string HighImplementationStarterFileName = "high-implementation-starter.toml";
+    private const string StandardImplementationCompleterFileName = "standard-implementation-completer.toml";
+    private const string HighImplementationModel = "gpt-5.6-terra";
+    private const string StandardImplementationModel = "gpt-5.6-luna";
+    private const string AdaptiveImplementationReasoningEffort = "high";
+    private const string AdaptiveImplementationSandboxMode = "workspace-write";
     private const string FrontmatterPhrase = "top-level frontmatter";
     private const string FrontmatterReplacement = "top-level TOML fields";
     private static readonly string ParentStateTemplateSourceRelative = Path.Combine(
@@ -59,6 +65,20 @@ internal static class RepoAgentSetup
         ["model"] = "gpt-5.6-luna",
         ["model_reasoning_effort"] = "high",
         ["sandbox_mode"] = "workspace-write"
+    };
+
+    private static readonly IReadOnlyDictionary<string, string> HighImplementationStarterDefaults = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["model"] = HighImplementationModel,
+        ["model_reasoning_effort"] = AdaptiveImplementationReasoningEffort,
+        ["sandbox_mode"] = AdaptiveImplementationSandboxMode
+    };
+
+    private static readonly IReadOnlyDictionary<string, string> StandardImplementationCompleterDefaults = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["model"] = StandardImplementationModel,
+        ["model_reasoning_effort"] = AdaptiveImplementationReasoningEffort,
+        ["sandbox_mode"] = AdaptiveImplementationSandboxMode
     };
 
     private sealed record Options(
@@ -147,6 +167,7 @@ internal static class RepoAgentSetup
                 SlicePrepOrder,
                 SlicePrepDefaults,
                 options.Force,
+                false,
                 options.Verbose,
                 noWrite),
             await ProcessTomlFileAsync(
@@ -155,6 +176,25 @@ internal static class RepoAgentSetup
                 SliceImplOrder,
                 SliceImplDefaults,
                 options.Force,
+                false,
+                options.Verbose,
+                noWrite),
+            await ProcessTomlFileAsync(
+                options.TargetRoot,
+                HighImplementationStarterFileName,
+                SliceImplOrder,
+                HighImplementationStarterDefaults,
+                options.Force,
+                true,
+                options.Verbose,
+                noWrite),
+            await ProcessTomlFileAsync(
+                options.TargetRoot,
+                StandardImplementationCompleterFileName,
+                SliceImplOrder,
+                StandardImplementationCompleterDefaults,
+                options.Force,
+                true,
                 options.Verbose,
                 noWrite)
         };
@@ -348,6 +388,7 @@ internal static class RepoAgentSetup
         IReadOnlyList<string> keyOrder,
         IReadOnlyDictionary<string, string> defaults,
         bool force,
+        bool requireExpectedValues,
         bool verbose,
         bool noWrite)
     {
@@ -389,6 +430,7 @@ internal static class RepoAgentSetup
         var occurrences = CollectKeyOccurrences(lines, firstSectionIndex);
         var needsUpdate = false;
         var needsFailure = false;
+        var hasBlockingMismatch = false;
 
         foreach (var key in keyOrder)
         {
@@ -401,6 +443,9 @@ internal static class RepoAgentSetup
             var topPosition = hasTop ? topIndexes[0] : -1;
             var currentValue = hasAny ? ExtractValue(lines[allIndexes[0]]) : null;
             var expectedValue = Quote(defaults[key]);
+            var hasValueMismatch = hasAny
+                && currentValue is not null
+                && !string.Equals(currentValue, expectedValue, StringComparison.Ordinal);
             var shouldUpdate = false;
             var decision = string.Empty;
             var inCorrectPos = !hasTop
@@ -409,12 +454,17 @@ internal static class RepoAgentSetup
                     ? topPosition < devInstructionsIndex
                     : firstSectionIndex < 0 || topPosition < firstSectionIndex;
 
-            if (!hasTop)
+            if (requireExpectedValues && hasValueMismatch && !force)
+            {
+                decision = "mismatch";
+                hasBlockingMismatch = true;
+            }
+            else if (!hasTop)
             {
                 shouldUpdate = true;
                 decision = "add";
             }
-            else if (force && currentValue is not null && !string.Equals(currentValue, expectedValue, StringComparison.Ordinal))
+            else if (force && hasValueMismatch)
             {
                 shouldUpdate = true;
                 decision = "overwrite";
@@ -435,6 +485,11 @@ internal static class RepoAgentSetup
             }
 
             if (!hasTop || hasDuplicate || !inCorrectPos)
+            {
+                needsFailure = true;
+            }
+
+            if (requireExpectedValues && hasValueMismatch)
             {
                 needsFailure = true;
             }
@@ -491,9 +546,16 @@ internal static class RepoAgentSetup
             ? "frontmatter"
             : null;
 
-        if (noWrite || !needsUpdate)
+        if (noWrite || !needsUpdate || hasBlockingMismatch)
         {
-            return new FileReport(filePath, true, needsUpdate, needsFailure, false, issues, frontmatterFixLine);
+            return new FileReport(
+                filePath,
+                true,
+                needsUpdate || hasBlockingMismatch,
+                needsFailure,
+                false,
+                issues,
+                frontmatterFixLine);
         }
 
         var linesToWrite = new List<string>(lines);
@@ -860,6 +922,7 @@ internal static class RepoAgentSetup
                 "overwrite" => "overwrite" ,
                 "add" => "add",
                 "relocate" => "relocate",
+                "mismatch" => "mismatch; use --force to overwrite",
                 _ => "keep"
             };
             Console.WriteLine($"  - {issue.Key}: {issue.CurrentValue ?? "<none>"} -> {issue.ExpectedValue} ({tag})");

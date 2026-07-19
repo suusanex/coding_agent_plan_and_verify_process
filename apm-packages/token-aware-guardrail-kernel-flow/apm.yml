@@ -1,5 +1,5 @@
 name: plan-coverage-residual-gate-flow
-version: 0.4.1
+version: 0.5.0
 description: Plan Coverage Check and Residual Decision Flow with bounded parent Plan passes, Architecture Slice Readiness, Guardrail Focus, and residual decision gating
 type: hybrid
 targets:
@@ -48,3 +48,11 @@ dependencies:
       path: .github/agents/code-review-focus-kernel.agent.md
     - git: parent
       path: .github/agents/implementation-execution.agent.md
+    # Canonical adaptive implementation route. The legacy implementation-execution
+    # dependency above remains available only for explicit compatibility use.
+    - git: parent
+      path: apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
+    - git: parent
+      path: .github/agents/high-implementation-starter.agent.md
+    - git: parent
+      path: .github/agents/standard-implementation-completer.agent.md

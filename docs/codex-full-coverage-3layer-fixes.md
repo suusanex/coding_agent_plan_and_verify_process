@@ -1,5 +1,7 @@
 # Codex 3層運用 agent 定義 修正ゴール
 
+> Status update (2026-07-14): この文書は `slice-impl` を標準 owner としていた時点の調査・修正履歴です。Issue #44 以降、`slice-impl` は legacy compatibility entry であり、非自明な READY slice は `high-implementation-starter` から開始し、valid handoff 後だけ `standard-implementation-completer` を使います。現行 route は `token-aware-full-coverage-3layer` package の skill / instructions を参照してください。
+
 ## 目的
 
 `suusanex/coding_agent_plan_and_verify_process` に追加済みの Codex 向け 3層運用ファイル群について、実験リポジトリ `suusanex/temp_codex_log_test` で判明した問題を反映し、本番運用で誤解なく使える状態に整える。

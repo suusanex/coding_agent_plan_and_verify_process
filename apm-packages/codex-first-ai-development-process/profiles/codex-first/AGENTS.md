@@ -15,9 +15,12 @@ Use `codex-first-cost-router` behavior:
 - do not run `implementation-handoff-review` until the change-risk-triage artifact is complete
 - run `implementation-handoff-review` or an explicitly equivalent pre-implementation gate before normal READY implementation
 - for `documentation_level: lite`, treat the Plan Coverage Lite Inline Ready Gate as equivalent to `implementation-handoff-review` only when it is explicitly PASS and covers source of truth, FR / AC coverage, Case-to-Plan mapping, risk checklist, implementation scope, human decisions, required Behavior Case Coverage Ledger, and implementation allowed
-- when `Expansion required: Yes`, require `Behavior Case Coverage Ledger` status `Complete` before handing off to `standard-implementer`
+- when `Expansion required: Yes`, require `Behavior Case Coverage Ledger` status `Complete` before handing off to `high-implementation-starter`
 - route hard judgment to high agents
-- MUST delegate normal READY implementation serially to `standard-implementer`
+- MUST delegate non-trivial READY implementation serially to `high-implementation-starter`
+- use `standard-implementation-completer` only after a valid `READY_FOR_STANDARD_COMPLETION` handoff and return to HIGH_MODEL on `NEEDS_HIGH_MODEL_REENTRY`
+- keep HIGH_MODEL and STANDARD_MODEL write ownership serial and record the owner/verdict sequence in state and audit
+- update `shape_handoff_status`, `remaining_design_uncertainty`, `completion_scope`, `shape_reentry_reason`, and the active verdict / agent / tier / edit owner at every implementation phase boundary
 - MUST delegate normal READY verification to `standard-verifier`, unless risky close judgment needs `high-closure-reviewer`
 - route read-heavy scan and consistency work to cheap agents
 - keep full-coverage 3-layer operation as an advanced route

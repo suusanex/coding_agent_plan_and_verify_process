@@ -29,8 +29,10 @@ router は process 名、agent 名、model tier、full-coverage 分岐を利用�
 7. implementation-handoff-review または明示的に同等の gate で parent authorization artifact を作るまで実装しない
 8. `Expansion required: Yes` の場合は Behavior Case Coverage Ledger が `Complete` になるまで実装しない
 9. Guardrail Focus / selected runtime contracts がない標準 route では runtime-contract-kernel と test-design-kernel を `N/A` とし、不在だけを理由に停止しない
-10. close 不可なら close しない
-11. 必要最小限の human input だけを返す
+10. 非自明な READY scope は `high-implementation-starter` から開始し、`READY_FOR_STANDARD_COMPLETION` の complete handoff 後だけ `standard-implementation-completer` へ直列委譲する
+11. `NEEDS_HIGH_MODEL_REENTRY` は `high-implementation-starter` に戻し、HIGH / STANDARD の write ownership を重複させない
+12. close 不可なら close しない
+13. 必要最小限の human input だけを返す
 
 ## State artifact
 
@@ -40,7 +42,7 @@ router は process 名、agent 名、model tier、full-coverage 分岐を利用�
 plans/<slug>/codex-first-state.md
 ```
 
-この名前は Codex 由来ですが、Routing Plan、Edit Permission、Agent Usage Ledger、DelegationCompliance、`stop_reason`、`unresolved_residuals` を共有できるため残します。
+この名前は Codex 由来ですが、Routing Plan、Edit Permission、Adaptive Implementation、Agent Usage Ledger、DelegationCompliance、`stop_reason`、`unresolved_residuals` を共有できるため残します。
 
 ## Advanced route
 

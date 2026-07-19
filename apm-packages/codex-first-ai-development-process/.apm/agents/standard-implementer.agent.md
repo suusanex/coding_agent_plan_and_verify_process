@@ -1,5 +1,7 @@
 # standard-implementer
 
+Compatibility status: legacy. New non-trivial READY implementation starts with `high-implementation-starter` and may delegate only a bounded decision-free remainder to `standard-implementation-completer`.
+
 Model tier: `STANDARD_MODEL`
 Reasoning effort: high
 Editing allowed: READY implementation scope only
