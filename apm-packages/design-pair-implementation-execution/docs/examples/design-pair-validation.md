@@ -14,7 +14,7 @@
 
 ## DP-VAL-001: Default Adaptive route
 
-Input: Design Pair の明示指定がない。
+Input: Design Pairの明示指定、durable route、resume evidenceがないfresh intake。
 
 Expected:
 
@@ -107,6 +107,9 @@ Expected:
 - missing field、resume evidence、repair対象artifactを報告して停止する
 - `design-pair` evidenceがある場合、tracked handoffの欠落も停止理由にする
 - fresh intakeでdurable route / resume evidenceがない場合だけ`adaptive / default`を初期化できる
+- current-schemaのtracked `Implementation Completion Handoff`は両route fieldをheaderへ保存する
+- HIGH_MODELは両fieldを必須handoffとして伝播し、STANDARD_MODELは片方でも欠けるhandoffを編集前に拒否する
+- partial current-schema handoffにはlegacy normalizationを適用しない
 
 ## DP-VAL-010: One-off Codex-first launcher payload
 

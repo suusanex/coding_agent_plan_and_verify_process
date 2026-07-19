@@ -150,6 +150,8 @@ STANDARD_MODEL から一度 re-entry した後は、原則として HIGH_MODEL �
 - Verdict
 - Handoff persistence
 - Plan reference
+- implementation_route
+- implementation_route_source
 - Validation performed
 - Acceptance status
 - Applicability evidence
@@ -165,6 +167,8 @@ STANDARD_MODEL から一度 re-entry した後は、原則として HIGH_MODEL �
 - previous_reentry_trigger
 - delegation_surface_reduced
 - Known assumptions / unresolved observations
+
+`implementation_route` と `implementation_route_source` はincoming durable route pairを変更せず伝播します。許可される組み合わせは`adaptive / default`または`design-pair / explicit-user-selection`だけです。片方が欠ける、矛盾する、またはDesign Pair evidenceと一致しない場合はhandoffを作らず、適切なstop verdictを返します。
 
 `Remaining work` は一意な Work ID と acceptance item mapping を持ち、file / symbol / expected behavior 単位で記述します。`Acceptance status` の mapping と `Remaining work` の acceptance item(s) は双方向に一致させます。`Allowed edit surface` は files と、必要なら symbols を明示します。
 

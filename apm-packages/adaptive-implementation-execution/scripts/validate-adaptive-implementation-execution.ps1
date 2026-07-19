@@ -237,6 +237,23 @@ Assert-Contains $codexRouter '`STANDARD_MODEL`: bounded implementation completio
 Assert-NotContains $codexRouter '`STANDARD_MODEL`: normal implementation' 'legacy STANDARD_MODEL normal implementation summary'
 Assert-NotContains $codexRouter 'stop if new design uncertainty appears' 'reversed design-uncertainty stop condition'
 
+$codexInstruction = 'apm-packages/codex-first-ai-development-process/.apm/instructions/codex-first-ai-development-process.instructions.md'
+Assert-Contains $codexInstruction 'initialize `implementation_route: adaptive`.*only at fresh intake' 'Codex-first instruction fresh-only Adaptive default'
+Assert-Contains $codexInstruction 'On resume, require both route fields.*stop on missing or contradictory metadata instead of defaulting to Adaptive' 'Codex-first instruction resume route fail-closed rule'
+Assert-Contains $codexInstruction 'Legacy Adaptive handoff normalization' 'Codex-first instruction legacy route exception'
+
+$codexPackageAgents = 'apm-packages/codex-first-ai-development-process/AGENTS.md'
+Assert-Contains $codexPackageAgents 'fresh intakeだけ`adaptive / default`で初期化' 'Codex-first package AGENTS fresh-only Adaptive default'
+Assert-Contains $codexPackageAgents 'resumeでは両route field.*欠落または矛盾.*Adaptiveへ補完せず停止' 'Codex-first package AGENTS resume route fail-closed rule'
+
+$codexProfileAgents = 'apm-packages/codex-first-ai-development-process/profiles/codex-first/AGENTS.md'
+Assert-Contains $codexProfileAgents 'only at fresh intake' 'Codex-first profile AGENTS fresh-only Adaptive default'
+Assert-Contains $codexProfileAgents 'on resume require both durable route fields.*stop on missing or contradictory metadata instead of defaulting to Adaptive' 'Codex-first profile AGENTS resume route fail-closed rule'
+
+$handoffReviewAgent = '.github/agents/implementation-handoff-review.agent.md'
+Assert-Contains $handoffReviewAgent 'fresh intakeだけ`implementation_route: adaptive` / `implementation_route_source: default`を初期化' 'handoff review fresh-only Adaptive default'
+Assert-Contains $handoffReviewAgent 'resumeではupstream durable artifactの両route fieldを必須.*Adaptiveへ補完せず`BLOCKED_BY_ARTIFACT_MISMATCH`' 'handoff review resume route fail-closed rule'
+
 $fullCoverageSkill = 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md'
 Assert-Contains $fullCoverageSkill 'non-trivial READY slice.*high-implementation-starter' 'per-slice HIGH_MODEL start'
 Assert-Contains $fullCoverageSkill 'READY_FOR_STANDARD_COMPLETION.*standard-implementation-completer' 'per-slice STANDARD completion gate'
@@ -251,6 +268,8 @@ Assert-Contains $fullCoverageInstruction 'high-implementation-starter' 'full-cov
 Assert-Contains $fullCoverageInstruction 'standard-implementation-completer' 'full-coverage instruction STANDARD completion'
 Assert-Contains $fullCoverageInstruction 'NEEDS_HIGH_MODEL_REENTRY' 'full-coverage instruction HIGH re-entry'
 Assert-Contains $fullCoverageInstruction '`slice-impl`.*legacy compatibility' 'full-coverage instruction legacy notice'
+Assert-Contains $fullCoverageInstruction 'fresh intakeだけ.*`implementation_route: adaptive` / `implementation_route_source: default`' 'full-coverage instruction fresh-only Adaptive default'
+Assert-Contains $fullCoverageInstruction 'resumeでは`implementation_route`と`implementation_route_source`の両方.*欠落または矛盾.*Adaptiveへ補完せず' 'full-coverage instruction resume route fail-closed rule'
 Assert-NotContains $fullCoverageInstruction 'BlockedByMissingSliceImplDelegation' 'obsolete missing slice-impl blocker'
 
 Assert-Contains '.github/agents/implementation-execution.agent.md' 'Compatibility status: legacy' 'legacy Plan Coverage implementation notice'
@@ -296,6 +315,7 @@ Assert-Contains $highAgent 'Implementation Self-Map Delta' 'HIGH_MODEL Self-Map 
 Assert-Contains $highAgent 'Related Plan item.*Related Behavior Case IDs.*Related SL / XC / RC / TP / IC / Gap item.*Assumption made.*Review hint' 'HIGH_MODEL Self-Map schema'
 Assert-Contains $highAgent 'Design Pair Implementation Handoff' 'HIGH_MODEL Design Pair input support'
 Assert-Contains $highAgent 'Locked Decision conflict' 'HIGH_MODEL Locked Decision conflict stop'
+Assert-Contains $highAgent '(?s)`Implementation Completion Handoff` には次を含めます。.*- implementation_route.*- implementation_route_source.*- Validation performed' 'HIGH_MODEL required handoff route metadata'
 
 $standardAgent = '.github/agents/standard-implementation-completer.agent.md'
 Assert-Contains $standardAgent 'NEEDS_HIGH_MODEL_REENTRY' 're-entry verdict'
@@ -313,12 +333,16 @@ Assert-Contains $standardAgent 'Design Pair Decision IDs' 'STANDARD_MODEL Design
 Assert-Contains $standardAgent 'Legacy Adaptive handoff normalization' 'STANDARD_MODEL legacy handoff normalization'
 Assert-Contains $standardAgent 'LEGACY-HIGH-D01' 'STANDARD_MODEL deterministic legacy Decision IDs'
 Assert-Contains $standardAgent 'Design Pair evidenceがあるresume.*使用しません' 'legacy normalization excludes Design Pair resumes'
+Assert-Contains $standardAgent '(?s)条件を満たす場合、production code / testsを編集する前に.*`implementation_route: adaptive`.*`implementation_route_source: default`.*`route_metadata_normalization: legacy-adaptive-handoff`' 'STANDARD_MODEL legacy route metadata persistence'
+Assert-Contains $standardAgent '(?s)## Required authorization.*- implementation_route.*- implementation_route_source.*- Validation performed' 'STANDARD_MODEL required authorization route metadata'
 
 $handoff = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md'
 foreach ($field in @(
     'Verdict',
     'Handoff persistence',
     'Plan reference',
+    'implementation_route',
+    'implementation_route_source',
     'Validation performed',
     'Acceptance status',
     'Applicability evidence',
@@ -343,6 +367,7 @@ Assert-Contains $handoff '`Blocked` を許可しない' 'blocked acceptance reje
 Assert-Contains $handoff 'Origin.*Decision ID.*Decision.*Affected files / symbols.*Validation expectation.*Compliance evidence' 'consolidated locked decision schema'
 Assert-Contains $handoff 'Legacy Adaptive handoff normalization' 'legacy Adaptive handoff normalization contract'
 Assert-Contains $handoff 'LEGACY-HIGH-D01' 'deterministic legacy Decision ID rule'
+Assert-Contains $handoff '(?s)# Implementation Completion Handoff.*- implementation_route: adaptive / design-pair.*- implementation_route_source: default / explicit-user-selection.*## Acceptance status' 'current handoff header route metadata'
 
 $legacyFixture = 'apm-packages/adaptive-implementation-execution/docs/examples/legacy-adaptive-handoff.md'
 Assert-Contains $legacyFixture 'Verdict: READY_FOR_STANDARD_COMPLETION' 'legacy handoff READY verdict'
@@ -403,6 +428,13 @@ if ($standardConfigDescription -ne $standardPortableDescription) {
 
 $codexHighToml = 'apm-packages/codex-first-ai-development-process/profiles/codex-first/agents/high-implementation-starter.toml'
 $codexStandardToml = 'apm-packages/codex-first-ai-development-process/profiles/codex-first/agents/standard-implementation-completer.toml'
+foreach ($toml in @($highToml, $codexHighToml)) {
+    Assert-Contains $toml 'complete Implementation Completion Handoff that preserves implementation_route and implementation_route_source' 'portable HIGH handoff route propagation'
+}
+foreach ($toml in @($standardToml, $codexStandardToml)) {
+    Assert-Contains $toml 'including implementation_route and implementation_route_source, before editing' 'portable STANDARD route authorization'
+    Assert-Contains $toml 'Persist implementation_route: adaptive, implementation_route_source: default.*legacy-adaptive-handoff normalization record' 'portable STANDARD legacy route persistence'
+}
 foreach ($mapping in @(
     @{ Adaptive = $highToml; CodexFirst = $codexHighToml },
     @{ Adaptive = $standardToml; CodexFirst = $codexStandardToml }

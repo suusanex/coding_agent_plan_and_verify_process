@@ -16,7 +16,7 @@
 - `NeedsPlanBehaviorExpansion` は `black-box-behavior-spec-kernel` または Plan rerun へ戻し、full-coverage や fix-slice の代替ルートにしない。
 - Risk gate では `plans/<slug>-change-risk-triage.md` を作成または更新し、state artifact に `risk_triage_artifact` と `risk_triage_artifact_status` を記録する。
 - 実装前には `implementation-handoff-review` または明示的に同等の gate で parent authorization artifact を作成し、`Expansion required: Yes` の場合は `Behavior Case Coverage Ledger` が `Complete` になるまで `high-implementation-starter` へ渡さない。
-- implementation route は `adaptive / default` を既定とする。利用者が Design Pair を明示選択した場合だけ `design-pair / explicit-user-selection` とし、handoff review 後、HIGH_MODEL 実装前に `design-pair-implementation-execution` を実行する。difficulty、risk、size、architecture から自動選択、推奨、提案しない。
+- implementation route はdurable route、resume、Design Pair evidenceがないfresh intakeだけ`adaptive / default`で初期化する。resumeでは両route fieldをdurable stateから必ず読み、欠落または矛盾があればAdaptiveへ補完せず停止する。唯一の互換例外はcanonical `Legacy Adaptive handoff normalization`を満たすexact pre-Design-Pair Adaptive completion handoffとする。利用者が Design Pair を明示選択した場合だけ `design-pair / explicit-user-selection` とし、handoff review 後、HIGH_MODEL 実装前に `design-pair-implementation-execution` を実行する。difficulty、risk、size、architecture から自動選択、推奨、提案しない。
 - Design Pair phase は `plans/<slug>-design-pair-implementation-handoff.md` 以外の production code / tests を編集しない。`READY_FOR_ADAPTIVE_IMPLEMENTATION` 後は Locked Decisions だけを binding として Adaptive Implementation へ渡す。
 - read-heavy な scan / consistency check は、Routing Plan が要求する場合は低コスト subagent へ委譲する。
 - READY 後の非自明な通常実装は `high-implementation-starter` へ serial delegation し、decision-free な残作業だけを `standard-implementation-completer` へ渡す。re-entry は HIGH_MODEL に戻し、write-heavy owner を重ねない。

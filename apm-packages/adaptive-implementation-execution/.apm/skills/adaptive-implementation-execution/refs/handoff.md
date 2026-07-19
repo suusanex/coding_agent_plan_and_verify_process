@@ -3,13 +3,15 @@
 - Verdict: READY_FOR_STANDARD_COMPLETION
 - Handoff persistence: inline / tracked
 - Plan reference:
+- implementation_route: adaptive / design-pair
+- implementation_route_source: default / explicit-user-selection
 - Design Pair handoff: N/A / plans/<slug>-design-pair-implementation-handoff.md
 - Validation performed:
 - reentry_count: 0
 - previous_reentry_trigger: N/A
 - delegation_surface_reduced: N/A
 
-初回 handoff は上記の初期値を使用する。re-entry 後に再委譲する場合は、re-entry handoff の `reentry_count` を維持し、`previous_reentry_trigger` にその `Trigger` を設定し、`delegation_surface_reduced: Yes` とする。
+初回 handoff は上記の初期値を使用する。`implementation_route` と `implementation_route_source` はincoming durable route pairを変更せず伝播し、`adaptive / default`または`design-pair / explicit-user-selection`の組み合わせだけを許可する。current-schema handoffで片方が欠ける、矛盾する、またはDesign Pair evidenceと一致しない場合はfail closedとし、下記のlegacy normalizationで補完しない。re-entry 後に再委譲する場合は、re-entry handoff の `reentry_count` を維持し、`previous_reentry_trigger` にその `Trigger` を設定し、`delegation_surface_reduced: Yes` とする。
 
 ## Acceptance status
 

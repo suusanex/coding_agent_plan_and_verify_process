@@ -24,6 +24,8 @@ Design Pair 導入前に作成された tracked `Implementation Completion Hando
 
 条件を満たす場合、production code / testsを編集する前にtracked handoffへ次を追記する。inline handoffの場合は同じ内容をagent outputへ記録する。
 
+- `implementation_route: adaptive`
+- `implementation_route_source: default`
 - `Design Pair handoff: N/A`
 - `Design Pair Decision compliance: N/A (legacy Adaptive handoff)`
 - 旧 `Locked decisions` を出現順に `Origin: HIGH_MODEL`、`Decision ID: LEGACY-HIGH-D01` から採番して正規化する
@@ -39,6 +41,8 @@ Design Pair 導入前に作成された tracked `Implementation Completion Hando
 開始前に、handoff が次を含み、`Verdict: READY_FOR_STANDARD_COMPLETION` であることを確認します。
 
 - Plan reference
+- implementation_route
+- implementation_route_source
 - Validation performed
 - Acceptance status
 - Applicability evidence
@@ -54,6 +58,8 @@ Design Pair 導入前に作成された tracked `Implementation Completion Hando
 - previous_reentry_trigger
 - delegation_surface_reduced
 - Known assumptions / unresolved observations
+
+`implementation_route` と `implementation_route_source` は`adaptive / default`または`design-pair / explicit-user-selection`の組み合わせであり、Design Pair evidenceと一致する必要があります。片方が欠ける、矛盾する、またはevidenceと一致しないcurrent-schema handoffはAdaptiveへ補完せず、編集前に`NEEDS_HIGH_MODEL_REENTRY`を返します。
 
 さらに、次をすべて確認します。
 

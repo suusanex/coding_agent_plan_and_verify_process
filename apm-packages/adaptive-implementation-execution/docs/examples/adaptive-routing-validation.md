@@ -205,6 +205,20 @@ Expected:
 - the normalized affected-file value does not become the Allowed edit surface
 - partial new-schema handoffs, incomplete old-schema handoffs, and any handoff with Design Pair evidence fail closed
 
+## VAL-011: Preserve route metadata in a tracked completion handoff
+
+Input:
+
+- a current-schema Adaptive or Design Pair run reaches `READY_FOR_STANDARD_COMPLETION`
+- a session, thread, model, or worker boundary requires a tracked `Implementation Completion Handoff`
+
+Expected:
+
+- HIGH_MODEL writes both `implementation_route` and `implementation_route_source` into the handoff header without changing their incoming values
+- STANDARD_MODEL requires both fields before editing and rejects a missing or contradictory pair
+- a partial current-schema handoff does not use `Legacy Adaptive handoff normalization`
+- a later resume restores the selected route without defaulting to Adaptive
+
 ## Issue #44 integration validation matrix
 
 次のシナリオは standalone Adaptive package だけでなく、Plan Coverage、full-coverage slice、Codex-first、Copilot fallback の routing surface を同じ contract で検証します。`trivial-local` は対象外です。

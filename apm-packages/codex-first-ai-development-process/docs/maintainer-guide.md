@@ -192,7 +192,7 @@ full-coverage 3層運用は advanced route である。
 - Routing Plan、Edit Permission、audit artifact、Agent Usage Ledger、DelegationCompliance が template / skill / docs に揃っている。
 - implementation-handoff-review が standard implementation 前の parent authorization と Behavior Case Coverage Ledger gate として定義されている。
 - READY implementation は `high-implementation-starter` から開始し、valid handoff 後だけ `standard-implementation-completer`、re-entry は HIGH_MODEL、READY verification は `standard-verifier` への serial delegation として定義されている。
-- implementation route は `adaptive / default` が既定で、Design Pair は explicit user selection の場合だけ handoff review 後かつ HIGH start 前に実行される。Design Pair phase の production code / tests edit は禁止され、Locked Decisions だけが binding である。
+- implementation route はdurable route、resume、Design Pair evidenceがないfresh intakeだけ`adaptive / default`で初期化される。resumeでは両route fieldが必須であり、欠落または矛盾はAdaptiveへ補完せず停止する。唯一の互換例外はcanonical `Legacy Adaptive handoff normalization`を満たすexact pre-Design-Pair Adaptive completion handoffである。Design Pairはexplicit user selectionの場合だけhandoff review後かつHIGH start前に実行される。Design Pair phaseのproduction code / tests editは禁止され、Locked Decisionsだけがbindingである。
 - close gate が delegation evidence missing を成功扱いしない。
 - `profiles/codex-first/agents/*.toml` に `model` と `model_reasoning_effort` の実行可能な初期値がある。
 - `profiles/codex-first/agents/*.toml` に role-appropriate `sandbox_mode` がある。

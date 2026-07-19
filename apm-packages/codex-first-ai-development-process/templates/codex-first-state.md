@@ -172,7 +172,7 @@ unresolved_residuals:
 - None
 
 operations_not_allowed_in_current_state:
-- Do not infer, recommend, or propose design-pair from task weight, risk, size, or architecture. Use it only with implementation_route_source = explicit-user-selection; otherwise keep adaptive / default.
+- Do not infer, recommend, or propose design-pair from task weight, risk, size, or architecture. Initialize adaptive / default only at fresh intake with no durable route, resume, or Design Pair evidence. On resume, preserve both durable route fields and stop on missing or contradictory metadata instead of defaulting to Adaptive, except for an exact legacy handoff accepted by `Legacy Adaptive handoff normalization`.
 - Do not edit production code / tests during the Design Pair pre-stage. Allow only the tracked design_pair_handoff path until READY_FOR_ADAPTIVE_IMPLEMENTATION.
 - Do not silently fall back to Adaptive when an explicitly selected Design Pair skill or valid handoff is missing.
 - Keep `current_status` equal to the actual Adaptive verdict, and switch `selected_agent_name`, `recommended_model_tier`, and `edit_owner` to the active `high-implementation-starter`, `standard-implementation-completer`, or `standard-verifier` phase.
