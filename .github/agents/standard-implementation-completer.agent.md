@@ -34,7 +34,7 @@ Design Pair 導入前に作成された tracked `Implementation Completion Hando
 - `Compliance evidence: Pending legacy resume completion`
 - `route_metadata_normalization: legacy-adaptive-handoff`
 
-これは旧通常Adaptive handoffだけの互換処理であり、Design Pair evidenceがあるresumeの欠落補完には使用しません。部分的な新schema、不完全な旧schema、矛盾するevidenceは編集せず `NEEDS_HIGH_MODEL_REENTRY` を返します。
+これは旧通常Adaptive handoffだけの互換処理であり、Design Pair evidenceがあるresumeの欠落補完には使用しません。部分的な新schema、不完全な旧schema、矛盾するevidenceは編集せず `BLOCKED` を返し、`Stop reason: BlockedByInvalidCompletionHandoff` と不足または矛盾したfield、必要なartifact repairを報告します。
 
 ## Required authorization
 
@@ -59,7 +59,7 @@ Design Pair 導入前に作成された tracked `Implementation Completion Hando
 - delegation_surface_reduced
 - Known assumptions / unresolved observations
 
-`implementation_route` と `implementation_route_source` は`adaptive / default`または`design-pair / explicit-user-selection`の組み合わせであり、Design Pair evidenceと一致する必要があります。片方が欠ける、矛盾する、またはevidenceと一致しないcurrent-schema handoffはAdaptiveへ補完せず、編集前に`NEEDS_HIGH_MODEL_REENTRY`を返します。
+`implementation_route` と `implementation_route_source` は`adaptive / default`または`design-pair / explicit-user-selection`の組み合わせであり、Design Pair evidenceと一致する必要があります。片方が欠ける、矛盾する、またはevidenceと一致しないcurrent-schema handoffはAdaptiveへ補完せず、編集前に`BLOCKED`を返し、`Stop reason: BlockedByInvalidCompletionHandoff` とartifact repairに必要なevidenceを報告します。
 
 さらに、次をすべて確認します。
 
@@ -69,7 +69,7 @@ Design Pair 導入前に作成された tracked `Implementation Completion Hando
 - すべての `Complete` acceptance item に implementation または validation evidence がある
 - Acceptance status の mapping と Remaining work の acceptance item(s) が双方向に一致している
 
-normalization対象ではないhandoffでfieldが欠ける、この対応条件を満たさない、remaining work が Work ID / acceptance item / file / symbol / expected behavior 単位でない、または allowed edit surface が曖昧な場合は編集せず `NEEDS_HIGH_MODEL_REENTRY` を返します。
+normalization対象ではないhandoffでfieldが欠ける、この対応条件を満たさない、remaining work が Work ID / acceptance item / file / symbol / expected behavior 単位でない、または allowed edit surface が曖昧な場合は編集せず `BLOCKED` を返し、`Stop reason: BlockedByInvalidCompletionHandoff` とartifact repairに必要なfieldを報告します。
 
 ## Allowed work
 
@@ -104,6 +104,8 @@ Design Pair origin の Locked decisions は Design Pair Decision ID を維持し
 6. 新しい構造判断が必要なら直ちに編集拡張を止め、re-entry handoff を返す。
 
 ## High-model re-entry
+
+`NEEDS_HIGH_MODEL_REENTRY` は、current-schemaまたは正規化済みhandoffがRequired authorizationを通過し、許可された実装または検証の途中で新しい構造判断が判明した場合だけに使います。invalid、incomplete、またはevidence-inconsistentなhandoffに対してはre-entry handoffを作成しません。
 
 次のいずれかを発見した場合は `NEEDS_HIGH_MODEL_REENTRY` を返します。
 
@@ -174,8 +176,13 @@ Parent Plan Coverage、Behavior Case、slice、runtime-contract、test-point、i
 
 ## Output
 
+すべてのverdictでincoming route identityを変更せず返します。
+
 - Verdict
 - Plan reference
+- implementation_route
+- implementation_route_source
+- Design Pair handoff path または `N/A`
 - completed remaining work
 - files changed
 - validation commands and results
@@ -184,6 +191,7 @@ Parent Plan Coverage、Behavior Case、slice、runtime-contract、test-point、i
 - scope / locked-decision compliance
 - Design Pair Decision IDs と Decision ID ごとの compliance / conflict evidence（存在する場合）
 - High-model Re-entry Handoff when required
+- Stop reason と invalid-artifact evidence（`BLOCKED` の場合）
 - final review status: `Not performed by this agent`
 
 `COMPLETED` は、scope 内の acceptance item がすべて `Complete` であり、各 item に実装または validation evidence がある場合だけ返します。未完了 item がある場合は、allowed surface と locked decisions の範囲で実装を継続するか、必要な verdict を返します。これは implementation completion を表すだけであり、final code review、architecture review、または独立 verification を実施済みと宣言してはいけません。

@@ -76,12 +76,13 @@ Checks:
 - no artificial skeleton or broken intermediate state is created for delegation
 - HIGH_MODEL records completed scope and checks
 - every in-scope acceptance item is Complete with implementation or validation evidence
+- `COMPLETED_BY_HIGH_MODEL` includes unchanged `implementation_route`, `implementation_route_source`, and the Design Pair handoff path or `N/A`
 
 ## VAL-004: Re-entry from STANDARD_MODEL
 
 Input:
 
-- HIGH_MODEL initially delegates
+- HIGH_MODEL initially delegates through a handoff that has passed authorization
 - STANDARD_MODEL discovers that test seam or production wiring must change
 
 Expected:
@@ -95,6 +96,7 @@ READY_FOR_STANDARD_COMPLETION
 Checks:
 
 - STANDARD_MODEL does not redesign the seam or wiring
+- `NEEDS_HIGH_MODEL_REENTRY` is emitted only for the structural decision discovered after valid authorization, never to repair invalid route metadata
 - High-model Re-entry Handoff contains invalidating evidence, worktree state, unchanged route pair, and Design Pair handoff path or `N/A`
 - STANDARD_MODEL increments incoming reentry_count and preserves incoming previous_reentry_trigger
 - parent passes both the original Implementation Completion Handoff and the High-model Re-entry Handoff back to HIGH_MODEL and rejects route identity mismatch
@@ -219,7 +221,10 @@ Expected:
 - HIGH_MODEL writes both `implementation_route` and `implementation_route_source` into the handoff header without changing their incoming values
 - STANDARD_MODEL requires both fields before editing and rejects a missing or contradictory pair
 - a High-model Re-entry Handoff preserves both route fields and the Design Pair handoff path or `N/A`
+- HIGH_MODEL and STANDARD_MODEL return both route fields and the Design Pair handoff path or `N/A` on every result, including normal completion
+- parent validates every HIGH_MODEL and STANDARD_MODEL result against the incoming route identity before accepting completion, continuation, delegation, or re-entry
 - a partial current-schema handoff does not use `Legacy Adaptive handoff normalization`
+- a missing, contradictory, or evidence-inconsistent current-schema handoff returns `BLOCKED` with `BlockedByInvalidCompletionHandoff` and does not emit `NEEDS_HIGH_MODEL_REENTRY`
 - a later resume restores the selected route without defaulting to Adaptive
 
 ## VAL-012: Portable agent route validation
@@ -231,9 +236,11 @@ Input:
 Expected:
 
 - both portable agents accept only `adaptive / default` or `design-pair / explicit-user-selection`
-- either missing field, a contradictory pair, or Design Pair evidence mismatch stops before editing
+- either missing field, a contradictory pair, or Design Pair evidence mismatch returns `BLOCKED` with `BlockedByInvalidCompletionHandoff` before editing
 - `design-pair` requires the current Design Pair Implementation Handoff path and never falls back to Adaptive
 - STANDARD_MODEL preserves the route pair and Design Pair handoff path in every High-model Re-entry Handoff
+- both agents return the route pair and Design Pair handoff path or `N/A` on every result
+- STANDARD_MODEL reserves `NEEDS_HIGH_MODEL_REENTRY` for structural decisions found after a valid handoff passes authorization
 
 ## Issue #44 integration validation matrix
 

@@ -137,15 +137,17 @@ Plan Coverage、Behavior Case、slice、runtime-contract、test-point、implemen
 - previous Implementation Completion Handoff と High-model Re-entry Handoff（STANDARD_MODELからresumeする場合）
 - Design Pair Implementation Handoff path と Design Pair Decision IDs（存在する場合）
 
-parentはHIGH_MODEL起動前に、route pairが`adaptive / default`または`design-pair / explicit-user-selection`のどちらかであり、Design Pair evidenceおよびhandoff pathと一致することを検証します。片方が欠ける、矛盾する、またはevidenceと一致しない場合はHIGH_MODELを起動せず停止します。
+parentはHIGH_MODEL起動前に、route pairが`adaptive / default`または`design-pair / explicit-user-selection`のどちらかであり、Design Pair evidenceおよびhandoff pathと一致することを検証します。片方が欠ける、矛盾する、またはevidenceと一致しない場合はHIGH_MODELを起動せず`BLOCKED`で停止し、`Stop reason: BlockedByInvalidCompletionHandoff`とartifact repairに必要なfieldを報告します。
 
 HIGH_MODEL は code を読み、production code / tests を編集し、focused verification を行います。事前文書だけで `direct implementation` と `shape-then-complete` を分類しません。
 
 ## Step 3: Validate the HIGH_MODEL verdict
 
+すべてのHIGH_MODEL resultについて、`implementation_route`、`implementation_route_source`、Design Pair handoff pathまたは`N/A`が存在し、incoming durable route identityと完全一致することを検証します。欠落、変更、不一致、またはDesign Pair evidenceとの矛盾があるresultは受理せず、追加実装や委譲を行わず`BLOCKED`で停止し、`Stop reason: BlockedByInvalidCompletionHandoff`を報告します。
+
 ### COMPLETED_BY_HIGH_MODEL
 
-HIGH_MODEL が scope 内の acceptance item をすべて `Complete` とし、各 item の実装または validation evidence、checks、remaining uncertainty を報告した場合に受理します。未完了 item があれば実装継続または適切な stop verdict を求めます。小規模課題でも、安全な delegation point がなければこの経路で構いません。
+HIGH_MODEL が scope 内の acceptance item をすべて `Complete` とし、各 item の実装または validation evidence、checks、remaining uncertainty、および検証済みroute identityを報告した場合に受理します。未完了 item があれば実装継続または適切な stop verdict を求めます。小規模課題でも、安全な delegation point がなければこの経路で構いません。
 
 ### CONTINUE_HIGH_IMPLEMENTATION
 
@@ -198,13 +200,15 @@ HIGH_MODEL と STANDARD_MODEL を同時に起動しません。STANDARD_MODEL �
 
 ## Step 5: Handle STANDARD_MODEL result
 
+すべてのSTANDARD_MODEL resultについて、`implementation_route`、`implementation_route_source`、Design Pair handoff pathまたは`N/A`が存在し、incoming Implementation Completion Handoffと完全一致することを検証します。欠落、変更、不一致、またはDesign Pair evidenceとの矛盾があるresultは受理せず、追加実装やre-entryを行わず`BLOCKED`で停止し、`Stop reason: BlockedByInvalidCompletionHandoff`を報告します。
+
 ### COMPLETED
 
-completion scope、validation results、Design Pair Decision ID ごとの locked-decision compliance に加え、scope 内の全 acceptance item が `Complete` で evidence を持つことを確認します。未完了 item があれば `COMPLETED` を受理しません。これは implementation completion であり final review 完了ではありません。
+completion scope、validation results、Design Pair Decision ID ごとの locked-decision compliance、検証済みroute identityに加え、scope 内の全 acceptance item が `Complete` で evidence を持つことを確認します。未完了 item があれば `COMPLETED` を受理しません。これは implementation completion であり final review 完了ではありません。
 
 ### NEEDS_HIGH_MODEL_REENTRY
 
-STANDARD_MODEL の `High-model Re-entry Handoff`、元の `Implementation Completion Handoff`、元の Implementation Intent、元の locked decisions、current worktree state を保持して `high-implementation-starter` を直列に再実行します。両handoffの`implementation_route`、`implementation_route_source`、Design Pair handoff pathが一致することを再実行前に検証し、欠落または不一致があれば停止します。
+`NEEDS_HIGH_MODEL_REENTRY`は、有効なImplementation Completion Handoffのauthorization後、許可された実装または検証の途中で新しい構造判断が判明した場合だけ受理します。STANDARD_MODEL の `High-model Re-entry Handoff`、元の `Implementation Completion Handoff`、元の Implementation Intent、元の locked decisions、current worktree state を保持して `high-implementation-starter` を直列に再実行します。両handoffの`implementation_route`、`implementation_route_source`、Design Pair handoff pathが一致することを再実行前に検証し、欠落または不一致があればHIGH_MODELを起動せず`BLOCKED`で停止し、`Stop reason: BlockedByInvalidCompletionHandoff`を報告します。
 
 STANDARD_MODEL に redesign を続行させません。re-entry 後の HIGH_MODEL は actual code と new evidence を読み、必要な設計判断と実装を行います。1 回 re-entry した後は HIGH_MODEL が完了まで担当することを既定とします。
 

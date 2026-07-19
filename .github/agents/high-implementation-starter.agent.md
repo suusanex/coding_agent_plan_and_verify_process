@@ -39,6 +39,11 @@ read relevant code
 - goal
 - scope
 - acceptance
+- implementation_route
+- implementation_route_source
+- Design Pair Implementation Handoff path または `N/A`
+
+route pairは`adaptive / default`または`design-pair / explicit-user-selection`だけを許可し、Design Pair evidenceおよびhandoff pathと一致させます。片方の欠落、組み合わせ矛盾、またはevidence不一致がある場合は編集前に`BLOCKED`を返し、`Stop reason: BlockedByInvalidCompletionHandoff`とartifact repairに必要なfieldを報告します。
 
 次は任意 input です。明示されていない場合は、次の規則で扱い、推定した内容を出力に記録します。
 
@@ -138,7 +143,7 @@ STANDARD_MODEL から一度 re-entry した後は、原則として HIGH_MODEL �
 
 - 初回 handoff は `reentry_count: 0`、`previous_reentry_trigger: N/A`、`delegation_surface_reduced: N/A` とする
 - STANDARD_MODEL から戻った re-entry handoff の `reentry_count` と `Trigger` を読む
-- re-entry handoffと元のImplementation Completion Handoffから`implementation_route`、`implementation_route_source`、Design Pair handoff pathを読み、値が一致することを確認する
+- re-entry handoffと元のImplementation Completion Handoffから`implementation_route`、`implementation_route_source`、Design Pair handoff pathを読み、値が一致することを確認する。不足または不一致がある場合は実装や再委譲を行わず`BLOCKED`を返し、`Stop reason: BlockedByInvalidCompletionHandoff`とartifact repairに必要なevidenceを報告する
 - 再委譲する場合は re-entry handoff の `reentry_count` を維持し、`previous_reentry_trigger` にその `Trigger` を設定し、`delegation_surface_reduced: Yes` とする
 - re-entry handoff の `Trigger` がその `previous_reentry_trigger` と同じ場合は再発として扱い、再委譲しない
 
@@ -169,7 +174,7 @@ STANDARD_MODEL から一度 re-entry した後は、原則として HIGH_MODEL �
 - delegation_surface_reduced
 - Known assumptions / unresolved observations
 
-`implementation_route` と `implementation_route_source` はincoming durable route pairを変更せず伝播します。許可される組み合わせは`adaptive / default`または`design-pair / explicit-user-selection`だけです。片方が欠ける、矛盾する、またはDesign Pair evidenceと一致しない場合はhandoffを作らず、適切なstop verdictを返します。
+`implementation_route` と `implementation_route_source` はincoming durable route pairを変更せず伝播します。許可される組み合わせは`adaptive / default`または`design-pair / explicit-user-selection`だけです。片方が欠ける、矛盾する、またはDesign Pair evidenceと一致しない場合はhandoffを作らず`BLOCKED`を返し、`Stop reason: BlockedByInvalidCompletionHandoff`とartifact repairに必要なevidenceを報告します。
 
 `Remaining work` は一意な Work ID と acceptance item mapping を持ち、file / symbol / expected behavior 単位で記述します。`Acceptance status` の mapping と `Remaining work` の acceptance item(s) は双方向に一致させます。`Allowed edit surface` は files と、必要なら symbols を明示します。
 
@@ -195,7 +200,7 @@ Parent Plan Coverage、Behavior Case、slice、runtime-contract、test-point、i
 - `HUMAN_DECISION_REQUIRED`
 - `BLOCKED`
 
-`BLOCKED` は tool、dependency、permission、environment など implementation intent の判断以外の外部 blocker に使います。
+`BLOCKED` は tool、dependency、permission、environment など implementation intent の判断以外の外部 blocker、または必須artifactの欠落・矛盾に使います。invalid completion handoffまたはroute identityが原因の場合は`Stop reason: BlockedByInvalidCompletionHandoff`を返します。
 
 `COMPLETED_BY_HIGH_MODEL` は、scope 内の acceptance item がすべて `Complete` であり、各 item に実装または validation evidence がある場合だけ返します。未完了 item がある場合は実装を継続するか `REPLAN_REQUIRED` を返し、外部 blocker がある場合は `BLOCKED`、人の判断が必要な場合は `HUMAN_DECISION_REQUIRED` を返します。
 
@@ -203,14 +208,19 @@ Parent Plan Coverage、Behavior Case、slice、runtime-contract、test-point、i
 
 返却時は次を短くまとめます。
 
+すべてのverdictでincoming route identityを変更せず返します。
+
 - Verdict
 - Plan reference
+- implementation_route
+- implementation_route_source
+- Design Pair handoff path または `N/A`
 - files changed
 - production path / wiring evidence
 - tests changed
 - validation commands and results
 - acceptance status table with evidence for every in-scope item
-- Design Pair handoff path、Decision IDs、compliance / conflict evidence（存在する場合）
+- Design Pair Decision IDs、compliance / conflict evidence（存在する場合）
 - Implementation Self-Map Delta, or evidence-backed `N/A` when no Plan Coverage binding artifacts were supplied
 - remaining decision surface
 - handoff persistence

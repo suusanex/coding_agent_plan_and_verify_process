@@ -220,8 +220,11 @@ Assert-Contains $highAgent 'Design Pair Implementation Handoff' 'HIGH Design Pai
 Assert-Contains $highAgent 'Decision ID' 'HIGH Decision ID propagation'
 Assert-Contains $highAgent 'Locked Decision conflict' 'HIGH conflict stop report'
 Assert-Contains $highAgent 'Target Map.*allowed edit surface' 'HIGH non-allowlist rule'
+Assert-Contains $highAgent '(?s)## Required inputs.*- implementation_route.*- implementation_route_source.*- Design Pair Implementation Handoff path または `N/A`.*`BLOCKED`.*BlockedByInvalidCompletionHandoff' 'HIGH required route input validation'
 Assert-Contains $highAgent '(?s)`Implementation Completion Handoff` には次を含めます。.*- implementation_route.*- implementation_route_source.*- Validation performed' 'HIGH completion handoff route propagation'
 Assert-Contains $highAgent 're-entry handoffと元のImplementation Completion Handoffから`implementation_route`、`implementation_route_source`、Design Pair handoff pathを読み.*一致' 'HIGH re-entry route identity input'
+Assert-Contains $highAgent '(?s)## Output.*すべてのverdict.*- implementation_route.*- implementation_route_source.*- Design Pair handoff path または `N/A`' 'HIGH every-result route identity output'
+Assert-Contains $highAgent '(?s)片方が欠ける、矛盾する、またはDesign Pair evidenceと一致しない.*`BLOCKED`.*BlockedByInvalidCompletionHandoff' 'HIGH invalid route classification'
 
 $standardAgent = '.github/agents/standard-implementation-completer.agent.md'
 Assert-Contains $standardAgent 'Origin.*Decision ID' 'STANDARD consolidated decision authorization'
@@ -234,6 +237,9 @@ Assert-Contains $standardAgent '(?s)## Required authorization.*- implementation_
 Assert-Contains $standardAgent '(?s)## High-model Re-entry Handoff.*- implementation_route:.*- implementation_route_source:.*- Design Pair handoff: N/A / plans/<slug>-design-pair-implementation-handoff\.md.*```' 'STANDARD re-entry route identity fields'
 Assert-Contains $standardAgent '`implementation_route`、`implementation_route_source`、Design Pair handoff pathはincoming Implementation Completion Handoffの値を変更せず維持' 'STANDARD re-entry route identity propagation'
 Assert-Contains $standardAgent 'この handoff、incoming Implementation Completion Handoff、元の Implementation Intent' 'STANDARD re-entry original completion handoff retention'
+Assert-Contains $standardAgent '(?s)片方が欠ける、矛盾する、またはevidenceと一致しないcurrent-schema handoff.*`BLOCKED`.*BlockedByInvalidCompletionHandoff' 'STANDARD invalid current route classification'
+Assert-Contains $standardAgent '(?s)`NEEDS_HIGH_MODEL_REENTRY` は.*Required authorizationを通過.*構造判断.*invalid.*re-entry handoffを作成しません' 'STANDARD structural-only re-entry boundary'
+Assert-Contains $standardAgent '(?s)## Output.*すべてのverdict.*- implementation_route.*- implementation_route_source.*- Design Pair handoff path または `N/A`' 'STANDARD every-result route identity output'
 
 $adaptiveHighToml = 'apm-packages/adaptive-implementation-execution/codex-agents/high-implementation-starter.toml'
 $adaptiveStandardToml = 'apm-packages/adaptive-implementation-execution/codex-agents/standard-implementation-completer.toml'
@@ -241,16 +247,20 @@ $codexHighToml = 'apm-packages/codex-first-ai-development-process/profiles/codex
 $codexStandardToml = 'apm-packages/codex-first-ai-development-process/profiles/codex-first/agents/standard-implementation-completer.toml'
 foreach ($toml in @($adaptiveHighToml, $codexHighToml)) {
     Assert-Contains $toml 'Accept only implementation_route: adaptive with implementation_route_source: default, or implementation_route: design-pair with implementation_route_source: explicit-user-selection' 'portable HIGH exact route pairs'
-    Assert-Contains $toml 'Stop before editing when either route field is missing, the pair is contradictory, or it does not match Design Pair evidence' 'portable HIGH route fail-closed rule'
+    Assert-Contains $toml 'Stop before editing and return BLOCKED with Stop reason: BlockedByInvalidCompletionHandoff when either route field is missing, the pair is contradictory, or it does not match Design Pair evidence' 'portable HIGH invalid route classification'
     Assert-Contains $toml 'For implementation_route: design-pair, require the current Design Pair Implementation Handoff path; never default or fall back to Adaptive' 'portable HIGH Design Pair handoff requirement'
 }
 foreach ($toml in @($adaptiveStandardToml, $codexStandardToml)) {
     Assert-Contains $toml 'accept only implementation_route: adaptive with implementation_route_source: default, or implementation_route: design-pair with implementation_route_source: explicit-user-selection' 'portable STANDARD exact route pairs'
     Assert-Contains $toml 'Reject a missing, contradictory, or evidence-inconsistent current-schema route pair before editing' 'portable STANDARD route fail-closed rule'
     Assert-Contains $toml 'High-model Re-entry Handoff.*unchanged implementation_route and implementation_route_source.*unchanged Design Pair Implementation Handoff path or N/A' 'portable STANDARD re-entry route identity propagation'
+    Assert-Contains $toml 'Reject a missing, contradictory, or evidence-inconsistent current-schema route pair before editing by returning BLOCKED with Stop reason: BlockedByInvalidCompletionHandoff; do not emit a High-model Re-entry Handoff' 'portable STANDARD invalid route classification'
+    Assert-Contains $toml 'Reserve NEEDS_HIGH_MODEL_REENTRY for a structural decision discovered after a current-schema or normalized handoff has passed authorization' 'portable STANDARD structural-only re-entry boundary'
 }
 
 Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' 'DP-VAL-012: Portable agent route contract' 'portable Design Pair route validation scenario'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' 'invalid artifactを`NEEDS_HIGH_MODEL_REENTRY`として扱わない' 'invalid artifact is not re-entry scenario'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' 'すべてのresultでroute pairとDesign Pair handoff pathまたは`N/A`を返す' 'every-result route identity scenario'
 
 $planCoverageSkill = 'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md'
 Assert-Contains $planCoverageSkill 'implementation_route:\s*adaptive' 'Plan Coverage default Adaptive route'

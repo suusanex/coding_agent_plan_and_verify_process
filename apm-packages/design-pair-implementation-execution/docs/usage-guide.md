@@ -42,9 +42,9 @@ Design Pair package は Copilot target を宣言しません。Plan Coverage pac
 
 ## Resume
 
-`implementation_route`と`implementation_route_source`はdurable artifactから再読します。resume時に欠ける、矛盾する、またはDesign Pair evidenceがあるのにtracked handoffが欠ける場合、Adaptiveへ補完せず停止します。`adaptive / default`の自動初期化はfresh intakeだけです。
+`implementation_route`と`implementation_route_source`はdurable artifactから再読します。resume時に欠ける、矛盾する、またはDesign Pair evidenceがあるのにtracked handoffが欠ける場合、Adaptiveへ補完せず`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてartifact repairを要求します。`adaptive / default`の自動初期化はfresh intakeだけです。
 
-STANDARD_MODELからHIGH_MODELへre-entryする場合は、High-model Re-entry Handoffに両route fieldとDesign Pair handoff pathをincoming completion handoffから変更せずコピーします。parentは元のcompletion handoffとre-entry handoffの両方をHIGH_MODELへ渡し、route identityが一致しない場合は再実行前に停止します。
+STANDARD_MODELからHIGH_MODELへre-entryする場合は、High-model Re-entry Handoffに両route fieldとDesign Pair handoff pathをincoming completion handoffから変更せずコピーします。parentは元のcompletion handoffとre-entry handoffの両方をHIGH_MODELへ渡し、route identityが一致しない場合は再実行前に`BLOCKED` / `BlockedByInvalidCompletionHandoff`で停止します。HIGH_MODELとSTANDARD_MODELは通常完了を含むすべてのresultで同じ3項目を返します。
 
 ## Target Map discussion
 

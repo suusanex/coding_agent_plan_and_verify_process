@@ -82,7 +82,7 @@ Validation: focused unit tests と solution build。
 - tests / fixtures / test data
 - locked decisions を変えない focused failure 修正
 
-locked decisions を変える必要がある場合は、局所的にねじ込まず `NEEDS_HIGH_MODEL_REENTRY` を返します。
+有効なhandoffで実装または検証を開始した後にlocked decisionsを変える必要が判明した場合は、局所的にねじ込まず `NEEDS_HIGH_MODEL_REENTRY` を返します。handoffの欠落・矛盾・evidence不一致は構造判断ではなくinvalid artifactとして`BLOCKED` / `BlockedByInvalidCompletionHandoff`で停止します。
 
 ## Acceptance mapping in a handoff
 
@@ -100,7 +100,7 @@ READY_FOR_STANDARD_COMPLETION
   -> high-implementation-starter resumes with the original intent, original completion handoff, and re-entry handoff
 ```
 
-STANDARD_MODEL は registration を暗黙変更しません。re-entry handoff に invalidating evidence、変更済み files、実行した checks、必要な decision、incomingの`implementation_route`、`implementation_route_source`、Design Pair handoff pathを変更せず記録します。parentは元のcompletion handoffも保持し、両handoffのroute identityが一致することを確認してからHIGH_MODELを再実行します。
+STANDARD_MODEL は registration を暗黙変更しません。re-entry handoff に invalidating evidence、変更済み files、実行した checks、必要な decision、incomingの`implementation_route`、`implementation_route_source`、Design Pair handoff pathを変更せず記録します。parentは元のcompletion handoffも保持し、両handoffのroute identityが一致することを確認してからHIGH_MODELを再実行します。HIGH_MODELとSTANDARD_MODELは通常完了を含むすべてのresultで同じ3項目を返し、parentはincoming identityとの一致を検証します。
 
 一度 re-entry した後は HIGH_MODEL が完了まで担当します。再委譲は、前回より `Remaining work` と `Allowed edit surface` がともに厳密に縮小し、同じ trigger が再発していない場合だけ許可します。
 
@@ -132,7 +132,7 @@ tracked handoff は実コードの代替設計書ではありません。locked 
 - 補完したAffected files / symbolsはAllowed edit surfaceに使わない
 - normalization recordをtracked handoffへ追記してからSTANDARD_MODELへ渡す
 
-部分的に新しいDesign Pair fieldを持つ、Design Pair selection evidenceがある、または旧必須fieldが不足するhandoffはnormalizationしません。production code / testsを編集せず、artifact repairまたはHIGH_MODEL re-entryへ戻します。fixtureは`docs/examples/legacy-adaptive-handoff.md`です。
+部分的に新しいDesign Pair fieldを持つ、Design Pair selection evidenceがある、または旧必須fieldが不足するhandoffはnormalizationしません。production code / testsを編集せず、`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてartifact repairを要求します。fixtureは`docs/examples/legacy-adaptive-handoff.md`です。
 
 ## Verification and final review
 

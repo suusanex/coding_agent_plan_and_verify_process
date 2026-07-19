@@ -104,8 +104,9 @@ Input: resume request、existing handoff、またはDesign Pair selection eviden
 Expected:
 
 - `adaptive / default`へ補完しない
-- missing field、resume evidence、repair対象artifactを報告して停止する
+- `BLOCKED` / `BlockedByInvalidCompletionHandoff`としてmissing field、resume evidence、repair対象artifactを報告して停止する
 - `design-pair` evidenceがある場合、tracked handoffの欠落も停止理由にする
+- invalid artifactを`NEEDS_HIGH_MODEL_REENTRY`として扱わない
 - fresh intakeでdurable route / resume evidenceがない場合だけ`adaptive / default`を初期化できる
 - current-schemaのtracked `Implementation Completion Handoff`は両route fieldをheaderへ保存する
 - HIGH_MODELは両fieldを必須handoffとして伝播し、STANDARD_MODELは片方でも欠けるhandoffを編集前に拒否する
@@ -141,9 +142,11 @@ Input: repository-local `.github/agents` がないone-off launcherまたはAPM i
 Expected:
 
 - 両agentは`adaptive / default`と`design-pair / explicit-user-selection`の2組だけを許可する
-- route field欠落、組み合わせ矛盾、Design Pair evidence不一致は編集前に停止する
+- route field欠落、組み合わせ矛盾、Design Pair evidence不一致は編集前に`BLOCKED` / `BlockedByInvalidCompletionHandoff`で停止する
 - `design-pair`でcurrent Design Pair handoff pathがない場合はAdaptiveへfallbackしない
 - STANDARD re-entryはroute pairとDesign Pair handoff pathをHIGHへ伝播する
+- 両agentは通常完了を含むすべてのresultでroute pairとDesign Pair handoff pathまたは`N/A`を返す
+- STANDARDは有効なhandoffのauthorization後に構造判断を発見した場合だけ`NEEDS_HIGH_MODEL_REENTRY`を返す
 
 ## Repository static validation
 
