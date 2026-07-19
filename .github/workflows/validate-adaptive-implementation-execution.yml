@@ -13,6 +13,7 @@ on:
       - 'apm-packages/token-aware-full-coverage-3layer/**'
       - 'apm-packages/codex-first-ai-development-process/**'
       - 'apm-packages/copilot-fallback-ai-development-process/**'
+      - 'scripts/provision-work-repo-agents.cs'
       - 'docs/**'
       - 'README.md'
   push:
@@ -27,6 +28,7 @@ on:
       - 'apm-packages/token-aware-full-coverage-3layer/**'
       - 'apm-packages/codex-first-ai-development-process/**'
       - 'apm-packages/copilot-fallback-ai-development-process/**'
+      - 'scripts/provision-work-repo-agents.cs'
       - 'docs/**'
       - 'README.md'
 

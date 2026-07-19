@@ -83,9 +83,9 @@ Source requirement
 
 | Script | Use when | Installs / fixes |
 | --- | --- | --- |
-| `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM 導入後に Adaptive Implementation の必須 concrete Codex profile を repository-local に同期・検証したい | `AGENTS.md` の managed section、`.codex/agents/high-implementation-starter.toml`、`.codex/agents/standard-implementation-completer.toml` |
+| `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM 導入後に Adaptive Implementation の必須 concrete Codex profile を repository-local に同期・検証したい | `.codex/agents/high-implementation-starter.toml`、`.codex/agents/standard-implementation-completer.toml`。`AGENTS.md` は操作しない |
 | `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、Codex-first / Adaptive skills、canonical implementation agent contracts、`templates/*.md` |
-| `scripts/provision-work-repo-agents.cs` | 既存の token-aware / full-coverage legacy profile を APM 経由で導入し、互換 agent TOML と template 配置を補正したい | `apm install` の実行、legacy `.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level 設定補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置。新規実装 route は canonical Adaptive agents を使う |
+| `scripts/provision-work-repo-agents.cs` | 既存の token-aware / full-coverage package を APM 経由で導入し、agent TOML と template 配置を補正したい | `apm install` の実行、canonical Adaptive agents と legacy `.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level 設定補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置 |
 | `scripts/validate-architecture-slice-readiness.ps1` | Architecture Slice Readinessのagent、manifest、template、routing、validation resultを静的検証したい | dependency path、frontmatter、必須contract、旧direct routeの残存を検証 |
 
 Codex-first を使いたい場合の入口は `apply-codex-first-local.cs` です。
@@ -117,8 +117,9 @@ apm を使用して agent.md 形式から Codex 向けの toml 形式を作成�
 `provision-work-repo-agents.cs` は、その欠落を補うために次を行います。
 
 - 対象リポジトリで `apm install --update --target copilot,codex,agent-skills ...` を実行する。
-- 互換用に生成された `.codex/agents/slice-prep.toml` と legacy `.codex/agents/slice-impl.toml` を検査する。新規実装 route の検査は Adaptive validator で行う。
+- canonical Adaptive route 用に生成された `.codex/agents/high-implementation-starter.toml` と `.codex/agents/standard-implementation-completer.toml`、および互換用の `.codex/agents/slice-prep.toml` と legacy `.codex/agents/slice-impl.toml` を検査する。
 - 必要に応じて top-level `model` / `model_reasoning_effort` / `sandbox_mode` を追加・移動・補正する。
+- canonical Adaptive agents は package の model mapping と一致することを要求する。不一致がある場合は失敗し、`--force` 指定時だけ package mapping へ補正する。
 - `plans/_templates/full-coverage-parent-orchestration-state.md` に親 orchestration 再開 state template を配置し、後続 parent agent が consuming repo 内で template を読めるようにする。
 
 次のように、セットアップ対象のリポジトリのルートパスを渡して実行する。
@@ -131,7 +132,7 @@ dotnet run --file scripts/provision-work-repo-agents.cs -- "C:\\path\\to\\work-r
 ```
 
 `--dry-run` と `--check` では `apm` 実行やファイル書き込みは行いません。
-既存値を上書きして補正したい場合だけ `--force` を使います。
+既存値を上書きして補正したい場合だけ `--force` を使います。特に canonical Adaptive agents の model mapping 不一致は、HIGH / STANDARD の役割分離を保つため、`--force` なしでは検証失敗になります。
 
 ---
 

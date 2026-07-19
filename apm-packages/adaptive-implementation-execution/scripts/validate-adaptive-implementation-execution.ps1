@@ -124,7 +124,8 @@ $requiredFiles = @(
     'apm-packages/copilot-fallback-ai-development-process/apm.yml',
     'apm-packages/copilot-fallback-ai-development-process/templates/codex-first-state.md',
     'apm-packages/copilot-fallback-ai-development-process/templates/github/agents/high-implementation-starter.agent.md',
-    'apm-packages/copilot-fallback-ai-development-process/templates/github/agents/standard-implementation-completer.agent.md'
+    'apm-packages/copilot-fallback-ai-development-process/templates/github/agents/standard-implementation-completer.agent.md',
+    'scripts/provision-work-repo-agents.cs'
 )
 
 foreach ($file in $requiredFiles) {
@@ -226,6 +227,8 @@ Assert-Contains '.github/agents/change-risk-triage.agent.md' 'implementation-int
 $codexRouter = 'apm-packages/codex-first-ai-development-process/.apm/skills/codex-first-cost-router/SKILL.md'
 Assert-Contains $codexRouter 'let `high-implementation-starter` resolve implementation-internal design uncertainty' 'HIGH_MODEL implementation-internal uncertainty ownership'
 Assert-Contains $codexRouter 'stop only when the Plan, authorized scope, or acceptance criteria must change' 'HIGH_MODEL stop boundary'
+Assert-Contains $codexRouter '`STANDARD_MODEL`: bounded implementation completion after a valid handoff' 'STANDARD_MODEL bounded completion summary'
+Assert-NotContains $codexRouter '`STANDARD_MODEL`: normal implementation' 'legacy STANDARD_MODEL normal implementation summary'
 Assert-NotContains $codexRouter 'stop if new design uncertainty appears' 'reversed design-uncertainty stop condition'
 
 $fullCoverageSkill = 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md'
@@ -367,6 +370,33 @@ foreach ($mapping in @(
     }
 }
 
+$provisioner = 'scripts/provision-work-repo-agents.cs'
+$highReasoningEffort = Get-TomlString $highToml 'model_reasoning_effort'
+$standardReasoningEffort = Get-TomlString $standardToml 'model_reasoning_effort'
+$highSandboxMode = Get-TomlString $highToml 'sandbox_mode'
+$standardSandboxMode = Get-TomlString $standardToml 'sandbox_mode'
+Assert-Contains $provisioner ([regex]::Escape('private const string HighImplementationStarterFileName = "high-implementation-starter.toml";')) 'canonical HIGH provision target'
+Assert-Contains $provisioner ([regex]::Escape('private const string StandardImplementationCompleterFileName = "standard-implementation-completer.toml";')) 'canonical STANDARD provision target'
+Assert-Contains $provisioner ([regex]::Escape('private const string HighImplementationModel = "' + $highModel + '";')) 'canonical HIGH provision model mapping'
+Assert-Contains $provisioner ([regex]::Escape('private const string StandardImplementationModel = "' + $standardModel + '";')) 'canonical STANDARD provision model mapping'
+if ($highReasoningEffort -ne $standardReasoningEffort) {
+    Add-Failure 'Adaptive HIGH_MODEL and STANDARD_MODEL reasoning effort must share the provisioner constant'
+}
+else {
+    Assert-Contains $provisioner ([regex]::Escape('private const string AdaptiveImplementationReasoningEffort = "' + $highReasoningEffort + '";')) 'Adaptive provision reasoning effort'
+}
+if ($highSandboxMode -ne $standardSandboxMode) {
+    Add-Failure 'Adaptive HIGH_MODEL and STANDARD_MODEL sandbox mode must share the provisioner constant'
+}
+else {
+    Assert-Contains $provisioner ([regex]::Escape('private const string AdaptiveImplementationSandboxMode = "' + $highSandboxMode + '";')) 'Adaptive provision sandbox mode'
+}
+Assert-Contains $provisioner '(?s)HighImplementationStarterDefaults\s*=.*?\["model"\]\s*=\s*HighImplementationModel.*?\["model_reasoning_effort"\]\s*=\s*AdaptiveImplementationReasoningEffort.*?\["sandbox_mode"\]\s*=\s*AdaptiveImplementationSandboxMode' 'canonical HIGH provision defaults'
+Assert-Contains $provisioner '(?s)StandardImplementationCompleterDefaults\s*=.*?\["model"\]\s*=\s*StandardImplementationModel.*?\["model_reasoning_effort"\]\s*=\s*AdaptiveImplementationReasoningEffort.*?\["sandbox_mode"\]\s*=\s*AdaptiveImplementationSandboxMode' 'canonical STANDARD provision defaults'
+Assert-Contains $provisioner '(?s)HighImplementationStarterFileName,\s*SliceImplOrder,\s*HighImplementationStarterDefaults,\s*options\.Force,\s*true,' 'canonical HIGH expected-value enforcement'
+Assert-Contains $provisioner '(?s)StandardImplementationCompleterFileName,\s*SliceImplOrder,\s*StandardImplementationCompleterDefaults,\s*options\.Force,\s*true,' 'canonical STANDARD expected-value enforcement'
+Assert-Contains $provisioner 'mismatch; use --force to overwrite' 'canonical mapping mismatch guidance'
+
 foreach ($stateTemplate in @(
     'apm-packages/codex-first-ai-development-process/templates/codex-first-state.md',
     'apm-packages/copilot-fallback-ai-development-process/templates/codex-first-state.md'
@@ -466,12 +496,15 @@ foreach ($pathFilter in @(
     'apm-packages/token-aware-full-coverage-3layer/\*\*',
     'apm-packages/codex-first-ai-development-process/\*\*',
     'apm-packages/copilot-fallback-ai-development-process/\*\*',
+    'scripts/provision-work-repo-agents\.cs',
     'docs/\*\*'
 )) {
     Assert-Contains $workflow $pathFilter "CI path filter $pathFilter"
 }
 
 Assert-Contains 'README.md' 'apm-packages/adaptive-implementation-execution' 'root package link'
+Assert-Contains 'README.md' '`AGENTS\.md` は操作しない' 'Adaptive helper AGENTS.md non-access statement'
+Assert-NotContains 'README.md' 'install-adaptive-implementation-local\.cs[^\r\n]*`AGENTS\.md` の managed section' 'obsolete Adaptive helper AGENTS.md managed-section claim'
 
 if ($failures.Count -gt 0) {
     Write-Error ("Adaptive Implementation validation failed:`n- " + ($failures -join "`n- "))

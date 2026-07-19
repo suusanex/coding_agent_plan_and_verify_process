@@ -424,7 +424,7 @@ Do:
 ## Model tier labels
 
 - `HIGH_MODEL`: hard judgment, ambiguity, security/auth/DB/public API/production wiring, implementation contract, risky close.
-- `STANDARD_MODEL`: normal implementation, verification, test work, moderate repairs.
+- `STANDARD_MODEL`: bounded implementation completion after a valid handoff, verification, test work, moderate repairs.
 - `CHEAP_MODEL`: scan, inventory, docs consistency, artifact formatting, simple local fixes.
 
 Do not hard-code real model names. Maintainers own the mapping.
