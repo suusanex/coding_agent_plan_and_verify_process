@@ -43,7 +43,7 @@ read relevant code
 - implementation_route_source
 - Design Pair Implementation Handoff path または `N/A`
 
-route pairは`adaptive / default`または`design-pair / explicit-user-selection`だけを許可し、Design Pair evidenceおよびhandoff pathと一致させます。片方の欠落、組み合わせ矛盾、またはevidence不一致がある場合は編集前に`BLOCKED`を返し、`Stop reason: BlockedByInvalidCompletionHandoff`とartifact repairに必要なfieldを報告します。
+route pairは`adaptive / default`または`design-pair / explicit-user-selection`だけを許可し、Design Pair evidenceおよびhandoff pathと一致させます。`adaptive / default`ではpathに明示的な`N/A`を要求します。fieldの欠落、組み合わせ矛盾、またはevidence不一致がある場合は編集前に`BLOCKED`を返し、`Stop reason: BlockedByInvalidCompletionHandoff`、各route identity fieldのraw observed valueまたは`<missing>`、artifact repairに必要なevidenceを報告します。値を推測または補完してはいけません。
 
 次は任意 input です。明示されていない場合は、次の規則で扱い、推定した内容を出力に記録します。
 
@@ -208,7 +208,7 @@ Parent Plan Coverage、Behavior Case、slice、runtime-contract、test-point、i
 
 返却時は次を短くまとめます。
 
-すべてのverdictでincoming route identityを変更せず返します。
+通常はすべてのverdictでincoming route identityを変更せず返します。唯一の例外は`Verdict: BLOCKED`かつ`Stop reason: BlockedByInvalidCompletionHandoff`の場合です。このresultでは完全なidentityを要求せず、`implementation_route`、`implementation_route_source`、Design Pair handoff pathの各fieldにraw observed valueまたは欠落を示す`<missing>`を返し、repair対象を報告します。外部blockerを理由とする`BLOCKED`を含むその他のverdictでは完全なunchanged identityが必要です。
 
 - Verdict
 - Plan reference
@@ -225,4 +225,5 @@ Parent Plan Coverage、Behavior Case、slice、runtime-contract、test-point、i
 - remaining decision surface
 - handoff persistence
 - Implementation Completion Handoff when delegating
+- route identity repair evidence（invalid-artifact `BLOCKED`の場合）
 - final review status: `Not performed by this agent`

@@ -176,7 +176,7 @@ Parent Plan Coverage、Behavior Case、slice、runtime-contract、test-point、i
 
 ## Output
 
-すべてのverdictでincoming route identityを変更せず返します。
+通常はすべてのverdictでincoming route identityを変更せず返します。唯一の例外は`Verdict: BLOCKED`かつ`Stop reason: BlockedByInvalidCompletionHandoff`の場合です。このresultでは完全なidentityを要求せず、`implementation_route`、`implementation_route_source`、Design Pair handoff pathの各fieldにraw observed valueまたは欠落を示す`<missing>`を返し、repair対象を報告します。外部blockerを理由とする`BLOCKED`を含むその他のverdictでは完全なunchanged identityが必要です。
 
 - Verdict
 - Plan reference

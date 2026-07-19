@@ -77,6 +77,8 @@ installer は File-based app であり、`.csproj` は不要です。APM が生�
 
 skill の選択条件と、選択後の実行順序、handoff、re-entry、verification boundary の source of truth は `.apm/skills/adaptive-implementation-execution/SKILL.md` です。この package は repository 内のすべての Plan や実装作業へ skill を強制しません。
 
+通常Adaptiveのfresh intakeは`implementation_route: adaptive`、`implementation_route_source: default`、`design_pair_handoff: N/A`を初期化し、3項目をHIGH_MODELへ明示的に渡します。invalid-artifact `BLOCKED`だけは欠落identityを捏造せず、raw observed valueまたは`<missing>`とrepair evidenceを返します。
+
 Design Pair導入前のtracked Adaptive handoffは、旧必須fieldがすべて揃い、Design Pair evidenceが一切ない場合だけ`Legacy Adaptive handoff normalization`でresumeできます。`route_metadata_normalization: legacy-adaptive-handoff`とdeterministic `LEGACY-HIGH-Dxx` Decision IDsを記録し、新Design Pair fieldsの欠落だけを理由にHIGH_MODELへ戻しません。部分的な新schema、Design Pair evidence、不完全な旧schemaは`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてartifact repairを要求します。
 
 起動例:

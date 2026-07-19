@@ -217,14 +217,17 @@ Input:
 
 Expected:
 
-- parent supplies both `implementation_route` and `implementation_route_source` explicitly in the initial HIGH_MODEL payload
+- fresh `adaptive / default` intake initializes `design_pair_handoff: N/A` with both route fields
+- parent supplies `implementation_route`, `implementation_route_source`, and the Design Pair Implementation Handoff path or explicit `N/A` in every initial HIGH_MODEL payload
 - HIGH_MODEL writes both `implementation_route` and `implementation_route_source` into the handoff header without changing their incoming values
 - STANDARD_MODEL requires both fields before editing and rejects a missing or contradictory pair
 - a High-model Re-entry Handoff preserves both route fields and the Design Pair handoff path or `N/A`
-- HIGH_MODEL and STANDARD_MODEL return both route fields and the Design Pair handoff path or `N/A` on every result, including normal completion
-- parent validates every HIGH_MODEL and STANDARD_MODEL result against the incoming route identity before accepting completion, continuation, delegation, or re-entry
+- HIGH_MODEL and STANDARD_MODEL return both route fields and the Design Pair handoff path or `N/A` on every non-invalid result, including normal completion
+- parent validates every non-invalid HIGH_MODEL and STANDARD_MODEL result against the incoming route identity before accepting completion, continuation, delegation, or re-entry
 - a partial current-schema handoff does not use `Legacy Adaptive handoff normalization`
 - a missing, contradictory, or evidence-inconsistent current-schema handoff returns `BLOCKED` with `BlockedByInvalidCompletionHandoff` and does not emit `NEEDS_HIGH_MODEL_REENTRY`
+- invalid-artifact `BLOCKED` returns raw observed values or `<missing>` for each identity field plus repair evidence; parent accepts this stop result without requiring a complete pair
+- external-blocker `BLOCKED` still returns the complete unchanged route identity
 - a later resume restores the selected route without defaulting to Adaptive
 
 ## VAL-012: Portable agent route validation
@@ -235,11 +238,12 @@ Input:
 
 Expected:
 
-- both portable agents accept only `adaptive / default` or `design-pair / explicit-user-selection`
+- both portable agents accept only `adaptive / default` with an explicit `N/A` path or `design-pair / explicit-user-selection` with the current tracked path
 - either missing field, a contradictory pair, or Design Pair evidence mismatch returns `BLOCKED` with `BlockedByInvalidCompletionHandoff` before editing
 - `design-pair` requires the current Design Pair Implementation Handoff path and never falls back to Adaptive
 - STANDARD_MODEL preserves the route pair and Design Pair handoff path in every High-model Re-entry Handoff
-- both agents return the route pair and Design Pair handoff path or `N/A` on every result
+- both agents return the complete route identity on every non-invalid result
+- invalid-artifact `BLOCKED` returns raw observed values or `<missing>` plus repair evidence instead of fabricating a complete identity
 - STANDARD_MODEL reserves `NEEDS_HIGH_MODEL_REENTRY` for structural decisions found after a valid handoff passes authorization
 
 ## Issue #44 integration validation matrix

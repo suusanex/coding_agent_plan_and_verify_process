@@ -42,6 +42,8 @@ Locked Decisions だけを binding とし、その他の実装判断は actual c
 
 Design Pair route は利用者が明示選択した場合だけ使います。Design Pair handoff の Target Map や `Affected files / symbols` は allowed edit surface ではありません。
 
+durable routeやresume evidenceがない通常Adaptiveのfresh intakeは、`implementation_route: adaptive`、`implementation_route_source: default`、`design_pair_handoff: N/A`の3項目を初期化します。parentはHIGH_MODELへ3項目を常に渡し、Design Pair handoff pathを省略しません。
+
 短い caller intent の例:
 
 ```text
@@ -100,7 +102,9 @@ READY_FOR_STANDARD_COMPLETION
   -> high-implementation-starter resumes with the original intent, original completion handoff, and re-entry handoff
 ```
 
-STANDARD_MODEL は registration を暗黙変更しません。re-entry handoff に invalidating evidence、変更済み files、実行した checks、必要な decision、incomingの`implementation_route`、`implementation_route_source`、Design Pair handoff pathを変更せず記録します。parentは元のcompletion handoffも保持し、両handoffのroute identityが一致することを確認してからHIGH_MODELを再実行します。HIGH_MODELとSTANDARD_MODELは通常完了を含むすべてのresultで同じ3項目を返し、parentはincoming identityとの一致を検証します。
+STANDARD_MODEL は registration を暗黙変更しません。re-entry handoff に invalidating evidence、変更済み files、実行した checks、必要な decision、incomingの`implementation_route`、`implementation_route_source`、Design Pair handoff pathを変更せず記録します。parentは元のcompletion handoffも保持し、両handoffのroute identityが一致することを確認してからHIGH_MODELを再実行します。HIGH_MODELとSTANDARD_MODELは通常完了を含むresultで同じ3項目を返し、parentはincoming identityとの一致を検証します。
+
+例外は`Verdict: BLOCKED`かつ`Stop reason: BlockedByInvalidCompletionHandoff`だけです。欠落したidentityを捏造せず、各fieldのraw observed valueまたは`<missing>`とrepair evidenceを返します。parentはこのresultに完全なpairを要求せず受理して停止します。外部blockerを理由とする`BLOCKED`では完全なunchanged identityが必要です。
 
 一度 re-entry した後は HIGH_MODEL が完了まで担当します。再委譲は、前回より `Remaining work` と `Allowed edit surface` がともに厳密に縮小し、同じ trigger が再発していない場合だけ許可します。
 

@@ -79,11 +79,12 @@ Design Pair handoff がない場合は、新規 intake と resume を分けま�
 ```yaml
 implementation_route: adaptive
 implementation_route_source: default
+design_pair_handoff: N/A
 ```
 
-resume または既存 artifact がある状態では `implementation_route` と `implementation_route_source` を durable state から読み、欠落や矛盾を Adaptive へ補完しません。Design Pair selection、Decision ID、Target Map、または Design Pair handoff path の evidence があるのに route metadata / handoff が欠ける場合は `BLOCKED` とし、missing fields、evidence、必要な artifact repair を報告します。
+resume または既存 artifact がある状態では `implementation_route`、`implementation_route_source`、`design_pair_handoff` を durable state から読み、欠落や矛盾を Adaptive へ補完しません。Design Pair selection、Decision ID、Target Map、または Design Pair handoff path の evidence があるのに route metadata / handoff が欠ける場合は `BLOCKED` とし、missing fields、evidence、必要な artifact repair を報告します。
 
-唯一の互換例外は、Design Pair 導入前の `Implementation Completion Handoff` schema と一致し、Design Pair evidence が一切ない tracked handoff の resume です。この場合は `Legacy Adaptive handoff normalization` を適用し、`implementation_route: adaptive`、`implementation_route_source: default`、`route_metadata_normalization: legacy-adaptive-handoff` を記録してから続行できます。部分的に新schemaを持つ handoff、Design Pair evidence がある handoff、旧schemaの必須fieldが欠ける handoffにはこの例外を適用しません。
+唯一の互換例外は、Design Pair 導入前の `Implementation Completion Handoff` schema と一致し、Design Pair evidence が一切ない tracked handoff の resume です。この場合は `Legacy Adaptive handoff normalization` を適用し、`implementation_route: adaptive`、`implementation_route_source: default`、`design_pair_handoff: N/A`、`route_metadata_normalization: legacy-adaptive-handoff` を記録してから続行できます。部分的に新schemaを持つ handoff、Design Pair evidence がある handoff、旧schemaの必須fieldが欠ける handoffにはこの例外を適用しません。
 
 Design Pair route の場合も HIGH_MODEL は通常の adaptive implementation と同じ authority を維持し、Locked Decisions 以外の新しい decision surface を実コードと verification evidence に基づいて処理します。
 
@@ -135,15 +136,16 @@ Plan Coverage、Behavior Case、slice、runtime-contract、test-point、implemen
 - relevant source pointers already known
 - validation expectations
 - previous Implementation Completion Handoff と High-model Re-entry Handoff（STANDARD_MODELからresumeする場合）
-- Design Pair Implementation Handoff path と Design Pair Decision IDs（存在する場合）
+- Design Pair Implementation Handoff path（`adaptive / default`では明示的な`N/A`、`design-pair / explicit-user-selection`ではcurrent tracked path）
+- Design Pair Decision IDs（存在する場合）
 
-parentはHIGH_MODEL起動前に、route pairが`adaptive / default`または`design-pair / explicit-user-selection`のどちらかであり、Design Pair evidenceおよびhandoff pathと一致することを検証します。片方が欠ける、矛盾する、またはevidenceと一致しない場合はHIGH_MODELを起動せず`BLOCKED`で停止し、`Stop reason: BlockedByInvalidCompletionHandoff`とartifact repairに必要なfieldを報告します。
+parentはHIGH_MODEL起動前に、route pairが`adaptive / default`または`design-pair / explicit-user-selection`のどちらかであり、Design Pair evidenceおよびhandoff pathと一致することを検証します。`adaptive / default`ではpathが明示的な`N/A`、`design-pair / explicit-user-selection`ではcurrent tracked pathであることを要求します。fieldの欠落、組み合わせ矛盾、またはevidenceとの不一致がある場合はHIGH_MODELを起動せず`BLOCKED`で停止し、`Stop reason: BlockedByInvalidCompletionHandoff`とraw observed values、欠落fieldの`<missing>`、artifact repairに必要なevidenceを報告します。
 
 HIGH_MODEL は code を読み、production code / tests を編集し、focused verification を行います。事前文書だけで `direct implementation` と `shape-then-complete` を分類しません。
 
 ## Step 3: Validate the HIGH_MODEL verdict
 
-すべてのHIGH_MODEL resultについて、`implementation_route`、`implementation_route_source`、Design Pair handoff pathまたは`N/A`が存在し、incoming durable route identityと完全一致することを検証します。欠落、変更、不一致、またはDesign Pair evidenceとの矛盾があるresultは受理せず、追加実装や委譲を行わず`BLOCKED`で停止し、`Stop reason: BlockedByInvalidCompletionHandoff`を報告します。
+通常はすべてのHIGH_MODEL resultについて、`implementation_route`、`implementation_route_source`、Design Pair handoff pathまたは`N/A`が存在し、incoming durable route identityと完全一致することを検証します。唯一の例外は`Verdict: BLOCKED`かつ`Stop reason: BlockedByInvalidCompletionHandoff`のresultです。この場合は完全なroute pairを要求せず、各fieldのraw observed valueまたは欠落を示す`<missing>`とartifact repair evidenceを要求して受理し、追加実装や委譲を行わず停止します。その他のresultで欠落、変更、不一致、またはDesign Pair evidenceとの矛盾がある場合は受理せず、同じinvalid-artifact `BLOCKED`として停止します。
 
 ### COMPLETED_BY_HIGH_MODEL
 
@@ -200,7 +202,7 @@ HIGH_MODEL と STANDARD_MODEL を同時に起動しません。STANDARD_MODEL �
 
 ## Step 5: Handle STANDARD_MODEL result
 
-すべてのSTANDARD_MODEL resultについて、`implementation_route`、`implementation_route_source`、Design Pair handoff pathまたは`N/A`が存在し、incoming Implementation Completion Handoffと完全一致することを検証します。欠落、変更、不一致、またはDesign Pair evidenceとの矛盾があるresultは受理せず、追加実装やre-entryを行わず`BLOCKED`で停止し、`Stop reason: BlockedByInvalidCompletionHandoff`を報告します。
+通常はすべてのSTANDARD_MODEL resultについて、`implementation_route`、`implementation_route_source`、Design Pair handoff pathまたは`N/A`が存在し、incoming Implementation Completion Handoffと完全一致することを検証します。唯一の例外は`Verdict: BLOCKED`かつ`Stop reason: BlockedByInvalidCompletionHandoff`のresultです。この場合は完全なroute pairを要求せず、各fieldのraw observed valueまたは欠落を示す`<missing>`とartifact repair evidenceを要求して受理し、追加実装やre-entryを行わず停止します。その他のresultで欠落、変更、不一致、またはDesign Pair evidenceとの矛盾がある場合は受理せず、同じinvalid-artifact `BLOCKED`として停止します。
 
 ### COMPLETED
 
@@ -241,7 +243,7 @@ tracked handoff の推奨 path は `plans/<slug>-implementation-completion-hando
 
 - source Plan / Implementation Intent
 - implementation route metadata
-- Design Pair tracked handoff path、Target Map reference、Locked Decision IDs（Design Pair route の場合）
+- Design Pair tracked handoff pathまたは`N/A`、Target Map reference、Locked Decision IDs（後二者はDesign Pair routeの場合）
 - route taken
 - agent verdict sequence
 - implementation owner by phase

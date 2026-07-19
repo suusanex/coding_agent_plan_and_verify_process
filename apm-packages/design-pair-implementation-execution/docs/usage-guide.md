@@ -7,6 +7,7 @@
 ```yaml
 implementation_route: adaptive
 implementation_route_source: default
+design_pair_handoff: N/A
 ```
 
 利用者が Design Pair を明示した場合だけ次へ変更します。
@@ -42,9 +43,9 @@ Design Pair package は Copilot target を宣言しません。Plan Coverage pac
 
 ## Resume
 
-`implementation_route`と`implementation_route_source`はdurable artifactから再読します。resume時に欠ける、矛盾する、またはDesign Pair evidenceがあるのにtracked handoffが欠ける場合、Adaptiveへ補完せず`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてartifact repairを要求します。`adaptive / default`の自動初期化はfresh intakeだけです。
+`implementation_route`、`implementation_route_source`、`design_pair_handoff`はdurable artifactから再読します。resume時に欠ける、矛盾する、またはDesign Pair evidenceがあるのにtracked handoffが欠ける場合、Adaptiveへ補完せず`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてartifact repairを要求します。3項目を`adaptive / default / N/A`へ自動初期化できるのはfresh intakeだけです。
 
-STANDARD_MODELからHIGH_MODELへre-entryする場合は、High-model Re-entry Handoffに両route fieldとDesign Pair handoff pathをincoming completion handoffから変更せずコピーします。parentは元のcompletion handoffとre-entry handoffの両方をHIGH_MODELへ渡し、route identityが一致しない場合は再実行前に`BLOCKED` / `BlockedByInvalidCompletionHandoff`で停止します。HIGH_MODELとSTANDARD_MODELは通常完了を含むすべてのresultで同じ3項目を返します。
+STANDARD_MODELからHIGH_MODELへre-entryする場合は、High-model Re-entry Handoffに両route fieldとDesign Pair handoff pathをincoming completion handoffから変更せずコピーします。parentは元のcompletion handoffとre-entry handoffの両方をHIGH_MODELへ渡し、route identityが一致しない場合は再実行前に`BLOCKED` / `BlockedByInvalidCompletionHandoff`で停止します。HIGH_MODELとSTANDARD_MODELは通常完了を含む非invalid resultで同じ3項目を返します。invalid-artifact `BLOCKED`だけはraw observed valueまたは`<missing>`とrepair evidenceを返し、parentは完全なpairを要求せず停止resultとして受理します。
 
 ## Target Map discussion
 

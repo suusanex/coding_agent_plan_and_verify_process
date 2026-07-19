@@ -20,6 +20,8 @@ Expected:
 
 - `implementation_route: adaptive`
 - `implementation_route_source: default`
+- `design_pair_handoff: N/A`
+- parentがHIGH_MODELへ3項目を渡し、pathを省略しない
 - `adaptive-implementation-execution` が HIGH_MODEL から開始する
 - Design Pair artifact を要求しない
 - Design Pair を推奨または提案しない
@@ -105,6 +107,8 @@ Expected:
 
 - `adaptive / default`へ補完しない
 - `BLOCKED` / `BlockedByInvalidCompletionHandoff`としてmissing field、resume evidence、repair対象artifactを報告して停止する
+- invalid-artifact `BLOCKED`は各identity fieldのraw observed valueまたは`<missing>`を返し、欠落値を推測しない
+- parentはこのstop resultだけ完全なroute pairを要求せず受理する
 - `design-pair` evidenceがある場合、tracked handoffの欠落も停止理由にする
 - invalid artifactを`NEEDS_HIGH_MODEL_REENTRY`として扱わない
 - fresh intakeでdurable route / resume evidenceがない場合だけ`adaptive / default`を初期化できる
@@ -141,11 +145,12 @@ Input: repository-local `.github/agents` がないone-off launcherまたはAPM i
 
 Expected:
 
-- 両agentは`adaptive / default`と`design-pair / explicit-user-selection`の2組だけを許可する
+- 両agentは`adaptive / default / N/A`と`design-pair / explicit-user-selection / current tracked path`の2組だけを許可する
 - route field欠落、組み合わせ矛盾、Design Pair evidence不一致は編集前に`BLOCKED` / `BlockedByInvalidCompletionHandoff`で停止する
 - `design-pair`でcurrent Design Pair handoff pathがない場合はAdaptiveへfallbackしない
 - STANDARD re-entryはroute pairとDesign Pair handoff pathをHIGHへ伝播する
-- 両agentは通常完了を含むすべてのresultでroute pairとDesign Pair handoff pathまたは`N/A`を返す
+- 両agentは通常完了を含む非invalid resultで完全なroute identityを返す
+- invalid-artifact `BLOCKED`だけはraw observed valueまたは`<missing>`とrepair evidenceを返す
 - STANDARDは有効なhandoffのauthorization後に構造判断を発見した場合だけ`NEEDS_HIGH_MODEL_REENTRY`を返す
 
 ## Repository static validation
