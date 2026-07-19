@@ -221,6 +221,8 @@ Expected:
 
 実モデル比較は `NOT RUN` です。CI と static validation は routing contract を検証しますが、実証済みの品質改善や token cost 削減を宣言しません。
 
+人手での作業が必要: 同一の Plan、revision、環境を固定して legacy / Adaptive の両 route を実モデルで実行し、同じ reviewer が品質、token cost、re-entry、review finding を記録してください。この実モデル比較は repository static contract の merge gate ではなく、品質改善を実証済みと宣言する前の運用 evidence gate です。
+
 ## Repository static validation
 
 ```powershell

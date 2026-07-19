@@ -17,5 +17,6 @@ Include a High-model Re-entry Handoff with the invalidating evidence and current
 On re-entry, set Trigger to the current trigger, increment the incoming reentry_count by one, and preserve the incoming previous_reentry_trigger. Explicitly report recurrence when Trigger equals previous_reentry_trigger.
 Return COMPLETED only when every in-scope acceptance item is Complete with implementation or validation evidence.
 Record Agent name, Gate, Model tier STANDARD_MODEL, configured model/reasoning, Edit owner, parent authorization artifact, handoff evidence, verdict, edited paths, and checks for the Codex-first audit.
+When Plan Coverage binding artifacts are supplied, emit a current-phase Implementation Self-Map Delta with Change ID, Change, File / Symbol, Reason, Related Plan item, Related Behavior Case IDs, Related SL / XC / RC / TP / IC / Gap item, Assumption made, and Review hint. Do not rewrite HIGH_MODEL rows; the orchestrator aggregates all deltas into plans/<slug>-implementation-execution.md. Use evidence-backed N/A only when no binding artifacts were supplied.
 Do not claim final code review or independent verification is complete.
 """

@@ -53,11 +53,18 @@ var sourceConfig = Path.Combine(sourceProfile, "config.toml");
 var sourceAgents = Path.Combine(sourceProfile, "agents");
 var sourceSkill = Path.Combine(packageRoot, ".apm", "skills", "codex-first-cost-router");
 var sourceTemplates = Path.Combine(packageRoot, "templates");
+var repositoryRoot = Path.GetFullPath(Path.Combine(packageRoot, "..", ".."));
+var sourceAdaptiveSkill = Path.Combine(repositoryRoot, "apm-packages", "adaptive-implementation-execution", ".apm", "skills", "adaptive-implementation-execution");
+var sourceCanonicalAgents = Path.Combine(repositoryRoot, ".github", "agents");
 
 if (!Directory.Exists(sourceProfile)
     || !File.Exists(sourceConfig)
     || !Directory.Exists(sourceAgents)
     || !File.Exists(Path.Combine(sourceSkill, "SKILL.md"))
+    || !File.Exists(Path.Combine(sourceAdaptiveSkill, "SKILL.md"))
+    || !File.Exists(Path.Combine(sourceAdaptiveSkill, "refs", "handoff.md"))
+    || !File.Exists(Path.Combine(sourceCanonicalAgents, "high-implementation-starter.agent.md"))
+    || !File.Exists(Path.Combine(sourceCanonicalAgents, "standard-implementation-completer.agent.md"))
     || !Directory.Exists(sourceTemplates))
 {
     WriteLine($"Error: スクリプトの入力テンプレートが見つからない: {packageRoot}");
@@ -89,6 +96,26 @@ try
 
     CopySkillDirectory(
         sourceSkill,
+        "codex-first-cost-router",
+        targetRepoRoot,
+        options.DryRun,
+        options.CheckOnly,
+        options.Force,
+        logs,
+        blockers);
+
+    CopySkillDirectory(
+        sourceAdaptiveSkill,
+        "adaptive-implementation-execution",
+        targetRepoRoot,
+        options.DryRun,
+        options.CheckOnly,
+        options.Force,
+        logs,
+        blockers);
+
+    CopyCanonicalAgentFiles(
+        sourceCanonicalAgents,
         targetRepoRoot,
         options.DryRun,
         options.CheckOnly,
@@ -480,6 +507,7 @@ static void CopyAgentFiles(
 
 static void CopySkillDirectory(
     string sourceSkillDir,
+    string skillName,
     string targetRepoRoot,
     bool dryRun,
     bool checkOnly,
@@ -487,12 +515,34 @@ static void CopySkillDirectory(
     List<string> logs,
     List<string> blockers)
 {
-    var targetSkillDir = Path.Combine(targetRepoRoot, ".agents", "skills", "codex-first-cost-router");
+    var targetSkillDir = Path.Combine(targetRepoRoot, ".agents", "skills", skillName);
     foreach (var sourceFile in Directory.GetFiles(sourceSkillDir, "*", SearchOption.AllDirectories).OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
     {
         var relative = Path.GetRelativePath(sourceSkillDir, sourceFile);
-        var displayPath = ToDisplayPath(Path.Combine(".agents", "skills", "codex-first-cost-router", relative));
+        var displayPath = ToDisplayPath(Path.Combine(".agents", "skills", skillName, relative));
         var targetFile = Path.Combine(targetSkillDir, relative);
+        CopyManagedFile(sourceFile, targetFile, displayPath, dryRun, checkOnly, force, logs, blockers);
+    }
+}
+
+static void CopyCanonicalAgentFiles(
+    string sourceAgentDir,
+    string targetRepoRoot,
+    bool dryRun,
+    bool checkOnly,
+    bool force,
+    List<string> logs,
+    List<string> blockers)
+{
+    foreach (var fileName in new[]
+    {
+        "high-implementation-starter.agent.md",
+        "standard-implementation-completer.agent.md"
+    })
+    {
+        var sourceFile = Path.Combine(sourceAgentDir, fileName);
+        var targetFile = Path.Combine(targetRepoRoot, ".github", "agents", fileName);
+        var displayPath = ToDisplayPath(Path.Combine(".github", "agents", fileName));
         CopyManagedFile(sourceFile, targetFile, displayPath, dryRun, checkOnly, force, logs, blockers);
     }
 }
@@ -845,7 +895,7 @@ static string BuildAgentsSection(string packageRoot)
     sb.AppendLine("- 利用者は process 名・agent 名・model 名・full-coverage 分岐を選ぶ必要がない。");
     sb.AppendLine("- repo-local の AGENTS.md / 制約は引き続き最優先で読む。");
     sb.AppendLine("- `.agents/skills/codex-first-cost-router/SKILL.md` の振る舞いで source of truth、repo rules、既存 artifact、state artifact を確認する。委譲証跡、model 観測詳細、route 履歴、close audit が必要な場合は audit artifact も確認する。");
-    sb.AppendLine("- README の指示と `.codex/config.toml` / `.codex/agents/*.toml` / `.agents/skills/codex-first-cost-router/SKILL.md` / `templates/*.md` を使って `codex-first` 標準ルートを使う。");
+    sb.AppendLine("- README の指示と `.codex/config.toml` / `.codex/agents/*.toml` / `.agents/skills/codex-first-cost-router/SKILL.md` / `.agents/skills/adaptive-implementation-execution/` / `.github/agents/high-implementation-starter.agent.md` / `.github/agents/standard-implementation-completer.agent.md` / `templates/*.md` を使って `codex-first` 標準ルートを使う。");
     sb.AppendLine("- state artifact には resume に必要な Routing Plan、Edit Permission、audit artifact path、DelegationCompliance summary を記録する。");
     sb.AppendLine("- audit artifact には Agent Usage Ledger、DelegationCompliance detail、route history、model tier / configured model / hook model / reported model / effective model の分離記録を残す。");
     sb.AppendLine("- Plan gate では behavior expansion decision、Case-to-Plan mapping、Plan readiness を記録し、`ReadyForRiskTriage` になるまで risk / full-coverage / implementation へ進めない。");
@@ -855,6 +905,7 @@ static string BuildAgentsSection(string packageRoot)
     sb.AppendLine("- 実装前には `risk_triage_artifact_status = Complete` を確認し、`implementation-handoff-review` または明示的に同等の gate で parent authorization artifact を作成し、`Expansion required: Yes` の場合は Behavior Case Coverage Ledger が `Complete` になるまで `high-implementation-starter` へ渡さない。");
     sb.AppendLine("- READY 後の非自明な実装は `high-implementation-starter` から開始し、valid handoff 後だけ `standard-implementation-completer` へ直列委譲する。re-entry は HIGH_MODEL に戻し、通常 verification は `standard-verifier` へ委譲する。");
     sb.AppendLine("- state artifact の `shape_handoff_status`、`remaining_design_uncertainty`、`completion_scope`、`shape_reentry_reason` と、各 phase の実 verdict / agent / tier / edit owner を更新する。");
+    sb.AppendLine("- `shape_*` は既存 state artifact との互換性を保つ field 名であり、別 agent alias や pre-implementation shape classification を意味しない。");
     sb.AppendLine("- `DelegationRequired = Yes` の gate は observed run または explicit human approval 付き `ParentDirectExecutionException` がない限り成功扱いしない。");
     sb.AppendLine("- 親が委譲予定の作業を直接実行した場合、cost-saving delegation 成功として扱わない。");
     sb.AppendLine("- write-heavy parallel editing を標準化しないことは、親が直接実装してよいことを意味しない。");

@@ -84,7 +84,7 @@ Source requirement
 | Script | Use when | Installs / fixes |
 | --- | --- | --- |
 | `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM 導入後に Adaptive Implementation の必須 concrete Codex profile を repository-local に同期・検証したい | `AGENTS.md` の managed section、`.codex/agents/high-implementation-starter.toml`、`.codex/agents/standard-implementation-completer.toml` |
-| `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、`.agents/skills/codex-first-cost-router/SKILL.md`、`templates/*.md` |
+| `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、Codex-first / Adaptive skills、canonical implementation agent contracts、`templates/*.md` |
 | `scripts/provision-work-repo-agents.cs` | 既存の token-aware / full-coverage legacy profile を APM 経由で導入し、互換 agent TOML と template 配置を補正したい | `apm install` の実行、legacy `.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level 設定補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置。新規実装 route は canonical Adaptive agents を使う |
 | `scripts/validate-architecture-slice-readiness.ps1` | Architecture Slice Readinessのagent、manifest、template、routing、validation resultを静的検証したい | dependency path、frontmatter、必須contract、旧direct routeの残存を検証 |
 
@@ -291,6 +291,9 @@ $codex-first-cost-router を使って、続きやって。
 この記載に加えて、対象 repository で `codex-first-cost-router` skill と標準 agent / template を参照できるようにします。手作業で配置する場合の最小構成は次です。
 
 - `.agents/skills/codex-first-cost-router/SKILL.md`
+- `.agents/skills/adaptive-implementation-execution/SKILL.md` と `refs/handoff.md`
+- `.github/agents/high-implementation-starter.agent.md`
+- `.github/agents/standard-implementation-completer.agent.md`
 - `.codex/agents/*.toml`（`high-implementation-starter`、`standard-implementation-completer`、`standard-verifier`、必要な high / cheap agents。`standard-implementer` は互換用）
 - `templates/codex-first-state.md`
 - `templates/codex-first-audit.md`
@@ -311,9 +314,12 @@ dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\appl
 - `.codex/config.toml`
 - `.codex/agents/*.toml`
 - `.agents/skills/codex-first-cost-router/SKILL.md`
+- `.agents/skills/adaptive-implementation-execution/SKILL.md` と `refs/*.md`
+- `.github/agents/high-implementation-starter.agent.md`
+- `.github/agents/standard-implementation-completer.agent.md`
 - `templates/*.md`
 
-`--dry-run` と `--check` はファイルやディレクトリを作成しません。`--check-only` は互換 alias です。
+`--dry-run` と `--check` はファイルやディレクトリを作成しません。`--check-only` は互換 alias です。`--check` は canonical agent contracts と complete な `refs/handoff.md` schema が対象 repository に実在し、package source と一致することも検証します。
 VS Code の Codex 拡張や Codex App では、インストール済みリポジトリを開くと、ローカル `AGENTS.md` / `.agents/skills` / `.codex` を見て既定のルーティングに入ります。
 
 ### 詳細ドキュメント

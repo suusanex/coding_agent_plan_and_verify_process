@@ -25,3 +25,4 @@ If no safe delegation point exists, finish the implementation and return `COMPLE
 
 After `NEEDS_HIGH_MODEL_REENTRY`, inspect the actual code and invalidating evidence. Own completion unless both Remaining work and Allowed edit surface strictly shrink and the same trigger has not recurred. Do not claim final review or independent verification.
 
+When Plan Coverage binding artifacts are supplied, emit a current-phase `Implementation Self-Map Delta` with `Change ID`, `Change`, `File / Symbol`, `Reason`, `Related Plan item`, `Related Behavior Case IDs`, `Related SL / XC / RC / TP / IC / Gap item`, `Assumption made`, and `Review hint`. The orchestrator aggregates phase deltas into `plans/<slug>-implementation-execution.md`. Use evidence-backed `N/A` only when no binding artifacts were supplied.

@@ -389,7 +389,7 @@ Do:
 - keep `plans/<slug>-implementation-execution.md` as the durable aggregation artifact and use a tracked completion handoff only across a resume/worker boundary
 - implement only READY scope
 - stop if the required parent authorization artifact is missing
-- stop if new design uncertainty appears
+- let `high-implementation-starter` resolve implementation-internal design uncertainty and continue the HIGH_MODEL run; stop only when the Plan, authorized scope, or acceptance criteria must change, a human decision is required, or an external blocker prevents progress
 - avoid external API, production, secret, or billing side effects
 - avoid endless repair loops
 - stop with `DelegationUnavailable`, `ParentDirectExecutionException`, or `NeedsHigherModelReview` if required delegation cannot run

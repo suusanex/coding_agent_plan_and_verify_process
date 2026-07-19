@@ -2,10 +2,10 @@
 
 ## Execution metadata
 
-- Executed at: `2026-07-12T20:32:30+09:00`
-- Executor: Codex, fresh bounded evaluation passes using the repository agent contracts
-- Branch: `codex/issue-42-architecture-readiness`
-- Reviewed commit: `e336afb` plus the validator review-fix working tree captured by the contract hashes below
+- Executed at: `2026-07-19T10:55:55+09:00`
+- Executor: Codex, deterministic ASR-001 through ASR-006 fixture revalidation against the repository agent contracts
+- Branch: `codex/issue-44-adaptive-shape-completion`
+- Reviewed source: PR #47 review-fix working tree captured by the exact contract hashes below
 - Scope: routing / artifact / authorization semantics only; no production code or external system changes
 
 ### Contract revisions evaluated
@@ -16,11 +16,11 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | --- | --- |
 | `.github/agents/architecture-slice-readiness.agent.md` | `c2f93ce3004a309d8430bea7e7875e38a2fd983843c95a1abca0324654bf5259` |
 | `.github/agents/architecture-elaboration.agent.md` | `8f53674b988131d847d8c32ca01d850c90820fddb40595a6ca6ff54382948344` |
-| `.github/agents/plan-slice-decomposition.agent.md` | `7ec0e6ce0d5fef4fdd87fee35ec71adf1f12d39defb6c057f8a7ddc18af341ff` |
-| `slice-prep.agent.md` | `2c40d67eb97a010ce0b4da746c37f0862e2bf2ff9a6a3a600ec1ce28ecc7aff1` |
-| `slice-impl.agent.md` | `ad0fece9d83e5c63743f4834cc1b4c656e6b0c02c5e9856ad3607cbd873f6365` |
-| `token-aware-full-coverage-3layer/SKILL.md` | `0fa77a63cc895caf4941189f9246785cf93315295915709918834afe260538df` |
-| `plan-coverage-residual-flow/SKILL.md` | `5be4209f20cfa18841044766ec80a010507bc1d3df1daea345af3cb3db02b856` |
+| `.github/agents/plan-slice-decomposition.agent.md` | `f90c0aebed89b200a4f2b0ba09c5aba80b2b11a8ca6c1d4497290bb9bd12df84` |
+| `slice-prep.agent.md` | `469723cb9935d71a24dbf7b2b37d0969de9a45cf452b1108e850e144d15f3b30` |
+| `slice-impl.agent.md` | `699b6e85f0e47daaa25a6628364091a2b292c4956df064635f72d372fbc30950` |
+| `token-aware-full-coverage-3layer/SKILL.md` | `23cb01d43872e006fbc5935efa18ec8ef476238838eb6441162c6621984c0e76` |
+| `plan-coverage-residual-flow/SKILL.md` | `fab4908478fa2812b7b8a4d47e1a23d5480ed6d1e510487101c3568472fac1a6` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 | `coverage-ledger.md` template | `ade0fe7ffb6635a155cd44165e2820715d13fb611647d4a27a1f3b4d18266169` |
 | `plan-coverage-lite.md` template | `8e5962ea4549e96011ed587e81246d17a02ce35230f835649624fb927c520bd1` |
@@ -145,10 +145,11 @@ Immediate next action: stop until the decision source is recorded
 | Slice Architecture template path | PASS | canonical template exists and all affected manifests reference an existing path |
 | Durable fixture artifacts | PASS | ASR-001〜006 input/output/run files exist and every run reference resolves |
 | Expected / actual comparison | PASS | validator compared every `actual.json` with `expected.json` and checked values against full Markdown outputs |
+| Current contract revision hashes | PASS | all eleven normalized contract hashes above match the files revalidated on 2026-07-19 |
 | `git diff --check` | PASS | no whitespace errors; Windows line-ending warnings only |
 
 ## Limitations
 
-- These are repository-captured bounded agent contract runs, not stochastic multi-model benchmark runs. Complete inputs, outputs, run IDs, and machine comparisons are retained for audit.
+- These are repository-captured bounded agent contract runs revalidated by deterministic fixture comparison, not newly generated stochastic multi-model benchmark runs. Complete inputs, outputs, run IDs, and machine comparisons are retained for audit.
 - Production repositories, secrets, billing, GitHub settings, and external services were not accessed.
 - Rerun this suite when any contract revision above changes; hash mismatch makes this result stale.

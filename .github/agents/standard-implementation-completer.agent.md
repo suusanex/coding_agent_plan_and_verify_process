@@ -114,6 +114,19 @@ parent は、この handoff と元の Implementation Intent を保持して `hig
 
 一度 re-entry した後は HIGH_MODEL が完了まで担当することを既定とします。再委譲は、HIGH_MODEL が `Remaining work` と `Allowed edit surface` の両方が前回より厳密に縮小したことを evidence 付きで示し、同じ trigger が再発していない場合だけ許可されます。
 
+## Plan Coverage traceability extension
+
+Parent Plan Coverage、Behavior Case、slice、runtime-contract、test-point、implementation-contract、または gap binding artifact が handoff または Plan reference から利用できる場合、今回の STANDARD_MODEL phase で実際に変更した行だけを次の schema で返してください。
+
+```md
+## Implementation Self-Map Delta
+
+| Change ID | Change | File / Symbol | Reason | Related Plan item | Related Behavior Case IDs | Related SL / XC / RC / TP / IC / Gap item | Assumption made | Review hint |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+```
+
+`none` は該当しないことを確認できた場合、`unknown` は source artifact から解決できない場合だけ使います。既存 HIGH_MODEL phase の row は書き換えず、安定した Change ID で current-phase delta を返します。orchestrator がこの delta を `plans/<slug>-implementation-execution.md` の canonical `Implementation Self-Map` に集約します。Plan Coverage binding artifacts が供給されていない standalone Adaptive run では、この extension は `N/A` と理由を記録してよいです。
+
 ## Verdicts
 
 - `COMPLETED`
@@ -130,6 +143,7 @@ parent は、この handoff と元の Implementation Intent を保持して `hig
 - files changed
 - validation commands and results
 - acceptance status table with evidence for every in-scope item
+- Implementation Self-Map Delta, or evidence-backed `N/A` when no Plan Coverage binding artifacts were supplied
 - scope / locked-decision compliance
 - High-model Re-entry Handoff when required
 - final review status: `Not performed by this agent`

@@ -113,7 +113,16 @@ Run the flow in this order unless a stop condition applies:
    - `COMPLETED_BY_HIGH_MODEL`: aggregate the implementation evidence and continue to verification.
    - `NEEDS_HIGH_MODEL_REENTRY`: stop the completion agent, preserve its re-entry handoff and current worktree, then return serially to `high-implementation-starter.agent.md`.
    - `REPLAN_REQUIRED`, `HUMAN_DECISION_REQUIRED`, or `BLOCKED`: preserve the worktree and evidence, record the stop reason, and do not continue to verification.
-   The orchestrator keeps `plans/<slug>-implementation-execution.md` as the durable result artifact, recording phase owners, verdict sequence, Implementation Self-Map, checks, acceptance evidence, and Remaining Work. Keep the completion handoff inline unless resume, another thread/model, or another worker requires a tracked `plans/<slug>-implementation-completion-handoff.md`.
+   When Parent Plan Coverage, Behavior Case, slice, runtime-contract, test-point, implementation-contract, or gap bindings are supplied, every implementation owner emits an `Implementation Self-Map Delta` for the changes made in that phase. Use this exact schema so traceability survives HIGH -> STANDARD -> HIGH transitions:
+
+   ```md
+   ## Implementation Self-Map Delta
+
+   | Change ID | Change | File / Symbol | Reason | Related Plan item | Related Behavior Case IDs | Related SL / XC / RC / TP / IC / Gap item | Assumption made | Review hint |
+   | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+   ```
+
+   Use `none` for a confirmed non-applicable binding and `unknown` only when the source artifact does not resolve it. The active implementation agent returns the current-phase rows; it does not rewrite prior phase rows. The orchestrator is the single aggregation owner: it merges phase deltas by stable Change ID into the `Implementation Self-Map` in `plans/<slug>-implementation-execution.md`, alongside phase owners, verdict sequence, checks, acceptance evidence, and Remaining Work. Keep the completion handoff inline unless resume, another thread/model, or another worker requires a tracked `plans/<slug>-implementation-completion-handoff.md`.
 10. Run `verification-kernel.agent.md`.
 11. If unresolved coverage items or FixNow candidates remain, run `coverage-gap-triage.agent.md` unless `verification-kernel.agent.md` emitted a complete `Direct FixNow selectors` table for 1〜2 simple gaps.
 12. Before final close, run `residual-decision-gate.agent.md`. If no residual candidates remain, it may produce `READY_TO_CLOSE_WITH_NO_RESIDUALS`. If residual, manual, or human-decision candidates remain, it must classify them before close.

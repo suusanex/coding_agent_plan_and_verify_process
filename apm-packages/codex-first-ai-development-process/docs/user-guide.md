@@ -46,6 +46,8 @@ dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\appl
 
 - `AGENTS.md` の Codex-first セクション（既存を上書きしない既定）
 - `.codex/config.toml`（足りないキーだけ補完）
+- `.agents/skills/adaptive-implementation-execution/`（complete handoff reference を含む）
+- `.github/agents/high-implementation-starter.agent.md` と `.github/agents/standard-implementation-completer.agent.md`
 - `.codex/agents/*.toml`（同名既存ファイルは競合時に停止）
 - `.agents/skills/codex-first-cost-router/SKILL.md`
 - `templates/*.md`

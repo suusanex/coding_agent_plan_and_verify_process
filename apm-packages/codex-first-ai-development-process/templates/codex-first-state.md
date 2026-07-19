@@ -18,6 +18,7 @@ shape_handoff_status: NotStarted / Pending / Ready / Consumed / Invalidated / No
 remaining_design_uncertainty: None / Unknown / <evidence-backed summary>
 completion_scope: N/A / Unknown / <Work IDs and allowed edit surface>
 shape_reentry_reason: N/A / Unknown / <trigger and invalidating evidence>
+# Compatibility note: `shape_handoff_status` and `shape_reentry_reason` are stable state-field names retained for existing artifacts. They do not name separate agent aliases or a pre-implementation shape-classification gate.
 replan_required_items:
 - None
 
@@ -111,6 +112,7 @@ allowed_stop_reasons:
 - remaining_design_uncertainty: None / Unknown / <evidence-backed summary>
 - completion_scope: N/A / Unknown / <Work IDs and allowed edit surface>
 - shape_reentry_reason: N/A / Unknown / <trigger and invalidating evidence>
+- compatibility_note: `shape_*` fields are stable state vocabulary only; canonical implementation owners remain `high-implementation-starter` and `standard-implementation-completer`.
 - owner_and_verdict_sequence:
 - implementation_result_artifact: plans/<ticket-or-slug>-implementation-execution.md
 - tracked_completion_handoff: N/A / plans/<ticket-or-slug>-implementation-completion-handoff.md

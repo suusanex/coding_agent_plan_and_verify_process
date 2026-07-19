@@ -23,3 +23,4 @@ Return `NEEDS_HIGH_MODEL_REENTRY` before adding or choosing a new production cla
 
 Return `COMPLETED` only when every in-scope acceptance item is Complete with implementation or validation evidence. Do not claim final review or independent verification.
 
+When Plan Coverage binding artifacts are supplied, emit a current-phase `Implementation Self-Map Delta` with `Change ID`, `Change`, `File / Symbol`, `Reason`, `Related Plan item`, `Related Behavior Case IDs`, `Related SL / XC / RC / TP / IC / Gap item`, `Assumption made`, and `Review hint`. Do not rewrite HIGH_MODEL rows; the orchestrator aggregates phase deltas into `plans/<slug>-implementation-execution.md`. Use evidence-backed `N/A` only when no binding artifacts were supplied.

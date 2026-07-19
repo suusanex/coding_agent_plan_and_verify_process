@@ -19,6 +19,12 @@ dependencies:
     - git: parent
       path: .github/agents/implementation-handoff-review.agent.md
     - git: parent
+      path: apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
+    - git: parent
+      path: .github/agents/high-implementation-starter.agent.md
+    - git: parent
+      path: .github/agents/standard-implementation-completer.agent.md
+    - git: parent
       path: .github/agents/implementation-execution.agent.md
     # Legacy dependency above remains available only for explicit compatibility use.
     - git: parent

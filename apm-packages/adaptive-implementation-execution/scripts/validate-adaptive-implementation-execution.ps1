@@ -203,7 +203,8 @@ foreach ($integratedManifest in $integratedManifests) {
 foreach ($integratedManifestPath in @(
     'apm-packages/token-aware-guardrail-kernel-flow/apm.yml',
     'apm-packages/token-aware-full-coverage-3layer/apm.yml',
-    'apm-packages/codex-first-ai-development-process/apm.yml'
+    'apm-packages/codex-first-ai-development-process/apm.yml',
+    'apm-packages/copilot-fallback-ai-development-process/apm.yml'
 )) {
     Assert-Contains $integratedManifestPath 'apm-packages/adaptive-implementation-execution/\.apm/skills/adaptive-implementation-execution' 'Adaptive Implementation skill dependency'
     Assert-Contains $integratedManifestPath '\.github/agents/high-implementation-starter\.agent\.md' 'canonical HIGH agent dependency'
@@ -217,7 +218,15 @@ Assert-Contains $planCoverageSkill '`READY_FOR_STANDARD_COMPLETION`.*`standard-i
 Assert-Contains $planCoverageSkill '`NEEDS_HIGH_MODEL_REENTRY`.*`high-implementation-starter\.agent\.md`' 'Plan Coverage HIGH_MODEL re-entry'
 Assert-Contains $planCoverageSkill 'plans/<slug>-implementation-execution\.md' 'stable implementation result artifact name'
 Assert-Contains $planCoverageSkill 'completion handoff inline unless resume, another thread/model, or another worker requires a tracked' 'inline completion handoff default'
+Assert-Contains $planCoverageSkill 'Implementation Self-Map Delta' 'per-phase implementation traceability delta'
+Assert-Contains $planCoverageSkill 'Related Plan item.*Related Behavior Case IDs.*Related SL / XC / RC / TP / IC / Gap item.*Assumption made.*Review hint' 'complete Self-Map traceability schema'
+Assert-Contains $planCoverageSkill 'orchestrator is the single aggregation owner' 'Self-Map aggregation ownership'
 Assert-Contains '.github/agents/change-risk-triage.agent.md' 'implementation-internal.*implementation phase' 'risk triage shape boundary'
+
+$codexRouter = 'apm-packages/codex-first-ai-development-process/.apm/skills/codex-first-cost-router/SKILL.md'
+Assert-Contains $codexRouter 'let `high-implementation-starter` resolve implementation-internal design uncertainty' 'HIGH_MODEL implementation-internal uncertainty ownership'
+Assert-Contains $codexRouter 'stop only when the Plan, authorized scope, or acceptance criteria must change' 'HIGH_MODEL stop boundary'
+Assert-NotContains $codexRouter 'stop if new design uncertainty appears' 'reversed design-uncertainty stop condition'
 
 $fullCoverageSkill = 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md'
 Assert-Contains $fullCoverageSkill 'non-trivial READY slice.*high-implementation-starter' 'per-slice HIGH_MODEL start'
@@ -267,6 +276,8 @@ Assert-Contains $highAgent '一度 re-entry した後' 'high-model re-entry owne
 Assert-Contains $highAgent 'すべての `Incomplete` acceptance item' 'high-model incomplete acceptance mapping gate'
 Assert-Contains $highAgent 're-entry handoff の `reentry_count` を維持' 'high-model re-entry count propagation'
 Assert-Contains $highAgent 'You are the "High Implementation Starter" agent\.' 'APM stub high-agent opening'
+Assert-Contains $highAgent 'Implementation Self-Map Delta' 'HIGH_MODEL Self-Map delta output'
+Assert-Contains $highAgent 'Related Plan item.*Related Behavior Case IDs.*Related SL / XC / RC / TP / IC / Gap item.*Assumption made.*Review hint' 'HIGH_MODEL Self-Map schema'
 
 $standardAgent = '.github/agents/standard-implementation-completer.agent.md'
 Assert-Contains $standardAgent 'NEEDS_HIGH_MODEL_REENTRY' 're-entry verdict'
@@ -278,6 +289,8 @@ Assert-Contains $standardAgent '一度 re-entry した後' 'standard-model re-en
 Assert-Contains $standardAgent 'incoming Implementation Completion Handoff の値に1を加える' 'standard-model re-entry count increment'
 Assert-Contains $standardAgent '双方向に一致' 'standard-model acceptance mapping authorization'
 Assert-Contains $standardAgent 'You are the "Standard Implementation Completer" agent\.' 'APM stub standard-agent opening'
+Assert-Contains $standardAgent 'Implementation Self-Map Delta' 'STANDARD_MODEL Self-Map delta output'
+Assert-Contains $standardAgent 'Related Plan item.*Related Behavior Case IDs.*Related SL / XC / RC / TP / IC / Gap item.*Assumption made.*Review hint' 'STANDARD_MODEL Self-Map schema'
 
 $handoff = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md'
 foreach ($field in @(
@@ -362,6 +375,7 @@ foreach ($stateTemplate in @(
     Assert-Contains $stateTemplate 'remaining_design_uncertainty: None / Unknown / <evidence-backed summary>' 'remaining design uncertainty field'
     Assert-Contains $stateTemplate 'completion_scope: N/A / Unknown / <Work IDs and allowed edit surface>' 'completion scope field'
     Assert-Contains $stateTemplate 'shape_reentry_reason: N/A / Unknown / <trigger and invalidating evidence>' 'shape re-entry reason field'
+    Assert-Contains $stateTemplate '`shape_\*` fields are stable state vocabulary only' 'shape field compatibility rationale'
     foreach ($stopReason in @('ReadyForHighImplementationStart', 'ReadyForStandardCompletion', 'NeedsHighModelReentry', 'BlockedByInvalidCompletionHandoff', 'ReadyForDelegatedImplementation')) {
         Assert-Contains $stateTemplate $stopReason "stop reason $stopReason"
     }
@@ -388,6 +402,7 @@ Assert-Contains $copilotHighAgent 'COMPLETED_BY_HIGH_MODEL' 'Copilot HIGH comple
 Assert-Contains $copilotHighAgent 'Blocked acceptance items' 'Copilot blocked acceptance rejection'
 Assert-Contains $copilotHighAgent 'evidence for Complete items' 'Copilot complete acceptance evidence rule'
 Assert-Contains $copilotHighAgent 'Own completion unless both Remaining work and Allowed edit surface strictly shrink' 'Copilot re-entry ownership rule'
+Assert-Contains $copilotHighAgent 'Implementation Self-Map Delta' 'Copilot HIGH Self-Map delta output'
 Assert-Contains $copilotStandardAgent '(?m)^name:\s*standard-implementation-completer\s*$' 'Copilot canonical STANDARD agent name'
 Assert-Contains $copilotStandardAgent '(?m)^model:\s*GPT-5\.6 Luna \(copilot\)\s*$' 'Copilot STANDARD model mapping'
 Assert-Contains $copilotStandardAgent 'agent: high-implementation-starter' 'Copilot HIGH re-entry handoff'
@@ -396,7 +411,16 @@ Assert-Contains $copilotStandardAgent 'Allowed edit surface' 'Copilot bounded ed
 Assert-Contains $copilotStandardAgent 'preserve Locked decisions' 'Copilot locked decision boundary'
 Assert-Contains $copilotStandardAgent 'incremented reentry count' 'Copilot re-entry count rule'
 Assert-Contains $copilotStandardAgent 'every in-scope acceptance item is Complete' 'Copilot completion evidence gate'
+Assert-Contains $copilotStandardAgent 'Implementation Self-Map Delta' 'Copilot STANDARD Self-Map delta output'
 Assert-Contains 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs' 'shape_handoff_status.*remaining_design_uncertainty.*completion_scope.*shape_reentry_reason' 'managed AGENTS Adaptive state guidance'
+
+$codexInstaller = 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs'
+Assert-Contains $codexInstaller 'sourceAdaptiveSkill' 'Adaptive skill bootstrap source'
+Assert-Contains $codexInstaller 'refs.*handoff\.md' 'complete handoff reference bootstrap check'
+Assert-Contains $codexInstaller 'CopyCanonicalAgentFiles' 'canonical root agent bootstrap'
+Assert-Contains $codexInstaller 'high-implementation-starter\.agent\.md' 'canonical HIGH agent bootstrap path'
+Assert-Contains $codexInstaller 'standard-implementation-completer\.agent\.md' 'canonical STANDARD agent bootstrap path'
+Assert-Contains 'README.md' '--check`.*canonical agent contracts.*`refs/handoff\.md`.*対象 repository' 'post-bootstrap file validation documentation'
 
 $validation = 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md'
 foreach ($id in 1..8) {
