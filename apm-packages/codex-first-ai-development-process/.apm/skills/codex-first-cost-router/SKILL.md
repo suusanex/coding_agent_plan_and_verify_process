@@ -90,7 +90,7 @@ Audit artifact minimum fields:
 
 ### Implementation Route
 
-Use this default unless the user explicitly selected Design Pair:
+At fresh intake, use this default only when no durable route artifact, resume request, or Design Pair evidence exists:
 
 ```yaml
 implementation_route: adaptive
@@ -106,7 +106,7 @@ implementation_route_source: explicit-user-selection
 design_pair_handoff: plans/<slug>-design-pair-implementation-handoff.md
 ```
 
-Do not choose, recommend, propose, or ask the user about Design Pair based on task weight, risk, size, architecture, or model-routing considerations. Persist the selected pair through state, handoff review, resume, implementation, verification, and close. If explicit Design Pair metadata is contradictory or its skill is unavailable, stop instead of silently falling back to Adaptive.
+Do not choose, recommend, propose, or ask the user about Design Pair based on task weight, risk, size, architecture, or model-routing considerations. Persist the selected pair through state, handoff review, resume, implementation, verification, and close. On resume, require both route fields from durable state; missing or contradictory metadata must stop instead of being initialized as Adaptive. The only compatibility exception is an exact pre-Design-Pair Adaptive completion handoff accepted by the canonical `Legacy Adaptive handoff normalization`; record its normalization marker before continuing. If explicit Design Pair metadata is contradictory, its handoff is missing for the current phase, or its skill is unavailable, stop instead of silently falling back to Adaptive.
 
 For "続きやって", read the newest matching state artifact before deciding the next step.
 Read the matching audit artifact when the next step depends on delegation evidence, model-observability detail, route history, or close permission.

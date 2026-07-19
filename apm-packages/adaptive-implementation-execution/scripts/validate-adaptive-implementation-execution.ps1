@@ -110,6 +110,7 @@ $requiredFiles = @(
     'apm-packages/adaptive-implementation-execution/docs/install-guide.md',
     'apm-packages/adaptive-implementation-execution/docs/usage-guide.md',
     'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md',
+    'apm-packages/adaptive-implementation-execution/docs/examples/legacy-adaptive-handoff.md',
     'apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs',
     'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1',
     'apm-packages/design-pair-implementation-execution/apm.yml',
@@ -123,6 +124,7 @@ $requiredFiles = @(
     'apm-packages/codex-first-ai-development-process/apm.yml',
     'apm-packages/codex-first-ai-development-process/templates/codex-first-state.md',
     'apm-packages/codex-first-ai-development-process/templates/codex-first-audit.md',
+    'apm-packages/codex-first-ai-development-process/scripts/codex-first-start.ps1',
     'apm-packages/codex-first-ai-development-process/profiles/codex-first/agents/high-implementation-starter.toml',
     'apm-packages/codex-first-ai-development-process/profiles/codex-first/agents/standard-implementation-completer.toml',
     'apm-packages/copilot-fallback-ai-development-process/apm.yml',
@@ -276,6 +278,9 @@ Assert-Contains $skill 'Design Pair Implementation Handoff' 'Design Pair handoff
 Assert-Contains $skill '(?s)binding なのは.*Locked Decisions.*だけ' 'Design Pair binding-only rule'
 Assert-Contains $skill 'Affected files / symbols.*Allowed edit surface.*扱いません' 'Design Pair file-symbol non-allowlist rule'
 Assert-Contains $skill 'automatic Design Pair re-entry' 'no automatic Design Pair re-entry'
+Assert-Contains $skill '新規 intake と resume を分けます' 'fresh intake and resume distinction'
+Assert-Contains $skill '欠落や矛盾を Adaptive へ補完しません' 'resume route fail-closed rule'
+Assert-Contains $skill 'route_metadata_normalization: legacy-adaptive-handoff' 'legacy handoff normalization marker'
 
 $highAgent = '.github/agents/high-implementation-starter.agent.md'
 Assert-Contains $highAgent 'edit production code and tests' 'real implementation loop'
@@ -305,6 +310,9 @@ Assert-Contains $standardAgent 'You are the "Standard Implementation Completer" 
 Assert-Contains $standardAgent 'Implementation Self-Map Delta' 'STANDARD_MODEL Self-Map delta output'
 Assert-Contains $standardAgent 'Related Plan item.*Related Behavior Case IDs.*Related SL / XC / RC / TP / IC / Gap item.*Assumption made.*Review hint' 'STANDARD_MODEL Self-Map schema'
 Assert-Contains $standardAgent 'Design Pair Decision IDs' 'STANDARD_MODEL Design Pair Decision propagation'
+Assert-Contains $standardAgent 'Legacy Adaptive handoff normalization' 'STANDARD_MODEL legacy handoff normalization'
+Assert-Contains $standardAgent 'LEGACY-HIGH-D01' 'STANDARD_MODEL deterministic legacy Decision IDs'
+Assert-Contains $standardAgent 'Design Pair evidenceがあるresume.*使用しません' 'legacy normalization excludes Design Pair resumes'
 
 $handoff = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md'
 foreach ($field in @(
@@ -333,6 +341,30 @@ Assert-Contains $handoff 'Remaining work mapping \(Work ID\)' 'acceptance-to-wor
 Assert-Contains $handoff 'Work ID.*Acceptance item\(s\)' 'work-to-acceptance mapping columns'
 Assert-Contains $handoff '`Blocked` を許可しない' 'blocked acceptance rejection'
 Assert-Contains $handoff 'Origin.*Decision ID.*Decision.*Affected files / symbols.*Validation expectation.*Compliance evidence' 'consolidated locked decision schema'
+Assert-Contains $handoff 'Legacy Adaptive handoff normalization' 'legacy Adaptive handoff normalization contract'
+Assert-Contains $handoff 'LEGACY-HIGH-D01' 'deterministic legacy Decision ID rule'
+
+$legacyFixture = 'apm-packages/adaptive-implementation-execution/docs/examples/legacy-adaptive-handoff.md'
+Assert-Contains $legacyFixture 'Verdict: READY_FOR_STANDARD_COMPLETION' 'legacy handoff READY verdict'
+Assert-Contains $legacyFixture '## Locked decisions\s*\r?\n\s*- ' 'legacy bullet-form Locked decisions'
+Assert-NotContains $legacyFixture 'Design Pair handoff|Design Pair Decision compliance|\| Origin \| Decision ID \|' 'new Design Pair fields in legacy fixture'
+foreach ($legacyField in @(
+    'Plan reference',
+    'Validation performed',
+    'Acceptance status',
+    'Applicability evidence',
+    'Implemented',
+    'Remaining work',
+    'Allowed edit surface',
+    'Validation commands',
+    'High-model re-entry triggers',
+    'reentry_count',
+    'previous_reentry_trigger',
+    'delegation_surface_reduced',
+    'Known assumptions / unresolved observations'
+)) {
+    Assert-Contains $legacyFixture ([regex]::Escape($legacyField)) "legacy handoff former required field $legacyField"
+}
 
 $highToml = 'apm-packages/adaptive-implementation-execution/codex-agents/high-implementation-starter.toml'
 $standardToml = 'apm-packages/adaptive-implementation-execution/codex-agents/standard-implementation-completer.toml'
@@ -467,9 +499,18 @@ Assert-Contains $codexInstaller 'high-implementation-starter\.agent\.md' 'canoni
 Assert-Contains $codexInstaller 'standard-implementation-completer\.agent\.md' 'canonical STANDARD agent bootstrap path'
 Assert-Contains 'README.md' '--check`.*canonical agent contracts.*`refs/handoff\.md`.*対象 repository' 'post-bootstrap file validation documentation'
 
+$codexLauncher = 'apm-packages/codex-first-ai-development-process/scripts/codex-first-start.ps1'
+Assert-Contains $codexLauncher 'adaptiveSkillSource' 'one-off launcher Adaptive skill source'
+Assert-Contains $codexLauncher 'designPairSkillSource' 'one-off launcher Design Pair skill source'
+Assert-Contains $codexLauncher 'skills\\adaptive-implementation-execution' 'one-off launcher Adaptive skill target'
+Assert-Contains $codexLauncher 'skills\\design-pair-implementation-execution' 'one-off launcher Design Pair skill target'
+Assert-Contains $codexLauncher 'Copy-Item.*adaptiveSkillSource\.Path' 'one-off launcher Adaptive payload copy'
+Assert-Contains $codexLauncher 'Copy-Item.*designPairSkillSource\.Path' 'one-off launcher Design Pair payload copy'
+
 $validation = 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md'
-foreach ($id in 1..8) {
-    Assert-Contains $validation ("VAL-00$id") "validation scenario VAL-00$id"
+foreach ($id in 1..10) {
+    $scenarioId = 'VAL-{0:D3}' -f $id
+    Assert-Contains $validation $scenarioId "validation scenario $scenarioId"
 }
 foreach ($id in 1..5) {
     Assert-Contains $validation ("INT-00$id") "integration validation scenario INT-00$id"
@@ -497,11 +538,13 @@ Assert-NotContains $installer 'AGENTS\.md|adaptive-implementation-execution:star
 
 Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' 'APM install が skill と portable custom agents を導入する本体' 'APM-first quick start'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '`AGENTS\.md` を作成・変更・削除せず' 'documented AGENTS.md non-access'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' 'route_metadata_normalization: legacy-adaptive-handoff' 'documented legacy resume normalization marker'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' '--check.*次を検証' 'documented installer checks'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' 'APM-generated model-less stub' 'documented APM stub completion policy'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' 'Migration from the former managed section' 'legacy managed section migration note'
 
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' '導入されているだけで.*自動適用しません' 'documented non-automatic skill selection'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' 'legacy-adaptive-handoff\.md' 'documented legacy resume fixture'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'installer does not create, read, update, or remove `AGENTS\.md`' 'validation scenario for AGENTS.md non-access'
 
 $workflow = '.github/workflows/validate-adaptive-implementation-execution.yml'

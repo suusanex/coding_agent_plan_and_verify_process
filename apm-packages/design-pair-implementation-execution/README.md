@@ -31,13 +31,26 @@ Plan Coverage Flow では `implementation-handoff-review` または同等の Inl
 
 Adaptive Implementation の HIGH / STANDARD orchestration と portable agent 定義は、この package へ複製しません。manifest dependency で既存 `adaptive-implementation-execution` skill と canonical agents を導入します。
 
-## Install
+## Fresh Codex install
+
+Design Pair は Adaptive Implementation の前段です。fresh Codex target では両 package を導入します。
 
 ```powershell
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target codex,agent-skills
 ```
 
-現行の正式 target は `codex` と `agent-skills` です。GitHub Copilot の Design Pair -> Adaptive end-to-end route は未検証であり、対応済みとは扱いません。
+APM が concrete model / reasoning / sandbox 設定を持たない custom agent TOML を生成する環境では、source repository checkout にある Adaptive 補助スクリプトで HIGH / STANDARD profile を完成させます。
+
+```powershell
+dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs -- . --dry-run
+dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs -- .
+dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs -- . --check
+```
+
+`--check` は HIGH / STANDARD が別agent・別model mappingを持ち、reasoning と `workspace-write` sandbox が設定済みであることを確認します。APM が同等のconcrete設定を直接生成した場合、write stepは不要ですが `--check` は実行します。詳細は Adaptive package の `docs/install-guide.md` を参照してください。
+
+現行の正式 target は `codex` と `agent-skills` です。Design Pair package単体のinstallだけでは、CodexのHIGH / STANDARD concrete model mappingが完成した証拠になりません。GitHub Copilot の Design Pair -> Adaptive end-to-end route は未検証であり、対応済みとは扱いません。
 
 通常 Plan Mode 後の起動例:
 

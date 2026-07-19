@@ -18,6 +18,8 @@ implementation_route_source: explicit-user-selection
 
 agent / router は difficulty、risk、task size、architecture 特性から Design Pair を選択、推奨、提案しません。
 
+fresh Codex installではAdaptive packageとDesign Pair packageをco-installし、APMがmodel-less agent TOMLを生成する環境では`install-adaptive-implementation-local.cs`のwriteと`--check`まで実行します。Design Pair skillが存在するだけでは、後段のHIGH / STANDARD model mappingが完成したとは扱いません。
+
 ## Ordinary Plan Mode
 
 ```text
@@ -37,6 +39,10 @@ goal、scope、acceptance が不足する場合は production code / tests を�
 5. verification-kernel、coverage gap handling、residual-decision-gate へ戻る。
 
 Design Pair package は Copilot target を宣言しません。Plan Coverage package が Copilot target を持っていても、Design Pair route は Codex / agent-skills で両 package を導入した場合だけ利用します。
+
+## Resume
+
+`implementation_route`と`implementation_route_source`はdurable artifactから再読します。resume時に欠ける、矛盾する、またはDesign Pair evidenceがあるのにtracked handoffが欠ける場合、Adaptiveへ補完せず停止します。`adaptive / default`の自動初期化はfresh intakeだけです。
 
 ## Target Map discussion
 

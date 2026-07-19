@@ -189,6 +189,22 @@ Expected:
 - STANDARD_MODEL receives Design Pair Decision IDs through the Completion Handoff
 - a Locked Decision conflict returns evidence and a stop verdict without automatic Design Pair re-entry
 
+## VAL-010: Resume a pre-Design-Pair Adaptive handoff
+
+Input:
+
+- `legacy-adaptive-handoff.md`, matching the tracked handoff schema from before Design Pair fields were introduced
+- no Design Pair selection, Decision ID, Target Map, or handoff path evidence
+
+Expected:
+
+- the resume is not rejected solely because Design Pair fields and Origin / Decision ID columns are absent
+- the parent records `implementation_route: adaptive`, `implementation_route_source: default`, and `route_metadata_normalization: legacy-adaptive-handoff`
+- `Design Pair handoff` and `Design Pair Decision compliance` normalize to explicit `N/A`
+- legacy Locked decisions receive deterministic `LEGACY-HIGH-D01`-style IDs with `Origin: HIGH_MODEL`
+- the normalized affected-file value does not become the Allowed edit surface
+- partial new-schema handoffs, incomplete old-schema handoffs, and any handoff with Design Pair evidence fail closed
+
 ## Issue #44 integration validation matrix
 
 次のシナリオは standalone Adaptive package だけでなく、Plan Coverage、full-coverage slice、Codex-first、Copilot fallback の routing surface を同じ contract で検証します。`trivial-local` は対象外です。

@@ -219,8 +219,14 @@ Design Pair phase の完了前に production code / tests を編集しません�
 Plan Coverage Flow では handoff review または equivalent Inline Ready Gate 後に Design Pair を起動し、後段の verification / residual decision を省略しません。package の正式 target は `codex` と `agent-skills` です。GitHub Copilot の Design Pair -> Adaptive end-to-end route は未検証であり、対応済みとは宣言しません。
 
 ```powershell
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target codex,agent-skills
+dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs -- . --dry-run
+dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs -- .
+dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs -- . --check
 ```
+
+fresh Codex targetではAdaptiveとのco-installとconcrete HIGH / STANDARD profileの`--check`までを一組とします。Design Pair package単体の導入だけでは、後段のmodel mappingが完成したとは扱いません。
 
 詳細:
 

@@ -317,7 +317,7 @@ Plan Slice Decomposition artifact が必要なのに存在しない、または�
 1. `Verdict`
 2. `Readiness scope`
 
-route metadata も決定ではなく upstream から伝播する。metadata が欠落している通常 route は `adaptive / default`、明示 Design Pair route は `design-pair / explicit-user-selection` とし、後者の explicit evidence がない場合は Design Pair を推測しない。
+route metadata も決定ではなく upstream から伝播する。新規 intake で durable route artifact、resume evidence、Design Pair の explicit selection evidence がまだ一切ない場合だけ `adaptive / default` を初期化する。resume、既存 handoff、または Design Pair selection evidence がある状態で `implementation_route` / `implementation_route_source` の一方でも欠ける場合は補完せず `BLOCKED_BY_ARTIFACT_MISMATCH` とする。`design-pair / explicit-user-selection` なのに tracked Design Pair handoff が必要な phase で欠ける場合も同じく停止し、Adaptive へ黙って降格させない。
 
 #### Verdict
 

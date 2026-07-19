@@ -122,6 +122,18 @@ STANDARD_MODEL は registration を暗黙変更しません。re-entry handoff �
 
 tracked handoff は実コードの代替設計書ではありません。locked decisions、remaining work、allowed surface、validation、re-entry trigger の短い実行情報に留めます。
 
+### pre-Design-Pair tracked handoffのresume
+
+旧schemaの必須fieldをすべて持ち、`Design Pair handoff`、`Design Pair Decision compliance`、Origin / Decision ID columnsがすべてなく、Design Pair evidenceも一切ないhandoffだけを互換normalizationできます。
+
+- routeは`adaptive / default`とし、`route_metadata_normalization: legacy-adaptive-handoff`を記録する
+- 旧Locked decisionsへ出現順の`LEGACY-HIGH-D01`形式でIDを付ける
+- originは`HIGH_MODEL`とする
+- 補完したAffected files / symbolsはAllowed edit surfaceに使わない
+- normalization recordをtracked handoffへ追記してからSTANDARD_MODELへ渡す
+
+部分的に新しいDesign Pair fieldを持つ、Design Pair selection evidenceがある、または旧必須fieldが不足するhandoffはnormalizationしません。production code / testsを編集せず、artifact repairまたはHIGH_MODEL re-entryへ戻します。fixtureは`docs/examples/legacy-adaptive-handoff.md`です。
+
 ## Verification and final review
 
 HIGH_MODEL と STANDARD_MODEL は、それぞれの変更に関連する build、focused test、lint、format、type check を可能な範囲で実行します。

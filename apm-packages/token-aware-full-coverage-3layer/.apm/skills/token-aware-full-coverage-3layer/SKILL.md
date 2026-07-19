@@ -116,7 +116,7 @@ Final gate: 親エージェント
 
 親エージェントは `plans/<ticket-or-slug>-parent-orchestration-state.md` を作成または更新し、後続の親エージェントが会話履歴なしで再開できる single resume entrypoint として扱ってください。標準 template はこの Skill に bundled された `references/full-coverage-parent-orchestration-state.md` です。`provision-work-repo-agents.cs` を使う consuming repo では `plans/_templates/full-coverage-parent-orchestration-state.md` にも配置されます。template file が見つからない場合でも、この section に列挙された required sections で state artifact を作成してください。
 
-implementation route は flow intake の selection をそのまま state と各 READY slice に伝播します。
+implementation route は fresh flow intake の selection をそのまま state と各 READY slice に伝播します。次のdefaultはdurable route stateもresume evidenceもまだ存在しないfresh intakeだけで初期化します。
 
 ```yaml
 implementation_route: adaptive
@@ -125,6 +125,8 @@ design_pair_handoff: N/A
 ```
 
 Design Pair は利用者が明示選択した場合だけ `design-pair / explicit-user-selection` とし、自動選択、推奨、提案しません。この advanced package の Copilot target は Design Pair route の対応済み宣言ではありません。Codex / agent-skills で別途 Design Pair package が導入済みの場合だけ実行できます。
+
+resumeではParent Orchestration Stateの`implementation_route`と`implementation_route_source`を必須とします。片方でも欠ける、矛盾する、またはDesign Pair evidenceがあるのにhandoff pathが必要なphaseで欠ける場合は、Adaptiveへ補完せずartifact mismatchとして停止します。唯一の互換例外は、exact pre-Design-Pair Adaptive completion handoffが旧必須fieldをすべて持ち、Design Pair evidenceが一切ない場合です。canonical `Legacy Adaptive handoff normalization`を適用し、`route_metadata_normalization: legacy-adaptive-handoff`を記録してからslice resumeを続けます。
 
 この artifact は会話ログの再現ではなく、再開に必要な索引と差分だけを持ちます。parent Plan、slice artifact、triage、contract、verification result の本文をコピーしてはいけません。subagent output の全文、長い reasoning trace、append-only の長大な履歴ログも標準 artifact には入れません。source excerpt は原則禁止し、必要な場合だけ短い pointer に抑えてください。原則として path / status / next action / blocking reason を中心にしてください。file が大きくなりすぎた場合は、完了済み slice 行を短い summary に圧縮し、詳細は元の slice artifact に残します。
 

@@ -53,6 +53,7 @@ HIGH_MODEL と STANDARD_MODEL の write-heavy work は並列化しません。�
 | Codex agent configuration sources | `codex-agents/*.toml` |
 | Compatibility installer | `scripts/install-adaptive-implementation-local.cs` |
 | Static validator | `scripts/validate-adaptive-implementation-execution.ps1` |
+| Pre-Design-Pair resume fixture | `docs/examples/legacy-adaptive-handoff.md` |
 
 Templates are bundled inside the skill instead of being standalone manifest file dependencies. Their short `refs/` paths keep APM 0.18.0 remote installs below the legacy Windows path-length boundary while preserving separate template files.
 
@@ -75,6 +76,8 @@ installer は File-based app であり、`.csproj` は不要です。APM が生�
 補助スクリプトがアクセスする導入先ファイルは2つの `.codex/agents/*.toml` だけです。`AGENTS.md` を作成・変更・削除せず、実行しても skill の使用や自動選択を意味しません。`--check` は model / reasoning / workspace-write 設定、role ごとの agent 名、HIGH_MODEL と STANDARD_MODEL の異なる model mapping を検証します。APM が必要な設定を直接生成できるようになれば、この互換処理は不要になる可能性があります。
 
 skill の選択条件と、選択後の実行順序、handoff、re-entry、verification boundary の source of truth は `.apm/skills/adaptive-implementation-execution/SKILL.md` です。この package は repository 内のすべての Plan や実装作業へ skill を強制しません。
+
+Design Pair導入前のtracked Adaptive handoffは、旧必須fieldがすべて揃い、Design Pair evidenceが一切ない場合だけ`Legacy Adaptive handoff normalization`でresumeできます。`route_metadata_normalization: legacy-adaptive-handoff`とdeterministic `LEGACY-HIGH-Dxx` Decision IDsを記録し、新Design Pair fieldsの欠落だけを理由にHIGH_MODELへ戻しません。部分的な新schema、Design Pair evidence、不完全な旧schemaはfail closedです。
 
 起動例:
 

@@ -97,11 +97,45 @@ Expected:
 - manifest に `copilot` target がない
 - docs は GitHub Copilot Design Pair route を対応済みと宣言しない
 
+## DP-VAL-009: Resume route metadata fails closed
+
+Input: resume request、existing handoff、またはDesign Pair selection evidenceがあるが、`implementation_route` / `implementation_route_source`の一方が欠ける。
+
+Expected:
+
+- `adaptive / default`へ補完しない
+- missing field、resume evidence、repair対象artifactを報告して停止する
+- `design-pair` evidenceがある場合、tracked handoffの欠落も停止理由にする
+- fresh intakeでdurable route / resume evidenceがない場合だけ`adaptive / default`を初期化できる
+
+## DP-VAL-010: One-off Codex-first launcher payload
+
+Input: `codex-first-start.ps1`から一時`CODEX_HOME`を作成する。
+
+Expected:
+
+- Codex-first router skillをコピーする
+- Adaptive skillと`refs/intent.md` / `refs/handoff.md`をコピーする
+- Design Pair skillと`map.md` / `handoff.md`をコピーする
+- explicit Design Pair routeがmissing skillで停止しない
+
+## DP-VAL-011: Fresh Codex install
+
+Input: Design Pairを未導入のCodex targetへインストールする。
+
+Expected:
+
+- Adaptive packageとDesign Pair packageをco-installする
+- APMがmodel-less TOMLを生成する場合は`install-adaptive-implementation-local.cs`で補完する
+- helperの`--check`がHIGH / STANDARDの別agent・別model mapping、reasoning、sandboxを検証する
+- Design Pair package単体のinstallを完成済みCodex execution profileと表現しない
+
 ## Repository static validation
 
 ```powershell
 ./apm-packages/design-pair-implementation-execution/scripts/validate.ps1
 ./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1
+dotnet publish ./apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs
 dotnet publish ./apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs
 git diff --check
 ```

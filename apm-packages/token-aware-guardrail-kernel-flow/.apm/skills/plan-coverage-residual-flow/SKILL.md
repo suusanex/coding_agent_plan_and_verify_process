@@ -106,7 +106,7 @@ implementation_route_source: explicit-user-selection
 
 Do not automatically select, recommend, or propose Design Pair based on difficulty, risk, task size, or architecture. Do not ask the user to choose between the routes when no explicit selection exists; keep the default Adaptive route.
 
-Preserve both fields through the Plan Coverage Lite artifact, canonical coverage ledger / handoff review, full-coverage parent orchestration state, resume, and implementation result. For the Design Pair route, also record `design_pair_handoff: plans/<slug>-design-pair-implementation-handoff.md` once created. Missing or contradictory route metadata must not be inferred during resume.
+Preserve both fields through the Plan Coverage Lite artifact, canonical coverage ledger / handoff review, full-coverage parent orchestration state, resume, and implementation result. For the Design Pair route, also record `design_pair_handoff: plans/<slug>-design-pair-implementation-handoff.md` once created. Missing or contradictory route metadata must not be inferred during resume. The only compatibility exception is an exact pre-Design-Pair Adaptive completion handoff with all former required fields and no Design Pair evidence; apply the canonical `Legacy Adaptive handoff normalization`, record `route_metadata_normalization: legacy-adaptive-handoff`, and reject partial new-schema or Design Pair evidence cases.
 
 The `design-pair-implementation-execution` package is a separate Codex / agent-skills package. Plan Coverage can use the route when both packages are installed for those targets. This Plan Coverage package's Copilot target does not make the Design Pair -> Adaptive route supported or verified on GitHub Copilot.
 

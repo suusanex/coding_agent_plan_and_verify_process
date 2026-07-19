@@ -32,6 +32,9 @@ CODEX_HOME/
     cheap-doc-consistency.toml
     cheap-artifact-format-checker.toml
   skills/codex-first-cost-router/SKILL.md
+  skills/adaptive-implementation-execution/SKILL.md
+  skills/adaptive-implementation-execution/refs/intent.md
+  skills/adaptive-implementation-execution/refs/handoff.md
   skills/design-pair-implementation-execution/SKILL.md
   skills/design-pair-implementation-execution/map.md
   skills/design-pair-implementation-execution/handoff.md
@@ -51,16 +54,18 @@ For App / Desktop threads, treat the Codex-first profile plus repo-local state /
 For a local trial, copy the template profile to a dedicated Codex home:
 
 ```powershell
-$profile = "$env:USERPROFILE\.codex-profiles\codex-first"
-New-Item -ItemType Directory -Force $profile | Out-Null
-Copy-Item -Recurse -Force .\apm-packages\codex-first-ai-development-process\profiles\codex-first\* $profile
-New-Item -ItemType Directory -Force "$profile\skills\codex-first-cost-router" | Out-Null
-Copy-Item -Recurse -Force .\apm-packages\codex-first-ai-development-process\.apm\skills\codex-first-cost-router\* "$profile\skills\codex-first-cost-router"
-New-Item -ItemType Directory -Force "$profile\skills\design-pair-implementation-execution" | Out-Null
-Copy-Item -Recurse -Force .\apm-packages\design-pair-implementation-execution\.apm\skills\design-pair-implementation-execution\* "$profile\skills\design-pair-implementation-execution"
-New-Item -ItemType Directory -Force "$profile\templates" | Out-Null
-Copy-Item -Recurse -Force .\apm-packages\codex-first-ai-development-process\templates\* "$profile\templates"
-$env:CODEX_HOME = $profile
+$codexProfileHome = "$env:USERPROFILE\.codex-profiles\codex-first"
+New-Item -ItemType Directory -Force $codexProfileHome | Out-Null
+Copy-Item -Recurse -Force .\apm-packages\codex-first-ai-development-process\profiles\codex-first\* $codexProfileHome
+New-Item -ItemType Directory -Force "$codexProfileHome\skills\codex-first-cost-router" | Out-Null
+Copy-Item -Recurse -Force .\apm-packages\codex-first-ai-development-process\.apm\skills\codex-first-cost-router\* "$codexProfileHome\skills\codex-first-cost-router"
+New-Item -ItemType Directory -Force "$codexProfileHome\skills\adaptive-implementation-execution" | Out-Null
+Copy-Item -Recurse -Force .\apm-packages\adaptive-implementation-execution\.apm\skills\adaptive-implementation-execution\* "$codexProfileHome\skills\adaptive-implementation-execution"
+New-Item -ItemType Directory -Force "$codexProfileHome\skills\design-pair-implementation-execution" | Out-Null
+Copy-Item -Recurse -Force .\apm-packages\design-pair-implementation-execution\.apm\skills\design-pair-implementation-execution\* "$codexProfileHome\skills\design-pair-implementation-execution"
+New-Item -ItemType Directory -Force "$codexProfileHome\templates" | Out-Null
+Copy-Item -Recurse -Force .\apm-packages\codex-first-ai-development-process\templates\* "$codexProfileHome\templates"
+$env:CODEX_HOME = $codexProfileHome
 codex status
 ```
 
@@ -69,6 +74,8 @@ For one-off use without copying, use the launcher example:
 ```powershell
 pwsh .\apm-packages\codex-first-ai-development-process\scripts\codex-first-start.ps1 -RepoPath . status
 ```
+
+The one-off launcher builds its temporary `CODEX_HOME` with the Codex-first router, Adaptive skill and refs, and Design Pair skill and refs. An explicit Design Pair request therefore reaches its tracked handoff and then the Adaptive implementation flow without requiring the repo-local bootstrap first.
 
 To install repo-local bootstrap files for repeated local use:
 
@@ -92,6 +99,7 @@ Expected verification:
 The launcher should:
 
 - load the Codex-first profile before ordinary repo work
+- copy the Codex-first router, Adaptive skill and refs, and Design Pair skill and refs into the temporary `CODEX_HOME`
 - allow maintainers to edit model tier defaults before team rollout
 - avoid overwriting repo files
 - report when repo-local instructions are too large or conflicting

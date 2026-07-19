@@ -74,12 +74,16 @@ binding なのは `Locked Decisions` に明示された事項だけです。Targ
 
 Design Pair handoff の `Affected files / symbols` と Target Map の file / symbol は Decision の適用対象または調査 evidence であり、Adaptive Implementation の `Allowed edit surface` として扱いません。HIGH_MODEL は goal、scope、acceptance を満たすために必要な関連 code / tests / production wiring を通常どおり調査・編集できます。
 
-Design Pair handoff がない通常 run では次の metadata を使用します。
+Design Pair handoff がない場合は、新規 intake と resume を分けます。durable route artifact、既存 implementation handoff、resume request、Design Pair selection evidence が一切ない新規 intake だけ、次の metadata を初期化します。
 
 ```yaml
 implementation_route: adaptive
 implementation_route_source: default
 ```
+
+resume または既存 artifact がある状態では `implementation_route` と `implementation_route_source` を durable state から読み、欠落や矛盾を Adaptive へ補完しません。Design Pair selection、Decision ID、Target Map、または Design Pair handoff path の evidence があるのに route metadata / handoff が欠ける場合は `BLOCKED` とし、missing fields、evidence、必要な artifact repair を報告します。
+
+唯一の互換例外は、Design Pair 導入前の `Implementation Completion Handoff` schema と一致し、Design Pair evidence が一切ない tracked handoff の resume です。この場合は `Legacy Adaptive handoff normalization` を適用し、`implementation_route: adaptive`、`implementation_route_source: default`、`route_metadata_normalization: legacy-adaptive-handoff` を記録してから続行できます。部分的に新schemaを持つ handoff、Design Pair evidence がある handoff、旧schemaの必須fieldが欠ける handoffにはこの例外を適用しません。
 
 Design Pair route の場合も HIGH_MODEL は通常の adaptive implementation と同じ authority を維持し、Locked Decisions 以外の新しい decision surface を実コードと verification evidence に基づいて処理します。
 
@@ -165,6 +169,8 @@ HIGH_MODEL が scope 内の acceptance item をすべて `Complete` とし、各
 - 残作業に新しい構造判断がない
 
 不足がある場合は STANDARD_MODEL へ渡さず、HIGH_MODEL に handoff 修正または実装継続を求めます。
+
+Design Pair 導入前に作成された tracked handoff の resume では、`refs/handoff.md` の `Legacy Adaptive handoff normalization` を先に適用します。normalization 条件を満たす旧handoffは、新しい Design Pair fields の欠落だけを理由に HIGH_MODEL へ戻しません。normalization record と deterministic legacy Decision IDs を parent / router が tracked handoff に追記してから STANDARD_MODEL へ渡します。
 
 ### Stop verdicts
 

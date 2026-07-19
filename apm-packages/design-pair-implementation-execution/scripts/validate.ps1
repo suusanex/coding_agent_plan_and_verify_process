@@ -69,6 +69,9 @@ $requiredFiles = @(
     'apm-packages/design-pair-implementation-execution/scripts/validate.ps1',
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md',
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md',
+    'apm-packages/adaptive-implementation-execution/docs/examples/legacy-adaptive-handoff.md',
+    'apm-packages/adaptive-implementation-execution/docs/install-guide.md',
+    'apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs',
     'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md',
     'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md',
     'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md',
@@ -76,6 +79,7 @@ $requiredFiles = @(
     'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/references/full-coverage-parent-orchestration-state.md',
     'apm-packages/codex-first-ai-development-process/.apm/skills/codex-first-cost-router/SKILL.md',
     'apm-packages/codex-first-ai-development-process/templates/codex-first-state.md',
+    'apm-packages/codex-first-ai-development-process/scripts/codex-first-start.ps1',
     'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs',
     'README.md'
 )
@@ -175,10 +179,37 @@ Assert-Contains $adaptiveSkill 'Affected files / symbols.*Allowed edit surface.*
 Assert-Contains $adaptiveSkill 'Design Pair Decision ID' 'Design Pair Decision ID propagation'
 Assert-Contains $adaptiveSkill 'automatic Design Pair re-entry' 'Adaptive no automatic re-entry rule'
 Assert-Contains $adaptiveSkill 'Locked Decision conflict' 'Adaptive conflict stop report'
+Assert-Contains $adaptiveSkill '新規 intake と resume を分けます' 'fresh intake and resume distinction'
+Assert-Contains $adaptiveSkill '欠落や矛盾を Adaptive へ補完しません' 'resume fail-closed route metadata'
+Assert-Contains $adaptiveSkill 'route_metadata_normalization: legacy-adaptive-handoff' 'legacy Adaptive handoff normalization marker'
 
 $adaptiveHandoff = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md'
 Assert-Contains $adaptiveHandoff 'Origin.*Decision ID.*Decision.*Affected files / symbols.*Compliance evidence' 'consolidated Locked Decision schema'
 Assert-Contains $adaptiveHandoff 'Design Pair handoff' 'Design Pair handoff reference'
+Assert-Contains $adaptiveHandoff 'Legacy Adaptive handoff normalization' 'legacy Adaptive handoff normalization contract'
+Assert-Contains $adaptiveHandoff 'LEGACY-HIGH-D01' 'deterministic legacy Decision ID rule'
+
+$legacyFixture = 'apm-packages/adaptive-implementation-execution/docs/examples/legacy-adaptive-handoff.md'
+Assert-Contains $legacyFixture 'Verdict: READY_FOR_STANDARD_COMPLETION' 'legacy handoff READY verdict'
+Assert-Contains $legacyFixture '## Locked decisions\s*\r?\n\s*- ' 'legacy bullet-form Locked decisions'
+Assert-NotContains $legacyFixture 'Design Pair handoff|Design Pair Decision compliance|\| Origin \| Decision ID \|' 'new Design Pair fields in legacy fixture'
+foreach ($legacyField in @(
+    'Plan reference',
+    'Validation performed',
+    'Acceptance status',
+    'Applicability evidence',
+    'Implemented',
+    'Remaining work',
+    'Allowed edit surface',
+    'Validation commands',
+    'High-model re-entry triggers',
+    'reentry_count',
+    'previous_reentry_trigger',
+    'delegation_surface_reduced',
+    'Known assumptions / unresolved observations'
+)) {
+    Assert-Contains $legacyFixture ([regex]::Escape($legacyField)) "legacy handoff former required field $legacyField"
+}
 
 $highAgent = '.github/agents/high-implementation-starter.agent.md'
 Assert-Contains $highAgent 'Design Pair Implementation Handoff' 'HIGH Design Pair input support'
@@ -189,12 +220,16 @@ Assert-Contains $highAgent 'Target Map.*allowed edit surface' 'HIGH non-allowlis
 $standardAgent = '.github/agents/standard-implementation-completer.agent.md'
 Assert-Contains $standardAgent 'Origin.*Decision ID' 'STANDARD consolidated decision authorization'
 Assert-Contains $standardAgent 'Design Pair Decision IDs' 'STANDARD Decision ID reporting'
+Assert-Contains $standardAgent 'Legacy Adaptive handoff normalization' 'STANDARD legacy handoff normalization'
+Assert-Contains $standardAgent 'LEGACY-HIGH-D01' 'STANDARD deterministic legacy Decision IDs'
+Assert-Contains $standardAgent 'Design Pair evidenceがあるresume.*使用しません' 'STANDARD normalization exclusion for Design Pair resumes'
 
 $planCoverageSkill = 'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md'
 Assert-Contains $planCoverageSkill 'implementation_route:\s*adaptive' 'Plan Coverage default Adaptive route'
 Assert-Contains $planCoverageSkill 'implementation_route_source:\s*default' 'Plan Coverage default route source'
 Assert-Contains $planCoverageSkill 'design-pair-implementation-execution' 'Plan Coverage explicit Design Pair route'
 Assert-Contains $planCoverageSkill 'Do not automatically select, recommend, or propose Design Pair' 'Plan Coverage no automatic Design Pair selection'
+Assert-Contains $planCoverageSkill 'Missing or contradictory route metadata must not be inferred during resume' 'Plan Coverage resume fail-closed rule'
 
 foreach ($statePath in @(
     'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md',
@@ -209,17 +244,40 @@ foreach ($statePath in @(
 
 Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'implementation_route' 'handoff review route propagation'
 Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'design-pair-implementation-execution' 'handoff review explicit next route'
+Assert-Contains '.github/agents/implementation-handoff-review.agent.md' '新規 intake.*だけ `adaptive / default` を初期化' 'handoff review fresh-intake-only default'
+Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'resume.*BLOCKED_BY_ARTIFACT_MISMATCH' 'handoff review resume fail-closed rule'
 
 $codexManifest = 'apm-packages/codex-first-ai-development-process/apm.yml'
 Assert-Contains $codexManifest 'design-pair-implementation-execution/\.apm/skills/design-pair-implementation-execution' 'Codex-first Design Pair skill dependency'
 Assert-Contains 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs' 'sourceDesignPairSkill' 'Codex-first Design Pair skill bootstrap source'
 Assert-Contains 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs' 'design-pair-implementation-execution' 'Codex-first Design Pair skill bootstrap target'
 
-foreach ($id in 1..8) {
-    Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' ("DP-VAL-00$id") "validation scenario DP-VAL-00$id"
+$launcher = 'apm-packages/codex-first-ai-development-process/scripts/codex-first-start.ps1'
+Assert-Contains $launcher 'adaptiveSkillSource' 'one-off launcher Adaptive skill source'
+Assert-Contains $launcher 'designPairSkillSource' 'one-off launcher Design Pair skill source'
+Assert-Contains $launcher 'skills\\adaptive-implementation-execution' 'one-off launcher Adaptive skill target'
+Assert-Contains $launcher 'skills\\design-pair-implementation-execution' 'one-off launcher Design Pair skill target'
+Assert-Contains $launcher 'Copy-Item.*adaptiveSkillSource\.Path' 'one-off launcher Adaptive payload copy'
+Assert-Contains $launcher 'Copy-Item.*designPairSkillSource\.Path' 'one-off launcher Design Pair payload copy'
+
+$codexRouter = 'apm-packages/codex-first-ai-development-process/.apm/skills/codex-first-cost-router/SKILL.md'
+Assert-Contains $codexRouter 'fresh intake.*no durable route artifact' 'Codex-first fresh-intake default boundary'
+Assert-Contains $codexRouter 'On resume.*missing or contradictory metadata must stop' 'Codex-first resume fail-closed rule'
+
+$fullCoverageSkill = 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md'
+Assert-Contains $fullCoverageSkill 'resumeではParent Orchestration State.*必須' 'full-coverage resume route requirement'
+Assert-Contains $fullCoverageSkill 'Adaptiveへ補完せずartifact mismatchとして停止' 'full-coverage resume fail-closed rule'
+
+foreach ($id in 1..11) {
+    $scenarioId = 'DP-VAL-{0:D3}' -f $id
+    Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' $scenarioId "validation scenario $scenarioId"
 }
 
 Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'GitHub Copilot.*未検証' 'unverified Copilot support statement'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'adaptive-implementation-execution --target codex,agent-skills' 'fresh install Adaptive co-install command'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'install-adaptive-implementation-local\.cs.*--check' 'fresh install Adaptive profile check'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'package単体のinstallだけでは.*model mapping' 'incomplete single-package install warning'
+Assert-Contains 'apm-packages/codex-first-ai-development-process/docs/team-profile-launcher.md' 'Adaptive skill and refs, and Design Pair skill and refs' 'documented one-off launcher payload'
 Assert-Contains 'README.md' 'apm-packages/design-pair-implementation-execution' 'root Design Pair package link'
 
 if ($failures.Count -gt 0) {

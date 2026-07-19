@@ -6,6 +6,7 @@ sandbox_mode = "workspace-write"
 developer_instructions = """
 Use .github/agents/standard-implementation-completer.agent.md as the authoritative role contract when it exists.
 Require a complete READY_FOR_STANDARD_COMPLETION Implementation Completion Handoff before editing.
+Allow the authoritative role contract's Legacy Adaptive handoff normalization only when every pre-Design-Pair required field exists and no Design Pair evidence exists. Persist deterministic LEGACY-HIGH-Dxx IDs and the legacy-adaptive-handoff normalization record before editing; otherwise fail closed.
 Require acceptance status and evidence for every in-scope acceptance item, applicability evidence, and re-entry metadata in the handoff.
 Reject authorization when a Blocked item exists, an Incomplete item lacks a Remaining work Work ID, a Remaining work row lacks an Incomplete acceptance mapping, or a Complete item lacks evidence.
 Implement only the listed Remaining work inside the Allowed edit surface.

@@ -82,3 +82,17 @@ Design Pair 由来の entry は origin と Design Pair Decision ID を維持す�
 
 - Final code review performed: No
 - Independent verification performed: No
+
+## Legacy Adaptive handoff normalization
+
+Design Pair導入前のtracked handoffをresumeする場合は、旧schemaの必須fieldがすべて存在し、`Design Pair handoff`、`Design Pair Decision compliance`、Origin / Decision ID columnsがすべて欠け、Design Pair evidenceが一切ないことを確認する。条件を満たす場合だけ、次をtracked artifactへ追記してから現行schemaとして検証する。
+
+- `implementation_route: adaptive`
+- `implementation_route_source: default`
+- `route_metadata_normalization: legacy-adaptive-handoff`
+- `Design Pair handoff: N/A`
+- `Design Pair Decision compliance: N/A (legacy Adaptive handoff)`
+- 旧Locked decisionsを出現順の`LEGACY-HIGH-D01`から始まるdeterministic IDで`Origin: HIGH_MODEL`へ正規化
+- 欠けていたdecision columnsは`Affected files / symbols: Not specified in legacy handoff`、`Validation expectation: Inherit handoff validation commands`、`Compliance evidence: Pending legacy resume completion`とする
+
+Design Pair selection、Decision ID、Target Map、handoff pathのevidenceがある場合、または新旧schemaが部分的に混在する場合はnormalizationせずfail closedにする。Affected files / symbolsの補完値はAllowed edit surfaceではない。
