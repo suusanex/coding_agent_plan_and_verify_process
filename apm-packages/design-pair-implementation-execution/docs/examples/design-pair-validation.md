@@ -109,6 +109,7 @@ Expected:
 - fresh intakeでdurable route / resume evidenceがない場合だけ`adaptive / default`を初期化できる
 - current-schemaのtracked `Implementation Completion Handoff`は両route fieldをheaderへ保存する
 - HIGH_MODELは両fieldを必須handoffとして伝播し、STANDARD_MODELは片方でも欠けるhandoffを編集前に拒否する
+- STANDARD_MODELのHigh-model Re-entry Handoffは両route fieldとDesign Pair handoff pathを変更せず保持し、parentは元completion handoffとともにHIGH_MODELへ再投入する
 - partial current-schema handoffにはlegacy normalizationを適用しない
 
 ## DP-VAL-010: One-off Codex-first launcher payload
@@ -132,6 +133,17 @@ Expected:
 - APMがmodel-less TOMLを生成する場合は`install-adaptive-implementation-local.cs`で補完する
 - helperの`--check`がHIGH / STANDARDの別agent・別model mapping、reasoning、sandboxを検証する
 - Design Pair package単体のinstallを完成済みCodex execution profileと表現しない
+
+## DP-VAL-012: Portable agent route contract
+
+Input: repository-local `.github/agents` がないone-off launcherまたはAPM installからportable HIGH / STANDARD TOMLを実行する。
+
+Expected:
+
+- 両agentは`adaptive / default`と`design-pair / explicit-user-selection`の2組だけを許可する
+- route field欠落、組み合わせ矛盾、Design Pair evidence不一致は編集前に停止する
+- `design-pair`でcurrent Design Pair handoff pathがない場合はAdaptiveへfallbackしない
+- STANDARD re-entryはroute pairとDesign Pair handoff pathをHIGHへ伝播する
 
 ## Repository static validation
 

@@ -95,8 +95,9 @@ READY_FOR_STANDARD_COMPLETION
 Checks:
 
 - STANDARD_MODEL does not redesign the seam or wiring
-- High-model Re-entry Handoff contains invalidating evidence and worktree state
+- High-model Re-entry Handoff contains invalidating evidence, worktree state, unchanged route pair, and Design Pair handoff path or `N/A`
 - STANDARD_MODEL increments incoming reentry_count and preserves incoming previous_reentry_trigger
+- parent passes both the original Implementation Completion Handoff and the High-model Re-entry Handoff back to HIGH_MODEL and rejects route identity mismatch
 - HIGH_MODEL preserves the incremented count and copies the returned Trigger to previous_reentry_trigger only when a strictly smaller handoff is safe
 - agents run serially
 - HIGH_MODEL owns completion after the first re-entry unless Remaining work and Allowed edit surface both strictly shrink and the same trigger has not recurred
@@ -214,10 +215,25 @@ Input:
 
 Expected:
 
+- parent supplies both `implementation_route` and `implementation_route_source` explicitly in the initial HIGH_MODEL payload
 - HIGH_MODEL writes both `implementation_route` and `implementation_route_source` into the handoff header without changing their incoming values
 - STANDARD_MODEL requires both fields before editing and rejects a missing or contradictory pair
+- a High-model Re-entry Handoff preserves both route fields and the Design Pair handoff path or `N/A`
 - a partial current-schema handoff does not use `Legacy Adaptive handoff normalization`
 - a later resume restores the selected route without defaulting to Adaptive
+
+## VAL-012: Portable agent route validation
+
+Input:
+
+- a launcher or APM target uses the packaged HIGH and STANDARD TOMLs without repository-local `.github/agents`
+
+Expected:
+
+- both portable agents accept only `adaptive / default` or `design-pair / explicit-user-selection`
+- either missing field, a contradictory pair, or Design Pair evidence mismatch stops before editing
+- `design-pair` requires the current Design Pair Implementation Handoff path and never falls back to Adaptive
+- STANDARD_MODEL preserves the route pair and Design Pair handoff path in every High-model Re-entry Handoff
 
 ## Issue #44 integration validation matrix
 

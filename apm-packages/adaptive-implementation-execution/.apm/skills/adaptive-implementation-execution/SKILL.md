@@ -128,12 +128,16 @@ Plan Coverage、Behavior Case、slice、runtime-contract、test-point、implemen
 渡すもの:
 
 - original Plan または Implementation Intent
+- `implementation_route`
+- `implementation_route_source`
 - repository instructions
 - current worktree status
 - relevant source pointers already known
 - validation expectations
-- previous re-entry handoff when resuming
+- previous Implementation Completion Handoff と High-model Re-entry Handoff（STANDARD_MODELからresumeする場合）
 - Design Pair Implementation Handoff path と Design Pair Decision IDs（存在する場合）
+
+parentはHIGH_MODEL起動前に、route pairが`adaptive / default`または`design-pair / explicit-user-selection`のどちらかであり、Design Pair evidenceおよびhandoff pathと一致することを検証します。片方が欠ける、矛盾する、またはevidenceと一致しない場合はHIGH_MODELを起動せず停止します。
 
 HIGH_MODEL は code を読み、production code / tests を編集し、focused verification を行います。事前文書だけで `direct implementation` と `shape-then-complete` を分類しません。
 
@@ -200,7 +204,7 @@ completion scope、validation results、Design Pair Decision ID ごとの locked
 
 ### NEEDS_HIGH_MODEL_REENTRY
 
-STANDARD_MODEL の `High-model Re-entry Handoff`、元の Implementation Intent、元の locked decisions、current worktree state を保持して `high-implementation-starter` を直列に再実行します。
+STANDARD_MODEL の `High-model Re-entry Handoff`、元の `Implementation Completion Handoff`、元の Implementation Intent、元の locked decisions、current worktree state を保持して `high-implementation-starter` を直列に再実行します。両handoffの`implementation_route`、`implementation_route_source`、Design Pair handoff pathが一致することを再実行前に検証し、欠落または不一致があれば停止します。
 
 STANDARD_MODEL に redesign を続行させません。re-entry 後の HIGH_MODEL は actual code と new evidence を読み、必要な設計判断と実装を行います。1 回 re-entry した後は HIGH_MODEL が完了まで担当することを既定とします。
 

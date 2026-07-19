@@ -138,6 +138,7 @@ STANDARD_MODEL から一度 re-entry した後は、原則として HIGH_MODEL �
 
 - 初回 handoff は `reentry_count: 0`、`previous_reentry_trigger: N/A`、`delegation_surface_reduced: N/A` とする
 - STANDARD_MODEL から戻った re-entry handoff の `reentry_count` と `Trigger` を読む
+- re-entry handoffと元のImplementation Completion Handoffから`implementation_route`、`implementation_route_source`、Design Pair handoff pathを読み、値が一致することを確認する
 - 再委譲する場合は re-entry handoff の `reentry_count` を維持し、`previous_reentry_trigger` にその `Trigger` を設定し、`delegation_surface_reduced: Yes` とする
 - re-entry handoff の `Trigger` がその `previous_reentry_trigger` と同じ場合は再発として扱い、再委譲しない
 

@@ -97,10 +97,10 @@ READY_FOR_STANDARD_COMPLETION
   -> standard-implementation-completer starts
   -> existing test cannot reach the production registration path
   -> NEEDS_HIGH_MODEL_REENTRY
-  -> high-implementation-starter resumes with the original intent and re-entry handoff
+  -> high-implementation-starter resumes with the original intent, original completion handoff, and re-entry handoff
 ```
 
-STANDARD_MODEL は registration を暗黙変更しません。re-entry handoff に invalidating evidence、変更済み files、実行した checks、必要な decision を記録します。
+STANDARD_MODEL は registration を暗黙変更しません。re-entry handoff に invalidating evidence、変更済み files、実行した checks、必要な decision、incomingの`implementation_route`、`implementation_route_source`、Design Pair handoff pathを変更せず記録します。parentは元のcompletion handoffも保持し、両handoffのroute identityが一致することを確認してからHIGH_MODELを再実行します。
 
 一度 re-entry した後は HIGH_MODEL が完了まで担当します。再委譲は、前回より `Remaining work` と `Allowed edit surface` がともに厳密に縮小し、同じ trigger が再発していない場合だけ許可します。
 

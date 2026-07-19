@@ -124,6 +124,9 @@ re-entry 時は、追加の redesign を行わず次を返します。
 - Trigger:
 - reentry_count:
 - previous_reentry_trigger:
+- implementation_route:
+- implementation_route_source:
+- Design Pair handoff: N/A / plans/<slug>-design-pair-implementation-handoff.md
 - Plan reference:
 - Work completed before stop:
 - Files changed:
@@ -141,9 +144,10 @@ re-entry state は次の規則で設定します。
 - `Trigger` は今回発見した trigger とする
 - `reentry_count` は incoming Implementation Completion Handoff の値に1を加える
 - `previous_reentry_trigger` は incoming Implementation Completion Handoff の値をそのまま維持する
+- `implementation_route`、`implementation_route_source`、Design Pair handoff pathはincoming Implementation Completion Handoffの値を変更せず維持する
 - `Trigger` と `previous_reentry_trigger` が同じ場合は、同じ trigger の再発であることを evidence に明記する
 
-parent は、この handoff と元の Implementation Intent を保持して `high-implementation-starter` を再実行します。
+parent は、この handoff、incoming Implementation Completion Handoff、元の Implementation Intent を保持して `high-implementation-starter` を再実行します。
 
 一度 re-entry した後は HIGH_MODEL が完了まで担当することを既定とします。再委譲は、HIGH_MODEL が `Remaining work` と `Allowed edit surface` の両方が前回より厳密に縮小したことを evidence 付きで示し、同じ trigger が再発していない場合だけ許可されます。
 

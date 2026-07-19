@@ -44,6 +44,8 @@ Design Pair package は Copilot target を宣言しません。Plan Coverage pac
 
 `implementation_route`と`implementation_route_source`はdurable artifactから再読します。resume時に欠ける、矛盾する、またはDesign Pair evidenceがあるのにtracked handoffが欠ける場合、Adaptiveへ補完せず停止します。`adaptive / default`の自動初期化はfresh intakeだけです。
 
+STANDARD_MODELからHIGH_MODELへre-entryする場合は、High-model Re-entry Handoffに両route fieldとDesign Pair handoff pathをincoming completion handoffから変更せずコピーします。parentは元のcompletion handoffとre-entry handoffの両方をHIGH_MODELへ渡し、route identityが一致しない場合は再実行前に停止します。
+
 ## Target Map discussion
 
 AI は予定変更面全体を bounded に調査し、具体的な file / symbol、現在の責務、requested change との関係、evidence、不明点を説明します。
