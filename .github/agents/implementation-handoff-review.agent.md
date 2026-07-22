@@ -34,6 +34,7 @@ plan-kernel
   -> runtime-contract-kernel (when Guardrail Focus / selected runtime contracts exist)
   -> test-design-kernel (when Guardrail Focus / selected runtime contracts exist)
   -> ★ implementation-handoff-review  ← この agent
+  -> design-pair-implementation-execution (explicit selection only)
   -> high-implementation-starter / human implementation
   -> (optional) code-review-focus-kernel
   -> human code review
@@ -72,6 +73,7 @@ Guardrail Focus coverage の guardrail chain が整っていても、parent Plan
 - **No-Guardrail-Focus standard route**: change-risk-triage が selected runtime contracts / Guardrail Focus を要求していない標準 route では、runtime-contract-kernel と test-design-kernel は必須ではありません。この場合、Check 2〜6 は `N/A (no Guardrail Focus)` として扱い、missing runtime/test artifacts だけを理由に BLOCKED にしてはいけません。
 - **Slice decomposition aware**: full-coverage decomposition 由来の slice では、Plan → Slice → RC / TP → XC の接続を確認する。cross-slice contract を slice 内で完了扱いしている handoff は blocking として扱う。
 - **Parent Plan Coverage Ledger required**: Plan の FR / AC を Guardrail Focus RC / TP / slice / cross-slice contract / deferred residual / out-of-scope のいずれかへ分類する。Guardrail Focus coverage に含まれなかった parent Plan item を黙って落としてはいけない。
+- **Implementation route propagation**: durable route artifact、resume evidence、Design Pair evidenceがないfresh intakeだけ`implementation_route: adaptive` / `implementation_route_source: default`を初期化する。resumeではupstream durable artifactの両route fieldを必須とし、欠落または矛盾があればAdaptiveへ補完せず`BLOCKED_BY_ARTIFACT_MISMATCH`とする。唯一の互換例外はcanonical `Legacy Adaptive handoff normalization`を満たすexact pre-Design-Pair Adaptive completion handoffとする。Design Pair はupstream durable artifactに`implementation_route: design-pair` / `implementation_route_source: explicit-user-selection`とexplicit user evidenceがある場合だけ保持する。riskやarchitectureから自動選択、推奨、提案してはいけない。
 - **Canonical coverage ledger aware**: `plans/<ticket-or-slug>-coverage-ledger.md` が存在する場合は canonical Parent Plan Coverage Ledger として読み、今回の handoff で変わった行だけを `Coverage Ledger Delta` に記録する。canonical ledger がない場合は、この artifact に full Parent Plan Coverage Ledger を作成する。full ledger と delta が矛盾する場合は `BLOCKED_BY_ARTIFACT_MISMATCH` とする。
 - **Behavior Case Coverage Ledger conditional required**: Plan の `Expansion required: Yes` の場合は、Black-box Behavior Spec artifact を条件付き必須入力とし、relevant Case IDs をすべて Behavior Case Coverage Ledger に記録する。Guardrail Focus readiness を Behavior Case / parent Plan readiness の代替にしてはいけない。
 - **Inline Ready Gate equivalence**: `documentation_level: lite` の Plan Coverage Lite artifact では、Inline Ready Gate が明示的に `implementation-handoff-review` 相当として PASS している場合だけ、この agent の separate artifact を省略できる。相当 gate は source of truth、FR / AC coverage、Case-to-Plan mapping、risk checklist、implementation scope、human decision、必要な Behavior Case Coverage Ledger、Implementation allowed の全 required row が PASS または根拠付き N/A である必要がある。この equivalence は bounded implementation pass の authorization だけであり、parent Plan close readiness ではない。
@@ -315,6 +317,8 @@ Plan Slice Decomposition artifact が必要なのに存在しない、または�
 1. `Verdict`
 2. `Readiness scope`
 
+route metadata も決定ではなく upstream から伝播する。新規 intake で durable route artifact、resume evidence、Design Pair の explicit selection evidence がまだ一切ない場合だけ `adaptive / default` を初期化する。resume、既存 handoff、または Design Pair selection evidence がある状態で `implementation_route` / `implementation_route_source` の一方でも欠ける場合は補完せず `BLOCKED_BY_ARTIFACT_MISMATCH` とする。`design-pair / explicit-user-selection` なのに tracked Design Pair handoff が必要な phase で欠ける場合も同じく停止し、Adaptive へ黙って降格させない。
+
 #### Verdict
 
 | Verdict | 条件 |
@@ -401,6 +405,9 @@ READY_FOR_BOUNDED_PARENT_PLAN_PASS | READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DEC
 | Parent Plan coverage ledger complete? | Yes / No / Not evaluated |
 | Behavior Case coverage ledger complete? | Yes / No / N/A / Not evaluated |
 | Guardrail Focus ready? | Yes / No / NotApplicable |
+| implementation_route | adaptive / design-pair |
+| implementation_route_source | default / explicit-user-selection |
+| design_pair_handoff | N/A / pending until Design Pair / plans/<ticket-or-slug>-design-pair-implementation-handoff.md |
 
 ## ブロッキング問題
 
@@ -421,6 +428,7 @@ READY_FOR_BOUNDED_PARENT_PLAN_PASS | READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DEC
 - plans/<ticket-or-slug>-runtime-contract-kernel.md（Guardrail Focus / selected runtime contracts がある場合）
 - plans/<ticket-or-slug>-test-design-kernel.md（Guardrail Focus / selected runtime contracts がある場合）
 - plans/<ticket-or-slug>-slice-decomposition.md（full-coverage decomposition 由来の slice の場合）
+- plans/<ticket-or-slug>-design-pair-implementation-handoff.md（明示選択された Design Pair 完了後）
 
 ## Parent Plan Coverage Ledger
 
@@ -459,6 +467,9 @@ canonical coverage ledger が存在する場合は "See: plans/<ticket-or-slug>-
 ## Handoff Packet
 
 - Profile used: triage-only (implementation-handoff-review)
+- implementation_route: adaptive / design-pair
+- implementation_route_source: default / explicit-user-selection
+- design_pair_handoff: N/A / pending until Design Pair / plans/<ticket-or-slug>-design-pair-implementation-handoff.md
 - Source artifacts: <読み込んだ artifacts の一覧>
 - Coverage ledger source: <plans/<ticket-or-slug>-coverage-ledger.md / not found; full ledger emitted here>
 - Selected contracts / IDs: <レビュー対象の Contract IDs / Test Point IDs。特定できない場合はその理由>
@@ -467,14 +478,14 @@ canonical coverage ledger が存在する場合は "See: plans/<ticket-or-slug>-
 - Decisions made: <verdict、ブロッキング判定、注記判定の要約>
 - Do not redo unless new evidence appears: <下流が反証を示すまで信頼してよいマッピング / 判定>
 - Remaining work: <ブロッキング問題、注記、NeedsHumanDecision、欠落 artifact など>
-- Recommended next step: <high-implementation-starter.agent.md または差し戻し先 agent / 人手判断>
+- Recommended next step: <design-pair-implementation-execution（explicit selection only）/ high-implementation-starter.agent.md / 差し戻し先 agent / 人手判断>
 ```
 
 ## Output rules
 
 - **ブロッキング問題**: 箇条書きで、何が問題か、どの artifact のどの項目かを明記する。理由なく長くしない。
 - **非ブロッキング注記**: 軽微な改善候補のみ。実装者が無視しても安全に進めるレベルにとどめる。
-- **引き継ぎ必須 inputs**: `high-implementation-starter.agent.md` または人間の実装者が受け取るべき artifact の一覧。Plan が source of truth であることを明示する。
+- **引き継ぎ必須 inputs**: explicit Design Pair route の場合は `design-pair-implementation-execution`、通常 route は `high-implementation-starter.agent.md`、または人間の実装者が受け取るべき artifact の一覧。Plan が source of truth であることを明示する。
 - **欠落または不一致のマッピング**: Check 1〜5 および Check 10 で発見した具体的な接続の欠落を表形式で示す。問題がなければ "None" と記載する。
   - `Slice ID` は、full-coverage decomposition 由来の slice に関係する欠落または不一致の場合だけ `SL-xxx` を記載する。該当しない場合は `none`。
   - `Cross-slice Contract ID` は、欠落または不一致が `XC-xxx` に関係する場合だけ記載する。該当しない場合は `none`。
@@ -504,7 +515,7 @@ canonical coverage ledger が存在する場合は "See: plans/<ticket-or-slug>-
 
 verdict を出力し、`引き継ぎ必須 inputs` と `Handoff Packet` を記録した後に停止してください。
 
-- `READY_FOR_BOUNDED_PARENT_PLAN_PASS` / `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS` の場合: `high-implementation-starter.agent.md` または人間の実装者への handoff に必要な情報を `引き継ぎ必須 inputs`、`Readiness scope`、`Parent Plan Coverage Ledger`、`Residual Decision Ledger`、`Handoff Packet` に記録し、停止してください。非自明な実装を STANDARD_MODEL へ直接渡してはいけません。
+- `READY_FOR_BOUNDED_PARENT_PLAN_PASS` / `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS` の場合: explicit Design Pair route は `design-pair-implementation-execution`、通常 route は `high-implementation-starter.agent.md`、または人間の実装者への handoff に必要な情報を `引き継ぎ必須 inputs`、`Readiness scope`、`Parent Plan Coverage Ledger`、`Residual Decision Ledger`、`Handoff Packet` に記録し、停止してください。非自明な実装を STANDARD_MODEL へ直接渡してはいけません。
 - `BLOCKED_BY_UNMAPPED_PARENT_ACCEPTANCE` / `BLOCKED_BY_ARTIFACT_MISMATCH` / `BLOCKED_BY_HUMAN_DECISION` / `BLOCKED` の場合: blocking issues を記録し、修正すべき artifact と担当 agent、または必要な human decision を示して停止してください。修正は行いません。
 
 ## Status vocabulary
@@ -529,7 +540,7 @@ Handoff Packet の `Remaining work`、`ブロッキング問題`、`非ブロッ
 ## Relationship to other agents
 
 - **通常の直前の agent**: Guardrail Focus がある場合は `test-design-kernel.agent.md`、Guardrail Focus がない標準 route では risk / contract gate — この agent の入力を生成する
-- **直後の agent**: `high-implementation-starter.agent.md` または人間の実装者 — この agent の `引き継ぎ必須 inputs` と `Handoff Packet` を受け取って実装を開始する
+- **直後の agent**: explicit Design Pair route では `design-pair-implementation-execution`、通常 route では `high-implementation-starter.agent.md`、または人間の実装者 — この agent の `引き継ぎ必須 inputs` と `Handoff Packet` を受け取る
 - **任意の実装後 gate**: `code-review-focus-kernel.agent.md` — human code review 用の読み順と重点箇所を整理する
 - **この agent は代替しない**: `plan-review.agent.md`（full Plan review）、`verification-kernel.agent.md`（実装後の production binding 検証）
 - **BLOCKED 時の修正先**:

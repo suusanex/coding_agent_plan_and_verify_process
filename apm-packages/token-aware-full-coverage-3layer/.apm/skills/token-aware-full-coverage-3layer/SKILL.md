@@ -116,6 +116,18 @@ Final gate: 親エージェント
 
 親エージェントは `plans/<ticket-or-slug>-parent-orchestration-state.md` を作成または更新し、後続の親エージェントが会話履歴なしで再開できる single resume entrypoint として扱ってください。標準 template はこの Skill に bundled された `references/full-coverage-parent-orchestration-state.md` です。`provision-work-repo-agents.cs` を使う consuming repo では `plans/_templates/full-coverage-parent-orchestration-state.md` にも配置されます。template file が見つからない場合でも、この section に列挙された required sections で state artifact を作成してください。
 
+implementation route は fresh flow intake の selection をそのまま state と各 READY slice に伝播します。次のdefaultはdurable route stateもresume evidenceもまだ存在しないfresh intakeだけで初期化します。
+
+```yaml
+implementation_route: adaptive
+implementation_route_source: default
+design_pair_handoff: N/A
+```
+
+Design Pair は利用者が明示選択した場合だけ `design-pair / explicit-user-selection` とし、自動選択、推奨、提案しません。この advanced package の Copilot target は Design Pair route の対応済み宣言ではありません。Codex / agent-skills で別途 Design Pair package が導入済みの場合だけ実行できます。
+
+resumeではParent Orchestration Stateの`implementation_route`と`implementation_route_source`を必須とします。片方でも欠ける、矛盾する、またはDesign Pair evidenceがあるのにhandoff pathが必要なphaseで欠ける場合は、Adaptiveへ補完せずartifact mismatchとして停止します。唯一の互換例外は、exact pre-Design-Pair Adaptive completion handoffが旧必須fieldをすべて持ち、Design Pair evidenceが一切ない場合です。canonical `Legacy Adaptive handoff normalization`を適用し、`route_metadata_normalization: legacy-adaptive-handoff`を記録してからslice resumeを続けます。
+
 この artifact は会話ログの再現ではなく、再開に必要な索引と差分だけを持ちます。parent Plan、slice artifact、triage、contract、verification result の本文をコピーしてはいけません。subagent output の全文、長い reasoning trace、append-only の長大な履歴ログも標準 artifact には入れません。source excerpt は原則禁止し、必要な場合だけ短い pointer に抑えてください。原則として path / status / next action / blocking reason を中心にしてください。file が大きくなりすぎた場合は、完了済み slice 行を短い summary に圧縮し、詳細は元の slice artifact に残します。
 
 Parent Orchestration State は次を記録します。
@@ -128,6 +140,7 @@ Parent Orchestration State は次を記録します。
 - cross-slice contract / field continuity / production wiring / Behavior Case の未検証項目
 - 親が下した判断、その evidence、保留中の判断
 - stop reason と resume safety
+- implementation_route、implementation_route_source、design_pair_handoff
 
 Parent Orchestration State の required sections は次です。
 
@@ -412,12 +425,13 @@ READY slice は、次の証跡を満たす必要があります。
 1. `implementation-handoff-review` を実行する。
 2. READY でない場合は実装せず停止する。
 3. `Behavior spec artifact required: Yes` の場合は Black-box Behavior Spec、Case-to-Slice mapping、Behavior Case Coverage Ledger が complete であることを確認する。`Expansion required: Yes` でも inline behavior sketch sufficient の場合は、parent Plan / slice artifact 内の Inline behavior sketch、Case-to-Slice mapping、Inline Ready Gate equivalent の coverage disposition を確認する。必要な behavior evidence が欠落・不完全・`UnmappedBlocking`・実装前 `NeedsHumanDecision` を含む場合は実装せず停止する。
-4. `high-implementation-starter` が actual code / tests / wiring を編集し、focused checks の evidence から remaining design uncertainty を判定する。
-5. `READY_FOR_STANDARD_COMPLETION` の場合だけ complete handoff を検証し、`standard-implementation-completer` を直列に実行する。`NEEDS_HIGH_MODEL_REENTRY` は元 intent と current worktree を保持して HIGH_MODEL へ戻す。
-6. `CONTINUE_HIGH_IMPLEMENTATION` は同一 HIGH_MODEL で継続し、`COMPLETED_BY_HIGH_MODEL` または completion の `COMPLETED` で implementation を終了する。stop verdict では verification へ進まない。
-7. 親は `plans/<ticket-or-slug>-implementation-execution.md` を durable result artifact として作成または更新し、各 phase の result を `Slice Implementation Result: SL-xxx` に集約する。Changed files / checks / acceptance evidence / Remaining Work / Implementation Self-Map / owner and verdict sequence を記録する。
-8. implementation 完了後だけ slice-local `verification-kernel` を実行し、Behavior Case Evidence Ledger が current Case IDs を扱っているか確認する。
-9. slice-local verification-kernel の verdict（例: `PARENT_PLAN_VERIFIED`、`PARENT_PLAN_NEEDS_RESIDUAL_DECISION`、`PARENT_PLAN_PARTIAL_WITH_FIX_CANDIDATES`、`BLOCKED_*`）と Remaining Work / residual candidates を出力して停止する。
+4. `implementation_route: design-pair` の場合は、各 READY slice の bounded change surface を `design-pair-implementation-execution` で調査・対話し、tracked handoff が `READY_FOR_ADAPTIVE_IMPLEMENTATION` になるまで production code / tests を編集しない。`adaptive` の場合はこの step を省略する。
+5. `high-implementation-starter` が actual code / tests / wiring を編集し、focused checks の evidence から remaining design uncertainty を判定する。
+6. `READY_FOR_STANDARD_COMPLETION` の場合だけ complete handoff を検証し、Design Pair Decision IDs を含む統合済み Locked decisions を `standard-implementation-completer` へ渡して直列に実行する。`NEEDS_HIGH_MODEL_REENTRY` は元 intent と current worktree を保持して HIGH_MODEL へ戻す。
+7. `CONTINUE_HIGH_IMPLEMENTATION` は同一 HIGH_MODEL で継続し、`COMPLETED_BY_HIGH_MODEL` または completion の `COMPLETED` で implementation を終了する。stop verdict では verification へ進まない。
+8. 親は `plans/<ticket-or-slug>-implementation-execution.md` を durable result artifact として作成または更新し、各 phase の result を `Slice Implementation Result: SL-xxx` に集約する。Changed files / checks / acceptance evidence / Remaining Work / Implementation Self-Map / owner and verdict sequence を記録する。
+9. implementation 完了後だけ slice-local `verification-kernel` を実行し、Behavior Case Evidence Ledger が current Case IDs を扱っているか確認する。
+10. slice-local verification-kernel の verdict（例: `PARENT_PLAN_VERIFIED`、`PARENT_PLAN_NEEDS_RESIDUAL_DECISION`、`PARENT_PLAN_PARTIAL_WITH_FIX_CANDIDATES`、`BLOCKED_*`）と Remaining Work / residual candidates を出力して停止する。
 
 adaptive slice implementation は次を行ってはいけません。
 
@@ -443,6 +457,10 @@ Implementation Completion Handoff は通常 `plans/<ticket-or-slug>-implementati
 ## Agent metadata
 
 - Agent route: high-implementation-starter -> standard-implementation-completer when delegable -> high-implementation-starter on re-entry
+- implementation_route: adaptive / design-pair
+- implementation_route_source: default / explicit-user-selection
+- design_pair_handoff: N/A / plans/<ticket-or-slug>-design-pair-implementation-handoff.md
+- Design Pair Decision IDs and compliance / conflict evidence: N/A / <evidence>
 - Owner and verdict sequence:
 - Configured model:
 - Configured reasoning effort:

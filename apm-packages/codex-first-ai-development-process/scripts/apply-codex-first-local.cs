@@ -55,6 +55,7 @@ var sourceSkill = Path.Combine(packageRoot, ".apm", "skills", "codex-first-cost-
 var sourceTemplates = Path.Combine(packageRoot, "templates");
 var repositoryRoot = Path.GetFullPath(Path.Combine(packageRoot, "..", ".."));
 var sourceAdaptiveSkill = Path.Combine(repositoryRoot, "apm-packages", "adaptive-implementation-execution", ".apm", "skills", "adaptive-implementation-execution");
+var sourceDesignPairSkill = Path.Combine(repositoryRoot, "apm-packages", "design-pair-implementation-execution", ".apm", "skills", "design-pair-implementation-execution");
 var sourceCanonicalAgents = Path.Combine(repositoryRoot, ".github", "agents");
 
 if (!Directory.Exists(sourceProfile)
@@ -63,6 +64,9 @@ if (!Directory.Exists(sourceProfile)
     || !File.Exists(Path.Combine(sourceSkill, "SKILL.md"))
     || !File.Exists(Path.Combine(sourceAdaptiveSkill, "SKILL.md"))
     || !File.Exists(Path.Combine(sourceAdaptiveSkill, "refs", "handoff.md"))
+    || !File.Exists(Path.Combine(sourceDesignPairSkill, "SKILL.md"))
+    || !File.Exists(Path.Combine(sourceDesignPairSkill, "map.md"))
+    || !File.Exists(Path.Combine(sourceDesignPairSkill, "handoff.md"))
     || !File.Exists(Path.Combine(sourceCanonicalAgents, "high-implementation-starter.agent.md"))
     || !File.Exists(Path.Combine(sourceCanonicalAgents, "standard-implementation-completer.agent.md"))
     || !Directory.Exists(sourceTemplates))
@@ -107,6 +111,16 @@ try
     CopySkillDirectory(
         sourceAdaptiveSkill,
         "adaptive-implementation-execution",
+        targetRepoRoot,
+        options.DryRun,
+        options.CheckOnly,
+        options.Force,
+        logs,
+        blockers);
+
+    CopySkillDirectory(
+        sourceDesignPairSkill,
+        "design-pair-implementation-execution",
         targetRepoRoot,
         options.DryRun,
         options.CheckOnly,

@@ -86,6 +86,30 @@ Use inline behavior sketch only when it can preserve source-backed behavior cove
 
 The Lite artifact must include an explicit no fake-only completion check. Stub, fake, mock, in-memory, or test-helper evidence alone cannot support implementation completion or close readiness.
 
+## Implementation route selection
+
+At flow intake, record one of the following durable metadata pairs.
+
+Default route:
+
+```yaml
+implementation_route: adaptive
+implementation_route_source: default
+```
+
+Only when the user explicitly selects Design Pair:
+
+```yaml
+implementation_route: design-pair
+implementation_route_source: explicit-user-selection
+```
+
+Do not automatically select, recommend, or propose Design Pair based on difficulty, risk, task size, or architecture. Do not ask the user to choose between the routes when no explicit selection exists; keep the default Adaptive route.
+
+Preserve both fields through the Plan Coverage Lite artifact, canonical coverage ledger / handoff review, full-coverage parent orchestration state, resume, and implementation result. For the Design Pair route, also record `design_pair_handoff: plans/<slug>-design-pair-implementation-handoff.md` once created. Missing or contradictory route metadata must not be inferred during resume. The only compatibility exception is an exact pre-Design-Pair Adaptive completion handoff with all former required fields and no Design Pair evidence; apply the canonical `Legacy Adaptive handoff normalization`, record `route_metadata_normalization: legacy-adaptive-handoff`, and reject partial new-schema or Design Pair evidence cases.
+
+The `design-pair-implementation-execution` package is a separate Codex / agent-skills package. Plan Coverage can use the route when both packages are installed for those targets. This Plan Coverage package's Copilot target does not make the Design Pair -> Adaptive route supported or verified on GitHub Copilot.
+
 ## Standard route
 
 Run the flow in this order unless a stop condition applies:
@@ -107,7 +131,11 @@ Run the flow in this order unless a stop condition applies:
    - `runtime-contract-kernel.agent.md`
    - `test-design-kernel.agent.md`
    - `implementation-handoff-review.agent.md`
-9. Implement only after the handoff review or a documented equivalent Inline Ready Gate allows implementation for the bounded parent Plan pass. Every non-trivial pass starts with `high-implementation-starter.agent.md` on `HIGH_MODEL`; do not classify shape need from documents or route directly to a standard implementation agent.
+9. Implement only after the handoff review or a documented equivalent Inline Ready Gate allows implementation for the bounded parent Plan pass.
+   - When `implementation_route: adaptive`, start the existing Adaptive route directly.
+   - When `implementation_route: design-pair` and `implementation_route_source: explicit-user-selection`, run `design-pair-implementation-execution` first. It may inspect bounded source and write only the tracked Design Pair handoff; it must not edit production code / tests. Start Adaptive Implementation only after that handoff returns `READY_FOR_ADAPTIVE_IMPLEMENTATION` with no blocking `Upstream-Decision-Required`.
+   - If an explicitly selected Design Pair skill is unavailable, route metadata is missing, or the handoff is invalid, stop instead of silently falling back to Adaptive or implementing directly.
+   After this optional pre-stage, every non-trivial pass starts with `high-implementation-starter.agent.md` on `HIGH_MODEL`; do not classify shape need from documents or route directly to a standard implementation agent.
    - `READY_FOR_STANDARD_COMPLETION`: validate the complete Implementation Completion Handoff, then run `standard-implementation-completer.agent.md` on `STANDARD_MODEL` serially.
    - `CONTINUE_HIGH_IMPLEMENTATION`: continue the same high-model run when possible; use it as a resume state only at an execution boundary.
    - `COMPLETED_BY_HIGH_MODEL`: aggregate the implementation evidence and continue to verification.
@@ -148,7 +176,7 @@ When `change-risk-triage.agent.md` recommends `full-coverage`:
 3. Do not continue while any `ArchitectureCritical` or `NeedsHumanDecision` residual remains.
    Recompute tracked source content hashes / explicit revisions and inspect the source-repository-commit-to-current diff for declared watch paths. HEAD equality is not required, and generated readiness/architecture artifact commits do not self-invalidate the baseline. Path equality is insufficient; any semantic baseline change makes the verdict stale and requires a readiness rerun.
 4. Run `plan-slice-decomposition.agent.md` only after the architecture gate permits it.
-5. Treat each resulting slice as a bounded parent Plan pass with parent Plan item and architecture traceability.
+5. Treat each resulting slice as a bounded parent Plan pass with parent Plan item and architecture traceability. Preserve `implementation_route`, `implementation_route_source`, and `design_pair_handoff` in parent orchestration state and each implementation-ready slice handoff.
 6. Use `token-aware-full-coverage-3layer` or an equivalent advanced route for slice preparation, architecture-drift review, adaptive slice implementation, and slice-local verification. Every non-trivial READY slice starts with `high-implementation-starter`; `slice-impl` is a legacy compatibility entry and is not the default implementation owner.
 7. After slice verification, run `cross-slice-verification-kernel.agent.md`.
 8. If cross-slice verification emits unresolved coverage items or FixNow candidates, run `coverage-gap-triage.agent.md`.
@@ -202,6 +230,8 @@ Every parent-agent turn using this skill should report:
 - whether implementation is allowed now
 - current adaptive implementation owner and verdict sequence, once implementation has started
 - completion handoff status and high-model re-entry reason, when applicable
+- implementation_route and implementation_route_source
+- Design Pair handoff path, Target Map summary, Locked Decision IDs, and compliance/conflict evidence when explicitly selected
 - residual, manual, or human-decision candidates
 - close readiness
 - concrete next action

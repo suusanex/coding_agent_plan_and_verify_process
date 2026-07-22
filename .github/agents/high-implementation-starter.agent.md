@@ -39,6 +39,11 @@ read relevant code
 - goal
 - scope
 - acceptance
+- implementation_route
+- implementation_route_source
+- Design Pair Implementation Handoff path または `N/A`
+
+route pairは`adaptive / default`または`design-pair / explicit-user-selection`だけを許可し、Design Pair evidenceおよびhandoff pathと一致させます。`adaptive / default`ではpathに明示的な`N/A`を要求します。fieldの欠落、組み合わせ矛盾、またはevidence不一致がある場合は編集前に`BLOCKED`を返し、`Stop reason: BlockedByInvalidCompletionHandoff`、各route identity fieldのraw observed valueまたは`<missing>`、artifact repairに必要なevidenceを報告します。値を推測または補完してはいけません。
 
 次は任意 input です。明示されていない場合は、次の規則で扱い、推定した内容を出力に記録します。
 
@@ -50,6 +55,10 @@ read relevant code
 validation expectation が明示されていない場合は repository standard を採用し、`Validation expectation: inferred from repository` と報告します。
 
 Plan Coverage、change-risk-triage、runtime-contract、test-design、coverage ledger、residual-decision artifact は必須ではありません。caller が binding input として渡した場合だけ守ってください。
+
+利用者が Design Pair route を明示選択した場合は、`Design Pair Implementation Handoff` を追加 input として受け取ります。handoff の `Locked Decisions` に Decision ID と explicit human confirmation がある entry だけを binding とし、Target Map、`Discussed but Unlocked`、`Adaptive-Owned`、Known Evidence、Known Assumptions、Knowledge Candidates は参考情報として扱ってください。Target Map と `Affected files / symbols` は allowed edit surface ではありません。
+
+Design Pair handoff がある場合も、通常の adaptive implementation と同じ authority を維持します。Locked Decisions 以外の責務配置、signature、dependency、wiring、state ownership、error / cancellation / retry、test seam 等は actual code と verification evidence に基づいて判断してください。
 
 入力不足により何を変更するか、scope、完了条件を確定できない場合は、code を推測で編集せず `REPLAN_REQUIRED` または `HUMAN_DECISION_REQUIRED` を返します。
 
@@ -64,6 +73,8 @@ Plan Coverage、change-risk-triage、runtime-contract、test-design、coverage l
 7. 未解決の構造判断が残る場合は同じ run 内で実装を続ける。
 8. 残作業が明示的かつ構造変更不要になった場合だけ、`Implementation Completion Handoff` を作る。
 
+Design Pair handoff がある場合は、実装中に各 Design Pair Decision ID の compliance evidence を記録します。HIGH_MODEL が追加で確定した decision は別 ID と origin で記録し、Design Pair entry を上書きしません。
+
 ## Continue with HIGH_MODEL when
 
 次のいずれかが残る場合は STANDARD_MODEL へ渡してはいけません。
@@ -77,6 +88,23 @@ Plan Coverage、change-risk-triage、runtime-contract、test-design、coverage l
 - existing code への局所追加が不自然なねじ込みになる
 - 複数の妥当な実装案から trade-off 判断が必要
 - Plan と existing code の矛盾を解消するには scope または acceptance の変更が必要
+
+Locked Decision 以外の新しい decision surface は停止理由ではありません。この agent が通常どおり判断して実装を続けます。
+
+## Locked Decision conflict
+
+actual code、production wiring、dependency evidence により Design Pair Locked Decision が実現不能または不安全、Decision を変えないと acceptance を満たせない、または複数の Locked Decisions / upstream artifacts が矛盾すると判明した場合、Decision を黙って変更してはいけません。
+
+`HUMAN_DECISION_REQUIRED`、`REPLAN_REQUIRED`、または適切な既存 stop verdict とともに次を返します。
+
+- affected Design Pair Decision ID
+- actual code / production wiring / dependency evidence
+- Locked Decision を維持できない理由
+- files changed と current worktree state
+- checks performed
+- 利用者が次に判断すべき事項
+
+automatic Design Pair re-entry は行いません。
 
 同一 run 内で続行できる場合、`CONTINUE_HIGH_IMPLEMENTATION` を parent へ逐次返して handoff を増やさず、そのまま作業を続けてください。この verdict は session boundary、resume、実行時間上限、または別 run が必要なときだけ状態表現として使います。
 
@@ -115,6 +143,7 @@ STANDARD_MODEL から一度 re-entry した後は、原則として HIGH_MODEL �
 
 - 初回 handoff は `reentry_count: 0`、`previous_reentry_trigger: N/A`、`delegation_surface_reduced: N/A` とする
 - STANDARD_MODEL から戻った re-entry handoff の `reentry_count` と `Trigger` を読む
+- re-entry handoffと元のImplementation Completion Handoffから`implementation_route`、`implementation_route_source`、Design Pair handoff pathを読み、値が一致することを確認する。不足または不一致がある場合は実装や再委譲を行わず`BLOCKED`を返し、`Stop reason: BlockedByInvalidCompletionHandoff`とartifact repairに必要なevidenceを報告する
 - 再委譲する場合は re-entry handoff の `reentry_count` を維持し、`previous_reentry_trigger` にその `Trigger` を設定し、`delegation_surface_reduced: Yes` とする
 - re-entry handoff の `Trigger` がその `previous_reentry_trigger` と同じ場合は再発として扱い、再委譲しない
 
@@ -127,11 +156,15 @@ STANDARD_MODEL から一度 re-entry した後は、原則として HIGH_MODEL �
 - Verdict
 - Handoff persistence
 - Plan reference
+- implementation_route
+- implementation_route_source
 - Validation performed
 - Acceptance status
 - Applicability evidence
 - Implemented
-- Locked decisions
+- Locked decisions（Origin、Decision ID、Decision、Affected files / symbols、Validation expectation、Compliance evidence）
+- Design Pair handoff path または `N/A`
+- Design Pair Decision compliance
 - Remaining work
 - Allowed edit surface
 - Validation commands
@@ -140,6 +173,8 @@ STANDARD_MODEL から一度 re-entry した後は、原則として HIGH_MODEL �
 - previous_reentry_trigger
 - delegation_surface_reduced
 - Known assumptions / unresolved observations
+
+`implementation_route` と `implementation_route_source` はincoming durable route pairを変更せず伝播します。許可される組み合わせは`adaptive / default`または`design-pair / explicit-user-selection`だけです。片方が欠ける、矛盾する、またはDesign Pair evidenceと一致しない場合はhandoffを作らず`BLOCKED`を返し、`Stop reason: BlockedByInvalidCompletionHandoff`とartifact repairに必要なevidenceを報告します。
 
 `Remaining work` は一意な Work ID と acceptance item mapping を持ち、file / symbol / expected behavior 単位で記述します。`Acceptance status` の mapping と `Remaining work` の acceptance item(s) は双方向に一致させます。`Allowed edit surface` は files と、必要なら symbols を明示します。
 
@@ -165,7 +200,7 @@ Parent Plan Coverage、Behavior Case、slice、runtime-contract、test-point、i
 - `HUMAN_DECISION_REQUIRED`
 - `BLOCKED`
 
-`BLOCKED` は tool、dependency、permission、environment など implementation intent の判断以外の外部 blocker に使います。
+`BLOCKED` は tool、dependency、permission、environment など implementation intent の判断以外の外部 blocker、または必須artifactの欠落・矛盾に使います。invalid completion handoffまたはroute identityが原因の場合は`Stop reason: BlockedByInvalidCompletionHandoff`を返します。
 
 `COMPLETED_BY_HIGH_MODEL` は、scope 内の acceptance item がすべて `Complete` であり、各 item に実装または validation evidence がある場合だけ返します。未完了 item がある場合は実装を継続するか `REPLAN_REQUIRED` を返し、外部 blocker がある場合は `BLOCKED`、人の判断が必要な場合は `HUMAN_DECISION_REQUIRED` を返します。
 
@@ -173,15 +208,22 @@ Parent Plan Coverage、Behavior Case、slice、runtime-contract、test-point、i
 
 返却時は次を短くまとめます。
 
+通常はすべてのverdictでincoming route identityを変更せず返します。唯一の例外は`Verdict: BLOCKED`かつ`Stop reason: BlockedByInvalidCompletionHandoff`の場合です。このresultでは完全なidentityを要求せず、`implementation_route`、`implementation_route_source`、Design Pair handoff pathの各fieldにraw observed valueまたは欠落を示す`<missing>`を返し、repair対象を報告します。外部blockerを理由とする`BLOCKED`を含むその他のverdictでは完全なunchanged identityが必要です。
+
 - Verdict
 - Plan reference
+- implementation_route
+- implementation_route_source
+- Design Pair handoff path または `N/A`
 - files changed
 - production path / wiring evidence
 - tests changed
 - validation commands and results
 - acceptance status table with evidence for every in-scope item
+- Design Pair Decision IDs、compliance / conflict evidence（存在する場合）
 - Implementation Self-Map Delta, or evidence-backed `N/A` when no Plan Coverage binding artifacts were supplied
 - remaining decision surface
 - handoff persistence
 - Implementation Completion Handoff when delegating
+- route identity repair evidence（invalid-artifact `BLOCKED`の場合）
 - final review status: `Not performed by this agent`

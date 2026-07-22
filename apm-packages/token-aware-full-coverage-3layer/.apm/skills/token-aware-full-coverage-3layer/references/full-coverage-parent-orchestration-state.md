@@ -1,5 +1,11 @@
 # Full-Coverage Parent Orchestration State
 
+implementation_route: adaptive / design-pair
+implementation_route_source: default / explicit-user-selection
+design_pair_handoff: N/A / plans/<ticket-or-slug>-design-pair-implementation-handoff.md / per-slice paths
+
+Design Pair は explicit-user-selection の場合だけ使用する。difficulty、risk、size、architecture から自動選択、推奨、提案しない。
+
 This artifact is the single resume entrypoint for full-coverage parent orchestration.
 Keep it compact. Do not paste full source artifacts, full subagent outputs, or long reasoning traces.
 Prefer path + status + next action.

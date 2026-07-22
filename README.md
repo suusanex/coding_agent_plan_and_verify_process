@@ -66,6 +66,7 @@ Source requirement
 | package | Use when |
 | --- | --- |
 | `apm-packages/adaptive-implementation-execution` | 通常 Plan Mode 後の非自明な実装を HIGH_MODEL で開始し、実コード上の decision surface が解消した場合だけ STANDARD_MODEL へ直列委譲したい |
+| `apm-packages/design-pair-implementation-execution` | 利用者が明示選択した場合だけ、実装前に code の予定変更面を対話し、explicit Locked Decisions を通常の Adaptive Implementation へ渡したい |
 | `apm-packages/codex-first-ai-development-process` | Codex を第一優先にし、短い依頼から cost-aware routing、モデル tier 分担、READY / close gate、stateful resume に入りたい |
 | `apm-packages/copilot-fallback-ai-development-process` | Codex 枠が尽きた場合などに、GitHub Copilot Chat in VS Code へ同じ思想の cost-aware process を repo-local 導入したい |
 | `apm-packages/token-aware-guardrail-kernel-flow` | operator が Plan網羅チェック・残件判定フローを直接選べる。通常利用では `plan-coverage-residual-flow` skill を入口にして既存 agent 群を進行管理したい |
@@ -84,7 +85,7 @@ Source requirement
 | Script | Use when | Installs / fixes |
 | --- | --- | --- |
 | `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM 導入後に Adaptive Implementation の必須 concrete Codex profile を repository-local に同期・検証したい | `.codex/agents/high-implementation-starter.toml`、`.codex/agents/standard-implementation-completer.toml`。`AGENTS.md` は操作しない |
-| `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、Codex-first / Adaptive skills、canonical implementation agent contracts、`templates/*.md` |
+| `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、Codex-first / Adaptive / Design Pair skills、canonical implementation agent contracts、`templates/*.md` |
 | `scripts/provision-work-repo-agents.cs` | 既存の token-aware / full-coverage package を APM 経由で導入し、agent TOML と template 配置を補正したい | `apm install` の実行、canonical Adaptive agents と legacy `.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level 設定補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置 |
 | `scripts/validate-architecture-slice-readiness.ps1` | Architecture Slice Readinessのagent、manifest、template、routing、validation resultを静的検証したい | dependency path、frontmatter、必須contract、旧direct routeの残存を検証 |
 
@@ -96,6 +97,14 @@ Adaptive Implementation package を変更した場合は、次を実行してく
 ```powershell
 ./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1
 dotnet publish ./apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs
+git diff --check
+```
+
+Design Pair implementation route を変更した場合は、次も実行してください。
+
+```powershell
+./apm-packages/design-pair-implementation-execution/scripts/validate.ps1
+dotnet publish ./apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs
 git diff --check
 ```
 
@@ -138,7 +147,7 @@ dotnet run --file scripts/provision-work-repo-agents.cs -- "C:\\path\\to\\work-r
 
 ## Adaptive Implementation Execution
 
-通常 Plan Mode output、手書き Plan、repository-tracked Plan、または Issue 内の実装計画を入力にする、独立した implementation-only flow です。
+通常 Plan Mode output、手書き Plan、repository-tracked Plan、Issue 内の実装計画、または明示選択された Design Pair handoff を入力にする、独立した implementation-only flow です。
 
 すべての非自明な implementation は `high-implementation-starter` が開始し、production code / tests を実際に編集して focused verification を行います。残作業に新しい構造上の意思決定が不要になった場合だけ、`Implementation Completion Handoff` を介して `standard-implementation-completer` へ直列委譲します。
 
@@ -177,6 +186,53 @@ $adaptive-implementation-execution を使って、直前の Plan を実装して
 - `apm-packages/adaptive-implementation-execution/docs/install-guide.md`
 - `apm-packages/adaptive-implementation-execution/docs/usage-guide.md`
 - `apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md`
+
+---
+
+## Design Pair Implementation Execution
+
+通常の implementation route は Adaptive Implementation です。
+
+```yaml
+implementation_route: adaptive
+implementation_route_source: default
+```
+
+利用者が開始時に Design Pair を明示選択した場合だけ、次の metadata を durable artifact / resume state に保存し、Adaptive Implementation の前段を追加します。
+
+```yaml
+implementation_route: design-pair
+implementation_route_source: explicit-user-selection
+```
+
+```text
+ordinary Plan / Implementation Intent
+  -> design-pair-implementation-execution
+  -> plans/<slug>-design-pair-implementation-handoff.md
+  -> adaptive-implementation-execution
+```
+
+Design Pair は予定変更面全体を bounded に調査し、具体的な file / symbol、current responsibility、requested change との関係、evidence を Target Map に記録します。人間が選んだ論点だけを対話し、explicit confirmation のある `Locked Decisions` だけを binding とします。`Discussed-Unlocked`、`Adaptive-Owned`、Target Map、Known Evidence は HIGH_MODEL の通常 authority または allowed edit surface を拘束しません。
+
+Design Pair phase の完了前に production code / tests を編集しません。tracked handoff が `READY_FOR_ADAPTIVE_IMPLEMENTATION` になった後、既存の HIGH -> optional STANDARD -> HIGH re-entry route を開始します。Locked Decision conflict は黙って変更せず、Decision ID と actual-code evidence を伴う stop verdict で返します。automatic Design Pair re-entry は行いません。
+
+Plan Coverage Flow では handoff review または equivalent Inline Ready Gate 後に Design Pair を起動し、後段の verification / residual decision を省略しません。package の正式 target は `codex` と `agent-skills` です。GitHub Copilot の Design Pair -> Adaptive end-to-end route は未検証であり、対応済みとは宣言しません。
+
+```powershell
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target codex,agent-skills
+dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs -- . --dry-run
+dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs -- .
+dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs -- . --check
+```
+
+fresh Codex targetではAdaptiveとのco-installとconcrete HIGH / STANDARD profileの`--check`までを一組とします。Design Pair package単体の導入だけでは、後段のmodel mappingが完成したとは扱いません。
+
+詳細:
+
+- `apm-packages/design-pair-implementation-execution/README.md`
+- `apm-packages/design-pair-implementation-execution/docs/usage-guide.md`
+- `apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md`
 
 ---
 
@@ -293,6 +349,7 @@ $codex-first-cost-router を使って、続きやって。
 
 - `.agents/skills/codex-first-cost-router/SKILL.md`
 - `.agents/skills/adaptive-implementation-execution/SKILL.md` と `refs/handoff.md`
+- `.agents/skills/design-pair-implementation-execution/SKILL.md` と `map.md` / `handoff.md`
 - `.github/agents/high-implementation-starter.agent.md`
 - `.github/agents/standard-implementation-completer.agent.md`
 - `.codex/agents/*.toml`（`high-implementation-starter`、`standard-implementation-completer`、`standard-verifier`、必要な high / cheap agents。`standard-implementer` は互換用）
@@ -316,6 +373,7 @@ dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\appl
 - `.codex/agents/*.toml`
 - `.agents/skills/codex-first-cost-router/SKILL.md`
 - `.agents/skills/adaptive-implementation-execution/SKILL.md` と `refs/*.md`
+- `.agents/skills/design-pair-implementation-execution/SKILL.md` と `map.md` / `handoff.md`
 - `.github/agents/high-implementation-starter.agent.md`
 - `.github/agents/standard-implementation-completer.agent.md`
 - `templates/*.md`

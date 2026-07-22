@@ -24,10 +24,11 @@ Codex は内部で `documentation_level: lite` または `documentation_level: s
 3. いきなり実装せず、Plan / risk / scan / contract のどこから始めるか判断する。
 4. Risk gate を通る場合は `plans/<slug>-change-risk-triage.md` を残す。
 5. 実装前に handoff review で実装許可と coverage ledger を確認する。
-6. READY になった非自明な範囲を `high-implementation-starter` へ委譲して実装を開始する。
-7. 構造判断が解消して complete な handoff ができた場合だけ、`standard-implementation-completer` へ残作業を直列委譲する。再び構造判断が必要なら HIGH_MODEL に戻す。
-8. 実装後に `standard-verifier` などで test / verification / close 可否を確認する。
-9. 止まる必要がある場合だけ、必要最小限の質問を返す。
+6. 利用者が Design Pair を明示選択した場合だけ、予定変更面を対話し、tracked handoff を作る。通常はこの工程を挟まない。
+7. READY になった非自明な範囲を `high-implementation-starter` へ委譲して実装を開始する。
+8. 構造判断が解消して complete な handoff ができた場合だけ、`standard-implementation-completer` へ残作業を直列委譲する。再び構造判断が必要なら HIGH_MODEL に戻す。
+9. 実装後に `standard-verifier` などで test / verification / close 可否を確認する。
+10. 止まる必要がある場合だけ、必要最小限の質問を返す。
 
 Codex は内部で Routing Plan と audit を残す。利用者が agent や model を選ぶ必要はないが、結果にはどの工程をどの agent / tier へ委譲したかの summary が含まれる。
 audit には、委譲実行の証跡、親が直接作業した場合の理由、実行設定と観測 model の区別も残る。利用者がこれを選ぶ必要はない。
@@ -47,12 +48,14 @@ dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\appl
 - `AGENTS.md` の Codex-first セクション（既存を上書きしない既定）
 - `.codex/config.toml`（足りないキーだけ補完）
 - `.agents/skills/adaptive-implementation-execution/`（complete handoff reference を含む）
+- `.agents/skills/design-pair-implementation-execution/`（explicit selection 時だけ使う Target Map / tracked handoff reference を含む）
 - `.github/agents/high-implementation-starter.agent.md` と `.github/agents/standard-implementation-completer.agent.md`
 - `.codex/agents/*.toml`（同名既存ファイルは競合時に停止）
 - `.agents/skills/codex-first-cost-router/SKILL.md`
 - `templates/*.md`
 
 標準ルートに必要な skill / agent / template はこのインストーラだけで入るため、別途 APM 実行を前提にしない。
+Design Pair skill も配置されますが、自動選択、推奨、提案はされません。通常経路は Adaptive Implementation です。
 `--dry-run` と `--check` はファイルやディレクトリを作成しない。`--check-only` は互換 alias である。
 必要なら `--force` を使って既存の `AGENTS.md` section / skill / agent / template を上書きし、VS Code 再読込して反映確認する。
 

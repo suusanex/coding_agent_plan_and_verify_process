@@ -32,7 +32,7 @@ global guidance は短く保つ。
 TOML の top-level field は Codex が解釈する configured execution defaults であり、本文中の自然言語や output template は source of truth ではない。
 
 repository-local な継続運用のためには `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` も追加しておく。
-このインストーラは `AGENTS.md` の managed section、`.codex/config.toml`、`.codex/agents/*.toml`、Codex-first / Adaptive skills、Adaptive completion handoff reference、canonical HIGH / STANDARD implementation agent contracts、`templates/*.md` を安全に追加・マージする。
+このインストーラは `AGENTS.md` の managed section、`.codex/config.toml`、`.codex/agents/*.toml`、Codex-first / Adaptive / Design Pair skills、Adaptive completion handoff reference、Design Pair Target Map / tracked handoff reference、canonical HIGH / STANDARD implementation agent contracts、`templates/*.md` を安全に追加・マージする。
 `templates/*.md` には `codex-first-state.md` と `codex-first-audit.md` の両方が含まれる。
 標準 Codex-first route に必要な runtime はこのインストーラだけで揃え、別途 APM 実行を前提にしない。
 
@@ -192,10 +192,11 @@ full-coverage 3層運用は advanced route である。
 - Routing Plan、Edit Permission、audit artifact、Agent Usage Ledger、DelegationCompliance が template / skill / docs に揃っている。
 - implementation-handoff-review が standard implementation 前の parent authorization と Behavior Case Coverage Ledger gate として定義されている。
 - READY implementation は `high-implementation-starter` から開始し、valid handoff 後だけ `standard-implementation-completer`、re-entry は HIGH_MODEL、READY verification は `standard-verifier` への serial delegation として定義されている。
+- implementation route はdurable route、resume、Design Pair evidenceがないfresh intakeだけ`adaptive / default`で初期化される。resumeでは両route fieldが必須であり、欠落または矛盾はAdaptiveへ補完せず停止する。唯一の互換例外はcanonical `Legacy Adaptive handoff normalization`を満たすexact pre-Design-Pair Adaptive completion handoffである。Design Pairはexplicit user selectionの場合だけhandoff review後かつHIGH start前に実行される。Design Pair phaseのproduction code / tests editは禁止され、Locked Decisionsだけがbindingである。
 - close gate が delegation evidence missing を成功扱いしない。
 - `profiles/codex-first/agents/*.toml` に `model` と `model_reasoning_effort` の実行可能な初期値がある。
 - `profiles/codex-first/agents/*.toml` に role-appropriate `sandbox_mode` がある。
-- `apply-codex-first-local.cs` が Codex-first / Adaptive skills、complete handoff reference、canonical HIGH / STANDARD implementation agent contracts、`templates/*.md` を配置し、`--check` で対象 repository の実ファイル一致を検証する。
+- `apply-codex-first-local.cs` が Codex-first / Adaptive / Design Pair skills、complete handoff references、canonical HIGH / STANDARD implementation agent contracts、`templates/*.md` を配置し、`--check` で対象 repository の実ファイル一致を検証する。
 - `apply-codex-first-local.cs` の `--dry-run` / `--check`（`--check-only` 互換 alias）がファイルやディレクトリを作成しない。
 - audit artifact の Agent Usage Ledger が configured / hook / reported / effective model と delegation violation を分離している。
 - parent direct work と trivial parent fix が cost-saving delegation success として数えられない。

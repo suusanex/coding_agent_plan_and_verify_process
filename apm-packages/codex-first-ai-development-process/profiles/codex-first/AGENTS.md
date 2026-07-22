@@ -14,6 +14,8 @@ Use `codex-first-cost-router` behavior:
 - create or update `plans/<slug>-change-risk-triage.md` during Risk gate and record `risk_triage_artifact_status`
 - do not run `implementation-handoff-review` until the change-risk-triage artifact is complete
 - run `implementation-handoff-review` or an explicitly equivalent pre-implementation gate before normal READY implementation
+- initialize implementation routing to `adaptive / default` only at fresh intake with no durable route, resume, or Design Pair evidence; on resume require both durable route fields and stop on missing or contradictory metadata instead of defaulting to Adaptive, except for an exact pre-Design-Pair Adaptive completion handoff accepted by the canonical `Legacy Adaptive handoff normalization`; use `design-pair / explicit-user-selection` only when the user explicitly selected it, never from task weight, risk, size, or architecture
+- when explicitly selected, run `design-pair-implementation-execution` after implementation authorization and before `high-implementation-starter`; allow only the tracked Design Pair handoff write until `READY_FOR_ADAPTIVE_IMPLEMENTATION`
 - for `documentation_level: lite`, treat the Plan Coverage Lite Inline Ready Gate as equivalent to `implementation-handoff-review` only when it is explicitly PASS and covers source of truth, FR / AC coverage, Case-to-Plan mapping, risk checklist, implementation scope, human decisions, required Behavior Case Coverage Ledger, and implementation allowed
 - when `Expansion required: Yes`, require `Behavior Case Coverage Ledger` status `Complete` before handing off to `high-implementation-starter`
 - route hard judgment to high agents

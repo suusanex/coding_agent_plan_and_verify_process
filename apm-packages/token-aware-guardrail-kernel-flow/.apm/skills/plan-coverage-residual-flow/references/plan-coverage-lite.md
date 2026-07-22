@@ -26,6 +26,15 @@ Lite は guardrail を削るものではありません。Plan source of truth�
 - Selection reason:
 - Why separate standard artifacts are not required:
 
+## Implementation Route
+
+- implementation_route: adaptive / design-pair
+- implementation_route_source: default / explicit-user-selection
+- design_pair_handoff: N/A / plans/<slug>-design-pair-implementation-handoff.md
+- Explicit user selection evidence: N/A / <source pointer>
+
+Use `design-pair` only with `explicit-user-selection`. Do not select, recommend, or propose it from difficulty, risk, size, or architecture. The default is `adaptive`.
+
 ## Plan Readiness
 
 - Expansion required: Yes / No / Unclear
@@ -125,6 +134,9 @@ No fake-only completion rule: do not claim implementation or close readiness usi
 - Profile used: plan-coverage-lite
 - Plan artifact:
 - documentation_level: lite
+- implementation_route:
+- implementation_route_source:
+- design_pair_handoff:
 - Plan readiness:
 - Inline behavior sketch sufficient:
 - Behavior spec artifact required:

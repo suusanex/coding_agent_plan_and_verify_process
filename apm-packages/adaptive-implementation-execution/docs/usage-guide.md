@@ -33,6 +33,17 @@ repository-tracked Plan の例:
 $adaptive-implementation-execution を使って plans/issue-123.md を実装してください。
 ```
 
+Design Pair route の例:
+
+```text
+$design-pair-implementation-execution で作成した plans/issue-123-design-pair-implementation-handoff.md を追加 input として、$adaptive-implementation-execution を開始してください。
+Locked Decisions だけを binding とし、その他の実装判断は actual code と verification evidence から行ってください。
+```
+
+Design Pair route は利用者が明示選択した場合だけ使います。Design Pair handoff の Target Map や `Affected files / symbols` は allowed edit surface ではありません。
+
+durable routeやresume evidenceがない通常Adaptiveのfresh intakeは、`implementation_route: adaptive`、`implementation_route_source: default`、`design_pair_handoff: N/A`の3項目を初期化します。parentはHIGH_MODELへ3項目を常に渡し、Design Pair handoff pathを省略しません。
+
 短い caller intent の例:
 
 ```text
@@ -73,7 +84,7 @@ Validation: focused unit tests と solution build。
 - tests / fixtures / test data
 - locked decisions を変えない focused failure 修正
 
-locked decisions を変える必要がある場合は、局所的にねじ込まず `NEEDS_HIGH_MODEL_REENTRY` を返します。
+有効なhandoffで実装または検証を開始した後にlocked decisionsを変える必要が判明した場合は、局所的にねじ込まず `NEEDS_HIGH_MODEL_REENTRY` を返します。handoffの欠落・矛盾・evidence不一致は構造判断ではなくinvalid artifactとして`BLOCKED` / `BlockedByInvalidCompletionHandoff`で停止します。
 
 ## Acceptance mapping in a handoff
 
@@ -88,10 +99,12 @@ READY_FOR_STANDARD_COMPLETION
   -> standard-implementation-completer starts
   -> existing test cannot reach the production registration path
   -> NEEDS_HIGH_MODEL_REENTRY
-  -> high-implementation-starter resumes with the original intent and re-entry handoff
+  -> high-implementation-starter resumes with the original intent, original completion handoff, and re-entry handoff
 ```
 
-STANDARD_MODEL は registration を暗黙変更しません。re-entry handoff に invalidating evidence、変更済み files、実行した checks、必要な decision を記録します。
+STANDARD_MODEL は registration を暗黙変更しません。re-entry handoff に invalidating evidence、変更済み files、実行した checks、必要な decision、incomingの`implementation_route`、`implementation_route_source`、Design Pair handoff pathを変更せず記録します。parentは元のcompletion handoffも保持し、両handoffのroute identityが一致することを確認してからHIGH_MODELを再実行します。HIGH_MODELとSTANDARD_MODELは通常完了を含むresultで同じ3項目を返し、parentはincoming identityとの一致を検証します。
+
+例外は`Verdict: BLOCKED`かつ`Stop reason: BlockedByInvalidCompletionHandoff`だけです。欠落したidentityを捏造せず、各fieldのraw observed valueまたは`<missing>`とrepair evidenceを返します。parentはこのresultに完全なpairを要求せず受理して停止します。外部blockerを理由とする`BLOCKED`では完全なunchanged identityが必要です。
 
 一度 re-entry した後は HIGH_MODEL が完了まで担当します。再委譲は、前回より `Remaining work` と `Allowed edit surface` がともに厳密に縮小し、同じ trigger が再発していない場合だけ許可します。
 
@@ -112,6 +125,18 @@ STANDARD_MODEL は registration を暗黙変更しません。re-entry handoff �
 - execution time limit により同一 run で続けられない
 
 tracked handoff は実コードの代替設計書ではありません。locked decisions、remaining work、allowed surface、validation、re-entry trigger の短い実行情報に留めます。
+
+### pre-Design-Pair tracked handoffのresume
+
+旧schemaの必須fieldをすべて持ち、`Design Pair handoff`、`Design Pair Decision compliance`、Origin / Decision ID columnsがすべてなく、Design Pair evidenceも一切ないhandoffだけを互換normalizationできます。
+
+- routeは`adaptive / default`とし、`route_metadata_normalization: legacy-adaptive-handoff`を記録する
+- 旧Locked decisionsへ出現順の`LEGACY-HIGH-D01`形式でIDを付ける
+- originは`HIGH_MODEL`とする
+- 補完したAffected files / symbolsはAllowed edit surfaceに使わない
+- normalization recordをtracked handoffへ追記してからSTANDARD_MODELへ渡す
+
+部分的に新しいDesign Pair fieldを持つ、Design Pair selection evidenceがある、または旧必須fieldが不足するhandoffはnormalizationしません。production code / testsを編集せず、`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてartifact repairを要求します。fixtureは`docs/examples/legacy-adaptive-handoff.md`です。
 
 ## Verification and final review
 
