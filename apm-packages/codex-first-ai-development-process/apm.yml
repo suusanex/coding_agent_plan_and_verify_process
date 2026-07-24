@@ -58,7 +58,7 @@ dependencies:
     - git: parent
       path: .github/agents/plan-slice-decomposition.agent.md
     - git: parent
-      path: apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow
+      path: apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow
     - git: parent
       path: .github/agents/cross-slice-verification-kernel.agent.md
     # Compatibility with the existing full-autonomous Plan-first package.

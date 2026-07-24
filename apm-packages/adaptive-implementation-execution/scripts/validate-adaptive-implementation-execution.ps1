@@ -116,8 +116,8 @@ $requiredFiles = @(
     'apm-packages/design-pair-implementation-execution/apm.yml',
     'apm-packages/design-pair-implementation-execution/.apm/skills/design-pair-implementation-execution/SKILL.md',
     'apm-packages/design-pair-implementation-execution/.apm/skills/design-pair-implementation-execution/handoff.md',
-    'apm-packages/token-aware-guardrail-kernel-flow/apm.yml',
-    'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md',
+    'apm-packages/plan-coverage-residual-flow/apm.yml',
+    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md',
     'apm-packages/token-aware-full-coverage-3layer/apm.yml',
     'apm-packages/token-aware-full-coverage-3layer/.apm/instructions/token-aware-full-coverage-3layer.instructions.md',
     'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md',
@@ -182,7 +182,7 @@ if (Test-Path -LiteralPath $manifestPath) {
 }
 
 $integratedManifests = @(
-    @{ Path = 'apm-packages/token-aware-guardrail-kernel-flow/apm.yml'; Version = '0\.6\.0' },
+    @{ Path = 'apm-packages/plan-coverage-residual-flow/apm.yml'; Version = '0\.7\.0' },
     @{ Path = 'apm-packages/token-aware-full-coverage-3layer/apm.yml'; Version = '0\.4\.0' },
     @{ Path = 'apm-packages/codex-first-ai-development-process/apm.yml'; Version = '0\.5\.0' },
     @{ Path = 'apm-packages/copilot-fallback-ai-development-process/apm.yml'; Version = '0\.2\.0' }
@@ -208,7 +208,7 @@ foreach ($integratedManifest in $integratedManifests) {
 }
 
 foreach ($integratedManifestPath in @(
-    'apm-packages/token-aware-guardrail-kernel-flow/apm.yml',
+    'apm-packages/plan-coverage-residual-flow/apm.yml',
     'apm-packages/token-aware-full-coverage-3layer/apm.yml',
     'apm-packages/codex-first-ai-development-process/apm.yml',
     'apm-packages/copilot-fallback-ai-development-process/apm.yml'
@@ -219,7 +219,12 @@ foreach ($integratedManifestPath in @(
     Assert-Contains $integratedManifestPath '\.github/agents/implementation-execution\.agent\.md' 'legacy implementation dependency'
 }
 
-$planCoverageSkill = 'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md'
+$planCoveragePackageName = 'plan-coverage-residual-flow'
+$planCoveragePackageRoot = "apm-packages/$planCoveragePackageName"
+$planCoverageManifest = "$planCoveragePackageRoot/apm.yml"
+$planCoverageSkill = "$planCoveragePackageRoot/.apm/skills/$planCoveragePackageName/SKILL.md"
+Assert-Contains $planCoverageManifest "(?m)^name:\s*$planCoveragePackageName\s*$" 'Plan Coverage package directory and manifest name alignment'
+Assert-Contains $planCoverageSkill "(?m)^name:\s*$planCoveragePackageName\s*$" 'Plan Coverage package and primary skill name alignment'
 Assert-Contains $planCoverageSkill 'Every non-trivial pass starts with `high-implementation-starter\.agent\.md` on `HIGH_MODEL`' 'Plan Coverage HIGH_MODEL start'
 Assert-Contains $planCoverageSkill '`READY_FOR_STANDARD_COMPLETION`.*`standard-implementation-completer\.agent\.md`' 'Plan Coverage bounded STANDARD completion'
 Assert-Contains $planCoverageSkill '`NEEDS_HIGH_MODEL_REENTRY`.*`high-implementation-starter\.agent\.md`' 'Plan Coverage HIGH_MODEL re-entry'
@@ -622,7 +627,7 @@ $workflow = '.github/workflows/validate-adaptive-implementation-execution.yml'
 Assert-Contains $workflow 'validate-adaptive-implementation-execution\.ps1' 'Adaptive Implementation CI validator invocation'
 foreach ($pathFilter in @(
     'apm-packages/design-pair-implementation-execution/\*\*',
-    'apm-packages/token-aware-guardrail-kernel-flow/\*\*',
+    'apm-packages/plan-coverage-residual-flow/\*\*',
     'apm-packages/token-aware-full-coverage-3layer/\*\*',
     'apm-packages/codex-first-ai-development-process/\*\*',
     'apm-packages/copilot-fallback-ai-development-process/\*\*',

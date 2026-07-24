@@ -1,7 +1,7 @@
 # Codex-first AI Development Process
 
 この document は、Codex を第一優先にした cost-aware development process の全体像をまとめる。
-既存の `token-aware-guardrail-kernel-flow`、`full-autonomous-plan-first-flow`、full-coverage 3層運用はそのまま利用可能だが、この package の標準ルートではない。
+既存の `plan-coverage-residual-flow`、`full-autonomous-plan-first-flow`、full-coverage 3層運用はそのまま利用可能だが、この package の標準ルートではない。
 標準ルートの中核は `codex-first-cost-router` であり、利用者に process 名、agent 名、model tier、full-coverage 分岐を選ばせない。
 実装経路は `adaptive` を既定とし、利用者が明示的に `design-pair` を選んだ場合だけ、実装開始前に Design Pair pre-stage を挿入する。
 
@@ -123,7 +123,7 @@ full-coverage 3層運用は advanced route である。
 
 ## Compatibility with existing packages
 
-- `plan-coverage-residual-gate-flow`: cost-router が内部で参照する既存 kernel 群。
+- `plan-coverage-residual-flow`: cost-router が内部で参照する既存 kernel 群。
 - `full-autonomous-plan-first-flow`: broad autonomous flow を明示的に選ぶ場合の既存資産。
 - `token-aware-full-coverage-3layer`: advanced route の既存資産。
 - `adaptive-implementation-execution`: 標準 route と full-coverage slice route で共有する implementation-internal ownership contract。

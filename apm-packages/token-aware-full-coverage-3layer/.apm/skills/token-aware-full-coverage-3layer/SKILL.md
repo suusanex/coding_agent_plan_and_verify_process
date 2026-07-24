@@ -22,7 +22,7 @@ Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
 
 この skill は「全部をサブエージェントに丸投げする」ためのものではありません。親エージェントが設計整合を握り、サブエージェントには bounded な準備・実装・検証だけを任せます。
 
-この package は Plan網羅チェック・残件判定フローの kernel agents を前提にします。APM manifest では `token-aware-guardrail-kernel-flow` と同じ shared instruction / kernel agent paths を dependency として含めます。手動で一部だけコピーする場合も、`plan-kernel`、`black-box-behavior-spec-kernel`、`change-risk-triage`、`implementation-contract-kernel`、`implementation-handoff-review`、`verification-kernel`、`cross-slice-verification-kernel`、`residual-decision-gate` などの Plan Coverage kernel agents を同時に利用可能にしてください。
+この package は Plan網羅チェック・残件判定フローの kernel agents を前提にします。APM manifest では `plan-coverage-residual-flow` と同じ shared instruction / kernel agent paths を dependency として含めます。手動で一部だけコピーする場合も、`plan-kernel`、`black-box-behavior-spec-kernel`、`change-risk-triage`、`implementation-contract-kernel`、`implementation-handoff-review`、`verification-kernel`、`cross-slice-verification-kernel`、`residual-decision-gate` などの Plan Coverage kernel agents を同時に利用可能にしてください。
 
 ## 発動条件
 
