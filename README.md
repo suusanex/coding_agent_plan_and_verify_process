@@ -14,7 +14,7 @@ GitHub Copilot / Codex で Plan-first 開発をするための agent（`.github/
 
    source requirement を必要に応じて black-box behavior cases へ展開し、bounded Plan を source of truth として維持しながら、通常可能な実装・検証は parent Plan に沿って進めるフロー。深い runtime / production-binding 確認は Guardrail Focus に絞れるが、それは implementation scope ではありません。高コスト、manual-only、blocked、ambiguous、human decision が必要な項目は residual candidate として記録し、Residual Decision Gate で明示判断します。
 
-Migration note: 旧称 `Token-aware guardrail kernel flow` は、この新フローへ移行済みの legacy name です。通常の prompt では新名称を使ってください。
+Current naming: `plan-coverage-residual-flow` is the standard entrypoint for the Plan Coverage Check and Residual Decision Flow. Use this name in prompts and package references.
 
 3. Adaptive Implementation Execution
    通常 Plan Mode 後の非自明な実装を HIGH_MODEL で開始し、実コードと focused verification の evidence に基づいて、安全な残作業だけを STANDARD_MODEL へ直列委譲する implementation-only flow。Plan Coverage artifacts は必須にしません。

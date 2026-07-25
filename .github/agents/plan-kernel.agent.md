@@ -58,7 +58,7 @@ You are the "Plan Kernel" agent.
 - **Documentation level is lite or standard only**: Plan Coverage の `documentation_level` は `lite` または `standard` のみです。`strict` を値として作ってはいけません。`full-coverage` は `documentation_level` ではなく、`ReadyForRiskTriage` 後に選ばれる route / process profile です。
 - **Case-to-Plan mapping belongs here**: `black-box-behavior-spec-kernel.agent.md` が作成した Case IDs を、Plan FR / AC、明示的な defer、source-backed out-of-scope、または human decision へ分類する責務はこの agent にあります。mapping を behavior spec artifact 側へ書いてはいけません。
 
-## Token-aware guardrail chain（embedded reference）
+## Plan Coverage guardrail chain（embedded reference）
 
 Plan網羅チェック・残件判定フロー では、Guardrail Focus surface に対して次の guardrail chain が downstream agents によって確立される必要があります。この agent は chain の基盤として Plan を作成します。
 
