@@ -14,7 +14,7 @@ Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
 
 This skill is the entrypoint for the standard Plan網羅チェック・残件判定フロー.
 
-The APM package name `plan-coverage-residual-gate-flow` is a compatibility name for this package. Use this skill name, `plan-coverage-residual-flow`, as the normal invocation name for the flow.
+The APM package and this entrypoint skill use the same name, `plan-coverage-residual-flow`. Use that name as the normal invocation name for the flow.
 
 This skill does not replace the individual agents. The source of truth for agent-specific rules, output formats, and verdict vocabulary remains `.github/agents/*.agent.md`.
 

@@ -500,7 +500,7 @@ User Guide に載せるべき例:
 User Guide から消すべきもの:
 
 - `codex-full-coverage-3layer を使って` のようなプロンプト例
-- `token-aware-guardrail-kernel-flow` を直接指定させる説明
+- `plan-coverage-residual-flow` を直接指定させる説明
 - agent名の一覧をユーザーに選ばせる説明
 - model tierをユーザーに選ばせる説明
 

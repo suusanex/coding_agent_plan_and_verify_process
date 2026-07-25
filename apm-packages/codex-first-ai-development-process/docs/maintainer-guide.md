@@ -208,4 +208,4 @@ full-coverage 3層運用は advanced route である。
 - `documentation_level` は `lite` / `standard` のみで、`strict` が enum として残っていない。
 - full-coverage は documentation level ではなく advanced route として説明されている。
 - Codex-first profile TOML が `.github/instructions/plan-coverage-shared.instructions.md` を直接参照していない。
-- 既存 `token-aware-guardrail-kernel-flow` と `full-autonomous-plan-first-flow` を壊していない。
+- 既存 `plan-coverage-residual-flow` と `full-autonomous-plan-first-flow` を壊していない。

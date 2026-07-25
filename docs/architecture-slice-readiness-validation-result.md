@@ -2,10 +2,10 @@
 
 ## Execution metadata
 
-- Executed at: `2026-07-19T17:03:51+09:00`
+- Executed at: `2026-07-24T16:26:17+09:00`
 - Executor: Codex, deterministic ASR-001 through ASR-006 fixture revalidation against the repository agent contracts
-- Branch: `codex/issue-48` / `a2ac45d` plus PR #49 review-fix working tree
-- Reviewed source: Issue #48 Design Pair route with PR #49 resume/fresh-install review fixes, captured by the exact contract hashes below
+- Branch: detached `a36af0c` plus APM package rename working tree
+- Reviewed source: `plan-coverage-residual-flow` package naming alignment and synchronized full-coverage dependency description, captured by the exact contract hashes below
 - Scope: routing / artifact / authorization semantics only; no production code or external system changes
 
 ### Contract revisions evaluated
@@ -19,8 +19,8 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | `.github/agents/plan-slice-decomposition.agent.md` | `f90c0aebed89b200a4f2b0ba09c5aba80b2b11a8ca6c1d4497290bb9bd12df84` |
 | `slice-prep.agent.md` | `469723cb9935d71a24dbf7b2b37d0969de9a45cf452b1108e850e144d15f3b30` |
 | `slice-impl.agent.md` | `699b6e85f0e47daaa25a6628364091a2b292c4956df064635f72d372fbc30950` |
-| `token-aware-full-coverage-3layer/SKILL.md` | `d3a65d9bfbc033e68d577f29971ece1e29c4468c7e74877d990ec151cf0714e3` |
-| `plan-coverage-residual-flow/SKILL.md` | `ca7300c7ad5eaaf0e7ea73875e1a3579f361e1a5f0c7d7e60cb80221f6ec7717` |
+| `token-aware-full-coverage-3layer/SKILL.md` | `e3c2bef99d25ea92e5a9a6b392e722a814f525eada351782d6a8722336e963bc` |
+| `plan-coverage-residual-flow/SKILL.md` | `4f3198effad1fc7666f1f11749071ae62b27b41e45907421236ad505d5512a9e` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 | `coverage-ledger.md` template | `ec80098b03f915a9389437915e1bd5ec952d75a1a957f12d085ff74a2de1f065` |
 | `plan-coverage-lite.md` template | `bdb9964acc4266034aa1bfa98425712c37e72ca958a44dfd4b53916b65bbab64` |

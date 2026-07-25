@@ -49,7 +49,7 @@ internal static class RepoAgentSetup
 
     private static readonly string[] ApmPackages =
     [
-        "suusanex/coding_agent_plan_and_verify_process/apm-packages/token-aware-guardrail-kernel-flow",
+        "suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow",
         "suusanex/coding_agent_plan_and_verify_process/apm-packages/token-aware-full-coverage-3layer"
     ];
 

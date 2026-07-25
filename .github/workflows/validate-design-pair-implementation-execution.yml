@@ -5,7 +5,7 @@ on:
     paths:
       - 'apm-packages/design-pair-implementation-execution/**'
       - 'apm-packages/adaptive-implementation-execution/**'
-      - 'apm-packages/token-aware-guardrail-kernel-flow/**'
+      - 'apm-packages/plan-coverage-residual-flow/**'
       - 'apm-packages/token-aware-full-coverage-3layer/**'
       - 'apm-packages/codex-first-ai-development-process/**'
       - '.github/agents/high-implementation-starter.agent.md'
@@ -20,7 +20,7 @@ on:
     paths:
       - 'apm-packages/design-pair-implementation-execution/**'
       - 'apm-packages/adaptive-implementation-execution/**'
-      - 'apm-packages/token-aware-guardrail-kernel-flow/**'
+      - 'apm-packages/plan-coverage-residual-flow/**'
       - 'apm-packages/token-aware-full-coverage-3layer/**'
       - 'apm-packages/codex-first-ai-development-process/**'
       - '.github/agents/high-implementation-starter.agent.md'

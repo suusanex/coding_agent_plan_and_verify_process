@@ -135,7 +135,7 @@ Expected:
 
 Manifest check:
 
-- package has no dependency on `token-aware-guardrail-kernel-flow`, `token-aware-full-coverage-3layer`, or `codex-first-ai-development-process`
+- package has no dependency on `plan-coverage-residual-flow`, `token-aware-full-coverage-3layer`, or `codex-first-ai-development-process`
 
 ## VAL-007: No write-heavy parallelism
 

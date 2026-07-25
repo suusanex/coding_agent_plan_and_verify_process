@@ -72,9 +72,9 @@ $requiredFiles = @(
     'apm-packages/adaptive-implementation-execution/docs/examples/legacy-adaptive-handoff.md',
     'apm-packages/adaptive-implementation-execution/docs/install-guide.md',
     'apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs',
-    'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md',
-    'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md',
-    'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md',
+    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md',
+    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md',
+    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md',
     'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md',
     'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/references/full-coverage-parent-orchestration-state.md',
     'apm-packages/codex-first-ai-development-process/.apm/skills/codex-first-cost-router/SKILL.md',
@@ -269,7 +269,7 @@ Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples
 Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' '`design_pair_handoff: N/A`' 'fresh default N/A scenario'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' 'invalid-artifact `BLOCKED`だけはraw observed valueまたは`<missing>`とrepair evidenceを返す' 'invalid-artifact BLOCKED route output exception scenario'
 
-$planCoverageSkill = 'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md'
+$planCoverageSkill = 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md'
 Assert-Contains $planCoverageSkill 'implementation_route:\s*adaptive' 'Plan Coverage default Adaptive route'
 Assert-Contains $planCoverageSkill 'implementation_route_source:\s*default' 'Plan Coverage default route source'
 Assert-Contains $planCoverageSkill 'design-pair-implementation-execution' 'Plan Coverage explicit Design Pair route'
@@ -277,8 +277,8 @@ Assert-Contains $planCoverageSkill 'Do not automatically select, recommend, or p
 Assert-Contains $planCoverageSkill 'Missing or contradictory route metadata must not be inferred during resume' 'Plan Coverage resume fail-closed rule'
 
 foreach ($statePath in @(
-    'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md',
-    'apm-packages/token-aware-guardrail-kernel-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md',
+    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md',
+    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md',
     'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/references/full-coverage-parent-orchestration-state.md',
     'apm-packages/codex-first-ai-development-process/templates/codex-first-state.md'
 )) {

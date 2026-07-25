@@ -10,7 +10,7 @@ This document is a requirements specification for creating or revising agents. I
 
 この document に基づいて agent を作成または改訂する場合、作成者または作成プロセスは次を authoring-time context として読む必要があります。
 
-- `docs/token-aware-guardrail-kernel-purpose.md`
+- `docs/plan-coverage-purpose.md`
 - replace または complement する existing agent files
 - 実際の implementation task を想定するために必要な target repository context
 
