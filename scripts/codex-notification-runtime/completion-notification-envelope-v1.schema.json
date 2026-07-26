@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "completion-notification-envelope-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "primary_process", "observed_status"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "primary_process": { "type": "string", "minLength": 1, "maxLength": 240 },
+    "observed_status": { "type": "string", "minLength": 1, "maxLength": 240 },
+    "title": { "type": "string", "maxLength": 240 },
+    "repository": { "type": "string", "maxLength": 240 },
+    "result_uri": {
+      "type": "string",
+      "format": "uri",
+      "maxLength": 2048,
+      "allOf": [
+        { "pattern": "^[Hh][Tt][Tt][Pp][Ss]://[^@/?#]+(?:/[^/?#]+)+(?:[?#].*)?$" },
+        { "not": { "pattern": "^[Hh][Tt][Tt][Pp][Ss]://[Gg][Ii][Tt][Hh][Uu][Bb]\\.[Cc][Oo][Mm](?:/[^/?#]+){0,2}/?(?:[?#].*)?$" } }
+      ]
+    }
+  }
+}

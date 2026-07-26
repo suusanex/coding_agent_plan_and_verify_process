@@ -2,6 +2,34 @@
 
 GitHub Copilot / Codex で Plan-first 開発をするための agent（`.github/agents/`）、APM package、運用ドキュメントを管理する repository です。
 
+## Codex completion notification runtime
+
+WindowsでCodex親turnの終了を通知する共通runtimeは、[scripts/codex-notification-runtime](scripts/codex-notification-runtime) にあります。これは既存のuser-level `notify` commandを捨てずに転送し、`completion-notification` fenced blockからeventを作るFile-based apps群です。導入前には必ずdry-runを実行してください。
+
+```powershell
+dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --dry-run
+dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- install
+dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --check
+```
+
+一時環境でinstall/update/checkを検証するときは、`--codex-home <path> --install-root <path>`を併用します。`--install-root`を省略した通常導入では`%LOCALAPPDATA%\CodexNotificationRuntime`を使用します。
+
+`--check`のWindows provider support probeは5秒で打ち切り、process treeを終了して`DEGRADED`を返します。repositoryの専用GitHub Actions jobにも15分の上限を設けています。
+
+配布・導入のsource of truthは3本の`.cs` File-based appsです。installerが導入時にsourceから一時領域へpublishするため、`scripts/codex-notification-runtime/artifacts/`の生成物は追跡・配布しません。
+
+最終回答へ付けるenvelopeは次の形式です。`result_uri`が有効なHTTPS URLなら通知の操作先として優先し、なければ該当Codex threadへ戻ります。runtimeは通知失敗をCodex turnの失敗へ変更しません。
+
+````markdown
+```completion-notification
+{"schema_version":1,"primary_process":"adaptive-implementation-execution","observed_status":"COMPLETED","title":"implementation completed","repository":"owner/repository","result_uri":"https://github.com/owner/repository/pull/123"}
+```
+````
+
+`result_uri`は具体的な結果を指すuserinfoなしのHTTPS URLだけを受理します。hostのroot URL、およびGitHubのトップ・ownerトップ・repositoryトップは粗いリンクとして破棄し、`resume_uri`へfallbackします。
+
+`[completion-notification]`を入力に含めたturnはenvelopeが欠落または不正でも、`TURN_ENDED`としてfallback通知されます。詳細とrollbackは [decision-record.md](scripts/codex-notification-runtime/decision-record.md)、実機確認状況は [manual-verification.md](scripts/codex-notification-runtime/manual-verification.md) を参照してください。
+
 単純な Plan モードでは不十分と感じた点を、自分の用途向けに改善したものです。
 
 この repository には、大きく分けて 4 系統のプロセスがあります。
@@ -312,12 +340,12 @@ pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remedia
 
 `-DescribePayload`は外部modelへ送信せず対象一覧だけを表示します。内容を確認して送信を明示承認した場合だけ、`-ConfirmExternalModelPayload`で実model smokeを実行します。
 
-固定証跡は`tests/pr-review-remediation/PRR-001/`に保存します。remote APM導入はAPM 0.26.0で次のように再現でき、CIではPR head SHAを指定して同じ検証をmerge gateとして実行します。
+固定証跡は`tests/pr-review-remediation/PRR-001/`に保存します。remote APM導入はAPM 0.26.0で次のように再現でき、CIではbase repositoryのevent refを指定して同じ検証をmerge gateとして実行します。pull requestでは`refs/pull/<number>/merge`を使い、checkoutされたmerge snapshotとremote packageの内容を一致させます。
 
 ```powershell
 pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1 `
   -Repository suusanex/coding_agent_plan_and_verify_process `
-  -Ref <commit-sha>
+  -Ref <git-ref>
 ```
 
 ---

@@ -60,9 +60,9 @@ APM 0.26.0によるremote package導入、transitive dependency、relative asset
 ```powershell
 pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1 `
   -Repository suusanex/coding_agent_plan_and_verify_process `
-  -Ref <commit-sha>
+  -Ref <git-ref>
 ```
 
-実agent smokeは認証とmodel利用権限を必要とするためCIで毎回再実行せず、固定証跡をvalidatorで検査します。remote APM smokeはPR head SHAを使うCI merge gateです。
+実agent smokeは認証とmodel利用権限を必要とするためCIで毎回再実行せず、固定証跡をvalidatorで検査します。remote APM smokeはbase repositoryのevent refを使うCI merge gateです。pull requestでは`refs/pull/<number>/merge`を指定するため、checkoutされたmerge snapshotとremote packageの内容が一致します。
 
 詳細はSkillの`references/usage.md`を参照してください。
