@@ -222,3 +222,4 @@ finally {
 }
 
 Write-Host 'PASS codex notification runtime validation'
+$global:LASTEXITCODE = 0
