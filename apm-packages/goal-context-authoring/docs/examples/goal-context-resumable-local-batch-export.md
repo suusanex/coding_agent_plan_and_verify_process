@@ -93,6 +93,7 @@ sensitive_data_review: passed
 | Provenance | Outcome to demonstrate | Required evidence | Evidence type |
 | --- | --- | --- | --- |
 | [Explicit] | Confirmed records are not re-exported after a failure. | Controlled failure on record 42 followed by resume evidence showing records 1-41 skipped. | automated integration/runtime |
+| [Explicit] | `LC-AC-001`: Resume does not repeat external calls for confirmed records. | Compare external-call counts before and after resume and verify that the count for every confirmed record does not increase. | automated integration/runtime |
 | [Explicit] | Known-good output survives interruption and failure. | Before/after file identity and content evidence across failed and terminated runs. | automated integration/runtime |
 | [Explicit] | Invalid resume state fails closed. | Corrupted or mismatched manifest cases refuse resume with actionable diagnostics. | automated negative test |
 | [Explicit] | Failure is actionable. | Non-zero exit code, exact failed record, local report path, and deterministic resume command are observable. | runtime and human review |
@@ -103,6 +104,7 @@ sensitive_data_review: passed
 - [Explicit] A dashboard reports that a run failed but provides no safe resume position or protection for confirmed output.
 - [Explicit] A final report is written only on normal exit, so abrupt termination loses all progress.
 - [Explicit] Resume starts near the failure but silently re-exports records already confirmed.
+- [Explicit] `LC-WRONG-001`: Resume calls the external system again for a confirmed record and only deduplicates or discards the duplicate output afterward.
 - [Explicit] Partial output replaces the last known-good export before the run is complete.
 - [Explicit] A retry occurs automatically even though the endpoint may charge or perform a non-idempotent side effect.
 - [Inferred] A manifest exists but is trusted without verifying its input set and export configuration, allowing an unsafe resume.
@@ -135,6 +137,8 @@ sensitive_data_review: passed
 | --- | --- | --- | --- |
 | CLI-first MVP | [Explicit] | Confirmed in segments 2 and 4. | High. |
 | No automatic retry | [Explicit] | Rejected in segment 3 with cost and side-effect reasons. | High. |
+| `LC-AC-001` external-call-count evidence | [Explicit] | Stated only in segment 1 and included in Acceptance evidence. | High; verify calls are skipped before the external boundary. |
+| `LC-WRONG-001` post-call deduplication failure | [Explicit] | Stated only in segment 1 and included in Superficially compliant but wrong. | High; output deduplication alone is insufficient. |
 | Atomic or equivalent promotion boundary | [Inferred] | Connects the accepted atomic-promotion direction to the explicit known-good-output invariant. | Implementation may choose an equivalent mechanism and must prove the invariant. |
 | Persistence cadence | [Unknown] | Explicitly left undecided in segment 4. | Requires implementation evidence and documentation, not a product decision unless trade-off changes the invariant. |
 
@@ -151,4 +155,3 @@ sensitive_data_review: passed
 - Provenance and unknowns confirmed: Yes
 - Sensitive-data review confirmed: Yes
 - Changes requested during review: Clarified that fast notification is secondary to output safety and retained persistence cadence as Unknown.
-

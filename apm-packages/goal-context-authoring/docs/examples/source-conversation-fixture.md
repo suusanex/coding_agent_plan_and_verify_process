@@ -10,6 +10,10 @@ This fictional fixture is input material for validating Goal Context generation.
 
 **User:** The important thing is not a dashboard. I need to know which record failed and restart without exporting successful records again. I said dashboard because that was the first UI I imagined.
 
+**User (LC-AC-001):** For acceptance, a controlled failure followed by resume must show that the total external-call count for records already confirmed as exported does not increase.
+
+**User (LC-WRONG-001):** Deduplicating a record only after calling the external system again is still wrong. The resume path must skip the external call for a confirmed record, not merely discard its duplicate output.
+
 ## Segment 2: safety and operating boundary
 
 **Assistant:** We could upload failure telemetry to a hosted service and notify you by email.
@@ -41,4 +45,3 @@ This fictional fixture is input material for validating Goal Context generation.
 **User:** That is not decided. The implementation may choose after measuring the durability/performance trade-off, but it must document the maximum rework after interruption and must never mark an unconfirmed record complete.
 
 **User:** Final MVP: offline CLI, durable local manifest, protected known-good output, exact failure location, deterministic human-triggered resume, and evidence for interruption and mismatched-manifest cases. No dashboard, cloud telemetry, email, or automatic retry in the MVP.
-

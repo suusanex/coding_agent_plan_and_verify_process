@@ -46,12 +46,14 @@ This skill must not:
 
 Identify every source made available for this authoring pass: conversation segments, final user corrections, decision notes, and any Issue draft used only as a cross-check. Record missing or truncated portions. If the source needed to determine the original problem or desired outcome is unavailable, stop and request it instead of reconstructing it from the Issue alone.
 
-For a long conversation, divide the material into ordered source segments and keep a temporary coverage ledger with these columns:
+For a long conversation, divide the material into ordered source segments and keep a temporary claim ledger with these columns:
 
-| Segment | Topics | Decisions | Corrections or priority changes | Rejected alternatives | Unknowns |
-| --- | --- | --- | --- | --- | --- |
+| Claim ID | Segment | Source pointer | Contract dimension | Provenance | Extracted statement, reason, or evidence | Supersession / disposition |
+| --- | --- | --- | --- | --- | --- | --- |
 
-The ledger is working material. Do not reproduce it as the final Goal Context.
+Use stable Claim IDs and precise source pointers. For every segment, consider each contract dimension: Original problem; Desired outcome; Concrete user situation; User scenario; MVP scope; Non-goal; Future work; Accepted decision and reason; Rejected alternative and reason; Constraint or invariant; Success scenario; Acceptance evidence; Superficially compliant but wrong; Review question; Open question or assumption; Correction or priority change. Record `None observed in this segment` only as temporary coverage status, never as final Goal Context content.
+
+Before drafting, give every extracted claim exactly one final disposition: `Included`, `Superseded by <Claim ID>`, `Duplicate of <Claim ID>`, `Excluded as sensitive`, or `Retained as Unknown`. If an expected segment is missing, stop instead of drafting. The ledger is working material; do not reproduce it as the final Goal Context.
 
 ### 2. Extract before synthesizing
 
@@ -105,7 +107,7 @@ Treat validator success as structural evidence only. It does not replace semanti
 
 Present the draft together with `references/human-review-checklist.md`. The human must specifically confirm Desired outcome, rejected alternatives, superficially compliant but wrong outcomes, MVP boundaries, corrections and priority changes, provenance classification, and sensitive-data removal.
 
-Before confirmation, keep frontmatter `status: draft`, `sensitive_data_review: pending`, and the Human review record as pending. Only after explicit confirmation may these become `status: human-reviewed`, `sensitive_data_review: passed`, and a dated reviewer record.
+Before confirmation, keep the only valid draft lifecycle pair, `status: draft` and `sensitive_data_review: pending`, with the Human review record pending. Only after explicit confirmation may the document use the other valid pair, `status: human-reviewed` and `sensitive_data_review: passed`, together with a dated reviewer record. Mixed pairs are invalid.
 
 When human review is complete, run the stronger validation mode if available:
 
@@ -133,4 +135,3 @@ Do not claim that implementation, Issue creation, or purpose review was performe
 - `SOURCE_MATERIAL_REQUIRED`: source boundary is too incomplete to establish the original problem or desired outcome
 - `HUMAN_DECISION_REQUIRED`: unresolved contradiction or scope decision prevents a trustworthy Goal Context
 - `BLOCKED`: tool, permission, or environment failure prevents completion
-

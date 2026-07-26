@@ -49,4 +49,3 @@ The reviewer must have access to the source conversation or authoritative decisi
 - [ ] Requested corrections from this review have been applied.
 - [ ] Human review record identifies the reviewer, date, confirmations, and review changes.
 - [ ] Frontmatter is changed to `status: human-reviewed` and `sensitive_data_review: passed` only after all checks above pass.
-

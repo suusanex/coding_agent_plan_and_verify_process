@@ -17,6 +17,7 @@ Issue の長文化や会話の時系列要約ではなく、Original problem、D
 | Source conversation fixture | `docs/examples/source-conversation-fixture.md` |
 | Expected reviewed example | `docs/examples/goal-context-resumable-local-batch-export.md` |
 | Reusable validator | `scripts/validate-goal-context-authoring.ps1` |
+| Package-root install smoke test | `scripts/test-apm-package-install.ps1` |
 
 Prompt、contract、template、checklist は bundled Skill の `references/` として配布します。standalone Markdown file を manifest dependency にしないため、APM の標準導入経路で一式が対象 repository の `.agents/skills/goal-context-authoring/` に配置されます。
 
@@ -54,9 +55,11 @@ package source 自体の fixture と契約を検証する場合は引数なし�
 
 ```powershell
 ./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1
+./apm-packages/goal-context-authoring/scripts/test-apm-package-install.ps1
 ```
+
+install smoke test は system temporary directory で package root を `codex,agent-skills` target へ導入し、Skill と4 bundled references の SHA-256 一致を確認します。CI は APM CLI `0.26.0` を固定します。
 
 構造 validator は semantic fidelity、長大な会話の完全な coverage、推論の正しさ、privacy safety を証明しません。人間による最終確認は必須です。
 
 詳細は [usage and install guide](docs/usage-and-install-guide.md) を参照してください。
-

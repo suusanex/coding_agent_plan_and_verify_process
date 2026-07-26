@@ -96,6 +96,143 @@ function Get-SectionBody {
     return $match.Groups['body'].Value
 }
 
+function Test-SubstantiveText {
+    param([string]$Text)
+
+    return -not [string]::IsNullOrWhiteSpace($Text) -and $Text -match '[\p{L}\p{N}]'
+}
+
+function Get-MarkdownTableCells {
+    param([string]$Line)
+
+    $trimmed = $Line.Trim()
+    if (-not ($trimmed.StartsWith('|') -and $trimmed.EndsWith('|'))) {
+        return @()
+    }
+
+    $inner = $trimmed.Substring(1, $trimmed.Length - 2)
+    return @([regex]::Split($inner, '(?<!\\)\|') | ForEach-Object { $_.Trim() })
+}
+
+function Add-ProvenanceListSectionErrors {
+    param(
+        [System.Collections.Generic.List[string]]$Errors,
+        [string]$Content,
+        [string]$Heading
+    )
+
+    $body = Get-SectionBody -Content $Content -Heading $Heading
+    if ($null -eq $body) {
+        return
+    }
+
+    $entries = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in [regex]::Split($body, '\r?\n')) {
+        $entryMatch = [regex]::Match($line, '^\s*(?:-\s+|\d+\.\s+)(?<entry>.*?)\s*$')
+        if ($entryMatch.Success) {
+            $entries.Add($entryMatch.Groups['entry'].Value)
+        }
+    }
+
+    if ($entries.Count -eq 0) {
+        $Errors.Add("Section must contain at least one list entry: $Heading")
+        return
+    }
+
+    foreach ($entry in $entries) {
+        $provenanceMatch = [regex]::Match($entry, '^\[(?:Explicit|Inferred|Unknown)\](?<remainder>.*)$')
+        if (-not $provenanceMatch.Success) {
+            $Errors.Add("List entry must start with exactly one [Explicit], [Inferred], or [Unknown] tag: $Heading")
+            continue
+        }
+
+        $remainder = $provenanceMatch.Groups['remainder'].Value
+        $entryText = $remainder.Trim()
+        if (-not (Test-SubstantiveText $entryText)) {
+            $Errors.Add("List entry must contain substantive text after its provenance tag: $Heading")
+            continue
+        }
+        if ($remainder -notmatch '^\s+') {
+            $Errors.Add("List entry must separate its provenance tag from substantive text: $Heading")
+            continue
+        }
+        if ($entryText -match '^\[[^\]]+\]') {
+            $Errors.Add("List entry must contain exactly one provenance tag: $Heading")
+            continue
+        }
+    }
+}
+
+function Add-ProvenanceTableSectionErrors {
+    param(
+        [System.Collections.Generic.List[string]]$Errors,
+        [string]$Content,
+        [string]$Heading,
+        [string[]]$ExpectedHeaders,
+        [int]$ProvenanceColumn
+    )
+
+    $body = Get-SectionBody -Content $Content -Heading $Heading
+    if ($null -eq $body) {
+        return
+    }
+
+    $tableLines = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in [regex]::Split($body, '\r?\n')) {
+        if ($line -match '^\s*\|.*\|\s*$') {
+            $tableLines.Add($line)
+        }
+    }
+
+    if ($tableLines.Count -lt 2) {
+        $Errors.Add("Section must contain a Markdown table with a header and separator: $Heading")
+        return
+    }
+
+    $headerCells = @(Get-MarkdownTableCells $tableLines[0])
+    $separatorCells = @(Get-MarkdownTableCells $tableLines[1])
+    if ($headerCells.Count -ne $ExpectedHeaders.Count) {
+        $Errors.Add("Table header must contain $($ExpectedHeaders.Count) columns: $Heading")
+    }
+    else {
+        for ($index = 0; $index -lt $ExpectedHeaders.Count; $index++) {
+            if ($headerCells[$index] -ne $ExpectedHeaders[$index]) {
+                $Errors.Add("Table header column $($index + 1) must be '$($ExpectedHeaders[$index])': $Heading")
+            }
+        }
+    }
+
+    if ($separatorCells.Count -ne $ExpectedHeaders.Count -or @($separatorCells | Where-Object { $_ -notmatch '^:?-{3,}:?$' }).Count -gt 0) {
+        $Errors.Add("Table separator must contain $($ExpectedHeaders.Count) valid Markdown separator cells: $Heading")
+    }
+
+    if ($tableLines.Count -lt 3) {
+        $Errors.Add("Table must contain at least one data row: $Heading")
+        return
+    }
+
+    foreach ($line in $tableLines.GetRange(2, $tableLines.Count - 2)) {
+        $cells = @(Get-MarkdownTableCells $line)
+        if ($cells.Count -ne $ExpectedHeaders.Count) {
+            $Errors.Add("Table data row must contain $($ExpectedHeaders.Count) columns: $Heading")
+            continue
+        }
+
+        if ($cells[$ProvenanceColumn] -notmatch '^\[(?:Explicit|Inferred|Unknown)\]$') {
+            $Errors.Add("Table provenance cell must be exactly [Explicit], [Inferred], or [Unknown]: $Heading")
+        }
+
+        for ($index = 0; $index -lt $cells.Count; $index++) {
+            if ($index -eq $ProvenanceColumn) {
+                continue
+            }
+            if (-not (Test-SubstantiveText $cells[$index])) {
+                $Errors.Add("Table data cell must contain substantive text in column $($index + 1): $Heading")
+            }
+        }
+    }
+}
+
 function Get-GoalContextErrors {
     param(
         [string]$Content,
@@ -142,6 +279,14 @@ function Get-GoalContextErrors {
     $sensitiveReview = Get-FrontmatterValue -Frontmatter $frontmatter -Key 'sensitive_data_review'
     if ($sensitiveReview -and $sensitiveReview -notin @('pending', 'passed')) {
         $errors.Add("sensitive_data_review must be pending or passed, found: $sensitiveReview")
+    }
+    if ($status -in @('draft', 'human-reviewed') -and $sensitiveReview -in @('pending', 'passed')) {
+        $validLifecyclePair =
+            ($status -eq 'draft' -and $sensitiveReview -eq 'pending') -or
+            ($status -eq 'human-reviewed' -and $sensitiveReview -eq 'passed')
+        if (-not $validLifecyclePair) {
+            $errors.Add("Only lifecycle pairs draft/pending and human-reviewed/passed are allowed; found: $status/$sensitiveReview")
+        }
     }
 
     $createdAt = Get-FrontmatterValue -Frontmatter $frontmatter -Key 'created_at'
@@ -190,11 +335,33 @@ function Get-GoalContextErrors {
         }
     }
 
-    if ($Content -notmatch '\[Explicit\]') {
-        $errors.Add('No [Explicit] provenance marker was found')
+    $provenanceListHeadings = @(
+        '## Document control and source boundary',
+        '## Original problem',
+        '## Desired outcome',
+        '## Concrete user situation and user scenarios',
+        '### MVP scope',
+        '### Non-goals',
+        '### Future work',
+        '## Constraints and invariants',
+        '## Success scenarios',
+        '## Superficially compliant but wrong',
+        '## Review questions',
+        '## Open questions and assumptions'
+    )
+    foreach ($heading in $provenanceListHeadings) {
+        Add-ProvenanceListSectionErrors -Errors $errors -Content $Content -Heading $heading
     }
-    if ($Content -match '(?i)\[(?:Assumed|Fact|Guess)\]') {
-        $errors.Add('Unsupported provenance marker found; use [Explicit], [Inferred], or [Unknown]')
+
+    $provenanceTableSections = @(
+        @{ Heading = '### Accepted decisions'; Headers = @('Provenance', 'Decision', 'Reason', 'Consequence'); ProvenanceColumn = 0 },
+        @{ Heading = '### Rejected alternatives'; Headers = @('Provenance', 'Alternative', 'Rejection reason', 'Revisit condition'); ProvenanceColumn = 0 },
+        @{ Heading = '## Acceptance evidence'; Headers = @('Provenance', 'Outcome to demonstrate', 'Required evidence', 'Evidence type'); ProvenanceColumn = 0 },
+        @{ Heading = '## Conversation corrections and priority changes'; Headers = @('Provenance', 'Earlier statement', 'Current statement or priority', 'Evidence of supersession'); ProvenanceColumn = 0 },
+        @{ Heading = '## Provenance and inference ledger'; Headers = @('Claim or section', 'Classification', 'Source evidence or reasoning', 'Confidence / required follow-up'); ProvenanceColumn = 1 }
+    )
+    foreach ($tableSection in $provenanceTableSections) {
+        Add-ProvenanceTableSectionErrors -Errors $errors -Content $Content -Heading $tableSection.Heading -ExpectedHeaders $tableSection.Headers -ProvenanceColumn $tableSection.ProvenanceColumn
     }
 
     $placeholderPatterns = @(
@@ -279,7 +446,8 @@ $requiredFiles = @(
     '.apm/skills/goal-context-authoring/references/human-review-checklist.md',
     'docs/usage-and-install-guide.md',
     'docs/examples/source-conversation-fixture.md',
-    'docs/examples/goal-context-resumable-local-batch-export.md'
+    'docs/examples/goal-context-resumable-local-batch-export.md',
+    'scripts/test-apm-package-install.ps1'
 )
 foreach ($file in $requiredFiles) {
     Assert-FileExists $file
@@ -309,6 +477,12 @@ foreach ($pattern in @(
     '\[Unknown\]',
     'secrets, credentials',
     'Long-conversation continuation protocol',
+    'Claim ID',
+    'Contract dimension',
+    'None observed in this segment',
+    'Superseded by <Claim ID>',
+    'Excluded as sensitive',
+    'Retained as Unknown',
     'not an Issue body'
 )) {
     Assert-Contains $promptPath $pattern "prompt requirement '$pattern'"
@@ -317,8 +491,31 @@ foreach ($pattern in @(
 $contractPath = '.apm/skills/goal-context-authoring/references/goal-context-contract.md'
 Assert-Contains $contractPath 'goal-context-<topic-summary>\.md' 'content-centered naming rule'
 Assert-Contains $contractPath 'status: human-reviewed' 'human-reviewed lifecycle rule'
+Assert-Contains $contractPath 'status: draft` / `sensitive_data_review: pending' 'draft/pending lifecycle pair'
+Assert-Contains $contractPath 'status: human-reviewed` / `sensitive_data_review: passed' 'human-reviewed/passed lifecycle pair'
 Assert-Contains $contractPath 'AI self-review alone is not human review' 'human review boundary'
 Assert-Contains $contractPath 'Issue body with more prose' 'Issue-copy prohibition'
+
+$smokePath = 'scripts/test-apm-package-install.ps1'
+Assert-Contains $smokePath 'apm install' 'package-root APM install command description'
+Assert-Contains $smokePath '--target' 'explicit install target selection'
+Assert-Contains $smokePath 'SHA256' 'installed file integrity verification'
+
+$sourceFixturePath = 'docs/examples/source-conversation-fixture.md'
+$reviewedExamplePath = 'docs/examples/goal-context-resumable-local-batch-export.md'
+foreach ($claimId in @('LC-AC-001', 'LC-WRONG-001')) {
+    Assert-Contains $sourceFixturePath ([regex]::Escape($claimId)) "source fixture claim '$claimId'"
+    Assert-Contains $reviewedExamplePath ([regex]::Escape($claimId)) "reviewed example claim '$claimId'"
+}
+$sourceFixtureFullPath = Get-PackagePath $sourceFixturePath
+if (Test-Path -LiteralPath $sourceFixtureFullPath -PathType Leaf) {
+    $sourceFixtureContent = Get-Content -Raw -LiteralPath $sourceFixtureFullPath
+    foreach ($claimId in @('LC-AC-001', 'LC-WRONG-001')) {
+        if ([regex]::Matches($sourceFixtureContent, [regex]::Escape($claimId)).Count -ne 1) {
+            Add-Failure "Source fixture claim must occur exactly once so later segments cannot mask its loss: $claimId"
+        }
+    }
+}
 
 $checklistPath = '.apm/skills/goal-context-authoring/references/human-review-checklist.md'
 foreach ($pattern in @('Desired outcome', 'Rejected alternatives', 'Superficially compliant but wrong', 'MVP scope', 'Priority changes', 'Secrets, credentials')) {
@@ -331,6 +528,21 @@ if (Test-Path -LiteralPath $examplePath -PathType Leaf) {
     $exampleErrors = @(Get-GoalContextErrors -Content $exampleContent -FileName (Split-Path -Leaf $examplePath) -HumanReviewRequired $true)
     foreach ($errorMessage in $exampleErrors) {
         Add-Failure "Reviewed example is invalid: $errorMessage"
+    }
+
+    $acceptanceEvidenceBody = Get-SectionBody -Content $exampleContent -Heading '## Acceptance evidence'
+    if ($acceptanceEvidenceBody -notmatch 'LC-AC-001') {
+        Add-Failure 'Reviewed example does not preserve LC-AC-001 in Acceptance evidence'
+    }
+    $wrongOutcomeBody = Get-SectionBody -Content $exampleContent -Heading '## Superficially compliant but wrong'
+    if ($wrongOutcomeBody -notmatch 'LC-WRONG-001') {
+        Add-Failure 'Reviewed example does not preserve LC-WRONG-001 in Superficially compliant but wrong'
+    }
+    $provenanceLedgerBody = Get-SectionBody -Content $exampleContent -Heading '## Provenance and inference ledger'
+    foreach ($claimId in @('LC-AC-001', 'LC-WRONG-001')) {
+        if ($provenanceLedgerBody -notmatch [regex]::Escape($claimId)) {
+            Add-Failure "Reviewed example provenance ledger does not preserve claim: $claimId"
+        }
     }
 
     $missingHeadingMutation = $exampleContent.Replace('### Rejected alternatives', '### Alternatives omitted')
@@ -349,6 +561,53 @@ if (Test-Path -LiteralPath $examplePath -PathType Leaf) {
     $badNameErrors = @(Get-GoalContextErrors -Content $exampleContent -FileName 'goal-context-issue-51.md' -HumanReviewRequired $true)
     if (-not ($badNameErrors -match '^Filename is centered on an Issue')) {
         Add-Failure 'Negative fixture mutation did not detect an Issue-centered filename'
+    }
+
+    $headerOnlyTableMutation = [regex]::Replace(
+        $exampleContent,
+        '(?ms)(### Rejected alternatives\s*\r?\n\s*\|.*?\|\s*\r?\n\s*\|.*?\|\s*\r?\n)(?:\s*\|.*?\|\s*\r?\n)+',
+        '$1',
+        1
+    )
+    $headerOnlyTableErrors = @(Get-GoalContextErrors -Content $headerOnlyTableMutation -FileName (Split-Path -Leaf $examplePath) -HumanReviewRequired $true)
+    if (-not ($headerOnlyTableErrors -match '^Table must contain at least one data row: ### Rejected alternatives$')) {
+        Add-Failure 'Negative fixture mutation did not detect a header-only Rejected alternatives table'
+    }
+
+    $markerOnlyMutation = [regex]::Replace($exampleContent, '(?m)^- \[(?:Explicit|Inferred|Unknown)\].+$', '- [Explicit]', 1)
+    $markerOnlyErrors = @(Get-GoalContextErrors -Content $markerOnlyMutation -FileName (Split-Path -Leaf $examplePath) -HumanReviewRequired $true)
+    if (-not ($markerOnlyErrors -match '^List entry must contain substantive text after its provenance tag:')) {
+        Add-Failure 'Negative fixture mutation did not detect a marker-only list entry'
+    }
+
+    $untaggedMutation = [regex]::Replace($exampleContent, '(?m)^- \[(?:Explicit|Inferred|Unknown)\]\s+', '- ', 1)
+    $untaggedErrors = @(Get-GoalContextErrors -Content $untaggedMutation -FileName (Split-Path -Leaf $examplePath) -HumanReviewRequired $true)
+    if (-not ($untaggedErrors -match '^List entry must start with exactly one')) {
+        Add-Failure 'Negative fixture mutation did not detect an untagged material list entry'
+    }
+
+    $unsupportedTagMutation = [regex]::Replace($exampleContent, '(?m)^- \[Explicit\]', '- [Certain]', 1)
+    $unsupportedTagErrors = @(Get-GoalContextErrors -Content $unsupportedTagMutation -FileName (Split-Path -Leaf $examplePath) -HumanReviewRequired $true)
+    if (-not ($unsupportedTagErrors -match '^List entry must start with exactly one')) {
+        Add-Failure 'Negative fixture mutation did not detect an unsupported provenance tag'
+    }
+
+    $doubleTagMutation = [regex]::Replace($exampleContent, '(?m)^- \[Explicit\]', '- [Explicit] [Unknown]', 1)
+    $doubleTagErrors = @(Get-GoalContextErrors -Content $doubleTagMutation -FileName (Split-Path -Leaf $examplePath) -HumanReviewRequired $true)
+    if (-not ($doubleTagErrors -match '^List entry must contain exactly one provenance tag:')) {
+        Add-Failure 'Negative fixture mutation did not detect multiple provenance tags'
+    }
+
+    $draftPassedMutation = $exampleContent.Replace('status: human-reviewed', 'status: draft')
+    $draftPassedErrors = @(Get-GoalContextErrors -Content $draftPassedMutation -FileName (Split-Path -Leaf $examplePath) -HumanReviewRequired $false)
+    if (-not ($draftPassedErrors -match '^Only lifecycle pairs draft/pending and human-reviewed/passed are allowed')) {
+        Add-Failure 'Negative fixture mutation did not detect draft/passed lifecycle state'
+    }
+
+    $humanReviewedPendingMutation = $exampleContent.Replace('sensitive_data_review: passed', 'sensitive_data_review: pending')
+    $humanReviewedPendingErrors = @(Get-GoalContextErrors -Content $humanReviewedPendingMutation -FileName (Split-Path -Leaf $examplePath) -HumanReviewRequired $false)
+    if (-not ($humanReviewedPendingErrors -match '^Only lifecycle pairs draft/pending and human-reviewed/passed are allowed')) {
+        Add-Failure 'Negative fixture mutation did not detect human-reviewed/pending lifecycle state'
     }
 }
 
@@ -371,8 +630,7 @@ if (-not [string]::IsNullOrWhiteSpace($GoalContextPath)) {
 }
 
 if ($failures.Count -gt 0) {
-    Write-Error ("Goal Context Authoring validation failed:`n- " + ($failures -join "`n- "))
-    exit 1
+    throw ("Goal Context Authoring validation failed:`n- " + ($failures -join "`n- "))
 }
 
 if ([string]::IsNullOrWhiteSpace($GoalContextPath)) {

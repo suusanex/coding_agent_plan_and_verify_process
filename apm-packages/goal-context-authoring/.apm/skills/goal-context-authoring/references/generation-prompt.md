@@ -20,6 +20,7 @@ Source handling:
 6. Separate MVP scope, Non-goals, and Future work.
 7. Preserve both accepted decisions and rejected alternatives with reasons.
 8. Do not infer missing product, policy, or scope decisions from silence.
+9. For segmented input, preserve stable Claim IDs, precise source pointers, provenance, and final disposition for every extracted claim.
 
 Provenance:
 - Prefix every material factual, requirement, decision, boundary, and assumption bullet with one of these tags:
@@ -97,16 +98,40 @@ Return the Markdown document first, then the single proposed filename. Do not cl
 
 ## Long-conversation continuation protocol
 
-When the full conversation cannot be processed at once, use ordered segments. For each non-final segment, append this instruction:
+When the full conversation cannot be processed at once, use ordered segments and maintain this temporary claim ledger:
+
+| Claim ID | Segment | Source pointer | Contract dimension | Provenance | Extracted statement, reason, or evidence | Supersession / disposition |
+| --- | --- | --- | --- | --- | --- | --- |
+
+For every segment, consider every contract dimension below:
+
+- Original problem
+- Desired outcome
+- Concrete user situation
+- User scenario
+- MVP scope
+- Non-goal
+- Future work
+- Accepted decision and reason
+- Rejected alternative and reason
+- Constraint or invariant
+- Success scenario
+- Acceptance evidence
+- Superficially compliant but wrong
+- Review question
+- Open question or assumption
+- Correction or priority change
+
+Assign stable Claim IDs and precise source pointers. `None observed in this segment` is allowed only as temporary dimension-coverage status; it is not final Goal Context content. For each non-final segment, append this instruction:
 
 ```text
-This is source segment <N> of <TOTAL or unknown>. Extract a temporary coverage ledger containing topics, explicit decisions, corrections or priority changes, rejected alternatives, constraints, and unknowns. Do not draft the Goal Context yet. Do not discard earlier ledgers. Reply only with the ledger and the next segment requested.
+This is source segment <N> of <TOTAL or unknown>. Consider every required contract dimension and update the temporary claim ledger. Give every extracted claim a stable Claim ID, precise source pointer, and [Explicit], [Inferred], or [Unknown] provenance. Record None observed in this segment only as temporary coverage status. Do not draft the Goal Context yet. Do not discard or renumber earlier claims. Reply only with the ledger, dimension-coverage status, and the next segment requested.
 ```
 
 For the final segment, append:
 
 ```text
-This is the final source segment. Reconcile all segment ledgers against this segment, apply later explicit corrections, retain unresolved conflicts as Unknown, then execute the complete Goal Context generation prompt. State the reviewed segment range in source_scope. If any expected segment is missing, stop and request it instead of drafting.
+This is the final source segment. Reconcile all segment claim ledgers against this segment and give every claim exactly one disposition: Included, Superseded by <Claim ID>, Duplicate of <Claim ID>, Excluded as sensitive, or Retained as Unknown. Apply later explicit corrections, retain unresolved conflicts as Unknown, and verify that every contract dimension was considered before executing the complete Goal Context generation prompt. Preserve relevant Claim IDs in the final provenance ledger. State the reviewed segment range in source_scope. If any expected segment is missing, stop and request it instead of drafting.
 ```
 
 The human review must still compare the generated document with the authoritative conversation or decision notes. Segment ledgers reduce omission risk but do not prove completeness.

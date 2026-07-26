@@ -34,12 +34,12 @@ sensitive_data_review: pending
 ---
 ```
 
-Allowed lifecycle values:
+The only valid lifecycle pairs are:
 
-- `status`: `draft` or `human-reviewed`
-- `sensitive_data_review`: `pending` or `passed`
+- `status: draft` / `sensitive_data_review: pending`
+- `status: human-reviewed` / `sensitive_data_review: passed`
 
-`status: human-reviewed` requires explicit human confirmation, `sensitive_data_review: passed`, and a completed Human review record. AI self-review alone is not human review.
+Mixed pairs such as `draft` / `passed` and `human-reviewed` / `pending` are invalid. `status: human-reviewed` requires explicit human confirmation and a completed Human review record. AI self-review alone is not human review.
 
 ## Provenance contract
 
@@ -57,6 +57,14 @@ Do not use `[Explicit]` for:
 - an AI recommendation the user did not accept
 - a value copied only from an Issue when the original conversation is missing
 - silence or absence of disagreement
+
+Every material list or numbered-list entry in a required content section starts with exactly one allowed provenance tag followed by substantive text. Every required table contains at least one substantive data row; its provenance or classification cell contains exactly one allowed tag. The Human review record is lifecycle metadata and does not use provenance tags.
+
+## Long-conversation coverage contract
+
+When input is segmented, maintain a temporary claim ledger with stable Claim IDs, segment and source pointers, contract dimension, provenance, extracted content, and supersession or disposition. Each segment must be checked for Original problem, Desired outcome, concrete situations and scenarios, all three scope classes, accepted and rejected decisions with reasons, constraints, success scenarios, acceptance evidence, purpose-level wrong outcomes, review questions, open questions, and corrections or priority changes.
+
+Before drafting, classify every extracted claim as `Included`, `Superseded by <Claim ID>`, `Duplicate of <Claim ID>`, `Excluded as sensitive`, or `Retained as Unknown`. Missing expected segments stop generation. Temporary `None observed in this segment` coverage records do not become final document content.
 
 ## Required sections
 

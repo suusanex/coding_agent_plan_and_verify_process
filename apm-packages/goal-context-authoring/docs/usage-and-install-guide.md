@@ -33,16 +33,11 @@ APM install 後、次の bundled references が存在することを確認しま
 
 ### Local development validation
 
-未公開の local package を確認する場合は Skill directory を直接 temporary APM root へ dry-run install できます。
-
-```powershell
-apm install C:\path\to\goal-context-authoring\.apm\skills\goal-context-authoring --target agent-skills --dry-run
-```
-
-repository source では static validation も実行します。
+未公開の local package は、package root の `apm.yml`、target 解決、Skill と bundled references の配置まで smoke test します。script は system temporary directory に隔離した repository root を作り、`apm install <absolute-package-root> --target codex,agent-skills` を実行して、配置後ファイルの SHA-256 が source と一致することを確認します。CI は APM CLI `0.26.0` を固定します。
 
 ```powershell
 ./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1
+./apm-packages/goal-context-authoring/scripts/test-apm-package-install.ps1
 git diff --check
 ```
 
@@ -81,6 +76,8 @@ Issue、PR、単一作業 slug は related artifact として本文に記録で�
 - 各 segment から temporary coverage ledger だけを抽出する
 - final segment まで Goal Context 本文を作らない
 - final segment で全 ledger を reconciliation する
+- 各 segment で全 contract dimension を確認し、stable Claim ID、source pointer、provenance を残す
+- final reconciliation で全 claim を Included / Superseded / Duplicate / Excluded as sensitive / Retained as Unknown のいずれかへ確定する
 - 欠けた segment がある場合は生成を止める
 
 later correction は、それ以前の statement を自動で削除する理由にはなりません。現在の決定を本文へ反映しつつ、重要な supersession を `Conversation corrections and priority changes` に残します。明確な supersession がない矛盾は `[Unknown]` として保持します。
@@ -116,7 +113,7 @@ reviewer は source conversation または authoritative decision notes と `ref
 - explicit / inferred / unknown の分類
 - secrets、credentials、authentication material、不要な個人情報の除外
 
-修正後、Human review record を実際の reviewer、日付、確認結果、review で行った変更で更新します。その後だけ frontmatter を次へ変更します。
+有効な lifecycle は `draft` / `pending` と `human-reviewed` / `passed` の2組だけです。修正後、Human review record を実際の reviewer、日付、確認結果、review で行った変更で更新します。その後だけ frontmatter を次へ変更します。
 
 ```yaml
 status: human-reviewed
@@ -156,4 +153,3 @@ example は会話順にメッセージを再掲せず、problem、outcome、deci
 - provenance tag は source traceability を助けますが、AI の分類が正しいことを自動保証しません。
 - secret scanner は少数の high-confidence pattern だけを検出します。
 - human review は省略できません。
-

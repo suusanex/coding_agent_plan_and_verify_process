@@ -88,7 +88,8 @@ Source requirement
 | `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM 導入後に Adaptive Implementation の必須 concrete Codex profile を repository-local に同期・検証したい | `.codex/agents/high-implementation-starter.toml`、`.codex/agents/standard-implementation-completer.toml`。`AGENTS.md` は操作しない |
 | `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、Codex-first / Adaptive / Design Pair skills、canonical implementation agent contracts、`templates/*.md` |
 | `scripts/provision-work-repo-agents.cs` | 既存の token-aware / full-coverage package を APM 経由で導入し、agent TOML と template 配置を補正したい | `apm install` の実行、canonical Adaptive agents と legacy `.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level 設定補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置 |
-| `apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1` | Goal Context package、fixture、または生成した `goal-context-*.md` を検証したい | 必須章、provenance、命名、human-review state、高確度の credential pattern を検証。semantic / privacy review は人間が行う |
+| `apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1` | Goal Context package、fixture、または生成した `goal-context-*.md` を検証したい | 必須章、entry単位のprovenance、命名、human-review state、高確度の credential pattern を検証。semantic / privacy review は人間が行う |
+| `apm-packages/goal-context-authoring/scripts/test-apm-package-install.ps1` | Goal Context package の標準APM導入経路を検証したい | temporary root へ package root を導入し、Skill と4 references の配置・SHA-256一致を検証 |
 | `scripts/validate-architecture-slice-readiness.ps1` | Architecture Slice Readinessのagent、manifest、template、routing、validation resultを静的検証したい | dependency path、frontmatter、必須contract、旧direct routeの残存を検証 |
 
 Codex-first を使いたい場合の入口は `apply-codex-first-local.cs` です。
@@ -123,6 +124,7 @@ Goal Context Authoring package またはその文書契約を変更した場合�
 
 ```powershell
 ./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1
+./apm-packages/goal-context-authoring/scripts/test-apm-package-install.ps1
 git diff --check
 ```
 
