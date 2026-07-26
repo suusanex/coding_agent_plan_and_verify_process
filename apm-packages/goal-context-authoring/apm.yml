@@ -1,0 +1,11 @@
+name: goal-context-authoring
+version: 0.1.0
+description: Create, review, validate, and save portable Goal Context Markdown from a completed design conversation
+type: hybrid
+targets:
+  - codex
+  - agent-skills
+includes: auto
+
+dependencies:
+  apm: []
