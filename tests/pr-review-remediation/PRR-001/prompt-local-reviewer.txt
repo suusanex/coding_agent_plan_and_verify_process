@@ -1,0 +1,5 @@
+Act as the canonical local-reviewer using the configured canonical profile and `.github/agents/local-reviewer.agent.md` contract.
+
+Read `AGENTS.md`, `README.md`, `.review/pr-123/review-context.json`, and `.review/pr-123/pr-diff.patch`. The confirmed PR identity is `example/repo` PR #123, `main` / `base-001` to `feature/review-fixture` / `head-001`.
+
+Review only the confirmed remote patch. Return a complete `local-review-findings.md` document that follows the canonical template. Do not invoke another agent, edit files, or change Git or external state. Output only the Markdown document.

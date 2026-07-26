@@ -1,0 +1,146 @@
+{
+  "schemaVersion": "1.0",
+  "evidenceId": "PRR-001",
+  "runId": "5f1fe869-4f22-45c0-b342-09c6c2da757d",
+  "status": "PASS",
+  "executionMode": "canonical-profile-direct-execution",
+  "customAgentSpawnObserved": false,
+  "externalModelPayloadConfirmed": true,
+  "startedAtUtc": "2026-07-26T02:34:18.9420073+00:00",
+  "completedAtUtc": "2026-07-26T02:37:14.7645631+00:00",
+  "inputFiles": [
+    {
+      "path": "tests/pr-review-remediation/PRR-001/fixture/AGENTS.md",
+      "sha256": "14cab4fc858fbd814571f99598474bdebe83a8df4125df6912ebefbb461d2a5f"
+    },
+    {
+      "path": "tests/pr-review-remediation/PRR-001/fixture/README.md",
+      "sha256": "a5f671522ad629f7380e120debfbe0dd7a64bcc2ef1085340b9fac07214f12b1"
+    },
+    {
+      "path": "tests/pr-review-remediation/PRR-001/fixture/src/Fixture.cs",
+      "sha256": "892f5b8605ca2c72f7c4b9ba80d721e149143f54235d5b0e36681f3787afebc1"
+    },
+    {
+      "path": "tests/pr-review-remediation/PRR-001/fixture/.review/pr-123/review-context.json",
+      "sha256": "56159f136b21d177e7fc21ef5bce639f08050b127cb7ee34f2f3bf640447e061"
+    },
+    {
+      "path": "tests/pr-review-remediation/PRR-001/fixture/.review/pr-123/pr-diff.patch",
+      "sha256": "ed71a100c9235d0e009335f88a1d14a8d63b194f1fda12aeb37bfbb8eb12ac80"
+    },
+    {
+      "path": "tests/pr-review-remediation/PRR-001/prompt-local-reviewer.txt",
+      "sha256": "9083692fe4ae037f57fbc7327f810cf768605524700ba0da951ac66be8ab3127"
+    },
+    {
+      "path": "tests/pr-review-remediation/PRR-001/prompt-review-planner.txt",
+      "sha256": "123f46d0857a7be4d5da9620672b43e63b6d25974fc22da7166f8bb8a1be1cec"
+    },
+    {
+      "path": ".github/agents/local-reviewer.agent.md",
+      "sha256": "05827d7a8e61d8212ac42ed5ad9fee44d81716cd197a7cb6e16b94b9423a499b"
+    },
+    {
+      "path": ".github/agents/review-planner.agent.md",
+      "sha256": "5f9d5c41ef2435416515e28b1563362de6eebafd36577ffabdd1ed0e5b1af70e"
+    },
+    {
+      "path": "apm-packages/pr-review-remediation/codex-agents/local-reviewer.toml",
+      "sha256": "80b7831763c47f680d437b207db3bf63662e74945e36180e2e908794361b3027"
+    },
+    {
+      "path": "apm-packages/pr-review-remediation/codex-agents/review-planner.toml",
+      "sha256": "01384b6577ec55750e0210f5b48cf4b020baedc84b79bf26dcdbff57e17324e2"
+    },
+    {
+      "path": "apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/local-review-findings.md",
+      "sha256": "a544e0eb7e25b325b25c09f878cc49709f7cd2fd74bc5c0acaed2bf6f93a05e5"
+    },
+    {
+      "path": "apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md",
+      "sha256": "9f8e4e53a5fe1ad3fdafb72a1d179eb7d41a389ca731de609939b223a60ec36c"
+    },
+    {
+      "path": "tests/pr-review-remediation/PRR-001/local-review-findings.md",
+      "sha256": "c668564b6cca1b5460c33dbd03cd7b90b30dc0a754f199191b9a3e2198dc57ff"
+    }
+  ],
+  "runs": [
+    {
+      "configuredAgent": "local-reviewer",
+      "observedExecution": "top-level-codex-exec:/root",
+      "profileSha256": "80b7831763c47f680d437b207db3bf63662e74945e36180e2e908794361b3027",
+      "contractSha256": "05827d7a8e61d8212ac42ed5ad9fee44d81716cd197a7cb6e16b94b9423a499b",
+      "developerInstructionsSha256": "00136bb59a9596b5d363d15a4e5dce7e5f5f1fa794bb0b12a77865c2ec3d3e0e",
+      "sessionId": "019f9c45-ff59-7d23-b168-e0a353db6bad",
+      "turnId": "019f9c46-0310-7743-997d-f5b8994e8588",
+      "codexCliVersion": "0.145.0",
+      "model": "gpt-5.6-terra",
+      "reasoningEffort": "high",
+      "sandboxMode": "read-only",
+      "durationMs": 58125,
+      "usage": {
+        "inputTokens": 90827,
+        "cachedInputTokens": 80640,
+        "outputTokens": 2314,
+        "reasoningOutputTokens": 941,
+        "totalTokens": 93141
+      },
+      "outputPath": "tests/pr-review-remediation/PRR-001/local-review-findings.md",
+      "outputSha256": "c668564b6cca1b5460c33dbd03cd7b90b30dc0a754f199191b9a3e2198dc57ff",
+      "gitBefore": {
+        "head": "ed4380480602944ca86fbf1b045f56f0208daf4f",
+        "tree": "b6000b71ccf58587dd0a1671765a2daea7e27ada",
+        "status": ""
+      },
+      "gitAfter": {
+        "head": "ed4380480602944ca86fbf1b045f56f0208daf4f",
+        "tree": "b6000b71ccf58587dd0a1671765a2daea7e27ada",
+        "status": ""
+      }
+    },
+    {
+      "configuredAgent": "review-planner",
+      "observedExecution": "top-level-codex-exec:/root",
+      "profileSha256": "01384b6577ec55750e0210f5b48cf4b020baedc84b79bf26dcdbff57e17324e2",
+      "contractSha256": "5f9d5c41ef2435416515e28b1563362de6eebafd36577ffabdd1ed0e5b1af70e",
+      "developerInstructionsSha256": "475679a30ac3187497547d93b0201a56177deb82534019c152a96074ef9e1642",
+      "sessionId": "019f9c46-ec08-7d90-922a-4f268ad97cd4",
+      "turnId": "019f9c46-ed33-7e10-aab8-a405cf94c258",
+      "codexCliVersion": "0.145.0",
+      "model": "gpt-5.6-terra",
+      "reasoningEffort": "high",
+      "sandboxMode": "read-only",
+      "durationMs": 112532,
+      "usage": {
+        "inputTokens": 187232,
+        "cachedInputTokens": 173568,
+        "outputTokens": 4881,
+        "reasoningOutputTokens": 2040,
+        "totalTokens": 192113
+      },
+      "outputPath": "tests/pr-review-remediation/PRR-001/review-plan.md",
+      "outputSha256": "7dc093cbf9419e8601b8eba1c3903e6c7b010c4ab0b148dee51b5e4073dd3b60",
+      "gitBefore": {
+        "head": "faa4cef894e75f615e1662cde3de15d2feed0368",
+        "tree": "48007afe3afff689fd7bea47806e23e82c4fe66b",
+        "status": ""
+      },
+      "gitAfter": {
+        "head": "faa4cef894e75f615e1662cde3de15d2feed0368",
+        "tree": "48007afe3afff689fd7bea47806e23e82c4fe66b",
+        "status": ""
+      }
+    }
+  ],
+  "assertions": {
+    "agentOrder": true,
+    "allFindingsDecided": true,
+    "allAppliedFindingsMapped": true,
+    "adaptiveIntentReady": true,
+    "productionCodeChanged": false,
+    "adaptiveAgentStarted": false,
+    "phaseOneStoppedAfterPlanning": true
+  }
+}

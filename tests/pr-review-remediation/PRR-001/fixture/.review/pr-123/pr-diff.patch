@@ -1,0 +1,10 @@
+diff --git a/src/Fixture.cs b/src/Fixture.cs
+index 1111111..2222222 100644
+--- a/src/Fixture.cs
++++ b/src/Fixture.cs
+@@ -3,5 +3,5 @@ namespace Fixture;
+ public static class ValueProvider
+ {
+-    public static bool Compute() => false;
++    public static bool Compute() => true;
+ }
