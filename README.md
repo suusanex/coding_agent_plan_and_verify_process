@@ -2,6 +2,26 @@
 
 GitHub Copilot / Codex で Plan-first 開発をするための agent（`.github/agents/`）、APM package、運用ドキュメントを管理する repository です。
 
+## Codex completion notification runtime
+
+WindowsでCodex親turnの終了を通知する共通runtimeは、[scripts/codex-notification-runtime](scripts/codex-notification-runtime) にあります。これは既存のuser-level `notify` commandを捨てずに転送し、`completion-notification` fenced blockからeventを作るFile-based apps群です。導入前には必ずdry-runを実行してください。
+
+```powershell
+dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --dry-run
+dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- install
+dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --check
+```
+
+最終回答へ付けるenvelopeは次の形式です。`result_uri`が有効なHTTPS URLなら通知の操作先として優先し、なければ該当Codex threadへ戻ります。runtimeは通知失敗をCodex turnの失敗へ変更しません。
+
+````markdown
+```completion-notification
+{"schema_version":1,"primary_process":"adaptive-implementation-execution","observed_status":"COMPLETED","title":"implementation completed","repository":"owner/repository","result_uri":"https://github.com/owner/repository/pull/123"}
+```
+````
+
+`[completion-notification]`を入力に含めたturnはenvelopeが欠落または不正でも、`TURN_ENDED`としてfallback通知されます。詳細、rollback、手動確認手順は [decision-record.md](scripts/codex-notification-runtime/decision-record.md) を参照してください。
+
 単純な Plan モードでは不十分と感じた点を、自分の用途向けに改善したものです。
 
 この repository には、大きく分けて 4 系統のプロセスがあります。
