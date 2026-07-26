@@ -1,12 +1,14 @@
 #:property TargetFramework=net10.0-windows10.0.19041.0
 #:property PublishAot=false
 #:property WindowsPackageType=None
+#:property WindowsAppSdkBootstrapInitialize=false
 #:package Microsoft.WindowsAppSDK@1.8.260710003
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Windows.AppNotifications;
 using Microsoft.Windows.AppNotifications.Builder;
+using Microsoft.Windows.ApplicationModel.DynamicDependency;
 
 if (args.Contains("--self-test", StringComparer.Ordinal))
 {
@@ -18,14 +20,35 @@ if (args.Contains("--self-test", StringComparer.Ordinal))
 }
 if (args.Contains("--check-support", StringComparer.Ordinal))
 {
-    var supported = Environment.GetEnvironmentVariable("CODEX_NOTIFICATION_TEST_PROVIDER_UNSUPPORTED") != "1" && AppNotificationManager.IsSupported();
+    var hangPidPath = Environment.GetEnvironmentVariable("CODEX_NOTIFICATION_TEST_PROVIDER_HANG_PID_FILE");
+    if (Environment.GetEnvironmentVariable("CODEX_NOTIFICATION_TEST_PROVIDER_HANG") == "1")
+    {
+        if (!string.IsNullOrWhiteSpace(hangPidPath)) File.WriteAllText(hangPidPath, Environment.ProcessId.ToString());
+        await Task.Delay(Timeout.InfiniteTimeSpan);
+    }
+    var supported = false;
+    var initialized = false;
+    try
+    {
+        if (Environment.GetEnvironmentVariable("CODEX_NOTIFICATION_TEST_PROVIDER_UNSUPPORTED") != "1")
+        {
+            Bootstrap.Initialize(0x00010008);
+            initialized = true;
+            supported = AppNotificationManager.IsSupported();
+        }
+    }
+    catch { }
+    finally { if (initialized) Bootstrap.Shutdown(); }
     Console.WriteLine(supported ? "supported" : "unsupported");
     Environment.ExitCode = supported ? 0 : 3;
     return;
 }
 
+var bootstrapInitialized = false;
 try
 {
+    Bootstrap.Initialize(0x00010008);
+    bootstrapInitialized = true;
     var json = await Console.In.ReadToEndAsync();
     var completion = JsonSerializer.Deserialize<CompletionEvent>(json, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower });
     if (completion is null || !AppNotificationManager.IsSupported()) Environment.Exit(2);
@@ -44,6 +67,10 @@ try
 catch
 {
     Environment.ExitCode = 2;
+}
+finally
+{
+    if (bootstrapInitialized) Bootstrap.Shutdown();
 }
 
 static bool IsAllowedResultUri(string? value)

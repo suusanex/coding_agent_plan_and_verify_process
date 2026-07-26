@@ -14,6 +14,8 @@ dotnet run --file .\scripts\codex-notification-runtime\install-codex-notificatio
 
 一時環境でinstall/update/checkを検証するときは、`--codex-home <path> --install-root <path>`を併用します。`--install-root`を省略した通常導入では`%LOCALAPPDATA%\CodexNotificationRuntime`を使用します。
 
+`--check`のWindows provider support probeは5秒で打ち切り、process treeを終了して`DEGRADED`を返します。repositoryの専用GitHub Actions jobにも15分の上限を設けています。
+
 配布・導入のsource of truthは3本の`.cs` File-based appsです。installerが導入時にsourceから一時領域へpublishするため、`scripts/codex-notification-runtime/artifacts/`の生成物は追跡・配布しません。
 
 最終回答へ付けるenvelopeは次の形式です。`result_uri`が有効なHTTPS URLなら通知の操作先として優先し、なければ該当Codex threadへ戻ります。runtimeは通知失敗をCodex turnの失敗へ変更しません。

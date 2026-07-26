@@ -7,12 +7,14 @@ $fakeCommand = Join-Path $PSScriptRoot 'tests/fake-notification-command.ps1'
 $envelopeSchema = Join-Path $PSScriptRoot 'completion-notification-envelope-v1.schema.json'
 $eventSchema = Join-Path $PSScriptRoot 'completion-notification-event-v1.schema.json'
 $artifactRoot = Join-Path $PSScriptRoot 'artifacts'
+$workflow = Join-Path $root '.github/workflows/validate-codex-notification-runtime.yml'
 
-foreach ($path in @($runtimeSource, $providerSource, $installerSource, $fakeCommand, $envelopeSchema, $eventSchema)) {
+foreach ($path in @($runtimeSource, $providerSource, $installerSource, $fakeCommand, $envelopeSchema, $eventSchema, $workflow)) {
     if (-not (Test-Path $path)) { throw "Missing required runtime asset: $path" }
 }
 if ((Test-Path $artifactRoot) -and @(Get-ChildItem -LiteralPath $artifactRoot -Recurse -File).Count -gt 0) { throw 'Generated notification artifacts must not be tracked or distributed.' }
 if (-not (Get-Content (Join-Path $root '.gitignore') -Raw).Contains('scripts/codex-notification-runtime/artifacts/', [StringComparison]::Ordinal)) { throw 'Notification artifact ignore rule is missing.' }
+if (-not (Get-Content $workflow -Raw).Contains('timeout-minutes: 15', [StringComparison]::Ordinal)) { throw 'Notification workflow timeout is missing.' }
 
 function Invoke-Checked([scriptblock]$Action, [string]$Description) {
     & $Action
@@ -160,6 +162,23 @@ try {
     $degradedOutput | ForEach-Object { Write-Host $_ }
     $degradedText = $degradedOutput -join "`n"
     if ($degradedExit -ne 3 -or $degradedText -notmatch 'provider_support: unsupported' -or $degradedText -notmatch 'DEGRADED installer check') { throw 'Unsupported provider was not reported as degraded.' }
+    $hangPidPath = Join-Path $validationRoot 'hanging-provider.pid'
+    $env:CODEX_NOTIFICATION_TEST_PROVIDER_HANG = '1'
+    $env:CODEX_NOTIFICATION_TEST_PROVIDER_HANG_PID_FILE = $hangPidPath
+    $hangStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    $hangOutput = & $installer --check --codex-home $codexHome --install-root $installRoot
+    $hangExit = $LASTEXITCODE
+    $hangStopwatch.Stop()
+    Remove-Item Env:CODEX_NOTIFICATION_TEST_PROVIDER_HANG -ErrorAction SilentlyContinue
+    Remove-Item Env:CODEX_NOTIFICATION_TEST_PROVIDER_HANG_PID_FILE -ErrorAction SilentlyContinue
+    $hangOutput | ForEach-Object { Write-Host $_ }
+    $hangText = $hangOutput -join "`n"
+    if ($hangExit -ne 3 -or $hangText -notmatch 'provider_support: check-failed' -or $hangText -notmatch 'DEGRADED installer check') { throw 'Hanging provider was not reported as degraded.' }
+    if ($hangStopwatch.Elapsed -gt [TimeSpan]::FromSeconds(10)) { throw "Hanging provider check exceeded time bound: $($hangStopwatch.Elapsed)." }
+    if (-not (Test-Path $hangPidPath)) { throw 'Hanging provider did not record its process ID.' }
+    $hangPid = [int](Get-Content $hangPidPath -Raw)
+    if (Get-Process -Id $hangPid -ErrorAction SilentlyContinue) { throw "Hanging provider process was not terminated: $hangPid" }
+    Write-Host "PASS hanging provider timeout ($([int]$hangStopwatch.Elapsed.TotalMilliseconds) ms, pid $hangPid terminated)"
     Invoke-Checked { & $installer install --codex-home $codexHome --install-root $installRoot } 'isolated reinstall'
     if ((Get-FileHash $backup -Algorithm SHA256).Hash -ne $backupHash) { throw 'Reinstall overwrote the original configuration backup.' }
 
@@ -196,7 +215,7 @@ try {
     if (-not $installerText.Contains('StandardOutput.ReadToEndAsync()', [StringComparison]::Ordinal) -or -not $installerText.Contains('StandardError.ReadToEndAsync()', [StringComparison]::Ordinal)) { throw 'Publish output streams are not drained concurrently.' }
 }
 finally {
-    foreach ($name in @('CODEX_NOTIFICATION_RUNTIME_HOME', 'CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT', 'CODEX_NOTIFICATION_TEST_CHAIN_OUTPUT', 'CODEX_NOTIFICATION_TEST_PROVIDER_EXIT', 'CODEX_NOTIFICATION_TEST_PROVIDER_DELAY_MS', 'CODEX_NOTIFICATION_TEST_FAIL_AFTER_BIN_SWAP', 'CODEX_NOTIFICATION_TEST_PROVIDER_UNSUPPORTED')) {
+    foreach ($name in @('CODEX_NOTIFICATION_RUNTIME_HOME', 'CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT', 'CODEX_NOTIFICATION_TEST_CHAIN_OUTPUT', 'CODEX_NOTIFICATION_TEST_PROVIDER_EXIT', 'CODEX_NOTIFICATION_TEST_PROVIDER_DELAY_MS', 'CODEX_NOTIFICATION_TEST_FAIL_AFTER_BIN_SWAP', 'CODEX_NOTIFICATION_TEST_PROVIDER_UNSUPPORTED', 'CODEX_NOTIFICATION_TEST_PROVIDER_HANG', 'CODEX_NOTIFICATION_TEST_PROVIDER_HANG_PID_FILE')) {
         Remove-Item ("Env:" + $name) -ErrorAction SilentlyContinue
     }
     if (Test-Path $validationRoot) { Remove-Item -LiteralPath $validationRoot -Recurse -Force }

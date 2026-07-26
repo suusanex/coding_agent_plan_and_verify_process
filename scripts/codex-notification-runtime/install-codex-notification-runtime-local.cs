@@ -209,11 +209,27 @@ static int? RunCheck(string executable, string argument)
 {
     try
     {
-        var info = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true };
+        var info = new ProcessStartInfo(executable)
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
         info.ArgumentList.Add(argument);
         using var process = Process.Start(info);
-        process?.WaitForExit(5000);
-        return process?.HasExited == true ? process.ExitCode : null;
+        if (process is null) return null;
+        var standardOutput = process.StandardOutput.ReadToEndAsync();
+        var standardError = process.StandardError.ReadToEndAsync();
+        if (!process.WaitForExit(5000))
+        {
+            try { process.Kill(entireProcessTree: true); }
+            finally { process.WaitForExit(); }
+            Task.WhenAll(standardOutput, standardError).GetAwaiter().GetResult();
+            return null;
+        }
+        Task.WhenAll(standardOutput, standardError).GetAwaiter().GetResult();
+        return process.ExitCode;
     }
     catch { return null; }
 }

@@ -8,6 +8,8 @@ Codexのuser-level `notify`は一つのargvしか設定できないため、inst
 
 配布のsource of truthは3本の`.cs` File-based appsとする。installerは導入時にsourceからstaging directoryへpublishし、repository内の`artifacts/`生成物は配布契約に含めない。
 
+Windows providerは副作用なしのself-testでWindows App SDKを初期化しない。support probeと通知配送時だけ明示的にbootstrapし、installerはprobeが5秒で終了しない場合にprocess treeを終了してstdout・stderrのEOFを回収する。CI jobにも15分の上限を設け、headless環境の停止がrunnerを無期限に占有しないようにする。
+
 ## Observed environment
 
 - Windows 11 Pro build 26200
