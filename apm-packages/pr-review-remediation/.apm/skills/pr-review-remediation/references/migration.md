@@ -28,4 +28,3 @@ The former `spark-implementer` is not retained as an agent, alias, compatibility
 - `purpose-reviewer`
 - automatic next-turn startup
 - source repository archive or redirect decision
-

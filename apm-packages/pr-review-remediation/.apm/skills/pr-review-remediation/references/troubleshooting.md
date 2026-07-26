@@ -33,3 +33,8 @@ review profileが競合する場合だけ`--force`を検討します。Adaptive 
 
 review helperもAdaptive helperもrepository-wide設定を上書きしません。旧設定のcleanupが必要な場合は、内容を確認して人手で行ってください。
 
+## Actual agent smoke requires approval
+
+実agent smokeはcanonical review agent contract、smoke prompt、fixture repositoryのreview contextとremote patchをCodex model serviceへ送信します。実行環境が外部送信の明示承認を要求した場合、fixtureだけで成功扱いにせず`HUMAN_DECISION_REQUIRED`で停止します。
+
+人手での作業が必要: `run-pr-review-remediation-agent-smoke.ps1 --help`に表示される送信対象を確認し、外部model serviceへの送信を明示承認してから再実行してください。

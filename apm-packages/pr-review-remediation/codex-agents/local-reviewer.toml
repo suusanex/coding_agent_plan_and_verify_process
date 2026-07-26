@@ -12,4 +12,3 @@ Return stable LR-* findings with severity, location, evidence, risk, and suggest
 Return BLOCKED when PR identity or diff evidence is missing or contradictory.
 Always report Production code changed: No.
 """
-

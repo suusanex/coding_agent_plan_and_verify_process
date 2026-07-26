@@ -27,4 +27,3 @@
 ## Unknown / Not Verified
 
 - Production wiring outside the PR diff was not inspected.
-

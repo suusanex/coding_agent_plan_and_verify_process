@@ -47,3 +47,26 @@ Phase 1の停止は全体完了ではありません。Phase 2の`COMPLETED_BY_H
 | `local-review-findings.md` | parent from local-reviewer output | local Codex findings |
 | `review-plan.md` | parent from review-planner output | Adaptive-ready remediation plan |
 
+## Reproduce validation
+
+実agent chainの固定証跡は`tests/pr-review-remediation/PRR-001/`に保存します。認証済みCodex環境で更新する場合:
+
+```powershell
+pwsh -File apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1
+```
+
+固定証跡を含むlocal validation:
+
+```powershell
+pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
+```
+
+APM 0.26.0でPR headまたは指定commitから別の一時repositoryへ実導入するremote smoke:
+
+```powershell
+pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1 `
+  -Repository owner/repository `
+  -Ref <commit-sha>
+```
+
+remote smokeはtransitive `git: parent`依存、両Skill、4 canonical agents、relative assets、4 concrete profilesを検証し、`AGENTS.md`と`.codex/config.toml`のsentinelが不変であることを確認します。一時directoryは成否にかかわらず削除されます。

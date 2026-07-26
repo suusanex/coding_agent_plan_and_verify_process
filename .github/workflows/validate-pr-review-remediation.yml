@@ -33,4 +33,15 @@ jobs:
       - name: Validate PR Review Remediation contracts and fixtures
         shell: pwsh
         run: ./apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
-
+      - name: Install APM CLI for remote package smoke
+        uses: microsoft/apm-action@v1
+        with:
+          setup-only: 'true'
+          apm-version: '0.26.0'
+      - name: Validate remote package installation and relative assets
+        shell: pwsh
+        env:
+          GITHUB_APM_PAT: ${{ github.token }}
+          PACKAGE_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          PACKAGE_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: ./apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1 -Repository $env:PACKAGE_REPOSITORY -Ref $env:PACKAGE_REF

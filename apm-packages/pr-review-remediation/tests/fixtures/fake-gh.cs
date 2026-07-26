@@ -70,7 +70,7 @@ if (args.Length >= 2 && args[0] == "api")
     var call = ReadState(statePath);
     if (endpoint.EndsWith("/reviews", StringComparison.Ordinal))
     {
-        Console.WriteLine(Paginate(BuildReviews(scenario)));
+        Console.WriteLine(Paginate(BuildReviews(scenario, call)));
         return 0;
     }
 
@@ -94,14 +94,17 @@ if (args.Length >= 2 && args[0] == "api")
 Console.Error.WriteLine("unexpected fake gh invocation: " + string.Join(' ', args));
 return 2;
 
-static object[] BuildReviews(string scenario)
+static object[] BuildReviews(string scenario, int call)
 {
-    if (scenario == "timeout" || scenario == "head-change")
+    if (scenario is "timeout" or "head-change" or "inline-only"
+        || (scenario == "inline-then-review" && call < 2))
     {
         return Array.Empty<object>();
     }
 
-    var currentBody = scenario == "delayed" ? "Copilot generated 2 comments" : "Copilot generated 1 comment";
+    var currentBody = scenario is "delayed" or "inline-then-review"
+        ? "Copilot generated 2 comments"
+        : "Copilot generated 1 comment";
     var current = new
     {
         id = 100,
@@ -111,6 +114,23 @@ static object[] BuildReviews(string scenario)
         submitted_at = "2026-07-25T00:00:00Z",
         commit_id = "head-001"
     };
+
+    if (scenario == "lookalike-login")
+    {
+        return new object[]
+        {
+            new
+            {
+                id = 200,
+                user = new { login = "my-copilot-helper[bot]" },
+                body = "Lookalike generated 1 comment",
+                state = "COMMENTED",
+                submitted_at = "2026-07-26T00:00:00Z",
+                commit_id = "head-001"
+            },
+            current
+        };
+    }
 
     if (scenario != "old-head")
     {
@@ -154,7 +174,7 @@ static object[] BuildInlineComments(string scenario, int call)
         }
     };
 
-    if (scenario == "delayed" && call >= 2)
+    if ((scenario is "delayed" or "inline-then-review") && call >= 2)
     {
         current.Add(new
         {
@@ -166,6 +186,21 @@ static object[] BuildInlineComments(string scenario, int call)
             path = "tests/FixtureTests.cs",
             line = 10,
             body = "Delayed inline finding"
+        });
+    }
+
+    if (scenario == "lookalike-login")
+    {
+        current.Add(new
+        {
+            id = 2001,
+            pull_request_review_id = 200,
+            commit_id = "head-001",
+            original_commit_id = "head-001",
+            user = new { login = "my-copilot-helper[bot]" },
+            path = "src/Lookalike.cs",
+            line = 1,
+            body = "Lookalike finding"
         });
     }
 

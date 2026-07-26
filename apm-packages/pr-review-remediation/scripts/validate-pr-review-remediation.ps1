@@ -74,7 +74,14 @@ foreach ($path in @(
     'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/references/troubleshooting.md',
     'apm-packages/pr-review-remediation/codex-agents/local-reviewer.toml',
     'apm-packages/pr-review-remediation/codex-agents/review-planner.toml',
-    'apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs'
+    'apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs',
+    'apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1',
+    'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-agent-smoke.ps1',
+    'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1',
+    'tests/pr-review-remediation/PRR-001/README.md',
+    'tests/pr-review-remediation/PRR-001/run.schema.json',
+    'tests/pr-review-remediation/PRR-001/fixture/.review/pr-123/review-context.json',
+    'tests/pr-review-remediation/PRR-001/fixture/.review/pr-123/pr-diff.patch'
 )) {
     Assert-Exists $path
 }
@@ -142,6 +149,13 @@ Assert-Contains $collector 'waitStatus' 'wait lifecycle output'
 Assert-Contains $collector 'observedReviewState' 'review observation output'
 Assert-Contains $collector 'pr-diff\.patch' 'remote patch artifact'
 Assert-Contains $collector 'The target PR is a draft' 'Draft fail-fast message'
+Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' 'microsoft/apm-action@v1' 'official APM setup action'
+Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' 'apm-version:\s*''0\.26\.0''' 'pinned APM version'
+Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' 'github\.event\.pull_request\.head\.sha' 'PR head SHA package ref'
+Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'apm install|@\(''install''' 'real remote APM install command'
+Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'finally\s*\{' 'remote smoke cleanup boundary'
+Assert-Contains 'apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1' 'ConfirmExternalModelPayload' 'actual agent smoke external-payload consent gate'
+Assert-Contains 'tests/pr-review-remediation/PRR-001/README.md' 'customAgentSpawnObserved.*false' 'actual execution disclosure'
 
 $fixtureLocal = 'apm-packages/pr-review-remediation/tests/fixtures/expected-local-review-findings.md'
 $fixturePlan = 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md'
@@ -151,6 +165,9 @@ Assert-Contains $fixturePlan '(?s)LR-001.*1001.*501' 'fixture review source cove
 Assert-Contains $fixturePlan 'READY_FOR_ADAPTIVE_IMPLEMENTATION' 'fixture Adaptive readiness'
 Assert-Contains $fixturePlan 'AC-001' 'fixture acceptance mapping'
 Assert-Contains $fixturePlan '\$adaptive-implementation-execution' 'fixture separate Adaptive prompt'
+
+$agentSmokeValidator = Join-Path $packageRoot 'scripts\validate-pr-review-remediation-agent-smoke.ps1'
+Invoke-Native 'pwsh' @('-NoProfile', '-File', $agentSmokeValidator, '-RepositoryRoot', $repoRoot) 'fixed actual agent smoke evidence' | Out-Null
 
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("pr-review-remediation-validation-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tempRoot | Out-Null
@@ -219,6 +236,30 @@ try {
         if ($delayed.copilotReviewWait.stableSamplesObserved -lt 2) { Add-Failure 'delayed fixture did not require stable samples' }
     }
 
+    Invoke-Fixture 'inline-only' @('--copilot-timeout-seconds', '1', '--copilot-poll-interval-seconds', '1', '--copilot-stable-samples', '2') | Out-Null
+    $inlineOnly = Read-Context (Join-Path $tempRoot 'inline-only')
+    if ($null -ne $inlineOnly) {
+        if ($inlineOnly.copilotReviewWait.waitStatus -ne 'timeout') { Add-Failure 'inline-only fixture completed without a terminal review' }
+        if ($inlineOnly.copilotReviewWait.observedReviewState -ne 'inlineOnly') { Add-Failure 'inline-only fixture did not preserve its observed state at timeout' }
+        if ($inlineOnly.copilotReviewWait.actualInlineCommentCount -ne 1) { Add-Failure 'inline-only fixture lost the observed current-head inline comment' }
+    }
+
+    Invoke-Fixture 'inline-then-review' @('--copilot-timeout-seconds', '5', '--copilot-poll-interval-seconds', '1', '--copilot-stable-samples', '2') | Out-Null
+    $inlineThenReview = Read-Context (Join-Path $tempRoot 'inline-then-review')
+    if ($null -ne $inlineThenReview) {
+        if ($inlineThenReview.copilotReviewWait.waitStatus -ne 'completed') { Add-Failure 'inline-then-review fixture did not complete after the terminal review arrived' }
+        if ($inlineThenReview.copilotReviewWait.observedReviewState -ne 'reviewAndInline') { Add-Failure 'inline-then-review fixture did not finish with reviewAndInline' }
+        if ($inlineThenReview.copilotReviewWait.selectedReviewId -ne 100 -or $inlineThenReview.copilotReviewWait.actualInlineCommentCount -ne 2) { Add-Failure 'inline-then-review fixture completed with incomplete correlation' }
+        if ($inlineThenReview.copilotReviewWait.stableSamplesObserved -lt 2) { Add-Failure 'inline-then-review fixture did not require stable terminal samples' }
+    }
+
+    Invoke-Fixture 'lookalike-login' @('--no-wait-for-copilot') | Out-Null
+    $lookalike = Read-Context (Join-Path $tempRoot 'lookalike-login')
+    if ($null -ne $lookalike) {
+        if ($lookalike.copilotReviewWait.selectedReviewId -ne 100) { Add-Failure 'lookalike-login fixture selected a non-Copilot account' }
+        if ($lookalike.copilotReviewWait.actualInlineCommentCount -ne 1 -or $lookalike.copilotReviewWait.inlineCommentIds[0] -ne 1001) { Add-Failure 'lookalike-login fixture correlated a non-Copilot inline comment' }
+    }
+
     Invoke-Fixture 'timeout' @('--copilot-timeout-seconds', '1', '--copilot-poll-interval-seconds', '1') | Out-Null
     $timeout = Read-Context (Join-Path $tempRoot 'timeout')
     if ($null -ne $timeout) {
@@ -273,12 +314,38 @@ try {
     if ((Get-Content -Raw -LiteralPath (Join-Path $scratchCodex 'config.toml')).Trim() -ne 'sentinel-config') { Add-Failure 'review helpers changed .codex/config.toml' }
 
     Set-Content -LiteralPath (Join-Path $scratch '.codex\agents\local-reviewer.toml') -Value 'name = "locally-modified"'
-    Invoke-Native $syncExe @($scratch) 'review helper collision gate' $false | Out-Null
+    $reviewCollision = Invoke-Native $syncExe @($scratch) 'review helper collision gate' $false
+    if ($reviewCollision.Output -match 'install-adaptive-implementation-local\.cs') { Add-Failure 'review-only profile collision incorrectly recommended the Adaptive helper' }
     Invoke-Native $syncExe @($scratch, '--force') 'review helper force synchronization' | Out-Null
     Invoke-Native $syncExe @($scratch, '--remove', '--dry-run') 'review helper removal dry-run' | Out-Null
     Invoke-Native $syncExe @($scratch, '--remove') 'review helper removal' | Out-Null
     foreach ($profile in @('local-reviewer.toml', 'review-planner.toml')) {
         if (Test-Path -LiteralPath (Join-Path $scratch ".codex\agents\$profile")) { Add-Failure "Review helper did not remove package-owned profile: $profile" }
+    }
+
+    $apmScratch = Join-Path $tempRoot 'apm-profile-repository'
+    $apmProfileRoot = Join-Path $apmScratch '.codex\agents'
+    New-Item -ItemType Directory -Path $apmProfileRoot -Force | Out-Null
+    Set-Content -LiteralPath (Join-Path $apmProfileRoot 'local-reviewer.toml') -NoNewline -Value @'
+name = "local-reviewer"
+description = "Review only the confirmed remote PR base/head diff and produce evidence-backed local Codex findings without editing files or GitHub state."
+developer_instructions = "# Local Reviewer\n\nPreserved APM contract with an escaped \"quoted value\"."
+'@
+    Set-Content -LiteralPath (Join-Path $apmProfileRoot 'review-planner.toml') -NoNewline -Value @'
+name = "review-planner"
+description = "Consolidate local Codex findings, GitHub Copilot reviews, PR comments, and checks into an Adaptive-ready remediation plan without implementing fixes."
+developer_instructions = "# Review Planner\n\nPreserved APM contract with an escaped \"quoted value\"."
+'@
+    Invoke-Native $syncExe @($apmScratch) 'APM-generated review profile completion' | Out-Null
+    foreach ($profile in @('local-reviewer.toml', 'review-planner.toml')) {
+        $content = Get-Content -Raw -LiteralPath (Join-Path $apmProfileRoot $profile)
+        if ($content -notmatch '(?m)^model\s*=\s*"gpt-5\.6-terra"\s*$') { Add-Failure "APM-generated profile did not receive a concrete model: $profile" }
+        if ($content -notmatch '(?m)^sandbox_mode\s*=\s*"read-only"\s*$') { Add-Failure "APM-generated profile did not receive a read-only sandbox: $profile" }
+        if ($content -notmatch 'Preserved APM contract with an escaped \\"quoted value\\"') { Add-Failure "Review helper replaced the APM-generated developer instructions: $profile" }
+    }
+    Invoke-Native $syncExe @($apmScratch, '--remove') 'completed APM review profile removal' | Out-Null
+    foreach ($profile in @('local-reviewer.toml', 'review-planner.toml')) {
+        if (Test-Path -LiteralPath (Join-Path $apmProfileRoot $profile)) { Add-Failure "Review helper did not remove its completed APM profile: $profile" }
     }
 }
 finally {

@@ -46,4 +46,3 @@ base/head OID、remote patch、PR番号のいずれかが欠ける、または�
 - severity、location、summary、evidence、risk、suggested remediation
 - 追加確認事項と未検証事項
 - `Production code changed: No`
-

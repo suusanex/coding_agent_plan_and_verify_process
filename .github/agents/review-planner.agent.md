@@ -70,4 +70,3 @@ implementation_intent:
 - `Production code changed: No`
 
 `READY_FOR_ADAPTIVE_IMPLEMENTATION`でも、これはPhase 1の完了です。レビュー反映プロセス全体の完了を宣言せず、親ターンを停止してください。
-

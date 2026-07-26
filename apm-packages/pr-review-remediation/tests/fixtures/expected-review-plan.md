@@ -37,4 +37,3 @@ implementation_intent:
 ```text
 $adaptive-implementation-execution を使って .review/pr-123/review-plan.md を実装してください。
 ```
-

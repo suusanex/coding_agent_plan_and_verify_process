@@ -269,9 +269,8 @@ static CopilotObservation AnalyzeCopilot(SnapshotData snapshot, string headOid)
 
     var expectedInlineCount = ExtractExpectedInlineCount(selected?.Body ?? string.Empty);
     var reviewIsTerminal = selected is not null && IsTerminalReviewState(selected.State);
-    var isComplete = selected is not null
-        ? reviewIsTerminal && (expectedInlineCount is null || inlineComments.Length >= expectedInlineCount.Value)
-        : inlineComments.Length > 0;
+    var isComplete = reviewIsTerminal
+        && (expectedInlineCount is null || inlineComments.Length >= expectedInlineCount.Value);
     var observed = selected is not null && inlineComments.Length > 0
         ? "reviewAndInline"
         : selected is not null
@@ -577,7 +576,10 @@ static bool GetBoolean(JsonElement element, string propertyName)
     };
 }
 
-static bool IsCopilotLogin(string login) => login.Contains("copilot", StringComparison.OrdinalIgnoreCase);
+static bool IsCopilotLogin(string login) => string.Equals(
+    login,
+    "copilot-pull-request-reviewer[bot]",
+    StringComparison.OrdinalIgnoreCase);
 
 static bool IsTerminalReviewState(string state) => state is "COMMENTED" or "APPROVED" or "CHANGES_REQUESTED";
 

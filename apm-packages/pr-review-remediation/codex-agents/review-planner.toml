@@ -12,4 +12,3 @@ Return READY_FOR_ADAPTIVE_IMPLEMENTATION only when the plan is decision-complete
 Do not edit production code, tests, review artifacts, GitHub state, commits, or branches, and do not start Adaptive Implementation.
 Always report Production code changed: No and provide the exact separate-parent-turn Adaptive start prompt.
 """
-

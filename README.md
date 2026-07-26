@@ -247,6 +247,21 @@ $adaptive-implementation-execution を使って .review/pr-123/review-plan.md �
 
 詳細は`apm-packages/pr-review-remediation/README.md`を参照してください。
 
+実agent chainの固定証跡と再現:
+
+```powershell
+pwsh -File apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1
+pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
+```
+
+固定証跡は`tests/pr-review-remediation/PRR-001/`に保存します。remote APM導入はAPM 0.26.0で次のように再現でき、CIではPR head SHAを指定して同じ検証をmerge gateとして実行します。
+
+```powershell
+pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1 `
+  -Repository suusanex/coding_agent_plan_and_verify_process `
+  -Ref <commit-sha>
+```
+
 ---
 
 ## Design Pair Implementation Execution

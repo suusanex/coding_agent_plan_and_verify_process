@@ -26,6 +26,7 @@ try
     var targetAgentRoot = Path.Combine(targetRoot, ".codex", "agents");
     var operations = new List<string>();
     var conflicts = new List<string>();
+    var adaptiveProblems = new List<string>();
 
     if (!Directory.Exists(targetRoot))
     {
@@ -45,7 +46,7 @@ try
 
     if (options.Check)
     {
-        var adaptiveProblems = ValidateAdaptiveInstallation(targetRoot);
+        adaptiveProblems.AddRange(ValidateAdaptiveInstallation(targetRoot));
         foreach (var problem in adaptiveProblems)
         {
             conflicts.Add(problem);
@@ -65,8 +66,11 @@ try
             Console.Error.WriteLine($"- {conflict}");
         }
 
-        Console.Error.WriteLine("Run the existing Adaptive helper when Adaptive assets or profiles are missing:");
-        Console.Error.WriteLine("dotnet run --file apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs -- .");
+        if (adaptiveProblems.Count > 0)
+        {
+            Console.Error.WriteLine("Run the existing Adaptive helper because Adaptive assets or profiles are missing or invalid:");
+            Console.Error.WriteLine("dotnet run --file apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs -- .");
+        }
         return 1;
     }
 
@@ -111,7 +115,9 @@ static void ProcessAgent(
         }
 
         var target = Normalize(File.ReadAllText(targetPath));
-        if (!string.Equals(source, target, StringComparison.Ordinal) && !options.Force)
+        if (!string.Equals(source, target, StringComparison.Ordinal)
+            && !IsCompletedApmProfile(target, source)
+            && !options.Force)
         {
             conflicts.Add($"{display} differs from the canonical review profile and will not be removed without --force.");
             return;
@@ -149,13 +155,15 @@ static void ProcessAgent(
     }
 
     var current = Normalize(File.ReadAllText(targetPath));
-    if (string.Equals(source, current, StringComparison.Ordinal))
+    if (string.Equals(source, current, StringComparison.Ordinal)
+        || IsCompletedApmProfile(current, source))
     {
         operations.Add($"[unchanged] {display}");
         return;
     }
 
-    if (!options.Force && !IsApmGeneratedStub(current, GetTomlString(source, "name")))
+    var isApmGeneratedStub = IsApmGeneratedStub(current, source);
+    if (!options.Force && !isApmGeneratedStub)
     {
         conflicts.Add($"{display} differs from the canonical review profile; use --force to overwrite.");
         return;
@@ -173,7 +181,7 @@ static void ProcessAgent(
         return;
     }
 
-    File.WriteAllText(targetPath, source);
+    File.WriteAllText(targetPath, isApmGeneratedStub ? CompleteApmGeneratedStub(current, source) : source);
     operations.Add($"[updated] {display}");
 }
 
@@ -200,8 +208,6 @@ static List<string> ValidateAdaptiveInstallation(string targetRoot)
     var requiredFiles = new[]
     {
         Path.Combine(targetRoot, ".agents", "skills", "adaptive-implementation-execution", "SKILL.md"),
-        Path.Combine(targetRoot, ".github", "agents", "high-implementation-starter.agent.md"),
-        Path.Combine(targetRoot, ".github", "agents", "standard-implementation-completer.agent.md"),
         Path.Combine(targetRoot, ".codex", "agents", "high-implementation-starter.toml"),
         Path.Combine(targetRoot, ".codex", "agents", "standard-implementation-completer.toml")
     };
@@ -211,6 +217,19 @@ static List<string> ValidateAdaptiveInstallation(string targetRoot)
         if (!File.Exists(path))
         {
             problems.Add($"Adaptive dependency is missing: {Path.GetRelativePath(targetRoot, path).Replace('\\', '/')}");
+        }
+    }
+
+    foreach (var fileName in new[]
+    {
+        "high-implementation-starter.agent.md",
+        "standard-implementation-completer.agent.md"
+    })
+    {
+        var repositoryAgent = Path.Combine(targetRoot, ".github", "agents", fileName);
+        if (!File.Exists(repositoryAgent) && !HasApmCanonicalAgent(targetRoot, fileName))
+        {
+            problems.Add($"Adaptive canonical agent is missing: .github/agents/{fileName} or apm_modules/**/.apm/agents/{fileName}");
         }
     }
 
@@ -237,9 +256,10 @@ static List<string> ValidateAdaptiveInstallation(string targetRoot)
     return problems;
 }
 
-static bool IsApmGeneratedStub(string content, string expectedName)
+static bool IsApmGeneratedStub(string content, string source)
 {
-    if (!string.Equals(GetTomlString(content, "name"), expectedName, StringComparison.Ordinal))
+    if (!string.Equals(GetTomlString(content, "name"), GetTomlString(source, "name"), StringComparison.Ordinal)
+        || !string.Equals(GetTomlString(content, "description"), GetTomlString(source, "description"), StringComparison.Ordinal))
     {
         return false;
     }
@@ -257,9 +277,77 @@ static bool IsApmGeneratedStub(string content, string expectedName)
     return keys.All(key => key is "name" or "description" or "developer_instructions");
 }
 
+static bool IsCompletedApmProfile(string content, string source)
+{
+    foreach (var key in new[] { "name", "description", "model", "model_reasoning_effort", "sandbox_mode" })
+    {
+        if (!string.Equals(GetTomlString(content, key), GetTomlString(source, key), StringComparison.Ordinal))
+        {
+            return false;
+        }
+    }
+
+    var expectedHeading = GetTomlString(source, "name") switch
+    {
+        "local-reviewer" => "# Local Reviewer\\n",
+        "review-planner" => "# Review Planner\\n",
+        _ => string.Empty
+    };
+    if (expectedHeading.Length == 0
+        || !GetTomlString(content, "developer_instructions").StartsWith(expectedHeading, StringComparison.Ordinal))
+    {
+        return false;
+    }
+
+    var keys = Regex.Matches(content, @"(?m)^([A-Za-z_][A-Za-z0-9_]*)\s*=")
+        .Select(match => match.Groups[1].Value)
+        .ToHashSet(StringComparer.Ordinal);
+    return keys.SetEquals(new[]
+    {
+        "name", "description", "model", "model_reasoning_effort", "sandbox_mode", "developer_instructions"
+    });
+}
+
+static string CompleteApmGeneratedStub(string stub, string source)
+{
+    var lines = stub.TrimEnd().Split('\n').ToList();
+    var insertionIndex = lines.FindIndex(line => line.StartsWith("developer_instructions", StringComparison.Ordinal));
+    if (insertionIndex < 0)
+    {
+        throw new InvalidOperationException("APM-generated review profile has no developer_instructions field.");
+    }
+
+    lines.InsertRange(insertionIndex, new[]
+    {
+        $"model = \"{GetTomlString(source, "model")}\"",
+        $"model_reasoning_effort = \"{GetTomlString(source, "model_reasoning_effort")}\"",
+        $"sandbox_mode = \"{GetTomlString(source, "sandbox_mode")}\""
+    });
+    return string.Join('\n', lines) + "\n";
+}
+
+static bool HasApmCanonicalAgent(string targetRoot, string fileName)
+{
+    var modulesRoot = Path.Combine(targetRoot, "apm_modules");
+    if (!Directory.Exists(modulesRoot))
+    {
+        return false;
+    }
+
+    return Directory.EnumerateFiles(modulesRoot, fileName, SearchOption.AllDirectories)
+        .Any(path => string.Equals(
+            new DirectoryInfo(Path.GetDirectoryName(path)!).Name,
+            "agents",
+            StringComparison.OrdinalIgnoreCase)
+            && string.Equals(
+                new DirectoryInfo(Path.GetDirectoryName(Path.GetDirectoryName(path)!)!).Name,
+                ".apm",
+                StringComparison.OrdinalIgnoreCase));
+}
+
 static string GetTomlString(string content, string key)
 {
-    var match = Regex.Match(content, $"(?m)^{Regex.Escape(key)}\\s*=\\s*\"([^\"]*)\"\\s*$");
+    var match = Regex.Match(content, $"(?m)^{Regex.Escape(key)}\\s*=\\s*\"((?:\\\\.|[^\"\\\\])*)\"\\s*$");
     return match.Success ? match.Groups[1].Value : string.Empty;
 }
 
