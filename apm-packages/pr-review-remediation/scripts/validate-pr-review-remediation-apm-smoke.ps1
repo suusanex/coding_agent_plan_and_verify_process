@@ -35,7 +35,7 @@ function Assert-Contains([string]$Path, [string]$Pattern, [string]$Description) 
 }
 
 function Assert-ApmCanonicalAgent([string]$ModulesRoot, [string]$FileName) {
-    $matches = @(Get-ChildItem -LiteralPath $ModulesRoot -Recurse -File -Filter $FileName | Where-Object {
+    $matches = @(Get-ChildItem -LiteralPath $ModulesRoot -Recurse -Force -File -Filter $FileName | Where-Object {
         $_.Directory.Name -eq 'agents' -and $_.Directory.Parent.Name -eq '.apm'
     })
     if ($matches.Count -eq 0) {
