@@ -23,7 +23,7 @@ Windows providerは副作用なしのself-testでWindows App SDKを初期化し�
 - resume URI: `codex://threads/<thread-id>`をruntimeで生成する。
 - result URI: userinfoなしのHTTPSかつ具体的resource pathを持つものだけを許可する。host rootとGitHubのトップ・ownerトップ・repositoryトップは拒否し、resume URIへfallbackする。
 - `completion-notification` fenced blockのJSONはauthoring envelopeであり、runtime eventは`notification_status`を追加して配送する。
-- envelopeがない場合は、input内のliteral marker `[completion-notification]`をtarget declarationとして使う。fallback statusは成功を意味しない`TURN_ENDED`である。
+- envelopeがない場合は、input内のliteral marker `[completion-notification]`または明示Skill選択token `$completion-notification-decorator`をtarget declarationとして使う。fallback statusは成功を意味しない`TURN_ENDED`である。installerの`--target-marker`を明示した場合は、指定したmarker群へ置き換える。
 
 ## Safety and rollback
 
