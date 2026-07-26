@@ -1,0 +1,36 @@
+name: Validate PR Review Remediation
+
+on:
+  pull_request:
+    paths:
+      - '.github/agents/local-reviewer.agent.md'
+      - '.github/agents/review-planner.agent.md'
+      - '.github/agents/high-implementation-starter.agent.md'
+      - '.github/agents/standard-implementation-completer.agent.md'
+      - '.github/workflows/validate-pr-review-remediation.yml'
+      - 'apm-packages/pr-review-remediation/**'
+      - 'apm-packages/adaptive-implementation-execution/**'
+      - 'README.md'
+  push:
+    paths:
+      - '.github/agents/local-reviewer.agent.md'
+      - '.github/agents/review-planner.agent.md'
+      - '.github/agents/high-implementation-starter.agent.md'
+      - '.github/agents/standard-implementation-completer.agent.md'
+      - '.github/workflows/validate-pr-review-remediation.yml'
+      - 'apm-packages/pr-review-remediation/**'
+      - 'apm-packages/adaptive-implementation-execution/**'
+      - 'README.md'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-pr-review-remediation:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate PR Review Remediation contracts and fixtures
+        shell: pwsh
+        run: ./apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
+
