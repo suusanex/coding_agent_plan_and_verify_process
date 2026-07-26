@@ -1,0 +1,30 @@
+name: Validate Codex Notification Runtime
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/codex-notification-runtime/**'
+      - '.github/workflows/validate-codex-notification-runtime.yml'
+      - 'README.md'
+  push:
+    branches:
+      - main
+    paths:
+      - 'scripts/codex-notification-runtime/**'
+      - '.github/workflows/validate-codex-notification-runtime.yml'
+      - 'README.md'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Validate notification runtime
+        shell: pwsh
+        run: ./scripts/codex-notification-runtime/validate-codex-notification-runtime.ps1

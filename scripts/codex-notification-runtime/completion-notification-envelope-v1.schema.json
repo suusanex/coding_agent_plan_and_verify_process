@@ -10,6 +10,14 @@
     "observed_status": { "type": "string", "minLength": 1, "maxLength": 240 },
     "title": { "type": "string", "maxLength": 240 },
     "repository": { "type": "string", "maxLength": 240 },
-    "result_uri": { "type": "string", "format": "uri", "maxLength": 2048 }
+    "result_uri": {
+      "type": "string",
+      "format": "uri",
+      "maxLength": 2048,
+      "allOf": [
+        { "pattern": "^https://[^@/?#]+(?:/[^/?#]+)+(?:[?#].*)?$" },
+        { "not": { "pattern": "^https://github\\.com(?:/[^/?#]+){0,2}/?(?:[?#].*)?$" } }
+      ]
+    }
   }
 }

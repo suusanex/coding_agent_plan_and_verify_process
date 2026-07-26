@@ -12,6 +12,8 @@ dotnet run --file .\scripts\codex-notification-runtime\install-codex-notificatio
 dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --check
 ```
 
+一時環境でinstall/update/checkを検証するときは、`--codex-home <path> --install-root <path>`を併用します。`--install-root`を省略した通常導入では`%LOCALAPPDATA%\CodexNotificationRuntime`を使用します。
+
 最終回答へ付けるenvelopeは次の形式です。`result_uri`が有効なHTTPS URLなら通知の操作先として優先し、なければ該当Codex threadへ戻ります。runtimeは通知失敗をCodex turnの失敗へ変更しません。
 
 ````markdown
@@ -20,7 +22,9 @@ dotnet run --file .\scripts\codex-notification-runtime\install-codex-notificatio
 ```
 ````
 
-`[completion-notification]`を入力に含めたturnはenvelopeが欠落または不正でも、`TURN_ENDED`としてfallback通知されます。詳細、rollback、手動確認手順は [decision-record.md](scripts/codex-notification-runtime/decision-record.md) を参照してください。
+`result_uri`は具体的な結果を指すuserinfoなしのHTTPS URLだけを受理します。hostのroot URL、およびGitHubのトップ・ownerトップ・repositoryトップは粗いリンクとして破棄し、`resume_uri`へfallbackします。
+
+`[completion-notification]`を入力に含めたturnはenvelopeが欠落または不正でも、`TURN_ENDED`としてfallback通知されます。詳細とrollbackは [decision-record.md](scripts/codex-notification-runtime/decision-record.md)、実機確認状況は [manual-verification.md](scripts/codex-notification-runtime/manual-verification.md) を参照してください。
 
 単純な Plan モードでは不十分と感じた点を、自分の用途向けに改善したものです。
 

@@ -95,13 +95,19 @@ catch (Exception ex)
 static RuntimeConfig LoadConfig(string path)
 {
     if (!File.Exists(path)) return new RuntimeConfig();
-    return JsonSerializer.Deserialize<RuntimeConfig>(File.ReadAllText(path), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower }) ?? new RuntimeConfig();
+    var config = JsonSerializer.Deserialize<RuntimeConfig>(File.ReadAllText(path), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower }) ?? new RuntimeConfig();
+    config.TargetMarkers ??= [];
+    config.Providers ??= [];
+    config.Providers = config.Providers.Where(static provider => provider is not null).ToList();
+    foreach (var provider in config.Providers) provider.Argv ??= [];
+    if (config.ChainedNotify is not null) config.ChainedNotify.Argv ??= [];
+    return config;
 }
 
 static CompletionEvent? CreateCandidate(CodexPayload payload, RuntimeConfig config)
 {
     var envelope = TryReadEnvelope(payload.LastAssistantMessage, out var invalidEnvelope);
-    var markerMatched = config.TargetMarkers.Any(marker => !string.IsNullOrWhiteSpace(marker) && payload.InputMessages.Any(message => message?.Contains(marker, StringComparison.Ordinal) == true));
+    var markerMatched = config.TargetMarkers.Any(marker => !string.IsNullOrWhiteSpace(marker) && (payload.InputMessages ?? []).Any(message => message?.Contains(marker, StringComparison.Ordinal) == true));
     if (envelope is null && !markerMatched) return null;
 
     var repository = IsSafeText(envelope?.Repository) ? envelope!.Repository! : ResolveRepository(payload.Cwd);
@@ -157,7 +163,14 @@ static CompletionEnvelope? TryReadEnvelope(string? message, out bool invalid)
 }
 
 static bool IsSafeText(string? value) => !string.IsNullOrWhiteSpace(value) && value.Length <= 240 && value.All(character => !char.IsControl(character));
-static bool IsAllowedResultUri(string? value) => Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps && string.IsNullOrEmpty(uri.UserInfo) && value!.Length <= 2048;
+static bool IsAllowedResultUri(string? value)
+{
+    if (string.IsNullOrWhiteSpace(value) || value.Length > 2048 || !Uri.TryCreate(value, UriKind.Absolute, out var uri)) return false;
+    if (!string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) || !string.IsNullOrEmpty(uri.UserInfo)) return false;
+    var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+    if (segments.Length == 0) return false;
+    return !string.Equals(uri.Host, "github.com", StringComparison.OrdinalIgnoreCase) || segments.Length >= 4;
+}
 static string ResolveRepository(string? cwd)
 {
     if (string.IsNullOrWhiteSpace(cwd)) return "unknown-repository";
@@ -220,7 +233,8 @@ static async Task ForwardExistingNotifyAsync(CommandSpec? command, string payloa
         if (process is not null)
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-            await process.WaitForExitAsync(timeout.Token);
+            try { await process.WaitForExitAsync(timeout.Token); }
+            catch { TryKill(process); }
         }
     }
     catch { }
@@ -228,7 +242,7 @@ static async Task ForwardExistingNotifyAsync(CommandSpec? command, string payloa
 
 static async Task<bool> InvokeProviderAsync(ProviderSpec provider, CompletionEvent completionEvent, JsonSerializerOptions options)
 {
-    if (provider.Argv.Count == 0) return false;
+    if (provider.Argv is not { Count: > 0 }) return false;
     try
     {
         var info = new ProcessStartInfo(provider.Argv[0]) { RedirectStandardInput = true, UseShellExecute = false, CreateNoWindow = true };
@@ -238,11 +252,14 @@ static async Task<bool> InvokeProviderAsync(ProviderSpec provider, CompletionEve
         await process.StandardInput.WriteAsync(JsonSerializer.Serialize(completionEvent, options));
         process.StandardInput.Close();
         using var timeout = new CancellationTokenSource(TimeSpan.FromMilliseconds(Math.Clamp(provider.TimeoutMs, 1000, 30000)));
-        await process.WaitForExitAsync(timeout.Token);
+        try { await process.WaitForExitAsync(timeout.Token); }
+        catch { TryKill(process); return false; }
         return process.ExitCode == 0;
     }
     catch { return false; }
 }
+
+static void TryKill(Process process) { try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch { } }
 
 static void WriteLog(string home, string status, string? eventHash, string? error)
 {
@@ -269,10 +286,21 @@ static void SelfTest()
     payload.LastAssistantMessage = message;
     candidate = CreateCandidate(payload, new RuntimeConfig());
     if (candidate?.ObservedStatus != "BLOCKED" || candidate.ResultUri != "https://github.com/openai/codex/issues/1") throw new InvalidOperationException($"envelope test failed status={candidate?.ObservedStatus} uri={candidate?.ResultUri}");
-    Console.WriteLine("PASS runtime self-test (2 cases)");
+    payload.LastAssistantMessage = "```completion-notification\n{\"schema_version\":1,\"primary_process\":\"test\",\"observed_status\":\"COMPLETED\",\"result_uri\":\"https://github.com/openai/codex\"}\n```";
+    candidate = CreateCandidate(payload, new RuntimeConfig());
+    if (candidate?.ResultUri is not null) throw new InvalidOperationException("coarse GitHub URI must fall back to resume_uri");
+    var temporaryConfig = Path.Combine(Path.GetTempPath(), "codex-notification-runtime-config-" + Guid.NewGuid().ToString("N") + ".json");
+    try
+    {
+        File.WriteAllText(temporaryConfig, "{\"target_markers\":null,\"providers\":null,\"chained_notify\":{\"argv\":null}}");
+        var normalized = LoadConfig(temporaryConfig);
+        if (normalized.TargetMarkers.Count != 0 || normalized.Providers.Count != 0 || normalized.ChainedNotify?.Argv.Count != 0) throw new InvalidOperationException("runtime config normalization failed");
+    }
+    finally { TryDelete(temporaryConfig); }
+    Console.WriteLine("PASS runtime self-test (4 cases)");
 }
 
-sealed class CodexPayload { [JsonPropertyName("type")] public string? Type { get; set; } [JsonPropertyName("thread-id")] public string? ThreadId { get; set; } [JsonPropertyName("turn-id")] public string? TurnId { get; set; } [JsonPropertyName("cwd")] public string? Cwd { get; set; } [JsonPropertyName("input-messages")] public List<string?> InputMessages { get; set; } = []; [JsonPropertyName("last-assistant-message")] public string? LastAssistantMessage { get; set; } }
+sealed class CodexPayload { [JsonPropertyName("type")] public string? Type { get; set; } [JsonPropertyName("thread-id")] public string? ThreadId { get; set; } [JsonPropertyName("turn-id")] public string? TurnId { get; set; } [JsonPropertyName("cwd")] public string? Cwd { get; set; } [JsonPropertyName("input-messages")] public List<string?>? InputMessages { get; set; } = []; [JsonPropertyName("last-assistant-message")] public string? LastAssistantMessage { get; set; } }
 sealed class CompletionEnvelope { [JsonPropertyName("schema_version")] public int SchemaVersion { get; set; } [JsonPropertyName("primary_process")] public string? PrimaryProcess { get; set; } [JsonPropertyName("observed_status")] public string? ObservedStatus { get; set; } [JsonPropertyName("title")] public string? Title { get; set; } [JsonPropertyName("repository")] public string? Repository { get; set; } [JsonPropertyName("result_uri")] public string? ResultUri { get; set; } }
 sealed class CompletionEvent { public int SchemaVersion { get; set; } public string Source { get; set; } = ""; public string PrimaryProcess { get; set; } = ""; public string ObservedStatus { get; set; } = ""; public DateTimeOffset OccurredAt { get; set; } public string Title { get; set; } = ""; public string Repository { get; set; } = ""; public string ResumeUri { get; set; } = ""; public string? ResultUri { get; set; } public string SourceEventId { get; set; } = ""; public string NotificationStatus { get; set; } = ""; }
 sealed class RuntimeConfig { public List<string> TargetMarkers { get; set; } = []; public List<ProviderSpec> Providers { get; set; } = []; public CommandSpec? ChainedNotify { get; set; } }

@@ -13,7 +13,20 @@
     "title": { "type": "string" },
     "repository": { "type": "string" },
     "resume_uri": { "type": "string", "pattern": "^codex://threads/" },
-    "result_uri": { "type": ["string", "null"] },
+    "result_uri": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048,
+          "allOf": [
+            { "pattern": "^https://[^@/?#]+(?:/[^/?#]+)+(?:[?#].*)?$" },
+            { "not": { "pattern": "^https://github\\.com(?:/[^/?#]+){0,2}/?(?:[?#].*)?$" } }
+          ]
+        }
+      ]
+    },
     "source_event_id": { "type": "string", "pattern": "^codex:" },
     "notification_status": { "enum": ["PENDING", "DELIVERED", "FAILED", "DUPLICATE"] }
   }
