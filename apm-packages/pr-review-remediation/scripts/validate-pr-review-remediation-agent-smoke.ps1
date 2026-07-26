@@ -18,7 +18,9 @@ function Add-Failure {
 
 function Get-Sha256 {
     param([Parameter(Mandatory)][string]$Path)
-    (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+    $normalized = [IO.File]::ReadAllText($Path).Replace("`r`n", "`n")
+    $bytes = [Text.Encoding]::UTF8.GetBytes($normalized)
+    [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()
 }
 
 function Test-Sha256 {
@@ -183,7 +185,7 @@ if ((Test-Path -LiteralPath $localPath) -and (Test-Path -LiteralPath $planPath))
         Add-Failure 'local-review-findings.md contains no stable finding ID'
     }
     foreach ($sourceId in @($localIds + @('100', '1001', '501'))) {
-        $sourceLine = [regex]::Match($planText, '(?m)^\|[^\r\n]*' + [regex]::Escape($sourceId) + '[^\r\n]*\|\s*(Apply|Hold|Reject)\s*\|[^\r\n]*$')
+        $sourceLine = [regex]::Match($planText, '(?m)^\|[^\r\n]*' + [regex]::Escape($sourceId) + '[^\r\n]*\|\s*(Apply|Hold|Reject)\s*\|[^\r\n]*\r?$')
         if (-not $sourceLine.Success) {
             Add-Failure "review-plan.md lacks an Apply/Hold/Reject decision row for source $sourceId"
         }

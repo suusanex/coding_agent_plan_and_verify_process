@@ -21,7 +21,9 @@ $ErrorActionPreference = 'Stop'
 
 function Get-Sha256 {
     param([Parameter(Mandatory)][string]$Path)
-    (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+    $normalized = [IO.File]::ReadAllText($Path).Replace("`r`n", "`n")
+    $bytes = [Text.Encoding]::UTF8.GetBytes($normalized)
+    [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()
 }
 
 function Get-TextSha256 {

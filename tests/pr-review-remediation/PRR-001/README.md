@@ -12,7 +12,9 @@ The runner loads each canonical profile as direct CLI configuration:
   `/root`;
 - `customAgentSpawnObserved` must remain `false`;
 - model, reasoning effort, sandbox, session ID, turn ID, usage, duration, output
-  hash, and clean Git state are read from the persisted Codex rollout.
+  hash, and clean Git state are read from the persisted Codex rollout;
+- committed text hashes normalize CRLF to LF so the evidence is portable across
+  Git checkout settings.
 
 ## External model payload
 
