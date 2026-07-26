@@ -25,6 +25,61 @@ function Assert-Contains([string]$Path, [string]$Literal, [string]$Description) 
     }
 }
 
+function Get-CanonicalFixtureContractFailures([object]$Fixture, [string]$RepositoryRoot) {
+    $fixtureId = [string]$Fixture.id
+    $primaryProcess = [string]$Fixture.primary_process
+    $observedStatus = [string]$Fixture.observed_status
+    $primaryOutput = [string]$Fixture.primary_output
+
+    if ([string]::IsNullOrWhiteSpace($primaryProcess) -or $primaryProcess -cnotmatch '^[a-z0-9]+(?:-[a-z0-9]+)*$') {
+        Write-Output "Fixture $fixtureId has an invalid primary_process package name: $primaryProcess"
+        return
+    }
+
+    $canonicalPackageRoot = Join-Path $RepositoryRoot "apm-packages/$primaryProcess"
+    $canonicalManifestPath = Join-Path $canonicalPackageRoot 'apm.yml'
+    $canonicalSkillPath = Join-Path $canonicalPackageRoot ".apm/skills/$primaryProcess/SKILL.md"
+
+    if (-not (Test-Path -LiteralPath $canonicalManifestPath -PathType Leaf)) {
+        Write-Output "Fixture $fixtureId cannot resolve canonical manifest for ${primaryProcess}: $canonicalManifestPath"
+    }
+    else {
+        $manifestText = Get-Content -Raw -LiteralPath $canonicalManifestPath
+        $manifestName = [regex]::Match($manifestText, '(?m)^name:\s*(?<name>[^\r\n#]+?)\s*$')
+        if (-not $manifestName.Success -or $manifestName.Groups['name'].Value -cne $primaryProcess) {
+            Write-Output "Fixture $fixtureId primary_process does not match the canonical manifest name: $primaryProcess"
+        }
+    }
+
+    if (-not (Test-Path -LiteralPath $canonicalSkillPath -PathType Leaf)) {
+        Write-Output "Fixture $fixtureId cannot resolve canonical Skill for ${primaryProcess}: $canonicalSkillPath"
+    }
+    else {
+        $canonicalSkillText = Get-Content -Raw -LiteralPath $canonicalSkillPath
+        $canonicalFrontmatter = [regex]::Match($canonicalSkillText, '\A---\r?\n(?<body>.*?)\r?\n---', [Text.RegularExpressions.RegexOptions]::Singleline)
+        $canonicalSkillName = if ($canonicalFrontmatter.Success) {
+            [regex]::Match($canonicalFrontmatter.Groups['body'].Value, '(?m)^name:\s*(?<name>[^\r\n#]+?)\s*$')
+        }
+        else {
+            [Text.RegularExpressions.Match]::Empty
+        }
+        if (-not $canonicalSkillName.Success -or $canonicalSkillName.Groups['name'].Value -cne $primaryProcess) {
+            Write-Output "Fixture $fixtureId primary_process does not match the canonical Skill name: $primaryProcess"
+        }
+
+        $verdictTokenPattern = '(?<![A-Z0-9_])' + [regex]::Escape($observedStatus) + '(?![A-Z0-9_])'
+        if ([string]::IsNullOrWhiteSpace($observedStatus) -or
+            -not [regex]::IsMatch($canonicalSkillText, $verdictTokenPattern)) {
+            Write-Output "Fixture $fixtureId observed_status is not a canonical verdict token for ${primaryProcess}: $observedStatus"
+        }
+    }
+
+    $firstOutputLine = @($primaryOutput -split '\r?\n', 2)[0]
+    if ($firstOutputLine -cne "Verdict: $observedStatus") {
+        Write-Output "Fixture $fixtureId primary_output must start with the exact canonical verdict line: Verdict: $observedStatus"
+    }
+}
+
 $requiredFiles = @(
     'apm.yml',
     'README.md',
@@ -108,6 +163,46 @@ if ($fixtures.Count -lt 2) {
 }
 if (@($fixtures.primary_process | Sort-Object -Unique).Count -lt 2) {
     throw 'Integration fixtures must cover at least two distinct primary processes.'
+}
+
+$requiredPrimaryProcesses = @('adaptive-implementation-execution', 'plan-coverage-residual-flow')
+foreach ($requiredPrimaryProcess in $requiredPrimaryProcesses) {
+    if (@($fixtures | Where-Object { $_.primary_process -ceq $requiredPrimaryProcess }).Count -lt 1) {
+        throw "Integration fixtures must contain at least one canonical fixture for primary process: $requiredPrimaryProcess"
+    }
+}
+
+foreach ($fixture in $fixtures) {
+    $contractFailures = @(Get-CanonicalFixtureContractFailures $fixture $repositoryRoot)
+    if ($contractFailures.Count -gt 0) {
+        throw ($contractFailures -join [Environment]::NewLine)
+    }
+}
+
+$negativeContractFixtures = @(
+    [pscustomobject]@{
+        id = 'missing-process-self-test'
+        primary_process = 'not-a-real-primary-process'
+        observed_status = 'NOT_A_REAL_VERDICT'
+        primary_output = 'Verdict: NOT_A_REAL_VERDICT'
+    },
+    [pscustomobject]@{
+        id = 'invalid-verdict-self-test'
+        primary_process = 'adaptive-implementation-execution'
+        observed_status = 'NOT_A_REAL_VERDICT'
+        primary_output = 'Verdict: NOT_A_REAL_VERDICT'
+    },
+    [pscustomobject]@{
+        id = 'mismatched-output-self-test'
+        primary_process = 'adaptive-implementation-execution'
+        observed_status = 'COMPLETED_BY_HIGH_MODEL'
+        primary_output = 'Verdict: READY_TO_CLOSE'
+    }
+)
+foreach ($negativeFixture in $negativeContractFixtures) {
+    if (@(Get-CanonicalFixtureContractFailures $negativeFixture $repositoryRoot).Count -eq 0) {
+        throw "Canonical fixture validation negative self-test unexpectedly passed: $($negativeFixture.id)"
+    }
 }
 
 $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
@@ -272,5 +367,5 @@ finally {
     }
 }
 
-Write-Output 'Completion Notification Decorator validation: PASS (2 primary processes, fallback, direct links, multi-repository identity, fail-open)'
+Write-Output "Completion Notification Decorator validation: PASS ($($fixtures.Count) canonical primary-process fixtures, fallback, direct links, multi-repository identity, fail-open)"
 $global:LASTEXITCODE = 0

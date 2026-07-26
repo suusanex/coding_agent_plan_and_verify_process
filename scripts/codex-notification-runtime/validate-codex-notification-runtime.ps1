@@ -150,10 +150,11 @@ try {
     $installedConfig = Get-Content (Join-Path $codexHome 'config.toml') -Raw
     if ($installedConfig.IndexOf('notify =', [StringComparison]::Ordinal) -gt $installedConfig.IndexOf('[features]', [StringComparison]::Ordinal)) { throw 'Installer placed notify inside a TOML table.' }
     $installedRuntimeConfig = Get-Content (Join-Path $installRoot 'runtime-config.json') -Raw | ConvertFrom-Json
-    if (@($installedRuntimeConfig.target_markers).Count -ne 2 -or
-        '[completion-notification]' -notin @($installedRuntimeConfig.target_markers) -or
-        '$completion-notification-decorator' -notin @($installedRuntimeConfig.target_markers)) {
-        throw 'Installer did not configure both default completion notification target markers.'
+    $installedTargetMarkers = @($installedRuntimeConfig.target_markers)
+    foreach ($requiredMarker in @('[completion-notification]', '$completion-notification-decorator')) {
+        if (@($installedTargetMarkers | Where-Object { $_ -ceq $requiredMarker }).Count -ne 1) {
+            throw "Installer did not configure required completion notification target marker exactly once: $requiredMarker"
+        }
     }
     $backup = Join-Path $codexHome 'config.toml.codex-notification-runtime.bak'
     $backupHash = (Get-FileHash $backup -Algorithm SHA256).Hash

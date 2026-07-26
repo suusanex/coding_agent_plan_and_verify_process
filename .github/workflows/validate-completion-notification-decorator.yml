@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 jobs:
-  validate:
+  validate-runtime-integration:
     runs-on: windows-latest
     timeout-minutes: 15
     steps:
@@ -28,14 +28,20 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      - name: Validate decorator and integration fixtures
+        shell: pwsh
+        run: ./apm-packages/completion-notification-decorator/scripts/validate-completion-notification-decorator.ps1
+
+  validate-apm-install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
       - name: Set up APM CLI
         uses: microsoft/apm-action@v1
         with:
           apm-version: '0.26.0'
           setup-only: true
-      - name: Validate decorator and integration fixtures
-        shell: pwsh
-        run: ./apm-packages/completion-notification-decorator/scripts/validate-completion-notification-decorator.ps1
       - name: Smoke test package-root installation
         shell: pwsh
         run: ./apm-packages/completion-notification-decorator/scripts/test-apm-package-install.ps1
