@@ -28,7 +28,27 @@ dotnet run --file .\scripts\codex-notification-runtime\install-codex-notificatio
 
 `result_uri`は具体的な結果を指すuserinfoなしのHTTPS URLだけを受理します。hostのroot URL、およびGitHubのトップ・ownerトップ・repositoryトップは粗いリンクとして破棄し、`resume_uri`へfallbackします。
 
-`[completion-notification]`を入力に含めたturnはenvelopeが欠落または不正でも、`TURN_ENDED`としてfallback通知されます。詳細とrollbackは [decision-record.md](scripts/codex-notification-runtime/decision-record.md)、実機確認状況は [manual-verification.md](scripts/codex-notification-runtime/manual-verification.md) を参照してください。
+`$completion-notification-decorator`または`[completion-notification]`を入力に含めたturnは、envelopeが欠落または不正でも`TURN_ENDED`としてfallback通知されます。詳細とrollbackは [decision-record.md](scripts/codex-notification-runtime/decision-record.md)、実機確認状況は [manual-verification.md](scripts/codex-notification-runtime/manual-verification.md) を参照してください。
+
+## Completion Notification Decorator
+
+`completion-notification-decorator`は、任意の既存Codexプロセスと同じ親turnへ明示追加する観測用Skillです。主プロセスの選択・起動・routing・verdict再判定は行わず、最終回答の末尾へversion 1 envelopeだけを追加します。
+
+```text
+$completion-notification-decorator
+$adaptive-implementation-execution
+
+このPlanを実装してください。
+```
+
+SkillはAPM packageからrepository-localに導入し、上記のcanonical runtime installerをuser-level設定へ適用します。runtime sourceをpackageへ複製しません。
+
+```powershell
+apm install .\apm-packages\completion-notification-decorator --target codex,agent-skills
+dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- install
+```
+
+使い方、fallback、2系統のintegration fixtureは [package README](apm-packages/completion-notification-decorator/README.md) を参照してください。
 
 単純な Plan モードでは不十分と感じた点を、自分の用途向けに改善したものです。
 
@@ -93,6 +113,7 @@ Source requirement
 
 | package | Use when |
 | --- | --- |
+| `apm-packages/completion-notification-decorator` | 任意の既存Codex主プロセスを変更せず、同じ親turnの終了時にverdictと復帰リンクを通知したい |
 | `apm-packages/pr-review-remediation` | Ready PRを成立させ、local Codex reviewとGitHub Copilot reviewを統合し、別親ターンの既存Adaptive Implementationでレビュー指摘を実装・検証したい |
 | `apm-packages/adaptive-implementation-execution` | 通常 Plan Mode 後の非自明な実装を HIGH_MODEL で開始し、実コード上の decision surface が解消した場合だけ STANDARD_MODEL へ直列委譲したい |
 | `apm-packages/design-pair-implementation-execution` | 利用者が明示選択した場合だけ、実装前に code の予定変更面を対話し、explicit Locked Decisions を通常の Adaptive Implementation へ渡したい |
@@ -114,6 +135,7 @@ Source requirement
 
 | Script | Use when | Installs / fixes |
 | --- | --- | --- |
+| `scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs` | Completion Notification Decoratorのcallback runtimeをuser-level Codex設定へ安全に導入・更新・検証したい | canonical runtimeとWindows providerをsourceからpublishし、既存`notify`をchainして、decorator Skill tokenとcompatibility markerをtarget宣言として設定 |
 | `apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs` | PR Review Remediation導入後にread-only review agentの具体的Codex profileを同期し、依存するAdaptive assets/profileの存在も確認したい | `.codex/agents/local-reviewer.toml`、`.codex/agents/review-planner.toml`。Adaptive profileは既存Adaptive helperを使用し、`AGENTS.md`と`.codex/config.toml`は操作しない |
 | `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM 導入後に Adaptive Implementation の必須 concrete Codex profile を repository-local に同期・検証したい | `.codex/agents/high-implementation-starter.toml`、`.codex/agents/standard-implementation-completer.toml`。`AGENTS.md` は操作しない |
 | `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、Codex-first / Adaptive / Design Pair skills、canonical implementation agent contracts、`templates/*.md` |

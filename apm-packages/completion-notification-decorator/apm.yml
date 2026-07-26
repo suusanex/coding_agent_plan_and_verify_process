@@ -1,0 +1,11 @@
+name: completion-notification-decorator
+version: 0.1.0
+description: Add observational completion notification metadata to one explicitly selected Codex primary process without changing its execution or verdict
+type: hybrid
+targets:
+  - codex
+  - agent-skills
+includes: auto
+
+dependencies:
+  apm: []

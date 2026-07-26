@@ -10,7 +10,7 @@ var parsed = Parse(args);
 if (parsed.Help || parsed.Error is not null)
 {
     Console.WriteLine(parsed.Error ?? "Codex notification runtime installer");
-    Console.WriteLine("dotnet run --file scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs -- [install] [--dry-run] [--check] [--codex-home <path>] [--install-root <path>] [--target-marker <literal>]");
+    Console.WriteLine("dotnet run --file scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs -- [install] [--dry-run] [--check] [--codex-home <path>] [--install-root <path>] [--target-marker <literal>]...");
     return;
 }
 if (parsed.SelfTest)
@@ -107,10 +107,12 @@ try
     await PublishAsync(Path.Combine(packageRoot, "windows-app-notification-provider.cs"), stage, "windows-app-notification-provider");
     EnsureExitCode(Path.Combine(stage, "codex-notification-runtime.exe"), "--self-test", 0);
     EnsureExitCode(Path.Combine(stage, "windows-app-notification-provider.exe"), "--self-test", 0);
-    var marker = parsed.TargetMarker ?? "[completion-notification]";
+    var markers = parsed.TargetMarkers.Count > 0
+        ? parsed.TargetMarkers
+        : ["[completion-notification]", "$completion-notification-decorator"];
     var runtimeConfig = new RuntimeConfig
     {
-        TargetMarkers = [marker],
+        TargetMarkers = markers,
         ChainedNotify = chained,
         Providers = [new ProviderSpec { Name = "windows-app-notification", Argv = [providerPath], TimeoutMs = 5000 }],
         OriginalConfigExisted = alreadyInstalled ? stored!.OriginalConfigExisted : File.Exists(configPath)
@@ -260,7 +262,9 @@ static void InstallerSelfTest()
     if (matches.Count != 1 || ParseNotifyArray(matches[0].Value) is not { Count: 2 }) throw new InvalidOperationException("inserted notify is not a valid top-level argv");
     var empty = InsertTopLevelNotify("", replacement);
     if (FindTopLevelNotify(empty).Count != 1) throw new InvalidOperationException("empty config insertion failed");
-    Console.WriteLine("PASS installer self-test (3 cases)");
+    var markerOptions = Parse(["--target-marker", "one", "--target-marker", "two"]);
+    if (!markerOptions.TargetMarkers.SequenceEqual(["one", "two"], StringComparer.Ordinal)) throw new InvalidOperationException("repeatable target marker parsing failed");
+    Console.WriteLine("PASS installer self-test (4 cases)");
 }
 
 static List<NotifyLine> FindTopLevelNotify(string text)
@@ -291,7 +295,7 @@ static InstallOptions Parse(string[] values)
     for (var i = 0; i < values.Length; i++) switch (values[i])
     {
         case "install": break; case "--dry-run": option.DryRun = true; break; case "--check": option.Check = true; break; case "--self-test": option.SelfTest = true; break; case "--allow-profiles": option.AllowProfiles = true; break; case "--help": case "-h": option.Help = true; break;
-        case "--codex-home" when i + 1 < values.Length: option.CodexHome = values[++i]; break; case "--target-marker" when i + 1 < values.Length: option.TargetMarker = values[++i]; break;
+        case "--codex-home" when i + 1 < values.Length: option.CodexHome = values[++i]; break; case "--target-marker" when i + 1 < values.Length: option.TargetMarkers.Add(values[++i]); break;
         case "--install-root" when i + 1 < values.Length: option.InstallRoot = values[++i]; break;
         default: option.Error = "未知の引数: " + values[i]; break;
     }
@@ -305,7 +309,7 @@ static IEnumerable<(string Text, int NewLineLength)> SplitLines(string value)
 
 sealed record NotifyLine(int Start, int End, string Value);
 sealed class NotifyOnly { [Tomlyn.Serialization.TomlPropertyName("notify")] public List<string>? Notify { get; set; } }
-sealed class InstallOptions { public bool DryRun { get; set; } public bool Check { get; set; } public bool SelfTest { get; set; } public bool AllowProfiles { get; set; } public bool Help { get; set; } public string? CodexHome { get; set; } public string? InstallRoot { get; set; } public string? TargetMarker { get; set; } public string? Error { get; set; } }
+sealed class InstallOptions { public bool DryRun { get; set; } public bool Check { get; set; } public bool SelfTest { get; set; } public bool AllowProfiles { get; set; } public bool Help { get; set; } public string? CodexHome { get; set; } public string? InstallRoot { get; set; } public List<string> TargetMarkers { get; } = []; public string? Error { get; set; } }
 sealed class RuntimeConfig { public List<string> TargetMarkers { get; set; } = []; public List<ProviderSpec> Providers { get; set; } = []; public CommandSpec? ChainedNotify { get; set; } public bool OriginalConfigExisted { get; set; } }
 sealed class ProviderSpec { public string Name { get; set; } = ""; public List<string> Argv { get; set; } = []; public int TimeoutMs { get; set; } = 5000; }
 sealed class CommandSpec { public List<string> Argv { get; set; } = []; }

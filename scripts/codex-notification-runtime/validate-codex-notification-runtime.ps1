@@ -149,6 +149,12 @@ try {
     Invoke-Checked { & $installer install --codex-home $codexHome --install-root $installRoot } 'isolated install'
     $installedConfig = Get-Content (Join-Path $codexHome 'config.toml') -Raw
     if ($installedConfig.IndexOf('notify =', [StringComparison]::Ordinal) -gt $installedConfig.IndexOf('[features]', [StringComparison]::Ordinal)) { throw 'Installer placed notify inside a TOML table.' }
+    $installedRuntimeConfig = Get-Content (Join-Path $installRoot 'runtime-config.json') -Raw | ConvertFrom-Json
+    if (@($installedRuntimeConfig.target_markers).Count -ne 2 -or
+        '[completion-notification]' -notin @($installedRuntimeConfig.target_markers) -or
+        '$completion-notification-decorator' -notin @($installedRuntimeConfig.target_markers)) {
+        throw 'Installer did not configure both default completion notification target markers.'
+    }
     $backup = Join-Path $codexHome 'config.toml.codex-notification-runtime.bak'
     $backupHash = (Get-FileHash $backup -Algorithm SHA256).Hash
     $checkOutput = & $installer --check --codex-home $codexHome --install-root $installRoot
