@@ -66,9 +66,22 @@ if (parsed.Check)
     Console.WriteLine($"notify_target: {(notifyConfigured ? "PASS" : "FAIL")}");
     Console.WriteLine($"self_wrap_absent: {(selfWrapAbsent ? "PASS" : "FAIL")}");
     Console.WriteLine($"provider_support: {(providerSupport == 0 ? "supported" : providerSupport == 3 ? "unsupported" : "check-failed")}");
-    var valid = runtimeExists && providerExists && configExists && notifyConfigured && selfWrapAbsent;
-    Console.WriteLine(valid ? "PASS installer check" : "FAIL installer check");
-    Environment.ExitCode = valid ? 0 : 2;
+    var structurallyValid = runtimeExists && providerExists && configExists && notifyConfigured && selfWrapAbsent;
+    if (!structurallyValid)
+    {
+        Console.WriteLine("FAIL installer check");
+        Environment.ExitCode = 2;
+    }
+    else if (providerSupport != 0)
+    {
+        Console.WriteLine("DEGRADED installer check: configured provider is unavailable");
+        Environment.ExitCode = 3;
+    }
+    else
+    {
+        Console.WriteLine("PASS installer check");
+        Environment.ExitCode = 0;
+    }
     return;
 }
 if (parsed.DryRun)

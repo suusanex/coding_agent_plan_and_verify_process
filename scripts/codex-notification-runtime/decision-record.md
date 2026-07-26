@@ -6,6 +6,8 @@ Windows 11上の初期providerは、Windows App SDKの`AppNotificationManager`�
 
 Codexのuser-level `notify`は一つのargvしか設定できないため、installerはruntimeを設定し、設定済みcommandを`runtime-config.json`の`chained_notify`として保持する。runtimeはすべてのcallbackで既存commandへ元JSONを最後の引数として転送する。
 
+配布のsource of truthは3本の`.cs` File-based appsとする。installerは導入時にsourceからstaging directoryへpublishし、repository内の`artifacts/`生成物は配布契約に含めない。
+
 ## Observed environment
 
 - Windows 11 Pro build 26200
@@ -30,6 +32,6 @@ Codexのuser-level `notify`は一つのargvしか設定できないため、inst
 
 ## Human verification required
 
-人手での作業が必要: one-off `codex exec -c notify=...`でnotificationを表示し、`result_uri`ボタンが対象PRを、fallbackのボタンが対象Codex threadを開くことを確認する。クリック結果を確認するまではdeep linkを実機検証済みと扱わない。
+one-off `codex exec -c notify=...`でnotificationを表示し、`result_uri`ボタンが対象PRを、fallbackのボタンがcallback発火元のCodex threadを直接開くことを2026-07-26に実機確認した。one-off実行は外側のCodex Desktop taskとは別threadになるため、Desktopで未表示だった発火元threadは新しいtaskが開いたように見える。表示された入力と応答がone-off実行と一致することを遷移成功の根拠とする。
 
 実施状況は`manual-verification.md`へ、message本文・完全URI・識別子を含めずに記録する。

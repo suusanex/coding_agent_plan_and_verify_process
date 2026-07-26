@@ -10,16 +10,17 @@ using Microsoft.Windows.AppNotifications.Builder;
 
 if (args.Contains("--self-test", StringComparer.Ordinal))
 {
-    var allowed = IsAllowedResultUri("https://github.com/suusanex/coding_agent_plan_and_verify_process/pull/57") && IsAllowedResumeUri("codex://threads/thread-id");
-    var rejected = new[] { "", "http://example.com/result/1", "https://user@example.com/result/1", "https://example.com/", "https://github.com/", "https://github.com/suusanex", "https://github.com/suusanex/coding_agent_plan_and_verify_process" }.All(value => !IsAllowedResultUri(value));
+    var allowed = new[] { "https://github.com/suusanex/coding_agent_plan_and_verify_process/pull/57", "HTTPS://Example.com/result/1" }.All(IsAllowedResultUri) && IsAllowedResumeUri("codex://threads/thread-id");
+    var rejected = new[] { "", "http://example.com/result/1", "https://user@example.com/result/1", "https://example.com/", "https://github.com/", "https://github.com/suusanex", "https://github.com/suusanex/coding_agent_plan_and_verify_process", "https://GitHub.com/suusanex/coding_agent_plan_and_verify_process" }.All(value => !IsAllowedResultUri(value));
     if (!allowed || !rejected || IsAllowedResumeUri("codex://settings")) Environment.Exit(2);
-    Console.WriteLine("PASS provider self-test (10 cases)");
+    Console.WriteLine("PASS provider self-test (12 cases)");
     return;
 }
 if (args.Contains("--check-support", StringComparer.Ordinal))
 {
-    Console.WriteLine(AppNotificationManager.IsSupported() ? "supported" : "unsupported");
-    Environment.ExitCode = AppNotificationManager.IsSupported() ? 0 : 3;
+    var supported = Environment.GetEnvironmentVariable("CODEX_NOTIFICATION_TEST_PROVIDER_UNSUPPORTED") != "1" && AppNotificationManager.IsSupported();
+    Console.WriteLine(supported ? "supported" : "unsupported");
+    Environment.ExitCode = supported ? 0 : 3;
     return;
 }
 

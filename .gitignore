@@ -4,3 +4,4 @@ apm_modules/
 
 # File-based app publish output
 apm-packages/adaptive-implementation-execution/scripts/artifacts/
+scripts/codex-notification-runtime/artifacts/

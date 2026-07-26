@@ -289,6 +289,7 @@ static void SelfTest()
     payload.LastAssistantMessage = "```completion-notification\n{\"schema_version\":1,\"primary_process\":\"test\",\"observed_status\":\"COMPLETED\",\"result_uri\":\"https://github.com/openai/codex\"}\n```";
     candidate = CreateCandidate(payload, new RuntimeConfig());
     if (candidate?.ResultUri is not null) throw new InvalidOperationException("coarse GitHub URI must fall back to resume_uri");
+    if (!IsAllowedResultUri("HTTPS://Example.com/result/1") || IsAllowedResultUri("https://GitHub.com/openai/codex")) throw new InvalidOperationException("mixed-case URI contract failed");
     var temporaryConfig = Path.Combine(Path.GetTempPath(), "codex-notification-runtime-config-" + Guid.NewGuid().ToString("N") + ".json");
     try
     {
@@ -297,7 +298,7 @@ static void SelfTest()
         if (normalized.TargetMarkers.Count != 0 || normalized.Providers.Count != 0 || normalized.ChainedNotify?.Argv.Count != 0) throw new InvalidOperationException("runtime config normalization failed");
     }
     finally { TryDelete(temporaryConfig); }
-    Console.WriteLine("PASS runtime self-test (4 cases)");
+    Console.WriteLine("PASS runtime self-test (6 cases)");
 }
 
 sealed class CodexPayload { [JsonPropertyName("type")] public string? Type { get; set; } [JsonPropertyName("thread-id")] public string? ThreadId { get; set; } [JsonPropertyName("turn-id")] public string? TurnId { get; set; } [JsonPropertyName("cwd")] public string? Cwd { get; set; } [JsonPropertyName("input-messages")] public List<string?>? InputMessages { get; set; } = []; [JsonPropertyName("last-assistant-message")] public string? LastAssistantMessage { get; set; } }

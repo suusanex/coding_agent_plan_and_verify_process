@@ -6,10 +6,13 @@ $installerSource = Join-Path $PSScriptRoot 'install-codex-notification-runtime-l
 $fakeCommand = Join-Path $PSScriptRoot 'tests/fake-notification-command.ps1'
 $envelopeSchema = Join-Path $PSScriptRoot 'completion-notification-envelope-v1.schema.json'
 $eventSchema = Join-Path $PSScriptRoot 'completion-notification-event-v1.schema.json'
+$artifactRoot = Join-Path $PSScriptRoot 'artifacts'
 
 foreach ($path in @($runtimeSource, $providerSource, $installerSource, $fakeCommand, $envelopeSchema, $eventSchema)) {
     if (-not (Test-Path $path)) { throw "Missing required runtime asset: $path" }
 }
+if ((Test-Path $artifactRoot) -and @(Get-ChildItem -LiteralPath $artifactRoot -Recurse -File).Count -gt 0) { throw 'Generated notification artifacts must not be tracked or distributed.' }
+if (-not (Get-Content (Join-Path $root '.gitignore') -Raw).Contains('scripts/codex-notification-runtime/artifacts/', [StringComparison]::Ordinal)) { throw 'Notification artifact ignore rule is missing.' }
 
 function Invoke-Checked([scriptblock]$Action, [string]$Description) {
     & $Action
@@ -92,6 +95,8 @@ try {
     Invoke-Runtime $runtime (New-Payload 'fallback-invalid' ('```completion-notification' + "`n" + '{invalid}' + "`n" + '```'))
     Invoke-Runtime $runtime (New-Payload 'null-input' (New-Envelope 'FAILED') $null)
     Invoke-Runtime $runtime (New-Payload 'coarse-uri' (New-Envelope 'COMPLETED' 'https://github.com/suusanex/coding_agent_plan_and_verify_process'))
+    Invoke-Runtime $runtime (New-Payload 'mixed-valid-uri' (New-Envelope 'COMPLETED' 'HTTPS://Example.com/result/1'))
+    Invoke-Runtime $runtime (New-Payload 'mixed-coarse-uri' (New-Envelope 'COMPLETED' 'https://GitHub.com/suusanex/coding_agent_plan_and_verify_process'))
     Invoke-Runtime $runtime (New-Payload 'not-targeted' $null @('ordinary turn'))
 
     $events = @(Get-Content $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT | ForEach-Object { $_ | ConvertFrom-Json })
@@ -102,6 +107,9 @@ try {
     if ($fallbacks.Count -ne 2 -or @($fallbacks | Where-Object observed_status -ne 'TURN_ENDED').Count -ne 0) { throw 'Fallback status contract failed.' }
     $coarse = $events | Where-Object source_event_id -eq 'codex:fixture-thread:coarse-uri'
     if ($null -ne $coarse.result_uri -or $coarse.resume_uri -ne 'codex://threads/fixture-thread') { throw 'Coarse URI did not fall back to resume_uri.' }
+    $mixedValid = $events | Where-Object source_event_id -eq 'codex:fixture-thread:mixed-valid-uri'
+    $mixedCoarse = $events | Where-Object source_event_id -eq 'codex:fixture-thread:mixed-coarse-uri'
+    if ($mixedValid.result_uri -ne 'HTTPS://Example.com/result/1' -or $null -ne $mixedCoarse.result_uri) { throw 'Mixed-case runtime URI contract failed.' }
     if ($events.source_event_id -contains 'codex:fixture-thread:not-targeted') { throw 'Untargeted callback was delivered.' }
 
     $env:CODEX_NOTIFICATION_TEST_PROVIDER_EXIT = '2'
@@ -128,7 +136,9 @@ try {
     $validEnvelope = '{"schema_version":1,"primary_process":"fixture","observed_status":"COMPLETED","result_uri":"https://github.com/suusanex/coding_agent_plan_and_verify_process/pull/57"}'
     $coarseEnvelope = '{"schema_version":1,"primary_process":"fixture","observed_status":"COMPLETED","result_uri":"https://github.com/suusanex/coding_agent_plan_and_verify_process"}'
     $userinfoEnvelope = '{"schema_version":1,"primary_process":"fixture","observed_status":"COMPLETED","result_uri":"https://user@example.com/result/1"}'
-    if (-not ($validEnvelope | Test-Json -SchemaFile $envelopeSchema) -or ($coarseEnvelope | Test-Json -SchemaFile $envelopeSchema -ErrorAction SilentlyContinue) -or ($userinfoEnvelope | Test-Json -SchemaFile $envelopeSchema -ErrorAction SilentlyContinue)) { throw 'Envelope URI schema contract failed.' }
+    $mixedValidEnvelope = '{"schema_version":1,"primary_process":"fixture","observed_status":"COMPLETED","result_uri":"HTTPS://Example.com/result/1"}'
+    $mixedCoarseEnvelope = '{"schema_version":1,"primary_process":"fixture","observed_status":"COMPLETED","result_uri":"https://GitHub.com/suusanex/coding_agent_plan_and_verify_process"}'
+    if (-not ($validEnvelope | Test-Json -SchemaFile $envelopeSchema) -or -not ($mixedValidEnvelope | Test-Json -SchemaFile $envelopeSchema) -or ($coarseEnvelope | Test-Json -SchemaFile $envelopeSchema -ErrorAction SilentlyContinue) -or ($mixedCoarseEnvelope | Test-Json -SchemaFile $envelopeSchema -ErrorAction SilentlyContinue) -or ($userinfoEnvelope | Test-Json -SchemaFile $envelopeSchema -ErrorAction SilentlyContinue)) { throw 'Envelope URI schema contract failed.' }
     $log = Get-Content (Join-Path $runtimeHome 'runtime.log.jsonl') -Raw
     if ($log.Contains('github.com', [StringComparison]::OrdinalIgnoreCase) -or $log.Contains('completion-notification', [StringComparison]::Ordinal)) { throw 'Runtime log contains prohibited message or URI content.' }
 
@@ -139,7 +149,17 @@ try {
     if ($installedConfig.IndexOf('notify =', [StringComparison]::Ordinal) -gt $installedConfig.IndexOf('[features]', [StringComparison]::Ordinal)) { throw 'Installer placed notify inside a TOML table.' }
     $backup = Join-Path $codexHome 'config.toml.codex-notification-runtime.bak'
     $backupHash = (Get-FileHash $backup -Algorithm SHA256).Hash
-    Invoke-Checked { & $installer --check --codex-home $codexHome --install-root $installRoot } 'isolated installer check'
+    $checkOutput = & $installer --check --codex-home $codexHome --install-root $installRoot
+    $checkExit = $LASTEXITCODE
+    $checkOutput | ForEach-Object { Write-Host $_ }
+    if ($checkExit -notin @(0, 3) -or ($checkExit -eq 3 -and ($checkOutput -join "`n") -notmatch 'DEGRADED installer check')) { throw "Isolated installer check returned unexpected exit code $checkExit." }
+    $env:CODEX_NOTIFICATION_TEST_PROVIDER_UNSUPPORTED = '1'
+    $degradedOutput = & $installer --check --codex-home $codexHome --install-root $installRoot
+    $degradedExit = $LASTEXITCODE
+    Remove-Item Env:CODEX_NOTIFICATION_TEST_PROVIDER_UNSUPPORTED -ErrorAction SilentlyContinue
+    $degradedOutput | ForEach-Object { Write-Host $_ }
+    $degradedText = $degradedOutput -join "`n"
+    if ($degradedExit -ne 3 -or $degradedText -notmatch 'provider_support: unsupported' -or $degradedText -notmatch 'DEGRADED installer check') { throw 'Unsupported provider was not reported as degraded.' }
     Invoke-Checked { & $installer install --codex-home $codexHome --install-root $installRoot } 'isolated reinstall'
     if ((Get-FileHash $backup -Algorithm SHA256).Hash -ne $backupHash) { throw 'Reinstall overwrote the original configuration backup.' }
 
@@ -176,7 +196,7 @@ try {
     if (-not $installerText.Contains('StandardOutput.ReadToEndAsync()', [StringComparison]::Ordinal) -or -not $installerText.Contains('StandardError.ReadToEndAsync()', [StringComparison]::Ordinal)) { throw 'Publish output streams are not drained concurrently.' }
 }
 finally {
-    foreach ($name in @('CODEX_NOTIFICATION_RUNTIME_HOME', 'CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT', 'CODEX_NOTIFICATION_TEST_CHAIN_OUTPUT', 'CODEX_NOTIFICATION_TEST_PROVIDER_EXIT', 'CODEX_NOTIFICATION_TEST_PROVIDER_DELAY_MS', 'CODEX_NOTIFICATION_TEST_FAIL_AFTER_BIN_SWAP')) {
+    foreach ($name in @('CODEX_NOTIFICATION_RUNTIME_HOME', 'CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT', 'CODEX_NOTIFICATION_TEST_CHAIN_OUTPUT', 'CODEX_NOTIFICATION_TEST_PROVIDER_EXIT', 'CODEX_NOTIFICATION_TEST_PROVIDER_DELAY_MS', 'CODEX_NOTIFICATION_TEST_FAIL_AFTER_BIN_SWAP', 'CODEX_NOTIFICATION_TEST_PROVIDER_UNSUPPORTED')) {
         Remove-Item ("Env:" + $name) -ErrorAction SilentlyContinue
     }
     if (Test-Path $validationRoot) { Remove-Item -LiteralPath $validationRoot -Recurse -Force }
