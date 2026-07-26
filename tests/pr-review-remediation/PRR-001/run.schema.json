@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/suusanex/coding_agent_plan_and_verify_process/tests/pr-review-remediation/PRR-001/run.schema.json",
+  "title": "PR Review Remediation Agent Smoke Evidence",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "evidenceId",
+    "runId",
+    "status",
+    "executionMode",
+    "customAgentSpawnObserved",
+    "externalModelPayloadConfirmed",
+    "startedAtUtc",
+    "completedAtUtc",
+    "inputFiles",
+    "runs",
+    "assertions"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "evidenceId": { "const": "PRR-001" },
+    "runId": { "type": "string", "format": "uuid" },
+    "status": { "const": "PASS" },
+    "executionMode": { "const": "canonical-profile-direct-execution" },
+    "customAgentSpawnObserved": { "const": false },
+    "externalModelPayloadConfirmed": { "const": true },
+    "startedAtUtc": { "type": "string", "format": "date-time" },
+    "completedAtUtc": { "type": "string", "format": "date-time" },
+    "inputFiles": {
+      "type": "array",
+      "minItems": 10,
+      "items": { "$ref": "#/$defs/fileHash" }
+    },
+    "runs": {
+      "type": "array",
+      "prefixItems": [
+        { "$ref": "#/$defs/agentRun" },
+        { "$ref": "#/$defs/agentRun" }
+      ],
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "assertions": {
+      "type": "object",
+      "required": [
+        "agentOrder",
+        "allFindingsDecided",
+        "allAppliedFindingsMapped",
+        "adaptiveIntentReady",
+        "productionCodeChanged",
+        "adaptiveAgentStarted",
+        "phaseOneStoppedAfterPlanning"
+      ],
+      "properties": {
+        "agentOrder": { "const": true },
+        "allFindingsDecided": { "const": true },
+        "allAppliedFindingsMapped": { "const": true },
+        "adaptiveIntentReady": { "const": true },
+        "productionCodeChanged": { "const": false },
+        "adaptiveAgentStarted": { "const": false },
+        "phaseOneStoppedAfterPlanning": { "const": true }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "fileHash": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "required": [
+        "inputTokens",
+        "cachedInputTokens",
+        "outputTokens",
+        "reasoningOutputTokens",
+        "totalTokens"
+      ],
+      "properties": {
+        "inputTokens": { "type": "integer", "minimum": 1 },
+        "cachedInputTokens": { "type": "integer", "minimum": 0 },
+        "outputTokens": { "type": "integer", "minimum": 1 },
+        "reasoningOutputTokens": { "type": "integer", "minimum": 0 },
+        "totalTokens": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "gitState": {
+      "type": "object",
+      "required": ["head", "tree", "status"],
+      "properties": {
+        "head": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "tree": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "status": { "const": "" }
+      }
+    },
+    "agentRun": {
+      "type": "object",
+      "required": [
+        "configuredAgent",
+        "observedExecution",
+        "profileSha256",
+        "contractSha256",
+        "developerInstructionsSha256",
+        "sessionId",
+        "turnId",
+        "codexCliVersion",
+        "model",
+        "reasoningEffort",
+        "sandboxMode",
+        "durationMs",
+        "usage",
+        "outputPath",
+        "outputSha256",
+        "gitBefore",
+        "gitAfter"
+      ],
+      "properties": {
+        "configuredAgent": { "enum": ["local-reviewer", "review-planner"] },
+        "observedExecution": { "const": "top-level-codex-exec:/root" },
+        "profileSha256": { "$ref": "#/$defs/sha256" },
+        "contractSha256": { "$ref": "#/$defs/sha256" },
+        "developerInstructionsSha256": { "$ref": "#/$defs/sha256" },
+        "sessionId": { "type": "string", "format": "uuid" },
+        "turnId": { "type": "string", "format": "uuid" },
+        "codexCliVersion": { "type": "string", "minLength": 1 },
+        "model": { "const": "gpt-5.6-terra" },
+        "reasoningEffort": { "const": "high" },
+        "sandboxMode": { "const": "read-only" },
+        "durationMs": { "type": "integer", "minimum": 1 },
+        "usage": { "$ref": "#/$defs/usage" },
+        "outputPath": { "type": "string", "minLength": 1 },
+        "outputSha256": { "$ref": "#/$defs/sha256" },
+        "gitBefore": { "$ref": "#/$defs/gitState" },
+        "gitAfter": { "$ref": "#/$defs/gitState" }
+      }
+    }
+  }
+}

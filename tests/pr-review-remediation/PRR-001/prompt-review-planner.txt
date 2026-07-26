@@ -1,0 +1,5 @@
+Act as the canonical review-planner using the configured canonical profile and `.github/agents/review-planner.agent.md` contract.
+
+Read `AGENTS.md`, `README.md`, `.review/pr-123/review-context.json`, `.review/pr-123/pr-diff.patch`, and `.review/pr-123/local-review-findings.md`. The confirmed PR identity is `example/repo` PR #123, `main` / `base-001` to `feature/review-fixture` / `head-001`.
+
+Consolidate every local finding, Copilot review and inline comment, PR comment, and check. Return a complete `review-plan.md` with a decision for every source, duplicate and conflict mapping, validation, canonical `implementation_intent`, exact separate-parent-turn Adaptive prompt, and Phase 1 verdict. Do not invoke another agent, start Adaptive Implementation, edit files, or change Git or external state. Output only the Markdown document.

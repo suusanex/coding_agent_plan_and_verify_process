@@ -93,8 +93,10 @@ Source requirement
 
 | package | Use when |
 | --- | --- |
+| `apm-packages/pr-review-remediation` | Ready PRを成立させ、local Codex reviewとGitHub Copilot reviewを統合し、別親ターンの既存Adaptive Implementationでレビュー指摘を実装・検証したい |
 | `apm-packages/adaptive-implementation-execution` | 通常 Plan Mode 後の非自明な実装を HIGH_MODEL で開始し、実コード上の decision surface が解消した場合だけ STANDARD_MODEL へ直列委譲したい |
 | `apm-packages/design-pair-implementation-execution` | 利用者が明示選択した場合だけ、実装前に code の予定変更面を対話し、explicit Locked Decisions を通常の Adaptive Implementation へ渡したい |
+| `apm-packages/goal-context-authoring` | ChatGPT 等で完了した初期検討を、元会話なしで目的達成レビューに使える human-reviewed `goal-context-*.md` へ変換したい |
 | `apm-packages/codex-first-ai-development-process` | Codex を第一優先にし、短い依頼から cost-aware routing、モデル tier 分担、READY / close gate、stateful resume に入りたい |
 | `apm-packages/copilot-fallback-ai-development-process` | Codex 枠が尽きた場合などに、GitHub Copilot Chat in VS Code へ同じ思想の cost-aware process を repo-local 導入したい |
 | `apm-packages/plan-coverage-residual-flow` | operator が Plan網羅チェック・残件判定フローを直接選べる。通常利用では `plan-coverage-residual-flow` skill を入口にして既存 agent 群を進行管理したい |
@@ -112,9 +114,12 @@ Source requirement
 
 | Script | Use when | Installs / fixes |
 | --- | --- | --- |
+| `apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs` | PR Review Remediation導入後にread-only review agentの具体的Codex profileを同期し、依存するAdaptive assets/profileの存在も確認したい | `.codex/agents/local-reviewer.toml`、`.codex/agents/review-planner.toml`。Adaptive profileは既存Adaptive helperを使用し、`AGENTS.md`と`.codex/config.toml`は操作しない |
 | `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM 導入後に Adaptive Implementation の必須 concrete Codex profile を repository-local に同期・検証したい | `.codex/agents/high-implementation-starter.toml`、`.codex/agents/standard-implementation-completer.toml`。`AGENTS.md` は操作しない |
 | `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、Codex-first / Adaptive / Design Pair skills、canonical implementation agent contracts、`templates/*.md` |
 | `scripts/provision-work-repo-agents.cs` | 既存の token-aware / full-coverage package を APM 経由で導入し、agent TOML と template 配置を補正したい | `apm install` の実行、canonical Adaptive agents と legacy `.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level 設定補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置 |
+| `apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1` | Goal Context package、fixture、または生成した `goal-context-*.md` を検証したい | 必須章、entry単位のprovenance、命名、human-review state、高確度の credential pattern を検証。semantic / privacy review は人間が行う |
+| `apm-packages/goal-context-authoring/scripts/test-apm-package-install.ps1` | Goal Context package の標準APM導入経路を検証したい | temporary root へ package root を導入し、Skill と4 references の配置・SHA-256一致を検証 |
 | `scripts/validate-architecture-slice-readiness.ps1` | Architecture Slice Readinessのagent、manifest、template、routing、validation resultを静的検証したい | dependency path、frontmatter、必須contract、旧direct routeの残存を検証 |
 
 Codex-first を使いたい場合の入口は `apply-codex-first-local.cs` です。
@@ -136,12 +141,30 @@ dotnet publish ./apm-packages/codex-first-ai-development-process/scripts/apply-c
 git diff --check
 ```
 
+PR Review Remediation packageを変更した場合は、次を実行してください。
+
+```powershell
+./apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
+./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1
+dotnet publish ./apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs
+dotnet publish ./apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs
+git diff --check
+```
+
 Architecture Slice Readiness contractを変更した場合は、repository rootで次を実行してください。このcheckはGitHub Actionsでも実行されます。
 
 ASR-001〜006の監査可能なinput、actual output、expected/actual JSON、run metadataは`tests/architecture-slice-readiness/`に保存されています。
 
 ```powershell
 ./scripts/validate-architecture-slice-readiness.ps1
+git diff --check
+```
+
+Goal Context Authoring package またはその文書契約を変更した場合は、次を実行してください。この check も GitHub Actions で実行されます。
+
+```powershell
+./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1
+./apm-packages/goal-context-authoring/scripts/test-apm-package-install.ps1
 git diff --check
 ```
 
@@ -170,6 +193,46 @@ dotnet run --file scripts/provision-work-repo-agents.cs -- "C:\\path\\to\\work-r
 
 `--dry-run` と `--check` では `apm` 実行やファイル書き込みは行いません。
 既存値を上書きして補正したい場合だけ `--force` を使います。特に canonical Adaptive agents の model mapping 不一致は、HIGH / STANDARD の役割分離を保つため、`--force` なしでは検証失敗になります。
+
+---
+
+## Goal Context Authoring
+
+ChatGPT 等で完了した初期検討を、元会話へアクセスできない後続 AI が目的達成レビューに使える自己完結した Markdown へ変換します。
+
+```text
+design conversation finalized
+  -> goal-context-authoring
+  -> goal-context-<topic-summary>.md (draft)
+  -> human review
+  -> goal-context-<topic-summary>.md (human-reviewed)
+```
+
+生成物は Issue 本文の長文化や会話の時系列要約ではありません。Original problem、Desired outcome、具体的な利用状況、MVP / Non-goals / Future work、採用・棄却判断と理由、constraints / invariants、success scenarios、acceptance evidence、形式上成立しても目的上失敗する条件、review questions、open questions、訂正・優先順位変更を保持します。material statement は `[Explicit]`、`[Inferred]`、`[Unknown]` で区別します。
+
+APM で導入する場合:
+
+```powershell
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/goal-context-authoring --target codex,agent-skills
+```
+
+生成プロンプト、文書契約、template、human review checklist は Skill の `references/` に同梱されます。追加 installer は不要です。
+
+draft と human-reviewed artifact の検証例:
+
+```powershell
+./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1 -GoalContextPath ./docs/goal-context-<topic-summary>.md
+./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1 -GoalContextPath ./docs/goal-context-<topic-summary>.md -RequireHumanReview
+```
+
+validator は必須章、frontmatter、provenance vocabulary、命名、人間確認 state、高確度の secret pattern を検査しますが、元会話への semantic fidelity または privacy safety を証明しません。Desired outcome、棄却案、否定条件、MVP 境界、訂正・優先順位変更、機密情報の除外は人間が checklist で確認します。
+
+詳細:
+
+- `apm-packages/goal-context-authoring/README.md`
+- `apm-packages/goal-context-authoring/docs/usage-and-install-guide.md`
+- `apm-packages/goal-context-authoring/docs/examples/source-conversation-fixture.md`
+- `apm-packages/goal-context-authoring/docs/examples/goal-context-resumable-local-batch-export.md`
 
 ---
 
@@ -214,6 +277,76 @@ $adaptive-implementation-execution を使って、直前の Plan を実装して
 - `apm-packages/adaptive-implementation-execution/docs/install-guide.md`
 - `apm-packages/adaptive-implementation-execution/docs/usage-guide.md`
 - `apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md`
+
+---
+
+## PR Review Remediation
+
+`pr-review-remediation`はレビュー計画だけを目的とするpackageではありません。PRを成立させ、local Codex reviewとGitHub Copilot reviewを統合し、その指摘を既存Adaptive Implementationで実装・検証するレビュー反映processです。
+
+processは二つの独立した親ターンに分かれます。
+
+```text
+Phase 1: branch/commit/push/ready PR
+  -> review context + remote patch collection
+  -> local-reviewer
+  -> review-planner
+  -> review-plan.md / READY_FOR_ADAPTIVE_IMPLEMENTATION
+  -> parent turn stops
+
+Phase 2: explicit new parent turn
+  -> adaptive-implementation-execution
+  -> implementation and validation
+```
+
+Phase 1の停止はprocess全体の完了ではありません。旧独自implementation routeは持たず、Adaptive Skillとcanonical HIGH / STANDARD agentsをAPM依存として再利用します。Draft PRは作成せず、既存Draftは人手でReady for reviewへ変更するまで停止します。
+
+導入:
+
+```powershell
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills
+dotnet run --file apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs -- . --dry-run
+dotnet run --file apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs -- .
+dotnet run --file apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs -- .
+dotnet run --file apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs -- . --check
+```
+
+Phase 1起動例:
+
+```text
+$pr-review-remediation を使って、このbranchのPRをレビュー反映プロセスで処理してください。
+review-plan.mdを作成したところで親ターンを停止してください。
+```
+
+Phase 2起動例:
+
+```text
+$adaptive-implementation-execution を使って .review/pr-123/review-plan.md を実装してください。
+```
+
+詳細は`apm-packages/pr-review-remediation/README.md`を参照してください。
+
+実agent chainの固定証跡と再現:
+
+```powershell
+pwsh -File apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1 `
+  -DescribePayload
+
+pwsh -File apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1 `
+  -ConfirmExternalModelPayload
+
+pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
+```
+
+`-DescribePayload`は外部modelへ送信せず対象一覧だけを表示します。内容を確認して送信を明示承認した場合だけ、`-ConfirmExternalModelPayload`で実model smokeを実行します。
+
+固定証跡は`tests/pr-review-remediation/PRR-001/`に保存します。remote APM導入はAPM 0.26.0で次のように再現でき、CIではbase repositoryのevent refを指定して同じ検証をmerge gateとして実行します。pull requestでは`refs/pull/<number>/merge`を使い、checkoutされたmerge snapshotとremote packageの内容を一致させます。
+
+```powershell
+pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1 `
+  -Repository suusanex/coding_agent_plan_and_verify_process `
+  -Ref <git-ref>
+```
 
 ---
 

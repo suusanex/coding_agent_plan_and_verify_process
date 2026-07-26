@@ -1,0 +1,22 @@
+name: pr-review-remediation
+version: 0.1.0
+description: Two-turn PR review remediation workflow that prepares a ready PR, consolidates Codex and GitHub Copilot review findings, and hands implementation to the canonical Adaptive flow
+type: hybrid
+targets:
+  - codex
+  - agent-skills
+includes: auto
+
+dependencies:
+  apm:
+    - git: parent
+      path: .github/agents/local-reviewer.agent.md
+    - git: parent
+      path: .github/agents/review-planner.agent.md
+    # Adaptive Implementation remains the only remediation implementation source of truth.
+    - git: parent
+      path: apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
+    - git: parent
+      path: .github/agents/high-implementation-starter.agent.md
+    - git: parent
+      path: .github/agents/standard-implementation-completer.agent.md
