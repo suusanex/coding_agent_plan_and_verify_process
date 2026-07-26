@@ -10,6 +10,7 @@ on:
       - '.github/workflows/validate-pr-review-remediation.yml'
       - 'apm-packages/pr-review-remediation/**'
       - 'apm-packages/adaptive-implementation-execution/**'
+      - 'tests/pr-review-remediation/**'
       - 'README.md'
   push:
     paths:
@@ -20,6 +21,7 @@ on:
       - '.github/workflows/validate-pr-review-remediation.yml'
       - 'apm-packages/pr-review-remediation/**'
       - 'apm-packages/adaptive-implementation-execution/**'
+      - 'tests/pr-review-remediation/**'
       - 'README.md'
 
 permissions:

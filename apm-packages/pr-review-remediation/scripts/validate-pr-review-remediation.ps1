@@ -152,9 +152,18 @@ Assert-Contains $collector 'The target PR is a draft' 'Draft fail-fast message'
 Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' 'microsoft/apm-action@v1' 'official APM setup action'
 Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' 'apm-version:\s*''0\.26\.0''' 'pinned APM version'
 Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' 'github\.event\.pull_request\.head\.sha' 'PR head SHA package ref'
+Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' '(?s)pull_request:.*tests/pr-review-remediation/\*\*.*push:.*tests/pr-review-remediation/\*\*' 'fixed evidence path filters for pull request and push events'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'apm install|@\(''install''' 'real remote APM install command'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'finally\s*\{' 'remote smoke cleanup boundary'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1' 'ConfirmExternalModelPayload' 'actual agent smoke external-payload consent gate'
+Assert-Contains 'apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1' 'DescribePayload' 'no-send payload description mode'
+foreach ($documentation in @(
+    'README.md',
+    'apm-packages/pr-review-remediation/README.md',
+    'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/references/usage.md'
+)) {
+    Assert-Contains $documentation '(?s)run-pr-review-remediation-agent-smoke\.ps1.*-DescribePayload.*run-pr-review-remediation-agent-smoke\.ps1.*-ConfirmExternalModelPayload' 'payload preview and authorized smoke commands'
+}
 Assert-Contains 'tests/pr-review-remediation/PRR-001/README.md' 'customAgentSpawnObserved.*false' 'actual execution disclosure'
 
 $fixtureLocal = 'apm-packages/pr-review-remediation/tests/fixtures/expected-local-review-findings.md'
@@ -167,6 +176,11 @@ Assert-Contains $fixturePlan 'AC-001' 'fixture acceptance mapping'
 Assert-Contains $fixturePlan '\$adaptive-implementation-execution' 'fixture separate Adaptive prompt'
 
 $agentSmokeValidator = Join-Path $packageRoot 'scripts\validate-pr-review-remediation-agent-smoke.ps1'
+$agentSmokeRunner = Join-Path $packageRoot 'scripts\run-pr-review-remediation-agent-smoke.ps1'
+$payloadDescription = Invoke-Native 'pwsh' @('-NoProfile', '-File', $agentSmokeRunner, '-RepositoryRoot', $repoRoot, '-DescribePayload') 'agent smoke payload description'
+if ($payloadDescription.Output -notmatch 'No model was invoked') { Add-Failure 'agent smoke payload description did not confirm its no-send boundary' }
+$missingConsent = Invoke-Native 'pwsh' @('-NoProfile', '-File', $agentSmokeRunner, '-RepositoryRoot', $repoRoot) 'agent smoke consent gate' $false
+if ($missingConsent.Output -notmatch 'HUMAN_DECISION_REQUIRED') { Add-Failure 'agent smoke did not fail closed without external-payload consent' }
 Invoke-Native 'pwsh' @('-NoProfile', '-File', $agentSmokeValidator, '-RepositoryRoot', $repoRoot) 'fixed actual agent smoke evidence' | Out-Null
 
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("pr-review-remediation-validation-" + [guid]::NewGuid().ToString('N'))

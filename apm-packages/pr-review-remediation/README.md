@@ -46,8 +46,14 @@ pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remedia
 実agent chainを再実行して`tests/pr-review-remediation/PRR-001/`を更新する場合:
 
 ```powershell
-pwsh -File apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1
+pwsh -File apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1 `
+  -DescribePayload
+
+pwsh -File apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1 `
+  -ConfirmExternalModelPayload
 ```
+
+最初のコマンドは送信対象を表示するだけでmodelを起動しません。内容を確認し、外部model serviceへの送信を明示承認した場合だけ2番目のコマンドを実行します。
 
 APM 0.26.0によるremote package導入、transitive dependency、relative asset、4 profile、sentinel不変を検証する場合:
 

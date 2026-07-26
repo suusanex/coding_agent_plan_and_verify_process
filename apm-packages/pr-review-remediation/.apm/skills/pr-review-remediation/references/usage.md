@@ -52,8 +52,14 @@ Phase 1の停止は全体完了ではありません。Phase 2の`COMPLETED_BY_H
 実agent chainの固定証跡は`tests/pr-review-remediation/PRR-001/`に保存します。認証済みCodex環境で更新する場合:
 
 ```powershell
-pwsh -File apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1
+pwsh -File apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1 `
+  -DescribePayload
+
+pwsh -File apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1 `
+  -ConfirmExternalModelPayload
 ```
+
+`-DescribePayload`は外部modelへ送信せず対象一覧を表示します。内容を確認して送信を明示承認した場合だけ、`-ConfirmExternalModelPayload`を付けて実行します。許可optionがない実行は`HUMAN_DECISION_REQUIRED`で停止します。
 
 固定証跡を含むlocal validation:
 

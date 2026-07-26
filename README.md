@@ -250,9 +250,16 @@ $adaptive-implementation-execution を使って .review/pr-123/review-plan.md �
 実agent chainの固定証跡と再現:
 
 ```powershell
-pwsh -File apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1
+pwsh -File apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1 `
+  -DescribePayload
+
+pwsh -File apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1 `
+  -ConfirmExternalModelPayload
+
 pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
 ```
+
+`-DescribePayload`は外部modelへ送信せず対象一覧だけを表示します。内容を確認して送信を明示承認した場合だけ、`-ConfirmExternalModelPayload`で実model smokeを実行します。
 
 固定証跡は`tests/pr-review-remediation/PRR-001/`に保存します。remote APM導入はAPM 0.26.0で次のように再現でき、CIではPR head SHAを指定して同じ検証をmerge gateとして実行します。
 
