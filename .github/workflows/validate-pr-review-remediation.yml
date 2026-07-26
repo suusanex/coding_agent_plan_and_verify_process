@@ -33,6 +33,14 @@ jobs:
       - name: Validate PR Review Remediation contracts and fixtures
         shell: pwsh
         run: ./apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
+
+  validate-pr-review-remediation-apm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
       - name: Install APM CLI for remote package smoke
         uses: microsoft/apm-action@v1
         with:

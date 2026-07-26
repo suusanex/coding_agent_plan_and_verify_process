@@ -62,9 +62,9 @@ $previousPythonUtf8 = $env:PYTHONUTF8
 $previousPythonIoEncoding = $env:PYTHONIOENCODING
 New-Item -ItemType Directory -Path (Join-Path $scratch '.codex') -Force | Out-Null
 Set-Content -LiteralPath (Join-Path $scratch 'AGENTS.md') -Value 'sentinel-agents'
-Set-Content -LiteralPath (Join-Path $scratch '.codex\config.toml') -Value 'sentinel-config'
+Set-Content -LiteralPath (Join-Path $scratch '.codex/config.toml') -Value 'sentinel-config'
 $agentsHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch 'AGENTS.md')).Hash
-$configHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch '.codex\config.toml')).Hash
+$configHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch '.codex/config.toml')).Hash
 
 try {
     $env:PYTHONUTF8 = '1'
@@ -79,25 +79,25 @@ try {
         Pop-Location
     }
 
-    $deployedReviewSkill = Join-Path $scratch '.agents\skills\pr-review-remediation'
-    $deployedAdaptiveSkill = Join-Path $scratch '.agents\skills\adaptive-implementation-execution'
+    $deployedReviewSkill = Join-Path $scratch '.agents/skills/pr-review-remediation'
+    $deployedAdaptiveSkill = Join-Path $scratch '.agents/skills/adaptive-implementation-execution'
     foreach ($relative in @(
         'SKILL.md',
-        'scripts\collect-pr-review-context.cs',
-        'templates\local-review-findings.md',
-        'templates\review-plan.md',
-        'references\usage.md',
-        'references\migration.md',
-        'references\troubleshooting.md'
+        'scripts/collect-pr-review-context.cs',
+        'templates/local-review-findings.md',
+        'templates/review-plan.md',
+        'references/usage.md',
+        'references/migration.md',
+        'references/troubleshooting.md'
     )) {
         Assert-File (Join-Path $deployedReviewSkill $relative) "deployed review Skill asset $relative"
     }
-    foreach ($relative in @('SKILL.md', 'refs\intent.md', 'refs\handoff.md')) {
+    foreach ($relative in @('SKILL.md', 'refs/intent.md', 'refs/handoff.md')) {
         Assert-File (Join-Path $deployedAdaptiveSkill $relative) "deployed Adaptive Skill asset $relative"
     }
 
     $parts = $Repository.Split('/')
-    $repositoryModule = Join-Path $scratch ("apm_modules\{0}\{1}" -f $parts[0], $parts[1])
+    $repositoryModule = Join-Path $scratch ("apm_modules/{0}/{1}" -f $parts[0], $parts[1])
     foreach ($agent in @(
         'local-reviewer.agent.md',
         'review-planner.agent.md',
@@ -106,9 +106,9 @@ try {
     )) {
         Assert-ApmCanonicalAgent (Join-Path $scratch 'apm_modules') $agent
     }
-    $installedReviewHelper = Join-Path $repositoryModule 'apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs'
+    $installedReviewHelper = Join-Path $repositoryModule 'apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs'
     $reviewHelper = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'sync-pr-review-remediation-local.cs'))
-    $adaptiveHelper = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs'))
+    $adaptiveHelper = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs'))
     Assert-File $installedReviewHelper 'installed review profile helper'
     Assert-File $reviewHelper 'canonical review profile helper from the source checkout'
     Assert-File $adaptiveHelper 'canonical Adaptive profile helper from the source checkout'
@@ -117,9 +117,9 @@ try {
     Invoke-Native 'dotnet' @('run', '--file', $adaptiveHelper, '--', $scratch) 'Adaptive profile synchronization'
     Invoke-Native 'dotnet' @('run', '--file', $adaptiveHelper, '--', $scratch, '--check') 'Adaptive profile check'
     Invoke-Native 'dotnet' @('run', '--file', $reviewHelper, '--', $scratch, '--check') 'review profile check'
-    Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedReviewSkill 'scripts\collect-pr-review-context.cs'), '--', '--help') 'deployed relative collector help'
+    Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedReviewSkill 'scripts/collect-pr-review-context.cs'), '--', '--help') 'deployed relative collector help'
 
-    $profileRoot = Join-Path $scratch '.codex\agents'
+    $profileRoot = Join-Path $scratch '.codex/agents'
     foreach ($profile in @('local-reviewer.toml', 'review-planner.toml')) {
         $path = Join-Path $profileRoot $profile
         Assert-Contains $path '(?m)^model\s*=\s*"gpt-5\.6-terra"\s*$' "review profile $profile model"
@@ -137,7 +137,7 @@ try {
     if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch 'AGENTS.md')).Hash -ne $agentsHash) {
         throw 'Remote APM install or profile helpers changed AGENTS.md.'
     }
-    if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch '.codex\config.toml')).Hash -ne $configHash) {
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch '.codex/config.toml')).Hash -ne $configHash) {
         throw 'Remote APM install or profile helpers changed .codex/config.toml.'
     }
 
