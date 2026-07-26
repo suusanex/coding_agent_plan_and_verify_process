@@ -5,7 +5,6 @@
 - Verdict: READY_FOR_ADAPTIVE_IMPLEMENTATION / HUMAN_DECISION_REQUIRED / BLOCKED
 - Production code changed: No
 - Process status: Review planning complete / Human decision required / Blocked
-- Review mode: Baseline / Goal Context
 
 ## PR Identity
 
@@ -23,27 +22,13 @@
 - PR comments: Collected / Missing
 - Inline comments: Collected / Missing
 - Checks: Collected / Missing
-- Goal Context selection: N/A / SELECTED / Missing / Invalid / Ambiguous
-- Purpose review: N/A / PURPOSE_REVIEWED / HUMAN_DECISION_REQUIRED / BLOCKED
 - Missing input decision:
-
-## Goal Context Boundary
-
-- Selected Goal Context: N/A
-- Original problem: N/A
-- Desired outcome: N/A
-- User scenarios: N/A
-- MVP guardrails: N/A
-- Non-goals: N/A
-- Rejected alternatives: N/A
-- Superficially compliant but wrong / negative conditions: N/A
-- Open questions / human decisions: N/A
 
 ## Finding Decision Ledger
 
 | Source ID | Source | Location | Summary | Decision | Reason | Duplicate of | Conflicts with | Scope / Acceptance mapping |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| LR-001 / PUR-001 | Local Codex / Purpose |  |  | Apply / Hold / Reject |  | N/A | N/A |  |
+| LR-001 | Local Codex |  |  | Apply / Hold / Reject |  | N/A | N/A |  |
 
 ## Ordered Remediation Plan
 
@@ -62,7 +47,6 @@ implementation_intent:
   constraints:
   validation:
   plan_reference:
-  goal_context_reference:
 ```
 
 ## Uncollected / Unverified

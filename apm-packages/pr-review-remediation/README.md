@@ -1,13 +1,16 @@
 # PR Review Remediation
 
-Ready PRの成立、local Codex review、GitHub Copilot review収集、統合remediation plan、別親ターンのAdaptive Implementationによる修正実装・検証を一つの運用として提供するAPM packageです。
+Ready PRの成立、local Codex review、GitHub Copilot review収集、統合remediation plan、別親ターンのAdaptive Implementationによる修正実装・検証を一つの運用として提供するAPM packageです。基礎版`$pr-review-remediation`と、独立した目的達成reviewを追加する`$goal-context-pr-review`を明示的に分けます。
 
 ```text
-Phase 1: PR preparation -> review collection -> local-reviewer -> review-planner -> review-plan.md -> stop
+Phase 1 baseline: PR preparation -> review collection -> local-reviewer -> review-planner -> review-plan.md -> stop
+Phase 1 Goal Context: shared preparation/collection -> local-reviewer + purpose-reviewer -> shared review-planner -> review-plan.md -> stop
 Phase 2: explicit new parent turn -> adaptive-implementation-execution -> implementation and validation
 ```
 
 Phase 1の停止はレビュー反映全体の完了ではありません。実装責務は削除せず、既存Adaptive Implementationへ一本化します。
+
+Goal Context対応版は同じpackage内の別Skillです。collector、`local-reviewer`、`review-planner`、review plan、Adaptive dependencyを基礎版と共有し、`purpose-reviewer`とGoal Context selectionだけを追加します。別packageで共有assetを複製せず、同じSkillの暗黙modeでfallbackを隠さないための構成です。
 
 ## Install
 
@@ -25,11 +28,13 @@ APMがSkillとcanonical agentsを導入し、二つのhelperがreview/Adaptive�
 
 | Content | Path |
 | --- | --- |
-| Orchestration Skill | `.apm/skills/pr-review-remediation/SKILL.md` |
+| Baseline review Skill | `.apm/skills/pr-review-remediation/SKILL.md` |
+| Goal Context review Skill | `.apm/skills/goal-context-pr-review/SKILL.md` |
+| Goal Context selector | Goal Context Skillの`scripts/select-goal-context.cs` |
 | Collector | Skillの`scripts/collect-pr-review-context.cs` |
 | Review templates | Skillの`templates/` |
 | Usage/migration/troubleshooting | Skillの`references/` |
-| Review profiles | `codex-agents/*.toml` |
+| Review profiles | `codex-agents/*.toml` (`local-reviewer` / `purpose-reviewer` / `review-planner`) |
 | Profile sync helper | `scripts/sync-pr-review-remediation-local.cs` |
 | Validator | `scripts/validate-pr-review-remediation.ps1` |
 | Actual agent smoke runner | `scripts/run-pr-review-remediation-agent-smoke.ps1` |
@@ -55,7 +60,7 @@ pwsh -File apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-
 
 最初のコマンドは送信対象を表示するだけでmodelを起動しません。内容を確認し、外部model serviceへの送信を明示承認した場合だけ2番目のコマンドを実行します。
 
-APM 0.26.0によるremote package導入、transitive dependency、relative asset、4 profile、sentinel不変を検証する場合:
+APM 0.26.0によるremote package導入、transitive dependency、relative asset、5 profile、sentinel不変を検証する場合:
 
 ```powershell
 pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1 `
@@ -66,3 +71,5 @@ pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remedia
 実agent smokeは認証とmodel利用権限を必要とするためCIで毎回再実行せず、固定証跡をvalidatorで検査します。remote APM smokeはbase repositoryのevent refを使うCI merge gateです。pull requestでは`refs/pull/<number>/merge`を指定するため、checkoutされたmerge snapshotとremote packageの内容が一致します。
 
 詳細はSkillの`references/usage.md`を参照してください。
+
+Goal Context対応の通知付き二ターン例、軽量開発、Plan Coverage、Design Pairから共通review cycleへ入る例は`goal-context-pr-review/references/usage.md`を参照してください。

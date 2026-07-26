@@ -33,7 +33,7 @@ try
         throw new DirectoryNotFoundException($"Target repository does not exist: {targetRoot}");
     }
 
-    foreach (var fileName in new[] { "local-reviewer.toml", "review-planner.toml" })
+    foreach (var fileName in new[] { "local-reviewer.toml", "purpose-reviewer.toml", "review-planner.toml" })
     {
         ProcessAgent(
             Path.Combine(sourceAgentRoot, fileName),
@@ -290,6 +290,7 @@ static bool IsCompletedApmProfile(string content, string source)
     var expectedHeading = GetTomlString(source, "name") switch
     {
         "local-reviewer" => "# Local Reviewer\\n",
+        "purpose-reviewer" => "# Purpose Reviewer\\n",
         "review-planner" => "# Review Planner\\n",
         _ => string.Empty
     };

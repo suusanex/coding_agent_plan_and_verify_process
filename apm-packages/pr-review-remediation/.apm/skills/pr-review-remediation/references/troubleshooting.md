@@ -1,5 +1,9 @@
 # Troubleshooting
 
+## Goal Context purpose review is required
+
+このSkillは基礎版です。Goal Contextを選択・検証し、`purpose-reviewer`を含む独立reviewが必要な場合は`$goal-context-pr-review`を明示指定してください。Goal Contextが不正なまま、この基礎版で目的review済みと扱うことはできません。
+
 ## The PR is a draft
 
 GitHub Copilot reviewを待つ対象はReady for reviewの通常PRです。collectorはDraftを自動変更しません。

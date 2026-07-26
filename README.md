@@ -114,7 +114,7 @@ Source requirement
 | package | Use when |
 | --- | --- |
 | `apm-packages/completion-notification-decorator` | 任意の既存Codex主プロセスを変更せず、同じ親turnの終了時にverdictと復帰リンクを通知したい |
-| `apm-packages/pr-review-remediation` | Ready PRを成立させ、local Codex reviewとGitHub Copilot reviewを統合し、別親ターンの既存Adaptive Implementationでレビュー指摘を実装・検証したい |
+| `apm-packages/pr-review-remediation` | 基礎版またはGoal Context対応版でReady PRをreviewし、local / purpose / GitHub Copilot findingsを統合して、別親ターンの既存Adaptive Implementationへ渡したい |
 | `apm-packages/adaptive-implementation-execution` | 通常 Plan Mode 後の非自明な実装を HIGH_MODEL で開始し、実コード上の decision surface が解消した場合だけ STANDARD_MODEL へ直列委譲したい |
 | `apm-packages/design-pair-implementation-execution` | 利用者が明示選択した場合だけ、実装前に code の予定変更面を対話し、explicit Locked Decisions を通常の Adaptive Implementation へ渡したい |
 | `apm-packages/goal-context-authoring` | ChatGPT 等で完了した初期検討を、元会話なしで目的達成レビューに使える human-reviewed `goal-context-*.md` へ変換したい |
@@ -136,7 +136,7 @@ Source requirement
 | Script | Use when | Installs / fixes |
 | --- | --- | --- |
 | `scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs` | Completion Notification Decoratorのcallback runtimeをuser-level Codex設定へ安全に導入・更新・検証したい | canonical runtimeとWindows providerをsourceからpublishし、既存`notify`をchainして、decorator Skill tokenとcompatibility markerをtarget宣言として設定 |
-| `apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs` | PR Review Remediation導入後にread-only review agentの具体的Codex profileを同期し、依存するAdaptive assets/profileの存在も確認したい | `.codex/agents/local-reviewer.toml`、`.codex/agents/review-planner.toml`。Adaptive profileは既存Adaptive helperを使用し、`AGENTS.md`と`.codex/config.toml`は操作しない |
+| `apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs` | PR Review Remediation導入後にread-only review agentの具体的Codex profileを同期し、依存するAdaptive assets/profileの存在も確認したい | `.codex/agents/local-reviewer.toml`、`.codex/agents/purpose-reviewer.toml`、`.codex/agents/review-planner.toml`。Adaptive profileは既存Adaptive helperを使用し、`AGENTS.md`と`.codex/config.toml`は操作しない |
 | `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM 導入後に Adaptive Implementation の必須 concrete Codex profile を repository-local に同期・検証したい | `.codex/agents/high-implementation-starter.toml`、`.codex/agents/standard-implementation-completer.toml`。`AGENTS.md` は操作しない |
 | `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、Codex-first / Adaptive / Design Pair skills、canonical implementation agent contracts、`templates/*.md` |
 | `scripts/provision-work-repo-agents.cs` | 既存の token-aware / full-coverage package を APM 経由で導入し、agent TOML と template 配置を補正したい | `apm install` の実行、canonical Adaptive agents と legacy `.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level 設定補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置 |
@@ -169,6 +169,7 @@ PR Review Remediation packageを変更した場合は、次を実行してくだ
 ./apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
 ./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1
 dotnet publish ./apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs
+dotnet publish ./apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/select-goal-context.cs
 dotnet publish ./apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs
 git diff --check
 ```
@@ -304,14 +305,14 @@ $adaptive-implementation-execution を使って、直前の Plan を実装して
 
 ## PR Review Remediation
 
-`pr-review-remediation`はレビュー計画だけを目的とするpackageではありません。PRを成立させ、local Codex reviewとGitHub Copilot reviewを統合し、その指摘を既存Adaptive Implementationで実装・検証するレビュー反映processです。
+`pr-review-remediation` packageはレビュー計画だけを目的としません。PRを成立させ、review findingsを統合し、その指摘を既存Adaptive Implementationで実装・検証するレビュー反映processです。入口は、目的reviewを行わない基礎版`$pr-review-remediation`と、Goal Contextを必須にする`$goal-context-pr-review`に分かれます。
 
 processは二つの独立した親ターンに分かれます。
 
 ```text
 Phase 1: branch/commit/push/ready PR
   -> review context + remote patch collection
-  -> local-reviewer
+  -> local-reviewer [+ purpose-reviewer in Goal Context mode]
   -> review-planner
   -> review-plan.md / READY_FOR_ADAPTIVE_IMPLEMENTATION
   -> parent turn stops
@@ -340,10 +341,25 @@ $pr-review-remediation を使って、このbranchのPRをレビュー反映プ�
 review-plan.mdを作成したところで親ターンを停止してください。
 ```
 
+Goal Context対応版を通知付きで起動する例:
+
+```text
+$completion-notification-decorator
+$goal-context-pr-review
+
+このbranchのPRを docs/goal-context-example.md で目的達成レビューしてください。
+local-reviewerとpurpose-reviewerを独立に実行し、統合review-plan.mdを作成したところで停止してください。
+```
+
+Goal Contextが欠落・不正・複数候補で曖昧な場合、Issue本文だけで目的review済みとは扱いません。Goal Contextを修正・選択するか、利用者が基礎版を明示選択します。軽量開発、Plan Coverage、Design PairのいずれでPRを作った場合も、同じ通知付きGoal Context reviewと別親ターンのAdaptiveへ進みます。
+
 Phase 2起動例:
 
 ```text
-$adaptive-implementation-execution を使って .review/pr-123/review-plan.md を実装してください。
+$completion-notification-decorator
+$adaptive-implementation-execution
+
+.review/pr-123/review-plan.md を実装してください。
 ```
 
 詳細は`apm-packages/pr-review-remediation/README.md`を参照してください。

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "selectionStatus": "SELECTED",
+  "selectedPath": "docs/goal-context-direct-review-notification.md",
+  "selectionMode": "auto-unique",
+  "lifecycleStatus": "human-reviewed",
+  "sensitiveDataReview": "passed",
+  "draftOverride": false,
+  "validation": "PASS",
+  "requiredSections": [
+    "Document control and source boundary",
+    "Original problem",
+    "Desired outcome",
+    "Concrete user situation and user scenarios",
+    "Scope and boundaries",
+    "Decisions and reasoning",
+    "Constraints and invariants",
+    "Success scenarios",
+    "Acceptance evidence",
+    "Superficially compliant but wrong",
+    "Review questions",
+    "Open questions and assumptions",
+    "Conversation corrections and priority changes",
+    "Provenance and inference ledger",
+    "Human review record"
+  ]
+}
+

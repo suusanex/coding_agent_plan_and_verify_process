@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "fixtureId": "PRR-002",
+  "status": "PASS",
+  "goalContextSelection": "SELECTED",
+  "localReview": "INDEPENDENT_READ_ONLY",
+  "purposeReview": "PURPOSE_REVIEWED_INDEPENDENT_READ_ONLY",
+  "plannerIntegration": ["local", "purpose", "copilot", "pr-comments", "inline-comments", "checks"],
+  "phase1Verdict": "READY_FOR_ADAPTIVE_IMPLEMENTATION",
+  "productionCodeChanged": false,
+  "notificationResultUri": "https://github.com/fixture/goal-context-review/pull/123",
+  "adaptiveHandoff": "SEPARATE_PARENT_TURN"
+}
+

@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - '.github/agents/local-reviewer.agent.md'
+      - '.github/agents/purpose-reviewer.agent.md'
       - '.github/agents/review-planner.agent.md'
       - '.github/agents/high-implementation-starter.agent.md'
       - '.github/agents/standard-implementation-completer.agent.md'
@@ -15,6 +16,7 @@ on:
   push:
     paths:
       - '.github/agents/local-reviewer.agent.md'
+      - '.github/agents/purpose-reviewer.agent.md'
       - '.github/agents/review-planner.agent.md'
       - '.github/agents/high-implementation-starter.agent.md'
       - '.github/agents/standard-implementation-completer.agent.md'

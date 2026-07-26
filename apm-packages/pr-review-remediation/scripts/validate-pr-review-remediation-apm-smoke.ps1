@@ -80,6 +80,7 @@ try {
     }
 
     $deployedReviewSkill = Join-Path $scratch '.agents/skills/pr-review-remediation'
+    $deployedGoalReviewSkill = Join-Path $scratch '.agents/skills/goal-context-pr-review'
     $deployedAdaptiveSkill = Join-Path $scratch '.agents/skills/adaptive-implementation-execution'
     foreach ($relative in @(
         'SKILL.md',
@@ -92,6 +93,16 @@ try {
     )) {
         Assert-File (Join-Path $deployedReviewSkill $relative) "deployed review Skill asset $relative"
     }
+    foreach ($relative in @(
+        'SKILL.md',
+        'scripts/select-goal-context.cs',
+        'templates/purpose-review-findings.md',
+        'references/design.md',
+        'references/usage.md',
+        'references/troubleshooting.md'
+    )) {
+        Assert-File (Join-Path $deployedGoalReviewSkill $relative) "deployed Goal Context review Skill asset $relative"
+    }
     foreach ($relative in @('SKILL.md', 'refs/intent.md', 'refs/handoff.md')) {
         Assert-File (Join-Path $deployedAdaptiveSkill $relative) "deployed Adaptive Skill asset $relative"
     }
@@ -100,6 +111,7 @@ try {
     $repositoryModule = Join-Path $scratch ("apm_modules/{0}/{1}" -f $parts[0], $parts[1])
     foreach ($agent in @(
         'local-reviewer.agent.md',
+        'purpose-reviewer.agent.md',
         'review-planner.agent.md',
         'high-implementation-starter.agent.md',
         'standard-implementation-completer.agent.md'
@@ -118,15 +130,17 @@ try {
     Invoke-Native 'dotnet' @('run', '--file', $adaptiveHelper, '--', $scratch, '--check') 'Adaptive profile check'
     Invoke-Native 'dotnet' @('run', '--file', $reviewHelper, '--', $scratch, '--check') 'review profile check'
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedReviewSkill 'scripts/collect-pr-review-context.cs'), '--', '--help') 'deployed relative collector help'
+    Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedGoalReviewSkill 'scripts/select-goal-context.cs'), '--', '--help') 'deployed Goal Context selector help'
 
     $profileRoot = Join-Path $scratch '.codex/agents'
-    foreach ($profile in @('local-reviewer.toml', 'review-planner.toml')) {
+    foreach ($profile in @('local-reviewer.toml', 'purpose-reviewer.toml', 'review-planner.toml')) {
         $path = Join-Path $profileRoot $profile
         Assert-Contains $path '(?m)^model\s*=\s*"gpt-5\.6-terra"\s*$' "review profile $profile model"
         Assert-Contains $path '(?m)^model_reasoning_effort\s*=\s*"high"\s*$' "review profile $profile reasoning"
         Assert-Contains $path '(?m)^sandbox_mode\s*=\s*"read-only"\s*$' "review profile $profile sandbox"
     }
     Assert-Contains (Join-Path $profileRoot 'local-reviewer.toml') 'developer_instructions\s*=\s*"# Local Reviewer\\n' 'local reviewer full APM contract'
+    Assert-Contains (Join-Path $profileRoot 'purpose-reviewer.toml') 'developer_instructions\s*=\s*"# Purpose Reviewer\\n' 'purpose reviewer full APM contract'
     Assert-Contains (Join-Path $profileRoot 'review-planner.toml') 'developer_instructions\s*=\s*"# Review Planner\\n' 'review planner full APM contract'
     foreach ($profile in @('high-implementation-starter.toml', 'standard-implementation-completer.toml')) {
         $path = Join-Path $profileRoot $profile
@@ -144,6 +158,7 @@ try {
     Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'pr-review-remediation' 'APM lock direct package entry'
     Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'adaptive-implementation-execution' 'APM lock Adaptive dependency entry'
     Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'local-reviewer' 'APM lock local reviewer dependency entry'
+    Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'purpose-reviewer' 'APM lock purpose reviewer dependency entry'
     Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'review-planner' 'APM lock review planner dependency entry'
 
     Write-Output "PR Review Remediation remote APM smoke: PASS"

@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "repository": "fixture/goal-context-review",
+  "pullRequest": {
+    "number": 123,
+    "url": "https://github.com/fixture/goal-context-review/pull/123",
+    "isDraft": false,
+    "baseRefName": "main",
+    "baseRefOid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "headRefName": "feature",
+    "headRefOid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "copilotReviewWait": {
+    "waitStatus": "completed",
+    "observedReviewState": "reviewAndInline",
+    "selectedReviewId": 700,
+    "inlineCommentIds": [1700],
+    "stableSamplesObserved": 2,
+    "timedOut": false
+  },
+  "reviews": [
+    { "id": 700, "author": "copilot-pull-request-reviewer[bot]", "state": "COMMENTED" }
+  ],
+  "inlineComments": [
+    { "id": 1700, "path": "docs/handoff.md", "body": "Preserve the direct PR URL." }
+  ],
+  "prComments": [
+    { "id": 2700, "body": "Keep Phase 1 read-only." }
+  ],
+  "checks": [
+    { "name": "fixture-contract", "state": "SUCCESS" }
+  ]
+}
+

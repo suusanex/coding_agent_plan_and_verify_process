@@ -14,6 +14,8 @@ dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\p
 
 ## Start Phase 1
 
+これはGoal Contextを使わない基礎版入口です。目的達成reviewが必要な場合は`$goal-context-pr-review`を明示指定します。Goal Context欠落時に自動で基礎版へfallbackしません。
+
 ```text
 $pr-review-remediation を使って、このbranchのPRをレビュー反映プロセスで処理してください。
 base/headとPRを成立させ、Codex/Copilot reviewを収集し、review-plan.mdを作成したところで親ターンを停止してください。
@@ -47,6 +49,8 @@ Phase 1の停止は全体完了ではありません。Phase 2の`COMPLETED_BY_H
 | `local-review-findings.md` | parent from local-reviewer output | local Codex findings |
 | `review-plan.md` | parent from review-planner output | Adaptive-ready remediation plan |
 
+Goal Context対応版では、同じartifactに`goal-context-selection.json`と`purpose-review-findings.md`が加わります。詳細はsibling Skill `../goal-context-pr-review/references/usage.md`を参照してください。
+
 ## Reproduce validation
 
 実agent chainの固定証跡は`tests/pr-review-remediation/PRR-001/`に保存します。認証済みCodex環境で更新する場合:
@@ -75,4 +79,4 @@ pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remedia
   -Ref <commit-sha>
 ```
 
-remote smokeはtransitive `git: parent`依存、両Skill、4 canonical agents、relative assets、4 concrete profilesを検証し、`AGENTS.md`と`.codex/config.toml`のsentinelが不変であることを確認します。一時directoryは成否にかかわらず削除されます。
+remote smokeはtransitive `git: parent`依存、基礎版とGoal Context対応版の両Skill、5 canonical agents、relative assets、5 concrete profilesを検証し、`AGENTS.md`と`.codex/config.toml`のsentinelが不変であることを確認します。一時directoryは成否にかかわらず削除されます。
