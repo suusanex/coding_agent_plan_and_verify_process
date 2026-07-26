@@ -10,6 +10,8 @@ includes: auto
 dependencies:
   apm:
     - git: parent
+      path: apm-packages/goal-context-authoring/.apm/skills/goal-context-authoring
+    - git: parent
       path: .github/agents/local-reviewer.agent.md
     - git: parent
       path: .github/agents/review-planner.agent.md

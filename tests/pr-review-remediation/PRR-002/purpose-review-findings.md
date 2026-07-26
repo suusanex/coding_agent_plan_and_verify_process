@@ -15,6 +15,7 @@
 - Remote patch: fixture/.review/pr-123/pr-diff.patch
 - Goal Context selection: goal-context-selection.json
 - Goal Context: fixture/docs/goal-context-direct-review-notification.md
+- Goal Context SHA-256: c38af168cfedf31d198f49b8b7a47a91a3f493e129b47e72432589a8e5eb4030
 - Goal Context lifecycle: human-reviewed/passed
 
 ## Outcome Assessment
@@ -47,4 +48,3 @@
 ## Unverified
 
 - Live provider delivery is covered by the shared notification runtime evidence, not this fixture.
-

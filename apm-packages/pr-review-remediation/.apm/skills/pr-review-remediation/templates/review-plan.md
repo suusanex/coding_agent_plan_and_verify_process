@@ -30,6 +30,7 @@
 ## Goal Context Boundary
 
 - Selected Goal Context: N/A
+- Goal Context SHA-256: N/A
 - Original problem: N/A
 - Desired outcome: N/A
 - User scenarios: N/A
@@ -41,15 +42,18 @@
 
 ## Finding Decision Ledger
 
+`PUR-*` rows are Goal Context mode only; omit them in Baseline mode.
+
 | Source ID | Source | Location | Summary | Decision | Reason | Duplicate of | Conflicts with | Scope / Acceptance mapping |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| LR-001 / PUR-001 | Local Codex / Purpose |  |  | Apply / Hold / Reject |  | N/A | N/A |  |
+| LR-001 | Local Codex |  |  | Apply / Hold / Reject |  | N/A | N/A | SI-001 / AC-001 |
+| PUR-001 | Purpose (Goal Context mode only) |  |  | Apply / Hold / Reject |  | N/A | N/A | SI-001 / AC-001 |
 
 ## Ordered Remediation Plan
 
-| Step | Finding IDs | Change | Expected files / symbols | Acceptance | Validation |
-| --- | --- | --- | --- | --- | --- |
-| 1 |  |  |  |  |  |
+| Step | Scope ID | Acceptance ID | Finding IDs | Change | Expected files / symbols | Acceptance | Validation |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | SI-001 | AC-001 |  |  |  |  |  |
 
 ## Implementation Intent
 

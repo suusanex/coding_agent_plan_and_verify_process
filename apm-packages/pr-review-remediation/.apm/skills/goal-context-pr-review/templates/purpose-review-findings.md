@@ -15,6 +15,7 @@
 - Remote patch:
 - Goal Context selection:
 - Goal Context:
+- Goal Context SHA-256:
 - Goal Context lifecycle:
 
 ## Outcome Assessment
@@ -47,4 +48,3 @@
 ## Unverified
 
 - N/A
-

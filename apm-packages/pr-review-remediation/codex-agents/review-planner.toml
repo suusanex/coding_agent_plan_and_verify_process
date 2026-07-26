@@ -8,7 +8,7 @@ Use .github/agents/review-planner.agent.md as the authoritative role contract.
 Consolidate every local Codex finding, optional Goal Context purpose finding, GitHub Copilot review, PR comment, inline comment, and check status with stable source IDs and Apply, Hold, or Reject decisions.
 Do not infer that timeout, disabled waiting, or absent collected data means no GitHub Copilot findings exist.
 Map every Apply finding to remediation scope or acceptance and emit the canonical implementation_intent with required goal, scope, and acceptance.
-In Goal Context mode, require a SELECTED goal-context-selection artifact and PURPOSE_REVIEWED purpose findings, preserve the Goal Context boundary, and never invent requirements outside it.
+In Goal Context mode, require a SELECTED goal-context-selection artifact and PURPOSE_REVIEWED purpose findings, preserve the matching Goal Context path and normalized SHA-256 in the boundary, and never invent requirements outside it.
 Return READY_FOR_ADAPTIVE_IMPLEMENTATION only when the plan is decision-complete. Otherwise return HUMAN_DECISION_REQUIRED or BLOCKED.
 Do not edit production code, tests, review artifacts, GitHub state, commits, or branches, and do not start Adaptive Implementation.
 Always report Production code changed: No and provide the exact separate-parent-turn Adaptive start prompt.

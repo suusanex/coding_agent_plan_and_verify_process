@@ -9,7 +9,7 @@ description: Use when a user wants a Goal Context-aware PR review that independe
 
 # Goal Context PR Review
 
-このSkillは、基礎版`pr-review-remediation`のcollector、`local-reviewer`、`review-planner`、Adaptive handoffを共有し、選択・検証済みGoal Contextと独立した`purpose-reviewer`を追加するPhase 1入口です。
+このSkillは、基礎版`pr-review-remediation`のcollector、`local-reviewer`、`review-planner`、Adaptive handoffを共有し、Goal Context Authoring Skillのcanonical validatorで選択・検証済みのGoal Contextと独立した`purpose-reviewer`を追加するPhase 1入口です。
 
 Goal Contextが欠落・不正・曖昧な場合はIssue本文だけで目的reviewを代替せず停止します。目的reviewなしで進める場合、利用者が基礎版`$pr-review-remediation`を明示選択します。
 
@@ -57,7 +57,7 @@ dotnet run --file scripts/select-goal-context.cs -- --repository-root . --search
 
 - PR identity、context、remote patch
 - Issueまたは要求
-- `goal-context-selection.json`と選択されたGoal Context
+- `goal-context-selection.json`とpath／正規化SHA-256が一致するGoal Context
 - repository rulesと必要なvalidation results
 
 両agentはread-onlyです。可能なら独立に実行しますが、どちらかの結果をもう一方の前提にしません。code-quality findingをpurpose reviewへ吸収しません。
@@ -70,7 +70,7 @@ plannerはCopilot、local、purpose、PR comments、inline comments、checksをs
 
 次も満たす場合だけ`READY_FOR_ADAPTIVE_IMPLEMENTATION`です。
 
-- Goal Context selectionが`SELECTED`
+- Goal Context selectionが`SELECTED`で、canonical validation contract version、mode、正規化SHA-256が記録されている
 - purpose reviewが`PURPOSE_REVIEWED`
 - Original problem、Desired outcome、user scenarios、MVP、Non-goals、rejected alternatives、wrong outcomesがplanへ反映される
 - Goal Contextにない要求を追加していない
@@ -112,4 +112,3 @@ review-plan.mdのimplementation_intentをsource of truthとし、Goal Context Bo
 - shared: `../pr-review-remediation/scripts/collect-pr-review-context.cs`
 - shared: `../pr-review-remediation/templates/local-review-findings.md`
 - shared: `../pr-review-remediation/templates/review-plan.md`
-

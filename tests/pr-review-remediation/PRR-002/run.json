@@ -1,14 +1,44 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "fixtureId": "PRR-002",
-  "status": "PASS",
-  "goalContextSelection": "SELECTED",
-  "localReview": "INDEPENDENT_READ_ONLY",
-  "purposeReview": "PURPOSE_REVIEWED_INDEPENDENT_READ_ONLY",
-  "plannerIntegration": ["local", "purpose", "copilot", "pr-comments", "inline-comments", "checks"],
-  "phase1Verdict": "READY_FOR_ADAPTIVE_IMPLEMENTATION",
+  "evidenceMode": "deterministic-artifact-replay",
+  "externalModelExecution": false,
+  "expectedVerdict": "READY_FOR_ADAPTIVE_IMPLEMENTATION",
   "productionCodeChanged": false,
-  "notificationResultUri": "https://github.com/fixture/goal-context-review/pull/123",
-  "adaptiveHandoff": "SEPARATE_PARENT_TURN"
+  "identity": {
+    "repository": "fixture/goal-context-review",
+    "pr": 123,
+    "url": "https://github.com/fixture/goal-context-review/pull/123",
+    "baseBranch": "main",
+    "baseOid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "headBranch": "feature",
+    "headOid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "goalContext": {
+    "artifactPath": "fixture/docs/goal-context-direct-review-notification.md",
+    "selectionPath": "docs/goal-context-direct-review-notification.md",
+    "repositoryPath": "tests/pr-review-remediation/PRR-002/fixture/docs/goal-context-direct-review-notification.md",
+    "normalizedSha256": "c38af168cfedf31d198f49b8b7a47a91a3f493e129b47e72432589a8e5eb4030"
+  },
+  "artifacts": [
+    { "role": "review-context", "path": "fixture/.review/pr-123/review-context.json", "normalizedSha256": "0cf425ff4b11e616dd9ba9d5b8d97dad27d1de69dde671a4de9904cd3ad38978" },
+    { "role": "remote-patch", "path": "fixture/.review/pr-123/pr-diff.patch", "normalizedSha256": "b80549e916ea189b1a08cd6fd0e7b80290437fdf4bf8ce1f1ff88707212a0e2f" },
+    { "role": "goal-context-selection", "path": "goal-context-selection.json", "normalizedSha256": "ae0fe74852e22aa13cfdcbe7c2eda2e6d760ea1138297f57f771ffc9017b873f" },
+    { "role": "local-findings", "path": "local-review-findings.md", "normalizedSha256": "4f1a453b635500e9062dd27ad608137335e706503cd49be154570480d43ddfae" },
+    { "role": "purpose-findings", "path": "purpose-review-findings.md", "normalizedSha256": "38a5939b0f61645b9993c5d7d2e35c73a90ec01b64ff07162d0ac7155dc9d2ff" },
+    { "role": "review-plan", "path": "review-plan.md", "normalizedSha256": "53a4588dfae0435068fd6b9fadfe0480fa355baa4c2af7495c35a1d9da23a201" },
+    { "role": "completion-notification", "path": "completion-notification.txt", "normalizedSha256": "9f90807ec1ec257df6466a1c1b74c8e5f78795154d5fbf5015fc875fc8270adf" },
+    { "role": "adaptive-input", "path": "adaptive-turn-input.txt", "normalizedSha256": "ca200a51c2f58a87e8d43e1d059c950fc5a4fdbe276cac88059473cd249424d2" }
+  ],
+  "sourceBindings": [
+    { "sourceId": "review:700", "findingIds": [], "noActionReason": "The review envelope is covered by its selected inline comment." },
+    { "sourceId": "inline-comment:1700", "findingIds": ["RC-001"] },
+    { "sourceId": "pr-comment:2700", "findingIds": ["LR-001"] },
+    { "sourceId": "check:9001", "findingIds": [], "noActionReason": "The successful check requires no remediation." }
+  ],
+  "handoff": {
+    "planPath": "tests/pr-review-remediation/PRR-002/review-plan.md",
+    "notificationPath": "tests/pr-review-remediation/PRR-002/completion-notification.txt",
+    "adaptiveInputPath": "tests/pr-review-remediation/PRR-002/adaptive-turn-input.txt"
+  }
 }
-

@@ -140,8 +140,9 @@ Source requirement
 | `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM 導入後に Adaptive Implementation の必須 concrete Codex profile を repository-local に同期・検証したい | `.codex/agents/high-implementation-starter.toml`、`.codex/agents/standard-implementation-completer.toml`。`AGENTS.md` は操作しない |
 | `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、Codex-first / Adaptive / Design Pair skills、canonical implementation agent contracts、`templates/*.md` |
 | `scripts/provision-work-repo-agents.cs` | 既存の token-aware / full-coverage package を APM 経由で導入し、agent TOML と template 配置を補正したい | `apm install` の実行、canonical Adaptive agents と legacy `.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level 設定補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置 |
-| `apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1` | Goal Context package、fixture、または生成した `goal-context-*.md` を検証したい | 必須章、entry単位のprovenance、命名、human-review state、高確度の credential pattern を検証。semantic / privacy review は人間が行う |
-| `apm-packages/goal-context-authoring/scripts/test-apm-package-install.ps1` | Goal Context package の標準APM導入経路を検証したい | temporary root へ package root を導入し、Skill と4 references の配置・SHA-256一致を検証 |
+| `apm-packages/goal-context-authoring/.apm/skills/goal-context-authoring/scripts/validate-goal-context.cs` | 導入先を含む任意のGoal Context文書をcanonical contractで検証したい | 必須章、entry単位のprovenance、table、命名、human-review state、高確度のcredential pattern、正規化SHA-256を検証。semantic / privacy review は人間が行う |
+| `apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1` | Goal Context packageとfixtureを共通validator込みで検証したい | package構成とnegative mutationを検証し、文書検証は配布版canonical validatorへ委譲 |
+| `apm-packages/goal-context-authoring/scripts/test-apm-package-install.ps1` | Goal Context package の標準APM導入経路を検証したい | temporary root へ package root を導入し、Skill、4 references、canonical validatorの配置・SHA-256一致・起動を検証 |
 | `scripts/validate-architecture-slice-readiness.ps1` | Architecture Slice Readinessのagent、manifest、template、routing、validation resultを静的検証したい | dependency path、frontmatter、必須contract、旧direct routeの残存を検証 |
 
 Codex-first を使いたい場合の入口は `apply-codex-first-local.cs` です。
@@ -170,6 +171,8 @@ PR Review Remediation packageを変更した場合は、次を実行してくだ
 ./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1
 dotnet publish ./apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs
 dotnet publish ./apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/select-goal-context.cs
+dotnet publish ./apm-packages/goal-context-authoring/.apm/skills/goal-context-authoring/scripts/validate-goal-context.cs
+dotnet publish ./apm-packages/pr-review-remediation/scripts/validate-prr-002-contract.cs
 dotnet publish ./apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs
 git diff --check
 ```
@@ -378,7 +381,7 @@ pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remedia
 
 `-DescribePayload`は外部modelへ送信せず対象一覧だけを表示します。内容を確認して送信を明示承認した場合だけ、`-ConfirmExternalModelPayload`で実model smokeを実行します。
 
-固定証跡は`tests/pr-review-remediation/PRR-001/`に保存します。remote APM導入はAPM 0.26.0で次のように再現でき、CIではbase repositoryのevent refを指定して同じ検証をmerge gateとして実行します。pull requestでは`refs/pull/<number>/merge`を使い、checkoutされたmerge snapshotとremote packageの内容を一致させます。
+固定実行証跡は`tests/pr-review-remediation/PRR-001/`、外部modelを呼ばないGoal Context contract replayは`PRR-002/`に保存します。remote APM導入はAPM 0.26.0で次のように再現でき、CIではpull requestのfull head SHAまたはpushの`github.sha`を指定して検証対象を固定します。
 
 ```powershell
 pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1 `

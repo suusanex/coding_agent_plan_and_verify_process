@@ -20,5 +20,4 @@ Goal Context対応版は基礎版Skillのrelative collector/templateを参照し
 - Adaptive Implementation: 別親ターンでのproduction変更と検証
 - completion notification decorator: terminal verdictを変えず、通知と直接リンクだけを追加
 
-selectorのPASSは文書構造の証明です。Goal Contextの意味的忠実性やprivacy safetyを証明しません。`status: human-reviewed`を既定要件とし、draftを使う場合は利用者がexact pathと`--allow-draft`を明示し、そのoverrideをartifactへ残します。
-
+selectorはGoal Context Authoring Skillのcanonical validatorを再利用し、path、validation contract version、mode、正規化SHA-256をselection artifactへ残します。そのPASSは文書contractの証明ですが、Goal Contextの意味的忠実性やprivacy safetyを証明しません。`status: human-reviewed`を既定要件とし、draftを使う場合は利用者がexact pathと`--allow-draft`を明示し、そのoverrideをartifactへ残します。

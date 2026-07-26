@@ -19,4 +19,3 @@ code bug、test不足、保守性riskは`local-reviewer`へ残します。`purpo
 ## Notification did not arrive
 
 通知delivery失敗はreview verdictを変更しません。review-plan.mdとPR URLを通常出力から確認し、notification runtime logを別途診断します。Phase 2を自動起動して補償しません。
-

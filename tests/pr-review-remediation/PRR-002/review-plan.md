@@ -30,6 +30,7 @@
 ## Goal Context Boundary
 
 - Selected Goal Context: fixture/docs/goal-context-direct-review-notification.md
+- Goal Context SHA-256: c38af168cfedf31d198f49b8b7a47a91a3f493e129b47e72432589a8e5eb4030
 - Original problem: Users repeatedly search for review completion and continuation targets.
 - Desired outcome: Direct-link notification plus a safe manual remediation start.
 - User scenarios: Open the exact PR and start Adaptive in a separate parent turn.
@@ -43,16 +44,16 @@
 
 | Source ID | Source | Location | Summary | Decision | Reason | Duplicate of | Conflicts with | Scope / Acceptance mapping |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| LR-001 | Local Codex | handoff text | Missing explicit stop wording. | Apply | Prevents ambiguous operation. | N/A | N/A | Scope 1 / Acceptance 1 |
-| PUR-001 | Purpose | Desired outcome | Separate user-started turn is not explicit. | Apply | Required by Goal Context. | LR-001 | N/A | Scope 1 / Acceptance 1 |
-| RC-001 | Copilot | handoff text | Add direct PR URL. | Apply | Supports direct return. | N/A | N/A | Scope 2 / Acceptance 2 |
+| LR-001 | Local Codex | handoff text | Missing explicit stop wording. | Apply | Prevents ambiguous operation. | N/A | N/A | SI-001 / AC-001 |
+| PUR-001 | Purpose | Desired outcome | Separate user-started turn is not explicit. | Apply | Required by Goal Context. | LR-001 | N/A | SI-001 / AC-001 |
+| RC-001 | Copilot | handoff text | Add direct PR URL. | Apply | Supports direct return. | N/A | N/A | SI-002 / AC-002 |
 
 ## Ordered Remediation Plan
 
-| Step | Finding IDs | Change | Expected files / symbols | Acceptance | Validation |
-| --- | --- | --- | --- | --- | --- |
-| 1 | LR-001, PUR-001 | State the mandatory Phase 1 stop and separate manual Adaptive start. | handoff documentation | No automatic continuation is implied. | Contract test |
-| 2 | RC-001 | Preserve the exact PR result URI in the notification envelope. | notification example | Link opens PR 123 directly. | Envelope fixture |
+| Step | Scope ID | Acceptance ID | Finding IDs | Change | Expected files / symbols | Acceptance | Validation |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | SI-001 | AC-001 | LR-001, PUR-001 | State the mandatory Phase 1 stop and separate manual Adaptive start. | handoff documentation | No automatic continuation is implied. | Contract test |
+| 2 | SI-002 | AC-002 | RC-001 | Preserve the exact PR result URI in the notification envelope. | notification example | Link opens PR 123 directly. | Envelope fixture |
 
 ## Implementation Intent
 
@@ -97,4 +98,3 @@ implementation_intentをsource of truthとし、Goal Context Boundaryを保持�
 ```
 
 Phase 1の停止はレビュー反映プロセス全体の完了ではありません。Adaptive Implementationはこの親ターンから自動起動しません。
-

@@ -41,7 +41,8 @@ try {
         'references/generation-prompt.md',
         'references/goal-context-contract.md',
         'references/goal-context-template.md',
-        'references/human-review-checklist.md'
+        'references/human-review-checklist.md',
+        'scripts/validate-goal-context.cs'
     )
     foreach ($relativePath in $expectedFiles) {
         $sourcePath = Join-Path $packageRoot ".apm/skills/goal-context-authoring/$relativePath"
@@ -55,6 +56,16 @@ try {
         if ($sourceHash -ne $installedHash) {
             throw "Installed file does not match package source: $relativePath"
         }
+    }
+
+    $installedValidator = Join-Path $resolvedScratchPath '.agents/skills/goal-context-authoring/scripts/validate-goal-context.cs'
+    & dotnet run --file $installedValidator -- --help
+    if ($LASTEXITCODE -ne 0) {
+        throw "Installed Goal Context validator help failed with exit code $LASTEXITCODE"
+    }
+    & dotnet run --file $installedValidator -- --goal-context (Join-Path $packageRoot 'docs/examples/goal-context-resumable-local-batch-export.md') --mode strict --format json
+    if ($LASTEXITCODE -ne 0) {
+        throw "Installed Goal Context validator rejected the reviewed example with exit code $LASTEXITCODE"
     }
 
     Write-Output 'Goal Context Authoring package-root APM install smoke test: PASS'

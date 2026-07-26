@@ -28,7 +28,7 @@ description: Evaluate whether a confirmed PR diff achieves the selected Goal Con
 - 対象repositoryの規約
 - 必要に応じて、PRに紐づく検証結果
 
-Goal Contextが欠落する、selection statusが`SELECTED`でない、文書pathが一致しない、またはPR identityとdiff evidenceが矛盾する場合は、Issue本文だけで代替reviewを行わず`BLOCKED`を返してください。
+Goal Contextが欠落する、selection statusが`SELECTED`でない、文書pathまたは正規化SHA-256が一致しない、またはPR identityとdiff evidenceが矛盾する場合は、Issue本文だけで代替reviewを行わず`BLOCKED`を返してください。
 
 ## Review boundary
 
@@ -53,4 +53,3 @@ Goal Contextが欠落する、selection statusが`SELECTED`でない、文書pat
 - findingごとのGoal Context section、PR evidence、purpose risk、suggested outcome
 - Open questions、human decision、未検証事項
 - `Production code changed: No`
-

@@ -10,7 +10,7 @@ Phase 2: explicit new parent turn -> adaptive-implementation-execution -> implem
 
 Phase 1の停止はレビュー反映全体の完了ではありません。実装責務は削除せず、既存Adaptive Implementationへ一本化します。
 
-Goal Context対応版は同じpackage内の別Skillです。collector、`local-reviewer`、`review-planner`、review plan、Adaptive dependencyを基礎版と共有し、`purpose-reviewer`とGoal Context selectionだけを追加します。別packageで共有assetを複製せず、同じSkillの暗黙modeでfallbackを隠さないための構成です。
+Goal Context対応版は同じpackage内の別Skillです。collector、`local-reviewer`、`review-planner`、review plan、Adaptive dependencyを基礎版と共有し、`purpose-reviewer`とGoal Context selectionだけを追加します。Goal Context文書契約は依存するGoal Context Authoring Skillのcanonical validatorを再利用し、selectorへ複製しません。
 
 ## Install
 
@@ -31,6 +31,7 @@ APMがSkillとcanonical agentsを導入し、二つのhelperがreview/Adaptive�
 | Baseline review Skill | `.apm/skills/pr-review-remediation/SKILL.md` |
 | Goal Context review Skill | `.apm/skills/goal-context-pr-review/SKILL.md` |
 | Goal Context selector | Goal Context Skillの`scripts/select-goal-context.cs` |
+| PRR-002 deterministic replay validator | `scripts/validate-prr-002-contract.cs` |
 | Collector | Skillの`scripts/collect-pr-review-context.cs` |
 | Review templates | Skillの`templates/` |
 | Usage/migration/troubleshooting | Skillの`references/` |
@@ -42,10 +43,11 @@ APMがSkillとcanonical agentsを導入し、二つのhelperがreview/Adaptive�
 
 ## Validation
 
-静的contract、collector fixture、profile helper、固定された実agent証跡を検証します。
+静的contract、collector fixture、profile helper、固定された実agent証跡、PRR-002のidentity・hash・source coverage・decision mapping・handoffを検証します。PRR-002は記録済みreviewer出力の決定論的replayであり、外部model実行を宣言しません。
 
 ```powershell
 pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
+dotnet run --file apm-packages/pr-review-remediation/scripts/validate-prr-002-contract.cs -- --fixture-root tests/pr-review-remediation/PRR-002 --format json
 ```
 
 実agent chainを再実行して`tests/pr-review-remediation/PRR-001/`を更新する場合:
@@ -68,7 +70,7 @@ pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remedia
   -Ref <git-ref>
 ```
 
-実agent smokeは認証とmodel利用権限を必要とするためCIで毎回再実行せず、固定証跡をvalidatorで検査します。remote APM smokeはbase repositoryのevent refを使うCI merge gateです。pull requestでは`refs/pull/<number>/merge`を指定するため、checkoutされたmerge snapshotとremote packageの内容が一致します。
+実agent smokeは認証とmodel利用権限を必要とするためCIで毎回再実行せず、固定証跡をvalidatorで検査します。remote APM smokeはpull requestのfull head SHA、pushの`github.sha`を使い、検証対象packageを一意に固定します。
 
 詳細はSkillの`references/usage.md`を参照してください。
 

@@ -19,16 +19,15 @@
     "timedOut": false
   },
   "reviews": [
-    { "id": 700, "author": "copilot-pull-request-reviewer[bot]", "state": "COMMENTED" }
+    { "id": 700, "sourceId": "review:700", "author": "copilot-pull-request-reviewer[bot]", "state": "COMMENTED" }
   ],
   "inlineComments": [
-    { "id": 1700, "path": "docs/handoff.md", "body": "Preserve the direct PR URL." }
+    { "id": 1700, "sourceId": "inline-comment:1700", "path": "docs/handoff.md", "body": "Preserve the direct PR URL." }
   ],
   "prComments": [
-    { "id": 2700, "body": "Keep Phase 1 read-only." }
+    { "id": 2700, "sourceId": "pr-comment:2700", "body": "Keep Phase 1 read-only." }
   ],
   "checks": [
-    { "name": "fixture-contract", "state": "SUCCESS" }
+    { "id": 9001, "sourceId": "check:9001", "name": "fixture-contract", "state": "SUCCESS" }
   ]
 }
-

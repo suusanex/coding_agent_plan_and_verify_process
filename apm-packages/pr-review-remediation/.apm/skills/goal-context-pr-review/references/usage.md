@@ -43,4 +43,3 @@ implementation_intentをsource of truthとし、Goal Context Boundaryを保持�
 ## Explicit baseline fallback
 
 Goal Contextがない、不正、または複数候補から選べない場合、Goal Context対応版のままIssue本文だけで目的レビューを続行しません。Goal Contextを修正・選択するか、目的レビューを行わない基礎版`$pr-review-remediation`を利用者が明示選択します。
-

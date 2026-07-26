@@ -33,7 +33,7 @@ APM install 後、次の bundled references が存在することを確認しま
 
 ### Local development validation
 
-未公開の local package は、package root の `apm.yml`、target 解決、Skill と bundled references の配置まで smoke test します。script は system temporary directory に隔離した repository root を作り、`apm install <absolute-package-root> --target codex,agent-skills` を実行して、配置後ファイルの SHA-256 が source と一致することを確認します。CI は APM CLI `0.26.0` を固定します。
+未公開の local package は、package root の `apm.yml`、target 解決、Skill、bundled references、canonical validatorの配置まで smoke test します。script は system temporary directory に隔離した repository root を作り、`apm install <absolute-package-root> --target codex,agent-skills` を実行して、配置後ファイルの SHA-256 が source と一致しvalidatorが起動することを確認します。CI は APM CLI `0.26.0` を固定します。
 
 ```powershell
 ./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1
@@ -87,6 +87,7 @@ later correction は、それ以前の statement を自動で削除する理由�
 package source repository から任意の Goal Context を確認できます。
 
 ```powershell
+dotnet run --file .agents/skills/goal-context-authoring/scripts/validate-goal-context.cs -- --goal-context C:\path\to\repository\docs\goal-context-<topic-summary>.md --mode draft --format json
 ./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1 -GoalContextPath C:\path\to\repository\docs\goal-context-<topic-summary>.md
 ```
 
@@ -123,6 +124,7 @@ sensitive_data_review: passed
 strict mode を実行します。
 
 ```powershell
+dotnet run --file .agents/skills/goal-context-authoring/scripts/validate-goal-context.cs -- --goal-context C:\path\to\repository\docs\goal-context-<topic-summary>.md --mode strict --format json
 ./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1 -GoalContextPath C:\path\to\repository\docs\goal-context-<topic-summary>.md -RequireHumanReview
 ```
 

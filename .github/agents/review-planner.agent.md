@@ -27,7 +27,7 @@ description: Consolidate local Codex, optional Goal Context purpose findings, Gi
 
 Goal Context対応modeでは追加で必須:
 
-- `goal-context-selection.json`と一致する`goal-context-*.md`
+- `goal-context-selection.json`のpathと正規化SHA-256に一致する`goal-context-*.md`
 - `purpose-review-findings.md`
 
 ## Planning rules
@@ -41,7 +41,7 @@ Goal Context対応modeでは追加で必須:
 7. 無関係なrefactor、仕様追加、PR外差分をscopeへ入れない。
 8. implementation route、model selection、HIGH/STANDARD verdict、handoff、re-entryを再定義しない。
 9. Goal Context対応modeでは、Copilot、local、purpose、PR comments、inline comments、checksを同じdecision ledgerへ統合し、すべてのsource IDを維持する。
-10. Goal ContextのOriginal problem、Desired outcome、user scenarios、MVP、Non-goals、rejected alternatives、negative conditionsをplan boundaryへ反映する。
+10. Goal Contextのpathと正規化SHA-256、およびOriginal problem、Desired outcome、user scenarios、MVP、Non-goals、rejected alternatives、negative conditionsをplan boundaryへ反映する。
 11. Goal Contextにない要求を追加せず、unknownをOpen questionまたはhuman decisionとして残す。
 12. Goal Context selectionが`SELECTED`でない、またはpurpose verdictが`PURPOSE_REVIEWED`でない場合は`READY_FOR_ADAPTIVE_IMPLEMENTATION`を返さない。
 
