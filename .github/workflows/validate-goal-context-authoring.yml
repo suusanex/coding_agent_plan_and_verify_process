@@ -1,0 +1,30 @@
+name: Validate Goal Context Authoring
+
+on:
+  pull_request:
+    paths:
+      - 'apm-packages/goal-context-authoring/**'
+      - 'docs/goal-context-multi-project-ai-development-notification-and-purpose-review.md'
+      - '.github/workflows/validate-goal-context-authoring.yml'
+      - 'README.md'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apm-packages/goal-context-authoring/**'
+      - 'docs/goal-context-multi-project-ai-development-notification-and-purpose-review.md'
+      - '.github/workflows/validate-goal-context-authoring.yml'
+      - 'README.md'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Goal Context package and fixtures
+        shell: pwsh
+        run: ./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1
+
