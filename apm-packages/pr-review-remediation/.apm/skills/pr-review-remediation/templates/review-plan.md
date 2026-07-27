@@ -72,11 +72,13 @@ Omit this section in Baseline and single-round mode. Tracking IDs are stable acr
 implementation_intent:
   goal:
   scope:
+    - SI-001:
   non_goals:
   acceptance:
+    - AC-001:
   constraints:
   validation:
-  plan_reference:
+  plan_reference: <multi-round modeではcycle root相対のround-NNN/review-plan.md>
   goal_context_reference:
 ```
 

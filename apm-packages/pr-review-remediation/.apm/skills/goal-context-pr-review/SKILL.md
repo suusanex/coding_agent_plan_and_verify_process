@@ -117,7 +117,9 @@ dotnet run --file scripts/manage-review-cycle.cs -- start `
   --adaptive-result-reference <previous-adaptive-result>
 ```
 
-collector、Goal Context selection、local/purpose findings、machine-readable `review-result.json`、notification、およびactionable findingがある場合のreview planを現在の`round-NNN/`へ保存します。`templates/review-result.example.json`と`templates/review-round-result.example.json`を埋め、`complete`でartifact hashだけでなく、review-contextのrepository/PR/base/headと全source ID、Goal Context path/hash、review-resultのverdict/finding delta/source coverage/artifact bindingsを相互照合します。
+collector、Goal Context selection、local/purpose findings、machine-readable `review-result.json`、notification、およびactionable findingがある場合のreview planを現在の`round-NNN/`へ保存します。`templates/review-result.example.json`と`templates/review-round-result.example.json`を埋め、`complete`でartifact hashだけでなく、review-contextのrepository/PR/base/headと全source ID、Goal Context path/hash、review-resultのverdict/finding delta/source coverage/artifact bindingsを相互照合します。source coverageはfinding deltaから導出したsource-to-tracking mappingと双方向に一致しなければなりません。Adaptiveへ渡すplanはcanonical `implementation_intent`、SI/AC付きordered remediation、全active finding mapping、および同じplan referenceを使う別親ターンhandoffを含めます。
+
+cycle rootはsymlink/junctionにできません。cycle file、round directory、artifact fileを含む既存path componentは実体pathへ解決し、cycle root外へ出るinput/output linkをfail closedにします。
 
 ```powershell
 dotnet run --file scripts/manage-review-cycle.cs -- complete `

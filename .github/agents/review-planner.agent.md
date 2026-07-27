@@ -53,6 +53,8 @@ Goal Context multi-round modeでは追加で必須:
 14. multi-round modeの第3round以降でactionable findingが残る場合、記録済みhuman overrideが現在roundを許可していない限り`HUMAN_DECISION_REQUIRED`とする。
 15. actionable findingがない場合は`REVIEW_COMPLETE`とし、空のAdaptive向けplanを生成しない。
 16. multi-round modeではreview-contextの全source IDとlocal/purpose finding IDを、tracking IDまたは理由付き`noAction`へ対応させる。
+17. multi-round modeではordered remediationの各SI/AC IDを`implementation_intent.scope`/`acceptance`へ同じIDで記録し、すべてのactive finding IDを一度だけ対応付ける。
+18. multi-round modeの`plan_reference`はcycle root相対の現在の`round-NNN/review-plan.md`とし、別親ターンhandoffも同じpathと`implementation_intent`を明示する。
 
 ## Adaptive handoff
 

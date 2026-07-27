@@ -28,7 +28,7 @@ function Invoke-Manager([string[]]$Arguments, [string]$Description, [bool]$Expec
     $output = & dotnet $script:managerDll @Arguments 2>&1 | Out-String
     $exitCode = $LASTEXITCODE
     if ($ExpectSuccess -and $exitCode -ne 0) {
-        Add-Failure "$Description failed with exit code ${exitCode}: $output"
+        throw "$Description failed with exit code ${exitCode}: $output"
     }
     elseif (-not $ExpectSuccess -and $exitCode -eq 0) {
         Add-Failure "$Description unexpectedly succeeded"
@@ -204,21 +204,71 @@ $purposeRows
     [System.IO.File]::WriteAllText((Join-Path $roundRoot $roleFiles['purpose-findings']), $purposeContent.Replace("`r`n", "`n") + "`n", $utf8)
 
     if ($IncludePlan) {
-        $deltaRows = @($FindingDelta | ForEach-Object { "| $($_.trackingId) | $($_.state) | $(@($_.findingIds) -join ', ') | $(@($_.sourceIds) -join ', ') |" }) -join "`n"
+        $activeDelta = @($FindingDelta | Where-Object { $_.state -in @('new', 'persistent', 'reopened') })
+        $orderedRows = [System.Collections.Generic.List[string]]::new()
+        $scopeLines = [System.Collections.Generic.List[string]]::new()
+        $acceptanceLines = [System.Collections.Generic.List[string]]::new()
+        for ($index = 0; $index -lt $activeDelta.Count; $index++) {
+            $number = $index + 1
+            $scopeId = 'SI-{0:000}' -f $number
+            $acceptanceId = 'AC-{0:000}' -f $number
+            $findingIds = @($activeDelta[$index].findingIds) -join ', '
+            $orderedRows.Add("| $number | $scopeId | $acceptanceId | $findingIds | Remediate $($activeDelta[$index].trackingId). | fixture artifact | Finding is resolved. | Contract replay |")
+            $scopeLines.Add("    - ${scopeId}: Remediate $($activeDelta[$index].trackingId).")
+            $acceptanceLines.Add("    - ${acceptanceId}: Verify $($activeDelta[$index].trackingId) is resolved.")
+        }
+        $planReference = "$roundName/review-plan.md"
         $planContent = @"
 # PR Review Remediation Plan
 
+## Phase 1 Verdict
+
 - Verdict: $Verdict
+- Production code changed: No
+
+## PR Identity
+
 - Repository: $repository
 - PR: $pullRequest
 - Base branch / OID: main / $baseOid
 - Head branch / OID: feature / $HeadOid
+
+## Goal Context Boundary
+
 - Selected Goal Context: $goalContextPath
 - Goal Context SHA-256: $goalContextSha
 
-| Tracking ID | State | Finding IDs | Source IDs |
-| --- | --- | --- | --- |
-$deltaRows
+## Ordered Remediation Plan
+
+| Step | Scope ID | Acceptance ID | Finding IDs | Change | Expected files / symbols | Acceptance | Validation |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+$($orderedRows -join "`n")
+
+## Implementation Intent
+
+``````yaml
+implementation_intent:
+  goal: Resolve the actionable findings recorded for $roundName.
+  scope:
+$($scopeLines -join "`n")
+  non_goals:
+    - Automatic Adaptive startup.
+  acceptance:
+$($acceptanceLines -join "`n")
+  constraints:
+    - Preserve the separate parent turn boundary.
+  validation:
+    - Run the deterministic contract replay.
+  plan_reference: $planReference
+  goal_context_reference: $goalContextPath
+``````
+
+## Separate Parent Turn Handoff
+
+``````text
+`$adaptive-implementation-execution を使って $planReference を実装してください。
+review-plan.md の implementation_intent を source of truth としてください。
+``````
 "@
         [System.IO.File]::WriteAllText((Join-Path $roundRoot $roleFiles['review-plan']), $planContent.Replace("`r`n", "`n") + "`n", $utf8)
     }
@@ -516,6 +566,19 @@ try {
     [System.IO.File]::WriteAllText($coverageResult, (($coverageJson | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
     Complete-Round $coverageCycle $coverageResult $false 'missing source coverage'
 
+    $mappingRoot = Join-Path $tempRoot 'negative-source-tracking-swap'
+    $mappingCycle = Join-Path $mappingRoot 'review-cycle.json'
+    Start-Round $mappingCycle 'ecececececececececececececececececececec' '2026-04-03T01:10:00Z'
+    $mappingResult = Write-RoundResult $mappingRoot 1 'ecececececececececececececececececececec' '2026-04-03T01:11:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' @(
+        (New-Delta 'TRK-MAP-A' 'new' @('LR-501') @('review:mapping:a')),
+        (New-Delta 'TRK-MAP-B' 'new' @('LR-502') @('review:mapping:b'))
+    ) $true
+    $mappingJson = Get-Content -Raw -LiteralPath $mappingResult | ConvertFrom-Json -Depth 100
+    ($mappingJson.sourceCoverage | Where-Object sourceId -eq 'review:mapping:a').trackingIds = @('TRK-MAP-B')
+    ($mappingJson.sourceCoverage | Where-Object sourceId -eq 'review:mapping:b').trackingIds = @('TRK-MAP-A')
+    [System.IO.File]::WriteAllText($mappingResult, (($mappingJson | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
+    Complete-Round $mappingCycle $mappingResult $false 'Source-to-tracking mapping mismatch'
+
     $invalidReopenRoot = Join-Path $tempRoot 'negative-reopened'
     $invalidReopenCycle = Join-Path $invalidReopenRoot 'review-cycle.json'
     Start-Round $invalidReopenCycle 'adadadadadadadadadadadadadadadadadadadad' '2026-04-03T02:00:00Z'
@@ -581,6 +644,65 @@ try {
     Sync-MutatedArtifactHashes $contentResult @('review-context')
     Complete-Round $contentCycle $contentResult $false 'source coverage does not exactly match review artifacts'
 
+    $contentResult = Write-RoundResult $contentRoot 1 $contentHead '2026-04-06T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' $contentDelta $true
+    $planPath = Join-Path $contentRoot 'round-001/review-plan.md'
+    $planContent = [System.IO.File]::ReadAllText($planPath).Replace('implementation_intent:', 'invalid_intent:')
+    [System.IO.File]::WriteAllText($planPath, $planContent, $utf8)
+    Sync-MutatedArtifactHashes $contentResult @('review-plan')
+    Complete-Round $contentCycle $contentResult $false 'canonical implementation_intent'
+
+    $contentResult = Write-RoundResult $contentRoot 1 $contentHead '2026-04-06T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' $contentDelta $true
+    $planContent = [System.IO.File]::ReadAllText($planPath).Replace('  acceptance:', '  omitted_acceptance:')
+    [System.IO.File]::WriteAllText($planPath, $planContent, $utf8)
+    Sync-MutatedArtifactHashes $contentResult @('review-plan')
+    Complete-Round $contentCycle $contentResult $false 'missing acceptance'
+
+    $contentResult = Write-RoundResult $contentRoot 1 $contentHead '2026-04-06T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' $contentDelta $true
+    $planContent = [System.IO.File]::ReadAllText($planPath).Replace('| LR-401 | Remediate', '| LR-999 | Remediate')
+    [System.IO.File]::WriteAllText($planPath, $planContent, $utf8)
+    Sync-MutatedArtifactHashes $contentResult @('review-plan')
+    Complete-Round $contentCycle $contentResult $false 'active finding mapping mismatch'
+
+    if (-not $IsWindows) {
+        $outsideCycleRoot = Join-Path $tempRoot 'outside-linked-cycle-root'
+        [System.IO.Directory]::CreateDirectory($outsideCycleRoot) | Out-Null
+        $linkedCycleRoot = Join-Path $tempRoot 'linked-cycle-root'
+        New-Item -ItemType SymbolicLink -Path $linkedCycleRoot -Target $outsideCycleRoot | Out-Null
+        Start-Round (Join-Path $linkedCycleRoot 'review-cycle.json') 'b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1' '2026-04-07T00:00:00Z' -ExpectSuccess $false -ExpectedPattern 'root must not be a symlink or junction'
+
+        $linkedFileRoot = Join-Path $tempRoot 'linked-cycle-file'
+        [System.IO.Directory]::CreateDirectory($linkedFileRoot) | Out-Null
+        $outsideCycleFile = Join-Path $tempRoot 'outside-review-cycle.json'
+        [System.IO.File]::WriteAllText($outsideCycleFile, "{}`n", $utf8)
+        New-Item -ItemType SymbolicLink -Path (Join-Path $linkedFileRoot 'review-cycle.json') -Target $outsideCycleFile | Out-Null
+        Start-Round (Join-Path $linkedFileRoot 'review-cycle.json') 'b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2' '2026-04-07T00:01:00Z' -ExpectSuccess $false -ExpectedPattern 'resolves outside review cycle root'
+
+        $linkedRoundRoot = Join-Path $tempRoot 'linked-round-directory'
+        $linkedRoundCycle = Join-Path $linkedRoundRoot 'review-cycle.json'
+        Start-Round $linkedRoundCycle 'b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3' '2026-04-07T00:02:00Z'
+        Remove-Item -LiteralPath (Join-Path $linkedRoundRoot 'round-001') -Force
+        $outsideRound = Join-Path $tempRoot 'outside-round-001'
+        [System.IO.Directory]::CreateDirectory($outsideRound) | Out-Null
+        New-Item -ItemType SymbolicLink -Path (Join-Path $linkedRoundRoot 'round-001') -Target $outsideRound | Out-Null
+        $linkedRoundResult = Write-RoundResult $linkedRoundRoot 1 'b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3' '2026-04-07T00:03:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' @(
+            (New-Delta 'TRK-LINKED-ROUND' 'new' @('LR-601') @('review:linked-round'))
+        ) $true
+        Complete-Round $linkedRoundCycle $linkedRoundResult $false 'resolves outside review cycle root'
+
+        $linkedArtifactRoot = Join-Path $tempRoot 'linked-artifact-file'
+        $linkedArtifactCycle = Join-Path $linkedArtifactRoot 'review-cycle.json'
+        Start-Round $linkedArtifactCycle 'b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4' '2026-04-07T00:04:00Z'
+        $linkedArtifactResult = Write-RoundResult $linkedArtifactRoot 1 'b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4' '2026-04-07T00:05:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' @(
+            (New-Delta 'TRK-LINKED-ARTIFACT' 'new' @('LR-602') @('review:linked-artifact'))
+        ) $true
+        $linkedPlanPath = Join-Path $linkedArtifactRoot 'round-001/review-plan.md'
+        $outsidePlanPath = Join-Path $tempRoot 'outside-review-plan.md'
+        Copy-Item -LiteralPath $linkedPlanPath -Destination $outsidePlanPath
+        Remove-Item -LiteralPath $linkedPlanPath -Force
+        New-Item -ItemType SymbolicLink -Path $linkedPlanPath -Target $outsidePlanPath | Out-Null
+        Complete-Round $linkedArtifactCycle $linkedArtifactResult $false 'resolves outside review cycle root'
+    }
+
     # An active finding from the prior round cannot silently disappear.
     $missingRoot = Join-Path $tempRoot 'negative-missing'
     $missingCycle = Join-Path $missingRoot 'review-cycle.json'
@@ -596,7 +718,7 @@ try {
     Complete-Round $missingCycle $missingResult $false 'missing persistent/resolved mapping'
 
     $observedMutations = @($fixture.negativeMutations)
-    foreach ($required in @('duplicate-head', 'missing-adaptive-result-reference', 'identity-drift', 'existing-round-directory', 'historical-artifact-hash', 'unknown-persistent-finding', 'missing-active-finding-mapping', 'round-limit-verdict', 'incomplete-override', 'actionable-without-plan', 'review-complete-with-plan', 'missing-source-coverage', 'invalid-reopened-transition', 'round-result-head-identity', 'notification-status', 'notification-pr', 'early-override', 'unresolved-human-decision', 'wrong-human-decision-id', 'review-context-content', 'goal-context-selection-content', 'review-result-content', 'uncovered-artifact-source')) {
+    foreach ($required in @('duplicate-head', 'missing-adaptive-result-reference', 'identity-drift', 'existing-round-directory', 'historical-artifact-hash', 'unknown-persistent-finding', 'missing-active-finding-mapping', 'round-limit-verdict', 'incomplete-override', 'actionable-without-plan', 'review-complete-with-plan', 'missing-source-coverage', 'source-tracking-swap', 'invalid-reopened-transition', 'round-result-head-identity', 'notification-status', 'notification-pr', 'early-override', 'unresolved-human-decision', 'wrong-human-decision-id', 'review-context-content', 'goal-context-selection-content', 'review-result-content', 'uncovered-artifact-source', 'review-plan-intent', 'review-plan-acceptance', 'review-plan-finding-mapping', 'cycle-root-link-escape', 'cycle-file-link-escape', 'round-directory-link-escape', 'artifact-file-link-escape')) {
         if ($required -notin $observedMutations) { Add-Failure "Fixture negative mutation is missing: $required" }
     }
 }

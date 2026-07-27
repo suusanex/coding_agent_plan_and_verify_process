@@ -124,9 +124,12 @@ static class ReviewCycleManager
     public static CommandOutput Start(Options options)
     {
         RequireStartArguments(options);
-        var cyclePath = Path.GetFullPath(options.CyclePath!);
-        var cycleRoot = Path.GetDirectoryName(cyclePath) ?? throw new ContractException("Cycle path has no parent directory.");
-        Directory.CreateDirectory(cycleRoot);
+        var requestedCyclePath = Path.GetFullPath(options.CyclePath!);
+        var requestedCycleRoot = Path.GetDirectoryName(requestedCyclePath) ?? throw new ContractException("Cycle path has no parent directory.");
+        RejectLinkedRootEntry(requestedCycleRoot);
+        Directory.CreateDirectory(requestedCycleRoot);
+        var cyclePath = Contained(requestedCycleRoot, Path.GetFileName(requestedCyclePath));
+        var cycleRoot = Path.GetDirectoryName(cyclePath)!;
 
         ReviewCycle cycle;
         if (File.Exists(cyclePath))
@@ -235,7 +238,9 @@ static class ReviewCycleManager
             throw new ContractException("complete requires --cycle and --round-result.");
         }
 
-        var cyclePath = Path.GetFullPath(options.CyclePath);
+        var requestedCyclePath = Path.GetFullPath(options.CyclePath);
+        var requestedCycleRoot = Path.GetDirectoryName(requestedCyclePath) ?? throw new ContractException("Cycle path has no parent directory.");
+        var cyclePath = Contained(requestedCycleRoot, Path.GetFileName(requestedCyclePath));
         var cycle = ReadCycle(cyclePath);
         ValidateCycle(cyclePath, cycle, requireCompletedCurrentRound: false);
         if (cycle.Rounds.Count == 0 || cycle.Rounds[^1].Status != "IN_PROGRESS")
@@ -246,7 +251,7 @@ static class ReviewCycleManager
         var round = cycle.Rounds[^1];
         var cycleRoot = Path.GetDirectoryName(cyclePath)!;
         var expectedRoundDirectory = Contained(cycleRoot, round.ArtifactDirectory);
-        var resultPath = Contained(expectedRoundDirectory, Path.GetRelativePath(expectedRoundDirectory, Path.GetFullPath(options.RoundResultPath)));
+        var resultPath = Contained(cycleRoot, Path.GetFullPath(options.RoundResultPath));
         if (!File.Exists(resultPath)) throw new ContractException($"Round result does not exist: {resultPath}");
         if (!IsContained(expectedRoundDirectory, resultPath)) throw new ContractException("Round result must be inside the current round directory.");
 
@@ -322,7 +327,9 @@ static class ReviewCycleManager
     public static CommandOutput Validate(Options options)
     {
         if (string.IsNullOrWhiteSpace(options.CyclePath)) throw new ContractException("validate requires --cycle.");
-        var cyclePath = Path.GetFullPath(options.CyclePath);
+        var requestedCyclePath = Path.GetFullPath(options.CyclePath);
+        var requestedCycleRoot = Path.GetDirectoryName(requestedCyclePath) ?? throw new ContractException("Cycle path has no parent directory.");
+        var cyclePath = Contained(requestedCycleRoot, Path.GetFileName(requestedCyclePath));
         var cycle = ReadCycle(cyclePath);
         ValidateCycle(cyclePath, cycle, requireCompletedCurrentRound: false);
         var current = cycle.Rounds.LastOrDefault();
@@ -474,6 +481,10 @@ static class ReviewCycleManager
             ValidateGoalContextSelection(cycle, ArtifactPath(cycleRoot, byRole, "goal-context-selection"));
             ValidateReviewMarkdown(cycle, round, result.Verdict, ArtifactPath(cycleRoot, byRole, "local-findings"), false, observedSources);
             ValidateReviewMarkdown(cycle, round, result.Verdict, ArtifactPath(cycleRoot, byRole, "purpose-findings"), true, observedSources);
+            if (byRole.TryGetValue("review-plan", out var reviewPlan))
+            {
+                ValidateReviewPlan(cycle, round, result, ArtifactPath(cycleRoot, byRole, "review-plan"), reviewPlan.Path);
+            }
         }
 
         var reviewResult = ReadJson<ReviewResultArtifact>(ArtifactPath(cycleRoot, byRole, "review-result"));
@@ -602,6 +613,112 @@ static class ReviewCycleManager
     {
         var value = MarkdownValue(content, label);
         if (!Regex.IsMatch(value, $@"/\s*{Regex.Escape(expectedOid)}$")) throw new ContractException($"Review artifact {label} does not match OID {expectedOid}.");
+    }
+
+    private static void ValidateReviewPlan(ReviewCycle cycle, RoundRecord round, RoundResult result, string path, string relativePath)
+    {
+        var content = File.ReadAllText(path);
+        Equal("review plan verdict", result.Verdict, MarkdownValue(content, "Verdict"));
+        Equal("review plan repository", cycle.Repository, MarkdownValue(content, "Repository"));
+        Equal("review plan PR", cycle.PullRequest.ToString(), MarkdownValue(content, "PR"));
+        RequireMarkdownOid(content, "Base branch / OID", round.BaseOid);
+        RequireMarkdownOid(content, "Head branch / OID", round.HeadOid);
+        Equal("review plan Goal Context", cycle.GoalContext.Path, MarkdownValue(content, "Selected Goal Context"));
+        Equal("review plan Goal Context SHA-256", cycle.GoalContext.NormalizedSha256, MarkdownValue(content, "Goal Context SHA-256"));
+
+        var intentMatch = Regex.Match(content, @"(?ms)^```yaml\s*\n(?<yaml>.*?)^```\s*$");
+        if (!intentMatch.Success || !Regex.IsMatch(intentMatch.Groups["yaml"].Value, @"(?m)^implementation_intent:\s*$"))
+        {
+            throw new ContractException("Review plan must contain the canonical implementation_intent YAML block.");
+        }
+        var yaml = intentMatch.Groups["yaml"].Value;
+        var goal = IntentField(yaml, "goal");
+        var scope = IntentField(yaml, "scope");
+        var acceptance = IntentField(yaml, "acceptance");
+        var planReference = IntentField(yaml, "plan_reference");
+        var goalContextReference = IntentField(yaml, "goal_context_reference");
+        if (string.IsNullOrWhiteSpace(goal) || string.IsNullOrWhiteSpace(scope) || string.IsNullOrWhiteSpace(acceptance))
+        {
+            throw new ContractException("Review plan implementation_intent requires non-empty goal, scope, and acceptance.");
+        }
+        Equal("review plan implementation_intent plan_reference", NormalizeSlash(relativePath), NormalizeSlash(planReference));
+        Equal("review plan implementation_intent goal_context_reference", cycle.GoalContext.Path, NormalizeSlash(goalContextReference));
+
+        var planSection = MarkdownSection(content, "Ordered Remediation Plan");
+        var mappedFindingIds = new HashSet<string>(StringComparer.Ordinal);
+        var scopeIds = new HashSet<string>(StringComparer.Ordinal);
+        var acceptanceIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var line in planSection.Split('\n'))
+        {
+            if (!line.TrimStart().StartsWith('|')) continue;
+            var cells = line.Trim().Trim('|').Split('|').Select(cell => cell.Trim()).ToArray();
+            if (cells.Length < 8 || cells[0] == "Step" || cells.All(cell => Regex.IsMatch(cell, "^-+$"))) continue;
+            if (!Regex.IsMatch(cells[1], "^SI-\\d+$") || !Regex.IsMatch(cells[2], "^AC-\\d+$"))
+            {
+                throw new ContractException("Review plan remediation rows require SI-* scope and AC-* acceptance IDs.");
+            }
+            scopeIds.Add(cells[1]);
+            acceptanceIds.Add(cells[2]);
+            foreach (var findingId in cells[3].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (!mappedFindingIds.Add(findingId)) throw new ContractException($"Review plan maps finding ID more than once: {findingId}");
+            }
+        }
+
+        var activeFindingIds = result.FindingDelta
+            .Where(entry => ActiveFindingStates.Contains(entry.State))
+            .SelectMany(entry => entry.FindingIds)
+            .ToHashSet(StringComparer.Ordinal);
+        if (!activeFindingIds.SetEquals(mappedFindingIds))
+        {
+            var missing = activeFindingIds.Except(mappedFindingIds, StringComparer.Ordinal);
+            var extra = mappedFindingIds.Except(activeFindingIds, StringComparer.Ordinal);
+            throw new ContractException($"Review plan active finding mapping mismatch; missing [{string.Join(", ", missing)}], extra [{string.Join(", ", extra)}].");
+        }
+        foreach (var scopeId in scopeIds)
+        {
+            if (!Regex.IsMatch(scope, $@"(?m)^\s*-\s*{Regex.Escape(scopeId)}:\s*\S")) throw new ContractException($"Review plan implementation_intent scope is missing {scopeId}.");
+        }
+        foreach (var acceptanceId in acceptanceIds)
+        {
+            if (!Regex.IsMatch(acceptance, $@"(?m)^\s*-\s*{Regex.Escape(acceptanceId)}:\s*\S")) throw new ContractException($"Review plan implementation_intent acceptance is missing {acceptanceId}.");
+        }
+
+        var handoff = MarkdownSection(content, "Separate Parent Turn Handoff");
+        const string adaptiveSkill = "$adaptive-" + "implementation-execution";
+        if (!handoff.Contains(adaptiveSkill, StringComparison.Ordinal)
+            || !handoff.Contains(NormalizeSlash(planReference), StringComparison.Ordinal)
+            || !handoff.Contains("implementation_intent", StringComparison.Ordinal))
+        {
+            throw new ContractException("Review plan must contain a separate-parent-turn Adaptive handoff bound to its plan_reference and implementation_intent.");
+        }
+    }
+
+    private static string IntentField(string yaml, string field)
+    {
+        var match = Regex.Match(yaml, $@"(?m)^  {Regex.Escape(field)}:[ \t]*(?<inline>[^\r\n]*)");
+        if (!match.Success) throw new ContractException($"Review plan implementation_intent is missing {field}.");
+        var inline = match.Groups["inline"].Value.Trim();
+        if (!string.IsNullOrWhiteSpace(inline)) return inline;
+        var remainder = yaml[(match.Index + match.Length)..].TrimStart('\r', '\n');
+        var nested = new List<string>();
+        foreach (var line in remainder.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n'))
+        {
+            if (line.StartsWith("    ", StringComparison.Ordinal)) nested.Add(line);
+            else if (string.IsNullOrWhiteSpace(line)) nested.Add(line);
+            else break;
+        }
+        return string.Join("\n", nested).TrimEnd();
+    }
+
+    private static string MarkdownSection(string content, string heading)
+    {
+        var match = Regex.Match(content, $@"(?ms)^##\s+{Regex.Escape(heading)}\s*$\r?\n(?<body>.*?)(?=^##\s+|\z)");
+        if (!match.Success || string.IsNullOrWhiteSpace(match.Groups["body"].Value))
+        {
+            throw new ContractException($"Review plan is missing a non-empty '{heading}' section.");
+        }
+        return match.Groups["body"].Value;
     }
 
     private static JsonElement RequiredObject(JsonElement parent, string property, string context)
@@ -743,6 +860,19 @@ static class ReviewCycleManager
     private static void ValidateSourceCoverage(List<FindingDeltaEntry> delta, List<SourceCoverageEntry> coverage)
     {
         var trackingIds = delta.Select(item => item.TrackingId).ToHashSet(StringComparer.Ordinal);
+        var expectedMappings = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        foreach (var entry in delta)
+        {
+            foreach (var sourceId in entry.SourceIds.Concat(entry.FindingIds).Distinct(StringComparer.Ordinal))
+            {
+                if (!expectedMappings.TryGetValue(sourceId, out var mapped))
+                {
+                    mapped = [];
+                    expectedMappings[sourceId] = mapped;
+                }
+                mapped.Add(entry.TrackingId);
+            }
+        }
         var coveredSources = new HashSet<string>(StringComparer.Ordinal);
         foreach (var item in coverage)
         {
@@ -752,9 +882,15 @@ static class ReviewCycleManager
             }
             if (item.Disposition == "finding")
             {
-                if (item.TrackingIds.Count == 0 || item.TrackingIds.Any(id => !trackingIds.Contains(id)))
+                if (item.TrackingIds.Count == 0 || item.TrackingIds.Distinct(StringComparer.Ordinal).Count() != item.TrackingIds.Count
+                    || item.TrackingIds.Any(id => !trackingIds.Contains(id)))
                 {
                     throw new ContractException($"Source {item.SourceId} must bind to an existing finding tracking ID.");
+                }
+                if (!expectedMappings.TryGetValue(item.SourceId, out var expected)
+                    || !expected.SetEquals(item.TrackingIds))
+                {
+                    throw new ContractException($"Source-to-tracking mapping mismatch for {item.SourceId}.");
                 }
             }
             else if (item.Disposition == "noAction")
@@ -763,13 +899,14 @@ static class ReviewCycleManager
                 {
                     throw new ContractException($"noAction source {item.SourceId} requires a reason and no tracking IDs.");
                 }
+                if (expectedMappings.ContainsKey(item.SourceId)) throw new ContractException($"Finding source {item.SourceId} cannot be marked noAction.");
             }
             else
             {
                 throw new ContractException($"Invalid source coverage disposition for {item.SourceId}: {item.Disposition}");
             }
         }
-        foreach (var sourceId in delta.SelectMany(item => item.SourceIds.Concat(item.FindingIds)).Distinct(StringComparer.Ordinal))
+        foreach (var sourceId in expectedMappings.Keys)
         {
             if (!coveredSources.Contains(sourceId)) throw new ContractException($"Finding source is missing source coverage: {sourceId}");
         }
@@ -1095,7 +1232,72 @@ static class ReviewCycleManager
         var fullRoot = Path.GetFullPath(root);
         var fullPath = Path.GetFullPath(Path.IsPathRooted(path) ? path : Path.Combine(fullRoot, path));
         if (!IsContained(fullRoot, fullPath)) throw new ContractException($"Path escapes review cycle root: {path}");
-        return fullPath;
+        RejectLinkedBoundaryRoot(fullRoot);
+        var physicalRoot = ResolvePhysicalPath(fullRoot);
+        var physicalPath = ResolvePhysicalPath(fullPath);
+        if (!IsContained(physicalRoot, physicalPath)) throw new ContractException($"Path resolves outside review cycle root through a symlink or junction: {path}");
+        return physicalPath;
+    }
+
+    private static void RejectLinkedBoundaryRoot(string root)
+    {
+        if (!Directory.Exists(root)) throw new ContractException($"Review cycle root does not exist: {root}");
+        RejectLinkedRootEntry(root);
+    }
+
+    private static void RejectLinkedRootEntry(string root)
+    {
+        if (TryGetAttributes(root, out var attributes) && (attributes & FileAttributes.ReparsePoint) != 0)
+        {
+            throw new ContractException($"Review cycle root must not be a symlink or junction: {root}");
+        }
+    }
+
+    private static string ResolvePhysicalPath(string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        var pathRoot = Path.GetPathRoot(fullPath) ?? throw new ContractException($"Path has no filesystem root: {path}");
+        var relative = fullPath[pathRoot.Length..];
+        var current = pathRoot;
+        foreach (var component in relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Where(value => value.Length > 0))
+        {
+            var next = Path.Combine(current, component);
+            if (TryGetAttributes(next, out var attributes))
+            {
+                if ((attributes & FileAttributes.ReparsePoint) != 0)
+                {
+                    try
+                    {
+                        FileSystemInfo entry = (attributes & FileAttributes.Directory) != 0 || Directory.Exists(next)
+                            ? new DirectoryInfo(next) : new FileInfo(next);
+                        var target = entry.ResolveLinkTarget(returnFinalTarget: true)
+                            ?? throw new ContractException($"Unable to resolve symlink or junction: {next}");
+                        current = Path.GetFullPath(target.FullName);
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    {
+                        throw new ContractException($"Unable to resolve symlink or junction: {next}");
+                    }
+                    continue;
+                }
+            }
+            current = next;
+        }
+        return Path.GetFullPath(current);
+    }
+
+    private static bool TryGetAttributes(string path, out FileAttributes attributes)
+    {
+        try
+        {
+            attributes = File.GetAttributes(path);
+            return true;
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            attributes = default;
+            return false;
+        }
     }
 
     private static bool IsContained(string root, string path)

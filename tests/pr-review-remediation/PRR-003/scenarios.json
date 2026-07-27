@@ -54,6 +54,7 @@
     "actionable-without-plan",
     "review-complete-with-plan",
     "missing-source-coverage",
+    "source-tracking-swap",
     "invalid-reopened-transition",
     "round-result-head-identity",
     "notification-status",
@@ -61,6 +62,13 @@
     "review-context-content",
     "goal-context-selection-content",
     "review-result-content",
-    "uncovered-artifact-source"
+    "uncovered-artifact-source",
+    "review-plan-intent",
+    "review-plan-acceptance",
+    "review-plan-finding-mapping",
+    "cycle-root-link-escape",
+    "cycle-file-link-escape",
+    "round-directory-link-escape",
+    "artifact-file-link-escape"
   ]
 }
