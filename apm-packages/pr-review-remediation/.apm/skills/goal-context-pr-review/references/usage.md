@@ -36,6 +36,8 @@ owner/repository#123のGoal Context multi-round review round 2を開始してく
 
 同じheadの再review、前Adaptive resultなしのround 2以降、過去round directoryの再利用は拒否します。`HUMAN_DECISION_REQUIRED`後は、表示されたdecision IDへresolution、承認者、承認時刻を明示してから次roundを開始します。既定上限は3です。第3roundでactionable findingが残れば停止し、第4round以降はdecision resolutionに加え、利用者のidentity、承認時刻、理由、新しい上限をCLI overrideへ明示します。
 
+round 2以降のcollector snapshotには旧headのreview／inline commentが残ります。削除せずcurrent／historical／unknown sourceとして全件をplanとsource coverageへ渡します。cycle managerへ渡す時刻は、`2026-07-28T09:00:00Z`または`2026-07-28T09:00:00+09:00`のようにtimezoneを明示します。
+
 ## Phase 2 with notification
 
 利用者が通知から対象へ戻り、別の親ターンで開始します。

@@ -6,6 +6,7 @@ $PSNativeCommandUseErrorActionPreference = $false
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 $managerPath = Join-Path $repoRoot 'apm-packages\pr-review-remediation\.apm\skills\goal-context-pr-review\scripts\manage-review-cycle.cs'
 $fixturePath = Join-Path $repoRoot 'tests\pr-review-remediation\PRR-003\scenarios.json'
+$collectorSnapshotRoot = Join-Path $repoRoot 'tests\pr-review-remediation\PRR-003\collector-snapshots'
 $fixture = Get-Content -Raw -LiteralPath $fixturePath | ConvertFrom-Json -Depth 100
 $failures = [System.Collections.Generic.List[string]]::new()
 $repository = [string]$fixture.repository
@@ -98,7 +99,13 @@ function Write-RoundResult {
         [object[]]$FindingDelta,
         [bool]$IncludePlan,
         [string]$NotificationUri = $prUrl,
-        [string]$HumanDecisionReason = ''
+        [string]$HumanDecisionReason = '',
+        [object[]]$ReviewSources = @(),
+        [object[]]$IssueCommentSources = @(),
+        [object[]]$InlineCommentSources = @(),
+        [object[]]$CheckSources = @(),
+        [string]$RemotePatchPointer = 'pr-diff.patch',
+        [string]$ReviewContextFixture = ''
     )
     $roundName = 'round-{0:000}' -f $RoundNumber
     $roundRoot = Join-Path $CycleRoot $roundName
@@ -113,7 +120,17 @@ function Write-RoundResult {
     }
     if ($IncludePlan) { $roleFiles['review-plan'] = 'review-plan.md' }
 
-    $contextSourceIds = @($FindingDelta | ForEach-Object { $_.sourceIds } | Select-Object -Unique)
+    $fixtureContext = $null
+    if ($ReviewContextFixture) {
+        if (-not (Test-Path -LiteralPath $ReviewContextFixture -PathType Leaf)) { throw "Review Context fixture is missing: $ReviewContextFixture" }
+        $fixtureContext = Get-Content -Raw -LiteralPath $ReviewContextFixture | ConvertFrom-Json -Depth 100
+        $ReviewSources = @($fixtureContext.sources.reviews)
+        $IssueCommentSources = @($fixtureContext.sources.issueComments)
+        $InlineCommentSources = @($fixtureContext.sources.inlineComments)
+        $CheckSources = @($fixtureContext.sources.checks)
+        $RemotePatchPointer = [string]$fixtureContext.artifacts.remotePatch
+    }
+
     $coverageBySource = [ordered]@{}
     foreach ($delta in $FindingDelta) {
         foreach ($sourceId in @($delta.sourceIds) + @($delta.findingIds)) {
@@ -125,30 +142,74 @@ function Write-RoundResult {
             }
         }
     }
+    $checkSourceId = "check:$roundName"
+    $explicitSources = $ReviewSources.Count + $IssueCommentSources.Count + $InlineCommentSources.Count + $CheckSources.Count -gt 0
+    $effectiveReviews = @($ReviewSources)
+    $effectiveInlineComments = @($InlineCommentSources)
+    $effectiveIssueComments = if ($explicitSources) {
+        @($IssueCommentSources)
+    } else {
+        @($FindingDelta | ForEach-Object { $_.sourceIds } | Select-Object -Unique | ForEach-Object -Begin { $id = 0 } -Process { $id++; [ordered]@{ id = $id; sourceId = $_; body = 'Synthetic source.' } })
+    }
+    $effectiveChecks = if ($CheckSources.Count -gt 0) {
+        @($CheckSources)
+    } else {
+        @([ordered]@{ id = 9000 + $RoundNumber; sourceId = $checkSourceId; name = 'fixture-contract'; status = 'COMPLETED'; conclusion = 'SUCCESS' })
+    }
+    $contextSources = @($effectiveReviews) + @($effectiveIssueComments) + @($effectiveInlineComments) + @($effectiveChecks)
     $sourceCoverage = [System.Collections.Generic.List[object]]::new()
     foreach ($entry in $coverageBySource.GetEnumerator()) {
         $sourceCoverage.Add([ordered]@{ sourceId = $entry.Key; disposition = 'finding'; trackingIds = @($entry.Value); reason = $null })
     }
-    $checkSourceId = "check:$roundName"
-    $sourceCoverage.Add([ordered]@{ sourceId = $checkSourceId; disposition = 'noAction'; trackingIds = @(); reason = 'Synthetic check completed without an actionable finding.' })
+    foreach ($source in $contextSources) {
+        $sourceId = [string]$source.sourceId
+        if (-not $coverageBySource.Contains($sourceId)) {
+            $sourceCoverage.Add([ordered]@{ sourceId = $sourceId; disposition = 'noAction'; trackingIds = @(); reason = 'Collected source has no actionable finding in this round.' })
+        }
+    }
 
     $reviewContext = [ordered]@{
         schemaVersion = '1.0'
-        target = [ordered]@{ repository = $repository; pullRequest = $pullRequest; baseRefOid = $baseOid; headRefOid = $HeadOid }
-        artifacts = [ordered]@{ remotePatch = 'pr-diff.patch' }
+        generatedAt = $CompletedAt
+        target = [ordered]@{
+            repository = $repository; pullRequest = $pullRequest; url = $prUrl; state = 'OPEN'; isDraft = $false
+            baseRefName = 'main'; baseRefOid = $baseOid; headRefName = 'feature'; headRefOid = $HeadOid
+        }
+        copilotReviewWait = [ordered]@{ waitStatus = 'completed'; observedReviewState = 'reviewAndInline'; timedOut = $false }
+        artifacts = [ordered]@{ remotePatch = $RemotePatchPointer }
         sources = [ordered]@{
-            pullRequest = [ordered]@{ number = $pullRequest; baseRefOid = $baseOid; headRefOid = $HeadOid }
-            reviews = @()
-            issueComments = @($contextSourceIds | ForEach-Object -Begin { $id = 0 } -Process { $id++; [ordered]@{ id = $id; sourceId = $_ } })
-            inlineComments = @()
-            checks = @([ordered]@{ id = 9000 + $RoundNumber; sourceId = $checkSourceId; status = 'COMPLETED'; conclusion = 'SUCCESS' })
+            pullRequest = [ordered]@{
+                number = $pullRequest; title = 'PRR-003 collector-realistic fixture'; state = 'OPEN'; url = $prUrl
+                baseRefName = 'main'; baseRefOid = $baseOid; headRefName = 'feature'; headRefOid = $HeadOid; isDraft = $false
+            }
+            reviews = @($effectiveReviews)
+            issueComments = @($effectiveIssueComments)
+            inlineComments = @($effectiveInlineComments)
+            checks = @($effectiveChecks)
         }
     }
     $reviewContextPath = Join-Path $roundRoot $roleFiles['review-context']
-    [System.IO.File]::WriteAllText($reviewContextPath, (($reviewContext | ConvertTo-Json -Depth 30).Replace("`r`n", "`n") + "`n"), $utf8)
+    if ($null -ne $fixtureContext) {
+        $fixtureContent = [System.IO.File]::ReadAllText($ReviewContextFixture).Replace("`r`n", "`n").Replace("`r", "`n").TrimEnd("`n") + "`n"
+        [System.IO.File]::WriteAllText($reviewContextPath, $fixtureContent, $utf8)
+    } else {
+        [System.IO.File]::WriteAllText($reviewContextPath, (($reviewContext | ConvertTo-Json -Depth 30).Replace("`r`n", "`n") + "`n"), $utf8)
+    }
     [System.IO.File]::WriteAllText((Join-Path $roundRoot $roleFiles['remote-patch']), "diff --git a/fixture.txt b/fixture.txt`n# $roundName $HeadOid`n", $utf8)
 
-    $selection = [ordered]@{ schemaVersion = 2; selectionStatus = 'SELECTED'; selectedPath = $goalContextPath; validation = 'PASS'; contentSha256 = $goalContextSha }
+    $selection = [ordered]@{
+        schemaVersion = 2
+        selectionStatus = 'SELECTED'
+        selectedPath = $goalContextPath
+        selectionMode = 'user-specified'
+        lifecycleStatus = 'human-reviewed'
+        sensitiveDataReview = 'passed'
+        draftOverride = $false
+        validation = 'PASS'
+        validationContractVersion = 1
+        validationMode = 'strict'
+        contentSha256 = $goalContextSha
+    }
     [System.IO.File]::WriteAllText((Join-Path $roundRoot $roleFiles['goal-context-selection']), (($selection | ConvertTo-Json -Depth 10).Replace("`r`n", "`n") + "`n"), $utf8)
 
     $localIds = @($FindingDelta | ForEach-Object { $_.findingIds } | Where-Object { $_ -match '^LR-\d+$' } | Select-Object -Unique)
@@ -366,6 +427,14 @@ if ($fixture.schemaVersion -ne 1 -or $fixture.fixtureId -ne 'PRR-003' -or $fixtu
 if (($fixture.findingStates -join '|') -ne 'new|persistent|resolved|reopened' -or $fixture.defaultMaximumRounds -ne 3) {
     throw 'PRR-003 fixture state vocabulary or default maximum drifted.'
 }
+$collectorScenario = $fixture.scenarios | Where-Object id -eq 'collector-realistic-convergence'
+if ($null -eq $collectorScenario -or ($collectorScenario.sourceHeadRelationships -join '|') -ne 'current|historical|unknown') {
+    throw 'PRR-003 collector-realistic source relationship coverage drifted.'
+}
+foreach ($snapshot in @($collectorScenario.collectorSnapshots)) {
+    $snapshotPath = Join-Path (Split-Path -Parent $fixturePath) ([string]$snapshot)
+    if (-not (Test-Path -LiteralPath $snapshotPath -PathType Leaf)) { throw "PRR-003 collector snapshot is missing: $snapshot" }
+}
 
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('prr-003-' + [guid]::NewGuid().ToString('N'))
 $publishRoot = Join-Path $tempRoot 'manager'
@@ -382,7 +451,12 @@ try {
     Start-Round -CyclePath $earlyOverrideCycle -HeadOid '1010101010101010101010101010101010101010' -StartedAt '2025-12-31T00:00:00Z' -OverrideMaximum 4 -ExpectSuccess $false -ExpectedPattern 'only for round 4 or later'
     if (Test-Path -LiteralPath $earlyOverrideCycle) { Add-Failure 'Rejected early override mutated review-cycle.json.' }
 
-    # Convergence: actionable rounds require separate Adaptive references; the final round creates no empty plan.
+    $timestampRoot = Join-Path $tempRoot 'negative-timestamp'
+    Start-Round -CyclePath (Join-Path $timestampRoot 'locale-date.json') -HeadOid '1212121212121212121212121212121212121212' -StartedAt '07/28/2026 09:00:00' -ExpectSuccess $false -ExpectedPattern 'explicit Z or UTC offset'
+    Start-Round -CyclePath (Join-Path $timestampRoot 'missing-offset.json') -HeadOid '1313131313131313131313131313131313131313' -StartedAt '2026-07-28T09:00:00' -ExpectSuccess $false -ExpectedPattern 'explicit Z or UTC offset'
+    Start-Round -CyclePath (Join-Path $timestampRoot 'valid-offset.json') -HeadOid '1414141414141414141414141414141414141414' -StartedAt '2026-07-28T09:00:00+09:00'
+
+    # Collector-realistic convergence: later snapshots retain sources from prior heads while target identity advances.
     $convergenceRoot = Join-Path $tempRoot 'convergence'
     $convergenceCycle = Join-Path $convergenceRoot 'review-cycle.json'
     $head1 = '1111111111111111111111111111111111111111'
@@ -390,8 +464,8 @@ try {
     $head3 = '3333333333333333333333333333333333333333'
     Start-Round $convergenceCycle $head1 '2026-01-01T00:00:00Z'
     $r1 = Write-RoundResult $convergenceRoot 1 $head1 '2026-01-01T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' @(
-        (New-Delta 'TRK-A' 'new' @('LR-001') @('review:1'))
-    ) $true
+        (New-Delta 'TRK-A' 'new' @('LR-001') @('review:1001', 'inline-comment:1101'))
+    ) $true -ReviewContextFixture (Join-Path $collectorSnapshotRoot 'round-001-review-context.json')
     Complete-Round $convergenceCycle $r1
     Start-Round -CyclePath $convergenceCycle -HeadOid $head1 -StartedAt '2026-01-01T00:02:00Z' -AdaptiveResult 'adaptive/round-001/result.md' -ExpectSuccess $false -ExpectedPattern 'already reviewed'
     Start-Round -CyclePath $convergenceCycle -HeadOid $head2 -StartedAt '2026-01-01T00:02:00Z' -ExpectSuccess $false -ExpectedPattern 'requires --adaptive-result-reference'
@@ -414,18 +488,18 @@ try {
     Remove-Item -LiteralPath $preexistingRound
     Start-Round $convergenceCycle $head2 '2026-01-01T00:03:00Z' 'adaptive/round-001/result.md'
     $r2 = Write-RoundResult $convergenceRoot 2 $head2 '2026-01-01T00:04:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' @(
-        (New-Delta 'TRK-A' 'persistent' @('LR-002') @('review:2')),
-        (New-Delta 'TRK-B' 'new' @('PUR-002') @('comment:2'))
-    ) $true
+        (New-Delta 'TRK-A' 'persistent' @('LR-002') @('review:1002', 'inline-comment:1102')),
+        (New-Delta 'TRK-B' 'new' @('PUR-002') @('pr-comment:1202'))
+    ) $true -ReviewContextFixture (Join-Path $collectorSnapshotRoot 'round-002-review-context.json')
     Complete-Round $convergenceCycle $r2
     Start-Round $convergenceCycle $head3 '2026-01-01T00:05:00Z' 'adaptive/round-002/result.md'
     $r3 = Write-RoundResult $convergenceRoot 3 $head3 '2026-01-01T00:06:00Z' 'REVIEW_COMPLETE' @(
-        (New-Delta 'TRK-A' 'resolved' @() @('review:3')),
-        (New-Delta 'TRK-B' 'resolved' @() @('comment:3'))
-    ) $false
+        (New-Delta 'TRK-A' 'resolved' @() @('review:1003')),
+        (New-Delta 'TRK-B' 'resolved' @() @('pr-comment:1203'))
+    ) $false -ReviewContextFixture (Join-Path $collectorSnapshotRoot 'round-003-review-context.json')
     Complete-Round $convergenceCycle $r3
     Invoke-Manager @('validate', '--cycle', $convergenceCycle, '--format', 'json') 'validate converged cycle' | Out-Null
-    $expectedConvergence = @($fixture.scenarios | Where-Object id -eq 'convergence').expectedVerdicts
+    $expectedConvergence = @($fixture.scenarios | Where-Object id -eq 'collector-realistic-convergence').expectedVerdicts
     Assert-CycleVerdicts $convergenceCycle $expectedConvergence 'convergence'
     foreach ($round in 1..3) {
         if (-not (Test-Path -LiteralPath (Join-Path $convergenceRoot ('round-{0:000}' -f $round)))) {
@@ -630,6 +704,20 @@ try {
     Complete-Round $contentCycle $contentResult $false 'Goal Context selection SHA-256 mismatch'
 
     $contentResult = Write-RoundResult $contentRoot 1 $contentHead '2026-04-06T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' $contentDelta $true
+    $selectionJson = Get-Content -Raw -LiteralPath $selectionPath | ConvertFrom-Json -Depth 100
+    $selectionJson.schemaVersion = 1
+    [System.IO.File]::WriteAllText($selectionPath, (($selectionJson | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
+    Sync-MutatedArtifactHashes $contentResult @('goal-context-selection')
+    Complete-Round $contentCycle $contentResult $false 'Goal Context selection schema version mismatch'
+
+    $contentResult = Write-RoundResult $contentRoot 1 $contentHead '2026-04-06T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' $contentDelta $true
+    $selectionJson = Get-Content -Raw -LiteralPath $selectionPath | ConvertFrom-Json -Depth 100
+    $selectionJson.lifecycleStatus = 'draft'
+    [System.IO.File]::WriteAllText($selectionPath, (($selectionJson | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
+    Sync-MutatedArtifactHashes $contentResult @('goal-context-selection')
+    Complete-Round $contentCycle $contentResult $false 'strict Goal Context lifecycle mismatch'
+
+    $contentResult = Write-RoundResult $contentRoot 1 $contentHead '2026-04-06T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' $contentDelta $true
     $reviewResultPath = Join-Path $contentRoot 'round-001/review-result.json'
     $reviewResultJson = Get-Content -Raw -LiteralPath $reviewResultPath | ConvertFrom-Json -Depth 100
     $reviewResultJson.verdict = 'REVIEW_COMPLETE'
@@ -643,6 +731,22 @@ try {
     [System.IO.File]::WriteAllText($contextPath, (($contextJson | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
     Sync-MutatedArtifactHashes $contentResult @('review-context')
     Complete-Round $contentCycle $contentResult $false 'source coverage does not exactly match review artifacts'
+
+    $contentResult = Write-RoundResult $contentRoot 1 $contentHead '2026-04-06T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' $contentDelta $true -ReviewSources @(
+        [ordered]@{ id = 1401; sourceId = 'review:content:1'; state = 'COMMENTED'; commit_id = 'not-a-git-oid'; body = 'Malformed source identity.' }
+    )
+    Complete-Round $contentCycle $contentResult $false 'commit_id must be a lowercase 40-character Git OID'
+
+    $contentResult = Write-RoundResult $contentRoot 1 $contentHead '2026-04-06T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' $contentDelta $true
+    $alternatePatch = Join-Path $contentRoot 'round-001/alternate.patch'
+    [System.IO.File]::WriteAllText($alternatePatch, "diff --git a/unrelated.txt b/unrelated.txt`n", $utf8)
+    $remotePatchResult = Get-Content -Raw -LiteralPath $contentResult | ConvertFrom-Json -Depth 100
+    $remotePatchArtifact = $remotePatchResult.artifacts | Where-Object role -eq 'remote-patch'
+    $remotePatchArtifact.path = 'round-001/alternate.patch'
+    $remotePatchArtifact.normalizedSha256 = Get-NormalizedSha256 $alternatePatch
+    [System.IO.File]::WriteAllText($contentResult, (($remotePatchResult | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
+    Sync-MutatedArtifactHashes $contentResult @('remote-patch')
+    Complete-Round $contentCycle $contentResult $false 'review-context remote patch path mismatch'
 
     $contentResult = Write-RoundResult $contentRoot 1 $contentHead '2026-04-06T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' $contentDelta $true
     $planPath = Join-Path $contentRoot 'round-001/review-plan.md'
@@ -662,6 +766,18 @@ try {
     [System.IO.File]::WriteAllText($planPath, $planContent, $utf8)
     Sync-MutatedArtifactHashes $contentResult @('review-plan')
     Complete-Round $contentCycle $contentResult $false 'active finding mapping mismatch'
+
+    $contentResult = Write-RoundResult $contentRoot 1 $contentHead '2026-04-06T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' $contentDelta $true
+    $planContent = [System.IO.File]::ReadAllText($planPath).Replace('  non_goals:', "    - SI-999: Perform an untracked refactor.`n  non_goals:")
+    [System.IO.File]::WriteAllText($planPath, $planContent, $utf8)
+    Sync-MutatedArtifactHashes $contentResult @('review-plan')
+    Complete-Round $contentCycle $contentResult $false 'scope ID sets must match exactly'
+
+    $contentResult = Write-RoundResult $contentRoot 1 $contentHead '2026-04-06T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' $contentDelta $true
+    $planContent = [System.IO.File]::ReadAllText($planPath).Replace('  constraints:', "    - AC-999: Accept an untracked behavior.`n  constraints:")
+    [System.IO.File]::WriteAllText($planPath, $planContent, $utf8)
+    Sync-MutatedArtifactHashes $contentResult @('review-plan')
+    Complete-Round $contentCycle $contentResult $false 'acceptance ID sets must match exactly'
 
     if (-not $IsWindows) {
         $outsideCycleRoot = Join-Path $tempRoot 'outside-linked-cycle-root'
@@ -718,7 +834,7 @@ try {
     Complete-Round $missingCycle $missingResult $false 'missing persistent/resolved mapping'
 
     $observedMutations = @($fixture.negativeMutations)
-    foreach ($required in @('duplicate-head', 'missing-adaptive-result-reference', 'identity-drift', 'existing-round-directory', 'historical-artifact-hash', 'unknown-persistent-finding', 'missing-active-finding-mapping', 'round-limit-verdict', 'incomplete-override', 'actionable-without-plan', 'review-complete-with-plan', 'missing-source-coverage', 'source-tracking-swap', 'invalid-reopened-transition', 'round-result-head-identity', 'notification-status', 'notification-pr', 'early-override', 'unresolved-human-decision', 'wrong-human-decision-id', 'review-context-content', 'goal-context-selection-content', 'review-result-content', 'uncovered-artifact-source', 'review-plan-intent', 'review-plan-acceptance', 'review-plan-finding-mapping', 'cycle-root-link-escape', 'cycle-file-link-escape', 'round-directory-link-escape', 'artifact-file-link-escape')) {
+    foreach ($required in @('duplicate-head', 'missing-adaptive-result-reference', 'identity-drift', 'existing-round-directory', 'historical-artifact-hash', 'unknown-persistent-finding', 'missing-active-finding-mapping', 'round-limit-verdict', 'incomplete-override', 'actionable-without-plan', 'review-complete-with-plan', 'missing-source-coverage', 'source-tracking-swap', 'invalid-reopened-transition', 'round-result-head-identity', 'notification-status', 'notification-pr', 'early-override', 'unresolved-human-decision', 'wrong-human-decision-id', 'review-context-content', 'goal-context-selection-content', 'goal-context-selection-schema', 'goal-context-selection-lifecycle', 'review-result-content', 'uncovered-artifact-source', 'malformed-source-oid', 'remote-patch-binding', 'review-plan-intent', 'review-plan-acceptance', 'review-plan-finding-mapping', 'intent-extra-scope', 'intent-extra-acceptance', 'non-iso-timestamp', 'missing-timestamp-offset', 'cycle-root-link-escape', 'cycle-file-link-escape', 'round-directory-link-escape', 'artifact-file-link-escape')) {
         if ($required -notin $observedMutations) { Add-Failure "Fixture negative mutation is missing: $required" }
     }
 }

@@ -2,6 +2,7 @@
 #:property PublishAot=false
 
 using System.Security.Cryptography;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -477,7 +478,12 @@ static class ReviewCycleManager
         var observedSources = new HashSet<string>(StringComparer.Ordinal);
         if (result.Verdict != "BLOCKED")
         {
-            ValidateReviewContext(cycle, round, ArtifactPath(cycleRoot, byRole, "review-context"), observedSources);
+            ValidateReviewContext(
+                cycle,
+                round,
+                ArtifactPath(cycleRoot, byRole, "review-context"),
+                ArtifactPath(cycleRoot, byRole, "remote-patch"),
+                observedSources);
             ValidateGoalContextSelection(cycle, ArtifactPath(cycleRoot, byRole, "goal-context-selection"));
             ValidateReviewMarkdown(cycle, round, result.Verdict, ArtifactPath(cycleRoot, byRole, "local-findings"), false, observedSources);
             ValidateReviewMarkdown(cycle, round, result.Verdict, ArtifactPath(cycleRoot, byRole, "purpose-findings"), true, observedSources);
@@ -529,15 +535,22 @@ static class ReviewCycleManager
         return Contained(cycleRoot, artifact.Path);
     }
 
-    private static void ValidateReviewContext(ReviewCycle cycle, RoundRecord round, string path, HashSet<string> observedSources)
+    private static void ValidateReviewContext(ReviewCycle cycle, RoundRecord round, string path, string remotePatchPath, HashSet<string> observedSources)
     {
         using var document = JsonDocument.Parse(File.ReadAllText(path));
         var root = document.RootElement;
+        Equal("review-context schema version", "1.0", RequiredString(root, "schemaVersion", "review-context"));
         var target = RequiredObject(root, "target", "review-context");
         Equal("review-context repository", cycle.Repository, RequiredString(target, "repository", "review-context target"));
         Equal("review-context pull request", cycle.PullRequest, RequiredInt(target, "pullRequest", "review-context target"));
         Equal("review-context base OID", round.BaseOid, RequiredString(target, "baseRefOid", "review-context target"));
         Equal("review-context head OID", round.HeadOid, RequiredString(target, "headRefOid", "review-context target"));
+
+        var contextArtifacts = RequiredObject(root, "artifacts", "review-context");
+        var remotePatchPointer = RequiredString(contextArtifacts, "remotePatch", "review-context artifacts");
+        if (Path.IsPathRooted(remotePatchPointer)) throw new ContractException("review-context artifacts.remotePatch must be relative to review-context.json.");
+        var expectedRemotePatchPointer = NormalizeSlash(Path.GetRelativePath(Path.GetDirectoryName(path)!, remotePatchPath));
+        Equal("review-context remote patch path", expectedRemotePatchPointer, NormalizeSlash(remotePatchPointer));
 
         var sources = RequiredObject(root, "sources", "review-context");
         var pullRequest = RequiredObject(sources, "pullRequest", "review-context sources");
@@ -555,23 +568,67 @@ static class ReviewCycleManager
             {
                 var sourceId = RequiredString(source, "sourceId", $"review-context {collectionName}");
                 if (!observedSources.Add(sourceId)) throw new ContractException($"Duplicate source ID in review-context: {sourceId}");
-                if (source.TryGetProperty("commit_id", out var commit) && commit.ValueKind == JsonValueKind.String
-                    && !string.IsNullOrWhiteSpace(commit.GetString()))
-                {
-                    Equal($"review-context {sourceId} commit", round.HeadOid, commit.GetString()!);
-                }
+                _ = ClassifySourceHeadRelationship(cycle, round, source, sourceId);
+                ValidateOptionalSourceOid(source, "original_commit_id", sourceId);
             }
         }
+    }
+
+    private static string ClassifySourceHeadRelationship(ReviewCycle cycle, RoundRecord round, JsonElement source, string sourceId)
+    {
+        if (!source.TryGetProperty("commit_id", out var commit) || commit.ValueKind == JsonValueKind.Null) return "unknown";
+        if (commit.ValueKind != JsonValueKind.String) throw new ContractException($"review-context {sourceId} commit_id must be a string or null.");
+        var commitOid = commit.GetString();
+        if (string.IsNullOrWhiteSpace(commitOid)) return "unknown";
+        RequireOid(commitOid, $"review-context {sourceId} commit_id");
+        if (string.Equals(commitOid, round.HeadOid, StringComparison.Ordinal)) return "current";
+        if (cycle.Rounds.Any(item => item.RoundNumber < round.RoundNumber && string.Equals(item.HeadOid, commitOid, StringComparison.Ordinal)))
+        {
+            return "historical";
+        }
+        return "unknown";
+    }
+
+    private static void ValidateOptionalSourceOid(JsonElement source, string property, string sourceId)
+    {
+        if (!source.TryGetProperty(property, out var value) || value.ValueKind == JsonValueKind.Null) return;
+        if (value.ValueKind != JsonValueKind.String) throw new ContractException($"review-context {sourceId} {property} must be a string or null.");
+        var oid = value.GetString();
+        if (!string.IsNullOrWhiteSpace(oid)) RequireOid(oid, $"review-context {sourceId} {property}");
     }
 
     private static void ValidateGoalContextSelection(ReviewCycle cycle, string path)
     {
         using var document = JsonDocument.Parse(File.ReadAllText(path));
         var root = document.RootElement;
+        Equal("Goal Context selection schema version", 2, RequiredInt(root, "schemaVersion", "goal-context-selection"));
         Equal("Goal Context selection status", "SELECTED", RequiredString(root, "selectionStatus", "goal-context-selection"));
         Equal("Goal Context selection path", cycle.GoalContext.Path, RequiredString(root, "selectedPath", "goal-context-selection"));
         Equal("Goal Context selection SHA-256", cycle.GoalContext.NormalizedSha256, RequiredString(root, "contentSha256", "goal-context-selection"));
         Equal("Goal Context selection validation", "PASS", RequiredString(root, "validation", "goal-context-selection"));
+        _ = RequiredString(root, "selectionMode", "goal-context-selection");
+        if (RequiredInt(root, "validationContractVersion", "goal-context-selection") <= 0)
+        {
+            throw new ContractException("Goal Context selection validationContractVersion must be positive.");
+        }
+        var validationMode = RequiredString(root, "validationMode", "goal-context-selection");
+        var lifecycleStatus = RequiredString(root, "lifecycleStatus", "goal-context-selection");
+        Equal("Goal Context selection sensitive data review", "passed", RequiredString(root, "sensitiveDataReview", "goal-context-selection"));
+        var draftOverride = RequiredBool(root, "draftOverride", "goal-context-selection");
+        if (validationMode == "strict")
+        {
+            Equal("strict Goal Context lifecycle", "human-reviewed", lifecycleStatus);
+            Equal("strict Goal Context draft override", false, draftOverride);
+        }
+        else if (validationMode == "draft")
+        {
+            Equal("draft Goal Context lifecycle", "draft", lifecycleStatus);
+            Equal("draft Goal Context override", true, draftOverride);
+        }
+        else
+        {
+            throw new ContractException($"Goal Context selection validationMode is invalid: {validationMode}");
+        }
     }
 
     private static void ValidateReviewMarkdown(ReviewCycle cycle, RoundRecord round, string roundVerdict, string path, bool purpose, HashSet<string> observedSources)
@@ -675,14 +732,10 @@ static class ReviewCycleManager
             var extra = mappedFindingIds.Except(activeFindingIds, StringComparer.Ordinal);
             throw new ContractException($"Review plan active finding mapping mismatch; missing [{string.Join(", ", missing)}], extra [{string.Join(", ", extra)}].");
         }
-        foreach (var scopeId in scopeIds)
-        {
-            if (!Regex.IsMatch(scope, $@"(?m)^\s*-\s*{Regex.Escape(scopeId)}:\s*\S")) throw new ContractException($"Review plan implementation_intent scope is missing {scopeId}.");
-        }
-        foreach (var acceptanceId in acceptanceIds)
-        {
-            if (!Regex.IsMatch(acceptance, $@"(?m)^\s*-\s*{Regex.Escape(acceptanceId)}:\s*\S")) throw new ContractException($"Review plan implementation_intent acceptance is missing {acceptanceId}.");
-        }
+        var intentScopeIds = IntentIds(scope, "SI", "scope");
+        if (!scopeIds.SetEquals(intentScopeIds)) throw new ContractException("Review plan ordered remediation and implementation_intent scope ID sets must match exactly.");
+        var intentAcceptanceIds = IntentIds(acceptance, "AC", "acceptance");
+        if (!acceptanceIds.SetEquals(intentAcceptanceIds)) throw new ContractException("Review plan ordered remediation and implementation_intent acceptance ID sets must match exactly.");
 
         var handoff = MarkdownSection(content, "Separate Parent Turn Handoff");
         const string adaptiveSkill = "$adaptive-" + "implementation-execution";
@@ -709,6 +762,21 @@ static class ReviewCycleManager
             else break;
         }
         return string.Join("\n", nested).TrimEnd();
+    }
+
+    private static HashSet<string> IntentIds(string fieldContent, string prefix, string fieldName)
+    {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var line in fieldContent.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n'))
+        {
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            var match = Regex.Match(line.Trim(), $@"^-\s*(?<id>{Regex.Escape(prefix)}-\d+):\s*\S");
+            if (!match.Success) throw new ContractException($"Review plan implementation_intent {fieldName} entries must use non-empty {prefix}-* IDs.");
+            var id = match.Groups["id"].Value;
+            if (!ids.Add(id)) throw new ContractException($"Review plan implementation_intent {fieldName} contains duplicate ID {id}.");
+        }
+        if (ids.Count == 0) throw new ContractException($"Review plan implementation_intent {fieldName} requires at least one {prefix}-* entry.");
+        return ids;
     }
 
     private static string MarkdownSection(string content, string heading)
@@ -740,6 +808,15 @@ static class ReviewCycleManager
     {
         if (!parent.TryGetProperty(property, out var value) || !value.TryGetInt32(out var result)) throw new ContractException($"{context}.{property} must be an integer.");
         return result;
+    }
+
+    private static bool RequiredBool(JsonElement parent, string property, string context)
+    {
+        if (!parent.TryGetProperty(property, out var value) || value.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+        {
+            throw new ContractException($"{context}.{property} must be a boolean.");
+        }
+        return value.GetBoolean();
     }
 
     private static void EqualFindingDelta(string context, List<FindingDeltaEntry> expected, List<FindingDeltaEntry> actual)
@@ -1314,7 +1391,22 @@ static class ReviewCycleManager
 
     private static DateTimeOffset ParseTimestamp(string value, string name)
     {
-        if (!DateTimeOffset.TryParse(value, out var parsed)) throw new ContractException($"{name} must be an ISO-8601 timestamp.");
+        var formats = new[]
+        {
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss.FFFFFFF'Z'",
+            "yyyy-MM-dd'T'HH:mm:sszzz",
+            "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFzzz"
+        };
+        if (!DateTimeOffset.TryParseExact(
+                value,
+                formats,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                out var parsed))
+        {
+            throw new ContractException($"{name} must be an ISO-8601 timestamp with an explicit Z or UTC offset.");
+        }
         return parsed;
     }
 

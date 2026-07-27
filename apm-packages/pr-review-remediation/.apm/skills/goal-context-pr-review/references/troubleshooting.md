@@ -32,6 +32,18 @@ code bug、test不足、保守性riskは`local-reviewer`へ残します。`purpo
 
 hashだけを更新して続行しません。review-contextのrepository/PR/OIDとsource IDs、Goal Context selection、local/purpose identity、review-resultのverdict/finding delta/source coverage/bindingsのどれがround-resultと異なるかを確認し、現在のin-progress round内で正しいartifactを再生成します。完了済みroundは変更しません。
 
+## Historical review sources after a head update
+
+collectorが保持した旧headのreview／inline commentは削除しません。target-level headは現在roundに一致させ、個別sourceはcurrent／historical／unknownとしてcoverageへ残します。`commit_id`または`original_commit_id`がGit OID形式でない場合だけcollector inputを再取得します。
+
+## Remote patch path mismatch
+
+`review-context.json`の`artifacts.remotePatch`と、round manifestの`remote-patch` roleが同じ実体fileを指すようにします。別fileのhashへ差し替えたり、context pointerだけを書き換えたりせず、collectorが出力した`pr-diff.patch`を正本としてartifact一式を再生成します。
+
+## Invalid cycle timestamp
+
+`started-at`、completion、decision、overrideの時刻には、`2026-07-28T09:00:00Z`または`2026-07-28T09:00:00+09:00`のようにtimezoneを明示します。locale依存形式やoffsetなしの日時は受理しません。
+
 ## Historical artifact hash mismatch
 
 完了済みroundのartifactは修正せず、改変元を調査します。再生成物は新しいroundへ保存し、過去roundを上書きしません。hash不一致を無視してcycleを進めないでください。

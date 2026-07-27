@@ -28,7 +28,11 @@ multi-round modeは同じSkillの明示的な追加modeです。既存single-rou
 
 `review-cycle.json`はrepository、PR、Goal Context path/hash、既定上限3、有効上限、override、人間判断、round一覧、finding ledgerを保持します。各`round-NNN/`はbase/head OID、前round、前Adaptive result reference、review artifact、finding delta、source coverage、round番号付きnotificationを保持し、過去roundを上書きしません。全source IDはfinding tracking IDまたは理由付き`noAction`へ対応させます。
 
-`review-result.json`はplanner結果のmachine-readable projectionです。repository/PR/round/base/head、Goal Context path/hash、verdict、finding delta、source coverage、入力・plan artifact hash bindingを保持します。cycle managerはreview-context、Goal Context selection、local/purpose findingsをparseし、このprojectionとround-resultを相互照合します。したがってhashが整合していても、別PRのcontext、別Goal Context、未追跡source、異なるverdict/finding deltaは受理しません。
+`review-result.json`はplanner結果のmachine-readable projectionです。repository/PR/round/base/head、Goal Context path/hash、verdict、finding delta、source coverage、入力・plan artifact hash bindingを保持します。cycle managerはreview-context、Goal Context selection、local/purpose findingsをparseし、このprojectionとround-resultを相互照合します。`review-context.artifacts.remotePatch`が指すcollector正本pathは、manifestの`remote-patch` role pathと一致させます。したがってhashが整合していても、別PRのcontext、別Goal Context、別patch、未追跡source、異なるverdict/finding deltaは受理しません。
+
+collectorはPR上のreviewとinline commentを全件保持するため、round 2以降のsnapshotには過去headのsourceも残ります。targetと`pullRequest` sourceのheadは現在roundと一致させますが、個別sourceは`current`（現在head）、`historical`（完了済みroundのhead）、`unknown`（head情報なし、またはcycleに未記録の有効なOID）として扱い、いずれもsource coverageから脱落させません。不正なOID表現だけを拒否します。
+
+Adaptiveへ渡すplanでは、ordered remediationの`SI-*`／`AC-*`集合と`implementation_intent.scope`／`acceptance`の集合を双方向に完全一致させます。intentだけへ未追跡scopeやacceptanceを追加できません。cycleの時刻は、明示的な`Z`またはUTC offsetを持つISO-8601だけを受理します。
 
 verdict遷移は次のとおりです。
 

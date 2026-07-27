@@ -109,6 +109,9 @@ foreach ($path in @(
     'tests/pr-review-remediation/PRR-002/adaptive-turn-input.txt',
     'tests/pr-review-remediation/PRR-003/README.md',
     'tests/pr-review-remediation/PRR-003/scenarios.json',
+    'tests/pr-review-remediation/PRR-003/collector-snapshots/round-001-review-context.json',
+    'tests/pr-review-remediation/PRR-003/collector-snapshots/round-002-review-context.json',
+    'tests/pr-review-remediation/PRR-003/collector-snapshots/round-003-review-context.json',
     'tests/pr-review-remediation/manual-model-smoke/README.md',
     'tests/pr-review-remediation/manual-model-smoke/result-template.md'
 )) {
@@ -166,7 +169,15 @@ Assert-Contains $cycleManager 'review-context repository' 'review-context identi
 Assert-Contains $cycleManager 'review-result finding delta' 'planner result delta cross-validation'
 Assert-Contains $cycleManager 'ValidateReviewPlan' 'Adaptive review plan content validation'
 Assert-Contains $cycleManager 'Review plan active finding mapping mismatch' 'review plan active finding mapping'
+Assert-Contains $cycleManager 'scope ID sets must match exactly' 'intent and ordered scope exact matching'
+Assert-Contains $cycleManager 'acceptance ID sets must match exactly' 'intent and ordered acceptance exact matching'
 Assert-Contains $cycleManager 'Source-to-tracking mapping mismatch' 'bidirectional source-to-tracking validation'
+Assert-Contains $cycleManager 'ClassifySourceHeadRelationship' 'current historical and unknown source classification'
+Assert-Contains $cycleManager 'review-context remote patch path' 'collector remote patch path binding'
+Assert-Contains $cycleManager 'Goal Context selection schema version' 'canonical Goal Context selection schema validation'
+Assert-Contains $cycleManager 'strict Goal Context lifecycle' 'canonical Goal Context strict lifecycle validation'
+Assert-Contains $cycleManager 'TryParseExact' 'strict invariant timestamp parsing'
+Assert-Contains $cycleManager 'explicit Z or UTC offset' 'explicit timestamp timezone requirement'
 Assert-Contains $cycleManager 'ResolvePhysicalPath' 'symlink and junction physical path containment'
 Assert-Contains $cycleManager 'A pending human decision must be explicitly resolved' 'pending human decision gate'
 Assert-Contains $cycleManager 'Maximum-round override is accepted only for round 4 or later' 'early override rejection'
@@ -193,7 +204,10 @@ Assert-Contains '.github/agents/review-planner.agent.md' 'READY_FOR_ADAPTIVE_IMP
 Assert-Contains '.github/agents/review-planner.agent.md' '空のAdaptive向けplanを生成しない' 'no empty Adaptive plan rule'
 Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'deterministic-multi-round-replay' 'PRR-003 evidence mode'
 Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'HUMAN_DECISION_REQUIRED' 'PRR-003 maximum-round verdict'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'collector-realistic-convergence' 'PRR-003 real multi-round collector path'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'current.*historical.*unknown' 'PRR-003 source head relationships'
 Assert-Contains 'tests/pr-review-remediation/PRR-003/README.md' '外部model.*実行しません' 'PRR-003 external-model disclosure'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/README.md' 'Issue #61 acceptance coverage' 'Issue acceptance contract matrix'
 
 $legacyImplementationAgent = 'spark' + '-implementer'
 $runtimeFiles = @(

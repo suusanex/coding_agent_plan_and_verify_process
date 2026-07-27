@@ -47,7 +47,7 @@ APMがSkillとcanonical agentsを導入し、二つのhelperがreview/Adaptive�
 
 ## Validation
 
-静的contract、collector fixture、profile helper、固定された実agent証跡、PRR-002のidentity・hash・source coverage・decision mapping・handoff、およびPRR-003のmulti-round state遷移とnegative mutationを検証します。PRR-002とPRR-003は記録済み入力の決定論的replayであり、外部model実行を宣言しません。
+静的contract、collector fixture、profile helper、固定された実agent証跡、PRR-002のidentity・hash・source coverage・decision mapping・handoff、およびPRR-003のmulti-round state遷移とnegative mutationを検証します。PRR-003の正本3round scenarioはchecked-in collector snapshotを使い、旧head sourceの累積、remote patch binding、Adaptive intentのSI/AC完全一致、収束までを再現します。PRR-002とPRR-003は記録済み入力の決定論的replayであり、外部model実行を宣言しません。
 
 ```powershell
 pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1

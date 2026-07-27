@@ -82,6 +82,8 @@ implementation_intent:
   goal_context_reference:
 ```
 
+multi-round modeでは、`scope`の全項目を`SI-*`、`acceptance`の全項目を`AC-*`で始め、Ordered Remediation PlanのID集合と双方向に完全一致させます。intentだけへ追加作業を記載しません。
+
 ## Uncollected / Unverified
 
 - N/A

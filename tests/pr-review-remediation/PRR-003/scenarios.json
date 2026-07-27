@@ -9,7 +9,13 @@
   "findingStates": ["new", "persistent", "resolved", "reopened"],
   "scenarios": [
     {
-      "id": "convergence",
+      "id": "collector-realistic-convergence",
+      "sourceHeadRelationships": ["current", "historical", "unknown"],
+      "collectorSnapshots": [
+        "collector-snapshots/round-001-review-context.json",
+        "collector-snapshots/round-002-review-context.json",
+        "collector-snapshots/round-003-review-context.json"
+      ],
       "expectedVerdicts": [
         "READY_FOR_ADAPTIVE_IMPLEMENTATION",
         "READY_FOR_ADAPTIVE_IMPLEMENTATION",
@@ -61,11 +67,19 @@
     "notification-pr",
     "review-context-content",
     "goal-context-selection-content",
+    "goal-context-selection-schema",
+    "goal-context-selection-lifecycle",
     "review-result-content",
     "uncovered-artifact-source",
+    "malformed-source-oid",
+    "remote-patch-binding",
     "review-plan-intent",
     "review-plan-acceptance",
     "review-plan-finding-mapping",
+    "intent-extra-scope",
+    "intent-extra-acceptance",
+    "non-iso-timestamp",
+    "missing-timestamp-offset",
     "cycle-root-link-escape",
     "cycle-file-link-escape",
     "round-directory-link-escape",
