@@ -2,7 +2,7 @@
 
 ## Phase 1 Verdict
 
-- Verdict: READY_FOR_ADAPTIVE_IMPLEMENTATION / REVIEW_COMPLETE (Goal Context multi-round mode only) / HUMAN_DECISION_REQUIRED / BLOCKED
+- Verdict: READY_FOR_ADAPTIVE_IMPLEMENTATION / APPROVED_FOR_ADAPTIVE_IMPLEMENTATION (Goal Context multi-round approval only) / REVIEW_COMPLETE (Goal Context multi-round mode only) / HUMAN_DECISION_REQUIRED / BLOCKED
 - Production code changed: No
 - Process status: Review planning complete / Review complete / Human decision required / Blocked
 - Review mode: Baseline / Goal Context
@@ -62,6 +62,8 @@ Omit this section in Baseline and single-round mode. Tracking IDs are stable acr
 
 ## Ordered Remediation Plan
 
+Goal Context multi-round modeでは、この実行可能planを`READY_FOR_ADAPTIVE_IMPLEMENTATION`の場合だけround artifactへ含めます。`HUMAN_DECISION_REQUIRED`ではこのtemplateを保存せず、Adaptive handoffも出しません。人間が継続を明示した後は`APPROVED_FOR_ADAPTIVE_IMPLEMENTATION`として`round-NNN/approved-review-plan.md`を参照し、cycle managerの`resolve`で承認情報とhashを記録します。
+
 | Step | Scope ID | Acceptance ID | Finding IDs | Change | Expected files / symbols | Acceptance | Validation |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | SI-001 | AC-001 |  |  |  |  |  |
@@ -78,7 +80,7 @@ implementation_intent:
     - AC-001:
   constraints:
   validation:
-  plan_reference: <multi-round modeではcycle root相対のround-NNN/review-plan.md>
+  plan_reference: <multi-round READYではround-NNN/review-plan.md、人間承認後はround-NNN/approved-review-plan.md>
   goal_context_reference:
 ```
 

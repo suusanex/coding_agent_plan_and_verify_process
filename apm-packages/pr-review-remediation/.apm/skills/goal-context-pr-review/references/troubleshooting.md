@@ -26,7 +26,11 @@ code bug、test不足、保守性riskは`local-reviewer`へ残します。`purpo
 
 ## Round 3 still has actionable findings
 
-既定上限へ到達したため`HUMAN_DECISION_REQUIRED`で停止します。第4roundを自動開始しません。継続する場合は、pending decision IDのresolutionと承認情報を記録し、さらに利用者のidentity、承認時刻、理由、増加後の上限を`manage-review-cycle.cs start`のoverride optionsへすべて指定します。
+既定上限へ到達したため`HUMAN_DECISION_REQUIRED`で停止します。このroundに`review-plan.md`やAdaptive開始promptを置かず、第4roundも自動開始しません。継続する場合は、人間の選択後に`APPROVED_FOR_ADAPTIVE_IMPLEMENTATION`の候補planを作成し、pending decision ID、resolution、承認情報、candidate path、identity、承認時刻、理由、増加後の上限を`manage-review-cycle.cs resolve`へ指定します。`resolve`がcanonical `approved-review-plan.md`とhashを記録してから、別親ターンでAdaptiveを開始します。
+
+## Adaptive was attempted before decision resolution
+
+`HUMAN_DECISION_REQUIRED`のround artifactからAdaptiveを開始しません。そこには実行可能handoffが存在しないことが正しい状態です。利用者の継続判断、承認plan候補、`resolve`のPASS、canonical plan pathの順に確認します。`start`へdecisionやoverride引数を渡して迂回せず、Adaptive resultは承認済みplanの実行後にだけ次roundへ渡します。
 
 ## Artifact content mismatch
 

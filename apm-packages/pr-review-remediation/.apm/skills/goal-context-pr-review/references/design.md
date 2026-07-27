@@ -38,10 +38,10 @@ verdict遷移は次のとおりです。
 
 - actionableなし -> `REVIEW_COMPLETE`
 - actionableあり、round < effective maximum -> `READY_FOR_ADAPTIVE_IMPLEMENTATION`
-- actionableあり、round >= effective maximum -> `HUMAN_DECISION_REQUIRED`
+- actionableあり、round >= effective maximum -> `HUMAN_DECISION_REQUIRED`。実行可能planとAdaptive handoffは生成しない
 - 必須証拠不足または明示的blocked reason -> `BLOCKED`
 
-`HUMAN_DECISION_REQUIRED`では`HD-NNN`形式のdecision IDを一件発行します。次roundの開始には、そのID、resolution、承認者、承認時刻の一致が必要です。上限到達後の第4round以降では、このdecision resolutionに加えてmaximum-round overrideを要求します。
+`HUMAN_DECISION_REQUIRED`では`HD-NNN`形式のdecision IDを一件発行し、round manifestへ`review-plan` roleを含めません。人間が継続を明示した後、plannerは`APPROVED_FOR_ADAPTIVE_IMPLEMENTATION`と`round-NNN/approved-review-plan.md`を参照する候補を返します。cycle managerの`resolve`は候補のidentity、active finding mapping、SI/AC完全一致、handoffを検証し、canonical planへ非上書きコピーしたうえでdecisionのresolution、承認者、承認時刻、plan path/hashを記録します。この記録前はAdaptive result referenceがあっても次roundを開始できません。上限到達後の第4round以降では、同じ`resolve`にmaximum-round overrideも要求し、Adaptive実行前に記録します。
 
 `READY_FOR_ADAPTIVE_IMPLEMENTATION`は別親ターンのAdaptive handoffだけを許可します。Adaptive完了後の再reviewも、利用者がさらに別の親ターンで明示開始します。Completion Notification Decoratorは各roundのterminal verdictとPR直接リンクを通知するだけで、state transitionや次工程を起動しません。
 

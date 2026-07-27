@@ -23,8 +23,9 @@ File-based C# app `manage-review-cycle.cs`をGoal Context review Skillへ追加�
 
 Commands:
 
-- `start`: identity、Goal Context、前round、上限、overrideを検証し、新しい`round-NNN/`とin-progress round recordを作る。
+- `start`: identity、Goal Context、前round、解決済みdecision、Adaptive resultを検証し、新しい`round-NNN/`とin-progress round recordを作る。
 - `complete`: round result、artifact hash、finding delta、notificationを検証し、verdictとcycle ledgerを確定する。
+- `resolve`: pending human decisionと承認plan候補を検証し、承認者・日時・resolution・plan path/hash・必要なoverrideをAdaptive前に記録する。
 - `validate`: committed cycleと全historical artifact hash、finding history、round identityを読み取り検証する。
 
 共通exit codeは0=success、2=contract violation、1=runtime errorとし、`--format json|text`を提供する。
@@ -58,6 +59,7 @@ Commands:
 - humanDecisions
   - decisionId、status、reason
   - resolution、approvedBy、approvedAt、resolvedForRound
+  - approvedPlanReference、approvedPlanNormalizedSha256
 
 各`round-NNN/round-result.json` schema version 1:
 
@@ -85,11 +87,11 @@ round-result自身はstate managerがhashを計算してcycle manifestへ加え�
 | --- | --- | --- |
 | actionable=0、blocking human decisionなし | `REVIEW_COMPLETE` | 生成しない |
 | actionable>0、round < effective maximum | `READY_FOR_ADAPTIVE_IMPLEMENTATION` | 必須 |
-| actionable>0、round >= effective maximum | `HUMAN_DECISION_REQUIRED` | 人間が継続判断できるplanは保持するが、自動handoffしない |
-| finding同一性、scope等に明示的human decisionが必要 | `HUMAN_DECISION_REQUIRED` | 状況に応じて保持 |
+| actionable>0、round >= effective maximum | `HUMAN_DECISION_REQUIRED` | 生成しない。人間承認後に別のapproved planを生成・記録する |
+| finding同一性、scope等に明示的human decisionが必要 | `HUMAN_DECISION_REQUIRED` | 生成しない。実行可能handoffを出さない |
 | identity drift、必須artifact欠落、Goal Context不正 | `BLOCKED` | 生成しない |
 
-第3roundでactionable findingが残る場合、既定では`READY_FOR_ADAPTIVE_IMPLEMENTATION`を禁止する。`HUMAN_DECISION_REQUIRED`後の`start`はpending decision IDに対応する明示resolutionを要求する。第4round以降は、解決済み上限到達decision、maximum-round override、前roundを反映したAdaptive result referenceを要求する。overrideはround 1〜3で拒否し、stateは保存前に再検証する。
+第3roundでactionable findingが残る場合、既定では`READY_FOR_ADAPTIVE_IMPLEMENTATION`とreview planを禁止する。`HUMAN_DECISION_REQUIRED`後は、人間の継続判断を受けた`resolve`が承認済みplanを非上書き保存してdecisionとhashを記録するまでAdaptive handoffを許可しない。第4round以降では、同じ`resolve`で上限到達decisionとmaximum-round overrideをAdaptive前に記録し、承認済みplanを実行したAdaptive result referenceを後続`start`へ要求する。overrideはround 1〜3の`start`で拒否し、stateは保存前に再検証する。
 
 ### 4. Finding transition rules
 
@@ -118,7 +120,7 @@ Positive scenarios:
 
 1. round 1 new finding → Adaptive result → round 2 persistent/new finding → Adaptive result → round 3 resolved → `REVIEW_COMPLETE`
 2. round 1-3でpersistent findingが残り、round 3が`HUMAN_DECISION_REQUIRED`
-3. human overrideでmaximum roundsを4へ変更し、Adaptive result後にround 4を開始
+3. human decisionを解決して承認plan/hashとmaximum rounds 4 overrideを記録し、Adaptive result後にround 4を開始
 4. `new → resolved → reopened → resolved`のtracking history
 5. 各roundのnotificationが対象PR direct URLを保持
 6. 既存PRR-002 single-round replayが変更なしで成功
@@ -139,6 +141,9 @@ Negative scenarios:
 - notification statusまたはdirect link不一致
 - artifact hashを合わせたreview-context identity/source、Goal Context selection、review-result verdict/deltaの内容不一致
 - pending human decision未解決または誤decision ID
+- `HUMAN_DECISION_REQUIRED`への実行可能plan添付
+- approved plan欠落、handoff欠落、hash改変
+- decision記録前のAdaptive result提示
 - round 1〜3でのmaximum-round override
 
 ## Verification

@@ -30,6 +30,11 @@
         "HUMAN_DECISION_REQUIRED",
         "REVIEW_COMPLETE"
       ],
+      "approvalGate": {
+        "beforeResolution": "HUMAN_DECISION_REQUIRED",
+        "afterResolution": "APPROVED_FOR_ADAPTIVE_IMPLEMENTATION",
+        "approvedPlan": "round-003/approved-review-plan.md"
+      },
       "overrideMaximumRounds": 4
     },
     {
@@ -37,7 +42,12 @@
       "expectedVerdicts": [
         "HUMAN_DECISION_REQUIRED",
         "REVIEW_COMPLETE"
-      ]
+      ],
+      "approvalGate": {
+        "beforeResolution": "HUMAN_DECISION_REQUIRED",
+        "afterResolution": "APPROVED_FOR_ADAPTIVE_IMPLEMENTATION",
+        "approvedPlan": "round-001/approved-review-plan.md"
+      }
     },
     {
       "id": "reopened",
@@ -56,7 +66,14 @@
     "round-limit-verdict",
     "incomplete-override",
     "unresolved-human-decision",
+    "adaptive-before-decision",
+    "resolve-with-adaptive-result",
+    "start-before-decision-approval",
     "wrong-human-decision-id",
+    "human-decision-with-plan",
+    "resolution-missing-approved-plan",
+    "approved-plan-missing-handoff",
+    "approved-plan-hash",
     "actionable-without-plan",
     "review-complete-with-plan",
     "missing-source-coverage",

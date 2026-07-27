@@ -117,7 +117,7 @@ dotnet run --file scripts/manage-review-cycle.cs -- start `
   --adaptive-result-reference <previous-adaptive-result>
 ```
 
-collector、Goal Context selection、local/purpose findings、machine-readable `review-result.json`、notification、およびactionable findingがある場合のreview planを現在の`round-NNN/`へ保存します。`templates/review-result.example.json`と`templates/review-round-result.example.json`を埋め、`complete`でartifact hashだけでなく、review-contextのrepository/PR/base/headと全source ID、collectorが指定したremote patch path、Goal Context path/hash、review-resultのverdict/finding delta/source coverage/artifact bindingsを相互照合します。collectorが保持する旧headのreview／inline commentを削除せず、個別sourceをcurrent／historical／unknownとして扱い、全件をcoverageへ残します。source coverageはfinding deltaから導出したsource-to-tracking mappingと双方向に一致しなければなりません。Adaptiveへ渡すplanはcanonical `implementation_intent`、SI/AC付きordered remediation、全active finding mapping、および同じplan referenceを使う別親ターンhandoffを含めます。ordered remediationとintentのSI/AC集合は双方向に完全一致させ、未追跡scopeを追加しません。
+collector、Goal Context selection、local/purpose findings、machine-readable `review-result.json`、notificationを現在の`round-NNN/`へ保存します。`review-plan.md`はverdictが`READY_FOR_ADAPTIVE_IMPLEMENTATION`の場合だけ保存します。`HUMAN_DECISION_REQUIRED`では実行可能plan、`implementation_intent`、Adaptive handoffを出力しません。`templates/review-result.example.json`と`templates/review-round-result.example.json`を埋め、`complete`でartifact hashだけでなく、review-contextのrepository/PR/base/headと全source ID、collectorが指定したremote patch path、Goal Context path/hash、review-resultのverdict/finding delta/source coverage/artifact bindingsを相互照合します。collectorが保持する旧headのreview／inline commentを削除せず、個別sourceをcurrent／historical／unknownとして扱い、全件をcoverageへ残します。source coverageはfinding deltaから導出したsource-to-tracking mappingと双方向に一致しなければなりません。Adaptiveへ渡すplanはcanonical `implementation_intent`、SI/AC付きordered remediation、全active finding mapping、および同じplan referenceを使う別親ターンhandoffを含めます。ordered remediationとintentのSI/AC集合は双方向に完全一致させ、未追跡scopeを追加しません。
 
 cycle rootはsymlink/junctionにできません。cycle file、round directory、artifact fileを含む既存path componentは実体pathへ解決し、cycle root外へ出るinput/output linkをfail closedにします。
 
@@ -131,25 +131,24 @@ multi-round verdictは次のとおりです。
 
 - actionable findingがなくなった: `REVIEW_COMPLETE`。空のAdaptive planを作らず停止する。
 - actionable findingがあり、現在roundが有効上限未満: `READY_FOR_ADAPTIVE_IMPLEMENTATION`。別親ターン用handoffを提示して停止する。
-- 既定第3roundでactionable findingが残る: `HUMAN_DECISION_REQUIRED`。自動継続しない。
+- 既定第3roundでactionable findingが残る: `HUMAN_DECISION_REQUIRED`。Adaptive handoffを生成せず、自動継続しない。
 - 必須artifact不足などで安全に確定できない: `BLOCKED`。
 
-`HUMAN_DECISION_REQUIRED`後は、cycleが発行したpending decision IDに対応するresolution、承認者、承認時刻を記録しない限り、Adaptive result referenceがあっても次roundを開始できません。
+`HUMAN_DECISION_REQUIRED`後は、利用者が状況を確認して継続を明示した場合だけ、plannerへdecisionと現在roundのfinding deltaを渡して承認用plan候補を作ります。候補のstatusは`APPROVED_FOR_ADAPTIVE_IMPLEMENTATION`、`plan_reference`は`round-NNN/approved-review-plan.md`とします。候補だけではAdaptiveを開始できません。cycle managerの独立した`resolve`操作がpending decision ID、resolution、承認者、承認時刻、plan内容とhashを検証し、canonical planへ非上書きで保存した後にだけ、別親ターンのAdaptive handoffが有効になります。
 
-第4round以降は、直前の上限到達decisionを解決し、利用者の明示overrideをすべて記録した場合だけ開始できます。overrideはround 1〜3では受理されません。
+第4round以降は、`resolve`時に直前の上限到達decisionと利用者の明示overrideをすべて記録した場合だけ、承認済みplanをAdaptiveへ渡せます。overrideはround 1〜3の開始時や、上限未到達decisionでは受理されません。
 
 ```powershell
-dotnet run --file scripts/manage-review-cycle.cs -- start `
+dotnet run --file scripts/manage-review-cycle.cs -- resolve `
   --cycle .review/pr-123/review-cycle.json `
-  --repository owner/repository --pr 123 `
-  --goal-context-path docs/goal-context-example.md --goal-context-sha <sha256> `
-  --base-oid <base-oid> --head-oid <head-oid> --started-at <ISO-8601> `
-  --adaptive-result-reference <previous-adaptive-result> `
   --resolve-decision HD-003 --decision-resolution <resolution> `
   --decision-approved-by <identity> --decision-approved-at <ISO-8601> `
+  --approved-plan <approved-plan-candidate> `
   --override-maximum-rounds 4 --override-approved-by <identity> `
   --override-approved-at <ISO-8601> --override-reason <reason>
 ```
+
+`resolve`が`APPROVED_FOR_ADAPTIVE_IMPLEMENTATION`を返した後、利用者が別の親ターンで`round-003/approved-review-plan.md`をAdaptiveへ渡します。Adaptive完了後、さらに別の親ターンで通常の`start --adaptive-result-reference <result>`を実行します。`start`はdecision resolutionやoverrideを受理しません。
 
 `complete`後はCompletion Notification Decoratorでそのroundのverdictと対象PR直接URLを通知し、必ず停止します。このDecoratorはcycleを進めず、review SkillもAdaptive Implementationや次roundを内部起動しません。次roundは利用者が別のCodex親ターンで明示開始します。
 

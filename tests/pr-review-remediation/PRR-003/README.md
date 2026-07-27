@@ -6,8 +6,8 @@ PRR-003は、記録済みfinding deltaとartifactを入力にしてmulti-round s
 
 - collectorに近い全件source snapshotによるreview -> fix reference -> re-review -> fix reference -> `REVIEW_COMPLETE`
 - round 2/3に残る旧head review／inline commentと、current／historical／unknown source関係の共存
-- 第3roundでもactionable findingが残る場合の`HUMAN_DECISION_REQUIRED`
-- identity、承認時刻、理由、上限を記録したhuman overrideによる第4round
+- 第3roundでもactionable findingが残る場合の`HUMAN_DECISION_REQUIRED`と、実行可能Adaptive plan／handoffの不在
+- 人間の継続判断後に`resolve`が承認済みplan path/hashとoverrideをAdaptive前に記録する第4round gate
 - 同一head OIDの重複review拒否とround別directoryの非上書き
 - `new | persistent | resolved | reopened`のfinding ledger遷移
 - 各round通知のverdictと対象PR直接リンク
@@ -16,7 +16,7 @@ PRR-003は、記録済みfinding deltaとartifactを入力にしてmulti-round s
 - Adaptiveへ渡すreview planのcanonical `implementation_intent`、SI/AC完全一致、active finding mapping、別親ターンhandoffの相互照合
 - finding deltaから導出したsource-to-tracking mappingとsource coverageの双方向完全一致
 - 明示的なtimezoneを持つISO-8601 cycle timestamp
-- pending human decisionの明示resolutionと上限到達decisionに紐付く第4round override
+- pending human decisionの明示resolution、承認済みplan path/hash、上限到達decisionに紐付く第4round override
 - artifact hash改変、hashを合わせたartifact内容不一致、plan契約欠落、source mapping入れ替え、finding遷移欠落、誤ったverdict、空plan、通知不一致のfail-closed mutation
 - cycle root、cycle file、round directory、artifact fileのsymlink/junction escape拒否。Linux CIをsymlink作成の必須証拠とする
 - multi-round modeを選ばない既存single-round Skill契約の後方互換性
@@ -40,10 +40,12 @@ fixtureのPASSはstate machineとartifact contractの証拠であり、本物の
 | `REVIEW_COMPLETE`で空planなし | convergence round 3、review-complete-with-plan mutation |
 | 上限未満だけ`READY_FOR_ADAPTIVE_IMPLEMENTATION` | convergenceとround-limit verdict mutation |
 | 第3roundの`HUMAN_DECISION_REQUIRED` | round-limit-and-override scenario |
-| 明示overrideによる第4round | decision resolutionとround 4 override evidence |
+| 明示overrideによる第4round | handoffなしのpending decision、`resolve`による承認plan/hashとround 4 override evidence |
 | review後の停止、Adaptive非起動 | managerのevidence-only contractとprocess-orchestration静的検査 |
 | Adaptive後の次round非自動起動 | round 2以降の明示startとAdaptive result reference gate |
 | notificationの直接リンク | 各round notificationとnotification PR/status mutations |
 | local／purpose／reviews／comments／checksのsource追跡 | collector-realistic全件snapshot、source coverage、finding ledger |
 | 修正・再review後の収束 | collector-realistic-convergence scenario |
 | 第3round後も非収束 | round-limit-and-override scenario |
+
+`HUMAN_DECISION_REQUIRED`のround manifestへ`review-plan` roleを含めるmutation、decision記録前のAdaptive result、承認時刻より前の次round、approved plan欠落、handoff欠落、承認済みplan改変を個別に失敗させます。正常系ではcycle stateが`HUMAN_DECISION_REQUIRED`から`APPROVED_FOR_ADAPTIVE_IMPLEMENTATION`へ移ったことを確認してから、別工程のAdaptive resultを使って次roundを開始します。

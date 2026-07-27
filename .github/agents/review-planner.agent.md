@@ -54,14 +54,15 @@ Goal Context multi-round modeでは追加で必須:
 15. actionable findingがない場合は`REVIEW_COMPLETE`とし、空のAdaptive向けplanを生成しない。
 16. multi-round modeではreview-contextの全source IDとlocal/purpose finding IDを、tracking IDまたは理由付き`noAction`へ対応させる。
 17. multi-round modeではordered remediationの各SI/AC IDを`implementation_intent.scope`/`acceptance`へ同じIDで記録し、すべてのactive finding IDを一度だけ対応付ける。
-18. multi-round modeの`plan_reference`はcycle root相対の現在の`round-NNN/review-plan.md`とし、別親ターンhandoffも同じpathと`implementation_intent`を明示する。
+18. multi-round modeで`READY_FOR_ADAPTIVE_IMPLEMENTATION`を返す場合、`plan_reference`はcycle root相対の現在の`round-NNN/review-plan.md`とし、別親ターンhandoffも同じpathと`implementation_intent`を明示する。
 19. collectorが保持した旧headのreview／inline commentを除外せず、current／historical／head関連不明のsourceをすべてdecision ledgerとsource coverageへ残す。
 20. ordered remediationと`implementation_intent`のSI/AC ID集合を双方向に完全一致させ、intentだけへ未追跡scopeまたはacceptanceを追加しない。
 21. review-contextが指定するremote patch pathをplanner inputの正本とし、別patchを代用しない。
+22. multi-round modeで`HUMAN_DECISION_REQUIRED`を返す場合、実行可能なreview plan、`implementation_intent`、Adaptive開始promptを出力しない。人間が明示的に継続を選択した後の承認plan生成では、statusを`APPROVED_FOR_ADAPTIVE_IMPLEMENTATION`、referenceを`round-NNN/approved-review-plan.md`とし、cycle managerの`resolve`で承認記録とhash bindingを確定する。
 
 ## Adaptive handoff
 
-`review-plan.md`には次のcanonical blockを含めます。
+`READY_FOR_ADAPTIVE_IMPLEMENTATION`または人間承認後のplanには次のcanonical blockを含めます。multi-roundの`HUMAN_DECISION_REQUIRED`には含めません。
 
 ```yaml
 implementation_intent:
@@ -91,9 +92,9 @@ implementation_intent:
 - scope、non-goals、acceptance、constraints、validation
 - canonical `implementation_intent`
 - 未取得・未検証事項と人手作業
-- 別親ターン用の正確なAdaptive開始prompt
+- `READY_FOR_ADAPTIVE_IMPLEMENTATION`または承認済みplanだけに、別親ターン用の正確なAdaptive開始prompt
 - `Production code changed: No`
 
-multi-round modeではround番号、base/head OID、前round、Adaptive result reference、finding delta、source coverage、notificationのPR直接リンクも返してください。さらに`templates/review-result.example.json`に適合するmachine-readable projectionを返し、親turnが`review-result.json`へ保存できるようにしてください。projectionは全review artifactの正規化SHA-256 bindingを含めます。親turnはround artifactを保存して停止し、Adaptive Implementationまたは次review roundを起動してはいけません。
+multi-round modeではround番号、base/head OID、前round、Adaptive result reference、finding delta、source coverage、notificationのPR直接リンクも返してください。さらに`templates/review-result.example.json`に適合するmachine-readable projectionを返し、親turnが`review-result.json`へ保存できるようにしてください。projectionは全review artifactの正規化SHA-256 bindingを含めます。`HUMAN_DECISION_REQUIRED`ではprojectionとdecision reasonだけを保存し、`review-plan` roleやhandoffを含めません。親turnはround artifactを保存して停止し、Adaptive Implementationまたは次review roundを起動してはいけません。
 
 `READY_FOR_ADAPTIVE_IMPLEMENTATION`でも、これはPhase 1の完了です。レビュー反映プロセス全体の完了を宣言せず、親ターンを停止してください。

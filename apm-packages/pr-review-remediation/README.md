@@ -7,6 +7,7 @@ Phase 1 baseline: PR preparation -> review collection -> local-reviewer -> revie
 Phase 1 Goal Context: shared preparation/collection -> local-reviewer + purpose-reviewer -> shared review-planner -> review-plan.md -> stop
 Phase 2: explicit new parent turn -> adaptive-implementation-execution -> implementation and validation
 Optional multi-round: explicit review turn -> explicit Adaptive turn -> explicit next review turn
+Human escalation: HUMAN_DECISION_REQUIRED (no handoff) -> explicit human choice -> resolve and bind approved plan -> explicit Adaptive turn
 ```
 
 Phase 1の停止はレビュー反映全体の完了ではありません。実装責務は削除せず、既存Adaptive Implementationへ一本化します。
@@ -47,7 +48,7 @@ APMがSkillとcanonical agentsを導入し、二つのhelperがreview/Adaptive�
 
 ## Validation
 
-静的contract、collector fixture、profile helper、固定された実agent証跡、PRR-002のidentity・hash・source coverage・decision mapping・handoff、およびPRR-003のmulti-round state遷移とnegative mutationを検証します。PRR-003の正本3round scenarioはchecked-in collector snapshotを使い、旧head sourceの累積、remote patch binding、Adaptive intentのSI/AC完全一致、収束までを再現します。PRR-002とPRR-003は記録済み入力の決定論的replayであり、外部model実行を宣言しません。
+静的contract、collector fixture、profile helper、固定された実agent証跡、PRR-002のidentity・hash・source coverage・decision mapping・handoff、およびPRR-003のmulti-round state遷移とnegative mutationを検証します。PRR-003の正本3round scenarioはchecked-in collector snapshotを使い、旧head sourceの累積、remote patch binding、Adaptive intentのSI/AC完全一致、収束までを再現します。非収束scenarioでは`HUMAN_DECISION_REQUIRED`に実行可能planがないこと、人間承認とplan hashを`resolve`がAdaptive前に記録することも検証します。PRR-002とPRR-003は記録済み入力の決定論的replayであり、外部model実行を宣言しません。
 
 ```powershell
 pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1

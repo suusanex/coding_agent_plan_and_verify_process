@@ -38,6 +38,7 @@ try
     {
         "start" => ReviewCycleManager.Start(options),
         "complete" => ReviewCycleManager.Complete(options),
+        "resolve" => ReviewCycleManager.Resolve(options),
         "validate" => ReviewCycleManager.Validate(options),
         _ => throw new ContractException($"Unknown command: {options.Command}")
     };
@@ -79,8 +80,9 @@ static void ShowUsage()
 {
     Console.WriteLine("""
 Usage:
-  dotnet run --file scripts/manage-review-cycle.cs -- start --cycle <path> --repository owner/name --pr <number> --goal-context-path <path> --goal-context-sha <sha256> --base-oid <oid> --head-oid <oid> --started-at <ISO-8601> [--adaptive-result-reference <path-or-uri>] [decision resolution] [override options] [--format json|text]
+  dotnet run --file scripts/manage-review-cycle.cs -- start --cycle <path> --repository owner/name --pr <number> --goal-context-path <path> --goal-context-sha <sha256> --base-oid <oid> --head-oid <oid> --started-at <ISO-8601> [--adaptive-result-reference <path-or-uri>] [--format json|text]
   dotnet run --file scripts/manage-review-cycle.cs -- complete --cycle <path> --round-result <path> [--format json|text]
+  dotnet run --file scripts/manage-review-cycle.cs -- resolve --cycle <path> --resolve-decision <decision-id> --decision-resolution <text> --decision-approved-by <identity> --decision-approved-at <ISO-8601> --approved-plan <path> [override options] [--format json|text]
   dotnet run --file scripts/manage-review-cycle.cs -- validate --cycle <path> [--format json|text]
 
 Override options (all required together):
@@ -89,14 +91,16 @@ Override options (all required together):
   --override-approved-at <ISO-8601>
   --override-reason <text>
 
-Decision resolution (all required after HUMAN_DECISION_REQUIRED):
+Decision resolution (all required by resolve after HUMAN_DECISION_REQUIRED):
   --resolve-decision <decision-id>
   --decision-resolution <text>
   --decision-approved-by <identity>
   --decision-approved-at <ISO-8601>
+  --approved-plan <candidate-path>
 
 Rules:
   The default maximum is 3 rounds. A fourth or later round requires a recorded human override.
+  HUMAN_DECISION_REQUIRED never carries an executable Adaptive plan. Resolve records approval and copies a validated plan before Adaptive may run.
   Every round targets a new PR head OID and writes to a new round-NNN directory.
   This utility manages evidence only. It never starts review agents, Adaptive Implementation, or another round.
 
@@ -169,11 +173,11 @@ static class ReviewCycleManager
             {
                 throw new ContractException($"A new round cannot start after {previous.Verdict}.");
             }
+            EnsurePreviousDecisionResolved(cycle, previous, nextRound);
             if (string.IsNullOrWhiteSpace(options.AdaptiveResultReference))
             {
                 throw new ContractException("Round 2 or later requires --adaptive-result-reference from the separately completed Adaptive turn.");
             }
-            ApplyDecisionResolution(options, cycle, previous, nextRound);
         }
         else if (!string.IsNullOrWhiteSpace(options.AdaptiveResultReference))
         {
@@ -181,10 +185,8 @@ static class ReviewCycleManager
         }
         else
         {
-            RejectUnexpectedDecisionResolution(options);
+            RejectStartOnlyHumanOptions(options);
         }
-
-        ApplyOverride(options, cycle, nextRound);
         if (nextRound > cycle.EffectiveMaximumRounds)
         {
             throw new ContractException($"Round {nextRound} exceeds effective maximum {cycle.EffectiveMaximumRounds}; a complete human override is required.");
@@ -202,6 +204,21 @@ static class ReviewCycleManager
         }
 
         var startedAt = ParseTimestamp(options.StartedAt!, "started-at");
+        if (cycle.Rounds.LastOrDefault() is { } previousRound)
+        {
+            if (startedAt < ParseTimestamp(previousRound.CompletedAt!, "previous round completedAt"))
+            {
+                throw new ContractException("New round startedAt precedes the previous round completion.");
+            }
+            if (previousRound.Verdict == "HUMAN_DECISION_REQUIRED")
+            {
+                var decision = cycle.HumanDecisions.Single(item => item.RoundNumber == previousRound.RoundNumber && item.Status == "RESOLVED");
+                if (startedAt < ParseTimestamp(decision.ApprovedAt!, "human decision approvedAt"))
+                {
+                    throw new ContractException("New round startedAt precedes the human decision approval and approved Adaptive handoff.");
+                }
+            }
+        }
         var roundRecord = new RoundRecord
         {
             RoundNumber = nextRound,
@@ -325,6 +342,78 @@ static class ReviewCycleManager
         return new CommandOutput(1, "PASS", round.RoundNumber, verdict, round.ArtifactDirectory, []);
     }
 
+    public static CommandOutput Resolve(Options options)
+    {
+        RequireResolveArguments(options);
+        var requestedCyclePath = Path.GetFullPath(options.CyclePath!);
+        var requestedCycleRoot = Path.GetDirectoryName(requestedCyclePath) ?? throw new ContractException("Cycle path has no parent directory.");
+        var cyclePath = Contained(requestedCycleRoot, Path.GetFileName(requestedCyclePath));
+        var cycleRoot = Path.GetDirectoryName(cyclePath)!;
+        var cycle = ReadCycle(cyclePath);
+        ValidateCycle(cyclePath, cycle, requireCompletedCurrentRound: true);
+
+        var round = cycle.Rounds.LastOrDefault()
+            ?? throw new ContractException("Human decision resolution requires a completed review round.");
+        if (round.Verdict != "HUMAN_DECISION_REQUIRED")
+        {
+            throw new ContractException("Decision resolution is allowed only after HUMAN_DECISION_REQUIRED.");
+        }
+        var pending = cycle.HumanDecisions.Where(item => item.Status == "PENDING").ToList();
+        if (pending.Count != 1) throw new ContractException($"Expected exactly one pending human decision, observed {pending.Count}.");
+        var decision = pending[0];
+        Equal("resolved human decision ID", decision.DecisionId, options.ResolveDecision!);
+        Equal("resolved human decision round", round.RoundNumber, decision.RoundNumber);
+
+        var approvedAt = ParseTimestamp(options.DecisionApprovedAt!, "decision-approved-at");
+        if (approvedAt < ParseTimestamp(round.CompletedAt!, "decision-producing round completedAt"))
+        {
+            throw new ContractException("Human decision approval precedes the decision-producing round completion.");
+        }
+
+        var nextRound = round.RoundNumber + 1;
+        var canonicalPlanReference = $"{round.ArtifactDirectory}/approved-review-plan.md";
+        var canonicalPlanPath = Contained(cycleRoot, canonicalPlanReference);
+        var roundDirectory = Contained(cycleRoot, round.ArtifactDirectory);
+        if (!IsContained(roundDirectory, canonicalPlanPath)) throw new ContractException("Approved plan must stay inside the decision-producing round directory.");
+        if (File.Exists(canonicalPlanPath) || Directory.Exists(canonicalPlanPath))
+        {
+            throw new ContractException($"Approved plan already exists and will not be overwritten: {canonicalPlanReference}");
+        }
+
+        var candidatePath = Path.GetFullPath(options.ApprovedPlan!);
+        if (!File.Exists(candidatePath)) throw new ContractException($"Approved plan candidate does not exist: {candidatePath}");
+        ValidateReviewPlan(cycle, round, new RoundResult
+        {
+            Verdict = "APPROVED_FOR_ADAPTIVE_IMPLEMENTATION",
+            FindingDelta = round.FindingDelta,
+            SourceCoverage = round.SourceCoverage
+        }, candidatePath, canonicalPlanReference);
+
+        decision.Status = "RESOLVED";
+        decision.Resolution = options.DecisionResolution;
+        decision.ApprovedBy = options.DecisionApprovedBy;
+        decision.ApprovedAt = approvedAt.ToString("O");
+        decision.ResolvedForRound = nextRound;
+        decision.ApprovedPlanReference = canonicalPlanReference;
+        ApplyOverride(options, cycle, round, decision, nextRound);
+
+        try
+        {
+            File.Copy(candidatePath, canonicalPlanPath, overwrite: false);
+            decision.ApprovedPlanNormalizedSha256 = Hash(canonicalPlanPath);
+            cycle.Status = "APPROVED_FOR_ADAPTIVE_IMPLEMENTATION";
+            ValidateCycle(cyclePath, cycle, requireCompletedCurrentRound: true);
+            SaveCycle(cyclePath, cycle);
+        }
+        catch
+        {
+            if (File.Exists(canonicalPlanPath)) File.Delete(canonicalPlanPath);
+            throw;
+        }
+
+        return new CommandOutput(1, "PASS", round.RoundNumber, "APPROVED_FOR_ADAPTIVE_IMPLEMENTATION", round.ArtifactDirectory, []);
+    }
+
     public static CommandOutput Validate(Options options)
     {
         if (string.IsNullOrWhiteSpace(options.CyclePath)) throw new ContractException("validate requires --cycle.");
@@ -350,9 +439,24 @@ static class ReviewCycleManager
         if (!Regex.IsMatch(options.GoalContextSha, "^[0-9a-f]{64}$")) throw new ContractException("goal-context-sha must be lowercase SHA-256.");
         RequireOid(options.BaseOid, "base-oid");
         RequireOid(options.HeadOid, "head-oid");
+        RejectStartOnlyHumanOptions(options);
     }
 
-    private static void ApplyOverride(Options options, ReviewCycle cycle, int nextRound)
+    private static void RequireResolveArguments(Options options)
+    {
+        if (string.IsNullOrWhiteSpace(options.CyclePath) || string.IsNullOrWhiteSpace(options.ResolveDecision)
+            || string.IsNullOrWhiteSpace(options.DecisionResolution) || string.IsNullOrWhiteSpace(options.DecisionApprovedBy)
+            || string.IsNullOrWhiteSpace(options.DecisionApprovedAt) || string.IsNullOrWhiteSpace(options.ApprovedPlan))
+        {
+            throw new ContractException("resolve requires cycle, decision ID, resolution, approver, approval timestamp, and approved plan candidate.");
+        }
+        if (!string.IsNullOrWhiteSpace(options.AdaptiveResultReference))
+        {
+            throw new ContractException("resolve records human approval before Adaptive execution and cannot accept an Adaptive result reference.");
+        }
+    }
+
+    private static void ApplyOverride(Options options, ReviewCycle cycle, RoundRecord previous, HumanDecision decision, int nextRound)
     {
         var supplied = new[]
         {
@@ -365,28 +469,36 @@ static class ReviewCycleManager
         {
             throw new ContractException("All maximum-round override fields are required together.");
         }
-        if (!supplied.All(value => value)) return;
+        if (!supplied.All(value => value))
+        {
+            if (nextRound > cycle.EffectiveMaximumRounds)
+            {
+                throw new ContractException("Resolving a maximum-round decision requires a complete maximum-round override before Adaptive execution.");
+            }
+            return;
+        }
         if (nextRound < 4)
         {
             throw new ContractException("Maximum-round override is accepted only for round 4 or later.");
         }
-        var previous = cycle.Rounds.LastOrDefault() ?? throw new ContractException("Maximum-round override requires a previous round.");
         if (previous.Verdict != "HUMAN_DECISION_REQUIRED" || previous.RoundNumber < cycle.EffectiveMaximumRounds)
         {
             throw new ContractException("Maximum-round override requires the previous round to reach the effective maximum with HUMAN_DECISION_REQUIRED.");
         }
-        var resolvedDecision = cycle.HumanDecisions.SingleOrDefault(item => item.RoundNumber == previous.RoundNumber && item.Status == "RESOLVED")
-            ?? throw new ContractException("Maximum-round override requires the previous maximum-round decision to be explicitly resolved.");
         if (options.OverrideMaximumRounds <= cycle.EffectiveMaximumRounds || options.OverrideMaximumRounds < nextRound)
         {
             throw new ContractException("override maximum must increase the effective maximum and include the next round.");
         }
 
         var approvedAt = ParseTimestamp(options.OverrideApprovedAt!, "override-approved-at");
+        if (approvedAt < ParseTimestamp(decision.ApprovedAt!, "decision-approved-at"))
+        {
+            throw new ContractException("Maximum-round override approval precedes the human decision approval.");
+        }
         cycle.Overrides.Add(new RoundOverride
         {
             StartingRound = nextRound,
-            DecisionId = resolvedDecision.DecisionId,
+            DecisionId = decision.DecisionId,
             ApprovedBy = options.OverrideApprovedBy!,
             ApprovedAt = approvedAt.ToString("O"),
             Reason = options.OverrideReason!,
@@ -395,44 +507,22 @@ static class ReviewCycleManager
         cycle.EffectiveMaximumRounds = options.OverrideMaximumRounds;
     }
 
-    private static void ApplyDecisionResolution(Options options, ReviewCycle cycle, RoundRecord previous, int nextRound)
+    private static void EnsurePreviousDecisionResolved(ReviewCycle cycle, RoundRecord previous, int nextRound)
     {
-        var supplied = DecisionResolutionFields(options);
-        if (previous.Verdict != "HUMAN_DECISION_REQUIRED")
+        if (previous.Verdict != "HUMAN_DECISION_REQUIRED") return;
+        var decision = cycle.HumanDecisions.SingleOrDefault(item => item.RoundNumber == previous.RoundNumber && item.Status == "RESOLVED");
+        if (decision is null || decision.ResolvedForRound != nextRound || string.IsNullOrWhiteSpace(decision.ApprovedPlanReference))
         {
-            if (supplied.Any(value => value)) throw new ContractException("Decision resolution is allowed only after HUMAN_DECISION_REQUIRED.");
-            return;
+            throw new ContractException("A pending human decision must be resolved with a validated approved plan before Adaptive execution and the next round.");
         }
-        if (supplied.Any(value => value) && supplied.Any(value => !value))
-        {
-            throw new ContractException("All human decision resolution fields are required together.");
-        }
-        if (!supplied.All(value => value))
-        {
-            throw new ContractException("A pending human decision must be explicitly resolved before the next round can start.");
-        }
-        var pending = cycle.HumanDecisions.Where(item => item.Status == "PENDING").ToList();
-        if (pending.Count != 1) throw new ContractException($"Expected exactly one pending human decision, observed {pending.Count}.");
-        var decision = pending[0];
-        Equal("resolved human decision ID", decision.DecisionId, options.ResolveDecision!);
-        Equal("resolved human decision round", previous.RoundNumber, decision.RoundNumber);
-        var approvedAt = ParseTimestamp(options.DecisionApprovedAt!, "decision-approved-at");
-        if (approvedAt < ParseTimestamp(previous.CompletedAt!, "previous round completedAt"))
-        {
-            throw new ContractException("Human decision approval precedes the decision-producing round completion.");
-        }
-        decision.Status = "RESOLVED";
-        decision.Resolution = options.DecisionResolution;
-        decision.ApprovedBy = options.DecisionApprovedBy;
-        decision.ApprovedAt = approvedAt.ToString("O");
-        decision.ResolvedForRound = nextRound;
     }
 
-    private static void RejectUnexpectedDecisionResolution(Options options)
+    private static void RejectStartOnlyHumanOptions(Options options)
     {
-        if (DecisionResolutionFields(options).Any(value => value))
+        if (DecisionResolutionFields(options).Any(value => value) || OverrideFields(options).Any(value => value)
+            || !string.IsNullOrWhiteSpace(options.ApprovedPlan))
         {
-            throw new ContractException("Round 1 cannot resolve a previous human decision.");
+            throw new ContractException("Human decision resolution and maximum-round override must use the separate resolve command before Adaptive execution.");
         }
     }
 
@@ -442,6 +532,14 @@ static class ReviewCycleManager
         !string.IsNullOrWhiteSpace(options.DecisionResolution),
         !string.IsNullOrWhiteSpace(options.DecisionApprovedBy),
         !string.IsNullOrWhiteSpace(options.DecisionApprovedAt)
+    ];
+
+    private static bool[] OverrideFields(Options options) =>
+    [
+        options.OverrideMaximumRounds > 0,
+        !string.IsNullOrWhiteSpace(options.OverrideApprovedBy),
+        !string.IsNullOrWhiteSpace(options.OverrideApprovedAt),
+        !string.IsNullOrWhiteSpace(options.OverrideReason)
     ];
 
     private static List<ArtifactRecord> ValidateArtifacts(string cycleRoot, string roundDirectory, List<ArtifactRecord> artifacts)
@@ -924,13 +1022,13 @@ static class ReviewCycleManager
         {
             if (!roles.Contains(role)) throw new ContractException($"Missing required round artifact role: {role}");
         }
-        if (actionableCount > 0 && !roles.Contains("review-plan"))
+        if (verdict == "READY_FOR_ADAPTIVE_IMPLEMENTATION" && !roles.Contains("review-plan"))
         {
-            throw new ContractException("Actionable findings require a review-plan artifact.");
+            throw new ContractException("READY_FOR_ADAPTIVE_IMPLEMENTATION requires a review-plan artifact.");
         }
-        if (verdict == "REVIEW_COMPLETE" && roles.Contains("review-plan"))
+        if ((verdict is "REVIEW_COMPLETE" or "HUMAN_DECISION_REQUIRED") && roles.Contains("review-plan"))
         {
-            throw new ContractException("REVIEW_COMPLETE must not include an Adaptive review-plan artifact.");
+            throw new ContractException($"{verdict} must not include an executable Adaptive review-plan artifact.");
         }
     }
 
@@ -1044,7 +1142,7 @@ static class ReviewCycleManager
         if (cycle.DefaultMaximumRounds != DefaultMaximumRounds) throw new ContractException("defaultMaximumRounds must be 3.");
         if (cycle.EffectiveMaximumRounds < DefaultMaximumRounds) throw new ContractException("effectiveMaximumRounds cannot be below 3.");
         if (cycle.CurrentRound != cycle.Rounds.Count) throw new ContractException("currentRound must equal the number of round records.");
-        ValidateHumanDecisions(cycle);
+        ValidateHumanDecisions(cyclePath, cycle);
 
         var expectedEffectiveMaximum = DefaultMaximumRounds;
         var lastOverrideRound = 0;
@@ -1154,13 +1252,19 @@ static class ReviewCycleManager
         }
         ValidateLedgerConsistency(cycle);
         var expectedStatus = cycle.Rounds.LastOrDefault() is { } current
-            ? current.Status == "IN_PROGRESS" ? "IN_PROGRESS" : current.Verdict
+            ? current.Status == "IN_PROGRESS"
+                ? "IN_PROGRESS"
+                : current.Verdict == "HUMAN_DECISION_REQUIRED"
+                    && cycle.HumanDecisions.Any(item => item.RoundNumber == current.RoundNumber && item.Status == "RESOLVED")
+                        ? "APPROVED_FOR_ADAPTIVE_IMPLEMENTATION"
+                        : current.Verdict
             : "NOT_STARTED";
         Equal("cycle status", expectedStatus, cycle.Status);
     }
 
-    private static void ValidateHumanDecisions(ReviewCycle cycle)
+    private static void ValidateHumanDecisions(string cyclePath, ReviewCycle cycle)
     {
+        var cycleRoot = Path.GetDirectoryName(cyclePath)!;
         var decisionIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var decision in cycle.HumanDecisions)
         {
@@ -1180,7 +1284,9 @@ static class ReviewCycleManager
             }
             if (decision.Status == "PENDING")
             {
-                if (decision.ResolvedForRound is not null || decision.ApprovedAt is not null || decision.ApprovedBy is not null || decision.Resolution is not null)
+                if (decision.ResolvedForRound is not null || decision.ApprovedAt is not null || decision.ApprovedBy is not null
+                    || decision.Resolution is not null || decision.ApprovedPlanReference is not null
+                    || decision.ApprovedPlanNormalizedSha256 is not null)
                 {
                     throw new ContractException($"Pending human decision {decision.DecisionId} contains resolution evidence.");
                 }
@@ -1192,12 +1298,30 @@ static class ReviewCycleManager
             else
             {
                 if (string.IsNullOrWhiteSpace(decision.Resolution) || string.IsNullOrWhiteSpace(decision.ApprovedBy)
-                    || string.IsNullOrWhiteSpace(decision.ApprovedAt) || decision.ResolvedForRound != decision.RoundNumber + 1)
+                    || string.IsNullOrWhiteSpace(decision.ApprovedAt) || decision.ResolvedForRound != decision.RoundNumber + 1
+                    || string.IsNullOrWhiteSpace(decision.ApprovedPlanReference)
+                    || !Regex.IsMatch(decision.ApprovedPlanNormalizedSha256 ?? string.Empty, "^[0-9a-f]{64}$"))
                 {
                     throw new ContractException($"Resolved human decision {decision.DecisionId} lacks complete approval evidence.");
                 }
                 ParseTimestamp(decision.ApprovedAt, $"human decision {decision.DecisionId} approvedAt");
-                if (!cycle.Rounds.Any(item => item.RoundNumber == decision.ResolvedForRound))
+                var expectedPlanReference = $"{round.ArtifactDirectory}/approved-review-plan.md";
+                Equal($"human decision {decision.DecisionId} approved plan reference", expectedPlanReference, NormalizeSlash(decision.ApprovedPlanReference));
+                var approvedPlanPath = Contained(cycleRoot, decision.ApprovedPlanReference);
+                var roundDirectory = Contained(cycleRoot, round.ArtifactDirectory);
+                if (!IsContained(roundDirectory, approvedPlanPath) || !File.Exists(approvedPlanPath))
+                {
+                    throw new ContractException($"Resolved human decision {decision.DecisionId} approved plan is missing or outside its round.");
+                }
+                Equal($"human decision {decision.DecisionId} approved plan hash", decision.ApprovedPlanNormalizedSha256, Hash(approvedPlanPath));
+                ValidateReviewPlan(cycle, round, new RoundResult
+                {
+                    Verdict = "APPROVED_FOR_ADAPTIVE_IMPLEMENTATION",
+                    FindingDelta = round.FindingDelta,
+                    SourceCoverage = round.SourceCoverage
+                }, approvedPlanPath, decision.ApprovedPlanReference);
+                var nextRound = cycle.Rounds.SingleOrDefault(item => item.RoundNumber == decision.ResolvedForRound);
+                if (nextRound is null && cycle.Rounds.Count > decision.RoundNumber)
                 {
                     throw new ContractException($"Resolved human decision {decision.DecisionId} does not lead to its recorded next round.");
                 }
@@ -1443,6 +1567,7 @@ sealed class Options
     public string? DecisionResolution { get; private set; }
     public string? DecisionApprovedBy { get; private set; }
     public string? DecisionApprovedAt { get; private set; }
+    public string? ApprovedPlan { get; private set; }
     public string Format { get; private set; } = "text";
     public bool ShowHelp { get; private set; }
     public bool Valid { get; private set; } = true;
@@ -1479,6 +1604,7 @@ sealed class Options
                 case "--decision-resolution": options.DecisionResolution = Value(args, ref i, "--decision-resolution"); break;
                 case "--decision-approved-by": options.DecisionApprovedBy = Value(args, ref i, "--decision-approved-by"); break;
                 case "--decision-approved-at": options.DecisionApprovedAt = Value(args, ref i, "--decision-approved-at"); break;
+                case "--approved-plan": options.ApprovedPlan = Value(args, ref i, "--approved-plan"); break;
                 case "--format":
                     options.Format = Value(args, ref i, "--format").ToLowerInvariant();
                     if (options.Format is not ("json" or "text")) options.Valid = false;
@@ -1488,7 +1614,7 @@ sealed class Options
                 default: options.Valid = false; break;
             }
         }
-        if (options.Command is not ("start" or "complete" or "validate")) options.Valid = false;
+        if (options.Command is not ("start" or "complete" or "resolve" or "validate")) options.Valid = false;
         return options;
     }
 
@@ -1664,4 +1790,6 @@ sealed class HumanDecision
     public string? ApprovedAt { get; set; }
     public string? Resolution { get; set; }
     public int? ResolvedForRound { get; set; }
+    public string? ApprovedPlanReference { get; set; }
+    public string? ApprovedPlanNormalizedSha256 { get; set; }
 }

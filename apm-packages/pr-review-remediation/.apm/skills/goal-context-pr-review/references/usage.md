@@ -34,7 +34,17 @@ owner/repository#123のGoal Context multi-round review round 2を開始してく
 前roundのAdaptive resultは<path-or-uri>です。最新headを収集し、round-002へ保存して通知後に停止してください。
 ```
 
-同じheadの再review、前Adaptive resultなしのround 2以降、過去round directoryの再利用は拒否します。`HUMAN_DECISION_REQUIRED`後は、表示されたdecision IDへresolution、承認者、承認時刻を明示してから次roundを開始します。既定上限は3です。第3roundでactionable findingが残れば停止し、第4round以降はdecision resolutionに加え、利用者のidentity、承認時刻、理由、新しい上限をCLI overrideへ明示します。
+同じheadの再review、前Adaptive resultなしのround 2以降、過去round directoryの再利用は拒否します。`HUMAN_DECISION_REQUIRED`では実行可能planとAdaptive handoffを出しません。利用者が継続を選んだ場合、別の明示工程で承認plan候補を作り、`manage-review-cycle.cs resolve`へdecision ID、resolution、承認者、承認時刻、候補pathを渡します。`resolve`が`round-NNN/approved-review-plan.md`を保存して`APPROVED_FOR_ADAPTIVE_IMPLEMENTATION`を返した後だけ、別親ターンでAdaptiveを開始します。既定上限は3です。第3roundから継続する`resolve`には、利用者のidentity、承認時刻、理由、新しい上限もCLI overrideへ明示します。
+
+```powershell
+dotnet run --file scripts/manage-review-cycle.cs -- resolve `
+  --cycle .review/pr-123/review-cycle.json `
+  --resolve-decision HD-003 --decision-resolution "Continue after review" `
+  --decision-approved-by <identity> --decision-approved-at <ISO-8601> `
+  --approved-plan <approved-plan-candidate> `
+  --override-maximum-rounds 4 --override-approved-by <identity> `
+  --override-approved-at <ISO-8601> --override-reason <reason>
+```
 
 round 2以降のcollector snapshotには旧headのreview／inline commentが残ります。削除せずcurrent／historical／unknown sourceとして全件をplanとsource coverageへ渡します。cycle managerへ渡す時刻は、`2026-07-28T09:00:00Z`または`2026-07-28T09:00:00+09:00`のようにtimezoneを明示します。
 

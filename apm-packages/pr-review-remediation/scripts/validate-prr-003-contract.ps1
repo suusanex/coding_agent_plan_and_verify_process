@@ -46,10 +46,6 @@ function Start-Round {
         [string]$HeadOid,
         [string]$StartedAt,
         [string]$AdaptiveResult = '',
-        [int]$OverrideMaximum = 0,
-        [switch]$IncompleteOverride,
-        [string]$ResolveDecision = '',
-        [switch]$IncompleteDecision,
         [bool]$ExpectSuccess = $true,
         [string]$ExpectedPattern = ''
     )
@@ -59,24 +55,6 @@ function Start-Round {
         '--base-oid', $baseOid, '--head-oid', $HeadOid, '--started-at', $StartedAt, '--format', 'json'
     )
     if ($AdaptiveResult) { $arguments += @('--adaptive-result-reference', $AdaptiveResult) }
-    if ($ResolveDecision) {
-        $arguments += @('--resolve-decision', $ResolveDecision)
-        if (-not $IncompleteDecision) {
-            $arguments += @(
-                '--decision-resolution', 'Continue after explicit human review.',
-                '--decision-approved-by', 'fixture-human', '--decision-approved-at', $StartedAt
-            )
-        }
-    }
-    if ($OverrideMaximum -gt 0) {
-        $arguments += @('--override-maximum-rounds', [string]$OverrideMaximum)
-        if (-not $IncompleteOverride) {
-            $arguments += @(
-                '--override-approved-by', 'fixture-human', '--override-approved-at', $StartedAt,
-                '--override-reason', 'Explicitly approved one additional diagnostic round.'
-            )
-        }
-    }
     Invoke-Manager $arguments "start round at head $HeadOid" $ExpectSuccess $ExpectedPattern | Out-Null
 }
 
@@ -87,6 +65,135 @@ function New-Delta([string]$TrackingId, [string]$State, [string[]]$FindingIds, [
         findingIds = @($FindingIds)
         sourceIds = @($SourceIds)
     }
+}
+
+function Write-ReviewPlan {
+    param(
+        [string]$CycleRoot,
+        [int]$RoundNumber,
+        [string]$HeadOid,
+        [string]$Verdict,
+        [object[]]$FindingDelta,
+        [string]$OutputPath,
+        [string]$PlanReference
+    )
+    $roundName = 'round-{0:000}' -f $RoundNumber
+    $activeDelta = @($FindingDelta | Where-Object { $_.state -in @('new', 'persistent', 'reopened') })
+    $orderedRows = [System.Collections.Generic.List[string]]::new()
+    $scopeLines = [System.Collections.Generic.List[string]]::new()
+    $acceptanceLines = [System.Collections.Generic.List[string]]::new()
+    for ($index = 0; $index -lt $activeDelta.Count; $index++) {
+        $number = $index + 1
+        $scopeId = 'SI-{0:000}' -f $number
+        $acceptanceId = 'AC-{0:000}' -f $number
+        $findingIds = @($activeDelta[$index].findingIds) -join ', '
+        $orderedRows.Add("| $number | $scopeId | $acceptanceId | $findingIds | Remediate $($activeDelta[$index].trackingId). | fixture artifact | Finding is resolved. | Contract replay |")
+        $scopeLines.Add("    - ${scopeId}: Remediate $($activeDelta[$index].trackingId).")
+        $acceptanceLines.Add("    - ${acceptanceId}: Verify $($activeDelta[$index].trackingId) is resolved.")
+    }
+    $planContent = @"
+# PR Review Remediation Plan
+
+## Phase 1 Verdict
+
+- Verdict: $Verdict
+- Production code changed: No
+
+## PR Identity
+
+- Repository: $repository
+- PR: $pullRequest
+- Base branch / OID: main / $baseOid
+- Head branch / OID: feature / $HeadOid
+
+## Goal Context Boundary
+
+- Selected Goal Context: $goalContextPath
+- Goal Context SHA-256: $goalContextSha
+
+## Ordered Remediation Plan
+
+| Step | Scope ID | Acceptance ID | Finding IDs | Change | Expected files / symbols | Acceptance | Validation |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+$($orderedRows -join "`n")
+
+## Implementation Intent
+
+``````yaml
+implementation_intent:
+  goal: Resolve the actionable findings recorded for $roundName.
+  scope:
+$($scopeLines -join "`n")
+  non_goals:
+    - Automatic Adaptive startup.
+  acceptance:
+$($acceptanceLines -join "`n")
+  constraints:
+    - Preserve the separate parent turn boundary.
+  validation:
+    - Run the deterministic contract replay.
+  plan_reference: $PlanReference
+  goal_context_reference: $goalContextPath
+``````
+
+## Separate Parent Turn Handoff
+
+``````text
+`$adaptive-implementation-execution を使って $PlanReference を実装してください。
+review-plan.md の implementation_intent を source of truth としてください。
+``````
+"@
+    [System.IO.File]::WriteAllText($OutputPath, $planContent.Replace("`r`n", "`n") + "`n", $utf8)
+}
+
+function Resolve-HumanDecision {
+    param(
+        [string]$CyclePath,
+        [int]$RoundNumber,
+        [string]$HeadOid,
+        [object[]]$FindingDelta,
+        [string]$DecisionId,
+        [string]$ApprovedAt,
+        [int]$OverrideMaximum = 0,
+        [switch]$IncompleteDecision,
+        [switch]$IncompleteOverride,
+        [switch]$OmitApprovedPlan,
+        [switch]$RemoveHandoff,
+        [switch]$IncludeAdaptiveResult,
+        [bool]$ExpectSuccess = $true,
+        [string]$ExpectedPattern = ''
+    )
+    $cycleRoot = Split-Path -Parent $CyclePath
+    $roundName = 'round-{0:000}' -f $RoundNumber
+    $candidatePath = Join-Path $cycleRoot "approved-plan-candidate-$DecisionId.md"
+    $planReference = "$roundName/approved-review-plan.md"
+    if (-not $OmitApprovedPlan) {
+        Write-ReviewPlan $cycleRoot $RoundNumber $HeadOid 'APPROVED_FOR_ADAPTIVE_IMPLEMENTATION' $FindingDelta $candidatePath $planReference
+        if ($RemoveHandoff) {
+            $content = Get-Content -Raw -LiteralPath $candidatePath
+            $content = [regex]::Replace($content, '(?ms)^## Separate Parent Turn Handoff\s+.*\z', '')
+            [System.IO.File]::WriteAllText($candidatePath, $content.Replace("`r`n", "`n"), $utf8)
+        }
+    }
+    $arguments = @('resolve', '--cycle', $CyclePath, '--resolve-decision', $DecisionId)
+    if (-not $IncompleteDecision) {
+        $arguments += @(
+            '--decision-resolution', 'Continue after explicit human review.',
+            '--decision-approved-by', 'fixture-human', '--decision-approved-at', $ApprovedAt
+        )
+        if (-not $OmitApprovedPlan) { $arguments += @('--approved-plan', $candidatePath) }
+    }
+    if ($OverrideMaximum -gt 0) {
+        $arguments += @('--override-maximum-rounds', [string]$OverrideMaximum)
+        if (-not $IncompleteOverride) {
+            $arguments += @(
+                '--override-approved-by', 'fixture-human', '--override-approved-at', $ApprovedAt,
+                '--override-reason', 'Explicitly approved one additional diagnostic round.'
+            )
+        }
+    }
+    if ($IncludeAdaptiveResult) { $arguments += @('--adaptive-result-reference', 'adaptive/already-executed/result.md') }
+    Invoke-Manager $arguments "resolve human decision $DecisionId" $ExpectSuccess $ExpectedPattern | Out-Null
 }
 
 function Write-RoundResult {
@@ -265,73 +372,7 @@ $purposeRows
     [System.IO.File]::WriteAllText((Join-Path $roundRoot $roleFiles['purpose-findings']), $purposeContent.Replace("`r`n", "`n") + "`n", $utf8)
 
     if ($IncludePlan) {
-        $activeDelta = @($FindingDelta | Where-Object { $_.state -in @('new', 'persistent', 'reopened') })
-        $orderedRows = [System.Collections.Generic.List[string]]::new()
-        $scopeLines = [System.Collections.Generic.List[string]]::new()
-        $acceptanceLines = [System.Collections.Generic.List[string]]::new()
-        for ($index = 0; $index -lt $activeDelta.Count; $index++) {
-            $number = $index + 1
-            $scopeId = 'SI-{0:000}' -f $number
-            $acceptanceId = 'AC-{0:000}' -f $number
-            $findingIds = @($activeDelta[$index].findingIds) -join ', '
-            $orderedRows.Add("| $number | $scopeId | $acceptanceId | $findingIds | Remediate $($activeDelta[$index].trackingId). | fixture artifact | Finding is resolved. | Contract replay |")
-            $scopeLines.Add("    - ${scopeId}: Remediate $($activeDelta[$index].trackingId).")
-            $acceptanceLines.Add("    - ${acceptanceId}: Verify $($activeDelta[$index].trackingId) is resolved.")
-        }
-        $planReference = "$roundName/review-plan.md"
-        $planContent = @"
-# PR Review Remediation Plan
-
-## Phase 1 Verdict
-
-- Verdict: $Verdict
-- Production code changed: No
-
-## PR Identity
-
-- Repository: $repository
-- PR: $pullRequest
-- Base branch / OID: main / $baseOid
-- Head branch / OID: feature / $HeadOid
-
-## Goal Context Boundary
-
-- Selected Goal Context: $goalContextPath
-- Goal Context SHA-256: $goalContextSha
-
-## Ordered Remediation Plan
-
-| Step | Scope ID | Acceptance ID | Finding IDs | Change | Expected files / symbols | Acceptance | Validation |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-$($orderedRows -join "`n")
-
-## Implementation Intent
-
-``````yaml
-implementation_intent:
-  goal: Resolve the actionable findings recorded for $roundName.
-  scope:
-$($scopeLines -join "`n")
-  non_goals:
-    - Automatic Adaptive startup.
-  acceptance:
-$($acceptanceLines -join "`n")
-  constraints:
-    - Preserve the separate parent turn boundary.
-  validation:
-    - Run the deterministic contract replay.
-  plan_reference: $planReference
-  goal_context_reference: $goalContextPath
-``````
-
-## Separate Parent Turn Handoff
-
-``````text
-`$adaptive-implementation-execution を使って $planReference を実装してください。
-review-plan.md の implementation_intent を source of truth としてください。
-``````
-"@
-        [System.IO.File]::WriteAllText((Join-Path $roundRoot $roleFiles['review-plan']), $planContent.Replace("`r`n", "`n") + "`n", $utf8)
+        Write-ReviewPlan $CycleRoot $RoundNumber $HeadOid $Verdict $FindingDelta (Join-Path $roundRoot $roleFiles['review-plan']) "$roundName/review-plan.md"
     }
 
     [System.IO.File]::WriteAllText((Join-Path $roundRoot $roleFiles['completion-notification']), "{`"observed_status`":`"$Verdict`",`"title`":`"Goal Context review $roundName completed`",`"result_uri`":`"$NotificationUri`"}`n", $utf8)
@@ -448,7 +489,14 @@ try {
 
     $earlyOverrideRoot = Join-Path $tempRoot 'negative-early-override'
     $earlyOverrideCycle = Join-Path $earlyOverrideRoot 'review-cycle.json'
-    Start-Round -CyclePath $earlyOverrideCycle -HeadOid '1010101010101010101010101010101010101010' -StartedAt '2025-12-31T00:00:00Z' -OverrideMaximum 4 -ExpectSuccess $false -ExpectedPattern 'only for round 4 or later'
+    Invoke-Manager @(
+        'start', '--cycle', $earlyOverrideCycle, '--repository', $repository, '--pr', [string]$pullRequest,
+        '--goal-context-path', $goalContextPath, '--goal-context-sha', $goalContextSha,
+        '--base-oid', $baseOid, '--head-oid', '1010101010101010101010101010101010101010',
+        '--started-at', '2025-12-31T00:00:00Z', '--override-maximum-rounds', '4',
+        '--override-approved-by', 'fixture-human', '--override-approved-at', '2025-12-31T00:00:00Z',
+        '--override-reason', 'Invalid early override.', '--format', 'json'
+    ) 'early start override' $false 'must use the separate resolve command' | Out-Null
     if (Test-Path -LiteralPath $earlyOverrideCycle) { Add-Failure 'Rejected early override mutated review-cycle.json.' }
 
     $timestampRoot = Join-Path $tempRoot 'negative-timestamp'
@@ -536,16 +584,34 @@ try {
             $result = Write-RoundResult $limitRoot $round $limitHeads[$round - 1] '2026-02-01T00:07:00Z' $expectedVerdict @(
                 (New-Delta 'TRK-LIMIT' $state @('LR-103') @('review:limit:3'))
             ) $true
+            Complete-Round $limitCycle $result $false 'must not include an executable Adaptive review-plan artifact'
+            Remove-Item -LiteralPath (Join-Path $limitRoot 'round-003/review-plan.md') -Force
+            $result = Write-RoundResult $limitRoot $round $limitHeads[$round - 1] '2026-02-01T00:07:00Z' $expectedVerdict @(
+                (New-Delta 'TRK-LIMIT' $state @('LR-103') @('review:limit:3'))
+            ) $false
         }
         Complete-Round $limitCycle $result
     }
-    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:08:00Z' -AdaptiveResult 'adaptive/round-003/result.md' -ExpectSuccess $false -ExpectedPattern 'must be explicitly resolved'
-    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:08:00Z' -AdaptiveResult 'adaptive/round-003/result.md' -ResolveDecision 'HD-999' -OverrideMaximum 4 -ExpectSuccess $false -ExpectedPattern 'resolved human decision ID mismatch'
-    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:08:00Z' -AdaptiveResult 'adaptive/round-003/result.md' -ResolveDecision 'HD-003' -IncompleteDecision -ExpectSuccess $false -ExpectedPattern 'All human decision resolution fields'
-    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:08:00Z' -AdaptiveResult 'adaptive/round-003/result.md' -ResolveDecision 'HD-003' -ExpectSuccess $false -ExpectedPattern 'exceeds effective maximum'
-    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:08:00Z' -AdaptiveResult 'adaptive/round-003/result.md' -ResolveDecision 'HD-003' -OverrideMaximum 4 -IncompleteOverride -ExpectSuccess $false -ExpectedPattern 'All maximum-round override fields'
-    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:08:00Z' -AdaptiveResult 'adaptive/round-003/result.md' -ResolveDecision 'HD-003' -OverrideMaximum 4
-    $r4 = Write-RoundResult $limitRoot 4 $limitHeads[3] '2026-02-01T00:09:00Z' 'REVIEW_COMPLETE' @(
+    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:08:00Z' -AdaptiveResult 'adaptive/round-003/result.md' -ExpectSuccess $false -ExpectedPattern 'must be resolved with a validated approved plan'
+    $limitDelta = @((New-Delta 'TRK-LIMIT' 'persistent' @('LR-103') @('review:limit:3')))
+    Resolve-HumanDecision $limitCycle 3 $limitHeads[2] $limitDelta 'HD-999' '2026-02-01T00:08:00Z' 4 -ExpectSuccess $false -ExpectedPattern 'resolved human decision ID mismatch'
+    Resolve-HumanDecision -CyclePath $limitCycle -RoundNumber 3 -HeadOid $limitHeads[2] -FindingDelta $limitDelta -DecisionId 'HD-003' -ApprovedAt '2026-02-01T00:08:00Z' -IncompleteDecision -ExpectSuccess $false -ExpectedPattern 'resolve requires cycle'
+    Resolve-HumanDecision -CyclePath $limitCycle -RoundNumber 3 -HeadOid $limitHeads[2] -FindingDelta $limitDelta -DecisionId 'HD-003' -ApprovedAt '2026-02-01T00:08:00Z' -OmitApprovedPlan -ExpectSuccess $false -ExpectedPattern 'resolve requires cycle'
+    Resolve-HumanDecision -CyclePath $limitCycle -RoundNumber 3 -HeadOid $limitHeads[2] -FindingDelta $limitDelta -DecisionId 'HD-003' -ApprovedAt '2026-02-01T00:08:00Z' -OverrideMaximum 4 -IncludeAdaptiveResult -ExpectSuccess $false -ExpectedPattern 'before Adaptive execution and cannot accept an Adaptive result reference'
+    Resolve-HumanDecision $limitCycle 3 $limitHeads[2] $limitDelta 'HD-003' '2026-02-01T00:08:00Z' -ExpectSuccess $false -ExpectedPattern 'requires a complete maximum-round override'
+    Resolve-HumanDecision -CyclePath $limitCycle -RoundNumber 3 -HeadOid $limitHeads[2] -FindingDelta $limitDelta -DecisionId 'HD-003' -ApprovedAt '2026-02-01T00:08:00Z' -OverrideMaximum 4 -IncompleteOverride -ExpectSuccess $false -ExpectedPattern 'All maximum-round override fields'
+    Resolve-HumanDecision -CyclePath $limitCycle -RoundNumber 3 -HeadOid $limitHeads[2] -FindingDelta $limitDelta -DecisionId 'HD-003' -ApprovedAt '2026-02-01T00:08:00Z' -OverrideMaximum 4 -RemoveHandoff -ExpectSuccess $false -ExpectedPattern 'missing a non-empty.*Separate Parent Turn Handoff'
+    Resolve-HumanDecision $limitCycle 3 $limitHeads[2] $limitDelta 'HD-003' '2026-02-01T00:08:00Z' 4
+    $approvedLimit = Get-Content -Raw -LiteralPath $limitCycle | ConvertFrom-Json -Depth 100
+    if (($approvedLimit.status -ne 'APPROVED_FOR_ADAPTIVE_IMPLEMENTATION') -or
+        ($approvedLimit.humanDecisions[0].status -ne 'RESOLVED') -or
+        (-not (Test-Path -LiteralPath (Join-Path $limitRoot 'round-003/approved-review-plan.md')))) {
+        Add-Failure 'Human decision did not create a gated approved Adaptive plan before round 4 start.'
+    }
+    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:07:30Z' -AdaptiveResult 'adaptive/round-003/result.md' -ExpectSuccess $false -ExpectedPattern 'precedes the human decision approval'
+    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:09:00Z' -ExpectSuccess $false -ExpectedPattern 'requires --adaptive-result-reference'
+    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:09:00Z' -AdaptiveResult 'adaptive/round-003/result.md'
+    $r4 = Write-RoundResult $limitRoot 4 $limitHeads[3] '2026-02-01T00:10:00Z' 'REVIEW_COMPLETE' @(
         (New-Delta 'TRK-LIMIT' 'resolved' @() @('review:limit:4'))
     ) $false
     Complete-Round $limitCycle $r4
@@ -555,6 +621,10 @@ try {
     if ($limit.effectiveMaximumRounds -ne 4 -or $limit.overrides.Count -ne 1 -or $limit.overrides[0].approvedBy -ne 'fixture-human') {
         Add-Failure 'Round 4 override evidence is incomplete.'
     }
+    $approvedTamperRoot = Join-Path $tempRoot 'tampered-approved-plan'
+    Copy-Item -LiteralPath $limitRoot -Destination $approvedTamperRoot -Recurse
+    [System.IO.File]::AppendAllText((Join-Path $approvedTamperRoot 'round-003/approved-review-plan.md'), "tamper`n", $utf8)
+    Invoke-Manager @('validate', '--cycle', (Join-Path $approvedTamperRoot 'review-cycle.json'), '--format', 'json') 'approved plan mutation' $false 'approved plan hash.*mismatch' | Out-Null
 
     # A non-limit human decision also requires an explicit matching resolution before the next round.
     $humanRoot = Join-Path $tempRoot 'human-decision'
@@ -564,11 +634,13 @@ try {
     Start-Round $humanCycle $humanHead1 '2026-02-02T00:00:00Z'
     $humanResult1 = Write-RoundResult -CycleRoot $humanRoot -RoundNumber 1 -HeadOid $humanHead1 -CompletedAt '2026-02-02T00:01:00Z' -Verdict 'HUMAN_DECISION_REQUIRED' -FindingDelta @(
         (New-Delta 'TRK-HUMAN' 'new' @('PUR-150') @('pr-comment:human:1'))
-    ) -IncludePlan $true -HumanDecisionReason 'Human scope choice is required.'
+    ) -IncludePlan $false -HumanDecisionReason 'Human scope choice is required.'
     Complete-Round $humanCycle $humanResult1
-    Start-Round -CyclePath $humanCycle -HeadOid $humanHead2 -StartedAt '2026-02-02T00:02:00Z' -AdaptiveResult 'adaptive/round-001/result.md' -ExpectSuccess $false -ExpectedPattern 'must be explicitly resolved'
-    Start-Round -CyclePath $humanCycle -HeadOid $humanHead2 -StartedAt '2026-02-02T00:02:00Z' -AdaptiveResult 'adaptive/round-001/result.md' -ResolveDecision 'HD-001'
-    $humanResult2 = Write-RoundResult $humanRoot 2 $humanHead2 '2026-02-02T00:03:00Z' 'REVIEW_COMPLETE' @(
+    Start-Round -CyclePath $humanCycle -HeadOid $humanHead2 -StartedAt '2026-02-02T00:02:00Z' -AdaptiveResult 'adaptive/round-001/result.md' -ExpectSuccess $false -ExpectedPattern 'must be resolved with a validated approved plan'
+    $humanDelta = @((New-Delta 'TRK-HUMAN' 'new' @('PUR-150') @('pr-comment:human:1')))
+    Resolve-HumanDecision $humanCycle 1 $humanHead1 $humanDelta 'HD-001' '2026-02-02T00:02:00Z'
+    Start-Round -CyclePath $humanCycle -HeadOid $humanHead2 -StartedAt '2026-02-02T00:03:00Z' -AdaptiveResult 'adaptive/round-001/result.md'
+    $humanResult2 = Write-RoundResult $humanRoot 2 $humanHead2 '2026-02-02T00:04:00Z' 'REVIEW_COMPLETE' @(
         (New-Delta 'TRK-HUMAN' 'resolved' @() @('pr-comment:human:2'))
     ) $false
     Complete-Round $humanCycle $humanResult2
@@ -593,7 +665,7 @@ try {
     Complete-Round $reopenCycle (Write-RoundResult $reopenRoot 3 $reopenHeads[2] '2026-03-01T00:05:00Z' 'HUMAN_DECISION_REQUIRED' @(
         (New-Delta 'TRK-REOPEN' 'reopened' @('LR-203') @('review:reopen:3')),
         (New-Delta 'TRK-KEEP' 'resolved' @() @('comment:keep:3'))
-    ) $true)
+    ) $false)
     $reopen = Get-Content -Raw -LiteralPath $reopenCycle | ConvertFrom-Json -Depth 100
     $reopenStates = @($reopen.findingLedger | Where-Object trackingId -eq 'TRK-REOPEN').history.state
     $expectedReopen = @($fixture.scenarios | Where-Object id -eq 'reopened').expectedStates
@@ -621,13 +693,13 @@ try {
     $noPlanResult = Write-RoundResult $noPlanRoot 1 'dddddddddddddddddddddddddddddddddddddddd' '2026-04-02T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' @(
         (New-Delta 'TRK-NOPLAN' 'new' @('LR-302') @('review:negative:2'))
     ) $false
-    Complete-Round $noPlanCycle $noPlanResult $false 'require a review-plan'
+    Complete-Round $noPlanCycle $noPlanResult $false 'requires a review-plan'
 
     $emptyPlanRoot = Join-Path $tempRoot 'negative-empty-plan'
     $emptyPlanCycle = Join-Path $emptyPlanRoot 'review-cycle.json'
     Start-Round $emptyPlanCycle 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' '2026-04-03T00:00:00Z'
     $emptyPlanResult = Write-RoundResult $emptyPlanRoot 1 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' '2026-04-03T00:01:00Z' 'REVIEW_COMPLETE' @() $true
-    Complete-Round $emptyPlanCycle $emptyPlanResult $false 'must not include an Adaptive review-plan'
+    Complete-Round $emptyPlanCycle $emptyPlanResult $false 'must not include an executable Adaptive review-plan'
 
     $coverageRoot = Join-Path $tempRoot 'negative-coverage'
     $coverageCycle = Join-Path $coverageRoot 'review-cycle.json'
@@ -834,7 +906,7 @@ try {
     Complete-Round $missingCycle $missingResult $false 'missing persistent/resolved mapping'
 
     $observedMutations = @($fixture.negativeMutations)
-    foreach ($required in @('duplicate-head', 'missing-adaptive-result-reference', 'identity-drift', 'existing-round-directory', 'historical-artifact-hash', 'unknown-persistent-finding', 'missing-active-finding-mapping', 'round-limit-verdict', 'incomplete-override', 'actionable-without-plan', 'review-complete-with-plan', 'missing-source-coverage', 'source-tracking-swap', 'invalid-reopened-transition', 'round-result-head-identity', 'notification-status', 'notification-pr', 'early-override', 'unresolved-human-decision', 'wrong-human-decision-id', 'review-context-content', 'goal-context-selection-content', 'goal-context-selection-schema', 'goal-context-selection-lifecycle', 'review-result-content', 'uncovered-artifact-source', 'malformed-source-oid', 'remote-patch-binding', 'review-plan-intent', 'review-plan-acceptance', 'review-plan-finding-mapping', 'intent-extra-scope', 'intent-extra-acceptance', 'non-iso-timestamp', 'missing-timestamp-offset', 'cycle-root-link-escape', 'cycle-file-link-escape', 'round-directory-link-escape', 'artifact-file-link-escape')) {
+    foreach ($required in @('duplicate-head', 'missing-adaptive-result-reference', 'identity-drift', 'existing-round-directory', 'historical-artifact-hash', 'unknown-persistent-finding', 'missing-active-finding-mapping', 'round-limit-verdict', 'incomplete-override', 'actionable-without-plan', 'review-complete-with-plan', 'missing-source-coverage', 'source-tracking-swap', 'invalid-reopened-transition', 'round-result-head-identity', 'notification-status', 'notification-pr', 'early-override', 'unresolved-human-decision', 'adaptive-before-decision', 'resolve-with-adaptive-result', 'start-before-decision-approval', 'wrong-human-decision-id', 'human-decision-with-plan', 'resolution-missing-approved-plan', 'approved-plan-missing-handoff', 'approved-plan-hash', 'review-context-content', 'goal-context-selection-content', 'goal-context-selection-schema', 'goal-context-selection-lifecycle', 'review-result-content', 'uncovered-artifact-source', 'malformed-source-oid', 'remote-patch-binding', 'review-plan-intent', 'review-plan-acceptance', 'review-plan-finding-mapping', 'intent-extra-scope', 'intent-extra-acceptance', 'non-iso-timestamp', 'missing-timestamp-offset', 'cycle-root-link-escape', 'cycle-file-link-escape', 'round-directory-link-escape', 'artifact-file-link-escape')) {
         if ($required -notin $observedMutations) { Add-Failure "Fixture negative mutation is missing: $required" }
     }
 }
