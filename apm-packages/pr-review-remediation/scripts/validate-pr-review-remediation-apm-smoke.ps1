@@ -137,9 +137,11 @@ try {
     $installedReviewHelper = Join-Path $repositoryModule 'apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs'
     $reviewHelper = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'sync-pr-review-remediation-local.cs'))
     $adaptiveHelper = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs'))
+    $sourceGoalContextFixture = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../tests/pr-review-remediation/PRR-002/fixture/docs/goal-context-direct-review-notification.md'))
     Assert-File $installedReviewHelper 'installed review profile helper'
     Assert-File $reviewHelper 'canonical review profile helper from the source checkout'
     Assert-File $adaptiveHelper 'canonical Adaptive profile helper from the source checkout'
+    Assert-File $sourceGoalContextFixture 'canonical reviewed Goal Context smoke fixture from the source checkout'
 
     Invoke-Native 'dotnet' @('run', '--file', $reviewHelper, '--', $scratch) 'review profile synchronization'
     Invoke-Native 'dotnet' @('run', '--file', $adaptiveHelper, '--', $scratch) 'Adaptive profile synchronization'
@@ -150,7 +152,7 @@ try {
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedGoalAuthoringSkill 'scripts/validate-goal-context.cs'), '--', '--help') 'deployed canonical Goal Context validator help'
     Invoke-Native 'dotnet' @(
         'run', '--file', (Join-Path $deployedGoalAuthoringSkill 'scripts/validate-goal-context.cs'), '--',
-        '--goal-context', (Join-Path $repositoryModule 'apm-packages/goal-context-authoring/docs/examples/goal-context-resumable-local-batch-export.md'),
+        '--goal-context', $sourceGoalContextFixture,
         '--mode', 'strict', '--format', 'json'
     ) 'deployed canonical Goal Context validator reviewed example'
 
@@ -159,7 +161,7 @@ try {
     $linkDocs = Join-Path $linkTestRoot 'docs'
     New-Item -ItemType Directory -Path $linkDocs -Force | Out-Null
     $outsideGoal = Join-Path $outside 'goal-context-outside.md'
-    Copy-Item -LiteralPath (Join-Path $repositoryModule 'tests/pr-review-remediation/PRR-002/fixture/docs/goal-context-direct-review-notification.md') -Destination $outsideGoal
+    Copy-Item -LiteralPath $sourceGoalContextFixture -Destination $outsideGoal
     New-Item -ItemType SymbolicLink -Path (Join-Path $linkDocs 'goal-context-linked.md') -Target $outsideGoal | Out-Null
     Invoke-NativeFailure 'dotnet' @(
         'run', '--file', $selectorScript, '--', '--repository-root', $scratch,

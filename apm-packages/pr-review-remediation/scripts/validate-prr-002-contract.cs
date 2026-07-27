@@ -128,19 +128,33 @@ static class ReplayValidator
         if (!artifacts.TryGetValue("review-context", out var reviewArtifact)) return errors;
         using var reviewContext = ReadJson(Contained(fixtureRoot, reviewArtifact.Path));
         var reviewRoot = reviewContext.RootElement;
-        Equal(errors, "review-context repository", repository, Text(reviewRoot, "repository"));
-        var pullRequest = Required(reviewRoot, "pullRequest");
-        Equal(errors, "review-context PR", pr, Int(pullRequest, "number"));
-        Equal(errors, "review-context URL", prUrl, Text(pullRequest, "url"));
-        Equal(errors, "review-context base branch", baseBranch, Text(pullRequest, "baseRefName"));
-        Equal(errors, "review-context base OID", baseOid, Text(pullRequest, "baseRefOid"));
-        Equal(errors, "review-context head branch", headBranch, Text(pullRequest, "headRefName"));
-        Equal(errors, "review-context head OID", headOid, Text(pullRequest, "headRefOid"));
+        Equal(errors, "review-context schemaVersion", "1.0", Text(reviewRoot, "schemaVersion"));
+        var target = Required(reviewRoot, "target");
+        Equal(errors, "review-context repository", repository, Text(target, "repository"));
+        Equal(errors, "review-context PR", pr, Int(target, "pullRequest"));
+        Equal(errors, "review-context URL", prUrl, Text(target, "url"));
+        Equal(errors, "review-context state", "OPEN", Text(target, "state"));
+        Equal(errors, "review-context draft state", false, Bool(target, "isDraft"));
+        Equal(errors, "review-context base branch", baseBranch, Text(target, "baseRefName"));
+        Equal(errors, "review-context base OID", baseOid, Text(target, "baseRefOid"));
+        Equal(errors, "review-context head branch", headBranch, Text(target, "headRefName"));
+        Equal(errors, "review-context head OID", headOid, Text(target, "headRefOid"));
+
+        var reviewArtifacts = Required(reviewRoot, "artifacts");
+        Equal(errors, "review-context remote patch", Path.GetFileName(artifacts["remote-patch"].Path), Text(reviewArtifacts, "remotePatch"));
+        var sources = Required(reviewRoot, "sources");
+        var pullRequest = Required(sources, "pullRequest");
+        Equal(errors, "collector source PR", pr, Int(pullRequest, "number"));
+        Equal(errors, "collector source URL", prUrl, Text(pullRequest, "url"));
+        Equal(errors, "collector source base branch", baseBranch, Text(pullRequest, "baseRefName"));
+        Equal(errors, "collector source base OID", baseOid, Text(pullRequest, "baseRefOid"));
+        Equal(errors, "collector source head branch", headBranch, Text(pullRequest, "headRefName"));
+        Equal(errors, "collector source head OID", headOid, Text(pullRequest, "headRefOid"));
 
         var rawSourceIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var arrayName in new[] { "reviews", "inlineComments", "prComments", "checks" })
+        foreach (var arrayName in new[] { "reviews", "issueComments", "inlineComments", "checks" })
         {
-            foreach (var item in Required(reviewRoot, arrayName).EnumerateArray())
+            foreach (var item in Required(sources, arrayName).EnumerateArray())
             {
                 var sourceId = Text(item, "sourceId");
                 if (!rawSourceIds.Add(sourceId)) errors.Add($"Duplicate review-context sourceId: {sourceId}");

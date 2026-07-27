@@ -232,7 +232,7 @@ Assert-Contains $fixturePlan '\$adaptive-implementation-execution' 'fixture sepa
 Assert-Contains 'tests/pr-review-remediation/PRR-002/purpose-review-findings.md' 'Verdict: PURPOSE_REVIEWED' 'Goal Context fixture purpose verdict'
 Assert-Contains 'tests/pr-review-remediation/PRR-002/local-review-findings.md' 'Verdict: REVIEWED' 'Goal Context fixture local verdict'
 Assert-Contains 'tests/pr-review-remediation/PRR-002/local-review-findings.md' 'LR-001' 'Goal Context fixture stable local finding ID'
-Assert-Contains 'tests/pr-review-remediation/PRR-002/fixture/.review/pr-123/review-context.json' '(?s)"waitStatus":\s*"completed".*"observedReviewState":\s*"reviewAndInline".*"stableSamplesObserved":\s*2' 'Goal Context fixture retained Copilot wait state'
+Assert-Contains 'tests/pr-review-remediation/PRR-002/fixture/.review/pr-123/review-context.json' '(?s)"schemaVersion":\s*"1\.0".*"target":.*"sources":.*"reviews":.*"issueComments":.*"inlineComments":.*"checks":' 'Goal Context fixture uses the shared collector schema'
 Assert-Contains 'tests/pr-review-remediation/PRR-002/purpose-review-findings.md' 'PUR-001' 'Goal Context fixture stable purpose finding ID'
 Assert-Contains 'tests/pr-review-remediation/PRR-002/review-plan.md' '(?s)LR-001.*PUR-001.*RC-001' 'Goal Context fixture integrated source coverage'
 Assert-Contains 'tests/pr-review-remediation/PRR-002/review-plan.md' 'Goal Context Boundary' 'Goal Context fixture boundary'
@@ -427,6 +427,14 @@ try {
         (Get-Content -Raw -LiteralPath $path).Replace('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'cccccccccccccccccccccccccccccccccccccccc') | Set-Content -LiteralPath $path -Encoding utf8 -NoNewline
         Update-ReplayArtifactHash $root 'local-findings'
     } 'local findings does not contain exact contract value'
+    Test-ReplayMutation 'collector-schema' {
+        param($root)
+        $path = Join-Path $root 'fixture/.review/pr-123/review-context.json'
+        $context = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json -Depth 100
+        $context.schemaVersion = '0.9'
+        $context | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $path -Encoding utf8 -NoNewline
+        Update-ReplayArtifactHash $root 'review-context'
+    } 'review-context schemaVersion mismatch'
     Test-ReplayMutation 'source-coverage' {
         param($root)
         $path = Join-Path $root 'run.json'
@@ -475,8 +483,33 @@ try {
         New-Item -ItemType Directory -Path $scenarioRoot | Out-Null
         $env:FAKE_GH_SCENARIO = $Scenario
         $env:FAKE_GH_STATE = Join-Path $scenarioRoot 'state.txt'
-        $arguments = @('--repo', 'example/repo', '--pr', '123', '--out', $scenarioRoot, '--gh-executable', $fakeExe) + $ExtraArgs
+        $fixtureRepository = if ($Scenario -eq 'prr-002') { 'fixture/goal-context-review' } else { 'example/repo' }
+        $arguments = @('--repo', $fixtureRepository, '--pr', '123', '--out', $scenarioRoot, '--gh-executable', $fakeExe) + $ExtraArgs
         return Invoke-Native $collectorExe $arguments "collector fixture $Scenario" $ExpectSuccess
+    }
+
+    function Get-CollectorProjection([string]$Path) {
+        $context = Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json -Depth 100
+        $context.PSObject.Properties.Remove('generatedAt')
+        foreach ($property in @('startedAt', 'completedAt', 'elapsedSeconds')) {
+            $context.copilotReviewWait.PSObject.Properties.Remove($property)
+        }
+        return ($context | ConvertTo-Json -Depth 100 -Compress)
+    }
+
+    Invoke-Fixture 'prr-002' @('--no-wait-for-copilot') | Out-Null
+    $generatedReplayRoot = Join-Path $tempRoot 'prr-002'
+    $generatedProjection = Get-CollectorProjection (Join-Path $generatedReplayRoot 'review-context.json')
+    $committedProjection = Get-CollectorProjection (Join-Path $prr002Root 'fixture/.review/pr-123/review-context.json')
+    if ($generatedProjection -cne $committedProjection) {
+        $generatedProjectionHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($generatedProjection))).ToLowerInvariant()
+        $committedProjectionHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($committedProjection))).ToLowerInvariant()
+        Add-Failure "PRR-002 review-context drifted from the shared collector canonical projection (generated $generatedProjectionHash, committed $committedProjectionHash)."
+    }
+    $generatedPatch = (Get-Content -Raw -LiteralPath (Join-Path $generatedReplayRoot 'pr-diff.patch')).Replace("`r`n", "`n").Replace("`r", "`n")
+    $committedPatch = (Get-Content -Raw -LiteralPath (Join-Path $prr002Root 'fixture/.review/pr-123/pr-diff.patch')).Replace("`r`n", "`n").Replace("`r", "`n")
+    if ($generatedPatch -cne $committedPatch) {
+        Add-Failure 'PRR-002 remote patch drifted from the shared collector fake-gh input.'
     }
 
     Invoke-Fixture 'ready' @('--no-wait-for-copilot') | Out-Null

@@ -21,7 +21,7 @@
     "normalizedSha256": "c38af168cfedf31d198f49b8b7a47a91a3f493e129b47e72432589a8e5eb4030"
   },
   "artifacts": [
-    { "role": "review-context", "path": "fixture/.review/pr-123/review-context.json", "normalizedSha256": "0cf425ff4b11e616dd9ba9d5b8d97dad27d1de69dde671a4de9904cd3ad38978" },
+    { "role": "review-context", "path": "fixture/.review/pr-123/review-context.json", "normalizedSha256": "0517370e6eb35466ffc0140fadbfef729c1ab7c1a122fc06fefcccfecf0b628a" },
     { "role": "remote-patch", "path": "fixture/.review/pr-123/pr-diff.patch", "normalizedSha256": "b80549e916ea189b1a08cd6fd0e7b80290437fdf4bf8ce1f1ff88707212a0e2f" },
     { "role": "goal-context-selection", "path": "goal-context-selection.json", "normalizedSha256": "ae0fe74852e22aa13cfdcbe7c2eda2e6d760ea1138297f57f771ffc9017b873f" },
     { "role": "local-findings", "path": "local-review-findings.md", "normalizedSha256": "4f1a453b635500e9062dd27ad608137335e706503cd49be154570480d43ddfae" },
