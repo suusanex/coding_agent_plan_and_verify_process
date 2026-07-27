@@ -381,6 +381,8 @@ pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remedia
 
 `-DescribePayload`は外部modelへ送信せず対象一覧だけを表示します。内容を確認して送信を明示承認した場合だけ、`-ConfirmExternalModelPayload`で実model smokeを実行します。
 
+Goal Context対応版を本物のmodelで確認する場合は、PR #60自身ではなくdisposable target repositoryの小さなPRを使います。PR head SHA固定の導入、送信前確認、独立review、Phase 1停止、direct-link notification、別親ターンAdaptiveまでの手順と証拠様式は`tests/pr-review-remediation/manual-model-smoke/README.md`を参照してください。
+
 固定実行証跡は`tests/pr-review-remediation/PRR-001/`、外部modelを呼ばないGoal Context contract replayは`PRR-002/`に保存します。remote APM導入はAPM 0.26.0で次のように再現でき、CIではpull requestのfull head SHAまたはpushの`github.sha`を指定して検証対象を固定します。
 
 ```powershell

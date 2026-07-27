@@ -102,7 +102,9 @@ foreach ($path in @(
     'tests/pr-review-remediation/PRR-002/purpose-review-findings.md',
     'tests/pr-review-remediation/PRR-002/review-plan.md',
     'tests/pr-review-remediation/PRR-002/completion-notification.txt',
-    'tests/pr-review-remediation/PRR-002/adaptive-turn-input.txt'
+    'tests/pr-review-remediation/PRR-002/adaptive-turn-input.txt',
+    'tests/pr-review-remediation/manual-model-smoke/README.md',
+    'tests/pr-review-remediation/manual-model-smoke/result-template.md'
 )) {
     Assert-Exists $path
 }
@@ -209,6 +211,7 @@ Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' '(?s)pull
 Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' 'git diff --check origin/main\.\.\.HEAD' 'branch-range whitespace gate'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'apm install|@\(''install''' 'real remote APM install command'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'finally\s*\{' 'remote smoke cleanup boundary'
+Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' '\$global:LASTEXITCODE\s*=\s*0' 'Linux success exit reset after expected native failures'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1' 'ConfirmExternalModelPayload' 'actual agent smoke external-payload consent gate'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1' 'DescribePayload' 'no-send payload description mode'
 foreach ($documentation in @(
@@ -219,6 +222,9 @@ foreach ($documentation in @(
     Assert-Contains $documentation '(?s)run-pr-review-remediation-agent-smoke\.ps1.*-DescribePayload.*run-pr-review-remediation-agent-smoke\.ps1.*-ConfirmExternalModelPayload' 'payload preview and authorized smoke commands'
 }
 Assert-Contains 'tests/pr-review-remediation/PRR-001/README.md' 'customAgentSpawnObserved.*false' 'actual execution disclosure'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)full head SHA.*disposable target.*送信を承認.*local-reviewer.*purpose-reviewer.*Phase 1.*別親ターン.*Adaptive' 'manual real-model smoke boundary and acceptance sequence'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)completion-notification-decorator.*NotificationInstaller.*--dry-run.*--check' 'manual direct-link notification installation preflight'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/result-template.md' '(?s)External model payload approved.*Local finding.*Purpose-only finding.*Phase 1 stopped.*Direct-link notification.*Adaptive handoff' 'manual smoke evidence checklist'
 
 $fixtureLocal = 'apm-packages/pr-review-remediation/tests/fixtures/expected-local-review-findings.md'
 $fixturePlan = 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md'

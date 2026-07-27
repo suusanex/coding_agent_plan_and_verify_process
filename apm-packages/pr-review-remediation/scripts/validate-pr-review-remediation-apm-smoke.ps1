@@ -214,6 +214,10 @@ try {
     Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'purpose-reviewer' 'APM lock purpose reviewer dependency entry'
     Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'review-planner' 'APM lock review planner dependency entry'
 
+    # Expected-failure probes invoke native commands that return non-zero. Reset the
+    # process-visible native status so pwsh does not turn a successful smoke into a
+    # failed GitHub Actions step on Linux.
+    $global:LASTEXITCODE = 0
     Write-Output "PR Review Remediation remote APM smoke: PASS"
     Write-Output "Package: $packageSpec"
     Write-Output "APM: $($apmVersion.Trim())"
