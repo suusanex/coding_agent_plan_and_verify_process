@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "repository": "owner/repository",
+  "pullRequest": 123,
+  "roundNumber": 2,
+  "baseOid": "0000000000000000000000000000000000000000",
+  "headOid": "1111111111111111111111111111111111111111",
+  "goalContext": {
+    "path": "docs/goal-context-example.md",
+    "normalizedSha256": "<sha256>"
+  },
+  "verdict": "READY_FOR_ADAPTIVE_IMPLEMENTATION",
+  "findingDelta": [
+    {
+      "trackingId": "TRK-001",
+      "state": "persistent",
+      "findingIds": ["LR-002"],
+      "sourceIds": ["review:456"]
+    }
+  ],
+  "sourceCoverage": [
+    { "sourceId": "review:456", "disposition": "finding", "trackingIds": ["TRK-001"], "reason": null },
+    { "sourceId": "LR-002", "disposition": "finding", "trackingIds": ["TRK-001"], "reason": null },
+    { "sourceId": "check:789", "disposition": "noAction", "trackingIds": [], "reason": "Check passed." }
+  ],
+  "artifactBindings": [
+    { "role": "review-context", "normalizedSha256": "<sha256>" },
+    { "role": "remote-patch", "normalizedSha256": "<sha256>" },
+    { "role": "goal-context-selection", "normalizedSha256": "<sha256>" },
+    { "role": "local-findings", "normalizedSha256": "<sha256>" },
+    { "role": "purpose-findings", "normalizedSha256": "<sha256>" },
+    { "role": "review-plan", "normalizedSha256": "<sha256>" }
+  ]
+}

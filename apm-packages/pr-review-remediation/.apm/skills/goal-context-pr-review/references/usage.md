@@ -34,7 +34,7 @@ owner/repository#123のGoal Context multi-round review round 2を開始してく
 前roundのAdaptive resultは<path-or-uri>です。最新headを収集し、round-002へ保存して通知後に停止してください。
 ```
 
-同じheadの再review、前Adaptive resultなしのround 2以降、過去round directoryの再利用は拒否します。既定上限は3です。第3roundでactionable findingが残れば`HUMAN_DECISION_REQUIRED`で停止し、第4round以降は利用者のidentity、承認時刻、理由、新しい上限をCLI overrideへ明示します。
+同じheadの再review、前Adaptive resultなしのround 2以降、過去round directoryの再利用は拒否します。`HUMAN_DECISION_REQUIRED`後は、表示されたdecision IDへresolution、承認者、承認時刻を明示してから次roundを開始します。既定上限は3です。第3roundでactionable findingが残れば停止し、第4round以降はdecision resolutionに加え、利用者のidentity、承認時刻、理由、新しい上限をCLI overrideへ明示します。
 
 ## Phase 2 with notification
 

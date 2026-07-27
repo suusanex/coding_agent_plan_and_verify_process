@@ -111,6 +111,7 @@ try {
         'scripts/select-goal-context.cs',
         'scripts/manage-review-cycle.cs',
         'templates/purpose-review-findings.md',
+        'templates/review-result.example.json',
         'templates/review-round-result.example.json',
         'references/design.md',
         'references/usage.md',

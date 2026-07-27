@@ -27,12 +27,20 @@
       "overrideMaximumRounds": 4
     },
     {
+      "id": "human-decision-resolution",
+      "expectedVerdicts": [
+        "HUMAN_DECISION_REQUIRED",
+        "REVIEW_COMPLETE"
+      ]
+    },
+    {
       "id": "reopened",
       "expectedStates": ["new", "resolved", "reopened"]
     }
   ],
   "negativeMutations": [
     "duplicate-head",
+    "early-override",
     "missing-adaptive-result-reference",
     "identity-drift",
     "existing-round-directory",
@@ -41,12 +49,18 @@
     "missing-active-finding-mapping",
     "round-limit-verdict",
     "incomplete-override",
+    "unresolved-human-decision",
+    "wrong-human-decision-id",
     "actionable-without-plan",
     "review-complete-with-plan",
     "missing-source-coverage",
     "invalid-reopened-transition",
     "round-result-head-identity",
     "notification-status",
-    "notification-pr"
+    "notification-pr",
+    "review-context-content",
+    "goal-context-selection-content",
+    "review-result-content",
+    "uncovered-artifact-source"
   ]
 }

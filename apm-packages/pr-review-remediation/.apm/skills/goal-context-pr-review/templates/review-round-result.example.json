@@ -13,7 +13,7 @@
     { "role": "goal-context-selection", "path": "round-002/goal-context-selection.json", "normalizedSha256": "<sha256>" },
     { "role": "local-findings", "path": "round-002/local-review-findings.md", "normalizedSha256": "<sha256>" },
     { "role": "purpose-findings", "path": "round-002/purpose-review-findings.md", "normalizedSha256": "<sha256>" },
-    { "role": "review-result", "path": "round-002/review-result.md", "normalizedSha256": "<sha256>" },
+    { "role": "review-result", "path": "round-002/review-result.json", "normalizedSha256": "<sha256>" },
     { "role": "review-plan", "path": "round-002/review-plan.md", "normalizedSha256": "<sha256>" },
     { "role": "completion-notification", "path": "round-002/completion-notification.txt", "normalizedSha256": "<sha256>" }
   ],
@@ -33,6 +33,12 @@
   "sourceCoverage": [
     {
       "sourceId": "review:456",
+      "disposition": "finding",
+      "trackingIds": ["TRK-001"],
+      "reason": null
+    },
+    {
+      "sourceId": "LR-002",
       "disposition": "finding",
       "trackingIds": ["TRK-001"],
       "reason": null

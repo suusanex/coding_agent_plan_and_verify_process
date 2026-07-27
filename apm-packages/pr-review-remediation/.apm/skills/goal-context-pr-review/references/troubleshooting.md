@@ -26,7 +26,11 @@ code bug、test不足、保守性riskは`local-reviewer`へ残します。`purpo
 
 ## Round 3 still has actionable findings
 
-既定上限へ到達したため`HUMAN_DECISION_REQUIRED`で停止します。第4roundを自動開始しません。継続する場合は、利用者のidentity、承認時刻、理由、増加後の上限を`manage-review-cycle.cs start`のoverride optionsへすべて指定します。
+既定上限へ到達したため`HUMAN_DECISION_REQUIRED`で停止します。第4roundを自動開始しません。継続する場合は、pending decision IDのresolutionと承認情報を記録し、さらに利用者のidentity、承認時刻、理由、増加後の上限を`manage-review-cycle.cs start`のoverride optionsへすべて指定します。
+
+## Artifact content mismatch
+
+hashだけを更新して続行しません。review-contextのrepository/PR/OIDとsource IDs、Goal Context selection、local/purpose identity、review-resultのverdict/finding delta/source coverage/bindingsのどれがround-resultと異なるかを確認し、現在のin-progress round内で正しいartifactを再生成します。完了済みroundは変更しません。
 
 ## Historical artifact hash mismatch
 

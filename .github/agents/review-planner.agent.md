@@ -52,6 +52,7 @@ Goal Context multi-round modeでは追加で必須:
 13. multi-round modeではtracking IDをround間で維持し、各findingを`new | persistent | resolved | reopened`へ分類する。文字列類似だけで同一findingと判定しない。
 14. multi-round modeの第3round以降でactionable findingが残る場合、記録済みhuman overrideが現在roundを許可していない限り`HUMAN_DECISION_REQUIRED`とする。
 15. actionable findingがない場合は`REVIEW_COMPLETE`とし、空のAdaptive向けplanを生成しない。
+16. multi-round modeではreview-contextの全source IDとlocal/purpose finding IDを、tracking IDまたは理由付き`noAction`へ対応させる。
 
 ## Adaptive handoff
 
@@ -88,6 +89,6 @@ implementation_intent:
 - 別親ターン用の正確なAdaptive開始prompt
 - `Production code changed: No`
 
-multi-round modeではround番号、base/head OID、前round、Adaptive result reference、finding delta、notificationのPR直接リンクも返してください。親turnはround artifactを保存して停止し、Adaptive Implementationまたは次review roundを起動してはいけません。
+multi-round modeではround番号、base/head OID、前round、Adaptive result reference、finding delta、source coverage、notificationのPR直接リンクも返してください。さらに`templates/review-result.example.json`に適合するmachine-readable projectionを返し、親turnが`review-result.json`へ保存できるようにしてください。projectionは全review artifactの正規化SHA-256 bindingを含めます。親turnはround artifactを保存して停止し、Adaptive Implementationまたは次review roundを起動してはいけません。
 
 `READY_FOR_ADAPTIVE_IMPLEMENTATION`でも、これはPhase 1の完了です。レビュー反映プロセス全体の完了を宣言せず、親ターンを停止してください。

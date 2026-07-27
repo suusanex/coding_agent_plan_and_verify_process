@@ -28,12 +28,16 @@ multi-round modeは同じSkillの明示的な追加modeです。既存single-rou
 
 `review-cycle.json`はrepository、PR、Goal Context path/hash、既定上限3、有効上限、override、人間判断、round一覧、finding ledgerを保持します。各`round-NNN/`はbase/head OID、前round、前Adaptive result reference、review artifact、finding delta、source coverage、round番号付きnotificationを保持し、過去roundを上書きしません。全source IDはfinding tracking IDまたは理由付き`noAction`へ対応させます。
 
+`review-result.json`はplanner結果のmachine-readable projectionです。repository/PR/round/base/head、Goal Context path/hash、verdict、finding delta、source coverage、入力・plan artifact hash bindingを保持します。cycle managerはreview-context、Goal Context selection、local/purpose findingsをparseし、このprojectionとround-resultを相互照合します。したがってhashが整合していても、別PRのcontext、別Goal Context、未追跡source、異なるverdict/finding deltaは受理しません。
+
 verdict遷移は次のとおりです。
 
 - actionableなし -> `REVIEW_COMPLETE`
 - actionableあり、round < effective maximum -> `READY_FOR_ADAPTIVE_IMPLEMENTATION`
 - actionableあり、round >= effective maximum -> `HUMAN_DECISION_REQUIRED`
 - 必須証拠不足または明示的blocked reason -> `BLOCKED`
+
+`HUMAN_DECISION_REQUIRED`では`HD-NNN`形式のdecision IDを一件発行します。次roundの開始には、そのID、resolution、承認者、承認時刻の一致が必要です。上限到達後の第4round以降では、このdecision resolutionに加えてmaximum-round overrideを要求します。
 
 `READY_FOR_ADAPTIVE_IMPLEMENTATION`は別親ターンのAdaptive handoffだけを許可します。Adaptive完了後の再reviewも、利用者がさらに別の親ターンで明示開始します。Completion Notification Decoratorは各roundのterminal verdictとPR直接リンクを通知するだけで、state transitionや次工程を起動しません。
 

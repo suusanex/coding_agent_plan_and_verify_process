@@ -77,6 +77,7 @@ foreach ($path in @(
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/select-goal-context.cs',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/manage-review-cycle.cs',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/purpose-review-findings.md',
+    'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/review-result.example.json',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/review-round-result.example.json',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/design.md',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/usage.md',
@@ -160,9 +161,16 @@ Assert-Contains $cycleManager 'DefaultMaximumRounds = 3' 'default maximum of thr
 Assert-Contains $cycleManager '(?s)"new".*"persistent".*"resolved".*"reopened"' 'finding transition vocabulary'
 Assert-Contains $cycleManager '(?s)READY_FOR_ADAPTIVE_IMPLEMENTATION.*HUMAN_DECISION_REQUIRED' 'round-limit verdict transition'
 Assert-Contains $cycleManager 'SourceCoverageEntry' 'per-round source coverage contract'
+Assert-Contains $cycleManager 'ValidateArtifactContents' 'role-aware artifact content cross-validation'
+Assert-Contains $cycleManager 'review-context repository' 'review-context identity cross-validation'
+Assert-Contains $cycleManager 'review-result finding delta' 'planner result delta cross-validation'
+Assert-Contains $cycleManager 'A pending human decision must be explicitly resolved' 'pending human decision gate'
+Assert-Contains $cycleManager 'Maximum-round override is accepted only for round 4 or later' 'early override rejection'
+Assert-Contains $cycleManager 'ValidateCycle\(cyclePath, cycle, requireCompletedCurrentRound: false\);\s*SaveCycle' 'pre-save final state validation'
 Assert-NotContains $cycleManager 'Process\.Start|adaptive-implementation-execution|completion-notification-decorator' 'internal process orchestration'
 Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/review-round-result.example.json' '"sourceCoverage"' 'round-result source coverage example'
 Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/review-round-result.example.json' '"roundNumber": 2' 'round notification identity example'
+Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/review-result.example.json' '"artifactBindings"' 'planner result artifact binding example'
 
 $reviewPlan = 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md'
 foreach ($field in @('goal:', 'scope:', 'non_goals:', 'acceptance:', 'constraints:', 'validation:', 'plan_reference:', 'goal_context_reference:')) {

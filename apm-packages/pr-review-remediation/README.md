@@ -33,6 +33,7 @@ APMがSkillとcanonical agentsを導入し、二つのhelperがreview/Adaptive�
 | Goal Context review Skill | `.apm/skills/goal-context-pr-review/SKILL.md` |
 | Goal Context selector | Goal Context Skillの`scripts/select-goal-context.cs` |
 | Multi-round cycle manager | Goal Context Skillの`scripts/manage-review-cycle.cs` |
+| Multi-round planner result schema example | Goal Context Skillの`templates/review-result.example.json` |
 | Multi-round round-result schema example | Goal Context Skillの`templates/review-round-result.example.json` |
 | PRR-002 deterministic replay validator | `scripts/validate-prr-002-contract.cs` |
 | Collector | Skillの`scripts/collect-pr-review-context.cs` |

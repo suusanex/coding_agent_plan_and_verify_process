@@ -56,6 +56,8 @@ Commands:
   - currentState、lastRound
   - round別history、finding IDs、source IDs
 - humanDecisions
+  - decisionId、status、reason
+  - resolution、approvedBy、approvedAt、resolvedForRound
 
 各`round-NNN/round-result.json` schema version 1:
 
@@ -75,6 +77,8 @@ Commands:
 
 round-result自身はstate managerがhashを計算してcycle manifestへ加える。全artifact pathは対象round directory内に限定する。
 
+`review-result.json`はrepository/PR/round/base/head、Goal Context path/hash、verdict、finding delta、source coverage、review artifact hash bindingsを保持する。managerは各roleの内容をparseし、round-resultと相互照合する。
+
 ### 3. Verdict transition
 
 | Condition | Verdict | Adaptive plan |
@@ -85,7 +89,7 @@ round-result自身はstate managerがhashを計算してcycle manifestへ加え�
 | finding同一性、scope等に明示的human decisionが必要 | `HUMAN_DECISION_REQUIRED` | 状況に応じて保持 |
 | identity drift、必須artifact欠落、Goal Context不正 | `BLOCKED` | 生成しない |
 
-第3roundでactionable findingが残る場合、既定では`READY_FOR_ADAPTIVE_IMPLEMENTATION`を禁止する。第4round以降の`start`は、記録済みまたは同時指定されたmaximum-round overrideと、前roundを反映したAdaptive result referenceを要求する。
+第3roundでactionable findingが残る場合、既定では`READY_FOR_ADAPTIVE_IMPLEMENTATION`を禁止する。`HUMAN_DECISION_REQUIRED`後の`start`はpending decision IDに対応する明示resolutionを要求する。第4round以降は、解決済み上限到達decision、maximum-round override、前roundを反映したAdaptive result referenceを要求する。overrideはround 1〜3で拒否し、stateは保存前に再検証する。
 
 ### 4. Finding transition rules
 
@@ -133,6 +137,9 @@ Negative scenarios:
 - previous Adaptive result reference欠落
 - repository／PR／base-head／Goal Context identity drift
 - notification statusまたはdirect link不一致
+- artifact hashを合わせたreview-context identity/source、Goal Context selection、review-result verdict/deltaの内容不一致
+- pending human decision未解決または誤decision ID
+- round 1〜3でのmaximum-round override
 
 ## Verification
 

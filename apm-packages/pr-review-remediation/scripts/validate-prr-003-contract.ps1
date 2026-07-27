@@ -47,6 +47,8 @@ function Start-Round {
         [string]$AdaptiveResult = '',
         [int]$OverrideMaximum = 0,
         [switch]$IncompleteOverride,
+        [string]$ResolveDecision = '',
+        [switch]$IncompleteDecision,
         [bool]$ExpectSuccess = $true,
         [string]$ExpectedPattern = ''
     )
@@ -56,6 +58,15 @@ function Start-Round {
         '--base-oid', $baseOid, '--head-oid', $HeadOid, '--started-at', $StartedAt, '--format', 'json'
     )
     if ($AdaptiveResult) { $arguments += @('--adaptive-result-reference', $AdaptiveResult) }
+    if ($ResolveDecision) {
+        $arguments += @('--resolve-decision', $ResolveDecision)
+        if (-not $IncompleteDecision) {
+            $arguments += @(
+                '--decision-resolution', 'Continue after explicit human review.',
+                '--decision-approved-by', 'fixture-human', '--decision-approved-at', $StartedAt
+            )
+        }
+    }
     if ($OverrideMaximum -gt 0) {
         $arguments += @('--override-maximum-rounds', [string]$OverrideMaximum)
         if (-not $IncompleteOverride) {
@@ -86,7 +97,8 @@ function Write-RoundResult {
         [string]$Verdict,
         [object[]]$FindingDelta,
         [bool]$IncludePlan,
-        [string]$NotificationUri = $prUrl
+        [string]$NotificationUri = $prUrl,
+        [string]$HumanDecisionReason = ''
     )
     $roundName = 'round-{0:000}' -f $RoundNumber
     $roundRoot = Join-Path $CycleRoot $roundName
@@ -96,25 +108,149 @@ function Write-RoundResult {
         'goal-context-selection' = 'goal-context-selection.json'
         'local-findings' = 'local-review-findings.md'
         'purpose-findings' = 'purpose-review-findings.md'
-        'review-result' = 'review-result.md'
+        'review-result' = 'review-result.json'
         'completion-notification' = 'completion-notification.txt'
     }
     if ($IncludePlan) { $roleFiles['review-plan'] = 'review-plan.md' }
 
+    $contextSourceIds = @($FindingDelta | ForEach-Object { $_.sourceIds } | Select-Object -Unique)
+    $coverageBySource = [ordered]@{}
+    foreach ($delta in $FindingDelta) {
+        foreach ($sourceId in @($delta.sourceIds) + @($delta.findingIds)) {
+            if (-not $coverageBySource.Contains($sourceId)) {
+                $coverageBySource[$sourceId] = [System.Collections.Generic.List[string]]::new()
+            }
+            if (-not $coverageBySource[$sourceId].Contains([string]$delta.trackingId)) {
+                $coverageBySource[$sourceId].Add([string]$delta.trackingId)
+            }
+        }
+    }
+    $sourceCoverage = [System.Collections.Generic.List[object]]::new()
+    foreach ($entry in $coverageBySource.GetEnumerator()) {
+        $sourceCoverage.Add([ordered]@{ sourceId = $entry.Key; disposition = 'finding'; trackingIds = @($entry.Value); reason = $null })
+    }
+    $checkSourceId = "check:$roundName"
+    $sourceCoverage.Add([ordered]@{ sourceId = $checkSourceId; disposition = 'noAction'; trackingIds = @(); reason = 'Synthetic check completed without an actionable finding.' })
+
+    $reviewContext = [ordered]@{
+        schemaVersion = '1.0'
+        target = [ordered]@{ repository = $repository; pullRequest = $pullRequest; baseRefOid = $baseOid; headRefOid = $HeadOid }
+        artifacts = [ordered]@{ remotePatch = 'pr-diff.patch' }
+        sources = [ordered]@{
+            pullRequest = [ordered]@{ number = $pullRequest; baseRefOid = $baseOid; headRefOid = $HeadOid }
+            reviews = @()
+            issueComments = @($contextSourceIds | ForEach-Object -Begin { $id = 0 } -Process { $id++; [ordered]@{ id = $id; sourceId = $_ } })
+            inlineComments = @()
+            checks = @([ordered]@{ id = 9000 + $RoundNumber; sourceId = $checkSourceId; status = 'COMPLETED'; conclusion = 'SUCCESS' })
+        }
+    }
+    $reviewContextPath = Join-Path $roundRoot $roleFiles['review-context']
+    [System.IO.File]::WriteAllText($reviewContextPath, (($reviewContext | ConvertTo-Json -Depth 30).Replace("`r`n", "`n") + "`n"), $utf8)
+    [System.IO.File]::WriteAllText((Join-Path $roundRoot $roleFiles['remote-patch']), "diff --git a/fixture.txt b/fixture.txt`n# $roundName $HeadOid`n", $utf8)
+
+    $selection = [ordered]@{ schemaVersion = 2; selectionStatus = 'SELECTED'; selectedPath = $goalContextPath; validation = 'PASS'; contentSha256 = $goalContextSha }
+    [System.IO.File]::WriteAllText((Join-Path $roundRoot $roleFiles['goal-context-selection']), (($selection | ConvertTo-Json -Depth 10).Replace("`r`n", "`n") + "`n"), $utf8)
+
+    $localIds = @($FindingDelta | ForEach-Object { $_.findingIds } | Where-Object { $_ -match '^LR-\d+$' } | Select-Object -Unique)
+    $localRows = if ($localIds.Count -eq 0) { '| N/A | N/A | N/A | No local actionable finding. | N/A | N/A | N/A |' } else { @($localIds | ForEach-Object { "| $_ | P1 | fixture | Synthetic local finding. | fixture | fixture | fixture |" }) -join "`n" }
+    $localContent = @"
+# Local Review Findings
+
+## Verdict
+
+- Verdict: REVIEWED
+- Production code changed: No
+
+## PR Identity
+
+- Repository: $repository
+- PR: $pullRequest
+- Base branch / OID: main / $baseOid
+- Head branch / OID: feature / $HeadOid
+
+## Findings
+
+| Finding ID | Severity | Location | Summary | Evidence | Risk | Suggested remediation |
+| --- | --- | --- | --- | --- | --- | --- |
+$localRows
+"@
+    [System.IO.File]::WriteAllText((Join-Path $roundRoot $roleFiles['local-findings']), $localContent.Replace("`r`n", "`n") + "`n", $utf8)
+
+    $purposeIds = @($FindingDelta | ForEach-Object { $_.findingIds } | Where-Object { $_ -match '^PUR-\d+$' } | Select-Object -Unique)
+    $purposeRows = if ($purposeIds.Count -eq 0) { '| N/A | N/A | No purpose actionable finding. | N/A | N/A | N/A |' } else { @($purposeIds | ForEach-Object { "| $_ | Desired outcome | Synthetic purpose finding. | fixture | fixture | fixture |" }) -join "`n" }
+    $purposeContent = @"
+# Purpose Review Findings
+
+## Verdict
+
+- Verdict: PURPOSE_REVIEWED
+- Production code changed: No
+
+## PR and Goal Context Identity
+
+- Repository: $repository
+- PR: $pullRequest
+- Base branch / OID: main / $baseOid
+- Head branch / OID: feature / $HeadOid
+- Goal Context: $goalContextPath
+- Goal Context SHA-256: $goalContextSha
+
+## Findings
+
+| ID | Goal Context section | Summary | PR evidence | Purpose risk | Suggested outcome |
+| --- | --- | --- | --- | --- | --- |
+$purposeRows
+"@
+    [System.IO.File]::WriteAllText((Join-Path $roundRoot $roleFiles['purpose-findings']), $purposeContent.Replace("`r`n", "`n") + "`n", $utf8)
+
+    if ($IncludePlan) {
+        $deltaRows = @($FindingDelta | ForEach-Object { "| $($_.trackingId) | $($_.state) | $(@($_.findingIds) -join ', ') | $(@($_.sourceIds) -join ', ') |" }) -join "`n"
+        $planContent = @"
+# PR Review Remediation Plan
+
+- Verdict: $Verdict
+- Repository: $repository
+- PR: $pullRequest
+- Base branch / OID: main / $baseOid
+- Head branch / OID: feature / $HeadOid
+- Selected Goal Context: $goalContextPath
+- Goal Context SHA-256: $goalContextSha
+
+| Tracking ID | State | Finding IDs | Source IDs |
+| --- | --- | --- | --- |
+$deltaRows
+"@
+        [System.IO.File]::WriteAllText((Join-Path $roundRoot $roleFiles['review-plan']), $planContent.Replace("`r`n", "`n") + "`n", $utf8)
+    }
+
+    [System.IO.File]::WriteAllText((Join-Path $roundRoot $roleFiles['completion-notification']), "{`"observed_status`":`"$Verdict`",`"title`":`"Goal Context review $roundName completed`",`"result_uri`":`"$NotificationUri`"}`n", $utf8)
+
+    $artifactBindings = [System.Collections.Generic.List[object]]::new()
+    foreach ($role in @('review-context', 'remote-patch', 'goal-context-selection', 'local-findings', 'purpose-findings', 'review-plan')) {
+        if ($roleFiles.Contains($role)) {
+            $bindingPath = Join-Path $roundRoot $roleFiles[$role]
+            $artifactBindings.Add([ordered]@{ role = $role; normalizedSha256 = Get-NormalizedSha256 $bindingPath })
+        }
+    }
+    $reviewResult = [ordered]@{
+        schemaVersion = 1
+        repository = $repository
+        pullRequest = $pullRequest
+        roundNumber = $RoundNumber
+        baseOid = $baseOid
+        headOid = $HeadOid
+        goalContext = [ordered]@{ path = $goalContextPath; normalizedSha256 = $goalContextSha }
+        verdict = $Verdict
+        findingDelta = @($FindingDelta)
+        sourceCoverage = @($sourceCoverage)
+        artifactBindings = @($artifactBindings)
+    }
+    [System.IO.File]::WriteAllText((Join-Path $roundRoot $roleFiles['review-result']), (($reviewResult | ConvertTo-Json -Depth 30).Replace("`r`n", "`n") + "`n"), $utf8)
+
     $artifacts = [System.Collections.Generic.List[object]]::new()
     foreach ($entry in $roleFiles.GetEnumerator()) {
         $fullPath = Join-Path $roundRoot $entry.Value
-        $content = if ($entry.Key -eq 'completion-notification') {
-            "{`"observed_status`":`"$Verdict`",`"title`":`"Goal Context review $roundName completed`",`"result_uri`":`"$NotificationUri`"}`n"
-        } else {
-            "$($entry.Key) evidence for $roundName at $HeadOid`n"
-        }
-        [System.IO.File]::WriteAllText($fullPath, $content, $utf8)
-        $artifacts.Add([ordered]@{
-            role = $entry.Key
-            path = "$roundName/$($entry.Value)"
-            normalizedSha256 = Get-NormalizedSha256 $fullPath
-        })
+        $artifacts.Add([ordered]@{ role = $entry.Key; path = "$roundName/$($entry.Value)"; normalizedSha256 = Get-NormalizedSha256 $fullPath })
     }
 
     $result = [ordered]@{
@@ -124,20 +260,12 @@ function Write-RoundResult {
         headOid = $HeadOid
         completedAt = $CompletedAt
         verdict = $Verdict
-        humanDecisionReason = $null
+        humanDecisionReason = if ($HumanDecisionReason) { $HumanDecisionReason } else { $null }
         blockedReason = $null
         artifacts = @($artifacts)
         notification = [ordered]@{ roundNumber = $RoundNumber; observedStatus = $Verdict; resultUri = $NotificationUri }
         findingDelta = @($FindingDelta)
-        sourceCoverage = @(
-            @($FindingDelta | ForEach-Object {
-                $trackingId = $_.trackingId
-                @($_.sourceIds | ForEach-Object {
-                    [ordered]@{ sourceId = $_; disposition = 'finding'; trackingIds = @($trackingId); reason = $null }
-                })
-            })
-            [ordered]@{ sourceId = "check:$roundName"; disposition = 'noAction'; trackingIds = @(); reason = 'Synthetic check completed without an actionable finding.' }
-        )
+        sourceCoverage = @($sourceCoverage)
     }
     $resultPath = Join-Path $roundRoot 'round-result.json'
     $json = $result | ConvertTo-Json -Depth 20
@@ -153,6 +281,25 @@ function Complete-Round {
         [string]$ExpectedPattern = ''
     )
     Invoke-Manager @('complete', '--cycle', $CyclePath, '--round-result', $ResultPath, '--format', 'json') 'complete round' $ExpectSuccess $ExpectedPattern | Out-Null
+}
+
+function Sync-MutatedArtifactHashes([string]$ResultPath, [string[]]$BoundRoles) {
+    $roundRoot = Split-Path -Parent $ResultPath
+    $result = Get-Content -Raw -LiteralPath $ResultPath | ConvertFrom-Json -Depth 100
+    $reviewResultArtifact = $result.artifacts | Where-Object role -eq 'review-result'
+    $reviewResultPath = Join-Path $roundRoot ([System.IO.Path]::GetFileName([string]$reviewResultArtifact.path))
+    if ($BoundRoles.Count -gt 0) {
+        $reviewResult = Get-Content -Raw -LiteralPath $reviewResultPath | ConvertFrom-Json -Depth 100
+        foreach ($role in $BoundRoles) {
+            $artifact = $result.artifacts | Where-Object role -eq $role
+            $artifactPath = Join-Path $roundRoot ([System.IO.Path]::GetFileName([string]$artifact.path))
+            ($reviewResult.artifactBindings | Where-Object role -eq $role).normalizedSha256 = Get-NormalizedSha256 $artifactPath
+            $artifact.normalizedSha256 = Get-NormalizedSha256 $artifactPath
+        }
+        [System.IO.File]::WriteAllText($reviewResultPath, (($reviewResult | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
+    }
+    $reviewResultArtifact.normalizedSha256 = Get-NormalizedSha256 $reviewResultPath
+    [System.IO.File]::WriteAllText($ResultPath, (($result | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
 }
 
 function Assert-CycleVerdicts([string]$CyclePath, [string[]]$Expected, [string]$Description) {
@@ -179,6 +326,11 @@ try {
     $script:managerDll = Join-Path $publishRoot 'manage-review-cycle.dll'
     if (-not (Test-Path -LiteralPath $script:managerDll)) { throw "Published manager DLL is missing: $script:managerDll" }
     Invoke-Manager @('--help') 'manager help' | Out-Null
+
+    $earlyOverrideRoot = Join-Path $tempRoot 'negative-early-override'
+    $earlyOverrideCycle = Join-Path $earlyOverrideRoot 'review-cycle.json'
+    Start-Round -CyclePath $earlyOverrideCycle -HeadOid '1010101010101010101010101010101010101010' -StartedAt '2025-12-31T00:00:00Z' -OverrideMaximum 4 -ExpectSuccess $false -ExpectedPattern 'only for round 4 or later'
+    if (Test-Path -LiteralPath $earlyOverrideCycle) { Add-Failure 'Rejected early override mutated review-cycle.json.' }
 
     # Convergence: actionable rounds require separate Adaptive references; the final round creates no empty plan.
     $convergenceRoot = Join-Path $tempRoot 'convergence'
@@ -263,9 +415,12 @@ try {
         }
         Complete-Round $limitCycle $result
     }
-    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:08:00Z' -AdaptiveResult 'adaptive/round-003/result.md' -ExpectSuccess $false -ExpectedPattern 'exceeds effective maximum'
-    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:08:00Z' -AdaptiveResult 'adaptive/round-003/result.md' -OverrideMaximum 4 -IncompleteOverride -ExpectSuccess $false -ExpectedPattern 'All maximum-round override fields'
-    Start-Round $limitCycle $limitHeads[3] '2026-02-01T00:08:00Z' 'adaptive/round-003/result.md' 4
+    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:08:00Z' -AdaptiveResult 'adaptive/round-003/result.md' -ExpectSuccess $false -ExpectedPattern 'must be explicitly resolved'
+    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:08:00Z' -AdaptiveResult 'adaptive/round-003/result.md' -ResolveDecision 'HD-999' -OverrideMaximum 4 -ExpectSuccess $false -ExpectedPattern 'resolved human decision ID mismatch'
+    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:08:00Z' -AdaptiveResult 'adaptive/round-003/result.md' -ResolveDecision 'HD-003' -IncompleteDecision -ExpectSuccess $false -ExpectedPattern 'All human decision resolution fields'
+    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:08:00Z' -AdaptiveResult 'adaptive/round-003/result.md' -ResolveDecision 'HD-003' -ExpectSuccess $false -ExpectedPattern 'exceeds effective maximum'
+    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:08:00Z' -AdaptiveResult 'adaptive/round-003/result.md' -ResolveDecision 'HD-003' -OverrideMaximum 4 -IncompleteOverride -ExpectSuccess $false -ExpectedPattern 'All maximum-round override fields'
+    Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:08:00Z' -AdaptiveResult 'adaptive/round-003/result.md' -ResolveDecision 'HD-003' -OverrideMaximum 4
     $r4 = Write-RoundResult $limitRoot 4 $limitHeads[3] '2026-02-01T00:09:00Z' 'REVIEW_COMPLETE' @(
         (New-Delta 'TRK-LIMIT' 'resolved' @() @('review:limit:4'))
     ) $false
@@ -276,6 +431,25 @@ try {
     if ($limit.effectiveMaximumRounds -ne 4 -or $limit.overrides.Count -ne 1 -or $limit.overrides[0].approvedBy -ne 'fixture-human') {
         Add-Failure 'Round 4 override evidence is incomplete.'
     }
+
+    # A non-limit human decision also requires an explicit matching resolution before the next round.
+    $humanRoot = Join-Path $tempRoot 'human-decision'
+    $humanCycle = Join-Path $humanRoot 'review-cycle.json'
+    $humanHead1 = '7878787878787878787878787878787878787878'
+    $humanHead2 = '7979797979797979797979797979797979797979'
+    Start-Round $humanCycle $humanHead1 '2026-02-02T00:00:00Z'
+    $humanResult1 = Write-RoundResult -CycleRoot $humanRoot -RoundNumber 1 -HeadOid $humanHead1 -CompletedAt '2026-02-02T00:01:00Z' -Verdict 'HUMAN_DECISION_REQUIRED' -FindingDelta @(
+        (New-Delta 'TRK-HUMAN' 'new' @('PUR-150') @('pr-comment:human:1'))
+    ) -IncludePlan $true -HumanDecisionReason 'Human scope choice is required.'
+    Complete-Round $humanCycle $humanResult1
+    Start-Round -CyclePath $humanCycle -HeadOid $humanHead2 -StartedAt '2026-02-02T00:02:00Z' -AdaptiveResult 'adaptive/round-001/result.md' -ExpectSuccess $false -ExpectedPattern 'must be explicitly resolved'
+    Start-Round -CyclePath $humanCycle -HeadOid $humanHead2 -StartedAt '2026-02-02T00:02:00Z' -AdaptiveResult 'adaptive/round-001/result.md' -ResolveDecision 'HD-001'
+    $humanResult2 = Write-RoundResult $humanRoot 2 $humanHead2 '2026-02-02T00:03:00Z' 'REVIEW_COMPLETE' @(
+        (New-Delta 'TRK-HUMAN' 'resolved' @() @('pr-comment:human:2'))
+    ) $false
+    Complete-Round $humanCycle $humanResult2
+    $expectedHuman = @($fixture.scenarios | Where-Object id -eq 'human-decision-resolution').expectedVerdicts
+    Assert-CycleVerdicts $humanCycle $expectedHuman 'human decision resolution'
 
     # A resolved finding can reopen while another active finding keeps the cycle open.
     $reopenRoot = Join-Path $tempRoot 'reopened'
@@ -369,6 +543,44 @@ try {
     [System.IO.File]::WriteAllText($notificationStatusResult, (($notificationStatusJson | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
     Complete-Round $notificationStatusCycle $notificationStatusResult $false 'notification observed status mismatch'
 
+    # Role-aware content mutations retain matching file hashes and must still fail semantic cross-checks.
+    $contentRoot = Join-Path $tempRoot 'negative-artifact-content'
+    $contentCycle = Join-Path $contentRoot 'review-cycle.json'
+    $contentHead = 'f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1'
+    Start-Round $contentCycle $contentHead '2026-04-06T00:00:00Z'
+    $contentDelta = @((New-Delta 'TRK-CONTENT' 'new' @('LR-401') @('review:content:1')))
+
+    $contentResult = Write-RoundResult $contentRoot 1 $contentHead '2026-04-06T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' $contentDelta $true
+    $contextPath = Join-Path $contentRoot 'round-001/review-context.json'
+    $contextJson = Get-Content -Raw -LiteralPath $contextPath | ConvertFrom-Json -Depth 100
+    $contextJson.target.repository = 'fixture/wrong-artifact-repository'
+    [System.IO.File]::WriteAllText($contextPath, (($contextJson | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
+    Sync-MutatedArtifactHashes $contentResult @('review-context')
+    Complete-Round $contentCycle $contentResult $false 'review-context repository mismatch'
+
+    $contentResult = Write-RoundResult $contentRoot 1 $contentHead '2026-04-06T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' $contentDelta $true
+    $selectionPath = Join-Path $contentRoot 'round-001/goal-context-selection.json'
+    $selectionJson = Get-Content -Raw -LiteralPath $selectionPath | ConvertFrom-Json -Depth 100
+    $selectionJson.contentSha256 = 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
+    [System.IO.File]::WriteAllText($selectionPath, (($selectionJson | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
+    Sync-MutatedArtifactHashes $contentResult @('goal-context-selection')
+    Complete-Round $contentCycle $contentResult $false 'Goal Context selection SHA-256 mismatch'
+
+    $contentResult = Write-RoundResult $contentRoot 1 $contentHead '2026-04-06T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' $contentDelta $true
+    $reviewResultPath = Join-Path $contentRoot 'round-001/review-result.json'
+    $reviewResultJson = Get-Content -Raw -LiteralPath $reviewResultPath | ConvertFrom-Json -Depth 100
+    $reviewResultJson.verdict = 'REVIEW_COMPLETE'
+    [System.IO.File]::WriteAllText($reviewResultPath, (($reviewResultJson | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
+    Sync-MutatedArtifactHashes $contentResult @()
+    Complete-Round $contentCycle $contentResult $false 'review-result verdict mismatch'
+
+    $contentResult = Write-RoundResult $contentRoot 1 $contentHead '2026-04-06T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' $contentDelta $true
+    $contextJson = Get-Content -Raw -LiteralPath $contextPath | ConvertFrom-Json -Depth 100
+    $contextJson.sources.issueComments = @($contextJson.sources.issueComments) + @([pscustomobject]@{ id = 999; sourceId = 'pr-comment:uncovered' })
+    [System.IO.File]::WriteAllText($contextPath, (($contextJson | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
+    Sync-MutatedArtifactHashes $contentResult @('review-context')
+    Complete-Round $contentCycle $contentResult $false 'source coverage does not exactly match review artifacts'
+
     # An active finding from the prior round cannot silently disappear.
     $missingRoot = Join-Path $tempRoot 'negative-missing'
     $missingCycle = Join-Path $missingRoot 'review-cycle.json'
@@ -384,7 +596,7 @@ try {
     Complete-Round $missingCycle $missingResult $false 'missing persistent/resolved mapping'
 
     $observedMutations = @($fixture.negativeMutations)
-    foreach ($required in @('duplicate-head', 'missing-adaptive-result-reference', 'identity-drift', 'existing-round-directory', 'historical-artifact-hash', 'unknown-persistent-finding', 'missing-active-finding-mapping', 'round-limit-verdict', 'incomplete-override', 'actionable-without-plan', 'review-complete-with-plan', 'missing-source-coverage', 'invalid-reopened-transition', 'round-result-head-identity', 'notification-status', 'notification-pr')) {
+    foreach ($required in @('duplicate-head', 'missing-adaptive-result-reference', 'identity-drift', 'existing-round-directory', 'historical-artifact-hash', 'unknown-persistent-finding', 'missing-active-finding-mapping', 'round-limit-verdict', 'incomplete-override', 'actionable-without-plan', 'review-complete-with-plan', 'missing-source-coverage', 'invalid-reopened-transition', 'round-result-head-identity', 'notification-status', 'notification-pr', 'early-override', 'unresolved-human-decision', 'wrong-human-decision-id', 'review-context-content', 'goal-context-selection-content', 'review-result-content', 'uncovered-artifact-source')) {
         if ($required -notin $observedMutations) { Add-Failure "Fixture negative mutation is missing: $required" }
     }
 }

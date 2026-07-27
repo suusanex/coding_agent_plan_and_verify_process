@@ -117,7 +117,7 @@ dotnet run --file scripts/manage-review-cycle.cs -- start `
   --adaptive-result-reference <previous-adaptive-result>
 ```
 
-collector、Goal Context selection、local/purpose findings、review result、notification、およびactionable findingがある場合のreview planを現在の`round-NNN/`へ保存します。`templates/review-round-result.example.json`を埋め、`complete`でhash、identity、finding遷移、artifact、notificationを検証します。
+collector、Goal Context selection、local/purpose findings、machine-readable `review-result.json`、notification、およびactionable findingがある場合のreview planを現在の`round-NNN/`へ保存します。`templates/review-result.example.json`と`templates/review-round-result.example.json`を埋め、`complete`でartifact hashだけでなく、review-contextのrepository/PR/base/headと全source ID、Goal Context path/hash、review-resultのverdict/finding delta/source coverage/artifact bindingsを相互照合します。
 
 ```powershell
 dotnet run --file scripts/manage-review-cycle.cs -- complete `
@@ -132,7 +132,9 @@ multi-round verdictは次のとおりです。
 - 既定第3roundでactionable findingが残る: `HUMAN_DECISION_REQUIRED`。自動継続しない。
 - 必須artifact不足などで安全に確定できない: `BLOCKED`。
 
-第4round以降は利用者の明示承認をすべて記録した場合だけ開始できます。
+`HUMAN_DECISION_REQUIRED`後は、cycleが発行したpending decision IDに対応するresolution、承認者、承認時刻を記録しない限り、Adaptive result referenceがあっても次roundを開始できません。
+
+第4round以降は、直前の上限到達decisionを解決し、利用者の明示overrideをすべて記録した場合だけ開始できます。overrideはround 1〜3では受理されません。
 
 ```powershell
 dotnet run --file scripts/manage-review-cycle.cs -- start `
@@ -141,6 +143,8 @@ dotnet run --file scripts/manage-review-cycle.cs -- start `
   --goal-context-path docs/goal-context-example.md --goal-context-sha <sha256> `
   --base-oid <base-oid> --head-oid <head-oid> --started-at <ISO-8601> `
   --adaptive-result-reference <previous-adaptive-result> `
+  --resolve-decision HD-003 --decision-resolution <resolution> `
+  --decision-approved-by <identity> --decision-approved-at <ISO-8601> `
   --override-maximum-rounds 4 --override-approved-by <identity> `
   --override-approved-at <ISO-8601> --override-reason <reason>
 ```
@@ -152,6 +156,7 @@ dotnet run --file scripts/manage-review-cycle.cs -- start `
 - `scripts/select-goal-context.cs`
 - `scripts/manage-review-cycle.cs`
 - `templates/purpose-review-findings.md`
+- `templates/review-result.example.json`
 - `templates/review-round-result.example.json`
 - `references/design.md`
 - `references/usage.md`

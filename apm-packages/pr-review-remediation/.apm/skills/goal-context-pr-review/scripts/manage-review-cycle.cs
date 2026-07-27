@@ -78,7 +78,7 @@ static void ShowUsage()
 {
     Console.WriteLine("""
 Usage:
-  dotnet run --file scripts/manage-review-cycle.cs -- start --cycle <path> --repository owner/name --pr <number> --goal-context-path <path> --goal-context-sha <sha256> --base-oid <oid> --head-oid <oid> --started-at <ISO-8601> [--adaptive-result-reference <path-or-uri>] [override options] [--format json|text]
+  dotnet run --file scripts/manage-review-cycle.cs -- start --cycle <path> --repository owner/name --pr <number> --goal-context-path <path> --goal-context-sha <sha256> --base-oid <oid> --head-oid <oid> --started-at <ISO-8601> [--adaptive-result-reference <path-or-uri>] [decision resolution] [override options] [--format json|text]
   dotnet run --file scripts/manage-review-cycle.cs -- complete --cycle <path> --round-result <path> [--format json|text]
   dotnet run --file scripts/manage-review-cycle.cs -- validate --cycle <path> [--format json|text]
 
@@ -87,6 +87,12 @@ Override options (all required together):
   --override-approved-by <identity>
   --override-approved-at <ISO-8601>
   --override-reason <text>
+
+Decision resolution (all required after HUMAN_DECISION_REQUIRED):
+  --resolve-decision <decision-id>
+  --decision-resolution <text>
+  --decision-approved-by <identity>
+  --decision-approved-at <ISO-8601>
 
 Rules:
   The default maximum is 3 rounds. A fourth or later round requires a recorded human override.
@@ -163,10 +169,15 @@ static class ReviewCycleManager
             {
                 throw new ContractException("Round 2 or later requires --adaptive-result-reference from the separately completed Adaptive turn.");
             }
+            ApplyDecisionResolution(options, cycle, previous, nextRound);
         }
         else if (!string.IsNullOrWhiteSpace(options.AdaptiveResultReference))
         {
             throw new ContractException("Round 1 cannot declare a previous Adaptive result reference.");
+        }
+        else
+        {
+            RejectUnexpectedDecisionResolution(options);
         }
 
         ApplyOverride(options, cycle, nextRound);
@@ -205,6 +216,7 @@ static class ReviewCycleManager
             cycle.Rounds.Add(roundRecord);
             cycle.CurrentRound = nextRound;
             cycle.Status = "IN_PROGRESS";
+            ValidateCycle(cyclePath, cycle, requireCompletedCurrentRound: false);
             SaveCycle(cyclePath, cycle);
         }
         catch
@@ -266,6 +278,7 @@ static class ReviewCycleManager
         Equal("round-result verdict", verdict, result.Verdict);
         ValidateArtifactRoles(verdict, actionableCount, artifactRecords);
         ValidateSourceCoverage(delta, result.SourceCoverage);
+        ValidateArtifactContents(cycle, round, result, cycleRoot, artifactRecords);
         ValidateNotification(cycle, round.RoundNumber, verdict, result.Notification);
         ValidateNotificationArtifact(cycleRoot, artifactRecords, round.RoundNumber, verdict, result.Notification.ResultUri);
 
@@ -292,6 +305,7 @@ static class ReviewCycleManager
         {
             cycle.HumanDecisions.Add(new HumanDecision
             {
+                DecisionId = $"HD-{round.RoundNumber:000}",
                 RoundNumber = round.RoundNumber,
                 Status = "PENDING",
                 Reason = !string.IsNullOrWhiteSpace(result.HumanDecisionReason)
@@ -300,6 +314,7 @@ static class ReviewCycleManager
             });
         }
 
+        ValidateCycle(cyclePath, cycle, requireCompletedCurrentRound: false);
         SaveCycle(cyclePath, cycle);
         return new CommandOutput(1, "PASS", round.RoundNumber, verdict, round.ArtifactDirectory, []);
     }
@@ -343,6 +358,17 @@ static class ReviewCycleManager
             throw new ContractException("All maximum-round override fields are required together.");
         }
         if (!supplied.All(value => value)) return;
+        if (nextRound < 4)
+        {
+            throw new ContractException("Maximum-round override is accepted only for round 4 or later.");
+        }
+        var previous = cycle.Rounds.LastOrDefault() ?? throw new ContractException("Maximum-round override requires a previous round.");
+        if (previous.Verdict != "HUMAN_DECISION_REQUIRED" || previous.RoundNumber < cycle.EffectiveMaximumRounds)
+        {
+            throw new ContractException("Maximum-round override requires the previous round to reach the effective maximum with HUMAN_DECISION_REQUIRED.");
+        }
+        var resolvedDecision = cycle.HumanDecisions.SingleOrDefault(item => item.RoundNumber == previous.RoundNumber && item.Status == "RESOLVED")
+            ?? throw new ContractException("Maximum-round override requires the previous maximum-round decision to be explicitly resolved.");
         if (options.OverrideMaximumRounds <= cycle.EffectiveMaximumRounds || options.OverrideMaximumRounds < nextRound)
         {
             throw new ContractException("override maximum must increase the effective maximum and include the next round.");
@@ -352,21 +378,63 @@ static class ReviewCycleManager
         cycle.Overrides.Add(new RoundOverride
         {
             StartingRound = nextRound,
+            DecisionId = resolvedDecision.DecisionId,
             ApprovedBy = options.OverrideApprovedBy!,
             ApprovedAt = approvedAt.ToString("O"),
             Reason = options.OverrideReason!,
             MaximumRounds = options.OverrideMaximumRounds
         });
         cycle.EffectiveMaximumRounds = options.OverrideMaximumRounds;
-        cycle.HumanDecisions.Add(new HumanDecision
-        {
-            RoundNumber = nextRound,
-            Status = "APPROVED",
-            Reason = $"Maximum rounds overridden to {options.OverrideMaximumRounds}: {options.OverrideReason}",
-            ApprovedBy = options.OverrideApprovedBy,
-            ApprovedAt = approvedAt.ToString("O")
-        });
     }
+
+    private static void ApplyDecisionResolution(Options options, ReviewCycle cycle, RoundRecord previous, int nextRound)
+    {
+        var supplied = DecisionResolutionFields(options);
+        if (previous.Verdict != "HUMAN_DECISION_REQUIRED")
+        {
+            if (supplied.Any(value => value)) throw new ContractException("Decision resolution is allowed only after HUMAN_DECISION_REQUIRED.");
+            return;
+        }
+        if (supplied.Any(value => value) && supplied.Any(value => !value))
+        {
+            throw new ContractException("All human decision resolution fields are required together.");
+        }
+        if (!supplied.All(value => value))
+        {
+            throw new ContractException("A pending human decision must be explicitly resolved before the next round can start.");
+        }
+        var pending = cycle.HumanDecisions.Where(item => item.Status == "PENDING").ToList();
+        if (pending.Count != 1) throw new ContractException($"Expected exactly one pending human decision, observed {pending.Count}.");
+        var decision = pending[0];
+        Equal("resolved human decision ID", decision.DecisionId, options.ResolveDecision!);
+        Equal("resolved human decision round", previous.RoundNumber, decision.RoundNumber);
+        var approvedAt = ParseTimestamp(options.DecisionApprovedAt!, "decision-approved-at");
+        if (approvedAt < ParseTimestamp(previous.CompletedAt!, "previous round completedAt"))
+        {
+            throw new ContractException("Human decision approval precedes the decision-producing round completion.");
+        }
+        decision.Status = "RESOLVED";
+        decision.Resolution = options.DecisionResolution;
+        decision.ApprovedBy = options.DecisionApprovedBy;
+        decision.ApprovedAt = approvedAt.ToString("O");
+        decision.ResolvedForRound = nextRound;
+    }
+
+    private static void RejectUnexpectedDecisionResolution(Options options)
+    {
+        if (DecisionResolutionFields(options).Any(value => value))
+        {
+            throw new ContractException("Round 1 cannot resolve a previous human decision.");
+        }
+    }
+
+    private static bool[] DecisionResolutionFields(Options options) =>
+    [
+        !string.IsNullOrWhiteSpace(options.ResolveDecision),
+        !string.IsNullOrWhiteSpace(options.DecisionResolution),
+        !string.IsNullOrWhiteSpace(options.DecisionApprovedBy),
+        !string.IsNullOrWhiteSpace(options.DecisionApprovedAt)
+    ];
 
     private static List<ArtifactRecord> ValidateArtifacts(string cycleRoot, string roundDirectory, List<ArtifactRecord> artifacts)
     {
@@ -394,6 +462,197 @@ static class ReviewCycleManager
             });
         }
         return results;
+    }
+
+    private static void ValidateArtifactContents(ReviewCycle cycle, RoundRecord round, RoundResult result, string cycleRoot, List<ArtifactRecord> artifacts)
+    {
+        var byRole = artifacts.ToDictionary(item => item.Role, StringComparer.Ordinal);
+        var observedSources = new HashSet<string>(StringComparer.Ordinal);
+        if (result.Verdict != "BLOCKED")
+        {
+            ValidateReviewContext(cycle, round, ArtifactPath(cycleRoot, byRole, "review-context"), observedSources);
+            ValidateGoalContextSelection(cycle, ArtifactPath(cycleRoot, byRole, "goal-context-selection"));
+            ValidateReviewMarkdown(cycle, round, result.Verdict, ArtifactPath(cycleRoot, byRole, "local-findings"), false, observedSources);
+            ValidateReviewMarkdown(cycle, round, result.Verdict, ArtifactPath(cycleRoot, byRole, "purpose-findings"), true, observedSources);
+        }
+
+        var reviewResult = ReadJson<ReviewResultArtifact>(ArtifactPath(cycleRoot, byRole, "review-result"));
+        if (reviewResult.SchemaVersion != SchemaVersion) throw new ContractException("review-result schemaVersion must be 1.");
+        Equal("review-result repository", cycle.Repository, reviewResult.Repository);
+        Equal("review-result pull request", cycle.PullRequest, reviewResult.PullRequest);
+        Equal("review-result round number", round.RoundNumber, reviewResult.RoundNumber);
+        Equal("review-result base OID", round.BaseOid, reviewResult.BaseOid);
+        Equal("review-result head OID", round.HeadOid, reviewResult.HeadOid);
+        Equal("review-result Goal Context path", cycle.GoalContext.Path, reviewResult.GoalContext.Path);
+        Equal("review-result Goal Context SHA-256", cycle.GoalContext.NormalizedSha256, reviewResult.GoalContext.NormalizedSha256);
+        Equal("review-result verdict", result.Verdict, reviewResult.Verdict);
+        EqualFindingDelta("review-result finding delta", result.FindingDelta, reviewResult.FindingDelta);
+        EqualSourceCoverage("review-result source coverage", result.SourceCoverage, reviewResult.SourceCoverage);
+
+        var expectedBindings = artifacts
+            .Where(item => item.Role is not ("review-result" or "round-result" or "completion-notification"))
+            .ToDictionary(item => item.Role, item => item.NormalizedSha256, StringComparer.Ordinal);
+        if (reviewResult.ArtifactBindings.Count != expectedBindings.Count) throw new ContractException("review-result artifact bindings do not cover the exact planner inputs and outputs.");
+        foreach (var binding in reviewResult.ArtifactBindings)
+        {
+            if (!expectedBindings.Remove(binding.Role, out var expectedHash)) throw new ContractException($"review-result has an unknown or duplicate artifact binding: {binding.Role}");
+            Equal($"review-result artifact binding {binding.Role}", expectedHash, binding.NormalizedSha256);
+        }
+        if (expectedBindings.Count != 0) throw new ContractException($"review-result is missing artifact bindings: {string.Join(", ", expectedBindings.Keys)}");
+
+        if (result.Verdict != "BLOCKED")
+        {
+            var coveredSources = result.SourceCoverage.Select(item => item.SourceId).ToHashSet(StringComparer.Ordinal);
+            if (!observedSources.SetEquals(coveredSources))
+            {
+                var missing = observedSources.Except(coveredSources, StringComparer.Ordinal);
+                var extra = coveredSources.Except(observedSources, StringComparer.Ordinal);
+                throw new ContractException($"Round source coverage does not exactly match review artifacts; missing [{string.Join(", ", missing)}], extra [{string.Join(", ", extra)}].");
+            }
+        }
+    }
+
+    private static string ArtifactPath(string cycleRoot, Dictionary<string, ArtifactRecord> artifacts, string role)
+    {
+        if (!artifacts.TryGetValue(role, out var artifact)) throw new ContractException($"Missing artifact needed for content validation: {role}");
+        return Contained(cycleRoot, artifact.Path);
+    }
+
+    private static void ValidateReviewContext(ReviewCycle cycle, RoundRecord round, string path, HashSet<string> observedSources)
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        var root = document.RootElement;
+        var target = RequiredObject(root, "target", "review-context");
+        Equal("review-context repository", cycle.Repository, RequiredString(target, "repository", "review-context target"));
+        Equal("review-context pull request", cycle.PullRequest, RequiredInt(target, "pullRequest", "review-context target"));
+        Equal("review-context base OID", round.BaseOid, RequiredString(target, "baseRefOid", "review-context target"));
+        Equal("review-context head OID", round.HeadOid, RequiredString(target, "headRefOid", "review-context target"));
+
+        var sources = RequiredObject(root, "sources", "review-context");
+        var pullRequest = RequiredObject(sources, "pullRequest", "review-context sources");
+        Equal("review-context source PR", cycle.PullRequest, RequiredInt(pullRequest, "number", "review-context pullRequest"));
+        Equal("review-context source base OID", round.BaseOid, RequiredString(pullRequest, "baseRefOid", "review-context pullRequest"));
+        Equal("review-context source head OID", round.HeadOid, RequiredString(pullRequest, "headRefOid", "review-context pullRequest"));
+
+        foreach (var collectionName in new[] { "reviews", "issueComments", "inlineComments", "checks" })
+        {
+            if (!sources.TryGetProperty(collectionName, out var collection) || collection.ValueKind != JsonValueKind.Array)
+            {
+                throw new ContractException($"review-context sources.{collectionName} must be an array.");
+            }
+            foreach (var source in collection.EnumerateArray())
+            {
+                var sourceId = RequiredString(source, "sourceId", $"review-context {collectionName}");
+                if (!observedSources.Add(sourceId)) throw new ContractException($"Duplicate source ID in review-context: {sourceId}");
+                if (source.TryGetProperty("commit_id", out var commit) && commit.ValueKind == JsonValueKind.String
+                    && !string.IsNullOrWhiteSpace(commit.GetString()))
+                {
+                    Equal($"review-context {sourceId} commit", round.HeadOid, commit.GetString()!);
+                }
+            }
+        }
+    }
+
+    private static void ValidateGoalContextSelection(ReviewCycle cycle, string path)
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        var root = document.RootElement;
+        Equal("Goal Context selection status", "SELECTED", RequiredString(root, "selectionStatus", "goal-context-selection"));
+        Equal("Goal Context selection path", cycle.GoalContext.Path, RequiredString(root, "selectedPath", "goal-context-selection"));
+        Equal("Goal Context selection SHA-256", cycle.GoalContext.NormalizedSha256, RequiredString(root, "contentSha256", "goal-context-selection"));
+        Equal("Goal Context selection validation", "PASS", RequiredString(root, "validation", "goal-context-selection"));
+    }
+
+    private static void ValidateReviewMarkdown(ReviewCycle cycle, RoundRecord round, string roundVerdict, string path, bool purpose, HashSet<string> observedSources)
+    {
+        var content = File.ReadAllText(path);
+        var reviewVerdict = MarkdownValue(content, "Verdict");
+        if (!purpose)
+        {
+            Equal("local findings verdict", "REVIEWED", reviewVerdict);
+        }
+        else if (reviewVerdict != "PURPOSE_REVIEWED" && !(roundVerdict == "HUMAN_DECISION_REQUIRED" && reviewVerdict == "HUMAN_DECISION_REQUIRED"))
+        {
+            throw new ContractException($"Purpose findings verdict {reviewVerdict} is incompatible with round verdict {roundVerdict}.");
+        }
+        Equal($"{(purpose ? "purpose" : "local")} findings repository", cycle.Repository, MarkdownValue(content, "Repository"));
+        Equal($"{(purpose ? "purpose" : "local")} findings PR", cycle.PullRequest.ToString(), MarkdownValue(content, "PR"));
+        RequireMarkdownOid(content, "Base branch / OID", round.BaseOid);
+        RequireMarkdownOid(content, "Head branch / OID", round.HeadOid);
+        if (purpose)
+        {
+            Equal("purpose findings Goal Context", cycle.GoalContext.Path, MarkdownValue(content, "Goal Context"));
+            Equal("purpose findings Goal Context SHA-256", cycle.GoalContext.NormalizedSha256, MarkdownValue(content, "Goal Context SHA-256"));
+        }
+        var prefix = purpose ? "PUR" : "LR";
+        foreach (Match match in Regex.Matches(content, $@"(?m)^\|\s*(?<id>{prefix}-\d+)\s*\|"))
+        {
+            if (!observedSources.Add(match.Groups["id"].Value)) throw new ContractException($"Duplicate reviewer finding source ID: {match.Groups["id"].Value}");
+        }
+    }
+
+    private static string MarkdownValue(string content, string label)
+    {
+        var match = Regex.Match(content, $@"(?m)^-\s*{Regex.Escape(label)}:\s*(?<value>\S.*?)\s*$");
+        if (!match.Success) throw new ContractException($"Review artifact is missing a non-empty '{label}' identity field.");
+        return match.Groups["value"].Value.Trim();
+    }
+
+    private static void RequireMarkdownOid(string content, string label, string expectedOid)
+    {
+        var value = MarkdownValue(content, label);
+        if (!Regex.IsMatch(value, $@"/\s*{Regex.Escape(expectedOid)}$")) throw new ContractException($"Review artifact {label} does not match OID {expectedOid}.");
+    }
+
+    private static JsonElement RequiredObject(JsonElement parent, string property, string context)
+    {
+        if (!parent.TryGetProperty(property, out var value) || value.ValueKind != JsonValueKind.Object) throw new ContractException($"{context}.{property} must be an object.");
+        return value;
+    }
+
+    private static string RequiredString(JsonElement parent, string property, string context)
+    {
+        if (!parent.TryGetProperty(property, out var value) || value.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(value.GetString()))
+        {
+            throw new ContractException($"{context}.{property} must be a non-empty string.");
+        }
+        return value.GetString()!;
+    }
+
+    private static int RequiredInt(JsonElement parent, string property, string context)
+    {
+        if (!parent.TryGetProperty(property, out var value) || !value.TryGetInt32(out var result)) throw new ContractException($"{context}.{property} must be an integer.");
+        return result;
+    }
+
+    private static void EqualFindingDelta(string context, List<FindingDeltaEntry> expected, List<FindingDeltaEntry> actual)
+    {
+        if (expected.Count != actual.Count) throw new ContractException($"{context} count mismatch.");
+        for (var index = 0; index < expected.Count; index++)
+        {
+            Equal($"{context} tracking ID", expected[index].TrackingId, actual[index].TrackingId);
+            Equal($"{context} state", expected[index].State, actual[index].State);
+            if (!expected[index].FindingIds.SequenceEqual(actual[index].FindingIds, StringComparer.Ordinal)
+                || !expected[index].SourceIds.SequenceEqual(actual[index].SourceIds, StringComparer.Ordinal))
+            {
+                throw new ContractException($"{context} evidence mismatch for {expected[index].TrackingId}.");
+            }
+        }
+    }
+
+    private static void EqualSourceCoverage(string context, List<SourceCoverageEntry> expected, List<SourceCoverageEntry> actual)
+    {
+        if (expected.Count != actual.Count) throw new ContractException($"{context} count mismatch.");
+        for (var index = 0; index < expected.Count; index++)
+        {
+            Equal($"{context} source ID", expected[index].SourceId, actual[index].SourceId);
+            Equal($"{context} disposition", expected[index].Disposition, actual[index].Disposition);
+            Equal($"{context} reason", expected[index].Reason, actual[index].Reason);
+            if (!expected[index].TrackingIds.SequenceEqual(actual[index].TrackingIds, StringComparer.Ordinal))
+            {
+                throw new ContractException($"{context} tracking IDs mismatch for {expected[index].SourceId}.");
+            }
+        }
     }
 
     private static List<FindingDeltaEntry> ValidateFindingDelta(ReviewCycle cycle, int roundNumber, List<FindingDeltaEntry> entries)
@@ -510,7 +769,7 @@ static class ReviewCycleManager
                 throw new ContractException($"Invalid source coverage disposition for {item.SourceId}: {item.Disposition}");
             }
         }
-        foreach (var sourceId in delta.SelectMany(item => item.SourceIds).Distinct(StringComparer.Ordinal))
+        foreach (var sourceId in delta.SelectMany(item => item.SourceIds.Concat(item.FindingIds)).Distinct(StringComparer.Ordinal))
         {
             if (!coveredSources.Contains(sourceId)) throw new ContractException($"Finding source is missing source coverage: {sourceId}");
         }
@@ -571,6 +830,7 @@ static class ReviewCycleManager
         if (cycle.DefaultMaximumRounds != DefaultMaximumRounds) throw new ContractException("defaultMaximumRounds must be 3.");
         if (cycle.EffectiveMaximumRounds < DefaultMaximumRounds) throw new ContractException("effectiveMaximumRounds cannot be below 3.");
         if (cycle.CurrentRound != cycle.Rounds.Count) throw new ContractException("currentRound must equal the number of round records.");
+        ValidateHumanDecisions(cycle);
 
         var expectedEffectiveMaximum = DefaultMaximumRounds;
         var lastOverrideRound = 0;
@@ -578,9 +838,15 @@ static class ReviewCycleManager
         {
             if (roundOverride.StartingRound < 4 || roundOverride.StartingRound <= lastOverrideRound
                 || roundOverride.MaximumRounds < roundOverride.StartingRound || roundOverride.MaximumRounds <= expectedEffectiveMaximum
-                || string.IsNullOrWhiteSpace(roundOverride.ApprovedBy) || string.IsNullOrWhiteSpace(roundOverride.Reason))
+                || string.IsNullOrWhiteSpace(roundOverride.ApprovedBy) || string.IsNullOrWhiteSpace(roundOverride.Reason)
+                || string.IsNullOrWhiteSpace(roundOverride.DecisionId))
             {
                 throw new ContractException("Cycle contains an invalid or non-increasing human round override.");
+            }
+            var decision = cycle.HumanDecisions.SingleOrDefault(item => item.DecisionId == roundOverride.DecisionId && item.Status == "RESOLVED");
+            if (decision is null || decision.RoundNumber != roundOverride.StartingRound - 1 || decision.ResolvedForRound != roundOverride.StartingRound)
+            {
+                throw new ContractException($"Override for round {roundOverride.StartingRound} is not bound to the resolved maximum-round decision.");
             }
             ParseTimestamp(roundOverride.ApprovedAt, "override approvedAt");
             expectedEffectiveMaximum = roundOverride.MaximumRounds;
@@ -648,6 +914,12 @@ static class ReviewCycleManager
                 }
                 Equal($"round {expectedNumber} verdict", expectedVerdict, round.Verdict);
                 ValidateArtifactRoles(round.Verdict!, actionable, round.Artifacts);
+                ValidateArtifactContents(cycle, round, new RoundResult
+                {
+                    Verdict = round.Verdict!,
+                    FindingDelta = round.FindingDelta,
+                    SourceCoverage = round.SourceCoverage
+                }, cycleRoot, round.Artifacts);
                 if (round.Notification is null) throw new ContractException($"Completed round {expectedNumber} is missing notification evidence.");
                 ValidateNotification(cycle, expectedNumber, round.Verdict!, round.Notification);
                 ValidateNotificationArtifact(cycleRoot, round.Artifacts, expectedNumber, round.Verdict!, round.Notification.ResultUri);
@@ -671,6 +943,60 @@ static class ReviewCycleManager
             ? current.Status == "IN_PROGRESS" ? "IN_PROGRESS" : current.Verdict
             : "NOT_STARTED";
         Equal("cycle status", expectedStatus, cycle.Status);
+    }
+
+    private static void ValidateHumanDecisions(ReviewCycle cycle)
+    {
+        var decisionIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var decision in cycle.HumanDecisions)
+        {
+            var decisionId = decision.DecisionId ?? string.Empty;
+            if (!Regex.IsMatch(decisionId, "^HD-[0-9]{3}$") || !decisionIds.Add(decisionId))
+            {
+                throw new ContractException($"Human decision ID is invalid or duplicated: {decision.DecisionId}");
+            }
+            var round = cycle.Rounds.SingleOrDefault(item => item.RoundNumber == decision.RoundNumber);
+            if (round is null || round.Status != "COMPLETED" || round.Verdict != "HUMAN_DECISION_REQUIRED")
+            {
+                throw new ContractException($"Human decision {decision.DecisionId} does not correspond to a HUMAN_DECISION_REQUIRED round.");
+            }
+            if (string.IsNullOrWhiteSpace(decision.Reason) || decision.Status is not ("PENDING" or "RESOLVED"))
+            {
+                throw new ContractException($"Human decision {decision.DecisionId} has invalid status or reason.");
+            }
+            if (decision.Status == "PENDING")
+            {
+                if (decision.ResolvedForRound is not null || decision.ApprovedAt is not null || decision.ApprovedBy is not null || decision.Resolution is not null)
+                {
+                    throw new ContractException($"Pending human decision {decision.DecisionId} contains resolution evidence.");
+                }
+                if (cycle.Rounds.Any(item => item.RoundNumber > decision.RoundNumber))
+                {
+                    throw new ContractException($"Cycle continued past unresolved human decision {decision.DecisionId}.");
+                }
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(decision.Resolution) || string.IsNullOrWhiteSpace(decision.ApprovedBy)
+                    || string.IsNullOrWhiteSpace(decision.ApprovedAt) || decision.ResolvedForRound != decision.RoundNumber + 1)
+                {
+                    throw new ContractException($"Resolved human decision {decision.DecisionId} lacks complete approval evidence.");
+                }
+                ParseTimestamp(decision.ApprovedAt, $"human decision {decision.DecisionId} approvedAt");
+                if (!cycle.Rounds.Any(item => item.RoundNumber == decision.ResolvedForRound))
+                {
+                    throw new ContractException($"Resolved human decision {decision.DecisionId} does not lead to its recorded next round.");
+                }
+            }
+        }
+
+        foreach (var round in cycle.Rounds.Where(item => item.Status == "COMPLETED" && item.Verdict == "HUMAN_DECISION_REQUIRED"))
+        {
+            if (cycle.HumanDecisions.Count(item => item.RoundNumber == round.RoundNumber) != 1)
+            {
+                throw new ContractException($"HUMAN_DECISION_REQUIRED round {round.RoundNumber} must have exactly one decision record.");
+            }
+        }
     }
 
     private static void ValidateHistoricalFindingDelta(RoundRecord round, Dictionary<string, string> priorStates)
@@ -819,6 +1145,10 @@ sealed class Options
     public string? OverrideApprovedBy { get; private set; }
     public string? OverrideApprovedAt { get; private set; }
     public string? OverrideReason { get; private set; }
+    public string? ResolveDecision { get; private set; }
+    public string? DecisionResolution { get; private set; }
+    public string? DecisionApprovedBy { get; private set; }
+    public string? DecisionApprovedAt { get; private set; }
     public string Format { get; private set; } = "text";
     public bool ShowHelp { get; private set; }
     public bool Valid { get; private set; } = true;
@@ -851,6 +1181,10 @@ sealed class Options
                 case "--override-approved-by": options.OverrideApprovedBy = Value(args, ref i, "--override-approved-by"); break;
                 case "--override-approved-at": options.OverrideApprovedAt = Value(args, ref i, "--override-approved-at"); break;
                 case "--override-reason": options.OverrideReason = Value(args, ref i, "--override-reason"); break;
+                case "--resolve-decision": options.ResolveDecision = Value(args, ref i, "--resolve-decision"); break;
+                case "--decision-resolution": options.DecisionResolution = Value(args, ref i, "--decision-resolution"); break;
+                case "--decision-approved-by": options.DecisionApprovedBy = Value(args, ref i, "--decision-approved-by"); break;
+                case "--decision-approved-at": options.DecisionApprovedAt = Value(args, ref i, "--decision-approved-at"); break;
                 case "--format":
                     options.Format = Value(args, ref i, "--format").ToLowerInvariant();
                     if (options.Format is not ("json" or "text")) options.Valid = false;
@@ -949,6 +1283,27 @@ sealed class RoundResult
     public List<SourceCoverageEntry> SourceCoverage { get; set; } = [];
 }
 
+sealed class ReviewResultArtifact
+{
+    public int SchemaVersion { get; set; }
+    public string Repository { get; set; } = string.Empty;
+    public int PullRequest { get; set; }
+    public int RoundNumber { get; set; }
+    public string BaseOid { get; set; } = string.Empty;
+    public string HeadOid { get; set; } = string.Empty;
+    public GoalContextIdentity GoalContext { get; set; } = new();
+    public string Verdict { get; set; } = string.Empty;
+    public List<FindingDeltaEntry> FindingDelta { get; set; } = [];
+    public List<SourceCoverageEntry> SourceCoverage { get; set; } = [];
+    public List<ArtifactBinding> ArtifactBindings { get; set; } = [];
+}
+
+sealed class ArtifactBinding
+{
+    public string Role { get; set; } = string.Empty;
+    public string NormalizedSha256 { get; set; } = string.Empty;
+}
+
 sealed class ArtifactRecord
 {
     public string Role { get; set; } = string.Empty;
@@ -990,6 +1345,7 @@ sealed class FindingHistoryEntry
 sealed class RoundOverride
 {
     public int StartingRound { get; set; }
+    public string DecisionId { get; set; } = string.Empty;
     public string ApprovedBy { get; set; } = string.Empty;
     public string ApprovedAt { get; set; } = string.Empty;
     public string Reason { get; set; } = string.Empty;
@@ -1006,9 +1362,12 @@ sealed class SourceCoverageEntry
 
 sealed class HumanDecision
 {
+    public string DecisionId { get; set; } = string.Empty;
     public int RoundNumber { get; set; }
     public string Status { get; set; } = string.Empty;
     public string Reason { get; set; } = string.Empty;
     public string? ApprovedBy { get; set; }
     public string? ApprovedAt { get; set; }
+    public string? Resolution { get; set; }
+    public int? ResolvedForRound { get; set; }
 }

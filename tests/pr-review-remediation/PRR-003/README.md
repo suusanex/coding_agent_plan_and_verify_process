@@ -10,7 +10,9 @@ PRR-003は、記録済みfinding deltaとartifactを入力にしてmulti-round s
 - 同一head OIDの重複review拒否とround別directoryの非上書き
 - `new | persistent | resolved | reopened`のfinding ledger遷移
 - 各round通知のverdictと対象PR直接リンク
-- artifact hash改変、finding遷移欠落、誤ったverdict、空plan、通知不一致のfail-closed mutation
+- review-context、Goal Context selection、local/purpose findings、machine-readable review-result、round-resultのidentity/source/verdict/delta/hash binding相互照合
+- pending human decisionの明示resolutionと上限到達decisionに紐付く第4round override
+- artifact hash改変、hashを合わせたartifact内容不一致、finding遷移欠落、誤ったverdict、空plan、通知不一致のfail-closed mutation
 - multi-round modeを選ばない既存single-round Skill契約の後方互換性
 
 実行方法:
