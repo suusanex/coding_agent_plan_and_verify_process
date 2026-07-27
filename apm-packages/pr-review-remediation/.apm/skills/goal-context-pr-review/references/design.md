@@ -21,3 +21,20 @@ Goal Context対応版は基礎版Skillのrelative collector/templateを参照し
 - completion notification decorator: terminal verdictを変えず、通知と直接リンクだけを追加
 
 selectorはGoal Context Authoring Skillのcanonical validatorを再利用し、path、validation contract version、mode、正規化SHA-256をselection artifactへ残します。そのPASSは文書contractの証明ですが、Goal Contextの意味的忠実性やprivacy safetyを証明しません。`status: human-reviewed`を既定要件とし、draftを使う場合は利用者がexact pathと`--allow-draft`を明示し、そのoverrideをartifactへ残します。
+
+## Multi-round state machine
+
+multi-round modeは同じSkillの明示的な追加modeです。既存single-round modeのpath、verdict、handoffは変更しません。
+
+`review-cycle.json`はrepository、PR、Goal Context path/hash、既定上限3、有効上限、override、人間判断、round一覧、finding ledgerを保持します。各`round-NNN/`はbase/head OID、前round、前Adaptive result reference、review artifact、finding delta、source coverage、round番号付きnotificationを保持し、過去roundを上書きしません。全source IDはfinding tracking IDまたは理由付き`noAction`へ対応させます。
+
+verdict遷移は次のとおりです。
+
+- actionableなし -> `REVIEW_COMPLETE`
+- actionableあり、round < effective maximum -> `READY_FOR_ADAPTIVE_IMPLEMENTATION`
+- actionableあり、round >= effective maximum -> `HUMAN_DECISION_REQUIRED`
+- 必須証拠不足または明示的blocked reason -> `BLOCKED`
+
+`READY_FOR_ADAPTIVE_IMPLEMENTATION`は別親ターンのAdaptive handoffだけを許可します。Adaptive完了後の再reviewも、利用者がさらに別の親ターンで明示開始します。Completion Notification Decoratorは各roundのterminal verdictとPR直接リンクを通知するだけで、state transitionや次工程を起動しません。
+
+findingはagentが割り当てた安定tracking IDで`new | persistent | resolved | reopened`を追跡します。`persistent`と`resolved`は直前までactiveだったfinding、`reopened`は過去に`resolved`となったfindingだけに許可し、文面の類似だけで同一性を推測しません。

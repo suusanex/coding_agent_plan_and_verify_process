@@ -30,6 +30,11 @@ Goal Context対応modeでは追加で必須:
 - `goal-context-selection.json`のpathと正規化SHA-256に一致する`goal-context-*.md`
 - `purpose-review-findings.md`
 
+Goal Context multi-round modeでは追加で必須:
+
+- `review-cycle.json`と現在の`round-NNN` identity
+- 前roundまでのfinding ledgerと、別親ターンで完了したAdaptive result reference
+
 ## Planning rules
 
 1. finding/commentごとにsource IDを維持し、`Apply | Hold | Reject`と理由を記録する。
@@ -44,6 +49,9 @@ Goal Context対応modeでは追加で必須:
 10. Goal Contextのpathと正規化SHA-256、およびOriginal problem、Desired outcome、user scenarios、MVP、Non-goals、rejected alternatives、negative conditionsをplan boundaryへ反映する。
 11. Goal Contextにない要求を追加せず、unknownをOpen questionまたはhuman decisionとして残す。
 12. Goal Context selectionが`SELECTED`でない、またはpurpose verdictが`PURPOSE_REVIEWED`でない場合は`READY_FOR_ADAPTIVE_IMPLEMENTATION`を返さない。
+13. multi-round modeではtracking IDをround間で維持し、各findingを`new | persistent | resolved | reopened`へ分類する。文字列類似だけで同一findingと判定しない。
+14. multi-round modeの第3round以降でactionable findingが残る場合、記録済みhuman overrideが現在roundを許可していない限り`HUMAN_DECISION_REQUIRED`とする。
+15. actionable findingがない場合は`REVIEW_COMPLETE`とし、空のAdaptive向けplanを生成しない。
 
 ## Adaptive handoff
 
@@ -67,7 +75,7 @@ implementation_intent:
 
 `templates/review-plan.md`に適合する内容を返してください。
 
-- Phase 1 verdict: `READY_FOR_ADAPTIVE_IMPLEMENTATION | HUMAN_DECISION_REQUIRED | BLOCKED`
+- Phase 1 verdict: `READY_FOR_ADAPTIVE_IMPLEMENTATION | REVIEW_COMPLETE | HUMAN_DECISION_REQUIRED | BLOCKED`
 - PR identityとinput artifact
 - review input status
 - review modeと、Goal Context対応modeでのGoal Context boundary
@@ -79,5 +87,7 @@ implementation_intent:
 - 未取得・未検証事項と人手作業
 - 別親ターン用の正確なAdaptive開始prompt
 - `Production code changed: No`
+
+multi-round modeではround番号、base/head OID、前round、Adaptive result reference、finding delta、notificationのPR直接リンクも返してください。親turnはround artifactを保存して停止し、Adaptive Implementationまたは次review roundを起動してはいけません。
 
 `READY_FOR_ADAPTIVE_IMPLEMENTATION`でも、これはPhase 1の完了です。レビュー反映プロセス全体の完了を宣言せず、親ターンを停止してください。

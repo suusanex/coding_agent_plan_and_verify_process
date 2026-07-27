@@ -80,7 +80,7 @@ plannerはCopilot、local、purpose、PR comments、inline comments、checksをs
 
 ### 5. Stop and notify
 
-Phase 1 verdictは`READY_FOR_ADAPTIVE_IMPLEMENTATION | HUMAN_DECISION_REQUIRED | BLOCKED`です。plan生成後は必ず親ターンを停止し、Adaptiveを内部呼び出ししません。
+single-round modeのPhase 1 verdictは`READY_FOR_ADAPTIVE_IMPLEMENTATION | HUMAN_DECISION_REQUIRED | BLOCKED`です。plan生成後は必ず親ターンを停止し、Adaptiveを内部呼び出ししません。
 
 `$completion-notification-decorator`が同じ入力で選択されている場合、最終応答へ一つだけenvelopeを追加します。`observed_status`はPhase 1 verdictをそのまま使い、`result_uri`は対象PRの直接URLにします。通知失敗でreview verdictを変えません。
 
@@ -102,10 +102,57 @@ review-plan.mdのimplementation_intentをsource of truthとし、Goal Context Bo
 
 このSkillは新しいimplementation agent、route、result schemaを持ちません。
 
+## Explicit multi-round mode
+
+利用者が複数roundのレビュー・修正サイクルを明示した場合だけ、single-round成果物を`.review/pr-123/round-001/`以降へ保存し、`.review/pr-123/review-cycle.json`でround間の証拠を管理します。既存single-round呼び出しは従来どおり`.review/pr-123/`を使い、このcycle管理を必須にしません。
+
+各roundの開始前に、最新base/headとcanonical Goal Context identityを指定して`manage-review-cycle.cs start`を実行します。round 2以降は、別の親ターンで完了したAdaptive result referenceが必須です。同じhead OIDの再reviewは拒否します。
+
+```powershell
+dotnet run --file scripts/manage-review-cycle.cs -- start `
+  --cycle .review/pr-123/review-cycle.json `
+  --repository owner/repository --pr 123 `
+  --goal-context-path docs/goal-context-example.md --goal-context-sha <sha256> `
+  --base-oid <base-oid> --head-oid <head-oid> --started-at <ISO-8601> `
+  --adaptive-result-reference <previous-adaptive-result>
+```
+
+collector、Goal Context selection、local/purpose findings、review result、notification、およびactionable findingがある場合のreview planを現在の`round-NNN/`へ保存します。`templates/review-round-result.example.json`を埋め、`complete`でhash、identity、finding遷移、artifact、notificationを検証します。
+
+```powershell
+dotnet run --file scripts/manage-review-cycle.cs -- complete `
+  --cycle .review/pr-123/review-cycle.json `
+  --round-result .review/pr-123/round-002/round-result.json --format json
+```
+
+multi-round verdictは次のとおりです。
+
+- actionable findingがなくなった: `REVIEW_COMPLETE`。空のAdaptive planを作らず停止する。
+- actionable findingがあり、現在roundが有効上限未満: `READY_FOR_ADAPTIVE_IMPLEMENTATION`。別親ターン用handoffを提示して停止する。
+- 既定第3roundでactionable findingが残る: `HUMAN_DECISION_REQUIRED`。自動継続しない。
+- 必須artifact不足などで安全に確定できない: `BLOCKED`。
+
+第4round以降は利用者の明示承認をすべて記録した場合だけ開始できます。
+
+```powershell
+dotnet run --file scripts/manage-review-cycle.cs -- start `
+  --cycle .review/pr-123/review-cycle.json `
+  --repository owner/repository --pr 123 `
+  --goal-context-path docs/goal-context-example.md --goal-context-sha <sha256> `
+  --base-oid <base-oid> --head-oid <head-oid> --started-at <ISO-8601> `
+  --adaptive-result-reference <previous-adaptive-result> `
+  --override-maximum-rounds 4 --override-approved-by <identity> `
+  --override-approved-at <ISO-8601> --override-reason <reason>
+```
+
+`complete`後はCompletion Notification Decoratorでそのroundのverdictと対象PR直接URLを通知し、必ず停止します。このDecoratorはcycleを進めず、review SkillもAdaptive Implementationや次roundを内部起動しません。次roundは利用者が別のCodex親ターンで明示開始します。
+
 ## Relative and shared assets
 
 - `scripts/select-goal-context.cs`
+- `scripts/manage-review-cycle.cs`
 - `templates/purpose-review-findings.md`
+- `templates/review-round-result.example.json`
 - `references/design.md`
 - `references/usage.md`
 - `references/troubleshooting.md`

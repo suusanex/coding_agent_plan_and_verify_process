@@ -75,7 +75,9 @@ foreach ($path in @(
     'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/references/troubleshooting.md',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/SKILL.md',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/select-goal-context.cs',
+    'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/manage-review-cycle.cs',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/purpose-review-findings.md',
+    'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/review-round-result.example.json',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/design.md',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/usage.md',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/troubleshooting.md',
@@ -88,6 +90,7 @@ foreach ($path in @(
     'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-agent-smoke.ps1',
     'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1',
     'apm-packages/pr-review-remediation/scripts/validate-prr-002-contract.cs',
+    'apm-packages/pr-review-remediation/scripts/validate-prr-003-contract.ps1',
     'tests/pr-review-remediation/PRR-001/README.md',
     'tests/pr-review-remediation/PRR-001/run.schema.json',
     'tests/pr-review-remediation/PRR-001/fixture/.review/pr-123/review-context.json',
@@ -103,6 +106,8 @@ foreach ($path in @(
     'tests/pr-review-remediation/PRR-002/review-plan.md',
     'tests/pr-review-remediation/PRR-002/completion-notification.txt',
     'tests/pr-review-remediation/PRR-002/adaptive-turn-input.txt',
+    'tests/pr-review-remediation/PRR-003/README.md',
+    'tests/pr-review-remediation/PRR-003/scenarios.json',
     'tests/pr-review-remediation/manual-model-smoke/README.md',
     'tests/pr-review-remediation/manual-model-smoke/result-template.md'
 )) {
@@ -110,7 +115,7 @@ foreach ($path in @(
 }
 
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?m)^name:\s*pr-review-remediation\s*$' 'package name'
-Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?m)^version:\s*0\.2\.0\s*$' 'package version'
+Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?m)^version:\s*0\.3\.0\s*$' 'package version'
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*apm-packages/goal-context-authoring/\.apm/skills/goal-context-authoring' 'canonical Goal Context Authoring Skill dependency'
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*\.github/agents/local-reviewer\.agent\.md' 'canonical local reviewer dependency'
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*\.github/agents/purpose-reviewer\.agent\.md' 'canonical purpose reviewer dependency'
@@ -138,6 +143,10 @@ Assert-Contains $skill 'templates/review-plan\.md' 'relative review plan templat
 $goalSkill = 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/SKILL.md'
 Assert-Contains $goalSkill 'name:\s*goal-context-pr-review' 'Goal Context Skill name'
 Assert-Contains $goalSkill 'scripts/select-goal-context\.cs' 'Goal Context selector asset'
+Assert-Contains $goalSkill 'scripts/manage-review-cycle\.cs' 'multi-round cycle manager asset'
+Assert-Contains $goalSkill 'REVIEW_COMPLETE' 'multi-round completion verdict'
+Assert-Contains $goalSkill 'override-maximum-rounds 4' 'explicit fourth-round override'
+Assert-Contains $goalSkill '次roundを内部起動しません' 'manual next-round boundary'
 Assert-Contains $goalSkill 'purpose-reviewer' 'independent purpose reviewer'
 Assert-Contains $goalSkill 'Issue本文だけで目的reviewを代替せず停止' 'no Issue-only purpose fallback'
 Assert-Contains $goalSkill 'Adaptiveを内部呼び出ししません' 'manual Adaptive boundary'
@@ -145,6 +154,15 @@ Assert-Contains $goalSkill 'completion-notification' 'notification decorator env
 Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/design.md' '別packageではなく.*別Skill' 'same-package separate-Skill decision'
 Assert-Contains '.github/agents/purpose-reviewer.agent.md' '実装担当および`local-reviewer`から独立' 'purpose reviewer independence'
 Assert-Contains '.github/agents/purpose-reviewer.agent.md' 'コード上のbug.*`local-reviewer`' 'purpose and code quality separation'
+$cycleManager = 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/manage-review-cycle.cs'
+Assert-Contains $cycleManager '(?m)^#:property TargetFramework=net10\.0\s*$' 'multi-round File-based App target framework'
+Assert-Contains $cycleManager 'DefaultMaximumRounds = 3' 'default maximum of three rounds'
+Assert-Contains $cycleManager '(?s)"new".*"persistent".*"resolved".*"reopened"' 'finding transition vocabulary'
+Assert-Contains $cycleManager '(?s)READY_FOR_ADAPTIVE_IMPLEMENTATION.*HUMAN_DECISION_REQUIRED' 'round-limit verdict transition'
+Assert-Contains $cycleManager 'SourceCoverageEntry' 'per-round source coverage contract'
+Assert-NotContains $cycleManager 'Process\.Start|adaptive-implementation-execution|completion-notification-decorator' 'internal process orchestration'
+Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/review-round-result.example.json' '"sourceCoverage"' 'round-result source coverage example'
+Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/review-round-result.example.json' '"roundNumber": 2' 'round notification identity example'
 
 $reviewPlan = 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md'
 foreach ($field in @('goal:', 'scope:', 'non_goals:', 'acceptance:', 'constraints:', 'validation:', 'plan_reference:', 'goal_context_reference:')) {
@@ -157,6 +175,12 @@ Assert-Contains $reviewPlan 'Purpose review:' 'purpose review input status'
 Assert-Contains $reviewPlan '`PUR-\*` rows are Goal Context mode only; omit them in Baseline mode\.' 'baseline-safe purpose row guidance'
 Assert-Contains $reviewPlan '(?m)^\| LR-001 \| Local Codex' 'separate baseline local finding example'
 Assert-Contains $reviewPlan '(?m)^\| PUR-001 \| Purpose \(Goal Context mode only\)' 'separate optional purpose finding example'
+Assert-Contains $reviewPlan 'new / persistent / resolved / reopened' 'multi-round finding delta vocabulary'
+Assert-Contains '.github/agents/review-planner.agent.md' 'READY_FOR_ADAPTIVE_IMPLEMENTATION \| REVIEW_COMPLETE \| HUMAN_DECISION_REQUIRED \| BLOCKED' 'multi-round planner verdict vocabulary'
+Assert-Contains '.github/agents/review-planner.agent.md' '空のAdaptive向けplanを生成しない' 'no empty Adaptive plan rule'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'deterministic-multi-round-replay' 'PRR-003 evidence mode'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'HUMAN_DECISION_REQUIRED' 'PRR-003 maximum-round verdict'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/README.md' '外部model.*実行しません' 'PRR-003 external-model disclosure'
 
 $legacyImplementationAgent = 'spark' + '-implementer'
 $runtimeFiles = @(
@@ -264,6 +288,8 @@ if ($payloadDescription.Output -notmatch 'No model was invoked') { Add-Failure '
 $missingConsent = Invoke-Native 'pwsh' @('-NoProfile', '-File', $agentSmokeRunner, '-RepositoryRoot', $repoRoot) 'agent smoke consent gate' $false
 if ($missingConsent.Output -notmatch 'HUMAN_DECISION_REQUIRED') { Add-Failure 'agent smoke did not fail closed without external-payload consent' }
 Invoke-Native 'pwsh' @('-NoProfile', '-File', $agentSmokeValidator, '-RepositoryRoot', $repoRoot) 'fixed actual agent smoke evidence' | Out-Null
+$prr003Validator = Join-Path $packageRoot 'scripts\validate-prr-003-contract.ps1'
+Invoke-Native 'pwsh' @('-NoProfile', '-File', $prr003Validator) 'PRR-003 deterministic multi-round replay' | Out-Null
 
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("pr-review-remediation-validation-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tempRoot | Out-Null

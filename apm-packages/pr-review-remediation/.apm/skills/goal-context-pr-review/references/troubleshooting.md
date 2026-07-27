@@ -19,3 +19,15 @@ code bug、test不足、保守性riskは`local-reviewer`へ残します。`purpo
 ## Notification did not arrive
 
 通知delivery失敗はreview verdictを変更しません。review-plan.mdとPR URLを通常出力から確認し、notification runtime logを別途診断します。Phase 2を自動起動して補償しません。
+
+## Duplicate same-head round
+
+同じhead OIDは再reviewしません。前roundのAdaptiveが別親ターンで完了し、新しいheadへpushされたことを確認します。誤ったheadで開始したin-progress roundを上書きせず、artifactとhuman decisionを保持したまま利用者へ判断を求めます。
+
+## Round 3 still has actionable findings
+
+既定上限へ到達したため`HUMAN_DECISION_REQUIRED`で停止します。第4roundを自動開始しません。継続する場合は、利用者のidentity、承認時刻、理由、増加後の上限を`manage-review-cycle.cs start`のoverride optionsへすべて指定します。
+
+## Historical artifact hash mismatch
+
+完了済みroundのartifactは修正せず、改変元を調査します。再生成物は新しいroundへ保存し、過去roundを上書きしません。hash不一致を無視してcycleを進めないでください。

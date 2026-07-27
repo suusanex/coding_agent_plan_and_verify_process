@@ -2,10 +2,13 @@
 
 ## Phase 1 Verdict
 
-- Verdict: READY_FOR_ADAPTIVE_IMPLEMENTATION / HUMAN_DECISION_REQUIRED / BLOCKED
+- Verdict: READY_FOR_ADAPTIVE_IMPLEMENTATION / REVIEW_COMPLETE (Goal Context multi-round mode only) / HUMAN_DECISION_REQUIRED / BLOCKED
 - Production code changed: No
-- Process status: Review planning complete / Human decision required / Blocked
+- Process status: Review planning complete / Review complete / Human decision required / Blocked
 - Review mode: Baseline / Goal Context
+- Review round: N/A / round-NNN
+- Previous round: N/A / round-NNN
+- Previous Adaptive result: N/A
 
 ## PR Identity
 
@@ -48,6 +51,14 @@
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | LR-001 | Local Codex |  |  | Apply / Hold / Reject |  | N/A | N/A | SI-001 / AC-001 |
 | PUR-001 | Purpose (Goal Context mode only) |  |  | Apply / Hold / Reject |  | N/A | N/A | SI-001 / AC-001 |
+
+## Finding Delta (Goal Context multi-round mode only)
+
+Omit this section in Baseline and single-round mode. Tracking IDs are stable across rounds and are not inferred from text similarity alone.
+
+| Tracking ID | State | Current finding IDs | Source IDs | Prior evidence | Reason |
+| --- | --- | --- | --- | --- | --- |
+| TRK-001 | new / persistent / resolved / reopened |  |  | N/A / round-NNN |  |
 
 ## Ordered Remediation Plan
 

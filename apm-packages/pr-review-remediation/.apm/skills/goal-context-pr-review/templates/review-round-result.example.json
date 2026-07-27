@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "roundNumber": 2,
+  "baseOid": "0000000000000000000000000000000000000000",
+  "headOid": "1111111111111111111111111111111111111111",
+  "completedAt": "2026-01-01T00:10:00Z",
+  "verdict": "READY_FOR_ADAPTIVE_IMPLEMENTATION",
+  "humanDecisionReason": null,
+  "blockedReason": null,
+  "artifacts": [
+    { "role": "review-context", "path": "round-002/review-context.json", "normalizedSha256": "<sha256>" },
+    { "role": "remote-patch", "path": "round-002/pr-diff.patch", "normalizedSha256": "<sha256>" },
+    { "role": "goal-context-selection", "path": "round-002/goal-context-selection.json", "normalizedSha256": "<sha256>" },
+    { "role": "local-findings", "path": "round-002/local-review-findings.md", "normalizedSha256": "<sha256>" },
+    { "role": "purpose-findings", "path": "round-002/purpose-review-findings.md", "normalizedSha256": "<sha256>" },
+    { "role": "review-result", "path": "round-002/review-result.md", "normalizedSha256": "<sha256>" },
+    { "role": "review-plan", "path": "round-002/review-plan.md", "normalizedSha256": "<sha256>" },
+    { "role": "completion-notification", "path": "round-002/completion-notification.txt", "normalizedSha256": "<sha256>" }
+  ],
+  "notification": {
+    "roundNumber": 2,
+    "observedStatus": "READY_FOR_ADAPTIVE_IMPLEMENTATION",
+    "resultUri": "https://github.com/owner/repository/pull/123"
+  },
+  "findingDelta": [
+    {
+      "trackingId": "TRK-001",
+      "state": "persistent",
+      "findingIds": ["LR-002"],
+      "sourceIds": ["review:456"]
+    }
+  ],
+  "sourceCoverage": [
+    {
+      "sourceId": "review:456",
+      "disposition": "finding",
+      "trackingIds": ["TRK-001"],
+      "reason": null
+    },
+    {
+      "sourceId": "check:789",
+      "disposition": "noAction",
+      "trackingIds": [],
+      "reason": "Required check passed without an actionable finding."
+    }
+  ]
+}

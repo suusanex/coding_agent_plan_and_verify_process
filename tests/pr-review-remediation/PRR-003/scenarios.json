@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "fixtureId": "PRR-003",
+  "evidenceMode": "deterministic-multi-round-replay",
+  "externalModelExecution": false,
+  "repository": "fixture/goal-context-multi-round",
+  "pullRequest": 123,
+  "defaultMaximumRounds": 3,
+  "findingStates": ["new", "persistent", "resolved", "reopened"],
+  "scenarios": [
+    {
+      "id": "convergence",
+      "expectedVerdicts": [
+        "READY_FOR_ADAPTIVE_IMPLEMENTATION",
+        "READY_FOR_ADAPTIVE_IMPLEMENTATION",
+        "REVIEW_COMPLETE"
+      ]
+    },
+    {
+      "id": "round-limit-and-override",
+      "expectedVerdicts": [
+        "READY_FOR_ADAPTIVE_IMPLEMENTATION",
+        "READY_FOR_ADAPTIVE_IMPLEMENTATION",
+        "HUMAN_DECISION_REQUIRED",
+        "REVIEW_COMPLETE"
+      ],
+      "overrideMaximumRounds": 4
+    },
+    {
+      "id": "reopened",
+      "expectedStates": ["new", "resolved", "reopened"]
+    }
+  ],
+  "negativeMutations": [
+    "duplicate-head",
+    "missing-adaptive-result-reference",
+    "identity-drift",
+    "existing-round-directory",
+    "historical-artifact-hash",
+    "unknown-persistent-finding",
+    "missing-active-finding-mapping",
+    "round-limit-verdict",
+    "incomplete-override",
+    "actionable-without-plan",
+    "review-complete-with-plan",
+    "missing-source-coverage",
+    "invalid-reopened-transition",
+    "round-result-head-identity",
+    "notification-status",
+    "notification-pr"
+  ]
+}

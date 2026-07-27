@@ -6,6 +6,7 @@ Ready PRの成立、local Codex review、GitHub Copilot review収集、統合rem
 Phase 1 baseline: PR preparation -> review collection -> local-reviewer -> review-planner -> review-plan.md -> stop
 Phase 1 Goal Context: shared preparation/collection -> local-reviewer + purpose-reviewer -> shared review-planner -> review-plan.md -> stop
 Phase 2: explicit new parent turn -> adaptive-implementation-execution -> implementation and validation
+Optional multi-round: explicit review turn -> explicit Adaptive turn -> explicit next review turn
 ```
 
 Phase 1の停止はレビュー反映全体の完了ではありません。実装責務は削除せず、既存Adaptive Implementationへ一本化します。
@@ -31,6 +32,8 @@ APMがSkillとcanonical agentsを導入し、二つのhelperがreview/Adaptive�
 | Baseline review Skill | `.apm/skills/pr-review-remediation/SKILL.md` |
 | Goal Context review Skill | `.apm/skills/goal-context-pr-review/SKILL.md` |
 | Goal Context selector | Goal Context Skillの`scripts/select-goal-context.cs` |
+| Multi-round cycle manager | Goal Context Skillの`scripts/manage-review-cycle.cs` |
+| Multi-round round-result schema example | Goal Context Skillの`templates/review-round-result.example.json` |
 | PRR-002 deterministic replay validator | `scripts/validate-prr-002-contract.cs` |
 | Collector | Skillの`scripts/collect-pr-review-context.cs` |
 | Review templates | Skillの`templates/` |
@@ -43,11 +46,12 @@ APMがSkillとcanonical agentsを導入し、二つのhelperがreview/Adaptive�
 
 ## Validation
 
-静的contract、collector fixture、profile helper、固定された実agent証跡、PRR-002のidentity・hash・source coverage・decision mapping・handoffを検証します。PRR-002は記録済みreviewer出力の決定論的replayであり、外部model実行を宣言しません。
+静的contract、collector fixture、profile helper、固定された実agent証跡、PRR-002のidentity・hash・source coverage・decision mapping・handoff、およびPRR-003のmulti-round state遷移とnegative mutationを検証します。PRR-002とPRR-003は記録済み入力の決定論的replayであり、外部model実行を宣言しません。
 
 ```powershell
 pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
 dotnet run --file apm-packages/pr-review-remediation/scripts/validate-prr-002-contract.cs -- --fixture-root tests/pr-review-remediation/PRR-002 --format json
+dotnet run --file apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/manage-review-cycle.cs -- validate --cycle <review-cycle.json> --format json
 ```
 
 実agent chainを再実行して`tests/pr-review-remediation/PRR-001/`を更新する場合:
