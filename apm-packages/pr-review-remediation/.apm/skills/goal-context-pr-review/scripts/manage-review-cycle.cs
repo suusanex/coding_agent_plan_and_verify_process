@@ -110,7 +110,10 @@ Exit codes: 0 success, 1 runtime error, 2 contract violation.
 
 static class ReviewCycleManager
 {
-    private const int SchemaVersion = 1;
+    private const int SchemaVersion = 2;
+    private const int LegacySchemaVersion = 1;
+    private const string FullReviewMode = "full";
+    private const string PurposeOnlyReviewMode = "purpose-only";
     private const int DefaultMaximumRounds = 3;
     private static readonly HashSet<string> FindingStates = new(StringComparer.Ordinal)
     {
@@ -120,9 +123,9 @@ static class ReviewCycleManager
     {
         "new", "persistent", "reopened"
     };
-    private static readonly string[] RequiredCompletedArtifactRoles =
+    private static readonly string[] SharedCompletedArtifactRoles =
     [
-        "review-context", "remote-patch", "goal-context-selection", "local-findings",
+        "review-context", "remote-patch", "goal-context-selection",
         "purpose-findings", "review-result", "completion-notification"
     ];
 
@@ -140,6 +143,10 @@ static class ReviewCycleManager
         if (File.Exists(cyclePath))
         {
             cycle = ReadCycle(cyclePath);
+            if (cycle.SchemaVersion == LegacySchemaVersion)
+            {
+                throw new ContractException("review-cycle schemaVersion 1 is read-only historical evidence; start a new schemaVersion 2 cycle instead of appending a round.");
+            }
             ValidateCycle(cyclePath, cycle, requireCompletedCurrentRound: true);
             Equal("repository", cycle.Repository, options.Repository!);
             Equal("pull request", cycle.PullRequest, options.PullRequest);
@@ -222,6 +229,7 @@ static class ReviewCycleManager
         var roundRecord = new RoundRecord
         {
             RoundNumber = nextRound,
+            ReviewMode = ReviewModeFor(nextRound),
             ArtifactDirectory = roundDirectoryName,
             BaseOid = options.BaseOid!,
             HeadOid = options.HeadOid!,
@@ -260,6 +268,7 @@ static class ReviewCycleManager
         var requestedCycleRoot = Path.GetDirectoryName(requestedCyclePath) ?? throw new ContractException("Cycle path has no parent directory.");
         var cyclePath = Contained(requestedCycleRoot, Path.GetFileName(requestedCyclePath));
         var cycle = ReadCycle(cyclePath);
+        RejectLegacyMutation(cycle, "complete");
         ValidateCycle(cyclePath, cycle, requireCompletedCurrentRound: false);
         if (cycle.Rounds.Count == 0 || cycle.Rounds[^1].Status != "IN_PROGRESS")
         {
@@ -274,8 +283,9 @@ static class ReviewCycleManager
         if (!IsContained(expectedRoundDirectory, resultPath)) throw new ContractException("Round result must be inside the current round directory.");
 
         var result = ReadJson<RoundResult>(resultPath);
-        if (result.SchemaVersion != SchemaVersion) throw new ContractException("round-result schemaVersion must be 1.");
+        if (result.SchemaVersion != SchemaVersion) throw new ContractException("round-result schemaVersion must be 2.");
         Equal("round-result round number", round.RoundNumber, result.RoundNumber);
+        Equal("round-result review mode", round.ReviewMode, result.ReviewMode);
         Equal("round-result base OID", round.BaseOid, result.BaseOid);
         Equal("round-result head OID", round.HeadOid, result.HeadOid);
         var completedAt = ParseTimestamp(result.CompletedAt, "completedAt");
@@ -294,12 +304,12 @@ static class ReviewCycleManager
         }
         else
         {
-            delta = ValidateFindingDelta(cycle, round.RoundNumber, result.FindingDelta);
+            delta = ValidateFindingDelta(cycle, round, result.FindingDelta);
         }
         var actionableCount = delta.Count(item => ActiveFindingStates.Contains(item.State));
         var verdict = ComputeVerdict(cycle, round.RoundNumber, actionableCount, result.BlockedReason, result.HumanDecisionReason);
         Equal("round-result verdict", verdict, result.Verdict);
-        ValidateArtifactRoles(verdict, actionableCount, artifactRecords);
+        ValidateArtifactRoles(round.ReviewMode, verdict, actionableCount, artifactRecords);
         ValidateSourceCoverage(delta, result.SourceCoverage);
         ValidateArtifactContents(cycle, round, result, cycleRoot, artifactRecords);
         ValidateNotification(cycle, round.RoundNumber, verdict, result.Notification);
@@ -350,6 +360,7 @@ static class ReviewCycleManager
         var cyclePath = Contained(requestedCycleRoot, Path.GetFileName(requestedCyclePath));
         var cycleRoot = Path.GetDirectoryName(cyclePath)!;
         var cycle = ReadCycle(cyclePath);
+        RejectLegacyMutation(cycle, "resolve");
         ValidateCycle(cyclePath, cycle, requireCompletedCurrentRound: true);
 
         var round = cycle.Rounds.LastOrDefault()
@@ -421,6 +432,12 @@ static class ReviewCycleManager
         var requestedCycleRoot = Path.GetDirectoryName(requestedCyclePath) ?? throw new ContractException("Cycle path has no parent directory.");
         var cyclePath = Contained(requestedCycleRoot, Path.GetFileName(requestedCyclePath));
         var cycle = ReadCycle(cyclePath);
+        if (cycle.SchemaVersion == LegacySchemaVersion)
+        {
+            ValidateLegacyCycleReadOnly(cyclePath, cycle);
+            var legacyCurrent = cycle.Rounds.LastOrDefault();
+            return new CommandOutput(1, "PASS", legacyCurrent?.RoundNumber, legacyCurrent?.Verdict, legacyCurrent?.ArtifactDirectory, []);
+        }
         ValidateCycle(cyclePath, cycle, requireCompletedCurrentRound: false);
         var current = cycle.Rounds.LastOrDefault();
         return new CommandOutput(1, "PASS", current?.RoundNumber, current?.Verdict, current?.ArtifactDirectory, []);
@@ -576,15 +593,22 @@ static class ReviewCycleManager
         var observedSources = new HashSet<string>(StringComparer.Ordinal);
         if (result.Verdict != "BLOCKED")
         {
-            ValidateReviewContext(
+            var externalSources = ValidateReviewContext(
                 cycle,
                 round,
                 ArtifactPath(cycleRoot, byRole, "review-context"),
                 ArtifactPath(cycleRoot, byRole, "remote-patch"),
                 observedSources);
             ValidateGoalContextSelection(cycle, ArtifactPath(cycleRoot, byRole, "goal-context-selection"));
-            ValidateReviewMarkdown(cycle, round, result.Verdict, ArtifactPath(cycleRoot, byRole, "local-findings"), false, observedSources);
-            ValidateReviewMarkdown(cycle, round, result.Verdict, ArtifactPath(cycleRoot, byRole, "purpose-findings"), true, observedSources);
+            if (round.ReviewMode == FullReviewMode)
+            {
+                ValidateReviewMarkdown(cycle, round, result.Verdict, ArtifactPath(cycleRoot, byRole, "local-findings"), false, observedSources, result.FindingDelta);
+            }
+            ValidateReviewMarkdown(cycle, round, result.Verdict, ArtifactPath(cycleRoot, byRole, "purpose-findings"), true, observedSources, result.FindingDelta);
+            if (round.ReviewMode == PurposeOnlyReviewMode)
+            {
+                ValidatePurposeOnlySourceCoverage(externalSources, result.SourceCoverage);
+            }
             if (byRole.TryGetValue("review-plan", out var reviewPlan))
             {
                 ValidateReviewPlan(cycle, round, result, ArtifactPath(cycleRoot, byRole, "review-plan"), reviewPlan.Path);
@@ -592,10 +616,11 @@ static class ReviewCycleManager
         }
 
         var reviewResult = ReadJson<ReviewResultArtifact>(ArtifactPath(cycleRoot, byRole, "review-result"));
-        if (reviewResult.SchemaVersion != SchemaVersion) throw new ContractException("review-result schemaVersion must be 1.");
+        if (reviewResult.SchemaVersion != SchemaVersion) throw new ContractException("review-result schemaVersion must be 2.");
         Equal("review-result repository", cycle.Repository, reviewResult.Repository);
         Equal("review-result pull request", cycle.PullRequest, reviewResult.PullRequest);
         Equal("review-result round number", round.RoundNumber, reviewResult.RoundNumber);
+        Equal("review-result review mode", round.ReviewMode, reviewResult.ReviewMode);
         Equal("review-result base OID", round.BaseOid, reviewResult.BaseOid);
         Equal("review-result head OID", round.HeadOid, reviewResult.HeadOid);
         Equal("review-result Goal Context path", cycle.GoalContext.Path, reviewResult.GoalContext.Path);
@@ -633,7 +658,7 @@ static class ReviewCycleManager
         return Contained(cycleRoot, artifact.Path);
     }
 
-    private static void ValidateReviewContext(ReviewCycle cycle, RoundRecord round, string path, string remotePatchPath, HashSet<string> observedSources)
+    private static HashSet<string> ValidateReviewContext(ReviewCycle cycle, RoundRecord round, string path, string remotePatchPath, HashSet<string> observedSources)
     {
         using var document = JsonDocument.Parse(File.ReadAllText(path));
         var root = document.RootElement;
@@ -656,6 +681,7 @@ static class ReviewCycleManager
         Equal("review-context source base OID", round.BaseOid, RequiredString(pullRequest, "baseRefOid", "review-context pullRequest"));
         Equal("review-context source head OID", round.HeadOid, RequiredString(pullRequest, "headRefOid", "review-context pullRequest"));
 
+        var externalSources = new HashSet<string>(StringComparer.Ordinal);
         foreach (var collectionName in new[] { "reviews", "issueComments", "inlineComments", "checks" })
         {
             if (!sources.TryGetProperty(collectionName, out var collection) || collection.ValueKind != JsonValueKind.Array)
@@ -666,10 +692,17 @@ static class ReviewCycleManager
             {
                 var sourceId = RequiredString(source, "sourceId", $"review-context {collectionName}");
                 if (!observedSources.Add(sourceId)) throw new ContractException($"Duplicate source ID in review-context: {sourceId}");
+                externalSources.Add(sourceId);
                 _ = ClassifySourceHeadRelationship(cycle, round, source, sourceId);
                 ValidateOptionalSourceOid(source, "original_commit_id", sourceId);
             }
         }
+        if (round.ReviewMode == PurposeOnlyReviewMode)
+        {
+            var wait = RequiredObject(root, "copilotReviewWait", "review-context");
+            Equal("purpose-only Copilot wait status", "disabled", RequiredString(wait, "waitStatus", "review-context copilotReviewWait"));
+        }
+        return externalSources;
     }
 
     private static string ClassifySourceHeadRelationship(ReviewCycle cycle, RoundRecord round, JsonElement source, string sourceId)
@@ -729,7 +762,7 @@ static class ReviewCycleManager
         }
     }
 
-    private static void ValidateReviewMarkdown(ReviewCycle cycle, RoundRecord round, string roundVerdict, string path, bool purpose, HashSet<string> observedSources)
+    private static void ValidateReviewMarkdown(ReviewCycle cycle, RoundRecord round, string roundVerdict, string path, bool purpose, HashSet<string> observedSources, List<FindingDeltaEntry> delta)
     {
         var content = File.ReadAllText(path);
         var reviewVerdict = MarkdownValue(content, "Verdict");
@@ -749,6 +782,10 @@ static class ReviewCycleManager
         {
             Equal("purpose findings Goal Context", cycle.GoalContext.Path, MarkdownValue(content, "Goal Context"));
             Equal("purpose findings Goal Context SHA-256", cycle.GoalContext.NormalizedSha256, MarkdownValue(content, "Goal Context SHA-256"));
+            if (round.ReviewMode == PurposeOnlyReviewMode)
+            {
+                ValidatePriorFindingAssessments(cycle, round, content, delta);
+            }
         }
         var prefix = purpose ? "PUR" : "LR";
         foreach (Match match in Regex.Matches(content, $@"(?m)^\|\s*(?<id>{prefix}-\d+)\s*\|"))
@@ -887,6 +924,91 @@ static class ReviewCycleManager
         return match.Groups["body"].Value;
     }
 
+    private static string ReviewModeFor(int roundNumber) => roundNumber == 1 ? FullReviewMode : PurposeOnlyReviewMode;
+
+    private static void RejectLegacyMutation(ReviewCycle cycle, string operation)
+    {
+        if (cycle.SchemaVersion == LegacySchemaVersion)
+        {
+            throw new ContractException($"review-cycle schemaVersion 1 is read-only historical evidence and cannot be used with {operation}; start a new schemaVersion 2 cycle.");
+        }
+    }
+
+    private static void ValidatePurposeOnlySourceCoverage(HashSet<string> externalSources, List<SourceCoverageEntry> coverage)
+    {
+        var bySource = coverage.ToDictionary(item => item.SourceId, StringComparer.Ordinal);
+        foreach (var sourceId in externalSources)
+        {
+            if (!bySource.TryGetValue(sourceId, out var entry)
+                || entry.Disposition != "noAction"
+                || entry.TrackingIds.Count != 0
+                || string.IsNullOrWhiteSpace(entry.Reason))
+            {
+                throw new ContractException($"Purpose-only external source must be retained as reasoned noAction audit evidence: {sourceId}");
+            }
+        }
+    }
+
+    private static void ValidatePriorFindingAssessments(ReviewCycle cycle, RoundRecord round, string content, List<FindingDeltaEntry> delta)
+    {
+        var priorStates = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var priorRound in cycle.Rounds.Where(item => item.RoundNumber < round.RoundNumber && item.Status == "COMPLETED"))
+        {
+            foreach (var entry in priorRound.FindingDelta) priorStates[entry.TrackingId] = entry.State;
+        }
+        var activePrior = priorStates.Where(item => ActiveFindingStates.Contains(item.Value)).ToDictionary(item => item.Key, item => item.Value, StringComparer.Ordinal);
+        var section = MarkdownSection(content, "Prior Finding Assessment");
+        var assessed = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var line in section.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n'))
+        {
+            if (!line.TrimStart().StartsWith("| TRK-", StringComparison.Ordinal)) continue;
+            var cells = line.Trim().Trim('|').Split('|').Select(cell => cell.Trim()).ToArray();
+            if (cells.Length < 6) throw new ContractException("Prior Finding Assessment rows require tracking ID, previous/current state, Adaptive reference, evidence, and rationale.");
+            var trackingId = cells[0];
+            if (!assessed.Add(trackingId)) throw new ContractException($"Prior Finding Assessment contains duplicate tracking ID {trackingId}.");
+            if (!activePrior.TryGetValue(trackingId, out var previousState)) throw new ContractException($"Prior Finding Assessment contains an unknown or inactive tracking ID {trackingId}.");
+            Equal($"prior finding assessment previous state {trackingId}", previousState, cells[1]);
+            var mapped = delta.SingleOrDefault(item => item.TrackingId == trackingId)
+                ?? throw new ContractException($"Prior Finding Assessment has no findingDelta entry for {trackingId}.");
+            Equal($"prior finding assessment current state {trackingId}", mapped.State, cells[2]);
+            Equal($"prior finding assessment Adaptive result {trackingId}", round.AdaptiveResultReference, cells[3]);
+            if (string.IsNullOrWhiteSpace(cells[4]) || string.IsNullOrWhiteSpace(cells[5]))
+            {
+                throw new ContractException($"Prior Finding Assessment requires evidence and rationale for {trackingId}.");
+            }
+        }
+        if (!assessed.SetEquals(activePrior.Keys))
+        {
+            var missing = activePrior.Keys.Except(assessed, StringComparer.Ordinal);
+            var extra = assessed.Except(activePrior.Keys, StringComparer.Ordinal);
+            throw new ContractException($"Prior Finding Assessment coverage mismatch; missing [{string.Join(", ", missing)}], extra [{string.Join(", ", extra)}].");
+        }
+    }
+
+    private static void ValidateLegacyCycleReadOnly(string cyclePath, ReviewCycle cycle)
+    {
+        if (cycle.SchemaVersion != LegacySchemaVersion) throw new ContractException("Legacy review-cycle validation requires schemaVersion 1.");
+        if (!Regex.IsMatch(cycle.Repository ?? string.Empty, @"^[^/\s]+/[^/\s]+$")) throw new ContractException("Legacy cycle repository must be owner/name.");
+        if (cycle.PullRequest <= 0) throw new ContractException("Legacy cycle pullRequest must be positive.");
+        if (!Regex.IsMatch(cycle.GoalContext.NormalizedSha256 ?? string.Empty, "^[0-9a-f]{64}$")) throw new ContractException("Legacy cycle Goal Context SHA-256 is invalid.");
+        var cycleRoot = Path.GetDirectoryName(cyclePath)!;
+        for (var index = 0; index < cycle.Rounds.Count; index++)
+        {
+            var round = cycle.Rounds[index];
+            var expectedNumber = index + 1;
+            Equal("legacy sequential round number", expectedNumber, round.RoundNumber);
+            Equal("legacy round artifact directory", $"round-{expectedNumber:000}", round.ArtifactDirectory);
+            var directory = Contained(cycleRoot, round.ArtifactDirectory);
+            if (!Directory.Exists(directory)) throw new ContractException($"Legacy round artifact directory is missing: {round.ArtifactDirectory}");
+            foreach (var artifact in round.Artifacts)
+            {
+                var path = Contained(cycleRoot, artifact.Path);
+                if (!IsContained(directory, path) || !File.Exists(path)) throw new ContractException($"Legacy artifact is missing or outside its round: {artifact.Path}");
+                Equal($"legacy artifact hash {artifact.Role}", artifact.NormalizedSha256, Hash(path));
+            }
+        }
+    }
+
     private static JsonElement RequiredObject(JsonElement parent, string property, string context)
     {
         if (!parent.TryGetProperty(property, out var value) || value.ValueKind != JsonValueKind.Object) throw new ContractException($"{context}.{property} must be an object.");
@@ -947,8 +1069,9 @@ static class ReviewCycleManager
         }
     }
 
-    private static List<FindingDeltaEntry> ValidateFindingDelta(ReviewCycle cycle, int roundNumber, List<FindingDeltaEntry> entries)
+    private static List<FindingDeltaEntry> ValidateFindingDelta(ReviewCycle cycle, RoundRecord round, List<FindingDeltaEntry> entries)
     {
+        var roundNumber = round.RoundNumber;
         var current = new Dictionary<string, FindingDeltaEntry>(StringComparer.Ordinal);
         var ledger = cycle.FindingLedger.ToDictionary(item => item.TrackingId, StringComparer.Ordinal);
         foreach (var entry in entries)
@@ -958,13 +1081,18 @@ static class ReviewCycleManager
                 throw new ContractException($"Finding tracking IDs must be non-empty and unique: {entry.TrackingId}");
             }
             if (!FindingStates.Contains(entry.State)) throw new ContractException($"Invalid finding state: {entry.State}");
-            if (entry.SourceIds.Count == 0 || entry.SourceIds.Any(string.IsNullOrWhiteSpace))
+            if ((entry.SourceIds.Count == 0 && !(round.ReviewMode == PurposeOnlyReviewMode && entry.State == "resolved")) || entry.SourceIds.Any(string.IsNullOrWhiteSpace))
             {
                 throw new ContractException($"Finding {entry.TrackingId} must retain at least one source ID.");
             }
             if (ActiveFindingStates.Contains(entry.State) && (entry.FindingIds.Count == 0 || entry.FindingIds.Any(string.IsNullOrWhiteSpace)))
             {
                 throw new ContractException($"Active finding {entry.TrackingId} must have finding IDs.");
+            }
+            if (round.ReviewMode == PurposeOnlyReviewMode
+                && entry.FindingIds.Concat(entry.SourceIds).Any(id => !Regex.IsMatch(id, @"^PUR-\d+$")))
+            {
+                throw new ContractException($"Purpose-only finding {entry.TrackingId} may use only current PUR-* evidence IDs.");
             }
 
             var existed = ledger.TryGetValue(entry.TrackingId, out var previous);
@@ -1006,7 +1134,7 @@ static class ReviewCycleManager
             : "READY_FOR_ADAPTIVE_IMPLEMENTATION";
     }
 
-    private static void ValidateArtifactRoles(string verdict, int actionableCount, List<ArtifactRecord> artifacts)
+    private static void ValidateArtifactRoles(string reviewMode, string verdict, int actionableCount, List<ArtifactRecord> artifacts)
     {
         var roles = artifacts.Select(item => item.Role).ToHashSet(StringComparer.Ordinal);
         if (verdict == "BLOCKED")
@@ -1018,10 +1146,12 @@ static class ReviewCycleManager
             if (roles.Contains("review-plan")) throw new ContractException("BLOCKED must not include an Adaptive review-plan artifact.");
             return;
         }
-        foreach (var role in RequiredCompletedArtifactRoles)
+        foreach (var role in SharedCompletedArtifactRoles)
         {
             if (!roles.Contains(role)) throw new ContractException($"Missing required round artifact role: {role}");
         }
+        if (reviewMode == FullReviewMode && !roles.Contains("local-findings")) throw new ContractException("Full review round requires local-findings.");
+        if (reviewMode == PurposeOnlyReviewMode && roles.Contains("local-findings")) throw new ContractException("Purpose-only review round must not include local-findings.");
         if (verdict == "READY_FOR_ADAPTIVE_IMPLEMENTATION" && !roles.Contains("review-plan"))
         {
             throw new ContractException("READY_FOR_ADAPTIVE_IMPLEMENTATION requires a review-plan artifact.");
@@ -1135,7 +1265,7 @@ static class ReviewCycleManager
 
     private static void ValidateCycle(string cyclePath, ReviewCycle cycle, bool requireCompletedCurrentRound)
     {
-        if (cycle.SchemaVersion != SchemaVersion) throw new ContractException("review-cycle schemaVersion must be 1.");
+        if (cycle.SchemaVersion != SchemaVersion) throw new ContractException("review-cycle schemaVersion must be 2.");
         if (!Regex.IsMatch(cycle.Repository ?? string.Empty, @"^[^/\s]+/[^/\s]+$")) throw new ContractException("Cycle repository must be owner/name.");
         if (cycle.PullRequest <= 0) throw new ContractException("Cycle pullRequest must be positive.");
         if (!Regex.IsMatch(cycle.GoalContext.NormalizedSha256 ?? string.Empty, "^[0-9a-f]{64}$")) throw new ContractException("Cycle Goal Context SHA-256 is invalid.");
@@ -1175,6 +1305,7 @@ static class ReviewCycleManager
             var round = cycle.Rounds[index];
             var expectedNumber = index + 1;
             Equal("sequential round number", expectedNumber, round.RoundNumber);
+            Equal("round review mode", ReviewModeFor(expectedNumber), round.ReviewMode);
             Equal("round artifact directory", $"round-{expectedNumber:000}", round.ArtifactDirectory);
             Equal("previous round reference", expectedNumber == 1 ? null : expectedNumber - 1, round.PreviousRound);
             RequireOid(round.BaseOid, $"round {expectedNumber} base OID");
@@ -1225,9 +1356,11 @@ static class ReviewCycleManager
                         : expectedNumber >= maximumAtRound ? "HUMAN_DECISION_REQUIRED" : "READY_FOR_ADAPTIVE_IMPLEMENTATION";
                 }
                 Equal($"round {expectedNumber} verdict", expectedVerdict, round.Verdict);
-                ValidateArtifactRoles(round.Verdict!, actionable, round.Artifacts);
+                ValidateArtifactRoles(round.ReviewMode, round.Verdict!, actionable, round.Artifacts);
                 ValidateArtifactContents(cycle, round, new RoundResult
                 {
+                    SchemaVersion = SchemaVersion,
+                    ReviewMode = round.ReviewMode,
                     Verdict = round.Verdict!,
                     FindingDelta = round.FindingDelta,
                     SourceCoverage = round.SourceCoverage
@@ -1670,6 +1803,7 @@ sealed class GoalContextIdentity
 sealed class RoundRecord
 {
     public int RoundNumber { get; set; }
+    public string ReviewMode { get; set; } = string.Empty;
     public string ArtifactDirectory { get; set; } = string.Empty;
     public string BaseOid { get; set; } = string.Empty;
     public string HeadOid { get; set; } = string.Empty;
@@ -1691,6 +1825,7 @@ sealed class RoundResult
 {
     public int SchemaVersion { get; set; }
     public int RoundNumber { get; set; }
+    public string ReviewMode { get; set; } = string.Empty;
     public string BaseOid { get; set; } = string.Empty;
     public string HeadOid { get; set; } = string.Empty;
     public string CompletedAt { get; set; } = string.Empty;
@@ -1709,6 +1844,7 @@ sealed class ReviewResultArtifact
     public string Repository { get; set; } = string.Empty;
     public int PullRequest { get; set; }
     public int RoundNumber { get; set; }
+    public string ReviewMode { get; set; } = string.Empty;
     public string BaseOid { get; set; } = string.Empty;
     public string HeadOid { get; set; } = string.Empty;
     public GoalContextIdentity GoalContext { get; set; } = new();

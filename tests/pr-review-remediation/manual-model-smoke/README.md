@@ -23,7 +23,7 @@ process側のPR自身をreview対象にしません。秘密情報やproduction 
 - round 1で`local-reviewer`と`purpose-reviewer`が独立して実行され、`review-planner`がremote sourceを含むplanへ統合している。
 - round 1は`READY_FOR_ADAPTIVE_IMPLEMENTATION`で停止し、同じCodex親タスクで実装を開始していない。
 - Adaptive Implementationは人が承認した後、別のCodex親タスクで同じplanを使って実行される。
-- round 2はさらに別のCodex親タスクで変更後headをreviewし、過去headのsourceを保持したまま`REVIEW_COMPLETE`へ到達する。
+- round 2はさらに別のCodex親タスクでpurpose-only reviewを行い、過去headのsourceを監査証跡として保持したまま`REVIEW_COMPLETE`へ到達する。
 - 各roundとAdaptive完了時のcompletion notificationがtarget PRまたは結果へのdirect linkを持つ。
 - 各工程のtask ID、OID、hash、verdict、artifact path、承認が結果記録に残る。
 
@@ -242,7 +242,10 @@ cycleは.review/pr-<pr-number>/review-cycle.jsonです。
 前roundのAdaptive result referenceは<adaptive-result-reference>です。
 round 2開始の承認者は<identity>、承認時刻は<ISO-8601 with timezone>です。
 最新のbase/head identityとreview contextを収集し、旧headのreviewとinline commentをhistorical sourceとして保持したままround-002へ保存してください。
-local-reviewerとpurpose-reviewerを独立に実行し、artifactとcycleを検証してください。
+round 2はpurpose-onlyです。collectorは--no-wait-for-copilotで実行し、GitHub Copilotレビューを開始・待機しないでください。local-reviewerも実行せず、local-review-findings.mdを作成しないでください。
+purpose-reviewerは前roundまでの全active tracking IDをPrior Finding Assessmentでpersistentまたはresolvedへ分類し、新規・reopened・persistentのactionable findingは現在roundのPUR-*だけにしてください。
+取得済みまたは新規のCopilot、connector、人間review/comment/checkはremediationへ取り込まず、理由付きnoActionの監査証跡としてsource coverageへ残してください。
+purpose-reviewerとreview-plannerを実行し、artifactとcycleを検証してください。
 completion notificationを出したところで停止し、Adaptiveや次roundは開始しないでください。
 結果を.review/manual-model-smoke-result.mdのTask DとFinal verdictへ追記してください。
 ```
@@ -252,13 +255,14 @@ completion notificationを出したところで停止し、Adaptiveや次round�
 - Task IDがTask B、Task Cのいずれとも異なる。
 - round 1とround 2が別directoryへ保存され、過去artifactが上書きされていない。
 - round 2のhead OIDがTask Cの変更後headと一致する。
-- round 1のreview sourceがhistorical、round 2のsourceがcurrentまたはunknownとしてcoverageへ残る。
+- round 1のreview sourceとround 2で取得した外部sourceが、理由付き`noAction`の監査証跡としてcoverageへ残る。
+- round 2の`reviewMode`が`purpose-only`、Copilot waitが`disabled`であり、`local-findings` artifactが存在しない。
 - finding ledgerが`new | persistent | resolved | reopened`を正しく追跡する。
 - actionable findingがなく、verdictが`REVIEW_COMPLETE`である。
 - 空のreview planやAdaptive handoffが生成されていない。
 - notificationのdirect linkがtarget PRを開く。
 
-round 2でactionable findingが残った場合、結果を改変して`REVIEW_COMPLETE`にしません。verdictが`READY_FOR_ADAPTIVE_IMPLEMENTATION`なら、必要な修正を人が承認し、Task Cと同じ別親タスク境界でAdaptiveを実行してからround 3を開始します。
+round 2でactionableな`PUR-*` findingが残った場合、結果を改変して`REVIEW_COMPLETE`にしません。verdictが`READY_FOR_ADAPTIVE_IMPLEMENTATION`なら、必要な修正を人が承認し、Task Cと同じ別親タスク境界でAdaptiveを実行してからround 3をpurpose-onlyで開始します。round 3でもCopilotレビューの開始・待機とlocal-reviewer実行は行いません。
 
 round 3でもactionable findingが残り`HUMAN_DECISION_REQUIRED`になった場合は、実行可能planとAdaptive handoffが存在しないことを確認します。第4round以降はこの基本smokeの範囲外です。続行する場合だけ、人がdecision、approver、時刻、理由、新上限、承認plan候補を明示し、`manage-review-cycle.cs resolve`が`APPROVED_FOR_ADAPTIVE_IMPLEMENTATION`を返した後に別親タスクでAdaptiveを開始します。
 
@@ -278,7 +282,9 @@ Task Aでtargetの`.review/manual-model-smoke-result.md`へ作成したcopyへ�
 
 Codex Appのtask IDやtask URLをagentが取得できない場合、人がUIから識別子をcopyしてresultへ記録します。識別子を推測して記入しません。
 
-完全な`PASS`には、Task AからDまでの成功、外部model payload承認、別親タスク境界、round 2の`REVIEW_COMPLETE`、direct-link notification実配信が必要です。notification runtimeを見送った場合やproviderを利用できない場合は、review cycleが成功してもnotificationを`未検証`とし、全体を`BLOCKED`または限定的な結果として記録します。
+完全な`PASS`には、Task AからDまでの成功、外部model payload承認、別親タスク境界、purpose-only再reviewでの`REVIEW_COMPLETE`、direct-link notification実配信が必要です。各Taskでは開始直後や内部model完了時に`codex-turn / TURN_ENDED`が表示されず、terminal envelope後に対象processの通知が1件だけ届くことも確認します。notification runtimeを見送った場合やproviderを利用できない場合は、review cycleが成功してもnotificationを`未検証`とし、全体を`BLOCKED`または限定的な結果として記録します。
+
+schema version 1で実行済みのcycleは過去証跡として保持しますが、新しいpurpose-only契約の合格証拠には使用しません。更新packageとnotification runtimeを導入後、別cycle rootまたは新しいdisposable PRでTask Aから再実行します。
 
 ## Cleanup
 

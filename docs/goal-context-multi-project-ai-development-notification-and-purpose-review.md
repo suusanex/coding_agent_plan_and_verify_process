@@ -757,6 +757,14 @@ Adaptive Implementationの内部ルーティング、agent、verdict、handoff�
 
 ### 9.7 通知付きシーケンス
 
+複数roundを明示した場合、次のreview構成を固定する。
+
+- round 1はGitHub Copilotレビュー、`local-reviewer`、`purpose-reviewer`を実行し、`review-planner`で統合する。
+- round 2以降は最新PR identityと正本diffをcollectorで取得するが、GitHub Copilotレビューを開始・待機せず、`local-reviewer`も再実行しない。
+- round 2以降に繰り返すreviewerは`purpose-reviewer`だけとする。`review-planner`はfinding遷移、verdict、Adaptive向けplanのprojectionを担当する。
+- collectorに残る過去reviewや、想定外のconnector／人間review/comment/checkは理由付き`noAction`の監査証跡として保持し、remediation findingへ直接変換しない。
+- purpose-only roundでは前roundまでの全active findingを現在diffに照らして`persistent | resolved`へ分類する。
+
 #### PRレビューターン
 
 ```text
@@ -1407,7 +1415,7 @@ Windows通知、ntfy、Slack、ローカルWeb UI等のどれを採用するか�
 ### 24.2 設計判断として有力だが、実装で検証が必要な事項
 
 - notification envelopeを最終回答へ追加する方式
-- envelope欠落時のfallback通知
+- valid terminal envelopeがあるcallbackだけを通知し、marker-only中間callbackを抑止する方式
 - `resume_uri`としてCodex deep linkを使う方式
 - 基礎版とGoal Context対応版のSkill構成
 - Goal Context対応PRレビューにおけるagentの並列実行

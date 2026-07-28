@@ -34,6 +34,7 @@ Goal Context multi-round modeでは追加で必須:
 
 - `review-cycle.json`と現在の`round-NNN` identity
 - 前roundまでのfinding ledgerと、別親ターンで完了したAdaptive result reference
+- round 2以降は`reviewMode: purpose-only`、`purpose-review-findings.md`の`Prior Finding Assessment`。`local-review-findings.md`は入力しない
 
 ## Planning rules
 
@@ -52,13 +53,14 @@ Goal Context multi-round modeでは追加で必須:
 13. multi-round modeではtracking IDをround間で維持し、各findingを`new | persistent | resolved | reopened`へ分類する。文字列類似だけで同一findingと判定しない。
 14. multi-round modeの第3round以降でactionable findingが残る場合、記録済みhuman overrideが現在roundを許可していない限り`HUMAN_DECISION_REQUIRED`とする。
 15. actionable findingがない場合は`REVIEW_COMPLETE`とし、空のAdaptive向けplanを生成しない。
-16. multi-round modeではreview-contextの全source IDとlocal/purpose finding IDを、tracking IDまたは理由付き`noAction`へ対応させる。
+16. multi-round round 1ではreview-contextの全source IDとlocal/purpose finding IDを、tracking IDまたは理由付き`noAction`へ対応させる。round 2以降ではremote sourceをすべて理由付き`noAction`の監査証跡とし、findingへ対応させない。
 17. multi-round modeではordered remediationの各SI/AC IDを`implementation_intent.scope`/`acceptance`へ同じIDで記録し、すべてのactive finding IDを一度だけ対応付ける。
 18. multi-round modeで`READY_FOR_ADAPTIVE_IMPLEMENTATION`を返す場合、`plan_reference`はcycle root相対の現在の`round-NNN/review-plan.md`とし、別親ターンhandoffも同じpathと`implementation_intent`を明示する。
 19. collectorが保持した旧headのreview／inline commentを除外せず、current／historical／head関連不明のsourceをすべてdecision ledgerとsource coverageへ残す。
 20. ordered remediationと`implementation_intent`のSI/AC ID集合を双方向に完全一致させ、intentだけへ未追跡scopeまたはacceptanceを追加しない。
 21. review-contextが指定するremote patch pathをplanner inputの正本とし、別patchを代用しない。
 22. multi-round modeで`HUMAN_DECISION_REQUIRED`を返す場合、実行可能なreview plan、`implementation_intent`、Adaptive開始promptを出力しない。人間が明示的に継続を選択した後の承認plan生成では、statusを`APPROVED_FOR_ADAPTIVE_IMPLEMENTATION`、referenceを`round-NNN/approved-review-plan.md`とし、cycle managerの`resolve`で承認記録とhash bindingを確定する。
+23. multi-roundのround 2以降はpurpose-onlyとして、Copilot待機とlocal reviewを要求しない。actionableな`new | persistent | reopened`は現在roundの`PUR-*`だけを許可し、`Prior Finding Assessment`とfinding deltaを完全一致させる。
 
 ## Adaptive handoff
 

@@ -1,6 +1,7 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "roundNumber": 2,
+  "reviewMode": "purpose-only",
   "baseOid": "0000000000000000000000000000000000000000",
   "headOid": "1111111111111111111111111111111111111111",
   "completedAt": "2026-01-01T00:10:00Z",
@@ -11,7 +12,6 @@
     { "role": "review-context", "path": "round-002/review-context.json", "normalizedSha256": "<sha256>" },
     { "role": "remote-patch", "path": "round-002/pr-diff.patch", "normalizedSha256": "<sha256>" },
     { "role": "goal-context-selection", "path": "round-002/goal-context-selection.json", "normalizedSha256": "<sha256>" },
-    { "role": "local-findings", "path": "round-002/local-review-findings.md", "normalizedSha256": "<sha256>" },
     { "role": "purpose-findings", "path": "round-002/purpose-review-findings.md", "normalizedSha256": "<sha256>" },
     { "role": "review-result", "path": "round-002/review-result.json", "normalizedSha256": "<sha256>" },
     { "role": "review-plan", "path": "round-002/review-plan.md", "normalizedSha256": "<sha256>" },
@@ -26,19 +26,19 @@
     {
       "trackingId": "TRK-001",
       "state": "persistent",
-      "findingIds": ["LR-002"],
-      "sourceIds": ["review:456"]
+      "findingIds": ["PUR-002"],
+      "sourceIds": ["PUR-002"]
     }
   ],
   "sourceCoverage": [
     {
       "sourceId": "review:456",
-      "disposition": "finding",
-      "trackingIds": ["TRK-001"],
-      "reason": null
+      "disposition": "noAction",
+      "trackingIds": [],
+      "reason": "Audit-only external source in purpose-only round."
     },
     {
-      "sourceId": "LR-002",
+      "sourceId": "PUR-002",
       "disposition": "finding",
       "trackingIds": ["TRK-001"],
       "reason": null
@@ -47,7 +47,7 @@
       "sourceId": "check:789",
       "disposition": "noAction",
       "trackingIds": [],
-      "reason": "Required check passed without an actionable finding."
+      "reason": "Audit-only validation evidence in purpose-only round."
     }
   ]
 }

@@ -215,16 +215,17 @@ function Write-RoundResult {
         [string]$ReviewContextFixture = ''
     )
     $roundName = 'round-{0:000}' -f $RoundNumber
+    $reviewMode = if ($RoundNumber -eq 1) { 'full' } else { 'purpose-only' }
     $roundRoot = Join-Path $CycleRoot $roundName
     $roleFiles = [ordered]@{
         'review-context' = 'review-context.json'
         'remote-patch' = 'pr-diff.patch'
         'goal-context-selection' = 'goal-context-selection.json'
-        'local-findings' = 'local-review-findings.md'
         'purpose-findings' = 'purpose-review-findings.md'
         'review-result' = 'review-result.json'
         'completion-notification' = 'completion-notification.txt'
     }
+    if ($reviewMode -eq 'full') { $roleFiles['local-findings'] = 'local-review-findings.md' }
     if ($IncludePlan) { $roleFiles['review-plan'] = 'review-plan.md' }
 
     $fixtureContext = $null
@@ -255,6 +256,8 @@ function Write-RoundResult {
     $effectiveInlineComments = @($InlineCommentSources)
     $effectiveIssueComments = if ($explicitSources) {
         @($IssueCommentSources)
+    } elseif ($reviewMode -eq 'purpose-only') {
+        @()
     } else {
         @($FindingDelta | ForEach-Object { $_.sourceIds } | Select-Object -Unique | ForEach-Object -Begin { $id = 0 } -Process { $id++; [ordered]@{ id = $id; sourceId = $_; body = 'Synthetic source.' } })
     }
@@ -270,7 +273,9 @@ function Write-RoundResult {
     }
     foreach ($source in $contextSources) {
         $sourceId = [string]$source.sourceId
-        if (-not $coverageBySource.Contains($sourceId)) {
+        if ($reviewMode -eq 'purpose-only') {
+            $sourceCoverage.Add([ordered]@{ sourceId = $sourceId; disposition = 'noAction'; trackingIds = @(); reason = 'Audit-only external source in purpose-only round.' })
+        } elseif (-not $coverageBySource.Contains($sourceId)) {
             $sourceCoverage.Add([ordered]@{ sourceId = $sourceId; disposition = 'noAction'; trackingIds = @(); reason = 'Collected source has no actionable finding in this round.' })
         }
     }
@@ -282,7 +287,11 @@ function Write-RoundResult {
             repository = $repository; pullRequest = $pullRequest; url = $prUrl; state = 'OPEN'; isDraft = $false
             baseRefName = 'main'; baseRefOid = $baseOid; headRefName = 'feature'; headRefOid = $HeadOid
         }
-        copilotReviewWait = [ordered]@{ waitStatus = 'completed'; observedReviewState = 'reviewAndInline'; timedOut = $false }
+        copilotReviewWait = if ($reviewMode -eq 'full') {
+            [ordered]@{ waitStatus = 'completed'; observedReviewState = 'reviewAndInline'; timedOut = $false }
+        } else {
+            [ordered]@{ waitStatus = 'disabled'; observedReviewState = 'notWaited'; timedOut = $false }
+        }
         artifacts = [ordered]@{ remotePatch = $RemotePatchPointer }
         sources = [ordered]@{
             pullRequest = [ordered]@{
@@ -297,8 +306,12 @@ function Write-RoundResult {
     }
     $reviewContextPath = Join-Path $roundRoot $roleFiles['review-context']
     if ($null -ne $fixtureContext) {
-        $fixtureContent = [System.IO.File]::ReadAllText($ReviewContextFixture).Replace("`r`n", "`n").Replace("`r", "`n").TrimEnd("`n") + "`n"
-        [System.IO.File]::WriteAllText($reviewContextPath, $fixtureContent, $utf8)
+        if ($reviewMode -eq 'purpose-only') {
+            $fixtureContext.copilotReviewWait.waitStatus = 'disabled'
+            $fixtureContext.copilotReviewWait.observedReviewState = 'notWaited'
+            $fixtureContext.copilotReviewWait.timedOut = $false
+        }
+        [System.IO.File]::WriteAllText($reviewContextPath, (($fixtureContext | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
     } else {
         [System.IO.File]::WriteAllText($reviewContextPath, (($reviewContext | ConvertTo-Json -Depth 30).Replace("`r`n", "`n") + "`n"), $utf8)
     }
@@ -319,9 +332,10 @@ function Write-RoundResult {
     }
     [System.IO.File]::WriteAllText((Join-Path $roundRoot $roleFiles['goal-context-selection']), (($selection | ConvertTo-Json -Depth 10).Replace("`r`n", "`n") + "`n"), $utf8)
 
-    $localIds = @($FindingDelta | ForEach-Object { $_.findingIds } | Where-Object { $_ -match '^LR-\d+$' } | Select-Object -Unique)
-    $localRows = if ($localIds.Count -eq 0) { '| N/A | N/A | N/A | No local actionable finding. | N/A | N/A | N/A |' } else { @($localIds | ForEach-Object { "| $_ | P1 | fixture | Synthetic local finding. | fixture | fixture | fixture |" }) -join "`n" }
-    $localContent = @"
+    if ($reviewMode -eq 'full') {
+        $localIds = @($FindingDelta | ForEach-Object { $_.findingIds } | Where-Object { $_ -match '^LR-\d+$' } | Select-Object -Unique)
+        $localRows = if ($localIds.Count -eq 0) { '| N/A | N/A | N/A | No local actionable finding. | N/A | N/A | N/A |' } else { @($localIds | ForEach-Object { "| $_ | P1 | fixture | Synthetic local finding. | fixture | fixture | fixture |" }) -join "`n" }
+        $localContent = @"
 # Local Review Findings
 
 ## Verdict
@@ -342,10 +356,26 @@ function Write-RoundResult {
 | --- | --- | --- | --- | --- | --- | --- |
 $localRows
 "@
-    [System.IO.File]::WriteAllText((Join-Path $roundRoot $roleFiles['local-findings']), $localContent.Replace("`r`n", "`n") + "`n", $utf8)
+        [System.IO.File]::WriteAllText((Join-Path $roundRoot $roleFiles['local-findings']), $localContent.Replace("`r`n", "`n") + "`n", $utf8)
+    }
 
     $purposeIds = @($FindingDelta | ForEach-Object { $_.findingIds } | Where-Object { $_ -match '^PUR-\d+$' } | Select-Object -Unique)
     $purposeRows = if ($purposeIds.Count -eq 0) { '| N/A | N/A | No purpose actionable finding. | N/A | N/A | N/A |' } else { @($purposeIds | ForEach-Object { "| $_ | Desired outcome | Synthetic purpose finding. | fixture | fixture | fixture |" }) -join "`n" }
+    $priorRows = '| N/A | N/A | N/A | N/A | N/A | N/A |'
+    if ($reviewMode -eq 'purpose-only') {
+        $cycle = Get-Content -Raw -LiteralPath (Join-Path $CycleRoot 'review-cycle.json') | ConvertFrom-Json -Depth 100
+        $states = @{}
+        foreach ($priorRound in @($cycle.rounds | Where-Object { $_.roundNumber -lt $RoundNumber -and $_.status -eq 'COMPLETED' })) {
+            foreach ($entry in @($priorRound.findingDelta)) { $states[[string]$entry.trackingId] = [string]$entry.state }
+        }
+        $adaptiveReference = [string](@($cycle.rounds | Where-Object roundNumber -eq $RoundNumber)[0].adaptiveResultReference)
+        $rows = foreach ($trackingId in @($states.Keys | Sort-Object)) {
+            if ($states[$trackingId] -notin @('new', 'persistent', 'reopened')) { continue }
+            $mapped = @($FindingDelta | Where-Object trackingId -eq $trackingId)
+            if ($mapped.Count -eq 1) { "| $trackingId | $($states[$trackingId]) | $($mapped[0].state) | $adaptiveReference | Current patch evidence. | Purpose-only transition assessment. |" }
+        }
+        $priorRows = @($rows) -join "`n"
+    }
     $purposeContent = @"
 # Purpose Review Findings
 
@@ -362,6 +392,12 @@ $localRows
 - Head branch / OID: feature / $HeadOid
 - Goal Context: $goalContextPath
 - Goal Context SHA-256: $goalContextSha
+
+## Prior Finding Assessment
+
+| Tracking ID | Previous state | Current state | Adaptive result reference | Current PR evidence | Rationale |
+| --- | --- | --- | --- | --- | --- |
+$priorRows
 
 ## Findings
 
@@ -385,10 +421,11 @@ $purposeRows
         }
     }
     $reviewResult = [ordered]@{
-        schemaVersion = 1
+        schemaVersion = 2
         repository = $repository
         pullRequest = $pullRequest
         roundNumber = $RoundNumber
+        reviewMode = $reviewMode
         baseOid = $baseOid
         headOid = $HeadOid
         goalContext = [ordered]@{ path = $goalContextPath; normalizedSha256 = $goalContextSha }
@@ -406,8 +443,9 @@ $purposeRows
     }
 
     $result = [ordered]@{
-        schemaVersion = 1
+        schemaVersion = 2
         roundNumber = $RoundNumber
+        reviewMode = $reviewMode
         baseOid = $baseOid
         headOid = $HeadOid
         completedAt = $CompletedAt
@@ -462,13 +500,14 @@ function Assert-CycleVerdicts([string]$CyclePath, [string[]]$Expected, [string]$
     }
 }
 
-if ($fixture.schemaVersion -ne 1 -or $fixture.fixtureId -ne 'PRR-003' -or $fixture.externalModelExecution -ne $false) {
+if ($fixture.schemaVersion -ne 2 -or $fixture.fixtureId -ne 'PRR-003' -or $fixture.externalModelExecution -ne $false) {
     throw 'PRR-003 fixture metadata is invalid.'
 }
 if (($fixture.findingStates -join '|') -ne 'new|persistent|resolved|reopened' -or $fixture.defaultMaximumRounds -ne 3) {
     throw 'PRR-003 fixture state vocabulary or default maximum drifted.'
 }
 $collectorScenario = $fixture.scenarios | Where-Object id -eq 'collector-realistic-convergence'
+if ((@($collectorScenario.reviewModes) -join '|') -ne 'full|purpose-only|purpose-only') { throw 'PRR-003 review mode sequence drifted.' }
 if ($null -eq $collectorScenario -or ($collectorScenario.sourceHeadRelationships -join '|') -ne 'current|historical|unknown') {
     throw 'PRR-003 collector-realistic source relationship coverage drifted.'
 }
@@ -536,14 +575,14 @@ try {
     Remove-Item -LiteralPath $preexistingRound
     Start-Round $convergenceCycle $head2 '2026-01-01T00:03:00Z' 'adaptive/round-001/result.md'
     $r2 = Write-RoundResult $convergenceRoot 2 $head2 '2026-01-01T00:04:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' @(
-        (New-Delta 'TRK-A' 'persistent' @('LR-002') @('review:1002', 'inline-comment:1102')),
-        (New-Delta 'TRK-B' 'new' @('PUR-002') @('pr-comment:1202'))
+        (New-Delta 'TRK-A' 'persistent' @('PUR-002') @('PUR-002')),
+        (New-Delta 'TRK-B' 'new' @('PUR-003') @('PUR-003'))
     ) $true -ReviewContextFixture (Join-Path $collectorSnapshotRoot 'round-002-review-context.json')
     Complete-Round $convergenceCycle $r2
     Start-Round $convergenceCycle $head3 '2026-01-01T00:05:00Z' 'adaptive/round-002/result.md'
     $r3 = Write-RoundResult $convergenceRoot 3 $head3 '2026-01-01T00:06:00Z' 'REVIEW_COMPLETE' @(
-        (New-Delta 'TRK-A' 'resolved' @() @('review:1003')),
-        (New-Delta 'TRK-B' 'resolved' @() @('pr-comment:1203'))
+        (New-Delta 'TRK-A' 'resolved' @() @()),
+        (New-Delta 'TRK-B' 'resolved' @() @())
     ) $false -ReviewContextFixture (Join-Path $collectorSnapshotRoot 'round-003-review-context.json')
     Complete-Round $convergenceCycle $r3
     Invoke-Manager @('validate', '--cycle', $convergenceCycle, '--format', 'json') 'validate converged cycle' | Out-Null
@@ -554,6 +593,62 @@ try {
             Add-Failure "Convergence artifact directory is missing for round $round"
         }
     }
+
+    $modeMismatchRoot = Join-Path $tempRoot 'negative-review-mode-mismatch'
+    Copy-Item -LiteralPath $convergenceRoot -Destination $modeMismatchRoot -Recurse
+    $modeMismatchCycle = Join-Path $modeMismatchRoot 'review-cycle.json'
+    $modeMismatchJson = Get-Content -Raw -LiteralPath $modeMismatchCycle | ConvertFrom-Json -Depth 100
+    $modeMismatchJson.rounds[1].reviewMode = 'full'
+    [System.IO.File]::WriteAllText($modeMismatchCycle, (($modeMismatchJson | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
+    Invoke-Manager @('validate', '--cycle', $modeMismatchCycle, '--format', 'json') 'round review mode mismatch' $false 'round review mode mismatch' | Out-Null
+
+    $localArtifactRoot = Join-Path $tempRoot 'negative-purpose-only-local-artifact'
+    Copy-Item -LiteralPath $convergenceRoot -Destination $localArtifactRoot -Recurse
+    $localArtifactCycle = Join-Path $localArtifactRoot 'review-cycle.json'
+    $localPath = Join-Path $localArtifactRoot 'round-002/local-review-findings.md'
+    [System.IO.File]::WriteAllText($localPath, "# Local Review Findings`n", $utf8)
+    $localArtifactJson = Get-Content -Raw -LiteralPath $localArtifactCycle | ConvertFrom-Json -Depth 100
+    $localArtifactJson.rounds[1].artifacts = @($localArtifactJson.rounds[1].artifacts) + @([pscustomobject]@{
+        role = 'local-findings'; path = 'round-002/local-review-findings.md'; normalizedSha256 = Get-NormalizedSha256 $localPath
+    })
+    [System.IO.File]::WriteAllText($localArtifactCycle, (($localArtifactJson | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
+    Invoke-Manager @('validate', '--cycle', $localArtifactCycle, '--format', 'json') 'purpose-only local artifact' $false 'must not include local-findings' | Out-Null
+
+    $externalMappingRoot = Join-Path $tempRoot 'negative-purpose-only-external-mapping'
+    Copy-Item -LiteralPath $convergenceRoot -Destination $externalMappingRoot -Recurse
+    $externalMappingCycle = Join-Path $externalMappingRoot 'review-cycle.json'
+    $externalMappingJson = Get-Content -Raw -LiteralPath $externalMappingCycle | ConvertFrom-Json -Depth 100
+    $externalEntry = @($externalMappingJson.rounds[1].sourceCoverage | Where-Object sourceId -eq 'review:1001')[0]
+    $externalEntry.disposition = 'finding'
+    $externalEntry.trackingIds = @('TRK-A')
+    $externalEntry.reason = $null
+    [System.IO.File]::WriteAllText($externalMappingCycle, (($externalMappingJson | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
+    Invoke-Manager @('validate', '--cycle', $externalMappingCycle, '--format', 'json') 'purpose-only external source mapping' $false 'Source-to-tracking mapping mismatch' | Out-Null
+
+    $assessmentRoot = Join-Path $tempRoot 'negative-prior-assessment'
+    Copy-Item -LiteralPath $convergenceRoot -Destination $assessmentRoot -Recurse
+    $assessmentCycle = Join-Path $assessmentRoot 'review-cycle.json'
+    $assessmentPurpose = Join-Path $assessmentRoot 'round-002/purpose-review-findings.md'
+    $assessmentContent = Get-Content -Raw -LiteralPath $assessmentPurpose
+    $assessmentContent = [regex]::Replace($assessmentContent, '(?m)^\| TRK-A \|.*\r?\n', '')
+    [System.IO.File]::WriteAllText($assessmentPurpose, $assessmentContent.Replace("`r`n", "`n"), $utf8)
+    $assessmentReviewResult = Join-Path $assessmentRoot 'round-002/review-result.json'
+    $assessmentReviewJson = Get-Content -Raw -LiteralPath $assessmentReviewResult | ConvertFrom-Json -Depth 100
+    (@($assessmentReviewJson.artifactBindings | Where-Object role -eq 'purpose-findings')[0]).normalizedSha256 = Get-NormalizedSha256 $assessmentPurpose
+    [System.IO.File]::WriteAllText($assessmentReviewResult, (($assessmentReviewJson | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
+    $assessmentCycleJson = Get-Content -Raw -LiteralPath $assessmentCycle | ConvertFrom-Json -Depth 100
+    (@($assessmentCycleJson.rounds[1].artifacts | Where-Object role -eq 'purpose-findings')[0]).normalizedSha256 = Get-NormalizedSha256 $assessmentPurpose
+    (@($assessmentCycleJson.rounds[1].artifacts | Where-Object role -eq 'review-result')[0]).normalizedSha256 = Get-NormalizedSha256 $assessmentReviewResult
+    [System.IO.File]::WriteAllText($assessmentCycle, (($assessmentCycleJson | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
+    Invoke-Manager @('validate', '--cycle', $assessmentCycle, '--format', 'json') 'missing prior finding assessment' $false 'Prior Finding Assessment coverage mismatch' | Out-Null
+
+    $legacyRoot = Join-Path $tempRoot 'negative-legacy-append'
+    Copy-Item -LiteralPath $convergenceRoot -Destination $legacyRoot -Recurse
+    $legacyCycle = Join-Path $legacyRoot 'review-cycle.json'
+    $legacyJson = Get-Content -Raw -LiteralPath $legacyCycle | ConvertFrom-Json -Depth 100
+    $legacyJson.schemaVersion = 1
+    [System.IO.File]::WriteAllText($legacyCycle, (($legacyJson | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
+    Start-Round -CyclePath $legacyCycle -HeadOid '9898989898989898989898989898989898989898' -StartedAt '2026-01-01T00:07:00Z' -AdaptiveResult 'adaptive/round-003/result.md' -ExpectSuccess $false -ExpectedPattern 'read-only historical evidence'
 
     # Historical evidence is immutable after completion.
     $tamperRoot = Join-Path $tempRoot 'tampered'
@@ -574,26 +669,28 @@ try {
         $adaptive = if ($round -eq 1) { '' } else { "adaptive/round-$('{0:000}' -f ($round - 1))/result.md" }
         Start-Round $limitCycle $limitHeads[$round - 1] "2026-02-01T00:0$($round * 2):00Z" $adaptive
         $state = if ($round -eq 1) { 'new' } else { 'persistent' }
+        $findingId = if ($round -eq 1) { 'LR-101' } else { "PUR-10$round" }
+        $sourceId = if ($round -eq 1) { 'review:limit:1' } else { $findingId }
         $expectedVerdict = if ($round -eq 3) { 'HUMAN_DECISION_REQUIRED' } else { 'READY_FOR_ADAPTIVE_IMPLEMENTATION' }
         $wrongVerdict = if ($round -eq 3) { 'READY_FOR_ADAPTIVE_IMPLEMENTATION' } else { $expectedVerdict }
         $result = Write-RoundResult $limitRoot $round $limitHeads[$round - 1] "2026-02-01T00:0$($round * 2 + 1):00Z" $wrongVerdict @(
-            (New-Delta 'TRK-LIMIT' $state @("LR-10$round") @("review:limit:$round"))
+            (New-Delta 'TRK-LIMIT' $state @($findingId) @($sourceId))
         ) $true
         if ($round -eq 3) {
             Complete-Round $limitCycle $result $false 'round-result verdict mismatch'
             $result = Write-RoundResult $limitRoot $round $limitHeads[$round - 1] '2026-02-01T00:07:00Z' $expectedVerdict @(
-                (New-Delta 'TRK-LIMIT' $state @('LR-103') @('review:limit:3'))
+                (New-Delta 'TRK-LIMIT' $state @('PUR-103') @('PUR-103'))
             ) $true
             Complete-Round $limitCycle $result $false 'must not include an executable Adaptive review-plan artifact'
             Remove-Item -LiteralPath (Join-Path $limitRoot 'round-003/review-plan.md') -Force
             $result = Write-RoundResult $limitRoot $round $limitHeads[$round - 1] '2026-02-01T00:07:00Z' $expectedVerdict @(
-                (New-Delta 'TRK-LIMIT' $state @('LR-103') @('review:limit:3'))
+                (New-Delta 'TRK-LIMIT' $state @('PUR-103') @('PUR-103'))
             ) $false
         }
         Complete-Round $limitCycle $result
     }
     Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:08:00Z' -AdaptiveResult 'adaptive/round-003/result.md' -ExpectSuccess $false -ExpectedPattern 'must be resolved with a validated approved plan'
-    $limitDelta = @((New-Delta 'TRK-LIMIT' 'persistent' @('LR-103') @('review:limit:3')))
+    $limitDelta = @((New-Delta 'TRK-LIMIT' 'persistent' @('PUR-103') @('PUR-103')))
     Resolve-HumanDecision $limitCycle 3 $limitHeads[2] $limitDelta 'HD-999' '2026-02-01T00:08:00Z' 4 -ExpectSuccess $false -ExpectedPattern 'resolved human decision ID mismatch'
     Resolve-HumanDecision -CyclePath $limitCycle -RoundNumber 3 -HeadOid $limitHeads[2] -FindingDelta $limitDelta -DecisionId 'HD-003' -ApprovedAt '2026-02-01T00:08:00Z' -IncompleteDecision -ExpectSuccess $false -ExpectedPattern 'resolve requires cycle'
     Resolve-HumanDecision -CyclePath $limitCycle -RoundNumber 3 -HeadOid $limitHeads[2] -FindingDelta $limitDelta -DecisionId 'HD-003' -ApprovedAt '2026-02-01T00:08:00Z' -OmitApprovedPlan -ExpectSuccess $false -ExpectedPattern 'resolve requires cycle'
@@ -612,7 +709,7 @@ try {
     Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:09:00Z' -ExpectSuccess $false -ExpectedPattern 'requires --adaptive-result-reference'
     Start-Round -CyclePath $limitCycle -HeadOid $limitHeads[3] -StartedAt '2026-02-01T00:09:00Z' -AdaptiveResult 'adaptive/round-003/result.md'
     $r4 = Write-RoundResult $limitRoot 4 $limitHeads[3] '2026-02-01T00:10:00Z' 'REVIEW_COMPLETE' @(
-        (New-Delta 'TRK-LIMIT' 'resolved' @() @('review:limit:4'))
+        (New-Delta 'TRK-LIMIT' 'resolved' @() @())
     ) $false
     Complete-Round $limitCycle $r4
     $expectedLimit = @($fixture.scenarios | Where-Object id -eq 'round-limit-and-override').expectedVerdicts
@@ -641,7 +738,7 @@ try {
     Resolve-HumanDecision $humanCycle 1 $humanHead1 $humanDelta 'HD-001' '2026-02-02T00:02:00Z'
     Start-Round -CyclePath $humanCycle -HeadOid $humanHead2 -StartedAt '2026-02-02T00:03:00Z' -AdaptiveResult 'adaptive/round-001/result.md'
     $humanResult2 = Write-RoundResult $humanRoot 2 $humanHead2 '2026-02-02T00:04:00Z' 'REVIEW_COMPLETE' @(
-        (New-Delta 'TRK-HUMAN' 'resolved' @() @('pr-comment:human:2'))
+        (New-Delta 'TRK-HUMAN' 'resolved' @() @())
     ) $false
     Complete-Round $humanCycle $humanResult2
     $expectedHuman = @($fixture.scenarios | Where-Object id -eq 'human-decision-resolution').expectedVerdicts
@@ -658,13 +755,13 @@ try {
     ) $true)
     Start-Round $reopenCycle $reopenHeads[1] '2026-03-01T00:02:00Z' 'adaptive/round-001/result.md'
     Complete-Round $reopenCycle (Write-RoundResult $reopenRoot 2 $reopenHeads[1] '2026-03-01T00:03:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' @(
-        (New-Delta 'TRK-REOPEN' 'resolved' @() @('review:reopen:2')),
-        (New-Delta 'TRK-KEEP' 'persistent' @('PUR-202') @('comment:keep:2'))
+        (New-Delta 'TRK-REOPEN' 'resolved' @() @()),
+        (New-Delta 'TRK-KEEP' 'persistent' @('PUR-202') @('PUR-202'))
     ) $true)
     Start-Round $reopenCycle $reopenHeads[2] '2026-03-01T00:04:00Z' 'adaptive/round-002/result.md'
     Complete-Round $reopenCycle (Write-RoundResult $reopenRoot 3 $reopenHeads[2] '2026-03-01T00:05:00Z' 'HUMAN_DECISION_REQUIRED' @(
-        (New-Delta 'TRK-REOPEN' 'reopened' @('LR-203') @('review:reopen:3')),
-        (New-Delta 'TRK-KEEP' 'resolved' @() @('comment:keep:3'))
+        (New-Delta 'TRK-REOPEN' 'reopened' @('PUR-203') @('PUR-203')),
+        (New-Delta 'TRK-KEEP' 'resolved' @() @())
     ) $false)
     $reopen = Get-Content -Raw -LiteralPath $reopenCycle | ConvertFrom-Json -Depth 100
     $reopenStates = @($reopen.findingLedger | Where-Object trackingId -eq 'TRK-REOPEN').history.state
@@ -733,7 +830,7 @@ try {
     ) $true)
     Start-Round $invalidReopenCycle 'aeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeae' '2026-04-03T02:02:00Z' 'adaptive/round-001/result.md'
     $invalidReopenResult = Write-RoundResult $invalidReopenRoot 2 'aeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeaeae' '2026-04-03T02:03:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' @(
-        (New-Delta 'TRK-BAD-REOPEN' 'reopened' @('LR-308') @('review:reopen-negative:2'))
+        (New-Delta 'TRK-BAD-REOPEN' 'reopened' @('PUR-308') @('PUR-308'))
     ) $true
     Complete-Round $invalidReopenCycle $invalidReopenResult $false 'reopened only after resolved'
 
@@ -901,12 +998,12 @@ try {
     ) $true)
     Start-Round $missingCycle 'acacacacacacacacacacacacacacacacacacacac' '2026-04-05T00:02:00Z' 'adaptive/round-001/result.md'
     $missingResult = Write-RoundResult $missingRoot 2 'acacacacacacacacacacacacacacacacacacacac' '2026-04-05T00:03:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' @(
-        (New-Delta 'TRK-PRESENT' 'persistent' @('LR-305') @('review:negative:5'))
+        (New-Delta 'TRK-PRESENT' 'persistent' @('PUR-305') @('PUR-305'))
     ) $true
     Complete-Round $missingCycle $missingResult $false 'missing persistent/resolved mapping'
 
     $observedMutations = @($fixture.negativeMutations)
-    foreach ($required in @('duplicate-head', 'missing-adaptive-result-reference', 'identity-drift', 'existing-round-directory', 'historical-artifact-hash', 'unknown-persistent-finding', 'missing-active-finding-mapping', 'round-limit-verdict', 'incomplete-override', 'actionable-without-plan', 'review-complete-with-plan', 'missing-source-coverage', 'source-tracking-swap', 'invalid-reopened-transition', 'round-result-head-identity', 'notification-status', 'notification-pr', 'early-override', 'unresolved-human-decision', 'adaptive-before-decision', 'resolve-with-adaptive-result', 'start-before-decision-approval', 'wrong-human-decision-id', 'human-decision-with-plan', 'resolution-missing-approved-plan', 'approved-plan-missing-handoff', 'approved-plan-hash', 'review-context-content', 'goal-context-selection-content', 'goal-context-selection-schema', 'goal-context-selection-lifecycle', 'review-result-content', 'uncovered-artifact-source', 'malformed-source-oid', 'remote-patch-binding', 'review-plan-intent', 'review-plan-acceptance', 'review-plan-finding-mapping', 'intent-extra-scope', 'intent-extra-acceptance', 'non-iso-timestamp', 'missing-timestamp-offset', 'cycle-root-link-escape', 'cycle-file-link-escape', 'round-directory-link-escape', 'artifact-file-link-escape')) {
+    foreach ($required in @('duplicate-head', 'missing-adaptive-result-reference', 'identity-drift', 'existing-round-directory', 'historical-artifact-hash', 'unknown-persistent-finding', 'missing-active-finding-mapping', 'round-limit-verdict', 'incomplete-override', 'actionable-without-plan', 'review-complete-with-plan', 'missing-source-coverage', 'source-tracking-swap', 'invalid-reopened-transition', 'round-result-head-identity', 'notification-status', 'notification-pr', 'early-override', 'unresolved-human-decision', 'adaptive-before-decision', 'resolve-with-adaptive-result', 'start-before-decision-approval', 'wrong-human-decision-id', 'human-decision-with-plan', 'resolution-missing-approved-plan', 'approved-plan-missing-handoff', 'approved-plan-hash', 'review-context-content', 'goal-context-selection-content', 'goal-context-selection-schema', 'goal-context-selection-lifecycle', 'review-result-content', 'uncovered-artifact-source', 'malformed-source-oid', 'remote-patch-binding', 'review-plan-intent', 'review-plan-acceptance', 'review-plan-finding-mapping', 'intent-extra-scope', 'intent-extra-acceptance', 'non-iso-timestamp', 'missing-timestamp-offset', 'cycle-root-link-escape', 'cycle-file-link-escape', 'round-directory-link-escape', 'artifact-file-link-escape', 'review-mode-mismatch', 'purpose-only-local-artifact', 'purpose-only-external-mapping', 'missing-prior-finding-assessment', 'legacy-cycle-append')) {
         if ($required -notin $observedMutations) { Add-Failure "Fixture negative mutation is missing: $required" }
     }
 }

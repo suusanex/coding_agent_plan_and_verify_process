@@ -63,6 +63,7 @@
 ## Task B: review round 1 evidence
 
 - Round 1 task ID:
+- Round 1 review mode: full
 - Cycle path:
 - Round 1 directory:
 - Goal Context selection artifact:
@@ -82,6 +83,8 @@
 - Round 1 stopped before implementation: Yes / No
 - Production code unchanged during round 1: Yes / No
 - Direct-link notification opened target PR: Yes / No
+- Premature TURN_ENDED notification absent: Yes / No
+- Terminal process notification count: 1 / other
 
 ## Task C: Adaptive evidence
 
@@ -96,6 +99,8 @@
 - Changed head OID:
 - Adaptive result reference:
 - Completion notification result / direct link:
+- Premature TURN_ENDED notification absent: Yes / No
+- Terminal process notification count: 1 / other
 - Task C stopped before next review round: Yes / No
 
 ## Task D: review round 2 evidence
@@ -103,9 +108,13 @@
 - Round 2 task ID:
 - Separate parent task confirmed: Yes / No
 - Round 2 directory:
+- Round 2 review mode: purpose-only
+- Copilot wait status: disabled / other
+- Local findings artifact absent: Yes / No
 - Round 2 head OID matched Adaptive result: Yes / No
 - Previous Adaptive result reference matched: Yes / No
-- Historical / current / unknown source classification:
+- External review/comment/check audit-only noAction coverage:
+- Prior Finding Assessment coverage:
 - Finding state transitions:
 - Previous round artifacts unchanged: Yes / No
 - Round 2 review plan absent when complete: Yes / No
@@ -113,6 +122,8 @@
 - Round 2 verdict:
 - Review complete observed: Yes / No
 - Direct-link notification opened target PR: Yes / No
+- Premature TURN_ENDED notification absent: Yes / No
+- Terminal process notification count: 1 / other
 
 ## Optional escalation evidence
 

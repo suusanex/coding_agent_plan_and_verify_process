@@ -313,21 +313,23 @@ try {
         throw 'Multiple repository executions were not distinguishable in emitted events.'
     }
 
-    $fallbackPayload = [ordered]@{
+    $providerCountBeforeMarkerOnly = @(Get-Content -LiteralPath $providerOutput).Count
+    $markerOnlyPayload = [ordered]@{
         type = 'agent-turn-complete'
-        'thread-id' = 'fallback-thread'
-        'turn-id' = 'fallback-turn'
+        'thread-id' = 'marker-only-thread'
+        'turn-id' = 'intermediate-turn'
         cwd = $repositoryRoot
         'input-messages' = @('$completion-notification-decorator')
         'last-assistant-message' = 'Primary response without an authorable terminal status.'
     } | ConvertTo-Json -Compress -Depth 6
-    & $runtimeExecutable dispatch $fallbackPayload
-    if ($LASTEXITCODE -ne 0) { throw "Fallback callback returned exit code $LASTEXITCODE." }
-    $fallbackEvent = Get-Content -LiteralPath $providerOutput | Select-Object -Last 1 | ConvertFrom-Json
-    if ($fallbackEvent.primary_process -ne 'codex-turn' -or
-        $fallbackEvent.observed_status -ne 'TURN_ENDED' -or
-        $fallbackEvent.resume_uri -ne 'codex://threads/fallback-thread') {
-        throw 'Decorator Skill token fallback did not produce a neutral thread-linked event.'
+    & $runtimeExecutable dispatch $markerOnlyPayload
+    if ($LASTEXITCODE -ne 0) { throw "Marker-only callback returned exit code $LASTEXITCODE." }
+    if (@(Get-Content -LiteralPath $providerOutput).Count -ne $providerCountBeforeMarkerOnly) {
+        throw 'Decorator Skill marker produced a notification before a terminal envelope existed.'
+    }
+    $markerOnlyLog = Get-Content -LiteralPath (Join-Path $runtimeHome 'runtime.log.jsonl') | Select-Object -Last 1 | ConvertFrom-Json
+    if ($markerOnlyLog.status -ne 'awaiting-terminal-envelope') {
+        throw 'Marker-only callback did not record awaiting-terminal-envelope.'
     }
 
     $env:CODEX_NOTIFICATION_TEST_PROVIDER_EXIT = '9'
@@ -367,5 +369,5 @@ finally {
     }
 }
 
-Write-Output "Completion Notification Decorator validation: PASS ($($fixtures.Count) canonical primary-process fixtures, fallback, direct links, multi-repository identity, fail-open)"
+Write-Output "Completion Notification Decorator validation: PASS ($($fixtures.Count) canonical primary-process fixtures, terminal-envelope gating, direct links, multi-repository identity, fail-open)"
 $global:LASTEXITCODE = 0

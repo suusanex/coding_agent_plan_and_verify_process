@@ -28,7 +28,7 @@ dotnet run --file .\scripts\codex-notification-runtime\install-codex-notificatio
 
 `result_uri`は具体的な結果を指すuserinfoなしのHTTPS URLだけを受理します。hostのroot URL、およびGitHubのトップ・ownerトップ・repositoryトップは粗いリンクとして破棄し、`resume_uri`へfallbackします。
 
-`$completion-notification-decorator`または`[completion-notification]`を入力に含めたturnは、envelopeが欠落または不正でも`TURN_ENDED`としてfallback通知されます。詳細とrollbackは [decision-record.md](scripts/codex-notification-runtime/decision-record.md)、実機確認状況は [manual-verification.md](scripts/codex-notification-runtime/manual-verification.md) を参照してください。
+`$completion-notification-decorator`または`[completion-notification]`を入力に含めても、有効なterminal envelopeがないcallbackは通知されません。marker-onlyは`awaiting-terminal-envelope`、不正envelopeは`invalid-envelope`として診断logへ残し、terminal envelope後にだけproviderへ配送します。詳細とrollbackは [decision-record.md](scripts/codex-notification-runtime/decision-record.md)、実機確認状況は [manual-verification.md](scripts/codex-notification-runtime/manual-verification.md) を参照してください。
 
 ## Completion Notification Decorator
 
@@ -48,7 +48,7 @@ apm install .\apm-packages\completion-notification-decorator --target codex,agen
 dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- install
 ```
 
-使い方、fallback、2系統のintegration fixtureは [package README](apm-packages/completion-notification-decorator/README.md) を参照してください。
+使い方、terminal-envelope gating、2系統のintegration fixtureは [package README](apm-packages/completion-notification-decorator/README.md) を参照してください。
 
 単純な Plan モードでは不十分と感じた点を、自分の用途向けに改善したものです。
 
@@ -344,6 +344,8 @@ $pr-review-remediation を使って、このbranchのPRをレビュー反映プ�
 review-plan.mdを作成したところで親ターンを停止してください。
 ```
 
+明示multi-roundではround 1だけが上記full reviewです。round 2以降はcollectorを`--no-wait-for-copilot`で使ってidentityとpatchを更新し、`purpose-reviewer`と`review-planner`だけを実行します。remote review/comment/checkは監査用`noAction`として保持し、local-reviewerとCopilotレビュー待機は繰り返しません。
+
 Goal Context対応版を通知付きで起動する例:
 
 ```text
@@ -381,7 +383,7 @@ pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remedia
 
 `-DescribePayload`は外部modelへ送信せず対象一覧だけを表示します。内容を確認して送信を明示承認した場合だけ、`-ConfirmExternalModelPayload`で実model smokeを実行します。
 
-Goal Context対応版を本物のmodelで確認する場合は、検証対象のprocess PR自身ではなくdisposable target repositoryの小さなPRを使います。Codex Appがtarget選定、synthetic fixture作成、PR head SHA固定の導入、artifact検証を行い、人がGitHub変更、model送信、通知runtime、別親タスクの開始を承認します。round 1 review、別親タスクのAdaptive、round 2の`REVIEW_COMPLETE`までの手順と証拠様式は`tests/pr-review-remediation/manual-model-smoke/README.md`を参照してください。
+Goal Context対応版を本物のmodelで確認する場合は、検証対象のprocess PR自身ではなくdisposable target repositoryの小さなPRを使います。Codex Appがtarget選定、synthetic fixture作成、PR head SHA固定の導入、artifact検証を行い、人がGitHub変更、model送信、通知runtime、別親タスクの開始を承認します。round 1 full review、別親タスクのAdaptive、round 2以降のpurpose-only review、terminal時だけのdirect-link通知までの手順と証拠様式は`tests/pr-review-remediation/manual-model-smoke/README.md`を参照してください。
 
 固定実行証跡は`tests/pr-review-remediation/PRR-001/`、外部modelを呼ばないGoal Context contract replayは`PRR-002/`、multi-round state replayは`PRR-003/`に保存します。remote APM導入はAPM 0.26.0で次のように再現でき、CIではpull requestのfull head SHAまたはpushの`github.sha`を指定して検証対象を固定します。
 

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "fixtureId": "PRR-003",
   "evidenceMode": "deterministic-multi-round-replay",
   "externalModelExecution": false,
@@ -11,6 +11,7 @@
     {
       "id": "collector-realistic-convergence",
       "sourceHeadRelationships": ["current", "historical", "unknown"],
+      "reviewModes": ["full", "purpose-only", "purpose-only"],
       "collectorSnapshots": [
         "collector-snapshots/round-001-review-context.json",
         "collector-snapshots/round-002-review-context.json",
@@ -100,6 +101,11 @@
     "cycle-root-link-escape",
     "cycle-file-link-escape",
     "round-directory-link-escape",
-    "artifact-file-link-escape"
+    "artifact-file-link-escape",
+    "review-mode-mismatch",
+    "purpose-only-local-artifact",
+    "purpose-only-external-mapping",
+    "missing-prior-finding-assessment",
+    "legacy-cycle-append"
   ]
 }

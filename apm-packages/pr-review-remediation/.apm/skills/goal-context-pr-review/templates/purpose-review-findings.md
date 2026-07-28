@@ -18,6 +18,14 @@
 - Goal Context SHA-256:
 - Goal Context lifecycle:
 
+## Prior Finding Assessment
+
+Round 1では`N/A`とします。purpose-only roundでは、前roundまでの全active tracking IDを一行ずつ評価します。
+
+| Tracking ID | Previous state | Current state | Adaptive result reference | Current PR evidence | Rationale |
+| --- | --- | --- | --- | --- | --- |
+| N/A | N/A | N/A | N/A | N/A | N/A |
+
 ## Outcome Assessment
 
 | Dimension | Goal Context evidence | PR evidence | Assessment | Notes |

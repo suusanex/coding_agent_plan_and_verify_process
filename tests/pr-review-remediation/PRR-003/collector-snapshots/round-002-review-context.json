@@ -13,8 +13,8 @@
     "headRefOid": "2222222222222222222222222222222222222222"
   },
   "copilotReviewWait": {
-    "waitStatus": "completed",
-    "observedReviewState": "reviewAndInline",
+    "waitStatus": "disabled",
+    "observedReviewState": "notWaited",
     "timedOut": false
   },
   "artifacts": {

@@ -1,8 +1,9 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "repository": "owner/repository",
   "pullRequest": 123,
   "roundNumber": 2,
+  "reviewMode": "purpose-only",
   "baseOid": "0000000000000000000000000000000000000000",
   "headOid": "1111111111111111111111111111111111111111",
   "goalContext": {
@@ -14,20 +15,19 @@
     {
       "trackingId": "TRK-001",
       "state": "persistent",
-      "findingIds": ["LR-002"],
-      "sourceIds": ["review:456"]
+      "findingIds": ["PUR-002"],
+      "sourceIds": ["PUR-002"]
     }
   ],
   "sourceCoverage": [
-    { "sourceId": "review:456", "disposition": "finding", "trackingIds": ["TRK-001"], "reason": null },
-    { "sourceId": "LR-002", "disposition": "finding", "trackingIds": ["TRK-001"], "reason": null },
-    { "sourceId": "check:789", "disposition": "noAction", "trackingIds": [], "reason": "Check passed." }
+    { "sourceId": "review:456", "disposition": "noAction", "trackingIds": [], "reason": "Audit-only external source in purpose-only round." },
+    { "sourceId": "PUR-002", "disposition": "finding", "trackingIds": ["TRK-001"], "reason": null },
+    { "sourceId": "check:789", "disposition": "noAction", "trackingIds": [], "reason": "Audit-only validation evidence in purpose-only round." }
   ],
   "artifactBindings": [
     { "role": "review-context", "normalizedSha256": "<sha256>" },
     { "role": "remote-patch", "normalizedSha256": "<sha256>" },
     { "role": "goal-context-selection", "normalizedSha256": "<sha256>" },
-    { "role": "local-findings", "normalizedSha256": "<sha256>" },
     { "role": "purpose-findings", "normalizedSha256": "<sha256>" },
     { "role": "review-plan", "normalizedSha256": "<sha256>" }
   ]

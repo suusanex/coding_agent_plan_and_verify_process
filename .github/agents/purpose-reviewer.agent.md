@@ -30,6 +30,8 @@ description: Evaluate whether a confirmed PR diff achieves the selected Goal Con
 
 Goal Contextが欠落する、selection statusが`SELECTED`でない、文書pathまたは正規化SHA-256が一致しない、またはPR identityとdiff evidenceが矛盾する場合は、Issue本文だけで代替reviewを行わず`BLOCKED`を返してください。
 
+Goal Context multi-roundのround 2以降は`purpose-only` modeです。前roundのreview plan、finding ledger、Adaptive result referenceを追加で読み、前roundまでの全active tracking IDについて、現在patch上の証拠から`persistent | resolved`を評価してください。新しい一般コード品質reviewは行わず、新規またはreopened findingは目的達成上必要な`PUR-*`だけに限定します。collectorに残るCopilot、connector、人間review/comment/checkは監査入力であり、それ自体からfindingを追加しません。
+
 ## Review boundary
 
 - Original problemが解消されるかを、実装mechanismの有無ではなく利用者の困りごとで評価する。
@@ -50,6 +52,7 @@ Goal Contextが欠落する、selection statusが`SELECTED`でない、文書pat
 - Original problem、Desired outcome、user scenarioごとの評価
 - MVP、Non-goals、棄却案、否定条件の評価
 - `PUR-001`から始まる安定したFinding ID
+- purpose-only modeでは全active tracking IDを網羅する`Prior Finding Assessment`
 - findingごとのGoal Context section、PR evidence、purpose risk、suggested outcome
 - Open questions、human decision、未検証事項
 - `Production code changed: No`

@@ -32,6 +32,7 @@ $goal-context-pr-review
 
 owner/repository#123のGoal Context multi-round review round 2を開始してください。
 前roundのAdaptive resultは<path-or-uri>です。最新headを収集し、round-002へ保存して通知後に停止してください。
+このroundはpurpose-onlyです。Copilotレビューを開始・待機せず、local-reviewerも実行しないでください。
 ```
 
 同じheadの再review、前Adaptive resultなしのround 2以降、過去round directoryの再利用は拒否します。`HUMAN_DECISION_REQUIRED`では実行可能planとAdaptive handoffを出しません。利用者が継続を選んだ場合、別の明示工程で承認plan候補を作り、`manage-review-cycle.cs resolve`へdecision ID、resolution、承認者、承認時刻、候補pathを渡します。`resolve`が`round-NNN/approved-review-plan.md`を保存して`APPROVED_FOR_ADAPTIVE_IMPLEMENTATION`を返した後だけ、別親ターンでAdaptiveを開始します。既定上限は3です。第3roundから継続する`resolve`には、利用者のidentity、承認時刻、理由、新しい上限もCLI overrideへ明示します。
@@ -46,7 +47,7 @@ dotnet run --file scripts/manage-review-cycle.cs -- resolve `
   --override-approved-at <ISO-8601> --override-reason <reason>
 ```
 
-round 2以降のcollector snapshotには旧headのreview／inline commentが残ります。削除せずcurrent／historical／unknown sourceとして全件をplanとsource coverageへ渡します。cycle managerへ渡す時刻は、`2026-07-28T09:00:00Z`または`2026-07-28T09:00:00+09:00`のようにtimezoneを明示します。
+round 2以降のcollectorは`--no-wait-for-copilot`を使用します。snapshotに残る旧head、新規connector、人間review/comment、checkは削除せず、reason付き`noAction`の監査証跡としてsource coverageへ渡します。これらから新規remediation findingを作りません。cycle managerへ渡す時刻は、`2026-07-28T09:00:00Z`または`2026-07-28T09:00:00+09:00`のようにtimezoneを明示します。
 
 ## Phase 2 with notification
 

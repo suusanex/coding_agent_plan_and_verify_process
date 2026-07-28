@@ -36,10 +36,10 @@ try
         return;
     }
 
-    var candidate = CreateCandidate(payload, config);
+    var candidate = CreateCandidate(payload, config, out var candidateStatus);
     if (candidate is null)
     {
-        WriteLog(runtimeHome, "not-targeted", Hash(payload.ThreadId + ":" + payload.TurnId), null);
+        WriteLog(runtimeHome, candidateStatus, Hash(payload.ThreadId + ":" + payload.TurnId), null);
         return;
     }
 
@@ -104,17 +104,22 @@ static RuntimeConfig LoadConfig(string path)
     return config;
 }
 
-static CompletionEvent? CreateCandidate(CodexPayload payload, RuntimeConfig config)
+static CompletionEvent? CreateCandidate(CodexPayload payload, RuntimeConfig config, out string status)
 {
     var envelope = TryReadEnvelope(payload.LastAssistantMessage, out var invalidEnvelope);
     var markerMatched = config.TargetMarkers.Any(marker => !string.IsNullOrWhiteSpace(marker) && (payload.InputMessages ?? []).Any(message => message?.Contains(marker, StringComparison.Ordinal) == true));
-    if (envelope is null && !markerMatched) return null;
+    if (envelope is null)
+    {
+        status = invalidEnvelope ? "invalid-envelope" : markerMatched ? "awaiting-terminal-envelope" : "not-targeted";
+        return null;
+    }
+    status = "candidate";
 
-    var repository = IsSafeText(envelope?.Repository) ? envelope!.Repository! : ResolveRepository(payload.Cwd);
-    var primaryProcess = IsSafeText(envelope?.PrimaryProcess) ? envelope!.PrimaryProcess! : "codex-turn";
-    var observedStatus = IsSafeText(envelope?.ObservedStatus) ? envelope!.ObservedStatus! : "TURN_ENDED";
-    var title = IsSafeText(envelope?.Title) ? envelope!.Title! : "Codex turn ended";
-    var resultUri = IsAllowedResultUri(envelope?.ResultUri) ? envelope!.ResultUri : null;
+    var repository = IsSafeText(envelope.Repository) ? envelope.Repository! : ResolveRepository(payload.Cwd);
+    var primaryProcess = envelope.PrimaryProcess!;
+    var observedStatus = envelope.ObservedStatus!;
+    var title = IsSafeText(envelope.Title) ? envelope.Title! : "Process completed";
+    var resultUri = IsAllowedResultUri(envelope.ResultUri) ? envelope.ResultUri : null;
     var resumeUri = "codex://threads/" + Uri.EscapeDataString(payload.ThreadId!);
     return new CompletionEvent
     {
@@ -280,14 +285,14 @@ static void WriteLog(string home, string status, string? eventHash, string? erro
 static void SelfTest()
 {
     var payload = new CodexPayload { Type = "agent-turn-complete", ThreadId = "thread", TurnId = "turn", Cwd = Path.GetTempPath(), InputMessages = ["[notify]"], LastAssistantMessage = null };
-    var candidate = CreateCandidate(payload, new RuntimeConfig { TargetMarkers = ["[notify]"] });
-    if (candidate?.ObservedStatus != "TURN_ENDED" || candidate.ResultUri is not null || candidate.ResumeUri != "codex://threads/thread") throw new InvalidOperationException("fallback test failed");
+    var candidate = CreateCandidate(payload, new RuntimeConfig { TargetMarkers = ["[notify]"] }, out var candidateStatus);
+    if (candidate is not null || candidateStatus != "awaiting-terminal-envelope") throw new InvalidOperationException("marker-only suppression test failed");
     var message = "```completion-notification\n{\"schema_version\":1,\"primary_process\":\"test\",\"observed_status\":\"BLOCKED\",\"result_uri\":\"https://github.com/openai/codex/issues/1\"}\n```";
     payload.LastAssistantMessage = message;
-    candidate = CreateCandidate(payload, new RuntimeConfig());
+    candidate = CreateCandidate(payload, new RuntimeConfig(), out candidateStatus);
     if (candidate?.ObservedStatus != "BLOCKED" || candidate.ResultUri != "https://github.com/openai/codex/issues/1") throw new InvalidOperationException($"envelope test failed status={candidate?.ObservedStatus} uri={candidate?.ResultUri}");
     payload.LastAssistantMessage = "```completion-notification\n{\"schema_version\":1,\"primary_process\":\"test\",\"observed_status\":\"COMPLETED\",\"result_uri\":\"https://github.com/openai/codex\"}\n```";
-    candidate = CreateCandidate(payload, new RuntimeConfig());
+    candidate = CreateCandidate(payload, new RuntimeConfig(), out candidateStatus);
     if (candidate?.ResultUri is not null) throw new InvalidOperationException("coarse GitHub URI must fall back to resume_uri");
     if (!IsAllowedResultUri("HTTPS://Example.com/result/1") || IsAllowedResultUri("https://GitHub.com/openai/codex")) throw new InvalidOperationException("mixed-case URI contract failed");
     var temporaryConfig = Path.Combine(Path.GetTempPath(), "codex-notification-runtime-config-" + Guid.NewGuid().ToString("N") + ".json");

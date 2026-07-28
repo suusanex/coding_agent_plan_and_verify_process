@@ -4,14 +4,15 @@ PRR-003は、記録済みfinding deltaとartifactを入力にしてmulti-round s
 
 `validate-prr-003-contract.ps1`はFile-based `manage-review-cycle.cs`をpublishし、別々の明示commandとしてroundを開始・完了します。次を検証します。
 
-- collectorに近い全件source snapshotによるreview -> fix reference -> re-review -> fix reference -> `REVIEW_COMPLETE`
-- round 2/3に残る旧head review／inline commentと、current／historical／unknown source関係の共存
+- round 1のCopilot／local／purpose full reviewから、round 2/3のpurpose-only reviewへ移るreview -> fix reference -> purpose re-review -> fix reference -> `REVIEW_COMPLETE`
+- round 2/3ではCopilot待機を無効化し、local findingsを生成せず、旧head、新規connector、人間review/comment/checkを理由付き`noAction`の監査証跡として保持
+- purpose findingsの`Prior Finding Assessment`とfinding deltaによる全active tracking IDの遷移
 - 第3roundでもactionable findingが残る場合の`HUMAN_DECISION_REQUIRED`と、実行可能Adaptive plan／handoffの不在
 - 人間の継続判断後に`resolve`が承認済みplan path/hashとoverrideをAdaptive前に記録する第4round gate
 - 同一head OIDの重複review拒否とround別directoryの非上書き
 - `new | persistent | resolved | reopened`のfinding ledger遷移
 - 各round通知のverdictと対象PR直接リンク
-- review-context、Goal Context selection、local/purpose findings、machine-readable review-result、round-resultのidentity/source/verdict/delta/hash binding相互照合
+- review-context、Goal Context selection、round別に必要なlocal/purpose findings、machine-readable review-result、round-resultのidentity/source/verdict/delta/hash binding相互照合
 - review-contextが指定するremote patch正本とmanifestの`remote-patch` role pathの一致
 - Adaptiveへ渡すreview planのcanonical `implementation_intent`、SI/AC完全一致、active finding mapping、別親ターンhandoffの相互照合
 - finding deltaから導出したsource-to-tracking mappingとsource coverageの双方向完全一致
@@ -44,7 +45,9 @@ fixtureのPASSはstate machineとartifact contractの証拠であり、本物の
 | review後の停止、Adaptive非起動 | managerのevidence-only contractとprocess-orchestration静的検査 |
 | Adaptive後の次round非自動起動 | round 2以降の明示startとAdaptive result reference gate |
 | notificationの直接リンク | 各round notificationとnotification PR/status mutations |
-| local／purpose／reviews／comments／checksのsource追跡 | collector-realistic全件snapshot、source coverage、finding ledger |
+| round 1だけのfull review | round 1の`reviewMode: full`とlocal/purpose artifact |
+| round 2以降のpurpose-only review | `reviewMode: purpose-only`、Copilot wait disabled、local artifact禁止、外部source audit-only coverage |
+| finding遷移根拠 | `Prior Finding Assessment`完全性と欠落mutation |
 | 修正・再review後の収束 | collector-realistic-convergence scenario |
 | 第3round後も非収束 | round-limit-and-override scenario |
 

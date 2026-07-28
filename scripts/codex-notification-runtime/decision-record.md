@@ -23,7 +23,7 @@ Windows providerは副作用なしのself-testでWindows App SDKを初期化し�
 - resume URI: `codex://threads/<thread-id>`をruntimeで生成する。
 - result URI: userinfoなしのHTTPSかつ具体的resource pathを持つものだけを許可する。host rootとGitHubのトップ・ownerトップ・repositoryトップは拒否し、resume URIへfallbackする。
 - `completion-notification` fenced blockのJSONはauthoring envelopeであり、runtime eventは`notification_status`を追加して配送する。
-- envelopeがない場合は、input内のliteral marker `[completion-notification]`または明示Skill選択token `$completion-notification-decorator`をtarget declarationとして使う。fallback statusは成功を意味しない`TURN_ENDED`である。installerの`--target-marker`を明示した場合は、指定したmarker群へ置き換える。
+- input内のliteral marker `[completion-notification]`または明示Skill選択token `$completion-notification-decorator`はtarget declarationとして使う。ただしproviderへ配送するのは有効なterminal envelopeがあるcallbackだけとする。markerだけのcallbackは`awaiting-terminal-envelope`、不正なenvelopeは`invalid-envelope`としてlogへ記録し、`TURN_ENDED` fallbackは生成しない。installerの`--target-marker`を明示した場合は、指定したmarker群へ置き換える。
 
 ## Safety and rollback
 
@@ -34,6 +34,6 @@ Windows providerは副作用なしのself-testでWindows App SDKを初期化し�
 
 ## Human verification required
 
-one-off `codex exec -c notify=...`でnotificationを表示し、`result_uri`ボタンが対象PRを、fallbackのボタンがcallback発火元のCodex threadを直接開くことを2026-07-26に実機確認した。one-off実行は外側のCodex Desktop taskとは別threadになるため、Desktopで未表示だった発火元threadは新しいtaskが開いたように見える。表示された入力と応答がone-off実行と一致することを遷移成功の根拠とする。
+one-off `codex exec -c notify=...`でterminal notificationを表示し、`result_uri`ボタンが対象PRを、`resume_uri`ボタンがcallback発火元のCodex threadを直接開くことを2026-07-26に実機確認した。marker-only callbackの抑止とterminal envelope後の一意配送は更新後のmanual smokeで再確認する。
 
 実施状況は`manual-verification.md`へ、message本文・完全URI・識別子を含めずに記録する。
