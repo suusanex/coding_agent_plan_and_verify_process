@@ -154,7 +154,7 @@ Assert-NotContains $manifest 'token-aware|codex-first|plan-coverage' 'Plan Cover
 Assert-NotContains $manifest 'path:\s+.*(?:implementation-intent|implementation-completion-handoff)\.md' 'standalone template dependency'
 
 # APM 0.18.0 materializes the complete package below a deep Git cache prefix on Windows.
-# The 111-character boundary is backed by the Windows APM 0.18.0 remote smoke, which deploys
+# The 111-character boundary requires a passing Windows APM 0.18.0 remote smoke that deploys
 # the longest policy path. Any future increase requires equivalent Windows remote-install evidence.
 $maxWindowsPackagePathLength = 111
 $packageRelativeRoot = 'apm-packages/adaptive-implementation-execution'
@@ -689,6 +689,9 @@ Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-r
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' '\[regex\]::Escape\(\$ExpectedApmVersion\)' 'remote APM smoke parameterized version check'
 Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' 'os:\s*windows-latest\s*\r?\n\s*apm-version:\s*''0\.18\.0''' 'Windows APM 0.18.0 remote path-budget smoke'
 Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' 'os:\s*ubuntu-latest\s*\r?\n\s*apm-version:\s*''0\.26\.0''' 'Ubuntu APM 0.26.0 remote compatibility smoke'
+Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' '(?s)if:\s*runner\.os == ''Linux''\s*\r?\n\s*uses:\s*microsoft/apm-action@v1' 'Ubuntu-only APM Action setup'
+Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' '(?s)if:\s*runner\.os == ''Windows''\s*\r?\n\s*uses:\s*actions/setup-python@v5.*python-version:\s*''3\.13''' 'Windows Python setup for legacy APM'
+Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' 'python -m pip install "apm-cli==\$\{\{\s*matrix\.apm-version\s*\}\}"' 'Windows APM 0.18.0 pip installation route'
 
 $workflow = '.github/workflows/validate-adaptive-implementation-execution.yml'
 Assert-Contains $workflow 'validate-adaptive-implementation-execution\.ps1' 'Adaptive Implementation CI validator invocation'

@@ -42,7 +42,7 @@ dotnet run --file C:\path\to\adaptive-implementation-execution\scripts\install-a
 
 portable agent の `git: parent` dependency は static validator で path existence を確認します。repository URL と branch ref を使った remote install / rollback の実証結果は [Adaptive Routing Validation](examples/adaptive-routing-validation.md) に記録しています。
 
-APM 0.18.0 の Windows remote install は、Git cache の深い checkout path から package をコピーします。この package は skill 内 template を短い `refs/intent.md` と `refs/handoff.md` に配置し、legacy path-length boundary を超えないよう static validator で repository-relative path budget を111文字に制限します。この111文字の境界は、Windows上のAPM 0.18.0 remote smokeで最長の `agents/openai.yaml` が実際に展開されることを根拠とします。将来この上限を広げる場合も、同等のWindows remote installによる実証が必要です。
+APM 0.18.0 の Windows remote install は、Git cache の深い checkout path から package をコピーします。この package は skill 内 template を短い `refs/intent.md` と `refs/handoff.md` に配置し、legacy path-length boundary を超えないよう static validator で repository-relative path budget を111文字に制限します。この111文字の境界を受け入れるには、Windows上のAPM 0.18.0 remote smokeが最長の `agents/openai.yaml` を実際に展開して成功する必要があります。Windows jobはPython 3.13と`pip install apm-cli==0.18.0`でAPMを導入します。将来この上限を広げる場合も、同等のWindows remote installによる実証が必要です。
 
 ## Complete missing Codex custom agent settings
 
