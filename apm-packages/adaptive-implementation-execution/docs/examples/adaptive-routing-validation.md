@@ -248,19 +248,32 @@ Expected:
 
 ## VAL-013: Manual-only Codex invocation
 
-Scenarios:
+### Static contract validation
+
+The static validator and APM installation smoke must verify:
+
+- `agents/openai.yaml` is deployed under `.agents/skills/adaptive-implementation-execution/agents` with `allow_implicit_invocation: false`
+- the skill and user documentation exclude generic implementation requests and installation-only selection
+- Design Pair, Plan Coverage, Codex-first, full coverage, and PR Review Remediation explicitly read `.agents/skills/adaptive-implementation-execution/SKILL.md` before Adaptive Implementation, apply it as the implementation execution contract, and do not rely on a bare skill name or manifest dependency alone
+- a missing or unreadable deployed `SKILL.md` stops the caller through its existing delegation blocker instead of starting `high-implementation-starter` directly
+- `$adaptive-implementation-execution` remains the intended explicit user route, while the known explicit-only invocation problem in [openai/codex#23454](https://github.com/openai/codex/issues/23454) and the direct file-read fallback are documented
+
+### Manual runtime validation required
+
+Status: **NOT RUN**. Static validation proves the configuration, deployed files, and written routing contracts; it does not launch a fresh Codex runtime or prove skill selection behavior.
+
+Run these scenarios in fresh Codex sessions:
 
 1. The user says `この小さな修正を実装してください。`
 2. The user says `$adaptive-implementation-execution を使って実装してください。`
-3. An installed skill or higher-level workflow explicitly selects `adaptive-implementation-execution` and delegates an authorized implementation intent.
+3. An installed skill or higher-level workflow explicitly reads `.agents/skills/adaptive-implementation-execution/SKILL.md`, applies it as the implementation execution contract, and delegates an authorized implementation intent.
 
 Expected:
 
 - scenario 1 does not select `adaptive-implementation-execution` and does not start HIGH_MODEL or STANDARD_MODEL implementation subagents from this skill
-- scenario 2 can start the existing Adaptive Implementation flow
-- scenario 3 can start the existing Adaptive Implementation flow because `allow_implicit_invocation: false` does not prohibit explicit delegation
+- scenario 2 uses Codex's intended explicit invocation route; if it fails because of the known explicit-only runtime problem, record the result against `openai/codex#23454` and repeat with the direct file-read fallback
+- scenario 3 loads the execution contract before starting the existing Adaptive Implementation flow; `allow_implicit_invocation: false` does not policy-block this explicit file-read delegation
 - merely installing the package does not make a generic implementation request eligible for this skill
-- APM deploys `agents/openai.yaml` under `.agents/skills/adaptive-implementation-execution/agents` with `allow_implicit_invocation: false`
 
 ## Issue #44 integration validation matrix
 
@@ -342,6 +355,7 @@ Originally validated on 2026-07-13 with APM CLI 0.18.0 and a .NET 11 preview SDK
 | Remote rollback | PASS | `apm uninstall` removed the direct package and skill, custom agent removal deleted package-owned TOMLs, and `apm prune` removed both orphaned portable agent packages; no integrated skill, agent, or package files remained |
 | Agent discovery contract | PASS | remote install created both named `.codex/agents` entries and the static validator confirmed that the skill routes to those names |
 | Runtime multi-agent orchestration | NOT RUN | installation validation does not execute the skill and both implementation agents; this remains a separate Codex runtime validation |
+| Windows APM 0.18.0 policy-path remote smoke on current head | NOT RUN | the GitHub Actions matrix must prove that the 111-character `agents/openai.yaml` source path deploys successfully from the legacy deep Git cache |
 | Full package local-path install | NOT APPLICABLE | APM 0.18.0 cannot inherit `git: parent` from a local path dependency; the supported remote repository route is validated separately above |
 
 The full-package local-path limitation does not change the package manifest. The remote branch validation confirms that the `git: parent` convention resolves the root portable agents when APM installs the repository subdirectory package.

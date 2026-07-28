@@ -8,6 +8,9 @@ param(
     [ValidateNotNullOrEmpty()]
     [string]$Ref,
 
+    [ValidateNotNullOrEmpty()]
+    [string]$ExpectedApmVersion = '0.26.0',
+
     [string]$ApmExecutable = 'apm'
 )
 
@@ -47,8 +50,9 @@ $apmVersion = & $ApmExecutable --version 2>&1 | Out-String
 if ($LASTEXITCODE -ne 0) {
     throw "APM executable failed: $ApmExecutable"
 }
-if ($apmVersion -notmatch '\b0\.26\.0\b') {
-    throw "APM 0.26.0 is required for the reproducible smoke. Observed: $($apmVersion.Trim())"
+$expectedApmVersionPattern = '(?<![0-9.])' + [regex]::Escape($ExpectedApmVersion) + '(?![0-9.])'
+if ($apmVersion -notmatch $expectedApmVersionPattern) {
+    throw "APM $ExpectedApmVersion is required for the reproducible smoke. Observed: $($apmVersion.Trim())"
 }
 
 $tempRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())

@@ -2,9 +2,11 @@
 
 ## Codex invocation policy
 
-Codex では `agents/openai.yaml` の `allow_implicit_invocation: false` により暗黙起動を無効にしています。利用者が `$adaptive-implementation-execution` を名前で明示指定した場合、または導入済みの別 skill / 上位 workflow がこの skill を明示選択して委譲した場合だけ使用できます。
+Codex では `agents/openai.yaml` の `allow_implicit_invocation: false` により暗黙起動を無効にしています。Codex が意図する利用者向けの標準的な明示起動方法は `$adaptive-implementation-execution` です。導入済みの別 skill / 上位 workflow は、展開済みの `.agents/skills/adaptive-implementation-execution/SKILL.md` を明示的に読み、その内容を実装実行契約として適用することで委譲します。
 
-「実装して」「この小さな修正を行って」などの一般的な実装依頼では使用しません。task の難易度・規模・riskや、repository に導入されているという事実も選択理由にしません。この Codex 固有 policy は明示起動や明示委譲を禁止しません。
+「実装して」「この小さな修正を行って」などの一般的な実装依頼では使用しません。task の難易度・規模・riskや、repository に導入されているという事実も選択理由にしません。この Codex 固有 policy は明示起動や明示的なファイル読み込みを禁止しません。
+
+ただし、Codex のバージョンによっては explicit-only skill の `$skill` 起動が失敗する既知の問題があります（[openai/codex#23454](https://github.com/openai/codex/issues/23454)）。`$adaptive-implementation-execution` が利用できない場合は、展開済み `SKILL.md` の直接読み込みを fallback とします。上位 workflow は、裸の skill 名による暗黙解決や manifest dependency だけに依存せず、この直接読み込み経路を使用します。Codex Skill の標準的な起動方法は [公式Skill documentation](https://developers.openai.com/codex/skills) を参照してください。
 
 APM は `agents/openai.yaml` を skill の一部として `.agents/skills/adaptive-implementation-execution/agents/openai.yaml` へ展開します。
 
@@ -26,7 +28,7 @@ APM は `agents/openai.yaml` を skill の一部として `.agents/skills/adapti
 
 ## Start after ordinary Plan Mode
 
-APM install で skill と portable custom agents を導入します。この skill は、利用者が名前で明示指定した場合、または導入済みの別 skill / 上位 workflow が名前で明示選択した場合だけ使用します。導入されているだけで repository 内の実装作業へ自動適用しません。
+APM install で skill と portable custom agents を導入します。この skill は、利用者が `$adaptive-implementation-execution` で明示指定した場合、または導入済みの別 skill / 上位 workflow が展開済み `SKILL.md` を直接読んだ場合だけ使用します。導入されているだけで repository 内の実装作業へ自動適用しません。
 
 現行 APM が model 未設定の custom agent TOML を生成した場合は、補助スクリプトで concrete model 設定を補完し、`--check` で確認します。この補完は runtime configuration の互換処理であり、skill の選択や使用を強制しません。
 
@@ -39,6 +41,12 @@ repository-tracked Plan の例:
 
 ```text
 $adaptive-implementation-execution を使って plans/issue-123.md を実装してください。
+```
+
+`$skill` 起動が利用できない場合の fallback:
+
+```text
+`.agents/skills/adaptive-implementation-execution/SKILL.md` を明示的に読み、その内容を実装実行契約として適用して、plans/issue-123.md を実装してください。
 ```
 
 Design Pair route の例:

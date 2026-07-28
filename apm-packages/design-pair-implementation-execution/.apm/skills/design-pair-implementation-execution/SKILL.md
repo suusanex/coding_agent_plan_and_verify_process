@@ -122,7 +122,9 @@ Adaptive Implementation へ進める条件は次のとおり。
 
 ## Phase 5: Hand off to Adaptive Implementation
 
-`READY_FOR_ADAPTIVE_IMPLEMENTATION` の場合だけ、tracked handoff path と original Plan / Implementation Intent を `adaptive-implementation-execution` へ渡す。
+`READY_FOR_ADAPTIVE_IMPLEMENTATION` の場合だけ、tracked handoff path と original Plan / Implementation Intent を Adaptive Implementation へ渡す。
+
+Codex で Adaptive Implementation を開始する直前に、展開済みの `.agents/skills/adaptive-implementation-execution/SKILL.md` を明示的に読み、その内容を実装実行契約として適用する。裸の `adaptive-implementation-execution` という名前、暗黙解決、または manifest dependency だけに依存してはいけない。ファイルが存在しない、または読めない場合は `BLOCKED` で停止し、`high-implementation-starter` を直接起動して迂回してはいけない。
 
 Adaptive Implementation に対する invariant:
 

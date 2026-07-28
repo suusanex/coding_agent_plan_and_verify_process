@@ -406,6 +406,8 @@ Use `STANDARD_MODEL` only for a bounded decision-free completion handoff. `CHEAP
 
 Do:
 
+- before starting Adaptive Implementation in Codex, explicitly read the deployed `.agents/skills/adaptive-implementation-execution/SKILL.md` and apply it as the implementation execution contract; do not rely on the bare `adaptive-implementation-execution` name, implicit resolution, or the manifest dependency alone
+- if that file is missing or unreadable, stop with `DelegationUnavailable` and do not bypass the contract by selecting `high-implementation-starter` directly
 - for `implementation_route = design-pair`, set the pre-stage Edit owner to `design-pair-implementation-execution`, allow only its tracked handoff path, and require `READY_FOR_ADAPTIVE_IMPLEMENTATION` before changing the implementation owner
 - set `Delegation required = Yes` and `Edit owner = high-implementation-starter` for every non-trivial Adaptive implementation start after any explicit Design Pair pre-stage
 - require either the implementation-handoff-review parent authorization artifact or a Plan Coverage Lite artifact with Inline Ready Gate equivalence before selecting `high-implementation-starter`

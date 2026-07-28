@@ -1,5 +1,5 @@
 name: token-aware-full-coverage-3layer
-version: 0.4.0
+version: 0.4.1
 description: 3-layer full-coverage workflow package with explicit implementation route state, Architecture Slice Readiness, parent review gate, slice prep, and per-slice Adaptive Implementation
 type: hybrid
 targets:

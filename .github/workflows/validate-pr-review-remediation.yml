@@ -37,7 +37,16 @@ jobs:
         run: ./apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
 
   validate-pr-review-remediation-apm:
-    runs-on: ubuntu-latest
+    name: Remote APM smoke (${{ matrix.os }}, APM ${{ matrix.apm-version }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            apm-version: '0.26.0'
+          - os: windows-latest
+            apm-version: '0.18.0'
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v5
@@ -47,11 +56,11 @@ jobs:
         uses: microsoft/apm-action@v1
         with:
           setup-only: 'true'
-          apm-version: '0.26.0'
+          apm-version: ${{ matrix.apm-version }}
       - name: Validate remote package installation and relative assets
         shell: pwsh
         env:
           GITHUB_APM_PAT: ${{ github.token }}
           PACKAGE_REPOSITORY: ${{ github.repository }}
           PACKAGE_REF: ${{ github.ref }}
-        run: ./apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1 -Repository $env:PACKAGE_REPOSITORY -Ref $env:PACKAGE_REF
+        run: ./apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1 -Repository $env:PACKAGE_REPOSITORY -Ref $env:PACKAGE_REF -ExpectedApmVersion '${{ matrix.apm-version }}'

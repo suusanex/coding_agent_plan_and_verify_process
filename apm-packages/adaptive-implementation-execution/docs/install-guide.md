@@ -27,7 +27,7 @@ APM install が skill と portable custom agents を導入する本体です。�
 
 現行 APM が生成した Codex TOML に concrete model、reasoning、sandbox 設定がない場合だけ、次節の互換スクリプトで package 付属設定を補完します。
 
-`agents/openai.yaml` は skill とともに展開される Codex 固有 policy で、`allow_implicit_invocation: false` により一般的な実装依頼からの暗黙起動を無効にします。`$adaptive-implementation-execution` による直接起動と、別 skill / 上位 workflow からの明示委譲は引き続き可能です。
+`agents/openai.yaml` は skill とともに展開される Codex 固有 policy で、`allow_implicit_invocation: false` により一般的な実装依頼からの暗黙起動を無効にします。Codex が意図する利用者向けの標準的な明示起動方法は `$adaptive-implementation-execution` ですが、Codex のバージョンによっては explicit-only skill の起動が失敗する既知の問題があります（[openai/codex#23454](https://github.com/openai/codex/issues/23454)）。この場合と上位 workflow からの委譲では、展開済みの `.agents/skills/adaptive-implementation-execution/SKILL.md` を明示的に読み、その内容を実装実行契約として適用します。裸の skill 名による暗黙解決や manifest dependency だけに依存しません。Codex Skill の標準的な起動方法は [公式Skill documentation](https://developers.openai.com/codex/skills) を参照してください。
 
 ### Local package validation on APM 0.18.0
 
@@ -42,7 +42,7 @@ dotnet run --file C:\path\to\adaptive-implementation-execution\scripts\install-a
 
 portable agent の `git: parent` dependency は static validator で path existence を確認します。repository URL と branch ref を使った remote install / rollback の実証結果は [Adaptive Routing Validation](examples/adaptive-routing-validation.md) に記録しています。
 
-APM 0.18.0 の Windows remote install は、Git cache の深い checkout path から package をコピーします。この package は skill 内 template を短い `refs/intent.md` と `refs/handoff.md` に配置し、legacy path-length boundary を超えないよう static validator で path budget を検証します。
+APM 0.18.0 の Windows remote install は、Git cache の深い checkout path から package をコピーします。この package は skill 内 template を短い `refs/intent.md` と `refs/handoff.md` に配置し、legacy path-length boundary を超えないよう static validator で repository-relative path budget を111文字に制限します。この111文字の境界は、Windows上のAPM 0.18.0 remote smokeで最長の `agents/openai.yaml` が実際に展開されることを根拠とします。将来この上限を広げる場合も、同等のWindows remote installによる実証が必要です。
 
 ## Complete missing Codex custom agent settings
 

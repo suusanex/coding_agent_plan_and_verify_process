@@ -4,9 +4,11 @@
 
 ## Codex selection policy
 
-Codex では暗黙起動を無効にしています。利用者が `$adaptive-implementation-execution` を名前で明示指定した場合、または導入済みの別 skill / 上位 workflow がこの skill を明示選択して委譲した場合だけ使用できます。「実装して」「この小さな修正を行って」などの一般的な実装依頼では使用せず、package が repository に導入されているだけでも自動適用しません。
+Codex では暗黙起動を無効にしています。Codex が意図する利用者向けの標準的な明示起動方法は `$adaptive-implementation-execution` です。導入済みの別 skill / 上位 workflow は、展開済みの `.agents/skills/adaptive-implementation-execution/SKILL.md` を明示的に読み、その内容を実装実行契約として適用することで委譲します。「実装して」「この小さな修正を行って」などの一般的な実装依頼では使用せず、package が repository に導入されているだけでも自動適用しません。
 
-この Codex 固有 policy は skill 内の `agents/openai.yaml` にあり、暗黙起動だけを禁止します。名前による直接起動と明示委譲は引き続き可能です。
+この Codex 固有 policy は skill 内の `agents/openai.yaml` にあり、暗黙起動だけを禁止します。明示起動や明示的なファイル読み込みを policy として禁止しません。
+
+ただし、Codex のバージョンによっては explicit-only skill の `$skill` 起動が失敗する既知の問題があります（[openai/codex#23454](https://github.com/openai/codex/issues/23454)）。`$adaptive-implementation-execution` が利用できない場合は、展開済み `SKILL.md` の直接読み込みを fallback としてください。上位 workflow は、裸の skill 名による暗黙解決や manifest dependency だけに依存せず、この直接読み込み経路を使用します。Codex Skill の標準的な起動方法は [公式Skill documentation](https://developers.openai.com/codex/skills) を参照してください。
 
 ## 解決する問題
 

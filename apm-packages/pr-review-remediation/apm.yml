@@ -1,5 +1,5 @@
 name: pr-review-remediation
-version: 0.1.0
+version: 0.1.1
 description: Two-turn PR review remediation workflow that prepares a ready PR, consolidates Codex and GitHub Copilot review findings, and hands implementation to the canonical Adaptive flow
 type: hybrid
 targets:

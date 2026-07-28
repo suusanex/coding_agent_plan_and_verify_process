@@ -387,6 +387,8 @@ Parent review gate は人間レビュー待ちではありません。親エー�
 
 ## Layer 3: implementation and verification
 
+Codex で Adaptive Implementation を開始する直前に、展開済みの `.agents/skills/adaptive-implementation-execution/SKILL.md` を明示的に読み、その内容を実装実行契約として適用します。裸の `adaptive-implementation-execution` という名前、暗黙解決、または manifest dependency だけに依存してはいけません。ファイルが存在しない、または読めない場合は `BlockedByMissingAdaptiveImplementationDelegation` で停止し、`high-implementation-starter` を直接起動して迂回してはいけません。
+
 `DELEGATED_IMPLEMENTATION` mode では、親レビューで `Can implement now? = Yes` になった非自明な slice は必ず `high-implementation-starter` custom agent から開始してください。親は READY slice を自分で実装してはいけません。`slice-impl` は明示的な legacy compatibility route に限ります。
 
 READY slice は、次の証跡を満たす必要があります。

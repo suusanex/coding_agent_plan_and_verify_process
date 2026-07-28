@@ -132,7 +132,9 @@ Run the flow in this order unless a stop condition applies:
    - `test-design-kernel.agent.md`
    - `implementation-handoff-review.agent.md`
 9. Implement only after the handoff review or a documented equivalent Inline Ready Gate allows implementation for the bounded parent Plan pass.
-   - When `implementation_route: adaptive`, start the existing Adaptive route directly.
+   - Before starting Adaptive Implementation in Codex, explicitly read the deployed `.agents/skills/adaptive-implementation-execution/SKILL.md` and apply it as the implementation execution contract. Do not rely on the bare `adaptive-implementation-execution` name, implicit resolution, or the manifest dependency alone.
+   - If that file is missing or unreadable, stop with `BLOCKED` and do not bypass the contract by starting `high-implementation-starter.agent.md` directly.
+   - When `implementation_route: adaptive`, start the existing Adaptive route through that loaded contract.
    - When `implementation_route: design-pair` and `implementation_route_source: explicit-user-selection`, run `design-pair-implementation-execution` first. It may inspect bounded source and write only the tracked Design Pair handoff; it must not edit production code / tests. Start Adaptive Implementation only after that handoff returns `READY_FOR_ADAPTIVE_IMPLEMENTATION` with no blocking `Upstream-Decision-Required`.
    - If an explicitly selected Design Pair skill is unavailable, route metadata is missing, or the handoff is invalid, stop instead of silently falling back to Adaptive or implementing directly.
    After this optional pre-stage, every non-trivial pass starts with `high-implementation-starter.agent.md` on `HIGH_MODEL`; do not classify shape need from documents or route directly to a standard implementation agent.

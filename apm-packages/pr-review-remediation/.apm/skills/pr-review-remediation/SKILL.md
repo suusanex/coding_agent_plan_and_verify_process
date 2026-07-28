@@ -98,6 +98,8 @@ Copilot waitがtimeoutで、Copilot未取得でも進む明示判断がない場
 
 ```text
 $adaptive-implementation-execution を使って .review/pr-123/review-plan.md を実装してください。
+Adaptive Implementationを開始する前に、展開済みの `.agents/skills/adaptive-implementation-execution/SKILL.md` を明示的に読み、その内容を実装実行契約として適用してください。裸のSkill名による暗黙解決には依存しないでください。
+このファイルが存在しない、または読めない場合は `BLOCKED` で停止し、`high-implementation-starter` を直接起動して迂回しないでください。
 review-plan.md の implementation_intent を source of truth とし、既存 Adaptive Implementation の router、agents、verdict、handoff、validation contract を変更または複製しないでください。
 ```
 

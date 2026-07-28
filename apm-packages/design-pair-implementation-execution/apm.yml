@@ -1,5 +1,5 @@
 name: design-pair-implementation-execution
-version: 0.1.0
+version: 0.1.1
 description: Explicit human-selected Design Pair discovery and Locked Decisions handoff before Adaptive Implementation
 type: hybrid
 targets:

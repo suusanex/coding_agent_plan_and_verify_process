@@ -36,4 +36,6 @@ implementation_intent:
 
 ```text
 $adaptive-implementation-execution を使って .review/pr-123/review-plan.md を実装してください。
+Adaptive Implementationを開始する前に、展開済みの `.agents/skills/adaptive-implementation-execution/SKILL.md` を明示的に読み、その内容を実装実行契約として適用してください。裸のSkill名による暗黙解決には依存しないでください。
+このファイルが存在しない、または読めない場合は `BLOCKED` で停止し、`high-implementation-starter` を直接起動して迂回しないでください。
 ```

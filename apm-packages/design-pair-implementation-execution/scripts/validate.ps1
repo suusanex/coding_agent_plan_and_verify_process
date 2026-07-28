@@ -95,7 +95,7 @@ if ($packageAgentsFiles.Count -gt 0) {
 
 $manifest = 'apm-packages/design-pair-implementation-execution/apm.yml'
 Assert-Contains $manifest '(?m)^name:\s*design-pair-implementation-execution\s*$' 'package name'
-Assert-Contains $manifest '(?m)^version:\s*0\.1\.0\s*$' 'package version 0.1.0'
+Assert-Contains $manifest '(?m)^version:\s*0\.1\.1\s*$' 'package version 0.1.1'
 Assert-Contains $manifest '(?m)^\s*-\s+codex\s*$' 'codex target'
 Assert-Contains $manifest '(?m)^\s*-\s+agent-skills\s*$' 'agent-skills target'
 Assert-NotContains $manifest '(?m)^\s*-\s+copilot\s*$' 'unverified Copilot target'
@@ -136,6 +136,10 @@ Assert-Contains $skill 'plans/<slug>-design-pair-implementation-handoff\.md' 'tr
 Assert-Contains $skill 'Affected files / symbols.*allowed edit surface ではない' 'file-symbol non-allowlist rule'
 Assert-Contains $skill 'Locked Decisions.*binding constraint' 'binding-only Locked Decisions rule'
 Assert-Contains $skill '通常の adaptive implementation と同じ authority' 'Adaptive HIGH authority invariant'
+Assert-Contains $skill '\.agents/skills/adaptive-implementation-execution/SKILL\.md' 'deployed Adaptive Skill path'
+Assert-Contains $skill '明示的に読み.*実装実行契約として適用' 'explicit Adaptive Skill read contract'
+Assert-Contains $skill '裸の.*暗黙解決.*manifest dependency だけに依存してはいけない' 'no implicit Adaptive resolution rule'
+Assert-Contains $skill '存在しない、または読めない.*`BLOCKED`.*`high-implementation-starter` を直接起動して迂回してはいけない' 'missing Adaptive Skill blocker'
 Assert-Contains $skill 'automatic Design Pair re-entry は行わない' 'no automatic Design Pair re-entry'
 Assert-Contains $skill 'final code review.*独立 verification' 'final review boundary'
 

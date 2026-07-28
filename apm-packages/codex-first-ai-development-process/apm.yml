@@ -1,5 +1,5 @@
 name: codex-first-ai-development-process
-version: 0.5.0
+version: 0.5.1
 description: Codex-first cost-aware routing package with default Adaptive Implementation, explicit Design Pair pre-stage, stateful resume, tiered delegation, and architecture-gated full-coverage separation
 type: hybrid
 targets:
