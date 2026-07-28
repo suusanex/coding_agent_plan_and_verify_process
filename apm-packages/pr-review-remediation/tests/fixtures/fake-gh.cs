@@ -194,10 +194,13 @@ static object[] BuildReviews(string scenario, int call)
     var currentBody = scenario is "delayed" or "inline-then-review"
         ? "Copilot generated 2 comments"
         : "Copilot generated 1 comment";
+    object currentUser = scenario == "copilot-app-url"
+        ? new { login = "renamed-reviewer[bot]", html_url = "https://github.com/apps/copilot-pull-request-reviewer" }
+        : new { login = "copilot-pull-request-reviewer[bot]" };
     var current = new
     {
         id = 100,
-        user = new { login = "copilot-pull-request-reviewer[bot]" },
+        user = currentUser,
         body = currentBody,
         state = "COMMENTED",
         submitted_at = "2026-07-25T00:00:00Z",
@@ -248,6 +251,12 @@ static object[] BuildInlineComments(string scenario, int call)
         return Array.Empty<object>();
     }
 
+    object currentUser = scenario switch
+    {
+        "copilot-actor-alias" => new { login = "Copilot" },
+        "copilot-app-url" => new { login = "renamed-reviewer[bot]", html_url = "https://github.com/apps/copilot-pull-request-reviewer" },
+        _ => new { login = "copilot-pull-request-reviewer[bot]" }
+    };
     var current = new List<object>
     {
         new
@@ -256,12 +265,28 @@ static object[] BuildInlineComments(string scenario, int call)
             pull_request_review_id = 100,
             commit_id = "head-001",
             original_commit_id = "head-001",
-            user = new { login = "copilot-pull-request-reviewer[bot]" },
+            user = currentUser,
             path = "src/Fixture.cs",
             line = 1,
             body = "Current-head finding"
         }
     };
+
+    if (scenario == "copilot-human-reply")
+    {
+        current.Add(new
+        {
+            id = 1003,
+            pull_request_review_id = 100,
+            in_reply_to_id = 1001,
+            commit_id = "head-001",
+            original_commit_id = "head-001",
+            user = new { login = "maintainer" },
+            path = "src/Fixture.cs",
+            line = 1,
+            body = "Human reply to the Copilot comment"
+        });
+    }
 
     if ((scenario is "delayed" or "inline-then-review") && call >= 2)
     {

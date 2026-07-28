@@ -248,7 +248,7 @@ static CopilotObservation AnalyzeCopilot(SnapshotData snapshot, string headOid)
     using var inlineDocument = JsonDocument.Parse(snapshot.InlineCommentsJson);
 
     var reviews = reviewsDocument.RootElement.EnumerateArray()
-        .Where(review => IsCopilotLogin(GetNestedString(review, "user", "login")))
+        .Where(IsCopilotActor)
         .Where(review => string.Equals(GetString(review, "commit_id"), headOid, StringComparison.OrdinalIgnoreCase))
         .Select(review => new CopilotReview(
             Id: GetInt64(review, "id"),
@@ -260,8 +260,7 @@ static CopilotObservation AnalyzeCopilot(SnapshotData snapshot, string headOid)
 
     var selected = reviews.FirstOrDefault();
     var inlineComments = inlineDocument.RootElement.EnumerateArray()
-        .Where(comment => IsCopilotLogin(GetNestedString(comment, "user", "login")))
-        .Where(comment => IsInlineForSelectedReview(comment, selected, headOid))
+        .Where(comment => IsCopilotInlineForSelectedReview(comment, selected, headOid))
         .Select(comment => GetInt64(comment, "id"))
         .Where(id => id > 0)
         .Distinct()
@@ -298,11 +297,20 @@ static CopilotObservation AnalyzeCopilot(SnapshotData snapshot, string headOid)
         signature);
 }
 
-static bool IsInlineForSelectedReview(JsonElement comment, CopilotReview? selected, string headOid)
+static bool IsCopilotInlineForSelectedReview(JsonElement comment, CopilotReview? selected, string headOid)
 {
     if (selected is not null)
     {
-        return GetInt64(comment, "pull_request_review_id") == selected.Id;
+        // GitHub currently exposes the same Copilot actor under different login values on the
+        // review and review-comment endpoints. The review id is the authoritative binding for
+        // original inline comments; replies are excluded because they may be written by humans.
+        return GetInt64(comment, "pull_request_review_id") == selected.Id
+            && GetInt64(comment, "in_reply_to_id") == 0;
+    }
+
+    if (!IsCopilotActor(comment))
+    {
+        return false;
     }
 
     var commitId = GetString(comment, "commit_id");
@@ -607,10 +615,22 @@ static bool GetBoolean(JsonElement element, string propertyName)
     };
 }
 
-static bool IsCopilotLogin(string login) => string.Equals(
-    login,
-    "copilot-pull-request-reviewer[bot]",
-    StringComparison.OrdinalIgnoreCase);
+static bool IsCopilotActor(JsonElement item)
+{
+    var login = GetNestedString(item, "user", "login");
+    if (string.Equals(login, "copilot-pull-request-reviewer[bot]", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(login, "copilot-pull-request-reviewer", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(login, "Copilot", StringComparison.OrdinalIgnoreCase))
+    {
+        return true;
+    }
+
+    var profileUrl = GetNestedString(item, "user", "html_url").TrimEnd('/');
+    return string.Equals(
+        profileUrl,
+        "https://github.com/apps/copilot-pull-request-reviewer",
+        StringComparison.OrdinalIgnoreCase);
+}
 
 static bool IsTerminalReviewState(string state) => state is "COMMENTED" or "APPROVED" or "CHANGES_REQUESTED";
 

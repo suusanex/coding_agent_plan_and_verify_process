@@ -285,9 +285,10 @@ foreach ($documentation in @(
     Assert-Contains $documentation '(?s)run-pr-review-remediation-agent-smoke\.ps1.*-DescribePayload.*run-pr-review-remediation-agent-smoke\.ps1.*-ConfirmExternalModelPayload' 'payload preview and authorized smoke commands'
 }
 Assert-Contains 'tests/pr-review-remediation/PRR-001/README.md' 'customAgentSpawnObserved.*false' 'actual execution disclosure'
-Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)full head SHA.*disposable target.*送信を承認.*local-reviewer.*purpose-reviewer.*Phase 1.*別親ターン.*Adaptive' 'manual real-model smoke boundary and acceptance sequence'
-Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)completion-notification-decorator.*NotificationInstaller.*--dry-run.*--check' 'manual direct-link notification installation preflight'
-Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/result-template.md' '(?s)External model payload approved.*Local finding.*Purpose-only finding.*Phase 1 stopped.*Direct-link notification.*Adaptive handoff' 'manual smoke evidence checklist'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)(?=.*Codex App)(?=.*full head SHA)(?=.*disposable target repository)(?=.*synthetic fixture)(?=.*external reviewer model payload)(?=.*local-reviewer)(?=.*purpose-reviewer)(?=.*別のCodex親タスク)(?=.*REVIEW_COMPLETE)' 'Codex-led real-model multi-round smoke boundary and acceptance sequence'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)(?=.*人手での作業が必要)(?=.*notification runtime)(?=.*notification installer)(?=.*--dry-run)(?=.*install)(?=.*--check)' 'manual approval and direct-link notification installation preflight'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)Task A.*Task B.*Task C.*Task D.*HUMAN_DECISION_REQUIRED.*実行可能planとAdaptive handoffが存在しない' 'separate Codex App tasks and human decision gate'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/result-template.md' '(?s)External model payload approved.*Preparation task ID.*Local finding.*Purpose-only finding.*Round 1 stopped.*Adaptive handoff.*Review complete observed.*Direct-link notification' 'interactive multi-round smoke evidence checklist'
 
 $fixtureLocal = 'apm-packages/pr-review-remediation/tests/fixtures/expected-local-review-findings.md'
 $fixturePlan = 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md'
@@ -637,6 +638,25 @@ try {
     if ($null -ne $lookalike) {
         if ($lookalike.copilotReviewWait.selectedReviewId -ne 100) { Add-Failure 'lookalike-login fixture selected a non-Copilot account' }
         if ($lookalike.copilotReviewWait.actualInlineCommentCount -ne 1 -or $lookalike.copilotReviewWait.inlineCommentIds[0] -ne 1001) { Add-Failure 'lookalike-login fixture correlated a non-Copilot inline comment' }
+    }
+
+    Invoke-Fixture 'copilot-actor-alias' @('--copilot-timeout-seconds', '5', '--copilot-poll-interval-seconds', '1', '--copilot-stable-samples', '2') | Out-Null
+    $actorAlias = Read-Context (Join-Path $tempRoot 'copilot-actor-alias')
+    if ($null -ne $actorAlias) {
+        if ($actorAlias.copilotReviewWait.waitStatus -ne 'completed') { Add-Failure 'copilot-actor-alias fixture did not complete when the review and inline endpoints used different official actor names' }
+        if ($actorAlias.copilotReviewWait.selectedReviewId -ne 100 -or $actorAlias.copilotReviewWait.actualInlineCommentCount -ne 1) { Add-Failure 'copilot-actor-alias fixture did not correlate the inline comment by review id' }
+    }
+
+    Invoke-Fixture 'copilot-app-url' @('--no-wait-for-copilot') | Out-Null
+    $appUrl = Read-Context (Join-Path $tempRoot 'copilot-app-url')
+    if ($null -ne $appUrl) {
+        if ($appUrl.copilotReviewWait.selectedReviewId -ne 100 -or $appUrl.copilotReviewWait.actualInlineCommentCount -ne 1) { Add-Failure 'copilot-app-url fixture did not recognize the official GitHub App profile URL' }
+    }
+
+    Invoke-Fixture 'copilot-human-reply' @('--no-wait-for-copilot') | Out-Null
+    $humanReply = Read-Context (Join-Path $tempRoot 'copilot-human-reply')
+    if ($null -ne $humanReply) {
+        if ($humanReply.copilotReviewWait.actualInlineCommentCount -ne 1 -or $humanReply.copilotReviewWait.inlineCommentIds[0] -ne 1001) { Add-Failure 'copilot-human-reply fixture counted a human reply as a Copilot-generated inline comment' }
     }
 
     Invoke-Fixture 'timeout' @('--copilot-timeout-seconds', '1', '--copilot-poll-interval-seconds', '1') | Out-Null

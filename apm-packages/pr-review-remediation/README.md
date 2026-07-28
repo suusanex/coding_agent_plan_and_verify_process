@@ -78,7 +78,7 @@ pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remedia
 
 実agent smokeは認証とmodel利用権限を必要とするためCIで毎回再実行せず、固定証跡をvalidatorで検査します。remote APM smokeはpull requestのfull head SHA、pushの`github.sha`を使い、検証対象packageを一意に固定します。
 
-Goal Context対応版のmerge前manual smokeは、PR #60自身ではなくdisposable target repositoryで実施します。既知のcode-quality findingとpurpose-only findingを持つ小さなPRを用意し、独立review、統合plan、Phase 1停止、direct-link notification、別親ターンAdaptiveを確認します。完全な手順と記録様式は`tests/pr-review-remediation/manual-model-smoke/README.md`を参照してください。
+Goal Context対応版のmerge前manual smokeは、検証対象のprocess PR自身ではなくdisposable target repositoryで実施します。Codex Appが安全なtarget候補の提示、synthetic fixture作成、full head SHA固定の導入、artifact検証を担当し、人がGitHub変更、model送信、通知runtime、別親タスクの開始を承認します。round 1 review、別親タスクのAdaptive、round 2の`REVIEW_COMPLETE`までの手順と記録様式は`tests/pr-review-remediation/manual-model-smoke/README.md`を参照してください。
 
 詳細はSkillの`references/usage.md`を参照してください。
 
