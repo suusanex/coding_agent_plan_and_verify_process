@@ -2,6 +2,12 @@
 
 通常の Plan Mode output、短い実装計画、または明示選択された Design Pair handoff から、非自明な実装を HIGH_MODEL が開始し、残作業から構造上の意思決定がなくなった場合だけ STANDARD_MODEL へ直列委譲する APM package です。
 
+## Codex selection policy
+
+Codex では暗黙起動を無効にしています。利用者が `$adaptive-implementation-execution` を名前で明示指定した場合、または導入済みの別 skill / 上位 workflow がこの skill を明示選択して委譲した場合だけ使用できます。「実装して」「この小さな修正を行って」などの一般的な実装依頼では使用せず、package が repository に導入されているだけでも自動適用しません。
+
+この Codex 固有 policy は skill 内の `agents/openai.yaml` にあり、暗黙起動だけを禁止します。名前による直接起動と明示委譲は引き続き可能です。
+
 ## 解決する問題
 
 外部仕様や課題全体の規模が小さくても、実装開始後には責務配置、signature、dependency、production wiring、error handling、state ownership、test seam などの判断が必要になる場合があります。
@@ -46,6 +52,7 @@ HIGH_MODEL と STANDARD_MODEL の write-heavy work は並列化しません。�
 | Content | Path |
 | --- | --- |
 | Orchestration skill | `.apm/skills/adaptive-implementation-execution/SKILL.md` |
+| Codex invocation policy | skill の `agents/openai.yaml` |
 | Implementation Intent reference | skill の `refs/intent.md` |
 | Completion Handoff reference | skill の `refs/handoff.md` |
 | Portable HIGH_MODEL agent | repository root `.github/agents/high-implementation-starter.agent.md` |
@@ -63,7 +70,7 @@ Templates are bundled inside the skill instead of being standalone manifest file
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
 ```
 
-APM install が skill と portable custom agents を導入する本体です。現行 APM が `.codex/agents/*.toml` に concrete model 設定を生成しない場合だけ、互換処理として package 付属の設定を同期し、検証します。
+APM install が skill と portable custom agents を導入する本体です。skill の一部として `agents/openai.yaml` も `.agents/skills/adaptive-implementation-execution/agents/openai.yaml` へ展開されます。現行 APM が `.codex/agents/*.toml` に concrete model 設定を生成しない場合だけ、互換処理として package 付属の設定を同期し、検証します。
 
 ```powershell
 dotnet run --file .\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --dry-run

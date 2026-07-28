@@ -103,6 +103,7 @@ $requiredFiles = @(
     'apm-packages/adaptive-implementation-execution/apm.yml',
     'apm-packages/adaptive-implementation-execution/README.md',
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md',
+    'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/agents/openai.yaml',
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/intent.md',
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md',
     'apm-packages/adaptive-implementation-execution/codex-agents/high-implementation-starter.toml',
@@ -145,7 +146,7 @@ if ($packageAgentsFiles.Count -gt 0) {
 
 $manifest = 'apm-packages/adaptive-implementation-execution/apm.yml'
 Assert-Contains $manifest '(?m)^name:\s*adaptive-implementation-execution\s*$' 'package name'
-Assert-Contains $manifest '(?m)^version:\s*0\.2\.0\s*$' 'package version 0.2.0'
+Assert-Contains $manifest '(?m)^version:\s*0\.2\.1\s*$' 'package version 0.2.1'
 Assert-Contains $manifest '(?m)^\s*-\s+codex\s*$' 'codex target'
 Assert-Contains $manifest '(?m)^\s*-\s+agent-skills\s*$' 'agent-skills target'
 Assert-NotContains $manifest '(?m)^\s*-\s+copilot\s*$' 'unverified Copilot target'
@@ -154,7 +155,7 @@ Assert-NotContains $manifest 'path:\s+.*(?:implementation-intent|implementation-
 
 # APM 0.18.0 materializes the complete package below a deep Git cache prefix on Windows.
 # Keep every repository-relative package path bounded instead of checking only deployed skill files.
-$maxWindowsPackagePathLength = 110
+$maxWindowsPackagePathLength = 111
 $packageRelativeRoot = 'apm-packages/adaptive-implementation-execution'
 $packageFiles = @(& git -C $repoRoot ls-files --cached --others --exclude-standard -- $packageRelativeRoot)
 if ($LASTEXITCODE -ne 0) {
@@ -233,6 +234,7 @@ Assert-Contains $planCoverageSkill 'completion handoff inline unless resume, ano
 Assert-Contains $planCoverageSkill 'Implementation Self-Map Delta' 'per-phase implementation traceability delta'
 Assert-Contains $planCoverageSkill 'Related Plan item.*Related Behavior Case IDs.*Related SL / XC / RC / TP / IC / Gap item.*Assumption made.*Review hint' 'complete Self-Map traceability schema'
 Assert-Contains $planCoverageSkill 'orchestrator is the single aggregation owner' 'Self-Map aggregation ownership'
+Assert-Contains $planCoverageManifest 'apm-packages/adaptive-implementation-execution/\.apm/skills/adaptive-implementation-execution' 'Plan Coverage explicit Adaptive Skill dependency'
 Assert-Contains '.github/agents/change-risk-triage.agent.md' 'implementation-internal.*implementation phase' 'risk triage shape boundary'
 
 $codexRouter = 'apm-packages/codex-first-ai-development-process/.apm/skills/codex-first-cost-router/SKILL.md'
@@ -241,6 +243,7 @@ Assert-Contains $codexRouter 'stop only when the Plan, authorized scope, or acce
 Assert-Contains $codexRouter '`STANDARD_MODEL`: bounded implementation completion after a valid handoff' 'STANDARD_MODEL bounded completion summary'
 Assert-NotContains $codexRouter '`STANDARD_MODEL`: normal implementation' 'legacy STANDARD_MODEL normal implementation summary'
 Assert-NotContains $codexRouter 'stop if new design uncertainty appears' 'reversed design-uncertainty stop condition'
+Assert-Contains 'apm-packages/codex-first-ai-development-process/apm.yml' 'apm-packages/adaptive-implementation-execution/\.apm/skills/adaptive-implementation-execution' 'Codex-first explicit Adaptive Skill dependency'
 
 $codexInstruction = 'apm-packages/codex-first-ai-development-process/.apm/instructions/codex-first-ai-development-process.instructions.md'
 Assert-Contains $codexInstruction 'initialize `implementation_route: adaptive`.*only at fresh intake' 'Codex-first instruction fresh-only Adaptive default'
@@ -268,6 +271,7 @@ Assert-Contains $fullCoverageSkill '`slice-impl`.*legacy compatibility' 'legacy 
 Assert-Contains $fullCoverageSkill 'BlockedByMissingAdaptiveImplementationDelegation' 'missing adaptive delegation blocker'
 Assert-Contains $fullCoverageSkill 'plans/<ticket-or-slug>-implementation-execution\.md' 'full-coverage durable implementation result artifact'
 Assert-Contains $fullCoverageSkill 'Completion Handoff.*inline' 'full-coverage inline completion handoff default'
+Assert-Contains 'apm-packages/token-aware-full-coverage-3layer/apm.yml' 'apm-packages/adaptive-implementation-execution/\.apm/skills/adaptive-implementation-execution' 'full-coverage explicit Adaptive Skill dependency'
 $fullCoverageInstruction = 'apm-packages/token-aware-full-coverage-3layer/.apm/instructions/token-aware-full-coverage-3layer.instructions.md'
 Assert-Contains $fullCoverageInstruction 'high-implementation-starter' 'full-coverage instruction HIGH start'
 Assert-Contains $fullCoverageInstruction 'standard-implementation-completer' 'full-coverage instruction STANDARD completion'
@@ -283,6 +287,19 @@ Assert-Contains 'apm-packages/codex-first-ai-development-process/profiles/codex-
 Assert-Contains 'apm-packages/copilot-fallback-ai-development-process/templates/github/agents/copilot-standard-implementer.agent.md' 'Compatibility status: legacy' 'legacy Copilot implementation notice'
 
 $skill = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md'
+$openAiPolicy = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/agents/openai.yaml'
+$skillDescription = Get-FrontmatterString $skill 'description'
+if ($skillDescription -ne 'Manual-only adaptive serial implementation workflow. Use only when explicitly invoked by name or explicitly delegated by another installed skill or higher-level workflow. Do not use for generic implementation requests.') {
+    Add-Failure "$skill frontmatter description does not enforce the manual-only invocation contract"
+}
+Assert-NotContains $skill 'when the task clearly requires|task clearly requires' 'generic task-based implicit invocation condition'
+Assert-Contains $skill '## Selection policy' 'manual-only selection policy section'
+Assert-Contains $skill '\$adaptive-implementation-execution.*名前で明示指定' 'explicit user invocation rule'
+Assert-Contains $skill '別 skill / 上位 workflow.*明示選択して委譲' 'explicit installed workflow delegation rule'
+Assert-Contains $skill '一般的な実装依頼.*暗黙選択してはいけません' 'generic implementation request exclusion'
+Assert-Contains $skill '導入されているという理由だけで暗黙選択してはいけません' 'installed-only invocation exclusion'
+Assert-Contains $openAiPolicy '(?m)^policy:\s*\r?$' 'OpenAI policy root'
+Assert-Contains $openAiPolicy '(?m)^\s{2}allow_implicit_invocation:\s*false\s*$' 'disabled implicit invocation policy'
 Assert-Contains $skill 'high-implementation-starter' 'HIGH_MODEL start route'
 Assert-Contains $skill 'standard-implementation-completer' 'STANDARD_MODEL completion route'
 Assert-Contains $skill 'READY_FOR_STANDARD_COMPLETION' 'standard delegation gate'
@@ -297,7 +314,6 @@ Assert-Contains $skill 'N/A.*理由' 'evidence-backed applicability N/A'
 Assert-Contains $skill 'incoming value \+ 1' 're-entry count increment rule'
 Assert-Contains $skill '双方向に一致' 'bidirectional acceptance mapping gate'
 Assert-Contains $skill 'existing code から scope を狭めない' 'safe non-goal inference rule'
-Assert-Contains $skill 'package が導入されているだけで.*自動適用しません' 'non-automatic skill selection rule'
 Assert-Contains $skill 'Design Pair Implementation Handoff' 'Design Pair handoff input support'
 Assert-Contains $skill '(?s)binding なのは.*Locked Decisions.*だけ' 'Design Pair binding-only rule'
 Assert-Contains $skill 'Affected files / symbols.*Allowed edit surface.*扱いません' 'Design Pair file-symbol non-allowlist rule'
@@ -615,13 +631,32 @@ Assert-NotContains $installer 'AGENTS\.md|adaptive-implementation-execution:star
 Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' 'APM install が skill と portable custom agents を導入する本体' 'APM-first quick start'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '`AGENTS\.md` を作成・変更・削除せず' 'documented AGENTS.md non-access'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' 'route_metadata_normalization: legacy-adaptive-handoff' 'documented legacy resume normalization marker'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' 'Codex では暗黙起動を無効' 'README manual-only Codex policy'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '\$adaptive-implementation-execution.*名前で明示指定' 'README explicit invocation'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '上位 workflow.*明示選択して委譲' 'README explicit workflow delegation'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '\.agents/skills/adaptive-implementation-execution/agents/openai\.yaml' 'README deployed OpenAI policy path'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' '--check.*次を検証' 'documented installer checks'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' 'APM-generated model-less stub' 'documented APM stub completion policy'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' 'Migration from the former managed section' 'legacy managed section migration note'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' '\.agents/skills/adaptive-implementation-execution/agents/openai\.yaml' 'install guide deployed OpenAI policy path'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' 'allow_implicit_invocation: false' 'install guide disabled implicit invocation policy'
 
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' '導入されているだけで.*自動適用しません' 'documented non-automatic skill selection'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' 'allow_implicit_invocation: false' 'usage guide disabled implicit invocation policy'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' '別 skill / 上位 workflow.*明示選択して委譲' 'usage guide explicit workflow delegation'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' '一般的な実装依頼では使用しません' 'usage guide generic implementation request exclusion'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' '\.agents/skills/adaptive-implementation-execution/agents/openai\.yaml' 'usage guide deployed OpenAI policy path'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' 'legacy-adaptive-handoff\.md' 'documented legacy resume fixture'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'installer does not create, read, update, or remove `AGENTS\.md`' 'validation scenario for AGENTS.md non-access'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'VAL-013: Manual-only Codex invocation' 'manual-only invocation validation scenario'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'scenario 1 does not select `adaptive-implementation-execution`.*does not start HIGH_MODEL or STANDARD_MODEL' 'generic request non-invocation scenario'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'scenario 2 can start the existing Adaptive Implementation flow' 'explicit user invocation scenario'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'scenario 3 can start the existing Adaptive Implementation flow.*explicit delegation' 'explicit workflow delegation scenario'
+
+Assert-Contains 'apm-packages/design-pair-implementation-execution/.apm/skills/design-pair-implementation-execution/SKILL.md' 'completed handoff.*`adaptive-implementation-execution`.*へ渡す' 'Design Pair explicit Adaptive delegation'
+Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' '\$adaptive-implementation-execution を使って' 'PR remediation explicit Adaptive invocation'
+Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'agents/openai\.yaml' 'remote APM smoke deployed OpenAI policy path'
+Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'allow_implicit_invocation:\\s\*false' 'remote APM smoke disabled implicit invocation policy'
 
 $workflow = '.github/workflows/validate-adaptive-implementation-execution.yml'
 Assert-Contains $workflow 'validate-adaptive-implementation-execution\.ps1' 'Adaptive Implementation CI validator invocation'

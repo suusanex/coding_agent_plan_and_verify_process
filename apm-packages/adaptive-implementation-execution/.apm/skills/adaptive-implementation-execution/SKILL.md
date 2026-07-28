@@ -1,6 +1,6 @@
 ---
 name: adaptive-implementation-execution
-description: Use when the user explicitly requests adaptive implementation execution, or when the task clearly requires this package's serial high-model-to-standard-model implementation workflow with high-model re-entry for new structural decisions.
+description: Manual-only adaptive serial implementation workflow. Use only when explicitly invoked by name or explicitly delegated by another installed skill or higher-level workflow. Do not use for generic implementation requests.
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
@@ -9,7 +9,13 @@ description: Use when the user explicitly requests adaptive implementation execu
 
 # Adaptive Implementation Execution
 
-この skill が選択された後、通常の Plan Mode output、手書き Plan、repository-tracked Plan、Issue 内の実装計画、または明示選択された Design Pair Implementation Handoff を入力に、実装中の evidence に基づいて HIGH_MODEL と STANDARD_MODEL を直列に切り替える implementation-only flow です。package が導入されているだけで、repository 内の実装作業へ自動適用しません。
+## Selection policy
+
+この skill は manual-only です。利用者が `$adaptive-implementation-execution` を名前で明示指定した場合、または導入済みの別 skill / 上位 workflow が `adaptive-implementation-execution` を明示選択して委譲した場合だけ使用します。
+
+「実装して」「この小さな修正を行って」などの一般的な実装依頼、task の難易度・規模・risk、またはこの package が repository に導入されているという理由だけで暗黙選択してはいけません。Codex の `agents/openai.yaml` は暗黙起動だけを無効化し、名前による直接起動と明示委譲は許可します。
+
+この skill が明示選択された後、通常の Plan Mode output、手書き Plan、repository-tracked Plan、Issue 内の実装計画、または明示選択された Design Pair Implementation Handoff を入力に、実装中の evidence に基づいて HIGH_MODEL と STANDARD_MODEL を直列に切り替える implementation-only flow です。
 
 Plan Coverage Lite / Standard / Full Coverage の縮小版ではありません。Plan Coverage artifacts、change-risk-triage、runtime contract、test design、coverage ledger、residual decision は必須入力にしません。
 

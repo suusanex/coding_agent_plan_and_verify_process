@@ -246,6 +246,22 @@ Expected:
 - invalid-artifact `BLOCKED` returns raw observed values or `<missing>` plus repair evidence instead of fabricating a complete identity
 - STANDARD_MODEL reserves `NEEDS_HIGH_MODEL_REENTRY` for structural decisions found after a valid handoff passes authorization
 
+## VAL-013: Manual-only Codex invocation
+
+Scenarios:
+
+1. The user says `この小さな修正を実装してください。`
+2. The user says `$adaptive-implementation-execution を使って実装してください。`
+3. An installed skill or higher-level workflow explicitly selects `adaptive-implementation-execution` and delegates an authorized implementation intent.
+
+Expected:
+
+- scenario 1 does not select `adaptive-implementation-execution` and does not start HIGH_MODEL or STANDARD_MODEL implementation subagents from this skill
+- scenario 2 can start the existing Adaptive Implementation flow
+- scenario 3 can start the existing Adaptive Implementation flow because `allow_implicit_invocation: false` does not prohibit explicit delegation
+- merely installing the package does not make a generic implementation request eligible for this skill
+- APM deploys `agents/openai.yaml` under `.agents/skills/adaptive-implementation-execution/agents` with `allow_implicit_invocation: false`
+
 ## Issue #44 integration validation matrix
 
 次のシナリオは standalone Adaptive package だけでなく、Plan Coverage、full-coverage slice、Codex-first、Copilot fallback の routing surface を同じ contract で検証します。`trivial-local` は対象外です。
@@ -304,7 +320,7 @@ dotnet publish ./scripts/install-adaptive-implementation-local.cs
 git diff --check
 ```
 
-The static validator checks the package layout and Windows path budget, standalone dependency avoidance, Plan Coverage independence, verdict contracts, custom agent fields and APM stub compatibility, absence of package-owned repository-wide `AGENTS.md` guidance, integrated package versions and dependencies, Codex-first profile synchronization, state and audit transitions, Copilot handoffs, legacy compatibility notices, workflow path filters, root README entry, and presence of VAL-001 through VAL-008 and INT-001 through INT-005.
+The static validator checks the package layout and Windows path budget, standalone dependency avoidance, Plan Coverage independence, verdict contracts, custom agent fields and APM stub compatibility, manual-only Codex invocation policy, absence of package-owned repository-wide `AGENTS.md` guidance, integrated package versions and dependencies, Codex-first profile synchronization, state and audit transitions, Copilot handoffs, legacy compatibility notices, workflow path filters, root README entry, and presence of VAL-001 through VAL-013 and INT-001 through INT-005.
 
 ## Local validation result
 

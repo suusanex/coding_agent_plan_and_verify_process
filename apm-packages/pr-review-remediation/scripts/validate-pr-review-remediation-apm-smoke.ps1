@@ -92,9 +92,10 @@ try {
     )) {
         Assert-File (Join-Path $deployedReviewSkill $relative) "deployed review Skill asset $relative"
     }
-    foreach ($relative in @('SKILL.md', 'refs/intent.md', 'refs/handoff.md')) {
+    foreach ($relative in @('SKILL.md', 'agents/openai.yaml', 'refs/intent.md', 'refs/handoff.md')) {
         Assert-File (Join-Path $deployedAdaptiveSkill $relative) "deployed Adaptive Skill asset $relative"
     }
+    Assert-Contains (Join-Path $deployedAdaptiveSkill 'agents/openai.yaml') '(?m)^\s*allow_implicit_invocation:\s*false\s*$' 'deployed Adaptive Skill Codex invocation policy'
 
     $parts = $Repository.Split('/')
     $repositoryModule = Join-Path $scratch ("apm_modules/{0}/{1}" -f $parts[0], $parts[1])

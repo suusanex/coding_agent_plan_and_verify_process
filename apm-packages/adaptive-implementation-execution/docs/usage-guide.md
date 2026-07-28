@@ -1,5 +1,13 @@
 # Usage Guide
 
+## Codex invocation policy
+
+Codex では `agents/openai.yaml` の `allow_implicit_invocation: false` により暗黙起動を無効にしています。利用者が `$adaptive-implementation-execution` を名前で明示指定した場合、または導入済みの別 skill / 上位 workflow がこの skill を明示選択して委譲した場合だけ使用できます。
+
+「実装して」「この小さな修正を行って」などの一般的な実装依頼では使用しません。task の難易度・規模・riskや、repository に導入されているという事実も選択理由にしません。この Codex 固有 policy は明示起動や明示委譲を禁止しません。
+
+APM は `agents/openai.yaml` を skill の一部として `.agents/skills/adaptive-implementation-execution/agents/openai.yaml` へ展開します。
+
 ## Suitable tasks
 
 - 通常 Plan Mode で scope と acceptance は決まったが、実装中の責務配置や wiring 判断が残り得る変更
@@ -18,7 +26,7 @@
 
 ## Start after ordinary Plan Mode
 
-APM install で skill と portable custom agents を導入します。この skill は、利用者が明示指定した場合、または現在の task がこの package の HIGH_MODEL → STANDARD_MODEL 直列 workflow を明確に必要とする場合に選択します。導入されているだけで repository 内の実装作業へ自動適用しません。
+APM install で skill と portable custom agents を導入します。この skill は、利用者が名前で明示指定した場合、または導入済みの別 skill / 上位 workflow が名前で明示選択した場合だけ使用します。導入されているだけで repository 内の実装作業へ自動適用しません。
 
 現行 APM が model 未設定の custom agent TOML を生成した場合は、補助スクリプトで concrete model 設定を補完し、`--check` で確認します。この補完は runtime configuration の互換処理であり、skill の選択や使用を強制しません。
 

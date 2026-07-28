@@ -20,11 +20,14 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-
 APM install が skill と portable custom agents を導入する本体です。導入後、少なくとも次を確認します。
 
 - `.agents/skills/adaptive-implementation-execution/SKILL.md`
+- `.agents/skills/adaptive-implementation-execution/agents/openai.yaml`
 - `.agents/skills/adaptive-implementation-execution/refs/intent.md`
 - `.agents/skills/adaptive-implementation-execution/refs/handoff.md`
 - Codex が生成した `high-implementation-starter` と `standard-implementation-completer` の custom agent entry
 
 現行 APM が生成した Codex TOML に concrete model、reasoning、sandbox 設定がない場合だけ、次節の互換スクリプトで package 付属設定を補完します。
+
+`agents/openai.yaml` は skill とともに展開される Codex 固有 policy で、`allow_implicit_invocation: false` により一般的な実装依頼からの暗黙起動を無効にします。`$adaptive-implementation-execution` による直接起動と、別 skill / 上位 workflow からの明示委譲は引き続き可能です。
 
 ### Local package validation on APM 0.18.0
 
