@@ -24,9 +24,9 @@ owner/repository#123をGoal Context multi-round modeのround 1としてレビュ
 cycleは.review/pr-123/review-cycle.json、artifactはround-001へ保存し、通知後に停止してください。
 ```
 
-通常運用ではPRごとにReview ThreadとImplementation Threadを一つずつ用意します。修正は同じImplementation Threadを再開した新しい明示ターンで実行し、その完了後は同じReview Threadへ戻って次roundを新しい明示ターンとして開始します。工程間の自動起動は行いません。
+通常運用ではPRごとにReview Threadと、初回実装から継続するImplementation Threadを一つずつ用意します。修正は同じImplementation Threadを再開した新しい明示ターンで実行し、その完了後は同じReview Threadへ戻って次roundを新しい明示ターンとして開始します。工程間の自動起動は行いません。
 
-round 1の`start`へ`--review-thread-id`と、既存実装taskがある場合は`--implementation-thread-id`を渡します。実装taskがまだない場合は、actionable planの`complete`前に`bind-thread --thread-role implementation`で登録します。threadを失った場合は`rebind-thread`へ新ID、理由、承認者、timezone付き時刻を渡し、旧bindingを履歴へ残します。異なるtaskでのcold-startは`--thread-mode portable-handoff`と同じ承認情報を明示した場合だけ許可します。
+round 1の`start`へ`--review-thread-id`と`--implementation-thread-id`の両方を渡します。二つは異なるCodex task IDでなければなりません。後続roundも固定IDだけを受理します。いずれかのtaskを再開できない場合はcycleを`BLOCKED`として停止し、cycle外で人が継続方法を決めます。
 
 ```text
 $completion-notification-decorator

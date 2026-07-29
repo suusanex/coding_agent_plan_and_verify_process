@@ -18,7 +18,7 @@ process側のPR自身をreview対象にしません。秘密情報やproduction 
 
 - process PRの40桁full head SHAからpackageと依存関係を導入している。
 - Codexが専用private repositoryをdisposable targetとして一つ提案し、人が利用を承認している。
-- Codexが既知のcode-quality gapとpurpose-only gapを持つsynthetic fixtureを作成している。
+- 固定Implementation Thread自身が、既知のcode-quality gapとpurpose-only gapを持つsynthetic fixtureを実装し、commit、push、Ready PR作成まで行っている。
 - model送信前に対象repository、PR、base/head OID、tracked files、diff、Goal Context、送信境界を提示し、人が承認している。
 - round 1で`local-reviewer`と`purpose-reviewer`が独立して実行され、`review-planner`がremote sourceを含むplanへ統合している。
 - round 1は`READY_FOR_ADAPTIVE_IMPLEMENTATION`で停止し、Review Thread内で実装を開始していない。
@@ -92,7 +92,7 @@ target repository: 未指定。認証中のownerに対する<owner>/pr-review-re
 
 Codexは`gh auth status`、tool version、process PR metadata/checksを確認し、`<owner>/pr-review-remediation-model-smoke`を第一候補として一つだけ推奨します。候補名の利用可否を調べるために、そのrepositoryを完全名で確認することはできますが、認証中accountのprivate repository一覧は取得しません。候補がすでに存在する場合は、専用test用途である根拠と既存automationを示します。production、共有開発、deploy連携、秘密情報の可能性があるrepositoryは再利用しません。
 
-### A-2. Approve the target and fixture preparation
+### A-2. Approve the target and workspace preparation
 
 報告を確認し、対象が安全な場合だけ同じタスクへ次の形で返信します。
 
@@ -106,21 +106,19 @@ Codexは`gh auth status`、tool version、process PR metadata/checksを確認し
 - notification runtime変更: dry-runのみ承認
 - cleanup方針: <keep / close PR and delete branch / archive repository / delete repository>
 
-承認範囲だけを実行してください。fixtureとpackageを準備し、modelを起動する前のno-send inspectionを提示して停止してください。
+承認範囲だけを実行してください。このPreparation Taskではtarget workspaceとpackageだけを準備し、fixture、branch、commit、push、PRは作成しないでください。準備後、Implementation Thread用promptとtarget workspaceの絶対pathを返して停止してください。
 ```
 
 承認後、Codexは次を実行します。
 
 1. target repositoryをcloneまたは新規作成し、ローカル絶対pathを確定する。
-2. `main`へ最小baselineを用意し、`smoke/goal-context-review-<date>`のような専用branchを作る。
-3. feature branchへ小さな.NET fixtureとhuman-reviewed Goal Contextを追加する。
-4. fixtureをbuildし、baseline validationが成功することを確認する。
-5. feature branchをpushし、DraftではないReady PRを作る。
-6. process PRのfull head SHAから`pr-review-remediation`と`completion-notification-decorator`を導入し、local profileを同期する。
-7. canonical Goal Context validator、package `--check`、`git diff --check`を実行する。
-8. notification installerは`--dry-run`だけを実行する。
-9. `result-template.md`をtargetの`.review/manual-model-smoke-result.md`へcopyし、取得したidentityとpreflight結果を記録する。`.review/`はtarget cloneの`.git/info/exclude`へ追加し、PR diffへ含めない。
-10. no-send inspectionを提示して停止する。
+2. process PRのfull head SHAから`pr-review-remediation`と`completion-notification-decorator`を導入し、local profileを同期する。
+3. package `--check`を実行する。
+4. notification installerは`--dry-run`だけを実行する。
+5. `result-template.md`をtargetの`.review/manual-model-smoke-result.md`へcopyし、取得したpreflight結果を記録する。`.review/`はtarget cloneの`.git/info/exclude`へ追加し、PR diffへ含めない。
+6. target workspaceの絶対pathと、次項のImplementation Thread用promptを提示して停止する。
+
+Preparation Taskは`main` baseline、fixture branch、fixture file、commit、push、Ready PRを作成しません。それらは初回実装の探索・設計コンテキストを保持するImplementation Thread自身が行います。
 
 fixtureには、少なくとも次の安全な既知gapを含めます。Codexは同じ観測可能な結果になる、より小さな実装を選んでも構いません。
 
@@ -129,7 +127,33 @@ fixtureには、少なくとも次の安全な既知gapを含めます。Codex�
 
 不正入力の期待動作はGoal Contextまたはacceptance evidenceへ記載しますが、意図したfindingを直接答えるreview artifactは事前作成しません。
 
-### A-3. Review the no-send inspection
+### A-3. Create the Implementation Thread and initial PR
+
+package導入後にtarget workspaceを開き、Implementation Threadとなる新しいtaskを一度だけ作成します。Skillはtask開始時に検出されるため、package導入前から開いていたtaskは再利用しません。このtaskを後のTask Cでも再開するため、終了またはarchiveしません。
+
+人手での作業が必要: Preparation Taskが返した絶対pathをCodex Appでworkspaceとして開き、次のpromptを新しいtaskへ送ります。
+
+```text
+このtaskを<owner/repository>の固定Implementation Threadとして使用します。初回実装からレビュー後の修正まで同じtaskを再開するため、終了またはarchiveしないでください。
+
+tests/pr-review-remediation/manual-model-smoke/README.md のTask A-3を実行してください。
+Preparation Taskで人が承認したtarget repository、main baseline、fixture branch、commit、push、Ready PR作成、synthetic fixtureの範囲だけを実行してください。
+
+1. repository identityとcleanな開始状態を確認してください。
+2. 必要ならmainへ最小baselineを作成してpushし、smoke/goal-context-review-<date>形式の専用branchを作成してください。
+3. 安全な小規模.NET fixtureとhuman-reviewed Goal Contextを実装してください。
+4. code-quality gapとして不正なPR番号が未処理例外になる処理、purpose-only gapとして完了messageにtarget PRのdirect URLとこのImplementation Threadを明示的に再開する案内がない状態を含めてください。
+5. build、baseline validation、canonical Goal Context validation、git diff --checkを実行してください。
+6. commit、pushし、DraftではないReady PRを作成してください。
+7. 現在のCodex task IDとcodex://threads/<task-id>を取得し、このPRのImplementation Threadとしてresultへ記録してください。取得できない場合は推測せず、人手でUIからcopyする必要があると報告してください。
+8. reviewer modelへ送信する前のno-send inspectionを提示して停止してください。review、Adaptive、次roundは開始しないでください。
+
+Preparation Taskの外部reviewer model payload承認はまだありません。reviewer modelへ送信しないでください。
+```
+
+このImplementation Threadがfixtureの設計、実装、検証、commit、push、Ready PR作成を担当したことをresultへ記録します。別taskが事前作成したfixtureを単に引き継いだ場合は不合格です。
+
+### A-4. Review the no-send inspection
 
 Codexの報告には最低限、次を含めます。
 
@@ -148,9 +172,9 @@ Codexの報告には最低限、次を含めます。
 
 内容が説明できない、target PR以外の作業が混ざる、秘密情報の疑いがある、またはprocess headがremoteと一致しない場合は続行しません。
 
-### A-4. Approve external model payload and notification runtime
+### A-5. Approve external model payload and notification runtime
 
-no-send inspectionを確認後、同じタスクへ承認結果を返信します。
+no-send inspectionを確認後、同じImplementation Threadへ承認結果を返信します。
 
 ```text
 人手での作業が必要な承認結果:
@@ -162,30 +186,14 @@ no-send inspectionを確認後、同じタスクへ承認結果を返信しま�
 - approved by: <identity>
 - approved at: <ISO-8601 with timezone>
 
-承認記録をresultへ保存してください。reviewやAdaptiveはこのタスクで開始せず、target repositoryをCodex Appで開くための絶対pathとrole task登録手順、Task B用promptを返してください。
+承認記録をresultへ保存してください。reviewやAdaptiveはこのタスクで開始せず、現在のImplementation Thread ID／URI、target repositoryの絶対path、Task B用promptを返してください。
 ```
 
 notification runtime installを承認した場合だけ、Codexはinstallerの`install`と`--check`を実行します。見送った場合、OS notificationの実配信は未検証として記録し、最終結果を完全な`PASS`にしません。
 
-### A-5. Register the two role tasks
-
-package導入後にtarget workspaceを開き、通常運用で使う二つのtaskを一度だけ作成します。Skillはtask開始時に検出されるため、package導入前から開いていたtaskは再利用しません。
-
-先にImplementation Threadとなる新しいtaskを作り、次のread-only登録promptを送ります。このtaskはTask Cで再開するため、終了またはarchiveしません。
-
-```text
-このPRのImplementation Threadとして継続利用します。今回はread-only identity preflightだけを行ってください。
-repository、PR、branch、40桁head OID、現在のCodex task IDとcodex://threads/<task-id>を報告し、file変更、review、Adaptive、commit、pushを行わず停止してください。
-task IDを取得できない場合は推測せず、人手でUIからcopyする必要があると報告してください。
-```
-
-次にReview ThreadとなるTask Bを新しいtaskとして作ります。人手での作業が必要: UIで確認したImplementation Thread ID／URIとTask B自身のReview Thread ID／URIをTask B promptへ渡します。二つのIDが同一なら開始しません。Codex Appが現在task IDを取得できない場合も、UIから実値をcopyし、推測値を使いません。
-
 ## Task B: run multi-round review round 1
 
-人手での作業が必要: A-5で作成したReview Threadへ、Task Aが返した実値と二つのrole task IDを使って次を送信します。
-
-Task Aが返した実値を使い、次を送信します。
+人手での作業が必要: target workspaceでReview Threadとなる新しいtaskを一度だけ作成します。A-5で確定したImplementation Thread ID／URIとTask B自身のReview Thread ID／URIを使って次を送信します。二つのIDが同一なら開始しません。Codex Appが現在task IDを取得できない場合はUIから実値をcopyし、推測値を使いません。
 
 ```text
 $completion-notification-decorator
@@ -193,7 +201,7 @@ $goal-context-pr-review
 
 <owner/repository>#<pr-number>を、<goal-context-path>を使うexplicit multi-round modeのround 1として目的達成レビューしてください。
 cycleは.review/pr-<pr-number>/review-cycle.json、artifactはround-001へ保存してください。
-thread modeはrole-thread-reuseです。Review Thread IDは<review-thread-id>、Implementation Thread IDは<implementation-thread-id>です。URIはmanagerがIDから導出し、cycleへ固定してください。両IDが異なることを検証してください。
+Review Thread IDは<review-thread-id>、初回fixture実装から継続するImplementation Thread IDは<implementation-thread-id>です。URIはmanagerがIDから導出し、cycleへ固定してください。両IDが異なることを検証してください。
 local-reviewerとpurpose-reviewerを独立に実行し、remote review、inline comment、PR comment、checkをreview-plannerで統合してください。
 review planとround artifactを検証し、completion notificationを出したところで停止してください。
 同じ親タスクではAdaptive Implementationやproduction code変更を開始しないでください。
@@ -220,7 +228,7 @@ Codexに次を検証・報告させます。
 
 ## Task C: resume the Implementation Thread for Adaptive
 
-人手での作業が必要: Task Bのplan、finding、scope、acceptance、Non-goalsを確認します。実装を承認する場合だけ、A-5で登録した**同じImplementation Thread**を再開して新しい明示ターンを開始します。新しいtaskは作りません。承認者、承認時刻、plan path、正規化SHA-256をpromptへ含めます。
+人手での作業が必要: Task Bのplan、finding、scope、acceptance、Non-goalsを確認します。実装を承認する場合だけ、A-3で初回fixtureを実装した**同じImplementation Thread**を再開して新しい明示ターンを開始します。新しいtaskは作りません。承認者、承認時刻、plan path、正規化SHA-256をpromptへ含めます。
 
 ```text
 $completion-notification-decorator
@@ -239,7 +247,7 @@ review-plan.mdのimplementation_intent、Goal Context Boundary、Non-goalsを保
 
 Task C完了時に次を確認します。
 
-- Task IDがA-5で登録したImplementation Thread IDと一致し、Task BのReview Thread IDとは異なる。
+- Task IDがA-3でfixture実装、commit、push、Ready PR作成を行ったImplementation Thread IDと一致し、Task BのReview Thread IDとは異なる。
 - Adaptive inputのplan path/hashがround 1で承認されたplanと一致する。
 - 既知のcode-quality gapとpurpose-only gapがplanどおり修正される。
 - acceptanceに記載されたvalidationが成功する。
@@ -292,7 +300,7 @@ Task Aでtargetの`.review/manual-model-smoke-result.md`へ作成したcopyへ�
 
 - 人の承認内容と時刻
 - Codex task ID
-- role thread ID／導出URI、binding履歴、rebindまたはportable fallbackの承認
+- role task ID／導出URIと、Initial Implementation／remediation／review roundでの継続証拠
 - repository、PR、branch、OID、URL
 - Goal Contextとartifactのpath/hash
 - finding ID、verdict、validation結果
@@ -303,11 +311,11 @@ Task Aでtargetの`.review/manual-model-smoke-result.md`へ作成したcopyへ�
 
 Codex Appのtask IDやtask URLをagentが取得できない場合、人がUIから識別子をcopyしてresultへ記録します。識別子を推測して記入しません。
 
-完全な`PASS`には、Task AからDまでの成功、外部model payload承認、Review／Implementationの二つのtask IDが異なること、同一roleでIDが継続すること、purpose-only再reviewでの`REVIEW_COMPLETE`、direct-link notification実配信が必要です。各Taskでは開始直後や内部model完了時に`codex-turn / TURN_ENDED`が表示されず、terminal envelope後に対象processの通知が1件だけ届き、「結果を開く」と「このタスクを開く」がそれぞれ正しいPRと現在taskへ遷移することも確認します。notification runtimeを見送った場合やproviderを利用できない場合は、review cycleが成功してもnotificationを`未検証`とし、全体を`BLOCKED`または限定的な結果として記録します。
+完全な`PASS`には、Task AからDまでの成功、外部model payload承認、初回fixture実装と各remediationを同じImplementation Threadが担当したこと、Review／Implementationの二つのtask IDが異なること、同一roleでIDが継続すること、purpose-only再reviewでの`REVIEW_COMPLETE`、direct-link notification実配信が必要です。各Taskでは開始直後や内部model完了時に`codex-turn / TURN_ENDED`が表示されず、terminal envelope後に対象processの通知が1件だけ届き、「結果を開く」と「このタスクを開く」がそれぞれ正しいPRと現在taskへ遷移することも確認します。notification runtimeを見送った場合やproviderを利用できない場合は、review cycleが成功してもnotificationを`未検証`とし、全体を`BLOCKED`または限定的な結果として記録します。
 
-## Portable cold-start fallback smoke
+## Role task unavailable
 
-通常のPASS経路では新しいtaskへ暗黙fallbackしません。task紛失、移管、可搬性確認のためartifactだけで再開する場合は、通常runと分離した追加scenarioとして`portable-handoff`を明示し、理由、承認者、timezone付き承認時刻を記録します。rebind可能な場合は`rebind-thread`を優先し、旧bindingを履歴へ残します。portable scenarioの成功は通常のrole-thread-reuse継続条件を代替しません。
+固定Review ThreadまたはImplementation Threadを再開できない場合、このsmoke内で新しいtaskへ置き換えません。結果を`BLOCKED`として、再開不能なtask ID／URI、最後に完了したround、artifact pathを記録して停止します。続行方法はcycle外で人が決定し、新しいcycleまたは別の手動工程として扱います。
 
 schema version 1で実行済みのcycleは過去証跡として保持しますが、新しいpurpose-only契約の合格証拠には使用しません。更新packageとnotification runtimeを導入後、別cycle rootまたは新しいdisposable PRでTask Aから再実行します。
 

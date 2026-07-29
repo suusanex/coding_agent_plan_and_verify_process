@@ -18,11 +18,10 @@
 - Goal Context normalized SHA-256:
 - Local target path:
 - Result record path:
-- Thread mode: role-thread-reuse / portable-handoff
 - Review Thread ID / derived URI:
 - Implementation Thread ID / derived URI:
 - Distinct role task IDs confirmed: Yes / No
-- Role task registration result:
+- Initial implementation performed by Implementation Thread: Yes / No
 
 ## Human authorization record
 
@@ -36,22 +35,21 @@
 - Notification runtime install approved: Yes / No
 - Adaptive round 1 plan approved: Yes / No
 - Round 2 review approved: Yes / No
-- Thread rebind approved: Yes / No / Not applicable
-- Portable handoff approved: Yes / No / Not applicable
-- Rebind / portable reason:
 - Approved by:
 - Approved at:
 - Payload inspection notes:
 - Sensitive data check: Passed / Failed
 - Cleanup policy:
 
-## Task A: preparation evidence
+## Task A: preparation and initial implementation evidence
 
 - Preparation task ID:
+- Implementation task ID:
 - Process PR Ready / CI result:
 - Tool versions:
 - Target repository metadata:
 - Created branch / commit / Ready PR:
+- Initial fixture implementation performed in Implementation Thread: Yes / No
 - Synthetic fixture files:
 - Known code-quality gap:
 - Known purpose-only gap:
@@ -149,8 +147,7 @@
 - Approved plan reference / normalized SHA-256:
 - Maximum-round override:
 - Resolve result:
-- Binding history retained previous IDs: Yes / No / Not applicable
-- Portable cold-start scenario result: PASS / FAIL / Not executed
+- Fixed role task unavailable result: BLOCKED / Not applicable
 
 ## Final verdict
 

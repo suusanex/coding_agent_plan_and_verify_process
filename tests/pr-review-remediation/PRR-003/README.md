@@ -17,9 +17,8 @@ PRR-003は、記録済みfinding deltaとartifactを入力にしてmulti-round s
 - Adaptiveへ渡すreview planのcanonical `implementation_intent`、SI/AC完全一致、active finding mapping、別親ターンhandoffの相互照合
 - round 1〜3を同一Review Thread、全remediationを同一Implementation Threadとして固定し、二つのrole task IDが異なること
 - review planの対象Implementation Thread／return Review Thread ID、manager導出URI、plan path/hashとcycle bindingの相互照合
-- task紛失時の承認済み`rebind-thread`が旧bindingを履歴へ保持し、未承認rebind、履歴改変、role ID衝突を拒否すること
-- 初回実装taskがないround 1で、actionable plan完了前に承認済み`bind-thread`でImplementation Threadを登録できること
-- 理由、承認者、timezone付き承認時刻を伴う明示`portable-handoff`だけがartifact-only cold-startを許可し、通常経路へ暗黙fallbackしないこと
+- cycle開始時に初回実装を行ったImplementation ThreadとReview Threadを必須登録し、round間で同じIDだけを受理すること
+- role taskを再開できない場合にbinding変更やartifact-only fallbackを行わず、fail closedとしてcycle外の手動判断へ戻すこと
 - finding deltaから導出したsource-to-tracking mappingとsource coverageの双方向完全一致
 - 明示的なtimezoneを持つISO-8601 cycle timestamp
 - pending human decisionの明示resolution、承認済みplan path/hash、上限到達decisionに紐付く第4round override
@@ -50,8 +49,8 @@ fixtureのPASSはstate machineとartifact contractの証拠であり、本物の
 | review後の停止、Adaptive非起動 | managerのevidence-only contractとprocess-orchestration静的検査 |
 | Adaptive後の次round非自動起動 | round 2以降の明示startとAdaptive result reference gate |
 | PR単位の二つのrole task | convergenceのReview Thread `R`とImplementation Thread `I`、`R != I`、round間ID continuity |
-| role task紛失・移管 | approved rebind scenario、旧binding履歴、未承認・不完全rebind mutation |
-| artifact-only portability | 明示portable cold-start scenarioとapproval欠落mutation |
+| role task固定 | round 1からReview／Implementationの両IDを必須化し、欠落・変更・衝突・不正形式を拒否 |
+| task再開不能 | cycle内で代替taskへ移管せず、手動対応へ戻すfail-closed境界 |
 | notificationの直接リンク | 各round notificationとnotification PR/status mutations |
 | round 1だけのfull review | round 1の`reviewMode: full`とlocal/purpose artifact |
 | round 2以降のpurpose-only review | `reviewMode: purpose-only`、Copilot wait disabled、local artifact禁止、外部source audit-only coverage |

@@ -106,7 +106,7 @@ review-plan.mdのimplementation_intentをsource of truthとし、Goal Context Bo
 
 利用者が複数roundのレビュー・修正サイクルを明示した場合だけ、single-round成果物を`.review/pr-123/round-001/`以降へ保存し、`.review/pr-123/review-cycle.json`でround間の証拠を管理します。既存single-round呼び出しは従来どおり`.review/pr-123/`を使い、このcycle管理を必須にしません。
 
-各roundの開始前に、最新base/head、canonical Goal Context identity、現在のReview Thread IDを指定して`manage-review-cycle.cs start`を実行します。通常の`role-thread-reuse`ではround 1にReview ThreadとImplementation ThreadをPR単位で固定し、round 2以降も同じReview Threadの新しい明示ターンで開始します。round 2以降は、固定されたImplementation Threadの別ターンで完了したAdaptive result referenceとAdaptive Thread IDが必須です。同じhead OIDの再reviewは拒否します。
+各roundの開始前に、最新base/head、canonical Goal Context identity、現在のReview Thread IDとImplementation Thread IDを指定して`manage-review-cycle.cs start`を実行します。round 1に、初回実装を行ったImplementation Threadと、それとは異なるReview ThreadをPR単位で固定します。round 2以降も同じReview Threadの新しい明示ターンで開始し、固定されたImplementation Threadの別ターンで完了したAdaptive result referenceとAdaptive Thread IDを渡します。同じhead OIDの再reviewは拒否します。
 
 ```powershell
 dotnet run --file scripts/manage-review-cycle.cs -- start `
@@ -118,13 +118,13 @@ dotnet run --file scripts/manage-review-cycle.cs -- start `
   --adaptive-result-reference <previous-adaptive-result> --adaptive-thread-id <implementation-task-id>
 ```
 
-round 1ではAdaptive関連optionを省略します。初回実装taskが存在しない場合は、actionable review planを完了する前にImplementation Threadを作成し、`bind-thread`で理由、承認者、timezone付き承認時刻とともに登録します。threadを失った場合は`rebind-thread`を使い、旧bindingを履歴から削除しません。artifactだけで新規taskへ移管する`portable-handoff`は、理由と人間承認を明示した復旧・可搬性経路だけに使います。
+round 1ではAdaptive関連optionを省略しますが、両role task IDは必須です。初回実装を行ったImplementation Threadが存在しない場合はmulti-round cycleを開始しません。固定taskを再開できない場合もcycle内で代替taskへ移管せず、`BLOCKED`として停止して利用者によるcycle外の手動対応へ戻します。
 
 round 1の`reviewMode`は`full`です。共有collectorでCopilotレビューを待機・収集し、`local-reviewer`と`purpose-reviewer`を独立に実行してplannerへ渡します。
 
 round 2以降の`reviewMode`は`purpose-only`です。collectorは`--no-wait-for-copilot`で最新identity、正本patch、checks、既存sourceを取得しますが、Copilotレビューの開始・待機は行いません。`local-reviewer`も実行せず、`local-findings` artifactを生成しません。既存および新規のreview/comment/check sourceは監査証跡として理由付き`noAction`へ対応させ、remediation findingへ直接変換しません。`purpose-reviewer`は現在patchと前回planを評価し、前roundまでの全active tracking IDを`Prior Finding Assessment`で`persistent | resolved`へ遷移させます。新規、再open、persistentのactionable findingは現在roundの`PUR-*`だけを使用します。
 
-Goal Context selection、必要なreview findings、machine-readable `review-result.json`、notificationを現在の`round-NNN/`へ保存します。`review-plan.md`はverdictが`READY_FOR_ADAPTIVE_IMPLEMENTATION`の場合だけ保存します。`HUMAN_DECISION_REQUIRED`では実行可能plan、`implementation_intent`、Adaptive handoffを出力しません。schema version 2の`reviewMode`、thread mode／role binding／binding履歴、artifact hash、review-contextのrepository/PR/base/headと全source ID、collectorが指定したremote patch path、Goal Context path/hash、review-resultのverdict/finding delta/source coverage/artifact bindingsを`complete`で相互照合します。schema version 1のcycleは履歴検証だけを許可し、roundを追記しません。Adaptiveへ渡すplanはcanonical `implementation_intent`、SI/AC付きordered remediation、全active finding mapping、同じplan reference、対象Implementation Threadとreturn先Review Threadを使う明示ターンhandoffを含めます。plan hashはround manifestのartifact bindingを正本にします。ordered remediationとintentのSI/AC集合は双方向に完全一致させ、未追跡scopeを追加しません。
+Goal Context selection、必要なreview findings、machine-readable `review-result.json`、notificationを現在の`round-NNN/`へ保存します。`review-plan.md`はverdictが`READY_FOR_ADAPTIVE_IMPLEMENTATION`の場合だけ保存します。`HUMAN_DECISION_REQUIRED`では実行可能plan、`implementation_intent`、Adaptive handoffを出力しません。schema version 2の`reviewMode`、固定された二つのrole task、artifact hash、review-contextのrepository/PR/base/headと全source ID、collectorが指定したremote patch path、Goal Context path/hash、review-resultのverdict/finding delta/source coverage/artifact bindingsを`complete`で相互照合します。schema version 1のcycleは履歴検証だけを許可し、roundを追記しません。Adaptiveへ渡すplanはcanonical `implementation_intent`、SI/AC付きordered remediation、全active finding mapping、同じplan reference、対象Implementation Threadとreturn先Review Threadを使う明示ターンhandoffを含めます。plan hashはround manifestのartifact bindingを正本にします。ordered remediationとintentのSI/AC集合は双方向に完全一致させ、未追跡scopeを追加しません。
 
 cycle rootはsymlink/junctionにできません。cycle file、round directory、artifact fileを含む既存path componentは実体pathへ解決し、cycle root外へ出るinput/output linkをfail closedにします。
 

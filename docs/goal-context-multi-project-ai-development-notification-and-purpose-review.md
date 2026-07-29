@@ -767,7 +767,7 @@ Adaptive Implementationの内部ルーティング、agent、verdict、handoff�
 - collectorに残る過去reviewや、想定外のconnector／人間review/comment/checkは理由付き`noAction`の監査証跡として保持し、remediation findingへ直接変換しない。
 - purpose-only roundでは前roundまでの全active findingを現在diffに照らして`persistent | resolved`へ分類する。
 - round artifactを正本とし、親Review Threadの会話履歴は補助コンテキストとして利用できる。各roundの`purpose-reviewer`などread-only子agentには現在roundの正本artifactを渡し、子agent taskの継続利用は要求しない。
-- task紛失時のrole binding変更は、理由、承認者、timezone付き承認時刻を伴う明示的なrebindとして履歴へ追記する。artifactだけで別taskから再開するportable handoffも、同じ承認情報を伴う明示fallbackに限定する。
+- 初回実装を行ったImplementation ThreadとReview Threadをcycle開始時に固定する。どちらかを再開できない場合はcycle内で代替taskへ移管せず、`BLOCKED`として停止して人の手動操作へ移行する。
 
 通常運用のtask構成は次のとおりとする。
 
@@ -1353,7 +1353,7 @@ Codexの親ターン終了を、Issueまたはプロジェクト目的の完全�
 - 修正計画がAdaptive Implementationへ渡せるか
 - Adaptiveの内部契約を複製していないか
 - PR単位でReview ThreadとImplementation Threadを一つずつ固定し、同じroleの次工程が同じtaskを再開しているか
-- task rebindとportable handoffが理由および人間承認を伴い、旧bindingを上書きしていないか
+- cycle開始時から初回実装のImplementation ThreadとReview Threadが固定され、後続roundでID変更を拒否しているか
 
 ### 21.6 通知・リンク
 

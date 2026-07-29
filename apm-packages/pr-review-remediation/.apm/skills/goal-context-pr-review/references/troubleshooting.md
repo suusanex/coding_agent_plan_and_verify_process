@@ -26,7 +26,7 @@ code bug、test不足、保守性riskは`local-reviewer`へ残します。`purpo
 
 ## Role task identity mismatch
 
-通常の`role-thread-reuse`では、全review roundが固定Review Thread、全Adaptive remediationが固定Implementation Threadを使い、二つのIDは異なります。現在taskがbindingと一致しない場合は暗黙に新IDへ更新しません。元taskを再開できなければ、理由、承認者、timezone付き承認時刻を指定して`rebind-thread`を実行し、旧bindingを履歴へ残します。artifact-only cold-startが必要な場合だけ、別cycleで承認済み`portable-handoff`を明示します。
+全review roundが固定Review Thread、初回実装と全Adaptive remediationが固定Implementation Threadを使い、二つのIDは異なります。現在taskが固定IDと一致しない場合は開始せず、暗黙にも明示操作でもIDを更新しません。元taskを再開できなければ`BLOCKED`として停止し、artifact pathと最後の有効なrole task IDを提示して、cycle外で人の手動操作へ移行します。
 
 ## Round 3 still has actionable findings
 

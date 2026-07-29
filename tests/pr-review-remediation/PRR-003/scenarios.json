@@ -12,9 +12,9 @@
       "id": "collector-realistic-convergence",
       "sourceHeadRelationships": ["current", "historical", "unknown"],
       "reviewModes": ["full", "purpose-only", "purpose-only"],
-      "threadMode": "role-thread-reuse",
       "reviewThreadContinuity": "same-task",
       "implementationThreadContinuity": "same-task",
+      "implementationThreadIncludesInitialImplementation": true,
       "roleThreadsDistinct": true,
       "collectorSnapshots": [
         "collector-snapshots/round-001-review-context.json",
@@ -26,21 +26,6 @@
         "READY_FOR_ADAPTIVE_IMPLEMENTATION",
         "REVIEW_COMPLETE"
       ]
-    },
-    {
-      "id": "late-implementation-thread-binding",
-      "threadMode": "role-thread-reuse",
-      "initialImplementationThread": null,
-      "bindingRequiredBeforeActionableCompletion": true,
-      "humanApprovalRequired": true,
-      "expectedVerdicts": ["READY_FOR_ADAPTIVE_IMPLEMENTATION"]
-    },
-    {
-      "id": "portable-cold-start",
-      "threadMode": "portable-handoff",
-      "humanApprovalRequired": true,
-      "sameRoleThreadRequired": false,
-      "expectedVerdicts": ["READY_FOR_ADAPTIVE_IMPLEMENTATION"]
     },
     {
       "id": "round-limit-and-override",
@@ -131,8 +116,7 @@
     "same-role-thread",
     "missing-thread-id",
     "malformed-thread-id",
-    "incomplete-thread-rebind",
-    "thread-history-overwrite",
-    "portable-without-approval"
+    "missing-implementation-thread-id",
+    "malformed-implementation-thread-id"
   ]
 }

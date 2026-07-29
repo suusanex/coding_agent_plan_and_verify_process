@@ -313,14 +313,16 @@ $adaptive-implementation-execution を使って、直前の Plan を実装して
 processはreviewとimplementationの二つの独立したrole taskに分かれます。同じPRでは各taskを維持し、工程ごとにそのtaskの新しい明示親ターンを開始します。
 
 ```text
-Phase 1: branch/commit/push/ready PR
+Implementation Thread: initial implementation -> branch/commit/push/ready PR
+
+Review Thread Phase 1:
   -> review context + remote patch collection
   -> local-reviewer [+ purpose-reviewer in Goal Context mode]
   -> review-planner
   -> review-plan.md / READY_FOR_ADAPTIVE_IMPLEMENTATION
   -> parent turn stops
 
-Phase 2: resume the PR Implementation Thread for an explicit new parent turn
+Implementation Thread Phase 2: resume the same task for an explicit new parent turn
   -> adaptive-implementation-execution
   -> implementation and validation
 ```
@@ -383,7 +385,7 @@ pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remedia
 
 `-DescribePayload`は外部modelへ送信せず対象一覧だけを表示します。内容を確認して送信を明示承認した場合だけ、`-ConfirmExternalModelPayload`で実model smokeを実行します。
 
-Goal Context対応版を本物のmodelで確認する場合は、検証対象のprocess PR自身ではなくdisposable target repositoryの小さなPRを使います。Codex Appがtarget選定、synthetic fixture作成、PR head SHA固定の導入、artifact検証を行い、人がGitHub変更、model送信、通知runtime、Review／Implementation role taskの明示ターンを承認します。round 1 full review、同じImplementation ThreadでのAdaptive、同じReview Threadでのround 2以降のpurpose-only review、terminal時だけのdirect-link通知までの手順と証拠様式は`tests/pr-review-remediation/manual-model-smoke/README.md`を参照してください。
+Goal Context対応版を本物のmodelで確認する場合は、検証対象のprocess PR自身ではなくdisposable target repositoryの小さなPRを使います。Codex Appがtarget選定とpackage準備を行った後、固定Implementation Thread自身がsynthetic fixtureの初回実装、commit、push、Ready PR作成を担当します。人はGitHub変更、model送信、通知runtime、Review／Implementation role taskの明示ターンを承認します。round 1 full review、初回実装と同じImplementation ThreadでのAdaptive、同じReview Threadでのround 2以降のpurpose-only review、terminal時だけのdirect-link通知までの手順と証拠様式は`tests/pr-review-remediation/manual-model-smoke/README.md`を参照してください。
 
 固定実行証跡は`tests/pr-review-remediation/PRR-001/`、外部modelを呼ばないGoal Context contract replayは`PRR-002/`、multi-round state replayは`PRR-003/`に保存します。remote APM導入はAPM 0.26.0で次のように再現でき、CIではpull requestのfull head SHAまたはpushの`github.sha`を指定して検証対象を固定します。
 
