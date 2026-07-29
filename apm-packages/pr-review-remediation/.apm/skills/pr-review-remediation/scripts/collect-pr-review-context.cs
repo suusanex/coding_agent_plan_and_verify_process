@@ -2,6 +2,7 @@
 #:property PublishAot=false
 
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -247,7 +248,7 @@ static CopilotObservation AnalyzeCopilot(SnapshotData snapshot, string headOid)
     using var inlineDocument = JsonDocument.Parse(snapshot.InlineCommentsJson);
 
     var reviews = reviewsDocument.RootElement.EnumerateArray()
-        .Where(review => IsCopilotLogin(GetNestedString(review, "user", "login")))
+        .Where(IsCopilotActor)
         .Where(review => string.Equals(GetString(review, "commit_id"), headOid, StringComparison.OrdinalIgnoreCase))
         .Select(review => new CopilotReview(
             Id: GetInt64(review, "id"),
@@ -259,8 +260,7 @@ static CopilotObservation AnalyzeCopilot(SnapshotData snapshot, string headOid)
 
     var selected = reviews.FirstOrDefault();
     var inlineComments = inlineDocument.RootElement.EnumerateArray()
-        .Where(comment => IsCopilotLogin(GetNestedString(comment, "user", "login")))
-        .Where(comment => IsInlineForSelectedReview(comment, selected, headOid))
+        .Where(comment => IsCopilotInlineForSelectedReview(comment, selected, headOid))
         .Select(comment => GetInt64(comment, "id"))
         .Where(id => id > 0)
         .Distinct()
@@ -297,11 +297,20 @@ static CopilotObservation AnalyzeCopilot(SnapshotData snapshot, string headOid)
         signature);
 }
 
-static bool IsInlineForSelectedReview(JsonElement comment, CopilotReview? selected, string headOid)
+static bool IsCopilotInlineForSelectedReview(JsonElement comment, CopilotReview? selected, string headOid)
 {
     if (selected is not null)
     {
-        return GetInt64(comment, "pull_request_review_id") == selected.Id;
+        // GitHub currently exposes the same Copilot actor under different login values on the
+        // review and review-comment endpoints. The review id is the authoritative binding for
+        // original inline comments; replies are excluded because they may be written by humans.
+        return GetInt64(comment, "pull_request_review_id") == selected.Id
+            && GetInt64(comment, "in_reply_to_id") == 0;
+    }
+
+    if (!IsCopilotActor(comment))
+    {
+        return false;
     }
 
     var commitId = GetString(comment, "commit_id");
@@ -368,14 +377,44 @@ static string BuildJson(Options options, CollectionResult result)
         ["sources"] = new Dictionary<string, object?>
         {
             ["pullRequest"] = pullRequest.RootElement.Clone(),
-            ["reviews"] = reviews.RootElement.Clone(),
-            ["issueComments"] = issueComments.RootElement.Clone(),
-            ["inlineComments"] = inlineComments.RootElement.Clone(),
-            ["checks"] = TryCloneProperty(pullRequest.RootElement, "statusCheckRollup")
+            ["reviews"] = WithSourceIds(reviews.RootElement, "review", result.Identity.HeadOid),
+            ["issueComments"] = WithSourceIds(issueComments.RootElement, "pr-comment", result.Identity.HeadOid),
+            ["inlineComments"] = WithSourceIds(inlineComments.RootElement, "inline-comment", result.Identity.HeadOid),
+            ["checks"] = pullRequest.RootElement.TryGetProperty("statusCheckRollup", out var checks)
+                ? WithSourceIds(checks, "check", result.Identity.HeadOid)
+                : Array.Empty<object>()
         }
     };
 
     return JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
+}
+
+static IReadOnlyList<Dictionary<string, object?>> WithSourceIds(JsonElement items, string kind, string headOid)
+{
+    if (items.ValueKind != JsonValueKind.Array) return [];
+    return items.EnumerateArray().Select(item =>
+    {
+        var normalized = item.EnumerateObject().ToDictionary(
+            property => property.Name,
+            property => (object?)property.Value.Clone(),
+            StringComparer.Ordinal);
+        normalized["sourceId"] = StableSourceId(item, kind, headOid);
+        return normalized;
+    }).ToList();
+}
+
+static string StableSourceId(JsonElement item, string kind, string headOid)
+{
+    var id = GetInt64(item, "id");
+    if (id <= 0) id = GetInt64(item, "databaseId");
+    if (id > 0) return $"{kind}:{id}";
+    if (kind != "check") throw new InvalidDataException($"GitHub {kind} source has no stable numeric ID.");
+
+    var name = GetString(item, "name");
+    if (string.IsNullOrWhiteSpace(name)) name = GetString(item, "context");
+    var canonicalKey = string.Join("|", headOid, name, GetString(item, "workflowName"), GetString(item, "detailsUrl"));
+    var digest = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonicalKey))).ToLowerInvariant();
+    return $"check:{digest[..16]}";
 }
 
 static string BuildMarkdown(Options options, CollectionResult result)
@@ -419,11 +458,11 @@ static string BuildMarkdown(Options options, CollectionResult result)
     builder.AppendLine();
     builder.AppendLine(GetString(pullRequest.RootElement, "body"));
     AppendItems(builder, "Reviews", reviews.RootElement, item =>
-        $"- {GetNestedString(item, "user", "login")} [{GetString(item, "state")}] review={GetInt64(item, "id")} commit={GetString(item, "commit_id")}: {OneLine(GetString(item, "body"))}");
+        $"- source=review:{GetInt64(item, "id")} {GetNestedString(item, "user", "login")} [{GetString(item, "state")}] review={GetInt64(item, "id")} commit={GetString(item, "commit_id")}: {OneLine(GetString(item, "body"))}");
     AppendItems(builder, "PR Comments", issueComments.RootElement, item =>
-        $"- {GetNestedString(item, "user", "login")} comment={GetInt64(item, "id")}: {OneLine(GetString(item, "body"))}");
+        $"- source=pr-comment:{GetInt64(item, "id")} {GetNestedString(item, "user", "login")} comment={GetInt64(item, "id")}: {OneLine(GetString(item, "body"))}");
     AppendItems(builder, "Inline Comments", inlineComments.RootElement, item =>
-        $"- {GetNestedString(item, "user", "login")} comment={GetInt64(item, "id")} review={GetInt64(item, "pull_request_review_id")} {GetString(item, "path")}:{GetInt64(item, "line")}: {OneLine(GetString(item, "body"))}");
+        $"- source=inline-comment:{GetInt64(item, "id")} {GetNestedString(item, "user", "login")} comment={GetInt64(item, "id")} review={GetInt64(item, "pull_request_review_id")} {GetString(item, "path")}:{GetInt64(item, "line")}: {OneLine(GetString(item, "body"))}");
 
     builder.AppendLine("## Checks");
     builder.AppendLine();
@@ -438,7 +477,7 @@ static string BuildMarkdown(Options options, CollectionResult result)
             {
                 name = GetString(check, "context");
             }
-            builder.AppendLine($"- {name}: status={GetString(check, "status")} conclusion={GetString(check, "conclusion")} state={GetString(check, "state")}");
+            builder.AppendLine($"- source={StableSourceId(check, "check", result.Identity.HeadOid)} {name}: status={GetString(check, "status")} conclusion={GetString(check, "conclusion")} state={GetString(check, "state")}");
         }
     }
     else
@@ -576,10 +615,22 @@ static bool GetBoolean(JsonElement element, string propertyName)
     };
 }
 
-static bool IsCopilotLogin(string login) => string.Equals(
-    login,
-    "copilot-pull-request-reviewer[bot]",
-    StringComparison.OrdinalIgnoreCase);
+static bool IsCopilotActor(JsonElement item)
+{
+    var login = GetNestedString(item, "user", "login");
+    if (string.Equals(login, "copilot-pull-request-reviewer[bot]", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(login, "copilot-pull-request-reviewer", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(login, "Copilot", StringComparison.OrdinalIgnoreCase))
+    {
+        return true;
+    }
+
+    var profileUrl = GetNestedString(item, "user", "html_url").TrimEnd('/');
+    return string.Equals(
+        profileUrl,
+        "https://github.com/apps/copilot-pull-request-reviewer",
+        StringComparison.OrdinalIgnoreCase);
+}
 
 static bool IsTerminalReviewState(string state) => state is "COMMENTED" or "APPROVED" or "CHANGES_REQUESTED";
 

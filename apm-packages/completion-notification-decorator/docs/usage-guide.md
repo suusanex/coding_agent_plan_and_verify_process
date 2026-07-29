@@ -45,12 +45,14 @@ Copy the terminal verdict produced by the existing flow, for example `READY_TO_C
 - `result_uri`: optional specific HTTPS resource such as a PR, review, Actions run, or artifact URL. Do not use a host, owner, or repository root.
 - `resume_uri`: never author it. The runtime derives it from the callback thread ID.
 
+On Windows, a valid `result_uri` produces two actions: `結果を開く` opens that resource and `このタスクを開く` opens the callback's Codex task. Without `result_uri`, only the task action is shown. The decorator does not choose or start a counterpart task; review and implementation handoffs carry that link explicitly.
+
 ## Fallback and failure
 
 The runtime recognizes `$completion-notification-decorator` in the original input as the target declaration. `[completion-notification]` remains available for callers that cannot preserve the Skill token.
 
-If the envelope is missing or invalid, the runtime emits a neutral `TURN_ENDED` fallback linked to the current Codex thread. This fallback does not claim that the primary process succeeded. If delivery fails, the runtime records notification failure while returning exit code 0; the primary result remains unchanged.
+The runtime delivers only a valid terminal `completion-notification` envelope. A selected marker without an envelope is recorded as `awaiting-terminal-envelope` and does not display a notification. An invalid envelope is recorded as `invalid-envelope` and is also suppressed. If delivery fails, the runtime records notification failure while returning exit code 0; the primary result remains unchanged.
 
 ## Ambiguous selection
 
-When no primary process or more than one primary process is selected, do not choose or start one on the decorator's behalf. Allow any independently valid work to finish, omit the envelope, and report the metadata ambiguity. The runtime fallback may still notify that the parent turn ended.
+When no primary process or more than one primary process is selected, do not choose or start one on the decorator's behalf. Allow any independently valid work to finish, omit the envelope, and report the metadata ambiguity. No completion notification is delivered without a valid terminal envelope.

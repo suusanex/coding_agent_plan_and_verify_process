@@ -42,7 +42,7 @@
       "sha256": "05827d7a8e61d8212ac42ed5ad9fee44d81716cd197a7cb6e16b94b9423a499b"
     },
     {
-      "path": ".github/agents/review-planner.agent.md",
+      "path": "tests/pr-review-remediation/PRR-001/input-snapshots/review-planner.agent.md",
       "sha256": "5f9d5c41ef2435416515e28b1563362de6eebafd36577ffabdd1ed0e5b1af70e"
     },
     {
@@ -50,7 +50,7 @@
       "sha256": "80b7831763c47f680d437b207db3bf63662e74945e36180e2e908794361b3027"
     },
     {
-      "path": "apm-packages/pr-review-remediation/codex-agents/review-planner.toml",
+      "path": "tests/pr-review-remediation/PRR-001/input-snapshots/review-planner.toml",
       "sha256": "01384b6577ec55750e0210f5b48cf4b020baedc84b79bf26dcdbff57e17324e2"
     },
     {
@@ -58,7 +58,7 @@
       "sha256": "a544e0eb7e25b325b25c09f878cc49709f7cd2fd74bc5c0acaed2bf6f93a05e5"
     },
     {
-      "path": "apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md",
+      "path": "tests/pr-review-remediation/PRR-001/input-snapshots/review-plan.template.md",
       "sha256": "9f8e4e53a5fe1ad3fdafb72a1d179eb7d41a389ca731de609939b223a60ec36c"
     },
     {

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 2,
+  "selectionStatus": "SELECTED",
+  "selectedPath": "docs/goal-context-direct-review-notification.md",
+  "selectionMode": "auto-unique",
+  "lifecycleStatus": "human-reviewed",
+  "sensitiveDataReview": "passed",
+  "draftOverride": false,
+  "validation": "PASS",
+  "validationContractVersion": 1,
+  "validationMode": "strict",
+  "contentSha256": "c38af168cfedf31d198f49b8b7a47a91a3f493e129b47e72432589a8e5eb4030"
+}

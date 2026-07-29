@@ -4,22 +4,26 @@ on:
   pull_request:
     paths:
       - '.github/agents/local-reviewer.agent.md'
+      - '.github/agents/purpose-reviewer.agent.md'
       - '.github/agents/review-planner.agent.md'
       - '.github/agents/high-implementation-starter.agent.md'
       - '.github/agents/standard-implementation-completer.agent.md'
       - '.github/workflows/validate-pr-review-remediation.yml'
       - 'apm-packages/pr-review-remediation/**'
+      - 'apm-packages/goal-context-authoring/**'
       - 'apm-packages/adaptive-implementation-execution/**'
       - 'tests/pr-review-remediation/**'
       - 'README.md'
   push:
     paths:
       - '.github/agents/local-reviewer.agent.md'
+      - '.github/agents/purpose-reviewer.agent.md'
       - '.github/agents/review-planner.agent.md'
       - '.github/agents/high-implementation-starter.agent.md'
       - '.github/agents/standard-implementation-completer.agent.md'
       - '.github/workflows/validate-pr-review-remediation.yml'
       - 'apm-packages/pr-review-remediation/**'
+      - 'apm-packages/goal-context-authoring/**'
       - 'apm-packages/adaptive-implementation-execution/**'
       - 'tests/pr-review-remediation/**'
       - 'README.md'
@@ -32,6 +36,12 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Check branch whitespace
+        shell: pwsh
+        run: git diff --check origin/main...HEAD
       - name: Validate PR Review Remediation contracts and fixtures
         shell: pwsh
         run: ./apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
@@ -40,9 +50,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
+      - name: Validate multi-round replay and symlink containment on Linux
+        shell: pwsh
+        run: ./apm-packages/pr-review-remediation/scripts/validate-prr-003-contract.ps1
       - name: Install APM CLI for remote package smoke
         uses: microsoft/apm-action@v1
         with:
@@ -53,5 +68,5 @@ jobs:
         env:
           GITHUB_APM_PAT: ${{ github.token }}
           PACKAGE_REPOSITORY: ${{ github.repository }}
-          PACKAGE_REF: ${{ github.ref }}
+          PACKAGE_REF: ${{ github.event.pull_request.head.sha || github.sha }}
         run: ./apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1 -Repository $env:PACKAGE_REPOSITORY -Ref $env:PACKAGE_REF

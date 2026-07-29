@@ -93,8 +93,11 @@ try {
     foreach ($status in @('COMPLETED', 'FAILED', 'HUMAN_DECISION_REQUIRED', 'TIMED_OUT')) {
         Invoke-Runtime $runtime (New-Payload ('status-' + $status) (New-Envelope $status))
     }
-    Invoke-Runtime $runtime (New-Payload 'fallback-missing' $null)
-    Invoke-Runtime $runtime (New-Payload 'fallback-invalid' ('```completion-notification' + "`n" + '{invalid}' + "`n" + '```'))
+    $beforeSuppressed = @(Get-Content $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT).Count
+    Invoke-Runtime $runtime (New-Payload 'marker-only-intermediate' $null)
+    Invoke-Runtime $runtime (New-Payload 'invalid-terminal-envelope' ('```completion-notification' + "`n" + '{invalid}' + "`n" + '```'))
+    if (@(Get-Content $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT).Count -ne $beforeSuppressed) { throw 'Marker-only or invalid-envelope callback reached the provider.' }
+    Invoke-Runtime $runtime (New-Payload 'terminal-after-intermediate' (New-Envelope 'COMPLETED'))
     Invoke-Runtime $runtime (New-Payload 'null-input' (New-Envelope 'FAILED') $null)
     Invoke-Runtime $runtime (New-Payload 'coarse-uri' (New-Envelope 'COMPLETED' 'https://github.com/suusanex/coding_agent_plan_and_verify_process'))
     Invoke-Runtime $runtime (New-Payload 'mixed-valid-uri' (New-Envelope 'COMPLETED' 'HTTPS://Example.com/result/1'))
@@ -105,8 +108,8 @@ try {
     foreach ($status in @('BLOCKED', 'COMPLETED', 'FAILED', 'HUMAN_DECISION_REQUIRED', 'TIMED_OUT')) {
         if (-not ($events.observed_status -contains $status)) { throw "Status was not preserved: $status" }
     }
-    $fallbacks = @($events | Where-Object source_event_id -in @('codex:fixture-thread:fallback-missing', 'codex:fixture-thread:fallback-invalid'))
-    if ($fallbacks.Count -ne 2 -or @($fallbacks | Where-Object observed_status -ne 'TURN_ENDED').Count -ne 0) { throw 'Fallback status contract failed.' }
+    if ($events.source_event_id -contains 'codex:fixture-thread:marker-only-intermediate' -or $events.source_event_id -contains 'codex:fixture-thread:invalid-terminal-envelope') { throw 'Suppressed callback was delivered.' }
+    if (@($events | Where-Object source_event_id -eq 'codex:fixture-thread:terminal-after-intermediate').Count -ne 1) { throw 'Terminal envelope after an intermediate callback was not delivered exactly once.' }
     $coarse = $events | Where-Object source_event_id -eq 'codex:fixture-thread:coarse-uri'
     if ($null -ne $coarse.result_uri -or $coarse.resume_uri -ne 'codex://threads/fixture-thread') { throw 'Coarse URI did not fall back to resume_uri.' }
     $mixedValid = $events | Where-Object source_event_id -eq 'codex:fixture-thread:mixed-valid-uri'
@@ -143,6 +146,7 @@ try {
     if (-not ($validEnvelope | Test-Json -SchemaFile $envelopeSchema) -or -not ($mixedValidEnvelope | Test-Json -SchemaFile $envelopeSchema) -or ($coarseEnvelope | Test-Json -SchemaFile $envelopeSchema -ErrorAction SilentlyContinue) -or ($mixedCoarseEnvelope | Test-Json -SchemaFile $envelopeSchema -ErrorAction SilentlyContinue) -or ($userinfoEnvelope | Test-Json -SchemaFile $envelopeSchema -ErrorAction SilentlyContinue)) { throw 'Envelope URI schema contract failed.' }
     $log = Get-Content (Join-Path $runtimeHome 'runtime.log.jsonl') -Raw
     if ($log.Contains('github.com', [StringComparison]::OrdinalIgnoreCase) -or $log.Contains('completion-notification', [StringComparison]::Ordinal)) { throw 'Runtime log contains prohibited message or URI content.' }
+    if ($log -notmatch 'awaiting-terminal-envelope' -or $log -notmatch 'invalid-envelope') { throw 'Suppressed callback diagnostics were not recorded.' }
 
     $originalConfig = (@('model_provider = "openai"', 'notify = [ "C:\\existing-notifier.exe", "turn-ended" ]', '', '[features]', 'web_search = true') -join "`r`n") + "`r`n"
     Set-Content (Join-Path $codexHome 'config.toml') -Value $originalConfig -NoNewline -Encoding utf8

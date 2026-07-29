@@ -22,6 +22,35 @@ if (args.Length >= 2 && args[0] == "pr" && args[1] == "view")
     }
 
     var call = IncrementState(statePath);
+    if (scenario == "prr-002")
+    {
+        var replayPullRequest = new
+        {
+            number = 123,
+            title = "Goal Context review fixture",
+            state = "OPEN",
+            author = new { login = "fixture-user" },
+            body = "Synthetic PRR-002 input.",
+            url = "https://github.com/fixture/goal-context-review/pull/123",
+            baseRefName = "main",
+            baseRefOid = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            headRefName = "feature",
+            headRefOid = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            isDraft = false,
+            mergeable = "MERGEABLE",
+            reviewDecision = "REVIEW_REQUIRED",
+            statusCheckRollup = new object[]
+            {
+                new { id = 9001, name = "fixture-contract", status = "COMPLETED", conclusion = "SUCCESS" }
+            },
+            files = new object[]
+            {
+                new { path = "docs/handoff.md", additions = 1, deletions = 1 }
+            }
+        };
+        Console.WriteLine(JsonSerializer.Serialize(replayPullRequest));
+        return 0;
+    }
     var headOid = scenario is "head-change" or "patch-head-change" && call >= 2 ? "head-002" : "head-001";
     var pullRequest = new
     {
@@ -55,6 +84,18 @@ if (args.Length >= 2 && args[0] == "pr" && args[1] == "view")
 
 if (args.Length >= 2 && args[0] == "pr" && args[1] == "diff")
 {
+    if (scenario == "prr-002")
+    {
+        Console.WriteLine("diff --git a/docs/handoff.md b/docs/handoff.md");
+        Console.WriteLine("index 1111111..2222222 100644");
+        Console.WriteLine("--- a/docs/handoff.md");
+        Console.WriteLine("+++ b/docs/handoff.md");
+        Console.WriteLine("@@ -1 +1 @@");
+        Console.WriteLine("-Phase 1 stops. Start Adaptive Implementation in a separate parent turn and retain the direct PR URL.");
+        Console.WriteLine("+Continue with the remediation plan and retain the direct PR URL.");
+        return 0;
+    }
+
     Console.WriteLine("diff --git a/src/Fixture.cs b/src/Fixture.cs");
     Console.WriteLine("--- a/src/Fixture.cs");
     Console.WriteLine("+++ b/src/Fixture.cs");
@@ -68,6 +109,54 @@ if (args.Length >= 2 && args[0] == "api")
 {
     var endpoint = args[1];
     var call = ReadState(statePath);
+    if (scenario == "prr-002")
+    {
+        if (endpoint.EndsWith("/reviews", StringComparison.Ordinal))
+        {
+            Console.WriteLine(Paginate(new object[]
+            {
+                new
+                {
+                    id = 700,
+                    user = new { login = "copilot-pull-request-reviewer[bot]" },
+                    body = "Copilot generated 1 comment",
+                    state = "COMMENTED",
+                    submitted_at = "2026-07-25T00:00:00Z",
+                    commit_id = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                }
+            }));
+            return 0;
+        }
+
+        if (endpoint.EndsWith("/issues/123/comments", StringComparison.Ordinal))
+        {
+            Console.WriteLine(Paginate(new object[]
+            {
+                new { id = 2700, user = new { login = "maintainer" }, body = "Keep Phase 1 read-only." }
+            }));
+            return 0;
+        }
+
+        if (endpoint.EndsWith("/pulls/123/comments", StringComparison.Ordinal))
+        {
+            Console.WriteLine(Paginate(new object[]
+            {
+                new
+                {
+                    id = 1700,
+                    pull_request_review_id = 700,
+                    commit_id = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                    original_commit_id = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                    user = new { login = "copilot-pull-request-reviewer[bot]" },
+                    path = "docs/handoff.md",
+                    line = 1,
+                    body = "Preserve the direct PR URL."
+                }
+            }));
+            return 0;
+        }
+    }
+
     if (endpoint.EndsWith("/reviews", StringComparison.Ordinal))
     {
         Console.WriteLine(Paginate(BuildReviews(scenario, call)));
@@ -105,10 +194,13 @@ static object[] BuildReviews(string scenario, int call)
     var currentBody = scenario is "delayed" or "inline-then-review"
         ? "Copilot generated 2 comments"
         : "Copilot generated 1 comment";
+    object currentUser = scenario == "copilot-app-url"
+        ? new { login = "renamed-reviewer[bot]", html_url = "https://github.com/apps/copilot-pull-request-reviewer" }
+        : new { login = "copilot-pull-request-reviewer[bot]" };
     var current = new
     {
         id = 100,
-        user = new { login = "copilot-pull-request-reviewer[bot]" },
+        user = currentUser,
         body = currentBody,
         state = "COMMENTED",
         submitted_at = "2026-07-25T00:00:00Z",
@@ -159,6 +251,12 @@ static object[] BuildInlineComments(string scenario, int call)
         return Array.Empty<object>();
     }
 
+    object currentUser = scenario switch
+    {
+        "copilot-actor-alias" => new { login = "Copilot" },
+        "copilot-app-url" => new { login = "renamed-reviewer[bot]", html_url = "https://github.com/apps/copilot-pull-request-reviewer" },
+        _ => new { login = "copilot-pull-request-reviewer[bot]" }
+    };
     var current = new List<object>
     {
         new
@@ -167,12 +265,28 @@ static object[] BuildInlineComments(string scenario, int call)
             pull_request_review_id = 100,
             commit_id = "head-001",
             original_commit_id = "head-001",
-            user = new { login = "copilot-pull-request-reviewer[bot]" },
+            user = currentUser,
             path = "src/Fixture.cs",
             line = 1,
             body = "Current-head finding"
         }
     };
+
+    if (scenario == "copilot-human-reply")
+    {
+        current.Add(new
+        {
+            id = 1003,
+            pull_request_review_id = 100,
+            in_reply_to_id = 1001,
+            commit_id = "head-001",
+            original_commit_id = "head-001",
+            user = new { login = "maintainer" },
+            path = "src/Fixture.cs",
+            line = 1,
+            body = "Human reply to the Copilot comment"
+        });
+    }
 
     if ((scenario is "delayed" or "inline-then-review") && call >= 2)
     {

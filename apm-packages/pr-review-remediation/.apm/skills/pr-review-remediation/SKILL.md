@@ -1,6 +1,6 @@
 ---
 name: pr-review-remediation
-description: Use when a user wants to prepare a GitHub PR, collect local Codex and GitHub Copilot reviews, create a consolidated remediation plan, and continue implementation in a separate parent turn through the canonical Adaptive Implementation flow.
+description: Use when a user explicitly wants the baseline PR review flow without Goal Context purpose review: prepare a GitHub PR, consolidate local Codex and GitHub Copilot reviews, create a remediation plan, then stop before a separate Adaptive turn.
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
@@ -9,7 +9,9 @@ description: Use when a user wants to prepare a GitHub PR, collect local Codex a
 
 # PR Review Remediation
 
-このSkillは、PRを成立させ、local Codex reviewとGitHub Copilot reviewを統合し、別の親ターンで既存Adaptive Implementationが修正を実装できるplanを作る二親ターンのレビュー反映workflowです。
+このSkillは、Goal Contextを使わない基礎版入口です。PRを成立させ、local Codex reviewとGitHub Copilot reviewを統合し、別の親ターンで既存Adaptive Implementationが修正を実装できるplanを作る二親ターンのレビュー反映workflowです。
+
+Goal Contextによる目的達成reviewが必要な場合は`$goal-context-pr-review`を使います。この基礎版をGoal Context欠落時に暗黙選択せず、利用者が目的reviewなしで進めることを明示した場合だけ使います。
 
 Phase 1の停止点はprocess boundaryであり、レビュー反映全体の完了ではありません。Phase 1からAdaptiveを自動起動せず、利用者がPhase 2を明示的に開始します。
 

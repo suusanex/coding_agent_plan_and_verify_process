@@ -1,0 +1,5 @@
+$completion-notification-decorator
+$adaptive-implementation-execution
+
+tests/pr-review-remediation/PRR-002/review-plan.mdを実装してください。
+implementation_intentをsource of truthとし、Goal Context Boundaryを保持してください。

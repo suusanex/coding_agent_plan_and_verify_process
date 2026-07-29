@@ -95,7 +95,13 @@ Re-read the full available source and the draft. Confirm that:
 - explicit statements, inferences, and unknowns are distinguishable
 - secrets, credentials, authentication material, and unnecessary personal data are absent
 
-If the package validator is available, run:
+Run the distributed canonical validator:
+
+```powershell
+dotnet run --file scripts/validate-goal-context.cs -- --goal-context <path> --mode draft --format json
+```
+
+When operating from the package source repository, the compatibility wrapper also validates package layout and fixtures:
 
 ```powershell
 ./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1 -GoalContextPath <path>
@@ -109,7 +115,13 @@ Present the draft together with `references/human-review-checklist.md`. The huma
 
 Before confirmation, keep the only valid draft lifecycle pair, `status: draft` and `sensitive_data_review: pending`, with the Human review record pending. Only after explicit confirmation may the document use the other valid pair, `status: human-reviewed` and `sensitive_data_review: passed`, together with a dated reviewer record. Mixed pairs are invalid.
 
-When human review is complete, run the stronger validation mode if available:
+When human review is complete, run strict validation:
+
+```powershell
+dotnet run --file scripts/validate-goal-context.cs -- --goal-context <path> --mode strict --format json
+```
+
+The package-source compatibility command is:
 
 ```powershell
 ./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1 -GoalContextPath <path> -RequireHumanReview

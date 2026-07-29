@@ -19,10 +19,10 @@ Append exactly one fenced JSON object after the unchanged primary-process respon
 | `repository` | Optional `owner/name` identifier. Omit when not reliable. |
 | `result_uri` | Optional specific HTTPS result URL without userinfo. GitHub owner or repository root URLs are too coarse. |
 
-The runtime generates `resume_uri` from the callback thread ID. Do not author it in the envelope.
+The runtime generates `resume_uri` from the callback thread ID. Do not author it in the envelope. On Windows, a valid `result_uri` yields both a result action and a current-task action; it does not replace `resume_uri`.
 
 ## Failure behavior
 
-- Missing or invalid envelope: the runtime may use the input target marker and emit `primary_process: codex-turn` with `observed_status: TURN_ENDED`.
-- Invalid or coarse `result_uri`: the runtime omits it and uses the generated thread resume link.
+- Missing or invalid envelope: the runtime records diagnostic state and suppresses notification delivery. A marker alone is not a terminal result.
+- Invalid or coarse `result_uri`: the runtime omits it and retains the generated current-task resume link.
 - Provider or runtime failure: the primary process response and terminal status remain authoritative. Notification delivery status is separate observational state.

@@ -13,7 +13,7 @@ The validator derives each process package and Skill path from `primary_process`
 
 After binding each fixture to those canonical contracts, the validator constructs each final response by appending one envelope to the fixture's primary output, then proves that removing only the envelope recovers the original output byte-for-byte. It sends a real `agent-turn-complete` payload through the canonical runtime and a fake provider, then verifies `primary_process`, `observed_status`, repository identity, result link, thread resume link, and distinct source event IDs.
 
-The same run verifies marker-only fallback and a provider-failure callback. The failure path must exit with code 0, preserve the process status in the authored response, and record delivery failure separately in the runtime log.
+The same run verifies that a marker-only intermediate callback is suppressed until a valid terminal envelope exists, and also verifies a provider-failure callback. The failure path must exit with code 0, preserve the process status in the authored response, and record delivery failure separately in the runtime log.
 
 Run from the repository root:
 
