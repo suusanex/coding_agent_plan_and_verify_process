@@ -15,6 +15,10 @@ $baseOid = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 $goalContextPath = 'docs/goal-context-multi-project-ai-development-notification-and-purpose-review.md'
 $goalContextSha = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
 $prUrl = "https://github.com/$repository/pull/$pullRequest"
+$reviewThreadId = '019fa6ca-847e-73b3-a2e7-189638eb1327'
+$implementationThreadId = '019fa8a6-8b70-7da1-8007-12c3ae26828f'
+$reviewThreadUri = "codex://threads/$reviewThreadId"
+$implementationThreadUri = "codex://threads/$implementationThreadId"
 $utf8 = [System.Text.UTF8Encoding]::new($false)
 
 function Add-Failure([string]$Message) { $failures.Add($Message) }
@@ -46,16 +50,46 @@ function Start-Round {
         [string]$HeadOid,
         [string]$StartedAt,
         [string]$AdaptiveResult = '',
+        [string]$ReviewThreadId = $script:reviewThreadId,
+        [string]$ImplementationThreadId = $script:implementationThreadId,
+        [string]$AdaptiveThreadId = $script:implementationThreadId,
+        [string]$ThreadMode = 'role-thread-reuse',
+        [string]$PortableReason = '',
         [bool]$ExpectSuccess = $true,
         [string]$ExpectedPattern = ''
     )
     $arguments = @(
         'start', '--cycle', $CyclePath, '--repository', $repository, '--pr', [string]$pullRequest,
         '--goal-context-path', $goalContextPath, '--goal-context-sha', $goalContextSha,
-        '--base-oid', $baseOid, '--head-oid', $HeadOid, '--started-at', $StartedAt, '--format', 'json'
+        '--base-oid', $baseOid, '--head-oid', $HeadOid, '--started-at', $StartedAt,
+        '--thread-mode', $ThreadMode, '--review-thread-id', $ReviewThreadId, '--format', 'json'
     )
-    if ($AdaptiveResult) { $arguments += @('--adaptive-result-reference', $AdaptiveResult) }
+    if ($ImplementationThreadId) { $arguments += @('--implementation-thread-id', $ImplementationThreadId) }
+    if ($AdaptiveResult) { $arguments += @('--adaptive-result-reference', $AdaptiveResult, '--adaptive-thread-id', $AdaptiveThreadId) }
+    if ($ThreadMode -eq 'portable-handoff') {
+        $arguments += @(
+            '--portable-reason', $(if ($PortableReason) { $PortableReason } else { 'Explicit portability fixture.' }),
+            '--portable-approved-by', 'fixture-human', '--portable-approved-at', $StartedAt
+        )
+    }
     Invoke-Manager $arguments "start round at head $HeadOid" $ExpectSuccess $ExpectedPattern | Out-Null
+}
+
+function Change-ThreadBinding {
+    param(
+        [string]$CyclePath,
+        [string]$Operation,
+        [string]$Role,
+        [string]$NewThreadId,
+        [string]$ApprovedAt,
+        [bool]$ExpectSuccess = $true,
+        [string]$ExpectedPattern = ''
+    )
+    Invoke-Manager @(
+        $Operation, '--cycle', $CyclePath, '--thread-role', $Role, '--new-thread-id', $NewThreadId,
+        '--thread-change-reason', 'Human-approved task recovery.', '--thread-change-approved-by', 'fixture-human',
+        '--thread-change-approved-at', $ApprovedAt, '--format', 'json'
+    ) "$Operation $Role thread" $ExpectSuccess $ExpectedPattern | Out-Null
 }
 
 function New-Delta([string]$TrackingId, [string]$State, [string[]]$FindingIds, [string[]]$SourceIds) {
@@ -90,6 +124,28 @@ function Write-ReviewPlan {
         $orderedRows.Add("| $number | $scopeId | $acceptanceId | $findingIds | Remediate $($activeDelta[$index].trackingId). | fixture artifact | Finding is resolved. | Contract replay |")
         $scopeLines.Add("    - ${scopeId}: Remediate $($activeDelta[$index].trackingId).")
         $acceptanceLines.Add("    - ${acceptanceId}: Verify $($activeDelta[$index].trackingId) is resolved.")
+    }
+    $cycle = Get-Content -Raw -LiteralPath (Join-Path $CycleRoot 'review-cycle.json') | ConvertFrom-Json -Depth 100
+    $threadMode = [string]$cycle.threadMode
+    $handoffMetadata = if ($threadMode -eq 'role-thread-reuse') {
+@"
+- Thread mode: role-thread-reuse
+- Target Implementation Thread ID: $($cycle.roleThreads.implementation.threadId)
+- Target Implementation Thread URI: $($cycle.roleThreads.implementation.resumeUri)
+- Return Review Thread ID: $($cycle.roleThreads.review.threadId)
+- Return Review Thread URI: $($cycle.roleThreads.review.resumeUri)
+- Plan SHA-256 source: round manifest artifact binding
+"@
+    } else {
+@"
+- Thread mode: portable-handoff
+- Target Implementation Thread ID: N/A
+- Target Implementation Thread URI: N/A
+- Return Review Thread ID: N/A
+- Return Review Thread URI: N/A
+- Plan SHA-256 source: round manifest artifact binding
+- Recovery boundary: Explicitly approved artifact-only cold-start.
+"@
     }
     $planContent = @"
 # PR Review Remediation Plan
@@ -136,7 +192,9 @@ $($acceptanceLines -join "`n")
   goal_context_reference: $goalContextPath
 ``````
 
-## Separate Parent Turn Handoff
+## Explicit Implementation Turn Handoff
+
+$handoffMetadata
 
 ``````text
 `$adaptive-implementation-execution を使って $PlanReference を実装してください。
@@ -171,7 +229,7 @@ function Resolve-HumanDecision {
         Write-ReviewPlan $cycleRoot $RoundNumber $HeadOid 'APPROVED_FOR_ADAPTIVE_IMPLEMENTATION' $FindingDelta $candidatePath $planReference
         if ($RemoveHandoff) {
             $content = Get-Content -Raw -LiteralPath $candidatePath
-            $content = [regex]::Replace($content, '(?ms)^## Separate Parent Turn Handoff\s+.*\z', '')
+            $content = [regex]::Replace($content, '(?ms)^## Explicit Implementation Turn Handoff\s+.*\z', '')
             [System.IO.File]::WriteAllText($candidatePath, $content.Replace("`r`n", "`n"), $utf8)
         }
     }
@@ -533,6 +591,7 @@ try {
         '--goal-context-path', $goalContextPath, '--goal-context-sha', $goalContextSha,
         '--base-oid', $baseOid, '--head-oid', '1010101010101010101010101010101010101010',
         '--started-at', '2025-12-31T00:00:00Z', '--override-maximum-rounds', '4',
+        '--review-thread-id', $reviewThreadId, '--implementation-thread-id', $implementationThreadId,
         '--override-approved-by', 'fixture-human', '--override-approved-at', '2025-12-31T00:00:00Z',
         '--override-reason', 'Invalid early override.', '--format', 'json'
     ) 'early start override' $false 'must use the separate resolve command' | Out-Null
@@ -560,7 +619,8 @@ try {
         'start', '--cycle', $convergenceCycle, '--repository', 'fixture/wrong-repository', '--pr', [string]$pullRequest,
         '--goal-context-path', $goalContextPath, '--goal-context-sha', $goalContextSha,
         '--base-oid', $baseOid, '--head-oid', $head2, '--started-at', '2026-01-01T00:02:00Z',
-        '--adaptive-result-reference', 'adaptive/round-001/result.md', '--format', 'json'
+        '--adaptive-result-reference', 'adaptive/round-001/result.md', '--adaptive-thread-id', $implementationThreadId,
+        '--review-thread-id', $reviewThreadId, '--implementation-thread-id', $implementationThreadId, '--format', 'json'
     )
     Invoke-Manager $identityArguments 'repository identity drift' $false 'repository mismatch' | Out-Null
     $identityArguments[8] = 'docs/wrong-goal-context.md'
@@ -588,6 +648,87 @@ try {
     Invoke-Manager @('validate', '--cycle', $convergenceCycle, '--format', 'json') 'validate converged cycle' | Out-Null
     $expectedConvergence = @($fixture.scenarios | Where-Object id -eq 'collector-realistic-convergence').expectedVerdicts
     Assert-CycleVerdicts $convergenceCycle $expectedConvergence 'convergence'
+    $convergenceJson = Get-Content -Raw -LiteralPath $convergenceCycle | ConvertFrom-Json -Depth 100
+    if ($convergenceJson.threadMode -ne 'role-thread-reuse') { Add-Failure 'Convergence cycle did not use role-thread-reuse.' }
+    if (@($convergenceJson.rounds | Where-Object reviewThreadId -ne $reviewThreadId).Count -ne 0) { Add-Failure 'Review Thread identity changed across convergence rounds.' }
+    if (@($convergenceJson.rounds | Where-Object { $_.roundNumber -gt 1 -and $_.adaptiveThreadId -ne $implementationThreadId }).Count -ne 0) { Add-Failure 'Implementation Thread identity changed across convergence remediations.' }
+    if ($convergenceJson.roleThreads.review.threadId -eq $convergenceJson.roleThreads.implementation.threadId) { Add-Failure 'Review and Implementation role threads were not distinct.' }
+
+    $threadMismatchRoot = Join-Path $tempRoot 'negative-thread-mismatch'
+    $threadMismatchCycle = Join-Path $threadMismatchRoot 'review-cycle.json'
+    Start-Round $threadMismatchCycle '1515151515151515151515151515151515151515' '2026-01-02T00:00:00Z'
+    Complete-Round $threadMismatchCycle (Write-RoundResult $threadMismatchRoot 1 '1515151515151515151515151515151515151515' '2026-01-02T00:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' @(
+        (New-Delta 'TRK-THREAD' 'new' @('LR-015') @('review:thread:1'))
+    ) $true)
+    $wrongReviewThread = '019fa6ca-847e-73b3-a2e7-189638eb1399'
+    Start-Round -CyclePath $threadMismatchCycle -HeadOid '1616161616161616161616161616161616161615' -StartedAt '2026-01-02T00:02:00Z' -AdaptiveResult 'adaptive/round-001/result.md' -ReviewThreadId $wrongReviewThread -ExpectSuccess $false -ExpectedPattern 'Review Thread ID mismatch'
+    $wrongImplementationThread = '019fa8a6-8b70-7da1-8007-12c3ae268999'
+    Start-Round -CyclePath $threadMismatchCycle -HeadOid '1616161616161616161616161616161616161616' -StartedAt '2026-01-02T00:02:00Z' -AdaptiveResult 'adaptive/round-001/result.md' -AdaptiveThreadId $wrongImplementationThread -ExpectSuccess $false -ExpectedPattern 'Adaptive Implementation Thread ID mismatch'
+    Start-Round -CyclePath (Join-Path $tempRoot 'negative-same-role-thread/review-cycle.json') -HeadOid '1717171717171717171717171717171717171717' -StartedAt '2026-01-02T00:03:00Z' -ImplementationThreadId $reviewThreadId -ExpectSuccess $false -ExpectedPattern 'must be different Codex tasks'
+    Start-Round -CyclePath (Join-Path $tempRoot 'negative-malformed-thread/review-cycle.json') -HeadOid '1818181818181818181818181818181818181818' -StartedAt '2026-01-02T00:04:00Z' -ReviewThreadId 'not-a-task-id' -ExpectSuccess $false -ExpectedPattern 'must be a Codex task UUID'
+    Invoke-Manager @(
+        'start', '--cycle', (Join-Path $tempRoot 'negative-missing-thread/review-cycle.json'),
+        '--repository', $repository, '--pr', [string]$pullRequest, '--goal-context-path', $goalContextPath,
+        '--goal-context-sha', $goalContextSha, '--base-oid', $baseOid,
+        '--head-oid', '1818181818181818181818181818181818181819', '--started-at', '2026-01-02T00:05:00Z', '--format', 'json'
+    ) 'missing Review Thread ID' $false 'review-thread-id' | Out-Null
+
+    $lateBindRoot = Join-Path $tempRoot 'late-implementation-thread-binding'
+    $lateBindCycle = Join-Path $lateBindRoot 'review-cycle.json'
+    Start-Round -CyclePath $lateBindCycle -HeadOid '1818181818181818181818181818181818181820' -StartedAt '2026-01-02T00:06:00Z' -ImplementationThreadId ''
+    Change-ThreadBinding $lateBindCycle 'bind-thread' 'implementation' $implementationThreadId '2026-01-02T00:07:00Z'
+    Complete-Round $lateBindCycle (Write-RoundResult $lateBindRoot 1 '1818181818181818181818181818181818181820' '2026-01-02T00:08:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' @(
+        (New-Delta 'TRK-LATE-BIND' 'new' @('LR-018') @('review:late-bind:1'))
+    ) $true)
+    $lateBindJson = Get-Content -Raw -LiteralPath $lateBindCycle | ConvertFrom-Json -Depth 100
+    if ($lateBindJson.roleThreads.implementation.threadId -ne $implementationThreadId -or
+        @($lateBindJson.threadBindingHistory | Where-Object role -eq 'implementation').Count -ne 1) {
+        Add-Failure 'Implementation Thread was not bound before actionable round completion.'
+    }
+
+    $rebindRoot = Join-Path $tempRoot 'thread-rebind'
+    $rebindCycle = Join-Path $rebindRoot 'review-cycle.json'
+    Start-Round $rebindCycle '1919191919191919191919191919191919191919' '2026-01-02T01:00:00Z'
+    Complete-Round $rebindCycle (Write-RoundResult $rebindRoot 1 '1919191919191919191919191919191919191919' '2026-01-02T01:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' @(
+        (New-Delta 'TRK-REBIND' 'new' @('LR-019') @('review:rebind:1'))
+    ) $true)
+    $reboundReviewThread = '019fa6ca-847e-73b3-a2e7-189638eb1400'
+    Change-ThreadBinding $rebindCycle 'rebind-thread' 'review' $reboundReviewThread '2026-01-02T01:02:00Z'
+    Start-Round -CyclePath $rebindCycle -HeadOid '2020202020202020202020202020202020202020' -StartedAt '2026-01-02T01:03:00Z' -AdaptiveResult 'adaptive/round-001/result.md' -ReviewThreadId $reboundReviewThread
+    $rebindJson = Get-Content -Raw -LiteralPath $rebindCycle | ConvertFrom-Json -Depth 100
+    if ((@($rebindJson.threadBindingHistory | Where-Object role -eq 'review').Count -ne 2) -or
+        ($rebindJson.threadBindingHistory[0].newThreadId -ne $reviewThreadId) -or
+        ($rebindJson.roleThreads.review.threadId -ne $reboundReviewThread)) {
+        Add-Failure 'Approved Review Thread rebind did not preserve old binding history and activate the new binding.'
+    }
+    Invoke-Manager @('rebind-thread', '--cycle', $rebindCycle, '--thread-role', 'implementation', '--new-thread-id', $wrongImplementationThread, '--format', 'json') 'incomplete thread rebind' $false 'require cycle, role, new thread ID, reason, approver, and approval timestamp' | Out-Null
+    $historyMutationRoot = Join-Path $tempRoot 'negative-thread-history-overwrite'
+    Copy-Item -LiteralPath $rebindRoot -Destination $historyMutationRoot -Recurse
+    $historyMutationCycle = Join-Path $historyMutationRoot 'review-cycle.json'
+    $historyMutationJson = Get-Content -Raw -LiteralPath $historyMutationCycle | ConvertFrom-Json -Depth 100
+    $historyMutationJson.threadBindingHistory[0].newThreadId = $wrongReviewThread
+    $historyMutationJson.threadBindingHistory[0].resumeUri = "codex://threads/$wrongReviewThread"
+    [System.IO.File]::WriteAllText($historyMutationCycle, (($historyMutationJson | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"), $utf8)
+    Invoke-Manager @('validate', '--cycle', $historyMutationCycle, '--format', 'json') 'overwritten thread binding history' $false 'thread binding previous ID mismatch|Review Thread ID mismatch' | Out-Null
+
+    $portableRoot = Join-Path $tempRoot 'portable-handoff'
+    $portableCycle = Join-Path $portableRoot 'review-cycle.json'
+    Start-Round -CyclePath $portableCycle -HeadOid '2121212121212121212121212121212121212121' -StartedAt '2026-01-02T02:00:00Z' -ThreadMode 'portable-handoff'
+    Complete-Round $portableCycle (Write-RoundResult $portableRoot 1 '2121212121212121212121212121212121212121' '2026-01-02T02:01:00Z' 'READY_FOR_ADAPTIVE_IMPLEMENTATION' @(
+        (New-Delta 'TRK-PORTABLE' 'new' @('LR-021') @('review:portable:1'))
+    ) $true)
+    $portableReview2 = '019fa6ca-847e-73b3-a2e7-189638eb1500'
+    $portableImplementation2 = '019fa8a6-8b70-7da1-8007-12c3ae268500'
+    Start-Round -CyclePath $portableCycle -HeadOid '2222222222222222222222222222222222222223' -StartedAt '2026-01-02T02:02:00Z' -AdaptiveResult 'adaptive/portable/result.md' -ReviewThreadId $portableReview2 -AdaptiveThreadId $portableImplementation2 -ThreadMode 'portable-handoff'
+    $portableJson = Get-Content -Raw -LiteralPath $portableCycle | ConvertFrom-Json -Depth 100
+    if ($portableJson.threadMode -ne 'portable-handoff' -or -not $portableJson.portableHandoffApproval.reason) { Add-Failure 'Portable handoff approval evidence was not retained.' }
+    Invoke-Manager @(
+        'start', '--cycle', (Join-Path $tempRoot 'negative-portable-approval/review-cycle.json'),
+        '--repository', $repository, '--pr', [string]$pullRequest, '--goal-context-path', $goalContextPath,
+        '--goal-context-sha', $goalContextSha, '--base-oid', $baseOid,
+        '--head-oid', '2323232323232323232323232323232323232323', '--started-at', '2026-01-02T02:03:00Z',
+        '--thread-mode', 'portable-handoff', '--review-thread-id', $reviewThreadId, '--format', 'json'
+    ) 'portable handoff without approval' $false 'portable-handoff requires' | Out-Null
     foreach ($round in 1..3) {
         if (-not (Test-Path -LiteralPath (Join-Path $convergenceRoot ('round-{0:000}' -f $round)))) {
             Add-Failure "Convergence artifact directory is missing for round $round"
@@ -697,7 +838,7 @@ try {
     Resolve-HumanDecision -CyclePath $limitCycle -RoundNumber 3 -HeadOid $limitHeads[2] -FindingDelta $limitDelta -DecisionId 'HD-003' -ApprovedAt '2026-02-01T00:08:00Z' -OverrideMaximum 4 -IncludeAdaptiveResult -ExpectSuccess $false -ExpectedPattern 'before Adaptive execution and cannot accept an Adaptive result reference'
     Resolve-HumanDecision $limitCycle 3 $limitHeads[2] $limitDelta 'HD-003' '2026-02-01T00:08:00Z' -ExpectSuccess $false -ExpectedPattern 'requires a complete maximum-round override'
     Resolve-HumanDecision -CyclePath $limitCycle -RoundNumber 3 -HeadOid $limitHeads[2] -FindingDelta $limitDelta -DecisionId 'HD-003' -ApprovedAt '2026-02-01T00:08:00Z' -OverrideMaximum 4 -IncompleteOverride -ExpectSuccess $false -ExpectedPattern 'All maximum-round override fields'
-    Resolve-HumanDecision -CyclePath $limitCycle -RoundNumber 3 -HeadOid $limitHeads[2] -FindingDelta $limitDelta -DecisionId 'HD-003' -ApprovedAt '2026-02-01T00:08:00Z' -OverrideMaximum 4 -RemoveHandoff -ExpectSuccess $false -ExpectedPattern 'missing a non-empty.*Separate Parent Turn Handoff'
+    Resolve-HumanDecision -CyclePath $limitCycle -RoundNumber 3 -HeadOid $limitHeads[2] -FindingDelta $limitDelta -DecisionId 'HD-003' -ApprovedAt '2026-02-01T00:08:00Z' -OverrideMaximum 4 -RemoveHandoff -ExpectSuccess $false -ExpectedPattern 'missing a non-empty.*Explicit Implementation Turn Handoff'
     Resolve-HumanDecision $limitCycle 3 $limitHeads[2] $limitDelta 'HD-003' '2026-02-01T00:08:00Z' 4
     $approvedLimit = Get-Content -Raw -LiteralPath $limitCycle | ConvertFrom-Json -Depth 100
     if (($approvedLimit.status -ne 'APPROVED_FOR_ADAPTIVE_IMPLEMENTATION') -or
@@ -1003,7 +1144,7 @@ try {
     Complete-Round $missingCycle $missingResult $false 'missing persistent/resolved mapping'
 
     $observedMutations = @($fixture.negativeMutations)
-    foreach ($required in @('duplicate-head', 'missing-adaptive-result-reference', 'identity-drift', 'existing-round-directory', 'historical-artifact-hash', 'unknown-persistent-finding', 'missing-active-finding-mapping', 'round-limit-verdict', 'incomplete-override', 'actionable-without-plan', 'review-complete-with-plan', 'missing-source-coverage', 'source-tracking-swap', 'invalid-reopened-transition', 'round-result-head-identity', 'notification-status', 'notification-pr', 'early-override', 'unresolved-human-decision', 'adaptive-before-decision', 'resolve-with-adaptive-result', 'start-before-decision-approval', 'wrong-human-decision-id', 'human-decision-with-plan', 'resolution-missing-approved-plan', 'approved-plan-missing-handoff', 'approved-plan-hash', 'review-context-content', 'goal-context-selection-content', 'goal-context-selection-schema', 'goal-context-selection-lifecycle', 'review-result-content', 'uncovered-artifact-source', 'malformed-source-oid', 'remote-patch-binding', 'review-plan-intent', 'review-plan-acceptance', 'review-plan-finding-mapping', 'intent-extra-scope', 'intent-extra-acceptance', 'non-iso-timestamp', 'missing-timestamp-offset', 'cycle-root-link-escape', 'cycle-file-link-escape', 'round-directory-link-escape', 'artifact-file-link-escape', 'review-mode-mismatch', 'purpose-only-local-artifact', 'purpose-only-external-mapping', 'missing-prior-finding-assessment', 'legacy-cycle-append')) {
+    foreach ($required in @('duplicate-head', 'missing-adaptive-result-reference', 'identity-drift', 'existing-round-directory', 'historical-artifact-hash', 'unknown-persistent-finding', 'missing-active-finding-mapping', 'round-limit-verdict', 'incomplete-override', 'actionable-without-plan', 'review-complete-with-plan', 'missing-source-coverage', 'source-tracking-swap', 'invalid-reopened-transition', 'round-result-head-identity', 'notification-status', 'notification-pr', 'early-override', 'unresolved-human-decision', 'adaptive-before-decision', 'resolve-with-adaptive-result', 'start-before-decision-approval', 'wrong-human-decision-id', 'human-decision-with-plan', 'resolution-missing-approved-plan', 'approved-plan-missing-handoff', 'approved-plan-hash', 'review-context-content', 'goal-context-selection-content', 'goal-context-selection-schema', 'goal-context-selection-lifecycle', 'review-result-content', 'uncovered-artifact-source', 'malformed-source-oid', 'remote-patch-binding', 'review-plan-intent', 'review-plan-acceptance', 'review-plan-finding-mapping', 'intent-extra-scope', 'intent-extra-acceptance', 'non-iso-timestamp', 'missing-timestamp-offset', 'cycle-root-link-escape', 'cycle-file-link-escape', 'round-directory-link-escape', 'artifact-file-link-escape', 'review-mode-mismatch', 'purpose-only-local-artifact', 'purpose-only-external-mapping', 'missing-prior-finding-assessment', 'legacy-cycle-append', 'review-thread-mismatch', 'implementation-thread-mismatch', 'same-role-thread', 'missing-thread-id', 'malformed-thread-id', 'incomplete-thread-rebind', 'thread-history-overwrite', 'portable-without-approval')) {
         if ($required -notin $observedMutations) { Add-Failure "Fixture negative mutation is missing: $required" }
     }
 }

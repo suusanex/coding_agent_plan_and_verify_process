@@ -22,11 +22,15 @@ code bug、test不足、保守性riskは`local-reviewer`へ残します。`purpo
 
 ## Duplicate same-head round
 
-同じhead OIDは再reviewしません。前roundのAdaptiveが別親ターンで完了し、新しいheadへpushされたことを確認します。誤ったheadで開始したin-progress roundを上書きせず、artifactとhuman decisionを保持したまま利用者へ判断を求めます。
+同じhead OIDは再reviewしません。前roundのAdaptiveが固定Implementation Threadの別の明示ターンで完了し、新しいheadへpushされたことを確認します。誤ったheadで開始したin-progress roundを上書きせず、artifactとhuman decisionを保持したまま利用者へ判断を求めます。
+
+## Role task identity mismatch
+
+通常の`role-thread-reuse`では、全review roundが固定Review Thread、全Adaptive remediationが固定Implementation Threadを使い、二つのIDは異なります。現在taskがbindingと一致しない場合は暗黙に新IDへ更新しません。元taskを再開できなければ、理由、承認者、timezone付き承認時刻を指定して`rebind-thread`を実行し、旧bindingを履歴へ残します。artifact-only cold-startが必要な場合だけ、別cycleで承認済み`portable-handoff`を明示します。
 
 ## Round 3 still has actionable findings
 
-既定上限へ到達したため`HUMAN_DECISION_REQUIRED`で停止します。このroundに`review-plan.md`やAdaptive開始promptを置かず、第4roundも自動開始しません。継続する場合は、人間の選択後に`APPROVED_FOR_ADAPTIVE_IMPLEMENTATION`の候補planを作成し、pending decision ID、resolution、承認情報、candidate path、identity、承認時刻、理由、増加後の上限を`manage-review-cycle.cs resolve`へ指定します。`resolve`がcanonical `approved-review-plan.md`とhashを記録してから、別親ターンでAdaptiveを開始します。
+既定上限へ到達したため`HUMAN_DECISION_REQUIRED`で停止します。このroundに`review-plan.md`やAdaptive開始promptを置かず、第4roundも自動開始しません。継続する場合は、人間の選択後に`APPROVED_FOR_ADAPTIVE_IMPLEMENTATION`の候補planを作成し、pending decision ID、resolution、承認情報、candidate path、identity、承認時刻、理由、増加後の上限を`manage-review-cycle.cs resolve`へ指定します。`resolve`がcanonical `approved-review-plan.md`とhashを記録してから、同じImplementation Threadの別の明示ターンでAdaptiveを開始します。
 
 ## Adaptive was attempted before decision resolution
 

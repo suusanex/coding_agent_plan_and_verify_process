@@ -94,11 +94,19 @@ multi-round modeでは、`scope`の全項目を`SI-*`、`acceptance`の全項目
 
 - 人手での作業が必要:
 
-## Separate Parent Turn Handoff
+## Explicit Implementation Turn Handoff
+
+- Thread mode: single-round / role-thread-reuse / portable-handoff
+- Target Implementation Thread ID: <Codex task UUID / N/A for single-round or portable-handoff>
+- Target Implementation Thread URI: <codex://threads/... / N/A for single-round or portable-handoff>
+- Return Review Thread ID: <Codex task UUID / N/A for single-round or portable-handoff>
+- Return Review Thread URI: <codex://threads/... / N/A for single-round or portable-handoff>
+- Plan SHA-256 source: <round manifest artifact binding / explicit single-round handoff record>
 
 ```text
-$adaptive-implementation-execution を使って <review-plan-path> を実装してください。
+$adaptive-implementation-execution を使って <review-plan-path> を、上記Implementation Threadの新しい明示ターンとして実装してください。
 review-plan.md の implementation_intent を source of truth とし、既存 Adaptive Implementation の router、agents、verdict、handoff、validation contract を変更または複製しないでください。
+既存会話の探索・設計コンテキストは利用できますが、scopeとacceptanceはartifactを正本としてください。完了後は上記Review Threadへ戻るためのURI、Adaptive result reference、変更後head OIDを報告してください。
 ```
 
-Phase 1の停止はレビュー反映プロセス全体の完了ではありません。Adaptive Implementationはこの親ターンから自動起動しません。
+基礎版のsingle-round利用ではrole thread bindingを要求せず、従来どおり別の明示ターンへartifactを渡します。`portable-handoff`の場合は、明示承認済みのartifact-only cold-startとしてtask identity欄を`N/A`にします。Phase 1の停止はレビュー反映プロセス全体の完了ではありません。Adaptive Implementationはこの親ターンから自動起動しません。

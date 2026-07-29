@@ -18,6 +18,11 @@
 - Goal Context normalized SHA-256:
 - Local target path:
 - Result record path:
+- Thread mode: role-thread-reuse / portable-handoff
+- Review Thread ID / derived URI:
+- Implementation Thread ID / derived URI:
+- Distinct role task IDs confirmed: Yes / No
+- Role task registration result:
 
 ## Human authorization record
 
@@ -31,6 +36,9 @@
 - Notification runtime install approved: Yes / No
 - Adaptive round 1 plan approved: Yes / No
 - Round 2 review approved: Yes / No
+- Thread rebind approved: Yes / No / Not applicable
+- Portable handoff approved: Yes / No / Not applicable
+- Rebind / portable reason:
 - Approved by:
 - Approved at:
 - Payload inspection notes:
@@ -63,6 +71,7 @@
 ## Task B: review round 1 evidence
 
 - Round 1 task ID:
+- Review Thread ID matched registered binding: Yes / No
 - Round 1 review mode: full
 - Cycle path:
 - Round 1 directory:
@@ -79,6 +88,7 @@
 - Purpose finding ID and summary:
 - Remote source coverage result:
 - SI / AC exact-set validation:
+- Review plan Implementation / return thread binding validation:
 - Round 1 verdict:
 - Round 1 stopped before implementation: Yes / No
 - Production code unchanged during round 1: Yes / No
@@ -89,7 +99,8 @@
 ## Task C: Adaptive evidence
 
 - Adaptive task ID:
-- Separate parent task confirmed: Yes / No
+- Implementation Thread ID matched registered binding: Yes / No
+- Review and Implementation task IDs remained distinct: Yes / No
 - Adaptive plan reference / normalized SHA-256:
 - Adaptive handoff path matched round 1 plan: Yes / No
 - Applied finding IDs:
@@ -98,7 +109,9 @@
 - Unrelated changes absent: Yes / No
 - Changed head OID:
 - Adaptive result reference:
+- Return Review Thread URI:
 - Completion notification result / direct link:
+- Notification opened current Implementation Thread: Yes / No
 - Premature TURN_ENDED notification absent: Yes / No
 - Terminal process notification count: 1 / other
 - Task C stopped before next review round: Yes / No
@@ -106,7 +119,8 @@
 ## Task D: review round 2 evidence
 
 - Round 2 task ID:
-- Separate parent task confirmed: Yes / No
+- Review Thread ID matched Task B: Yes / No
+- Review and Implementation task IDs remained distinct: Yes / No
 - Round 2 directory:
 - Round 2 review mode: purpose-only
 - Copilot wait status: disabled / other
@@ -122,6 +136,7 @@
 - Round 2 verdict:
 - Review complete observed: Yes / No
 - Direct-link notification opened target PR: Yes / No
+- Notification opened current Review Thread: Yes / No
 - Premature TURN_ENDED notification absent: Yes / No
 - Terminal process notification count: 1 / other
 
@@ -134,6 +149,8 @@
 - Approved plan reference / normalized SHA-256:
 - Maximum-round override:
 - Resolve result:
+- Binding history retained previous IDs: Yes / No / Not applicable
+- Portable cold-start scenario result: PASS / FAIL / Not executed
 
 ## Final verdict
 

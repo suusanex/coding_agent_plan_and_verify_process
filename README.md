@@ -18,7 +18,7 @@ dotnet run --file .\scripts\codex-notification-runtime\install-codex-notificatio
 
 配布・導入のsource of truthは3本の`.cs` File-based appsです。installerが導入時にsourceから一時領域へpublishするため、`scripts/codex-notification-runtime/artifacts/`の生成物は追跡・配布しません。
 
-最終回答へ付けるenvelopeは次の形式です。`result_uri`が有効なHTTPS URLなら通知の操作先として優先し、なければ該当Codex threadへ戻ります。runtimeは通知失敗をCodex turnの失敗へ変更しません。
+最終回答へ付けるenvelopeは次の形式です。`result_uri`が有効なHTTPS URLなら、Windows通知は「結果を開く」と「このタスクを開く」の両ボタンを表示します。`result_uri`がなければ現在のCodex taskへ戻るボタンだけを表示します。runtimeは通知失敗をCodex turnの失敗へ変更しません。
 
 ````markdown
 ```completion-notification
@@ -26,7 +26,7 @@ dotnet run --file .\scripts\codex-notification-runtime\install-codex-notificatio
 ```
 ````
 
-`result_uri`は具体的な結果を指すuserinfoなしのHTTPS URLだけを受理します。hostのroot URL、およびGitHubのトップ・ownerトップ・repositoryトップは粗いリンクとして破棄し、`resume_uri`へfallbackします。
+`result_uri`は具体的な結果を指すuserinfoなしのHTTPS URLだけを受理します。hostのroot URL、およびGitHubのトップ・ownerトップ・repositoryトップは粗いリンクとして破棄します。`resume_uri`はcallbackのtask IDから常に導出し、有効な`result_uri`があっても保持します。
 
 `$completion-notification-decorator`または`[completion-notification]`を入力に含めても、有効なterminal envelopeがないcallbackは通知されません。marker-onlyは`awaiting-terminal-envelope`、不正envelopeは`invalid-envelope`として診断logへ残し、terminal envelope後にだけproviderへ配送します。詳細とrollbackは [decision-record.md](scripts/codex-notification-runtime/decision-record.md)、実機確認状況は [manual-verification.md](scripts/codex-notification-runtime/manual-verification.md) を参照してください。
 
@@ -310,7 +310,7 @@ $adaptive-implementation-execution を使って、直前の Plan を実装して
 
 `pr-review-remediation` packageはレビュー計画だけを目的としません。PRを成立させ、review findingsを統合し、その指摘を既存Adaptive Implementationで実装・検証するレビュー反映processです。入口は、目的reviewを行わない基礎版`$pr-review-remediation`と、Goal Contextを必須にする`$goal-context-pr-review`に分かれます。
 
-processは二つの独立した親ターンに分かれます。
+processはreviewとimplementationの二つの独立したrole taskに分かれます。同じPRでは各taskを維持し、工程ごとにそのtaskの新しい明示親ターンを開始します。
 
 ```text
 Phase 1: branch/commit/push/ready PR
@@ -320,7 +320,7 @@ Phase 1: branch/commit/push/ready PR
   -> review-plan.md / READY_FOR_ADAPTIVE_IMPLEMENTATION
   -> parent turn stops
 
-Phase 2: explicit new parent turn
+Phase 2: resume the PR Implementation Thread for an explicit new parent turn
   -> adaptive-implementation-execution
   -> implementation and validation
 ```
@@ -344,7 +344,7 @@ $pr-review-remediation を使って、このbranchのPRをレビュー反映プ�
 review-plan.mdを作成したところで親ターンを停止してください。
 ```
 
-明示multi-roundではround 1だけが上記full reviewです。round 2以降はcollectorを`--no-wait-for-copilot`で使ってidentityとpatchを更新し、`purpose-reviewer`と`review-planner`だけを実行します。remote review/comment/checkは監査用`noAction`として保持し、local-reviewerとCopilotレビュー待機は繰り返しません。
+明示multi-roundではround 1だけが上記full reviewです。round 2以降は同じReview Threadを再開し、collectorを`--no-wait-for-copilot`で使ってidentityとpatchを更新し、`purpose-reviewer`と`review-planner`だけを実行します。修正は同じImplementation Threadを再開します。remote review/comment/checkは監査用`noAction`として保持し、local-reviewerとCopilotレビュー待機は繰り返しません。review／implementation間の自動起動は行いません。
 
 Goal Context対応版を通知付きで起動する例:
 
@@ -356,7 +356,7 @@ $goal-context-pr-review
 local-reviewerとpurpose-reviewerを独立に実行し、統合review-plan.mdを作成したところで停止してください。
 ```
 
-Goal Contextが欠落・不正・複数候補で曖昧な場合、Issue本文だけで目的review済みとは扱いません。Goal Contextを修正・選択するか、利用者が基礎版を明示選択します。軽量開発、Plan Coverage、Design PairのいずれでPRを作った場合も、同じ通知付きGoal Context reviewと別親ターンのAdaptiveへ進みます。
+Goal Contextが欠落・不正・複数候補で曖昧な場合、Issue本文だけで目的review済みとは扱いません。Goal Contextを修正・選択するか、利用者が基礎版を明示選択します。軽量開発、Plan Coverage、Design PairのいずれでPRを作った場合も、同じ通知付きGoal Context Review Threadと、別roleのImplementation Thread内の明示Adaptive turnへ進みます。
 
 Phase 2起動例:
 
@@ -364,7 +364,7 @@ Phase 2起動例:
 $completion-notification-decorator
 $adaptive-implementation-execution
 
-.review/pr-123/review-plan.md を実装してください。
+<cycle-root>/round-NNN/review-plan.md を実装してください。
 ```
 
 詳細は`apm-packages/pr-review-remediation/README.md`を参照してください。
@@ -383,7 +383,7 @@ pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remedia
 
 `-DescribePayload`は外部modelへ送信せず対象一覧だけを表示します。内容を確認して送信を明示承認した場合だけ、`-ConfirmExternalModelPayload`で実model smokeを実行します。
 
-Goal Context対応版を本物のmodelで確認する場合は、検証対象のprocess PR自身ではなくdisposable target repositoryの小さなPRを使います。Codex Appがtarget選定、synthetic fixture作成、PR head SHA固定の導入、artifact検証を行い、人がGitHub変更、model送信、通知runtime、別親タスクの開始を承認します。round 1 full review、別親タスクのAdaptive、round 2以降のpurpose-only review、terminal時だけのdirect-link通知までの手順と証拠様式は`tests/pr-review-remediation/manual-model-smoke/README.md`を参照してください。
+Goal Context対応版を本物のmodelで確認する場合は、検証対象のprocess PR自身ではなくdisposable target repositoryの小さなPRを使います。Codex Appがtarget選定、synthetic fixture作成、PR head SHA固定の導入、artifact検証を行い、人がGitHub変更、model送信、通知runtime、Review／Implementation role taskの明示ターンを承認します。round 1 full review、同じImplementation ThreadでのAdaptive、同じReview Threadでのround 2以降のpurpose-only review、terminal時だけのdirect-link通知までの手順と証拠様式は`tests/pr-review-remediation/manual-model-smoke/README.md`を参照してください。
 
 固定実行証跡は`tests/pr-review-remediation/PRR-001/`、外部modelを呼ばないGoal Context contract replayは`PRR-002/`、multi-round state replayは`PRR-003/`に保存します。remote APM導入はAPM 0.26.0で次のように再現でき、CIではpull requestのfull head SHAまたはpushの`github.sha`を指定して検証対象を固定します。
 

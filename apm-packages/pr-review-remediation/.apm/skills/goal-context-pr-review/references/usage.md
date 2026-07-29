@@ -24,18 +24,20 @@ owner/repository#123をGoal Context multi-round modeのround 1としてレビュ
 cycleは.review/pr-123/review-cycle.json、artifactはround-001へ保存し、通知後に停止してください。
 ```
 
-修正は従来と同じく別親ターンのAdaptiveで実行します。その完了後、さらに別の親ターンで次roundを開始します。
+通常運用ではPRごとにReview ThreadとImplementation Threadを一つずつ用意します。修正は同じImplementation Threadを再開した新しい明示ターンで実行し、その完了後は同じReview Threadへ戻って次roundを新しい明示ターンとして開始します。工程間の自動起動は行いません。
+
+round 1の`start`へ`--review-thread-id`と、既存実装taskがある場合は`--implementation-thread-id`を渡します。実装taskがまだない場合は、actionable planの`complete`前に`bind-thread --thread-role implementation`で登録します。threadを失った場合は`rebind-thread`へ新ID、理由、承認者、timezone付き時刻を渡し、旧bindingを履歴へ残します。異なるtaskでのcold-startは`--thread-mode portable-handoff`と同じ承認情報を明示した場合だけ許可します。
 
 ```text
 $completion-notification-decorator
 $goal-context-pr-review
 
 owner/repository#123のGoal Context multi-round review round 2を開始してください。
-前roundのAdaptive resultは<path-or-uri>です。最新headを収集し、round-002へ保存して通知後に停止してください。
+このTaskはround 1と同じReview Threadです。前roundのAdaptive resultは<path-or-uri>、実行したImplementation Thread IDは<task-id>です。最新headを収集し、round-002へ保存して通知後に停止してください。
 このroundはpurpose-onlyです。Copilotレビューを開始・待機せず、local-reviewerも実行しないでください。
 ```
 
-同じheadの再review、前Adaptive resultなしのround 2以降、過去round directoryの再利用は拒否します。`HUMAN_DECISION_REQUIRED`では実行可能planとAdaptive handoffを出しません。利用者が継続を選んだ場合、別の明示工程で承認plan候補を作り、`manage-review-cycle.cs resolve`へdecision ID、resolution、承認者、承認時刻、候補pathを渡します。`resolve`が`round-NNN/approved-review-plan.md`を保存して`APPROVED_FOR_ADAPTIVE_IMPLEMENTATION`を返した後だけ、別親ターンでAdaptiveを開始します。既定上限は3です。第3roundから継続する`resolve`には、利用者のidentity、承認時刻、理由、新しい上限もCLI overrideへ明示します。
+同じheadの再review、前Adaptive resultなしのround 2以降、固定role threadと異なるtask、過去round directoryの再利用は拒否します。`HUMAN_DECISION_REQUIRED`では実行可能planとAdaptive handoffを出しません。利用者が継続を選んだ場合、別の明示工程で承認plan候補を作り、`manage-review-cycle.cs resolve`へdecision ID、resolution、承認者、承認時刻、候補pathを渡します。`resolve`が`round-NNN/approved-review-plan.md`を保存して`APPROVED_FOR_ADAPTIVE_IMPLEMENTATION`を返した後だけ、同じImplementation Threadの新しいターンでAdaptiveを開始します。既定上限は3です。第3roundから継続する`resolve`には、利用者のidentity、承認時刻、理由、新しい上限もCLI overrideへ明示します。
 
 ```powershell
 dotnet run --file scripts/manage-review-cycle.cs -- resolve `
@@ -51,13 +53,13 @@ round 2以降のcollectorは`--no-wait-for-copilot`を使用します。snapshot
 
 ## Phase 2 with notification
 
-利用者が通知から対象へ戻り、別の親ターンで開始します。
+利用者が通知から対象へ戻り、固定Implementation Threadを再開して新しい親ターンを開始します。review planのpath/hashを正本としつつ、そのImplementation Threadに残る探索・設計コンテキストを利用できます。
 
 ```text
 $completion-notification-decorator
 $adaptive-implementation-execution
 
-.review/pr-123/review-plan.mdを実装してください。
+<cycle-root>/round-NNN/review-plan.mdを実装してください。
 implementation_intentをsource of truthとし、Goal Context Boundaryを保持してください。
 ```
 

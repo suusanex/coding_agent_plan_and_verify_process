@@ -30,6 +30,8 @@ $adaptive-implementation-execution
 
 The primary process runs under its existing contract. The decorator copies its terminal status into a version 1 envelope at the end of the final response. Notification delivery failure does not change that status.
 
+The Windows provider shows `結果を開く` and `このタスクを開く` together when a concrete `result_uri` is present. The latter always uses the callback task ID derived by the runtime. The decorator does not select or start another review or implementation task.
+
 See [usage guide](docs/usage-guide.md) and [integration validation](docs/examples/integration-validation.md).
 
 ## Validate

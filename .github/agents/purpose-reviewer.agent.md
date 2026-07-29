@@ -32,6 +32,8 @@ Goal Contextが欠落する、selection statusが`SELECTED`でない、文書pat
 
 Goal Context multi-roundのround 2以降は`purpose-only` modeです。前roundのreview plan、finding ledger、Adaptive result referenceを追加で読み、前roundまでの全active tracking IDについて、現在patch上の証拠から`persistent | resolved`を評価してください。新しい一般コード品質reviewは行わず、新規またはreopened findingは目的達成上必要な`PUR-*`だけに限定します。collectorに残るCopilot、connector、人間review/comment/checkは監査入力であり、それ自体からfindingを追加しません。
 
+multi-roundの親Review Threadは同じPR内で再開されますが、このagent自身の子task継続は前提にしません。会話上の記憶とartifactが矛盾する場合は、現在roundのidentity、patch、Goal Context、finding ledger、Adaptive result referenceを正本としてください。
+
 ## Review boundary
 
 - Original problemが解消されるかを、実装mechanismの有無ではなく利用者の困りごとで評価する。

@@ -5,6 +5,7 @@ $ErrorActionPreference = 'Stop'
 $packageRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $repositoryRoot = (Resolve-Path (Join-Path $packageRoot '..\..')).Path
 $runtimeSource = Join-Path $repositoryRoot 'scripts/codex-notification-runtime/codex-notification-runtime.cs'
+$providerSource = Join-Path $repositoryRoot 'scripts/codex-notification-runtime/windows-app-notification-provider.cs'
 $runtimeInstaller = Join-Path $repositoryRoot 'scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs'
 $envelopeSchema = Join-Path $repositoryRoot 'scripts/codex-notification-runtime/completion-notification-envelope-v1.schema.json'
 $fakeProvider = Join-Path $repositoryRoot 'scripts/codex-notification-runtime/tests/fake-notification-command.ps1'
@@ -113,6 +114,11 @@ Assert-Contains $skillPath 'append exactly one `completion-notification` fenced 
 Assert-Contains $skillPath 'omit the envelope' 'fallback authoring rule'
 Assert-Contains $openAiPath 'allow_implicit_invocation: false' 'explicit-only invocation policy'
 Assert-Contains $contractPath 'The runtime generates `resume_uri`' 'runtime-owned resume link rule'
+Assert-Contains $contractPath 'both a result action and a current-task action' 'dual notification action rule'
+Assert-Contains (Join-Path $packageRoot 'docs/usage-guide.md') '`結果を開く` opens that resource and `このタスクを開く` opens the callback''s Codex task' 'Windows dual-button usage'
+Assert-Contains $providerSource 'new ButtonSpec("結果を開く"' 'result action button'
+Assert-Contains $providerSource 'new ButtonSpec("このタスクを開く"' 'current task action button'
+Assert-Contains $providerSource 'BuildButtons(completion)' 'dual-button delivery helper'
 
 $skillText = if (Test-Path $skillPath) { Get-Content -Raw $skillPath } else { '' }
 $frontmatter = [regex]::Match($skillText, '\A---\r?\n(?<body>.*?)\r?\n---', [Text.RegularExpressions.RegexOptions]::Singleline)
@@ -134,6 +140,7 @@ if ($customAgents) {
 }
 
 if (-not (Test-Path -LiteralPath $runtimeSource -PathType Leaf) -or
+    -not (Test-Path -LiteralPath $providerSource -PathType Leaf) -or
     -not (Test-Path -LiteralPath $runtimeInstaller -PathType Leaf) -or
     -not (Test-Path -LiteralPath $envelopeSchema -PathType Leaf)) {
     Add-Failure 'Canonical notification runtime assets are not resolvable from the repository root.'

@@ -21,7 +21,7 @@ Windows providerは副作用なしのself-testでWindows App SDKを初期化し�
 
 - Codex callback: `agent-turn-complete`、`thread-id`、`turn-id`、`cwd`、`input-messages`、`last-assistant-message`。
 - resume URI: `codex://threads/<thread-id>`をruntimeで生成する。
-- result URI: userinfoなしのHTTPSかつ具体的resource pathを持つものだけを許可する。host rootとGitHubのトップ・ownerトップ・repositoryトップは拒否し、resume URIへfallbackする。
+- result URI: userinfoなしのHTTPSかつ具体的resource pathを持つものだけを許可する。host rootとGitHubのトップ・ownerトップ・repositoryトップは拒否する。有効なresult URIがある場合、Windows providerは「結果を開く」と「このタスクを開く」の両ボタンを表示し、resume URIを置き換えない。
 - `completion-notification` fenced blockのJSONはauthoring envelopeであり、runtime eventは`notification_status`を追加して配送する。
 - input内のliteral marker `[completion-notification]`または明示Skill選択token `$completion-notification-decorator`はtarget declarationとして使う。ただしproviderへ配送するのは有効なterminal envelopeがあるcallbackだけとする。markerだけのcallbackは`awaiting-terminal-envelope`、不正なenvelopeは`invalid-envelope`としてlogへ記録し、`TURN_ENDED` fallbackは生成しない。installerの`--target-marker`を明示した場合は、指定したmarker群へ置き換える。
 
@@ -34,6 +34,6 @@ Windows providerは副作用なしのself-testでWindows App SDKを初期化し�
 
 ## Human verification required
 
-one-off `codex exec -c notify=...`でterminal notificationを表示し、`result_uri`ボタンが対象PRを、`resume_uri`ボタンがcallback発火元のCodex threadを直接開くことを2026-07-26に実機確認した。marker-only callbackの抑止とterminal envelope後の一意配送は更新後のmanual smokeで再確認する。
+one-off `codex exec -c notify=...`でterminal notificationを表示し、`result_uri`ボタンが対象PRを、`resume_uri`ボタンがcallback発火元のCodex threadを直接開くことを2026-07-26に実機確認した。両ボタンの同時表示、marker-only callbackの抑止、terminal envelope後の一意配送は更新後のmanual smokeで再確認する。
 
 実施状況は`manual-verification.md`へ、message本文・完全URI・識別子を含めずに記録する。

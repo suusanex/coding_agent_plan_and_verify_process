@@ -39,6 +39,8 @@ try
         "start" => ReviewCycleManager.Start(options),
         "complete" => ReviewCycleManager.Complete(options),
         "resolve" => ReviewCycleManager.Resolve(options),
+        "bind-thread" => ReviewCycleManager.BindThread(options, rebind: false),
+        "rebind-thread" => ReviewCycleManager.BindThread(options, rebind: true),
         "validate" => ReviewCycleManager.Validate(options),
         _ => throw new ContractException($"Unknown command: {options.Command}")
     };
@@ -80,10 +82,16 @@ static void ShowUsage()
 {
     Console.WriteLine("""
 Usage:
-  dotnet run --file scripts/manage-review-cycle.cs -- start --cycle <path> --repository owner/name --pr <number> --goal-context-path <path> --goal-context-sha <sha256> --base-oid <oid> --head-oid <oid> --started-at <ISO-8601> [--adaptive-result-reference <path-or-uri>] [--format json|text]
+  dotnet run --file scripts/manage-review-cycle.cs -- start --cycle <path> --repository owner/name --pr <number> --goal-context-path <path> --goal-context-sha <sha256> --base-oid <oid> --head-oid <oid> --started-at <ISO-8601> --review-thread-id <task-id> [--implementation-thread-id <task-id>] [--adaptive-result-reference <path-or-uri> --adaptive-thread-id <task-id>] [thread mode options] [--format json|text]
   dotnet run --file scripts/manage-review-cycle.cs -- complete --cycle <path> --round-result <path> [--format json|text]
   dotnet run --file scripts/manage-review-cycle.cs -- resolve --cycle <path> --resolve-decision <decision-id> --decision-resolution <text> --decision-approved-by <identity> --decision-approved-at <ISO-8601> --approved-plan <path> [override options] [--format json|text]
+  dotnet run --file scripts/manage-review-cycle.cs -- bind-thread --cycle <path> --thread-role implementation --new-thread-id <task-id> --thread-change-reason <text> --thread-change-approved-by <identity> --thread-change-approved-at <ISO-8601> [--format json|text]
+  dotnet run --file scripts/manage-review-cycle.cs -- rebind-thread --cycle <path> --thread-role review|implementation --new-thread-id <task-id> --thread-change-reason <text> --thread-change-approved-by <identity> --thread-change-approved-at <ISO-8601> [--format json|text]
   dotnet run --file scripts/manage-review-cycle.cs -- validate --cycle <path> [--format json|text]
+
+Thread mode options (new cycle only):
+  --thread-mode role-thread-reuse
+  --thread-mode portable-handoff --portable-reason <text> --portable-approved-by <identity> --portable-approved-at <ISO-8601>
 
 Override options (all required together):
   --override-maximum-rounds <number>
@@ -100,6 +108,8 @@ Decision resolution (all required by resolve after HUMAN_DECISION_REQUIRED):
 
 Rules:
   The default maximum is 3 rounds. A fourth or later round requires a recorded human override.
+  role-thread-reuse is the default. Review rounds reuse one Review Thread and remediations reuse a distinct Implementation Thread.
+  portable-handoff is an explicitly approved recovery or portability path, never an implicit fallback.
   HUMAN_DECISION_REQUIRED never carries an executable Adaptive plan. Resolve records approval and copies a validated plan before Adaptive may run.
   Every round targets a new PR head OID and writes to a new round-NNN directory.
   This utility manages evidence only. It never starts review agents, Adaptive Implementation, or another round.
@@ -114,6 +124,10 @@ static class ReviewCycleManager
     private const int LegacySchemaVersion = 1;
     private const string FullReviewMode = "full";
     private const string PurposeOnlyReviewMode = "purpose-only";
+    private const string RoleThreadReuseMode = "role-thread-reuse";
+    private const string PortableHandoffMode = "portable-handoff";
+    private const string ReviewThreadRole = "review";
+    private const string ImplementationThreadRole = "implementation";
     private const int DefaultMaximumRounds = 3;
     private static readonly HashSet<string> FindingStates = new(StringComparer.Ordinal)
     {
@@ -152,9 +166,37 @@ static class ReviewCycleManager
             Equal("pull request", cycle.PullRequest, options.PullRequest);
             Equal("Goal Context path", cycle.GoalContext.Path, NormalizeSlash(options.GoalContextPath!));
             Equal("Goal Context SHA-256", cycle.GoalContext.NormalizedSha256, options.GoalContextSha!);
+            if (!string.IsNullOrWhiteSpace(options.ThreadMode)) Equal("thread mode", cycle.ThreadMode, options.ThreadMode);
         }
         else
         {
+            var threadMode = string.IsNullOrWhiteSpace(options.ThreadMode) ? RoleThreadReuseMode : options.ThreadMode;
+            if (threadMode is not (RoleThreadReuseMode or PortableHandoffMode))
+            {
+                throw new ContractException("thread-mode must be role-thread-reuse or portable-handoff.");
+            }
+            var reviewBinding = NewThreadBinding(ReviewThreadRole, options.ReviewThreadId!, 1);
+            ThreadBinding? implementationBinding = null;
+            if (!string.IsNullOrWhiteSpace(options.ImplementationThreadId))
+            {
+                implementationBinding = NewThreadBinding(ImplementationThreadRole, options.ImplementationThreadId!, 1);
+                EnsureDistinctRoleThreads(reviewBinding.ThreadId, implementationBinding.ThreadId);
+            }
+            PortableHandoffApproval? portableApproval = null;
+            if (threadMode == PortableHandoffMode)
+            {
+                RequirePortableApproval(options);
+                portableApproval = new PortableHandoffApproval
+                {
+                    Reason = options.PortableReason!,
+                    ApprovedBy = options.PortableApprovedBy!,
+                    ApprovedAt = ParseTimestamp(options.PortableApprovedAt!, "portable-approved-at").ToString("O")
+                };
+            }
+            else
+            {
+                RejectPortableApproval(options);
+            }
             cycle = new ReviewCycle
             {
                 SchemaVersion = SchemaVersion,
@@ -167,7 +209,13 @@ static class ReviewCycleManager
                 },
                 DefaultMaximumRounds = DefaultMaximumRounds,
                 EffectiveMaximumRounds = DefaultMaximumRounds,
-                Status = "NOT_STARTED"
+                Status = "NOT_STARTED",
+                ThreadMode = threadMode,
+                RoleThreads = new RoleThreads { Review = reviewBinding, Implementation = implementationBinding },
+                PortableHandoffApproval = portableApproval,
+                ThreadBindingHistory = implementationBinding is null
+                    ? [NewInitialThreadHistory(ReviewThreadRole, reviewBinding)]
+                    : [NewInitialThreadHistory(ReviewThreadRole, reviewBinding), NewInitialThreadHistory(ImplementationThreadRole, implementationBinding)]
             };
         }
 
@@ -185,15 +233,24 @@ static class ReviewCycleManager
             {
                 throw new ContractException("Round 2 or later requires --adaptive-result-reference from the separately completed Adaptive turn.");
             }
+            if (string.IsNullOrWhiteSpace(options.AdaptiveThreadId))
+            {
+                throw new ContractException("Round 2 or later requires --adaptive-thread-id identifying the explicit Implementation Thread turn.");
+            }
         }
         else if (!string.IsNullOrWhiteSpace(options.AdaptiveResultReference))
         {
             throw new ContractException("Round 1 cannot declare a previous Adaptive result reference.");
         }
+        else if (!string.IsNullOrWhiteSpace(options.AdaptiveThreadId))
+        {
+            throw new ContractException("Round 1 cannot declare a previous Adaptive thread ID.");
+        }
         else
         {
             RejectStartOnlyHumanOptions(options);
         }
+        ValidateStartThreadIdentity(cycle, options, nextRound);
         if (nextRound > cycle.EffectiveMaximumRounds)
         {
             throw new ContractException($"Round {nextRound} exceeds effective maximum {cycle.EffectiveMaximumRounds}; a complete human override is required.");
@@ -236,7 +293,9 @@ static class ReviewCycleManager
             PreviousRound = nextRound == 1 ? null : nextRound - 1,
             StartedAt = startedAt.ToString("O"),
             Status = "IN_PROGRESS",
-            AdaptiveResultReference = EmptyToNull(options.AdaptiveResultReference)
+            AdaptiveResultReference = EmptyToNull(options.AdaptiveResultReference),
+            ReviewThreadId = options.ReviewThreadId!,
+            AdaptiveThreadId = EmptyToNull(options.AdaptiveThreadId)
         };
 
         Directory.CreateDirectory(roundDirectory);
@@ -398,7 +457,7 @@ static class ReviewCycleManager
             Verdict = "APPROVED_FOR_ADAPTIVE_IMPLEMENTATION",
             FindingDelta = round.FindingDelta,
             SourceCoverage = round.SourceCoverage
-        }, candidatePath, canonicalPlanReference);
+        }, candidatePath, canonicalPlanReference, nextRound);
 
         decision.Status = "RESOLVED";
         decision.Resolution = options.DecisionResolution;
@@ -425,6 +484,64 @@ static class ReviewCycleManager
         return new CommandOutput(1, "PASS", round.RoundNumber, "APPROVED_FOR_ADAPTIVE_IMPLEMENTATION", round.ArtifactDirectory, []);
     }
 
+    public static CommandOutput BindThread(Options options, bool rebind)
+    {
+        RequireThreadChangeArguments(options);
+        var requestedCyclePath = Path.GetFullPath(options.CyclePath!);
+        var requestedCycleRoot = Path.GetDirectoryName(requestedCyclePath) ?? throw new ContractException("Cycle path has no parent directory.");
+        var cyclePath = Contained(requestedCycleRoot, Path.GetFileName(requestedCyclePath));
+        var cycle = ReadCycle(cyclePath);
+        RejectLegacyMutation(cycle, rebind ? "rebind-thread" : "bind-thread");
+        ValidateCycle(cyclePath, cycle, requireCompletedCurrentRound: false);
+        if (cycle.ThreadMode != RoleThreadReuseMode)
+        {
+            throw new ContractException("bind-thread and rebind-thread apply only to role-thread-reuse cycles; portable-handoff records per-round task identity instead.");
+        }
+
+        var role = options.ThreadRole!;
+        var current = ThreadForRole(cycle, role);
+        if (rebind && current is null) throw new ContractException($"Cannot rebind an unbound {role} thread; use bind-thread first.");
+        if (!rebind && current is not null) throw new ContractException($"{role} thread is already bound; use rebind-thread with explicit approval.");
+        if (!rebind && role != ImplementationThreadRole)
+        {
+            throw new ContractException("Only the initially absent implementation thread can be registered with bind-thread.");
+        }
+        if (rebind && cycle.Rounds.LastOrDefault()?.Status == "IN_PROGRESS")
+        {
+            throw new ContractException("A role thread cannot be rebound while a review round is in progress.");
+        }
+
+        var newThreadId = RequireThreadId(options.NewThreadId!, "new-thread-id");
+        var counterpart = ThreadForRole(cycle, role == ReviewThreadRole ? ImplementationThreadRole : ReviewThreadRole);
+        if (counterpart is not null) EnsureDistinctRoleThreads(newThreadId, counterpart.ThreadId);
+        if (current is not null && string.Equals(current.ThreadId, newThreadId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ContractException($"The new {role} thread ID is already the active binding.");
+        }
+        var approvedAt = ParseTimestamp(options.ThreadChangeApprovedAt!, "thread-change-approved-at");
+        var effectiveFromRound = cycle.Rounds.LastOrDefault()?.Status == "IN_PROGRESS"
+            ? cycle.Rounds[^1].RoundNumber
+            : cycle.Rounds.Count + 1;
+        var binding = NewThreadBinding(role, newThreadId, Math.Max(1, effectiveFromRound));
+        SetThreadForRole(cycle, role, binding);
+        cycle.ThreadBindingHistory.Add(new ThreadBindingHistoryEntry
+        {
+            Operation = rebind ? "rebind" : "bind",
+            Role = role,
+            PreviousThreadId = current?.ThreadId,
+            NewThreadId = binding.ThreadId,
+            ResumeUri = binding.ResumeUri,
+            EffectiveFromRound = binding.EffectiveFromRound,
+            Reason = options.ThreadChangeReason!,
+            ApprovedBy = options.ThreadChangeApprovedBy!,
+            ApprovedAt = approvedAt.ToString("O")
+        });
+        ValidateCycle(cyclePath, cycle, requireCompletedCurrentRound: false);
+        SaveCycle(cyclePath, cycle);
+        var currentRound = cycle.Rounds.LastOrDefault();
+        return new CommandOutput(1, "PASS", currentRound?.RoundNumber, currentRound?.Verdict, currentRound?.ArtifactDirectory, []);
+    }
+
     public static CommandOutput Validate(Options options)
     {
         if (string.IsNullOrWhiteSpace(options.CyclePath)) throw new ContractException("validate requires --cycle.");
@@ -448,15 +565,53 @@ static class ReviewCycleManager
         if (string.IsNullOrWhiteSpace(options.CyclePath) || string.IsNullOrWhiteSpace(options.Repository)
             || options.PullRequest <= 0 || string.IsNullOrWhiteSpace(options.GoalContextPath)
             || string.IsNullOrWhiteSpace(options.GoalContextSha) || string.IsNullOrWhiteSpace(options.BaseOid)
-            || string.IsNullOrWhiteSpace(options.HeadOid) || string.IsNullOrWhiteSpace(options.StartedAt))
+            || string.IsNullOrWhiteSpace(options.HeadOid) || string.IsNullOrWhiteSpace(options.StartedAt)
+            || string.IsNullOrWhiteSpace(options.ReviewThreadId))
         {
-            throw new ContractException("start requires cycle, repository, PR, Goal Context identity, base/head OID, and started-at.");
+            throw new ContractException("start requires cycle, repository, PR, Goal Context identity, base/head OID, started-at, and review-thread-id.");
         }
         if (!Regex.IsMatch(options.Repository, @"^[^/\s]+/[^/\s]+$")) throw new ContractException("repository must be owner/name.");
         if (!Regex.IsMatch(options.GoalContextSha, "^[0-9a-f]{64}$")) throw new ContractException("goal-context-sha must be lowercase SHA-256.");
         RequireOid(options.BaseOid, "base-oid");
         RequireOid(options.HeadOid, "head-oid");
+        RequireThreadId(options.ReviewThreadId, "review-thread-id");
+        if (!string.IsNullOrWhiteSpace(options.ImplementationThreadId)) RequireThreadId(options.ImplementationThreadId, "implementation-thread-id");
+        if (!string.IsNullOrWhiteSpace(options.AdaptiveThreadId)) RequireThreadId(options.AdaptiveThreadId, "adaptive-thread-id");
         RejectStartOnlyHumanOptions(options);
+    }
+
+    private static void RequireThreadChangeArguments(Options options)
+    {
+        if (string.IsNullOrWhiteSpace(options.CyclePath) || string.IsNullOrWhiteSpace(options.ThreadRole)
+            || string.IsNullOrWhiteSpace(options.NewThreadId) || string.IsNullOrWhiteSpace(options.ThreadChangeReason)
+            || string.IsNullOrWhiteSpace(options.ThreadChangeApprovedBy) || string.IsNullOrWhiteSpace(options.ThreadChangeApprovedAt))
+        {
+            throw new ContractException("Thread binding changes require cycle, role, new thread ID, reason, approver, and approval timestamp.");
+        }
+        if (options.ThreadRole is not (ReviewThreadRole or ImplementationThreadRole))
+        {
+            throw new ContractException("thread-role must be review or implementation.");
+        }
+        RequireThreadId(options.NewThreadId, "new-thread-id");
+        ParseTimestamp(options.ThreadChangeApprovedAt, "thread-change-approved-at");
+    }
+
+    private static void RequirePortableApproval(Options options)
+    {
+        if (string.IsNullOrWhiteSpace(options.PortableReason) || string.IsNullOrWhiteSpace(options.PortableApprovedBy)
+            || string.IsNullOrWhiteSpace(options.PortableApprovedAt))
+        {
+            throw new ContractException("portable-handoff requires portable-reason, portable-approved-by, and portable-approved-at.");
+        }
+    }
+
+    private static void RejectPortableApproval(Options options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.PortableReason) || !string.IsNullOrWhiteSpace(options.PortableApprovedBy)
+            || !string.IsNullOrWhiteSpace(options.PortableApprovedAt))
+        {
+            throw new ContractException("Portable approval fields are valid only with thread-mode portable-handoff.");
+        }
     }
 
     private static void RequireResolveArguments(Options options)
@@ -807,7 +962,7 @@ static class ReviewCycleManager
         if (!Regex.IsMatch(value, $@"/\s*{Regex.Escape(expectedOid)}$")) throw new ContractException($"Review artifact {label} does not match OID {expectedOid}.");
     }
 
-    private static void ValidateReviewPlan(ReviewCycle cycle, RoundRecord round, RoundResult result, string path, string relativePath)
+    private static void ValidateReviewPlan(ReviewCycle cycle, RoundRecord round, RoundResult result, string path, string relativePath, int? threadBindingRound = null)
     {
         var content = File.ReadAllText(path);
         Equal("review plan verdict", result.Verdict, MarkdownValue(content, "Verdict"));
@@ -872,13 +1027,34 @@ static class ReviewCycleManager
         var intentAcceptanceIds = IntentIds(acceptance, "AC", "acceptance");
         if (!acceptanceIds.SetEquals(intentAcceptanceIds)) throw new ContractException("Review plan ordered remediation and implementation_intent acceptance ID sets must match exactly.");
 
-        var handoff = MarkdownSection(content, "Separate Parent Turn Handoff");
+        var handoff = MarkdownSection(content, "Explicit Implementation Turn Handoff");
         const string adaptiveSkill = "$adaptive-" + "implementation-execution";
         if (!handoff.Contains(adaptiveSkill, StringComparison.Ordinal)
             || !handoff.Contains(NormalizeSlash(planReference), StringComparison.Ordinal)
             || !handoff.Contains("implementation_intent", StringComparison.Ordinal))
         {
-            throw new ContractException("Review plan must contain a separate-parent-turn Adaptive handoff bound to its plan_reference and implementation_intent.");
+            throw new ContractException("Review plan must contain an explicit-turn Adaptive handoff bound to its plan_reference and implementation_intent.");
+        }
+        Equal("review plan thread mode", cycle.ThreadMode, MarkdownValue(handoff, "Thread mode"));
+        if (cycle.ThreadMode == RoleThreadReuseMode)
+        {
+            var bindingRound = threadBindingRound ?? round.RoundNumber;
+            var review = BindingForRound(cycle, ReviewThreadRole, bindingRound)
+                ?? throw new ContractException("Review plan requires a bound Review Thread.");
+            var implementation = BindingForRound(cycle, ImplementationThreadRole, bindingRound)
+                ?? throw new ContractException("Review plan requires a bound Implementation Thread before completion.");
+            EnsureDistinctRoleThreads(review.ThreadId, implementation.ThreadId);
+            Equal("review plan target Implementation Thread ID", implementation.ThreadId, MarkdownValue(handoff, "Target Implementation Thread ID"));
+            Equal("review plan target Implementation Thread URI", implementation.ResumeUri, MarkdownValue(handoff, "Target Implementation Thread URI"));
+            Equal("review plan return Review Thread ID", review.ThreadId, MarkdownValue(handoff, "Return Review Thread ID"));
+            Equal("review plan return Review Thread URI", review.ResumeUri, MarkdownValue(handoff, "Return Review Thread URI"));
+        }
+        else if (cycle.ThreadMode == PortableHandoffMode)
+        {
+            if (!handoff.Contains("artifact-only cold-start", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ContractException("portable-handoff review plan must identify the artifact-only cold-start boundary.");
+            }
         }
     }
 
@@ -925,6 +1101,108 @@ static class ReviewCycleManager
     }
 
     private static string ReviewModeFor(int roundNumber) => roundNumber == 1 ? FullReviewMode : PurposeOnlyReviewMode;
+
+    private static void ValidateStartThreadIdentity(ReviewCycle cycle, Options options, int roundNumber)
+    {
+        var reviewThreadId = RequireThreadId(options.ReviewThreadId!, "review-thread-id");
+        if (cycle.ThreadMode == RoleThreadReuseMode)
+        {
+            var review = BindingForRound(cycle, ReviewThreadRole, roundNumber)
+                ?? throw new ContractException("role-thread-reuse requires a bound Review Thread.");
+            Equal("Review Thread ID", review.ThreadId, reviewThreadId);
+            if (!string.IsNullOrWhiteSpace(options.ImplementationThreadId))
+            {
+                var implementation = BindingForRound(cycle, ImplementationThreadRole, roundNumber)
+                    ?? throw new ContractException("Implementation Thread is not bound; use bind-thread before declaring it.");
+                Equal("Implementation Thread ID", implementation.ThreadId, RequireThreadId(options.ImplementationThreadId, "implementation-thread-id"));
+            }
+            if (roundNumber > 1)
+            {
+                var implementation = BindingForRound(cycle, ImplementationThreadRole, roundNumber)
+                    ?? throw new ContractException("Round 2 or later requires a bound Implementation Thread.");
+                Equal("Adaptive Implementation Thread ID", implementation.ThreadId, RequireThreadId(options.AdaptiveThreadId!, "adaptive-thread-id"));
+                EnsureDistinctRoleThreads(reviewThreadId, implementation.ThreadId);
+            }
+        }
+        else if (cycle.ThreadMode == PortableHandoffMode)
+        {
+            if (roundNumber > 1)
+            {
+                var adaptiveThreadId = RequireThreadId(options.AdaptiveThreadId!, "adaptive-thread-id");
+                EnsureDistinctRoleThreads(reviewThreadId, adaptiveThreadId);
+            }
+        }
+        else
+        {
+            throw new ContractException($"Unknown thread mode: {cycle.ThreadMode}");
+        }
+    }
+
+    private static ThreadBinding NewThreadBinding(string role, string threadId, int effectiveFromRound)
+    {
+        threadId = RequireThreadId(threadId, $"{role}-thread-id");
+        return new ThreadBinding
+        {
+            ThreadId = threadId,
+            ResumeUri = ThreadUri(threadId),
+            EffectiveFromRound = effectiveFromRound
+        };
+    }
+
+    private static ThreadBindingHistoryEntry NewInitialThreadHistory(string role, ThreadBinding binding) => new()
+    {
+        Operation = "initial",
+        Role = role,
+        PreviousThreadId = null,
+        NewThreadId = binding.ThreadId,
+        ResumeUri = binding.ResumeUri,
+        EffectiveFromRound = binding.EffectiveFromRound
+    };
+
+    private static string RequireThreadId(string value, string name)
+    {
+        if (!Guid.TryParse(value, out var parsed)) throw new ContractException($"{name} must be a Codex task UUID.");
+        return parsed.ToString();
+    }
+
+    private static string ThreadUri(string threadId) => $"codex://threads/{Uri.EscapeDataString(threadId)}";
+
+    private static void EnsureDistinctRoleThreads(string reviewThreadId, string implementationThreadId)
+    {
+        if (string.Equals(reviewThreadId, implementationThreadId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ContractException("Review Thread and Implementation Thread must be different Codex tasks.");
+        }
+    }
+
+    private static ThreadBinding? ThreadForRole(ReviewCycle cycle, string role) => role switch
+    {
+        ReviewThreadRole => cycle.RoleThreads.Review,
+        ImplementationThreadRole => cycle.RoleThreads.Implementation,
+        _ => throw new ContractException($"Unknown thread role: {role}")
+    };
+
+    private static void SetThreadForRole(ReviewCycle cycle, string role, ThreadBinding binding)
+    {
+        if (role == ReviewThreadRole) cycle.RoleThreads.Review = binding;
+        else if (role == ImplementationThreadRole) cycle.RoleThreads.Implementation = binding;
+        else throw new ContractException($"Unknown thread role: {role}");
+    }
+
+    private static ThreadBinding? BindingForRound(ReviewCycle cycle, string role, int roundNumber)
+    {
+        var history = cycle.ThreadBindingHistory
+            .Where(item => item.Role == role && item.EffectiveFromRound <= roundNumber)
+            .OrderBy(item => item.EffectiveFromRound)
+            .ThenBy(item => item.Operation == "initial" ? 0 : 1)
+            .LastOrDefault();
+        return history is null ? null : new ThreadBinding
+        {
+            ThreadId = history.NewThreadId,
+            ResumeUri = history.ResumeUri,
+            EffectiveFromRound = history.EffectiveFromRound
+        };
+    }
 
     private static void RejectLegacyMutation(ReviewCycle cycle, string operation)
     {
@@ -1007,6 +1285,94 @@ static class ReviewCycleManager
                 Equal($"legacy artifact hash {artifact.Role}", artifact.NormalizedSha256, Hash(path));
             }
         }
+    }
+
+    private static void ValidateThreadContract(ReviewCycle cycle)
+    {
+        if (cycle.ThreadMode is not (RoleThreadReuseMode or PortableHandoffMode))
+        {
+            throw new ContractException("Cycle threadMode must be role-thread-reuse or portable-handoff.");
+        }
+        if (cycle.RoleThreads.Review is null) throw new ContractException("Cycle requires a Review Thread binding.");
+        ValidateThreadBinding(cycle.RoleThreads.Review, "active Review Thread");
+        if (cycle.RoleThreads.Implementation is not null)
+        {
+            ValidateThreadBinding(cycle.RoleThreads.Implementation, "active Implementation Thread");
+            EnsureDistinctRoleThreads(cycle.RoleThreads.Review.ThreadId, cycle.RoleThreads.Implementation.ThreadId);
+        }
+        if (cycle.ThreadMode == PortableHandoffMode)
+        {
+            if (cycle.PortableHandoffApproval is null || string.IsNullOrWhiteSpace(cycle.PortableHandoffApproval.Reason)
+                || string.IsNullOrWhiteSpace(cycle.PortableHandoffApproval.ApprovedBy))
+            {
+                throw new ContractException("portable-handoff cycle requires durable human approval evidence.");
+            }
+            ParseTimestamp(cycle.PortableHandoffApproval.ApprovedAt, "portable handoff approvedAt");
+        }
+        else if (cycle.PortableHandoffApproval is not null)
+        {
+            throw new ContractException("role-thread-reuse cycle must not contain portable handoff approval evidence.");
+        }
+
+        foreach (var role in new[] { ReviewThreadRole, ImplementationThreadRole })
+        {
+            var entries = cycle.ThreadBindingHistory.Where(item => item.Role == role).ToList();
+            if (role == ReviewThreadRole && entries.Count == 0) throw new ContractException("Review Thread binding history is missing.");
+            string? previous = null;
+            var priorEffectiveRound = 0;
+            for (var index = 0; index < entries.Count; index++)
+            {
+                var entry = entries[index];
+                if (entry.Operation is not ("initial" or "bind" or "rebind")) throw new ContractException($"Invalid {role} thread binding operation: {entry.Operation}");
+                var newThreadId = RequireThreadId(entry.NewThreadId, $"{role} thread history newThreadId");
+                Equal($"{role} thread history resume URI", ThreadUri(newThreadId), entry.ResumeUri);
+                if (entry.EffectiveFromRound <= 0 || entry.EffectiveFromRound < priorEffectiveRound)
+                {
+                    throw new ContractException($"{role} thread binding history has an invalid effective round.");
+                }
+                if (index == 0)
+                {
+                    if (entry.Operation == "rebind" || entry.PreviousThreadId is not null)
+                    {
+                        throw new ContractException($"First {role} thread binding cannot be a rebind or have a previous thread.");
+                    }
+                }
+                else
+                {
+                    if (entry.Operation != "rebind") throw new ContractException($"Later {role} thread binding entries must be rebind operations.");
+                    Equal($"{role} thread binding previous ID", previous, entry.PreviousThreadId);
+                }
+                if (entry.Operation != "initial")
+                {
+                    if (string.IsNullOrWhiteSpace(entry.Reason) || string.IsNullOrWhiteSpace(entry.ApprovedBy))
+                    {
+                        throw new ContractException($"{role} thread {entry.Operation} requires reason and approver.");
+                    }
+                    ParseTimestamp(entry.ApprovedAt ?? string.Empty, $"{role} thread {entry.Operation} approvedAt");
+                }
+                previous = newThreadId;
+                priorEffectiveRound = entry.EffectiveFromRound;
+            }
+            var active = ThreadForRole(cycle, role);
+            if (active is not null)
+            {
+                if (entries.Count == 0) throw new ContractException($"Active {role} thread has no binding history.");
+                Equal($"active {role} thread ID", entries[^1].NewThreadId, active.ThreadId);
+                Equal($"active {role} thread resume URI", entries[^1].ResumeUri, active.ResumeUri);
+                Equal($"active {role} thread effective round", entries[^1].EffectiveFromRound, active.EffectiveFromRound);
+            }
+            else if (entries.Count != 0)
+            {
+                throw new ContractException($"{role} thread binding history exists without an active binding.");
+            }
+        }
+    }
+
+    private static void ValidateThreadBinding(ThreadBinding binding, string context)
+    {
+        var threadId = RequireThreadId(binding.ThreadId, context);
+        Equal($"{context} resume URI", ThreadUri(threadId), binding.ResumeUri);
+        if (binding.EffectiveFromRound <= 0) throw new ContractException($"{context} effectiveFromRound must be positive.");
     }
 
     private static JsonElement RequiredObject(JsonElement parent, string property, string context)
@@ -1272,6 +1638,7 @@ static class ReviewCycleManager
         if (cycle.DefaultMaximumRounds != DefaultMaximumRounds) throw new ContractException("defaultMaximumRounds must be 3.");
         if (cycle.EffectiveMaximumRounds < DefaultMaximumRounds) throw new ContractException("effectiveMaximumRounds cannot be below 3.");
         if (cycle.CurrentRound != cycle.Rounds.Count) throw new ContractException("currentRound must equal the number of round records.");
+        ValidateThreadContract(cycle);
         ValidateHumanDecisions(cyclePath, cycle);
 
         var expectedEffectiveMaximum = DefaultMaximumRounds;
@@ -1310,9 +1677,30 @@ static class ReviewCycleManager
             Equal("previous round reference", expectedNumber == 1 ? null : expectedNumber - 1, round.PreviousRound);
             RequireOid(round.BaseOid, $"round {expectedNumber} base OID");
             RequireOid(round.HeadOid, $"round {expectedNumber} head OID");
+            var observedReviewThread = RequireThreadId(round.ReviewThreadId, $"round {expectedNumber} reviewThreadId");
+            if (cycle.ThreadMode == RoleThreadReuseMode)
+            {
+                var expectedReviewThread = BindingForRound(cycle, ReviewThreadRole, expectedNumber)
+                    ?? throw new ContractException($"Round {expectedNumber} has no effective Review Thread binding.");
+                Equal($"round {expectedNumber} Review Thread ID", expectedReviewThread.ThreadId, observedReviewThread);
+            }
             if (!heads.Add(round.HeadOid)) throw new ContractException($"Duplicate reviewed head OID in cycle: {round.HeadOid}");
-            if (expectedNumber == 1 && !string.IsNullOrWhiteSpace(round.AdaptiveResultReference)) throw new ContractException("Round 1 cannot have an Adaptive result reference.");
-            if (expectedNumber > 1 && string.IsNullOrWhiteSpace(round.AdaptiveResultReference)) throw new ContractException($"Round {expectedNumber} is missing its previous Adaptive result reference.");
+            if (expectedNumber == 1 && (!string.IsNullOrWhiteSpace(round.AdaptiveResultReference) || !string.IsNullOrWhiteSpace(round.AdaptiveThreadId)))
+            {
+                throw new ContractException("Round 1 cannot have an Adaptive result reference or Adaptive Thread ID.");
+            }
+            if (expectedNumber > 1)
+            {
+                if (string.IsNullOrWhiteSpace(round.AdaptiveResultReference)) throw new ContractException($"Round {expectedNumber} is missing its previous Adaptive result reference.");
+                var observedAdaptiveThread = RequireThreadId(round.AdaptiveThreadId ?? string.Empty, $"round {expectedNumber} adaptiveThreadId");
+                EnsureDistinctRoleThreads(observedReviewThread, observedAdaptiveThread);
+                if (cycle.ThreadMode == RoleThreadReuseMode)
+                {
+                    var expectedImplementationThread = BindingForRound(cycle, ImplementationThreadRole, expectedNumber)
+                        ?? throw new ContractException($"Round {expectedNumber} has no effective Implementation Thread binding.");
+                    Equal($"round {expectedNumber} Implementation Thread ID", expectedImplementationThread.ThreadId, observedAdaptiveThread);
+                }
+            }
             foreach (var roundOverride in cycle.Overrides.Where(item => item.StartingRound == expectedNumber)) maximumAtRound = roundOverride.MaximumRounds;
             if (expectedNumber > maximumAtRound) throw new ContractException($"Round {expectedNumber} lacks a human override permitting it.");
             var directory = Contained(cycleRoot, round.ArtifactDirectory);
@@ -1452,7 +1840,7 @@ static class ReviewCycleManager
                     Verdict = "APPROVED_FOR_ADAPTIVE_IMPLEMENTATION",
                     FindingDelta = round.FindingDelta,
                     SourceCoverage = round.SourceCoverage
-                }, approvedPlanPath, decision.ApprovedPlanReference);
+                }, approvedPlanPath, decision.ApprovedPlanReference, decision.ResolvedForRound);
                 var nextRound = cycle.Rounds.SingleOrDefault(item => item.RoundNumber == decision.ResolvedForRound);
                 if (nextRound is null && cycle.Rounds.Count > decision.RoundNumber)
                 {
@@ -1691,6 +2079,18 @@ sealed class Options
     public string? HeadOid { get; private set; }
     public string? StartedAt { get; private set; }
     public string? AdaptiveResultReference { get; private set; }
+    public string? ThreadMode { get; private set; }
+    public string? ReviewThreadId { get; private set; }
+    public string? ImplementationThreadId { get; private set; }
+    public string? AdaptiveThreadId { get; private set; }
+    public string? PortableReason { get; private set; }
+    public string? PortableApprovedBy { get; private set; }
+    public string? PortableApprovedAt { get; private set; }
+    public string? ThreadRole { get; private set; }
+    public string? NewThreadId { get; private set; }
+    public string? ThreadChangeReason { get; private set; }
+    public string? ThreadChangeApprovedBy { get; private set; }
+    public string? ThreadChangeApprovedAt { get; private set; }
     public string? RoundResultPath { get; private set; }
     public int OverrideMaximumRounds { get; private set; }
     public string? OverrideApprovedBy { get; private set; }
@@ -1728,6 +2128,18 @@ sealed class Options
                 case "--head-oid": options.HeadOid = Value(args, ref i, "--head-oid"); break;
                 case "--started-at": options.StartedAt = Value(args, ref i, "--started-at"); break;
                 case "--adaptive-result-reference": options.AdaptiveResultReference = Value(args, ref i, "--adaptive-result-reference"); break;
+                case "--thread-mode": options.ThreadMode = Value(args, ref i, "--thread-mode"); break;
+                case "--review-thread-id": options.ReviewThreadId = Value(args, ref i, "--review-thread-id"); break;
+                case "--implementation-thread-id": options.ImplementationThreadId = Value(args, ref i, "--implementation-thread-id"); break;
+                case "--adaptive-thread-id": options.AdaptiveThreadId = Value(args, ref i, "--adaptive-thread-id"); break;
+                case "--portable-reason": options.PortableReason = Value(args, ref i, "--portable-reason"); break;
+                case "--portable-approved-by": options.PortableApprovedBy = Value(args, ref i, "--portable-approved-by"); break;
+                case "--portable-approved-at": options.PortableApprovedAt = Value(args, ref i, "--portable-approved-at"); break;
+                case "--thread-role": options.ThreadRole = Value(args, ref i, "--thread-role"); break;
+                case "--new-thread-id": options.NewThreadId = Value(args, ref i, "--new-thread-id"); break;
+                case "--thread-change-reason": options.ThreadChangeReason = Value(args, ref i, "--thread-change-reason"); break;
+                case "--thread-change-approved-by": options.ThreadChangeApprovedBy = Value(args, ref i, "--thread-change-approved-by"); break;
+                case "--thread-change-approved-at": options.ThreadChangeApprovedAt = Value(args, ref i, "--thread-change-approved-at"); break;
                 case "--round-result": options.RoundResultPath = Value(args, ref i, "--round-result"); break;
                 case "--override-maximum-rounds": options.OverrideMaximumRounds = PositiveInt(args, ref i, "--override-maximum-rounds"); break;
                 case "--override-approved-by": options.OverrideApprovedBy = Value(args, ref i, "--override-approved-by"); break;
@@ -1747,7 +2159,7 @@ sealed class Options
                 default: options.Valid = false; break;
             }
         }
-        if (options.Command is not ("start" or "complete" or "resolve" or "validate")) options.Valid = false;
+        if (options.Command is not ("start" or "complete" or "resolve" or "bind-thread" or "rebind-thread" or "validate")) options.Valid = false;
         return options;
     }
 
@@ -1788,6 +2200,10 @@ sealed class ReviewCycle
     public int EffectiveMaximumRounds { get; set; }
     public int CurrentRound { get; set; }
     public string Status { get; set; } = string.Empty;
+    public string ThreadMode { get; set; } = string.Empty;
+    public RoleThreads RoleThreads { get; set; } = new();
+    public PortableHandoffApproval? PortableHandoffApproval { get; set; }
+    public List<ThreadBindingHistoryEntry> ThreadBindingHistory { get; set; } = [];
     public List<RoundOverride> Overrides { get; set; } = [];
     public List<RoundRecord> Rounds { get; set; } = [];
     public List<FindingLedgerEntry> FindingLedger { get; set; } = [];
@@ -1798,6 +2214,39 @@ sealed class GoalContextIdentity
 {
     public string Path { get; set; } = string.Empty;
     public string NormalizedSha256 { get; set; } = string.Empty;
+}
+
+sealed class RoleThreads
+{
+    public ThreadBinding? Review { get; set; }
+    public ThreadBinding? Implementation { get; set; }
+}
+
+sealed class ThreadBinding
+{
+    public string ThreadId { get; set; } = string.Empty;
+    public string ResumeUri { get; set; } = string.Empty;
+    public int EffectiveFromRound { get; set; }
+}
+
+sealed class PortableHandoffApproval
+{
+    public string Reason { get; set; } = string.Empty;
+    public string ApprovedBy { get; set; } = string.Empty;
+    public string ApprovedAt { get; set; } = string.Empty;
+}
+
+sealed class ThreadBindingHistoryEntry
+{
+    public string Operation { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public string? PreviousThreadId { get; set; }
+    public string NewThreadId { get; set; } = string.Empty;
+    public string ResumeUri { get; set; } = string.Empty;
+    public int EffectiveFromRound { get; set; }
+    public string? Reason { get; set; }
+    public string? ApprovedBy { get; set; }
+    public string? ApprovedAt { get; set; }
 }
 
 sealed class RoundRecord
@@ -1813,6 +2262,8 @@ sealed class RoundRecord
     public string Status { get; set; } = string.Empty;
     public string? Verdict { get; set; }
     public string? AdaptiveResultReference { get; set; }
+    public string ReviewThreadId { get; set; } = string.Empty;
+    public string? AdaptiveThreadId { get; set; }
     public int ActionableFindingCount { get; set; }
     public List<ArtifactRecord> Artifacts { get; set; } = [];
     public NotificationRecord? Notification { get; set; }

@@ -45,6 +45,8 @@ Copy the terminal verdict produced by the existing flow, for example `READY_TO_C
 - `result_uri`: optional specific HTTPS resource such as a PR, review, Actions run, or artifact URL. Do not use a host, owner, or repository root.
 - `resume_uri`: never author it. The runtime derives it from the callback thread ID.
 
+On Windows, a valid `result_uri` produces two actions: `結果を開く` opens that resource and `このタスクを開く` opens the callback's Codex task. Without `result_uri`, only the task action is shown. The decorator does not choose or start a counterpart task; review and implementation handoffs carry that link explicitly.
+
 ## Fallback and failure
 
 The runtime recognizes `$completion-notification-decorator` in the original input as the target declaration. `[completion-notification]` remains available for callers that cannot preserve the Skill token.
