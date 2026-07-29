@@ -117,7 +117,7 @@ Source requirement
 | `apm-packages/pr-review-remediation` | 基礎版またはGoal Context対応版でReady PRをreviewし、local / purpose / GitHub Copilot findingsを統合して、別親ターンの既存Adaptive Implementationへ渡したい |
 | `apm-packages/adaptive-implementation-execution` | 通常 Plan Mode 後の非自明な実装を HIGH_MODEL で開始し、実コード上の decision surface が解消した場合だけ STANDARD_MODEL へ直列委譲したい |
 | `apm-packages/design-pair-implementation-execution` | 利用者が明示選択した場合だけ、実装前に code の予定変更面を対話し、explicit Locked Decisions を通常の Adaptive Implementation へ渡したい |
-| `apm-packages/goal-context-authoring` | ChatGPT 等で完了した初期検討を、元会話なしで目的達成レビューに使える human-reviewed `goal-context-*.md` へ変換したい |
+| `apm-packages/goal-context-authoring` | 設計会話や意思決定記録から、目的・判断理由・scope・acceptance evidence を自己完結した `goal-context-*.md` として作成・検証し、人間レビュー後に後続 AI の実装・目的達成レビューへ引き継ぎたい |
 | `apm-packages/codex-first-ai-development-process` | Codex を第一優先にし、短い依頼から cost-aware routing、モデル tier 分担、READY / close gate、stateful resume に入りたい |
 | `apm-packages/copilot-fallback-ai-development-process` | Codex 枠が尽きた場合などに、GitHub Copilot Chat in VS Code へ同じ思想の cost-aware process を repo-local 導入したい |
 | `apm-packages/plan-coverage-residual-flow` | operator が Plan網羅チェック・残件判定フローを直接選べる。通常利用では `plan-coverage-residual-flow` skill を入口にして既存 agent 群を進行管理したい |
@@ -224,7 +224,7 @@ dotnet run --file scripts/provision-work-repo-agents.cs -- "C:\\path\\to\\work-r
 
 ## Goal Context Authoring
 
-ChatGPT 等で完了した初期検討を、元会話へアクセスできない後続 AI が目的達成レビューに使える自己完結した Markdown へ変換します。
+設計会話や意思決定記録から、目的、利用状況、判断と理由、scope、constraints、acceptance evidence、目的上の失敗条件を抽出・構造化し、自己完結した `goal-context-*.md` を作成します。draft 検証、人間レビュー、strict 検証を経て保存し、元資料へアクセスできない後続 AI の実装および目的達成レビューへ引き継ぎます。
 
 ```text
 design conversation finalized

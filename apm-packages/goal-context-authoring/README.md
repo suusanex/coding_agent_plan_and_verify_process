@@ -1,6 +1,6 @@
 # Goal Context Authoring
 
-ChatGPT 等で完了した初期検討を、元会話へアクセスできない後続 AI が目的達成レビューに利用できる `goal-context-*.md` へ変換する APM package です。
+設計会話や意思決定記録から、目的、利用状況、判断と理由、scope、constraints、acceptance evidence、目的上の失敗条件を抽出・構造化し、自己完結した `goal-context-*.md` を作成する APM package です。draft 検証、人間レビュー、strict 検証を経て保存し、元資料へアクセスできない後続 AI の実装および目的達成レビューへ引き継ぎます。
 
 Issue の長文化や会話の時系列要約ではなく、Original problem、Desired outcome、具体的な利用状況、MVP / Non-goals / Future work、採用判断、棄却案、制約、成功シナリオ、acceptance evidence、形式上は成立しても目的上失敗する条件を自己完結して残します。
 
