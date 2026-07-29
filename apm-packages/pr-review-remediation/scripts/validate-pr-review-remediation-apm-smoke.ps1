@@ -109,7 +109,10 @@ try {
     foreach ($relative in @(
         'SKILL.md',
         'scripts/select-goal-context.cs',
+        'scripts/manage-review-cycle.cs',
         'templates/purpose-review-findings.md',
+        'templates/review-result.example.json',
+        'templates/review-round-result.example.json',
         'references/design.md',
         'references/usage.md',
         'references/troubleshooting.md'
@@ -149,6 +152,7 @@ try {
     Invoke-Native 'dotnet' @('run', '--file', $reviewHelper, '--', $scratch, '--check') 'review profile check'
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedReviewSkill 'scripts/collect-pr-review-context.cs'), '--', '--help') 'deployed relative collector help'
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedGoalReviewSkill 'scripts/select-goal-context.cs'), '--', '--help') 'deployed Goal Context selector help'
+    Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedGoalReviewSkill 'scripts/manage-review-cycle.cs'), '--', '--help') 'deployed multi-round cycle manager help'
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedGoalAuthoringSkill 'scripts/validate-goal-context.cs'), '--', '--help') 'deployed canonical Goal Context validator help'
     Invoke-Native 'dotnet' @(
         'run', '--file', (Join-Path $deployedGoalAuthoringSkill 'scripts/validate-goal-context.cs'), '--',

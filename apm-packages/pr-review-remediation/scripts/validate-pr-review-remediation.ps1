@@ -75,7 +75,10 @@ foreach ($path in @(
     'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/references/troubleshooting.md',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/SKILL.md',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/select-goal-context.cs',
+    'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/manage-review-cycle.cs',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/purpose-review-findings.md',
+    'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/review-result.example.json',
+    'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/review-round-result.example.json',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/design.md',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/usage.md',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/troubleshooting.md',
@@ -88,6 +91,7 @@ foreach ($path in @(
     'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-agent-smoke.ps1',
     'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1',
     'apm-packages/pr-review-remediation/scripts/validate-prr-002-contract.cs',
+    'apm-packages/pr-review-remediation/scripts/validate-prr-003-contract.ps1',
     'tests/pr-review-remediation/PRR-001/README.md',
     'tests/pr-review-remediation/PRR-001/run.schema.json',
     'tests/pr-review-remediation/PRR-001/fixture/.review/pr-123/review-context.json',
@@ -103,6 +107,11 @@ foreach ($path in @(
     'tests/pr-review-remediation/PRR-002/review-plan.md',
     'tests/pr-review-remediation/PRR-002/completion-notification.txt',
     'tests/pr-review-remediation/PRR-002/adaptive-turn-input.txt',
+    'tests/pr-review-remediation/PRR-003/README.md',
+    'tests/pr-review-remediation/PRR-003/scenarios.json',
+    'tests/pr-review-remediation/PRR-003/collector-snapshots/round-001-review-context.json',
+    'tests/pr-review-remediation/PRR-003/collector-snapshots/round-002-review-context.json',
+    'tests/pr-review-remediation/PRR-003/collector-snapshots/round-003-review-context.json',
     'tests/pr-review-remediation/manual-model-smoke/README.md',
     'tests/pr-review-remediation/manual-model-smoke/result-template.md'
 )) {
@@ -110,7 +119,7 @@ foreach ($path in @(
 }
 
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?m)^name:\s*pr-review-remediation\s*$' 'package name'
-Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?m)^version:\s*0\.2\.0\s*$' 'package version'
+Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?m)^version:\s*0\.3\.0\s*$' 'package version'
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*apm-packages/goal-context-authoring/\.apm/skills/goal-context-authoring' 'canonical Goal Context Authoring Skill dependency'
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*\.github/agents/local-reviewer\.agent\.md' 'canonical local reviewer dependency'
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*\.github/agents/purpose-reviewer\.agent\.md' 'canonical purpose reviewer dependency'
@@ -134,17 +143,81 @@ Assert-Contains $skill 'Draft PRを作成してはいけない' 'Draft creation 
 Assert-Contains $skill 'scripts/collect-pr-review-context\.cs' 'relative collector asset'
 Assert-Contains $skill 'templates/local-review-findings\.md' 'relative local findings template'
 Assert-Contains $skill 'templates/review-plan\.md' 'relative review plan template'
+$sharedPlanTemplate = 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md'
+Assert-Contains $sharedPlanTemplate 'Multi-round role threads: fixed / N/A for single-round' 'fixed multi-round role task contract'
+Assert-Contains $sharedPlanTemplate '基礎版のsingle-round利用ではrole thread IDを要求せず' 'single-round role binding non-requirement'
+Assert-Contains $sharedPlanTemplate '固定taskを再開できない場合は、新taskへ自動移管せず`BLOCKED`' 'fixed role task fail-closed boundary'
 
 $goalSkill = 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/SKILL.md'
 Assert-Contains $goalSkill 'name:\s*goal-context-pr-review' 'Goal Context Skill name'
 Assert-Contains $goalSkill 'scripts/select-goal-context\.cs' 'Goal Context selector asset'
+Assert-Contains $goalSkill 'scripts/manage-review-cycle\.cs' 'multi-round cycle manager asset'
+Assert-Contains $goalSkill 'REVIEW_COMPLETE' 'multi-round completion verdict'
+Assert-Contains $goalSkill 'override-maximum-rounds 4' 'explicit fourth-round override'
+Assert-Contains $goalSkill '次roundを内部起動しません' 'manual next-round boundary'
 Assert-Contains $goalSkill 'purpose-reviewer' 'independent purpose reviewer'
+Assert-Contains $goalSkill 'round 1の`reviewMode`は`full`' 'full first-round mode'
+Assert-Contains $goalSkill 'round 2以降の`reviewMode`は`purpose-only`' 'purpose-only later-round mode'
+Assert-Contains $goalSkill 'multi-roundで継続するのは親Review Thread' 'parent review task continuity and child reviewer isolation'
+Assert-Contains $goalSkill '同じPRの後続修正でもこのImplementation Threadを再利用' 'implementation task continuity'
+Assert-Contains $goalSkill '初回実装を行ったImplementation Thread' 'initial implementation task continuity'
+Assert-Contains $goalSkill '両role task IDは必須' 'required role task identity at cycle start'
+Assert-Contains $goalSkill '`BLOCKED`として停止して利用者によるcycle外の手動対応' 'unavailable role task manual boundary'
+Assert-NotContains $goalSkill 'bind-thread|rebind-thread|portable-handoff|role-thread-reuse' 'removed role task fallback vocabulary'
+Assert-Contains $goalSkill '--no-wait-for-copilot' 'later-round Copilot wait suppression'
 Assert-Contains $goalSkill 'Issue本文だけで目的reviewを代替せず停止' 'no Issue-only purpose fallback'
 Assert-Contains $goalSkill 'Adaptiveを内部呼び出ししません' 'manual Adaptive boundary'
 Assert-Contains $goalSkill 'completion-notification' 'notification decorator envelope example'
 Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/design.md' '別packageではなく.*別Skill' 'same-package separate-Skill decision'
 Assert-Contains '.github/agents/purpose-reviewer.agent.md' '実装担当および`local-reviewer`から独立' 'purpose reviewer independence'
 Assert-Contains '.github/agents/purpose-reviewer.agent.md' 'コード上のbug.*`local-reviewer`' 'purpose and code quality separation'
+$cycleManager = 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/manage-review-cycle.cs'
+Assert-Contains $cycleManager '(?m)^#:property TargetFramework=net10\.0\s*$' 'multi-round File-based App target framework'
+Assert-Contains $cycleManager 'DefaultMaximumRounds = 3' 'default maximum of three rounds'
+Assert-Contains $cycleManager 'SchemaVersion = 2' 'multi-round schema version 2'
+Assert-Contains $cycleManager 'PurposeOnlyReviewMode = "purpose-only"' 'purpose-only mode vocabulary'
+Assert-Contains $cycleManager 'Purpose-only review round must not include local-findings' 'later-round local artifact rejection'
+Assert-Contains $cycleManager 'Purpose-only external source must be retained as reasoned noAction' 'later-round external source audit-only rule'
+Assert-Contains $cycleManager 'Prior Finding Assessment coverage mismatch' 'prior active finding assessment coverage'
+Assert-Contains $cycleManager 'schemaVersion 1 is read-only historical evidence' 'legacy cycle append rejection'
+Assert-Contains $cycleManager '(?s)"new".*"persistent".*"resolved".*"reopened"' 'finding transition vocabulary'
+Assert-Contains $cycleManager '(?s)READY_FOR_ADAPTIVE_IMPLEMENTATION.*HUMAN_DECISION_REQUIRED' 'round-limit verdict transition'
+Assert-Contains $cycleManager 'SourceCoverageEntry' 'per-round source coverage contract'
+Assert-Contains $cycleManager 'ValidateArtifactContents' 'role-aware artifact content cross-validation'
+Assert-Contains $cycleManager 'review-context repository' 'review-context identity cross-validation'
+Assert-Contains $cycleManager 'review-result finding delta' 'planner result delta cross-validation'
+Assert-Contains $cycleManager 'ValidateReviewPlan' 'Adaptive review plan content validation'
+Assert-Contains $cycleManager 'Review plan active finding mapping mismatch' 'review plan active finding mapping'
+Assert-Contains $cycleManager 'scope ID sets must match exactly' 'intent and ordered scope exact matching'
+Assert-Contains $cycleManager 'acceptance ID sets must match exactly' 'intent and ordered acceptance exact matching'
+Assert-Contains $cycleManager 'Source-to-tracking mapping mismatch' 'bidirectional source-to-tracking validation'
+Assert-Contains $cycleManager 'ClassifySourceHeadRelationship' 'current historical and unknown source classification'
+Assert-Contains $cycleManager 'review-context remote patch path' 'collector remote patch path binding'
+Assert-Contains $cycleManager 'Goal Context selection schema version' 'canonical Goal Context selection schema validation'
+Assert-Contains $cycleManager 'strict Goal Context lifecycle' 'canonical Goal Context strict lifecycle validation'
+Assert-Contains $cycleManager 'TryParseExact' 'strict invariant timestamp parsing'
+Assert-Contains $cycleManager 'explicit Z or UTC offset' 'explicit timestamp timezone requirement'
+Assert-Contains $cycleManager 'ResolvePhysicalPath' 'symlink and junction physical path containment'
+Assert-Contains $cycleManager 'must be resolved with a validated approved plan before Adaptive execution' 'pending human decision pre-Adaptive gate'
+Assert-Contains $cycleManager 'Review Thread and Implementation Thread must be different Codex tasks' 'distinct role task identity'
+Assert-Contains $cycleManager 'start requires cycle, repository, PR, Goal Context identity, base/head OID, started-at, review-thread-id, and implementation-thread-id' 'both role task IDs required at cycle start'
+Assert-Contains $cycleManager 'Equal\("Implementation Thread ID", cycle\.RoleThreads\.Implementation\.ThreadId, implementationThreadId\)' 'fixed Implementation Thread identity'
+Assert-Contains $cycleManager 'Equal\("Review Thread ID", cycle\.RoleThreads\.Review\.ThreadId, reviewThreadId\)' 'fixed Review Thread identity'
+Assert-Contains $cycleManager 'ThreadUri' 'manager-derived Codex task URI'
+Assert-NotContains $cycleManager 'bind-thread|rebind-thread|portable-handoff|threadMode|binding history' 'removed role task fallback implementation'
+Assert-Contains $cycleManager 'Maximum-round override is accepted only for round 4 or later' 'early override rejection'
+Assert-Contains $cycleManager '"resolve" => ReviewCycleManager.Resolve' 'independent human decision resolution command'
+Assert-Contains $cycleManager 'verdict is "REVIEW_COMPLETE" or "HUMAN_DECISION_REQUIRED"' 'human decision no-plan verdict branch'
+Assert-Contains $cycleManager 'must not include an executable Adaptive review-plan artifact' 'human decision executable plan rejection'
+Assert-Contains $cycleManager 'ApprovedPlanNormalizedSha256' 'approved plan hash binding'
+Assert-Contains $cycleManager 'APPROVED_FOR_ADAPTIVE_IMPLEMENTATION' 'post-decision Adaptive approval state'
+Assert-Contains $cycleManager 'startedAt precedes the human decision approval' 'human approval chronology gate'
+Assert-Contains $cycleManager 'ValidateCycle\(cyclePath, cycle, requireCompletedCurrentRound: false\);\s*SaveCycle' 'pre-save final state validation'
+Assert-NotContains $cycleManager 'Process\.Start|adaptive-implementation-execution|completion-notification-decorator' 'internal process orchestration'
+Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' 'Validate multi-round replay and symlink containment on Linux' 'Linux symlink containment evidence'
+Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/review-round-result.example.json' '"sourceCoverage"' 'round-result source coverage example'
+Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/review-round-result.example.json' '"roundNumber": 2' 'round notification identity example'
+Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/review-result.example.json' '"artifactBindings"' 'planner result artifact binding example'
 
 $reviewPlan = 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md'
 foreach ($field in @('goal:', 'scope:', 'non_goals:', 'acceptance:', 'constraints:', 'validation:', 'plan_reference:', 'goal_context_reference:')) {
@@ -157,6 +230,29 @@ Assert-Contains $reviewPlan 'Purpose review:' 'purpose review input status'
 Assert-Contains $reviewPlan '`PUR-\*` rows are Goal Context mode only; omit them in Baseline mode\.' 'baseline-safe purpose row guidance'
 Assert-Contains $reviewPlan '(?m)^\| LR-001 \| Local Codex' 'separate baseline local finding example'
 Assert-Contains $reviewPlan '(?m)^\| PUR-001 \| Purpose \(Goal Context mode only\)' 'separate optional purpose finding example'
+Assert-Contains $reviewPlan 'new / persistent / resolved / reopened' 'multi-round finding delta vocabulary'
+Assert-Contains $reviewPlan 'HUMAN_DECISION_REQUIRED.*Adaptive handoffも出しません' 'human decision no-handoff template guidance'
+Assert-Contains '.github/agents/review-planner.agent.md' 'READY_FOR_ADAPTIVE_IMPLEMENTATION \| REVIEW_COMPLETE \| HUMAN_DECISION_REQUIRED \| BLOCKED' 'multi-round planner verdict vocabulary'
+Assert-Contains '.github/agents/review-planner.agent.md' '空のAdaptive向けplanを生成しない' 'no empty Adaptive plan rule'
+Assert-Contains '.github/agents/review-planner.agent.md' 'HUMAN_DECISION_REQUIRED.*実行可能なreview plan.*Adaptive開始promptを出力しない' 'planner human decision handoff gate'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'deterministic-multi-round-replay' 'PRR-003 evidence mode'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'HUMAN_DECISION_REQUIRED' 'PRR-003 maximum-round verdict'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'collector-realistic-convergence' 'PRR-003 real multi-round collector path'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'current.*historical.*unknown' 'PRR-003 source head relationships'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' '"reviewModes":\s*\["full",\s*"purpose-only",\s*"purpose-only"\]' 'PRR-003 round review mode sequence'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'purpose-only-local-artifact' 'PRR-003 later-round local artifact mutation'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'missing-prior-finding-assessment' 'PRR-003 prior assessment mutation'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'reviewThreadContinuity.*same-task' 'PRR-003 Review Thread continuity'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'implementationThreadContinuity.*same-task' 'PRR-003 Implementation Thread continuity'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'implementationThreadIncludesInitialImplementation.*true' 'PRR-003 initial implementation continuity'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'missing-implementation-thread-id' 'PRR-003 required Implementation Thread mutation'
+Assert-NotContains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'late-implementation-thread-binding|portable-cold-start|incomplete-thread-rebind|thread-history-overwrite|portable-without-approval' 'removed fallback scenarios'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'adaptive-before-decision' 'PRR-003 pre-approval Adaptive rejection'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'resolve-with-adaptive-result' 'PRR-003 resolution rejects post-Adaptive evidence'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'approved-plan-hash' 'PRR-003 approved plan tamper rejection'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'start-before-decision-approval' 'PRR-003 human approval chronology rejection'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/README.md' '外部model.*実行しません' 'PRR-003 external-model disclosure'
+Assert-Contains 'tests/pr-review-remediation/PRR-003/README.md' 'Issue #61 acceptance coverage' 'Issue acceptance contract matrix'
 
 $legacyImplementationAgent = 'spark' + '-implementer'
 $runtimeFiles = @(
@@ -222,9 +318,18 @@ foreach ($documentation in @(
     Assert-Contains $documentation '(?s)run-pr-review-remediation-agent-smoke\.ps1.*-DescribePayload.*run-pr-review-remediation-agent-smoke\.ps1.*-ConfirmExternalModelPayload' 'payload preview and authorized smoke commands'
 }
 Assert-Contains 'tests/pr-review-remediation/PRR-001/README.md' 'customAgentSpawnObserved.*false' 'actual execution disclosure'
-Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)full head SHA.*disposable target.*送信を承認.*local-reviewer.*purpose-reviewer.*Phase 1.*別親ターン.*Adaptive' 'manual real-model smoke boundary and acceptance sequence'
-Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)completion-notification-decorator.*NotificationInstaller.*--dry-run.*--check' 'manual direct-link notification installation preflight'
-Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/result-template.md' '(?s)External model payload approved.*Local finding.*Purpose-only finding.*Phase 1 stopped.*Direct-link notification.*Adaptive handoff' 'manual smoke evidence checklist'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)(?=.*Codex App)(?=.*full head SHA)(?=.*disposable target repository)(?=.*synthetic fixture)(?=.*external reviewer model payload)(?=.*local-reviewer)(?=.*purpose-reviewer)(?=.*同じImplementation Thread)(?=.*同じReview Thread)(?=.*REVIEW_COMPLETE)' 'Codex-led two-role-task real-model multi-round smoke boundary and acceptance sequence'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)(?=.*人手での作業が必要)(?=.*notification runtime)(?=.*notification installer)(?=.*--dry-run)(?=.*install)(?=.*--check)' 'manual approval and direct-link notification installation preflight'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)Task A.*Task B.*Task C.*Task D.*HUMAN_DECISION_REQUIRED.*実行可能planとAdaptive handoffが存在しない' 'explicit Codex App turns and human decision gate'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)固定Implementation Threadとして使用.*初回実装からレビュー後の修正まで同じtask.*commit、push.*Ready PR' 'initial implementation and remediation task continuity'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)Task B.*prompt送信前にはReview Threadが存在しない.*CODEX_THREAD_ID.*cycle作成、review context収集、外部model送信を行わず、BLOCKED' 'Review Thread self-identification after prompt creation'
+Assert-NotContains 'tests/pr-review-remediation/manual-model-smoke/README.md' 'Review Thread IDは<review-thread-id>' 'no impossible prefilled Review Thread ID prompt'
+Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/SKILL.md' '(?s)promptへReview Thread IDを事前入力しません.*CODEX_THREAD_ID.*外部model送信の前に`BLOCKED`' 'Skill runtime Review Thread identity gate'
+Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/usage.md' '(?s)CODEX_THREAD_ID.*prompt送信前にIDを要求せず.*URIを利用者入力として受け取りません' 'usage runtime Review Thread identity contract'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)Role task unavailable.*`BLOCKED`.*cycle外で人が決定' 'role task loss manual handling contract'
+Assert-NotContains 'tests/pr-review-remediation/manual-model-smoke/README.md' 'portable-handoff|rebind-thread|role-thread-reuse|read-only登録prompt' 'removed manual smoke fallback path'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)「結果を開く」.*「このタスクを開く」' 'dual notification action manual verification'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/result-template.md' '(?s)(?=.*External model payload approved)(?=.*Review Thread ID)(?=.*Implementation Thread ID)(?=.*Local finding)(?=.*Purpose-only finding)(?=.*Round 1 stopped)(?=.*Adaptive handoff)(?=.*Review complete observed)(?=.*Notification opened current Review Thread)' 'interactive multi-round smoke evidence checklist'
 
 $fixtureLocal = 'apm-packages/pr-review-remediation/tests/fixtures/expected-local-review-findings.md'
 $fixturePlan = 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md'
@@ -264,6 +369,8 @@ if ($payloadDescription.Output -notmatch 'No model was invoked') { Add-Failure '
 $missingConsent = Invoke-Native 'pwsh' @('-NoProfile', '-File', $agentSmokeRunner, '-RepositoryRoot', $repoRoot) 'agent smoke consent gate' $false
 if ($missingConsent.Output -notmatch 'HUMAN_DECISION_REQUIRED') { Add-Failure 'agent smoke did not fail closed without external-payload consent' }
 Invoke-Native 'pwsh' @('-NoProfile', '-File', $agentSmokeValidator, '-RepositoryRoot', $repoRoot) 'fixed actual agent smoke evidence' | Out-Null
+$prr003Validator = Join-Path $packageRoot 'scripts\validate-prr-003-contract.ps1'
+Invoke-Native 'pwsh' @('-NoProfile', '-File', $prr003Validator) 'PRR-003 deterministic multi-round replay' | Out-Null
 
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("pr-review-remediation-validation-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tempRoot | Out-Null
@@ -572,6 +679,25 @@ try {
     if ($null -ne $lookalike) {
         if ($lookalike.copilotReviewWait.selectedReviewId -ne 100) { Add-Failure 'lookalike-login fixture selected a non-Copilot account' }
         if ($lookalike.copilotReviewWait.actualInlineCommentCount -ne 1 -or $lookalike.copilotReviewWait.inlineCommentIds[0] -ne 1001) { Add-Failure 'lookalike-login fixture correlated a non-Copilot inline comment' }
+    }
+
+    Invoke-Fixture 'copilot-actor-alias' @('--copilot-timeout-seconds', '5', '--copilot-poll-interval-seconds', '1', '--copilot-stable-samples', '2') | Out-Null
+    $actorAlias = Read-Context (Join-Path $tempRoot 'copilot-actor-alias')
+    if ($null -ne $actorAlias) {
+        if ($actorAlias.copilotReviewWait.waitStatus -ne 'completed') { Add-Failure 'copilot-actor-alias fixture did not complete when the review and inline endpoints used different official actor names' }
+        if ($actorAlias.copilotReviewWait.selectedReviewId -ne 100 -or $actorAlias.copilotReviewWait.actualInlineCommentCount -ne 1) { Add-Failure 'copilot-actor-alias fixture did not correlate the inline comment by review id' }
+    }
+
+    Invoke-Fixture 'copilot-app-url' @('--no-wait-for-copilot') | Out-Null
+    $appUrl = Read-Context (Join-Path $tempRoot 'copilot-app-url')
+    if ($null -ne $appUrl) {
+        if ($appUrl.copilotReviewWait.selectedReviewId -ne 100 -or $appUrl.copilotReviewWait.actualInlineCommentCount -ne 1) { Add-Failure 'copilot-app-url fixture did not recognize the official GitHub App profile URL' }
+    }
+
+    Invoke-Fixture 'copilot-human-reply' @('--no-wait-for-copilot') | Out-Null
+    $humanReply = Read-Context (Join-Path $tempRoot 'copilot-human-reply')
+    if ($null -ne $humanReply) {
+        if ($humanReply.copilotReviewWait.actualInlineCommentCount -ne 1 -or $humanReply.copilotReviewWait.inlineCommentIds[0] -ne 1001) { Add-Failure 'copilot-human-reply fixture counted a human reply as a Copilot-generated inline comment' }
     }
 
     Invoke-Fixture 'timeout' @('--copilot-timeout-seconds', '1', '--copilot-poll-interval-seconds', '1') | Out-Null

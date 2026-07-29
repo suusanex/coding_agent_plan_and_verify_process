@@ -5,7 +5,12 @@ Ready PRの成立、local Codex review、GitHub Copilot review収集、統合rem
 ```text
 Phase 1 baseline: PR preparation -> review collection -> local-reviewer -> review-planner -> review-plan.md -> stop
 Phase 1 Goal Context: shared preparation/collection -> local-reviewer + purpose-reviewer -> shared review-planner -> review-plan.md -> stop
-Phase 2: explicit new parent turn -> adaptive-implementation-execution -> implementation and validation
+Initial implementation: Implementation Thread -> branch/commit/push/Ready PR
+Phase 2: resume the same Implementation Thread for an explicit turn -> adaptive-implementation-execution -> implementation and validation
+Optional multi-round: resume Review Thread -> resume Implementation Thread -> resume Review Thread
+  round 1: Copilot + local + purpose
+  round 2+: collector no-wait + purpose only
+Human escalation: HUMAN_DECISION_REQUIRED (no handoff) -> explicit human choice -> resolve and record approved plan -> explicit Adaptive turn
 ```
 
 Phase 1の停止はレビュー反映全体の完了ではありません。実装責務は削除せず、既存Adaptive Implementationへ一本化します。
@@ -31,6 +36,9 @@ APMがSkillとcanonical agentsを導入し、二つのhelperがreview/Adaptive�
 | Baseline review Skill | `.apm/skills/pr-review-remediation/SKILL.md` |
 | Goal Context review Skill | `.apm/skills/goal-context-pr-review/SKILL.md` |
 | Goal Context selector | Goal Context Skillの`scripts/select-goal-context.cs` |
+| Multi-round cycle manager | Goal Context Skillの`scripts/manage-review-cycle.cs` |
+| Multi-round planner result schema example | Goal Context Skillの`templates/review-result.example.json` |
+| Multi-round round-result schema example | Goal Context Skillの`templates/review-round-result.example.json` |
 | PRR-002 deterministic replay validator | `scripts/validate-prr-002-contract.cs` |
 | Collector | Skillの`scripts/collect-pr-review-context.cs` |
 | Review templates | Skillの`templates/` |
@@ -43,11 +51,12 @@ APMがSkillとcanonical agentsを導入し、二つのhelperがreview/Adaptive�
 
 ## Validation
 
-静的contract、collector fixture、profile helper、固定された実agent証跡、PRR-002のidentity・hash・source coverage・decision mapping・handoffを検証します。PRR-002は記録済みreviewer出力の決定論的replayであり、外部model実行を宣言しません。
+静的contract、collector fixture、profile helper、固定された実agent証跡、PRR-002のidentity・hash・source coverage・decision mapping・handoff、およびPRR-003のmulti-round state遷移とnegative mutationを検証します。PRR-003の正本3round scenarioは、初回実装から継続する一つのImplementation Threadと、それとは異なる一つのReview Threadを交互に再開し、round 1のfull reviewからround 2/3のpurpose-only reviewへ遷移します。Copilot wait無効化、local artifact不在、外部sourceのaudit-only coverage、Prior Finding Assessment、remote patch binding、Adaptive intentのSI/AC完全一致、role task continuity、必須IDの欠落・変更拒否、収束までを再現します。非収束scenarioでは`HUMAN_DECISION_REQUIRED`に実行可能planがないこと、人間承認とplan hashを`resolve`がAdaptive前に記録することも検証します。PRR-002とPRR-003は記録済み入力の決定論的replayであり、外部model実行を宣言しません。
 
 ```powershell
 pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
 dotnet run --file apm-packages/pr-review-remediation/scripts/validate-prr-002-contract.cs -- --fixture-root tests/pr-review-remediation/PRR-002 --format json
+dotnet run --file apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/manage-review-cycle.cs -- validate --cycle <review-cycle.json> --format json
 ```
 
 実agent chainを再実行して`tests/pr-review-remediation/PRR-001/`を更新する場合:
@@ -72,8 +81,8 @@ pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remedia
 
 実agent smokeは認証とmodel利用権限を必要とするためCIで毎回再実行せず、固定証跡をvalidatorで検査します。remote APM smokeはpull requestのfull head SHA、pushの`github.sha`を使い、検証対象packageを一意に固定します。
 
-Goal Context対応版のmerge前manual smokeは、PR #60自身ではなくdisposable target repositoryで実施します。既知のcode-quality findingとpurpose-only findingを持つ小さなPRを用意し、独立review、統合plan、Phase 1停止、direct-link notification、別親ターンAdaptiveを確認します。完全な手順と記録様式は`tests/pr-review-remediation/manual-model-smoke/README.md`を参照してください。
+Goal Context対応版のmerge前manual smokeは、検証対象のprocess PR自身ではなくdisposable target repositoryで実施します。Codex Appが安全なtarget候補とpackageを準備し、固定Implementation Thread自身がsynthetic fixtureの初回実装、commit、push、Ready PR作成を行います。人はGitHub変更、model送信、通知runtime、二つのrole taskの各明示ターンを承認します。round 1 full review、初回実装と同じImplementation ThreadでのAdaptive、同じReview Threadでのround 2以降のpurpose-only review、早期`TURN_ENDED`がなくterminal通知が一件だけ届くことまでの手順と記録様式は`tests/pr-review-remediation/manual-model-smoke/README.md`を参照してください。
 
 詳細はSkillの`references/usage.md`を参照してください。
 
-Goal Context対応の通知付き二ターン例、軽量開発、Plan Coverage、Design Pairから共通review cycleへ入る例は`goal-context-pr-review/references/usage.md`を参照してください。
+Goal Context対応の通知付き二role-task例、軽量開発、Plan Coverage、Design Pairから共通review cycleへ入る例は`goal-context-pr-review/references/usage.md`を参照してください。

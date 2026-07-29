@@ -1,6 +1,6 @@
 name: pr-review-remediation
-version: 0.2.0
-description: Two-turn baseline and Goal Context-aware PR review workflows that consolidate independent reviews and hand implementation to the canonical Adaptive flow
+version: 0.3.0
+description: Single- and multi-round Goal Context-aware PR review workflows with manual Adaptive handoffs and deterministic round evidence
 type: hybrid
 targets:
   - codex

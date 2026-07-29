@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-01-01T00:01:00Z",
+  "target": {
+    "repository": "fixture/goal-context-multi-round",
+    "pullRequest": 123,
+    "url": "https://github.com/fixture/goal-context-multi-round/pull/123",
+    "state": "OPEN",
+    "isDraft": false,
+    "baseRefName": "main",
+    "baseRefOid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "headRefName": "feature",
+    "headRefOid": "1111111111111111111111111111111111111111"
+  },
+  "copilotReviewWait": {
+    "waitStatus": "completed",
+    "observedReviewState": "reviewAndInline",
+    "timedOut": false
+  },
+  "artifacts": {
+    "remotePatch": "pr-diff.patch"
+  },
+  "sources": {
+    "pullRequest": {
+      "number": 123,
+      "title": "PRR-003 collector snapshot",
+      "state": "OPEN",
+      "url": "https://github.com/fixture/goal-context-multi-round/pull/123",
+      "baseRefName": "main",
+      "baseRefOid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "headRefName": "feature",
+      "headRefOid": "1111111111111111111111111111111111111111",
+      "isDraft": false
+    },
+    "reviews": [
+      {
+        "id": 1001,
+        "sourceId": "review:1001",
+        "state": "COMMENTED",
+        "commit_id": "1111111111111111111111111111111111111111",
+        "body": "Round 1 current-head review."
+      }
+    ],
+    "issueComments": [
+      {
+        "id": 1201,
+        "sourceId": "pr-comment:1201",
+        "body": "Round 1 comment without head identity."
+      }
+    ],
+    "inlineComments": [
+      {
+        "id": 1101,
+        "sourceId": "inline-comment:1101",
+        "pull_request_review_id": 1001,
+        "commit_id": "1111111111111111111111111111111111111111",
+        "original_commit_id": "1111111111111111111111111111111111111111",
+        "path": "fixture.txt",
+        "line": 1,
+        "body": "Round 1 current-head inline comment."
+      }
+    ],
+    "checks": [
+      {
+        "id": 9001,
+        "sourceId": "check:round-001",
+        "name": "fixture-contract",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      }
+    ]
+  }
+}

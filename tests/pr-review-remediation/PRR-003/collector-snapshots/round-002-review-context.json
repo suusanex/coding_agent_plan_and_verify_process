@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-01-01T00:04:00Z",
+  "target": {
+    "repository": "fixture/goal-context-multi-round",
+    "pullRequest": 123,
+    "url": "https://github.com/fixture/goal-context-multi-round/pull/123",
+    "state": "OPEN",
+    "isDraft": false,
+    "baseRefName": "main",
+    "baseRefOid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "headRefName": "feature",
+    "headRefOid": "2222222222222222222222222222222222222222"
+  },
+  "copilotReviewWait": {
+    "waitStatus": "disabled",
+    "observedReviewState": "notWaited",
+    "timedOut": false
+  },
+  "artifacts": {
+    "remotePatch": "pr-diff.patch"
+  },
+  "sources": {
+    "pullRequest": {
+      "number": 123,
+      "title": "PRR-003 collector snapshot",
+      "state": "OPEN",
+      "url": "https://github.com/fixture/goal-context-multi-round/pull/123",
+      "baseRefName": "main",
+      "baseRefOid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "headRefName": "feature",
+      "headRefOid": "2222222222222222222222222222222222222222",
+      "isDraft": false
+    },
+    "reviews": [
+      {
+        "id": 1001,
+        "sourceId": "review:1001",
+        "state": "COMMENTED",
+        "commit_id": "1111111111111111111111111111111111111111",
+        "body": "Retained historical review."
+      },
+      {
+        "id": 1002,
+        "sourceId": "review:1002",
+        "state": "COMMENTED",
+        "commit_id": "2222222222222222222222222222222222222222",
+        "body": "Round 2 current-head review."
+      },
+      {
+        "id": 1099,
+        "sourceId": "review:1099",
+        "state": "COMMENTED",
+        "commit_id": "f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0",
+        "body": "Review whose head relationship is not represented by a completed round."
+      }
+    ],
+    "issueComments": [
+      {
+        "id": 1201,
+        "sourceId": "pr-comment:1201",
+        "body": "Retained head-agnostic comment."
+      },
+      {
+        "id": 1202,
+        "sourceId": "pr-comment:1202",
+        "body": "New purpose-related comment."
+      }
+    ],
+    "inlineComments": [
+      {
+        "id": 1101,
+        "sourceId": "inline-comment:1101",
+        "pull_request_review_id": 1001,
+        "commit_id": "1111111111111111111111111111111111111111",
+        "original_commit_id": "1111111111111111111111111111111111111111",
+        "path": "fixture.txt",
+        "line": 1,
+        "body": "Retained historical inline comment."
+      },
+      {
+        "id": 1102,
+        "sourceId": "inline-comment:1102",
+        "pull_request_review_id": 1002,
+        "commit_id": "2222222222222222222222222222222222222222",
+        "original_commit_id": "2222222222222222222222222222222222222222",
+        "path": "fixture.txt",
+        "line": 2,
+        "body": "Round 2 current-head inline comment."
+      }
+    ],
+    "checks": [
+      {
+        "id": 9002,
+        "sourceId": "check:round-002",
+        "name": "fixture-contract",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      }
+    ]
+  }
+}

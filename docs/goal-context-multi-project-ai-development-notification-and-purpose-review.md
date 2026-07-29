@@ -529,7 +529,7 @@ notifyプログラムが起動
 1. 現在の親ターンを通知対象として明示する
 2. 通知タイトル、主プロセス、任意の結果URLなど、通知に必要なmetadataを整える
 3. 主プロセスの最終verdictを変更せず、機械可読なnotification envelopeを最終回答へ追加する
-4. 通知ランタイムがenvelopeを取得できない場合でも、親スレッドへの一般通知へfallbackできるようにする
+4. 通知ランタイムがterminal envelopeを取得できない場合は通知を抑止し、中間callbackを完了と誤認しない
 
 概念例:
 
@@ -559,7 +559,7 @@ result_uri: https://github.com/owner/repository/pull/123
 - `result_uri`
   - PR、GitHubレビュー、Actions結果、成果物などを開く任意リンク
 
-通知UIが一つのリンクしか扱えない場合、`result_uri`が利用可能ならそれを優先し、存在しなければ`resume_uri`を使う。ただしイベントデータでは両方を保持できるようにする。
+通知UIは、`result_uri`が利用可能な場合も`resume_uri`を置き換えず、「結果を開く」と「このタスクを開く」の両操作を提示する。`result_uri`が存在しない場合は`resume_uri`だけを提示する。イベントデータでも両方を保持する。
 
 Codex deep linkの利用可否、対象PC、アプリ版による挙動は、MVP実装前に実機確認する。
 
@@ -757,6 +757,35 @@ Adaptive Implementationの内部ルーティング、agent、verdict、handoff�
 
 ### 9.7 通知付きシーケンス
 
+複数roundを明示した場合、次のreview構成を固定する。
+
+- PRごとにReview ThreadとImplementation Threadの二つのCodex親タスクを登録し、異なるtask IDを要求する。同じroleの次工程は同じtaskを再開した新しい明示ターンとして実行する。
+- Review Threadは最初のprompt送信によって作成されるため、開始promptへReview Thread IDを事前入力しない。開始した親task自身が環境変数`CODEX_THREAD_ID`からIDを取得し、cycle managerへ渡す。取得できなければreviewや外部model送信を始めず`BLOCKED`で停止する。URIはcycle managerが検証済みIDから導出する。
+- 「別の親ターン」はreviewとimplementationの操作境界を指し、同じroleでも毎回新しいtaskを作ることを意味しない。reviewからAdaptive、Adaptiveから次reviewを自動起動しない。
+- round 1はGitHub Copilotレビュー、`local-reviewer`、`purpose-reviewer`を実行し、`review-planner`で統合する。
+- round 2以降は最新PR identityと正本diffをcollectorで取得するが、GitHub Copilotレビューを開始・待機せず、`local-reviewer`も再実行しない。
+- round 2以降に繰り返すreviewerは`purpose-reviewer`だけとする。`review-planner`はfinding遷移、verdict、Adaptive向けplanのprojectionを担当する。
+- collectorに残る過去reviewや、想定外のconnector／人間review/comment/checkは理由付き`noAction`の監査証跡として保持し、remediation findingへ直接変換しない。
+- purpose-only roundでは前roundまでの全active findingを現在diffに照らして`persistent | resolved`へ分類する。
+- round artifactを正本とし、親Review Threadの会話履歴は補助コンテキストとして利用できる。各roundの`purpose-reviewer`などread-only子agentには現在roundの正本artifactを渡し、子agent taskの継続利用は要求しない。
+- 初回実装を行ったImplementation ThreadとReview Threadをcycle開始時に固定する。どちらかを再開できない場合はcycle内で代替taskへ移管せず、`BLOCKED`として停止して人の手動操作へ移行する。
+
+通常運用のtask構成は次のとおりとする。
+
+```text
+Implementation Thread I
+  初回実装
+  ← round 1 planを使う明示的な修正ターン
+  ← round 2 planを使う明示的な修正ターン
+
+Review Thread R
+  round 1 full review
+  ← 修正後headに対するround 2 purpose-only review
+  ← 再修正後headに対するround 3 purpose-only review
+
+R != I
+```
+
 #### PRレビューターン
 
 ```text
@@ -782,7 +811,7 @@ review-planner
 #### レビュー反映ターン
 
 ```text
-利用者が通知から対象へ戻る
+利用者がhandoffから同じImplementation Threadへ戻る
   ↓
 completion notification decorator
   ＋
@@ -792,8 +821,10 @@ adaptive-implementation-execution
   ↓
 親ターン終了
   ↓
-Codex親スレッドまたはPRへのリンク付き通知
+PRと現在のImplementation Threadへのリンク付き通知
 ```
+
+Adaptive完了後は、変更後head OIDとAdaptive result referenceに加え、同じReview Threadを再開するURIをhandoff本文へ記録する。Completion Notification Decoratorは現在のtaskと結果へのリンクを表示するだけであり、counterpart taskを選択または起動しない。
 
 ## 10. 全体の運用シーケンス
 
@@ -1322,12 +1353,15 @@ Codexの親ターン終了を、Issueまたはプロジェクト目的の完全�
 - `review-planner`が各レビューの重複、競合、採否を扱えるか
 - 修正計画がAdaptive Implementationへ渡せるか
 - Adaptiveの内部契約を複製していないか
+- PR単位でReview ThreadとImplementation Threadを一つずつ固定し、同じroleの次工程が同じtaskを再開しているか
+- cycle開始時から初回実装のImplementation ThreadとReview Threadが固定され、後続roundでID変更を拒否しているか
 
 ### 21.6 通知・リンク
 
 - 各通知がどのrepository、process、thread、PRか識別できるか
 - `resume_uri`は該当Codex親スレッドを開くか
 - `result_uri`は該当PRまたはレビューを開くか
+- Windows通知が結果と現在taskの両操作を同時に提示するか
 - 失敗、timeout、BLOCKEDが成功として通知されないか
 - 重複通知を抑止できるか
 
@@ -1347,7 +1381,7 @@ AI生成では、会話中の細かな訂正または暗黙の優先順位が欠
 
 ### 22.4 Notification envelopeの欠落
 
-モデルがenvelopeを正しく出力しない可能性がある。notifyランタイムは、envelopeがない場合にも一般的な親ターン完了通知と`resume_uri`を生成できるようにする。
+モデルがenvelopeを正しく出力しない可能性がある。notifyランタイムは、envelopeがない場合や不正な場合は診断状態を記録して通知を抑止する。markerだけの中間callbackを一般的な親ターン完了と解釈しない。
 
 ### 22.5 完了の意味
 
@@ -1407,7 +1441,7 @@ Windows通知、ntfy、Slack、ローカルWeb UI等のどれを採用するか�
 ### 24.2 設計判断として有力だが、実装で検証が必要な事項
 
 - notification envelopeを最終回答へ追加する方式
-- envelope欠落時のfallback通知
+- valid terminal envelopeがあるcallbackだけを通知し、marker-only中間callbackを抑止する方式
 - `resume_uri`としてCodex deep linkを使う方式
 - 基礎版とGoal Context対応版のSkill構成
 - Goal Context対応PRレビューにおけるagentの並列実行

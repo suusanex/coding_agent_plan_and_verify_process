@@ -15,7 +15,7 @@ Read `references/envelope-authoring-contract.md` before authoring the final enve
 2. Record that co-selected Skill name verbatim as `primary_process`. Do not treat its internal agents as additional primary processes.
 3. Resolve `repository` as `owner/name` when reliable repository context exists. Otherwise omit it and let the runtime resolve the current working directory.
 4. Accept an optional notification title and a specific HTTPS `result_uri`. Do not invent a result URI.
-5. If zero or multiple primary process Skills are selected, do not choose among them and do not interrupt any process that can still run safely. Omit the envelope and report the decorator metadata problem separately; the runtime may emit a neutral `TURN_ENDED` fallback notification.
+5. If zero or multiple primary process Skills are selected, do not choose among them and do not interrupt any process that can still run safely. Omit the envelope and report the decorator metadata problem separately; no completion notification is delivered without a valid terminal envelope.
 
 The literal `$completion-notification-decorator` in the input declares the current parent turn as a notification target. `[completion-notification]` is the explicit compatibility marker when the caller cannot preserve the Skill token.
 
@@ -31,6 +31,6 @@ The literal `$completion-notification-decorator` in the input declares the curre
 
 After the primary process has produced its final user-facing result, append exactly one `completion-notification` fenced block. Set `observed_status` to the terminal status actually reported by the primary process. Keep the primary response intact before the block.
 
-If the primary process does not expose a terminal status that can be copied without interpretation, omit the envelope. Do not invent a success or failure status; rely on the runtime fallback.
+If the primary process does not expose a terminal status that can be copied without interpretation, omit the envelope. Do not invent a success or failure status. The runtime records the missing terminal envelope without displaying a notification.
 
 Notification delivery happens after the parent turn through the Codex `notify` callback. This Skill never calls a notification provider directly and never waits for delivery before returning the primary result.
