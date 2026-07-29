@@ -145,7 +145,7 @@ Preparation Taskで人が承認したtarget repository、main baseline、fixture
 4. code-quality gapとして不正なPR番号が未処理例外になる処理、purpose-only gapとして完了messageにtarget PRのdirect URLとこのImplementation Threadを明示的に再開する案内がない状態を含めてください。
 5. build、baseline validation、canonical Goal Context validation、git diff --checkを実行してください。
 6. commit、pushし、DraftではないReady PRを作成してください。
-7. 現在のCodex task IDとcodex://threads/<task-id>を取得し、このPRのImplementation Threadとしてresultへ記録してください。取得できない場合は推測せず、人手でUIからcopyする必要があると報告してください。
+7. 現在のCodex task IDを環境変数`CODEX_THREAD_ID`から取得し、このPRのImplementation Threadとしてresultへ記録してください。URIは後続のcycle managerがIDから導出します。環境変数を取得できない場合は推測や代替taskへの移行をせず、`BLOCKED`で停止してください。
 8. reviewer modelへ送信する前のno-send inspectionを提示して停止してください。review、Adaptive、次roundは開始しないでください。
 
 Preparation Taskの外部reviewer model payload承認はまだありません。reviewer modelへ送信しないでください。
@@ -186,14 +186,14 @@ no-send inspectionを確認後、同じImplementation Threadへ承認結果を�
 - approved by: <identity>
 - approved at: <ISO-8601 with timezone>
 
-承認記録をresultへ保存してください。reviewやAdaptiveはこのタスクで開始せず、現在のImplementation Thread ID／URI、target repositoryの絶対path、Task B用promptを返してください。
+承認記録をresultへ保存してください。reviewやAdaptiveはこのタスクで開始せず、`CODEX_THREAD_ID`から取得した現在のImplementation Thread ID、target repositoryの絶対path、Task B用promptを返してください。Implementation Thread URIはTask Bのcycle managerがIDから導出するため、Codex Appから別途取得したり推測したりしないでください。
 ```
 
 notification runtime installを承認した場合だけ、Codexはinstallerの`install`と`--check`を実行します。見送った場合、OS notificationの実配信は未検証として記録し、最終結果を完全な`PASS`にしません。
 
 ## Task B: run multi-round review round 1
 
-人手での作業が必要: target workspaceでReview Threadとなる新しいtaskを一度だけ作成します。A-5で確定したImplementation Thread ID／URIとTask B自身のReview Thread ID／URIを使って次を送信します。二つのIDが同一なら開始しません。Codex Appが現在task IDを取得できない場合はUIから実値をcopyし、推測値を使いません。
+人手での作業が必要: target workspaceで次のpromptを送信し、Review Threadとなる新しいtaskを一度だけ作成します。prompt送信前にはReview Threadが存在しないため、Review Thread IDをplaceholderへ事前入力しません。開始したtask自身が環境変数`CODEX_THREAD_ID`から実値を取得します。
 
 ```text
 $completion-notification-decorator
@@ -201,7 +201,9 @@ $goal-context-pr-review
 
 <owner/repository>#<pr-number>を、<goal-context-path>を使うexplicit multi-round modeのround 1として目的達成レビューしてください。
 cycleは.review/pr-<pr-number>/review-cycle.json、artifactはround-001へ保存してください。
-Review Thread IDは<review-thread-id>、初回fixture実装から継続するImplementation Thread IDは<implementation-thread-id>です。URIはmanagerがIDから導出し、cycleへ固定してください。両IDが異なることを検証してください。
+現在のReview Thread IDは環境変数CODEX_THREAD_IDから取得してください。
+初回fixture実装から継続するImplementation Thread IDは<implementation-thread-id>です。
+取得したReview Thread IDをmanagerの--review-thread-idへ渡し、Implementation Thread IDと異なることを検証してcycleへ固定してください。URIはmanagerが両IDから導出します。現在のReview Thread IDを取得できない場合は、cycle作成、review context収集、外部model送信を行わず、BLOCKEDで停止してください。
 local-reviewerとpurpose-reviewerを独立に実行し、remote review、inline comment、PR comment、checkをreview-plannerで統合してください。
 review planとround artifactを検証し、completion notificationを出したところで停止してください。
 同じ親タスクではAdaptive Implementationやproduction code変更を開始しないでください。
@@ -220,6 +222,7 @@ Codexに次を検証・報告させます。
 - すべての`Apply` findingが実在するscope IDとacceptance IDへ対応する。
 - `implementation_intent`とordered remediationのSI/AC集合が完全一致する。
 - cycleとreview planが固定Review／Implementation Thread ID、導出URI、plan path/hashを一致させる。
+- Review Thread IDがTask B開始後の環境変数`CODEX_THREAD_ID`から取得され、promptへ事前入力されていない。
 - verdictが`READY_FOR_ADAPTIVE_IMPLEMENTATION`である。
 - notificationのdirect linkがtarget PRを開く。
 - cycle、round-001、review planのvalidationが成功する。
@@ -235,7 +238,8 @@ $completion-notification-decorator
 $adaptive-implementation-execution
 
 <round-001-review-plan-absolute-or-repository-relative-path>をsource of truthとして実装してください。
-このtaskはcycleへ固定されたImplementation Thread <implementation-thread-id>です。review-planの対象Implementation Thread ID／URIと一致し、return先がReview Thread <review-thread-id>／codex://threads/<review-thread-id>であることを確認してください。
+現在のImplementation Thread IDは環境変数CODEX_THREAD_IDから取得してください。取得できない場合は実装を開始せずBLOCKEDで停止してください。
+取得したIDがcycleへ固定されたImplementation Thread <implementation-thread-id>およびreview-planの対象Implementation Thread ID／URIと一致し、return先がcycleへ固定されたReview Thread ID／manager導出URIであることを確認してください。
 review-plan.mdのimplementation_intent、Goal Context Boundary、Non-goalsを保持し、plan外の変更を追加しないでください。
 このImplementation Threadに残る探索・設計コンテキストは利用できますが、実装scopeとacceptanceのsource of truthはreview-plan artifactです。
 人がAdaptive実行を承認したplanの正規化SHA-256は<plan-sha256>、承認者は<identity>、承認時刻は<ISO-8601 with timezone>です。pathまたはhashが一致しない場合は実装せず停止してください。
@@ -267,7 +271,7 @@ $goal-context-pr-review
 <owner/repository>#<pr-number>のGoal Context multi-round review round 2を開始してください。
 cycleは.review/pr-<pr-number>/review-cycle.jsonです。
 前roundのAdaptive result referenceは<adaptive-result-reference>です。
-現在のReview Thread IDは<review-thread-id>、Adaptiveを実行したImplementation Thread IDは<implementation-thread-id>です。cycleの固定bindingと一致しない場合は開始せず停止してください。
+現在のReview Thread IDは環境変数CODEX_THREAD_IDから取得してください。Adaptiveを実行したImplementation Thread IDは<implementation-thread-id>です。取得したIDをmanagerの--review-thread-idへ渡し、cycleの固定bindingと一致しない場合、または環境変数を取得できない場合は開始せずBLOCKEDで停止してください。
 round 2開始の承認者は<identity>、承認時刻は<ISO-8601 with timezone>です。
 最新のbase/head identityとreview contextを収集し、旧headのreviewとinline commentをhistorical sourceとして保持したままround-002へ保存してください。
 round 2はpurpose-onlyです。collectorは--no-wait-for-copilotで実行し、GitHub Copilotレビューを開始・待機しないでください。local-reviewerも実行せず、local-review-findings.mdを作成しないでください。
@@ -309,7 +313,7 @@ Task Aでtargetの`.review/manual-model-smoke-result.md`へ作成したcopyへ�
 
 人がchatで行った承認は、Codexが要約してresultへ記録し、人が次gateで内容を確認します。失敗した場合も失敗stage、観測結果、artifact path、再現手順を残し、`PASS`へ書き換えません。
 
-Codex Appのtask IDやtask URLをagentが取得できない場合、人がUIから識別子をcopyしてresultへ記録します。識別子を推測して記入しません。
+Codex Appのrole task IDは、そのtask自身が環境変数`CODEX_THREAD_ID`から取得します。取得できない場合は識別子を推測したり別taskへ置き換えたりせず、`BLOCKED`としてresultへ記録します。`codex://threads/<task-id>`はcycle managerだけが検証済みIDから導出します。
 
 完全な`PASS`には、Task AからDまでの成功、外部model payload承認、初回fixture実装と各remediationを同じImplementation Threadが担当したこと、Review／Implementationの二つのtask IDが異なること、同一roleでIDが継続すること、purpose-only再reviewでの`REVIEW_COMPLETE`、direct-link notification実配信が必要です。各Taskでは開始直後や内部model完了時に`codex-turn / TURN_ENDED`が表示されず、terminal envelope後に対象processの通知が1件だけ届き、「結果を開く」と「このタスクを開く」がそれぞれ正しいPRと現在taskへ遷移することも確認します。notification runtimeを見送った場合やproviderを利用できない場合は、review cycleが成功してもnotificationを`未検証`とし、全体を`BLOCKED`または限定的な結果として記録します。
 

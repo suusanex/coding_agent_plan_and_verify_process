@@ -760,6 +760,7 @@ Adaptive Implementationの内部ルーティング、agent、verdict、handoff�
 複数roundを明示した場合、次のreview構成を固定する。
 
 - PRごとにReview ThreadとImplementation Threadの二つのCodex親タスクを登録し、異なるtask IDを要求する。同じroleの次工程は同じtaskを再開した新しい明示ターンとして実行する。
+- Review Threadは最初のprompt送信によって作成されるため、開始promptへReview Thread IDを事前入力しない。開始した親task自身が環境変数`CODEX_THREAD_ID`からIDを取得し、cycle managerへ渡す。取得できなければreviewや外部model送信を始めず`BLOCKED`で停止する。URIはcycle managerが検証済みIDから導出する。
 - 「別の親ターン」はreviewとimplementationの操作境界を指し、同じroleでも毎回新しいtaskを作ることを意味しない。reviewからAdaptive、Adaptiveから次reviewを自動起動しない。
 - round 1はGitHub Copilotレビュー、`local-reviewer`、`purpose-reviewer`を実行し、`review-planner`で統合する。
 - round 2以降は最新PR identityと正本diffをcollectorで取得するが、GitHub Copilotレビューを開始・待機せず、`local-reviewer`も再実行しない。

@@ -106,7 +106,7 @@ review-plan.mdのimplementation_intentをsource of truthとし、Goal Context Bo
 
 利用者が複数roundのレビュー・修正サイクルを明示した場合だけ、single-round成果物を`.review/pr-123/round-001/`以降へ保存し、`.review/pr-123/review-cycle.json`でround間の証拠を管理します。既存single-round呼び出しは従来どおり`.review/pr-123/`を使い、このcycle管理を必須にしません。
 
-各roundの開始前に、最新base/head、canonical Goal Context identity、現在のReview Thread IDとImplementation Thread IDを指定して`manage-review-cycle.cs start`を実行します。round 1に、初回実装を行ったImplementation Threadと、それとは異なるReview ThreadをPR単位で固定します。round 2以降も同じReview Threadの新しい明示ターンで開始し、固定されたImplementation Threadの別ターンで完了したAdaptive result referenceとAdaptive Thread IDを渡します。同じhead OIDの再reviewは拒否します。
+各roundの開始前に、最新base/head、canonical Goal Context identity、現在のReview Thread IDとImplementation Thread IDを指定して`manage-review-cycle.cs start`を実行します。Review Threadは最初のprompt送信によって作成されるため、そのpromptへReview Thread IDを事前入力しません。開始した親task自身が環境変数`CODEX_THREAD_ID`から現在のReview Thread IDを取得して`--review-thread-id`へ渡します。取得できない場合はcycle作成、review context収集、外部model送信の前に`BLOCKED`で停止します。round 1に、初回実装を行ったImplementation Threadと、それとは異なるReview ThreadをPR単位で固定します。round 2以降も同じReview Threadの新しい明示ターンで`CODEX_THREAD_ID`を再取得し、固定IDとの一致を検証します。固定されたImplementation Threadの別ターンで完了したAdaptive result referenceとAdaptive Thread IDも渡します。同じhead OIDの再reviewは拒否します。
 
 ```powershell
 dotnet run --file scripts/manage-review-cycle.cs -- start `
@@ -118,7 +118,7 @@ dotnet run --file scripts/manage-review-cycle.cs -- start `
   --adaptive-result-reference <previous-adaptive-result> --adaptive-thread-id <implementation-task-id>
 ```
 
-round 1ではAdaptive関連optionを省略しますが、両role task IDは必須です。初回実装を行ったImplementation Threadが存在しない場合はmulti-round cycleを開始しません。固定taskを再開できない場合もcycle内で代替taskへ移管せず、`BLOCKED`として停止して利用者によるcycle外の手動対応へ戻します。
+上記の`<review-task-id>`には現在の親taskが`CODEX_THREAD_ID`から取得した値だけを使います。URIはmanagerが検証済みIDから導出し、入力として受け取りません。round 1ではAdaptive関連optionを省略しますが、両role task IDは必須です。初回実装を行ったImplementation Threadが存在しない場合はmulti-round cycleを開始しません。固定taskを再開できない場合もcycle内で代替taskへ移管せず、`BLOCKED`として停止して利用者によるcycle外の手動対応へ戻します。
 
 round 1の`reviewMode`は`full`です。共有collectorでCopilotレビューを待機・収集し、`local-reviewer`と`purpose-reviewer`を独立に実行してplannerへ渡します。
 

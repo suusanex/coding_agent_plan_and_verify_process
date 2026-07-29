@@ -22,18 +22,20 @@ $goal-context-pr-review
 
 owner/repository#123をGoal Context multi-round modeのround 1としてレビューしてください。
 cycleは.review/pr-123/review-cycle.json、artifactはround-001へ保存し、通知後に停止してください。
+現在のReview Thread IDは環境変数CODEX_THREAD_IDから取得し、初回実装を行ったImplementation Thread ID <implementation-task-id> と異なることを確認してcycleへ固定してください。
+Review Thread IDを取得できない場合はcycle作成、review context収集、外部model送信を行わずBLOCKEDで停止してください。URIはmanagerがIDから導出してください。
 ```
 
 通常運用ではPRごとにReview Threadと、初回実装から継続するImplementation Threadを一つずつ用意します。修正は同じImplementation Threadを再開した新しい明示ターンで実行し、その完了後は同じReview Threadへ戻って次roundを新しい明示ターンとして開始します。工程間の自動起動は行いません。
 
-round 1の`start`へ`--review-thread-id`と`--implementation-thread-id`の両方を渡します。二つは異なるCodex task IDでなければなりません。後続roundも固定IDだけを受理します。いずれかのtaskを再開できない場合はcycleを`BLOCKED`として停止し、cycle外で人が継続方法を決めます。
+round 1の`start`へ、現在の親taskが`CODEX_THREAD_ID`から取得した値を`--review-thread-id`として渡し、初回実装taskの`--implementation-thread-id`も渡します。二つは異なるCodex task IDでなければなりません。Review Threadのprompt送信前にIDを要求せず、URIを利用者入力として受け取りません。後続roundも環境変数から再取得した現在IDと固定IDの一致を要求します。いずれかのtaskを再開できない場合はcycleを`BLOCKED`として停止し、cycle外で人が継続方法を決めます。
 
 ```text
 $completion-notification-decorator
 $goal-context-pr-review
 
 owner/repository#123のGoal Context multi-round review round 2を開始してください。
-このTaskはround 1と同じReview Threadです。前roundのAdaptive resultは<path-or-uri>、実行したImplementation Thread IDは<task-id>です。最新headを収集し、round-002へ保存して通知後に停止してください。
+現在のReview Thread IDを環境変数CODEX_THREAD_IDから取得し、round 1でcycleへ固定されたIDと一致することを確認してください。取得できない場合はBLOCKEDで停止してください。前roundのAdaptive resultは<path-or-uri>、実行したImplementation Thread IDは<task-id>です。最新headを収集し、round-002へ保存して通知後に停止してください。
 このroundはpurpose-onlyです。Copilotレビューを開始・待機せず、local-reviewerも実行しないでください。
 ```
 
