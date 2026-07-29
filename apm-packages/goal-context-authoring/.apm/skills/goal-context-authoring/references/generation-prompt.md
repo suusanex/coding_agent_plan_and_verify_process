@@ -5,6 +5,14 @@ Copy the prompt below into the ChatGPT conversation after the design and Issue c
 ```text
 Create a self-contained Goal Context Markdown from the full available conversation.
 
+Output language:
+- Write the entire Goal Context in the primary language used by the user in the source conversation.
+- Determine the primary language from user-authored messages, not from the language of this prompt, assistant-authored messages, operating-system locale, or technical identifiers.
+- If the user explicitly requested an output language, follow that request.
+- If the conversation uses multiple languages, use the language of the user's latest substantive design and decision messages, unless another user language is clearly dominant.
+- If the primary user language cannot be determined, use Japanese.
+- Preserve code, CLI commands, file paths, schema keys, identifiers, product names, and established technical terms in their original form where appropriate.
+
 Purpose:
 - A later Codex or other AI must be able to perform purpose-achievement review without access to this conversation.
 - Preserve why the work matters, the desired outcome, current priorities, decisions and reasons, rejected alternatives, MVP boundaries, and ways an implementation can look compliant while still failing the purpose.
