@@ -1,145 +1,141 @@
 # Goal Context generation prompt
 
-Copy the prompt below into the ChatGPT conversation after the design and Issue content are settled. If the conversation is too long to fit in one context, provide ordered segments and use the continuation protocol at the end.
+Copy the prompt below into the original design conversation after the discussion is mature enough to explain why the work exists and what user-visible change is wanted.
+
+The output is for **purpose-achievement review**. It is not a second specification, an Issue body, an implementation plan, or a complete decision log.
 
 ```text
 Create a self-contained Goal Context Markdown from the full available conversation.
 
-Output language:
-- Write the entire Goal Context in the primary language used by the user in the source conversation.
-- Determine the primary language from user-authored messages, not from the language of this prompt, assistant-authored messages, operating-system locale, or technical identifiers.
-- If the user explicitly requested an output language, follow that request.
-- If the conversation uses multiple languages, use the language of the user's latest substantive design and decision messages, unless another user language is clearly dominant.
-- If the primary user language cannot be determined, use Japanese.
+Purpose
+- A later Codex or other AI reviewer will receive this document without the original conversation.
+- The reviewer must be able to detect an implementation that satisfies its immediate Issue or detailed specification but still fails to resolve the original problem or deliver the intended user-visible outcome.
+
+Selection rule
+Include information only when omitting it could reasonably cause that kind of false approval.
+
+Do not include information merely because it was discussed, accepted, technically important, or useful for implementation. Detailed requirements, architecture, tasks, and test procedures belong elsewhere unless they are essential to purpose judgment.
+
+Purpose hierarchy
+Organize and interpret the source in this order:
+1. Original problem and why it matters
+2. Desired user-visible outcome
+3. Concrete before/after user situation
+4. Outcomes that would look compliant but still fail the purpose
+5. Priorities, trade-offs, and purpose boundaries
+6. Purpose-critical decisions and their reasons
+
+Lower-level requirements or implementation choices must not redefine a higher-level purpose. If they conflict, preserve the conflict and make the purpose-level risk visible.
+
+Source handling
+- Cover the available conversation from the earliest relevant discussion through the latest message.
+- Treat user-authored statements and assistant proposals explicitly accepted by the user as authoritative.
+- Do not promote an unaccepted assistant proposal, likely implementation, or general best practice into a user decision.
+- Apply later user corrections and priority changes over earlier statements.
+- Mark bounded synthesis as `[Inferred]` and unresolved, missing, or contradictory points as `[Unknown]`. Confirmed user content needs no prefix.
+- Do not infer product, policy, scope, priority, or acceptance decisions from silence.
+- Record material missing or truncated source portions in `source_scope`. If the missing source prevents identification of the original problem or desired outcome, stop instead of guessing.
+- An Issue or implementation specification may be used only as a cross-check; it must not replace the original conversation as the source of purpose.
+- If the source is supplied in ordered segments, keep concise temporary notes under the output headings and draft only after the final segment. Do not create Claim IDs or a detailed provenance ledger.
+
+Include
+- the underlying user or operational pain, not merely the requested feature;
+- why the existing situation is insufficient or costly;
+- the observable change that would make the work valuable;
+- a concrete before/after scenario showing what burden disappears or what behavior becomes possible;
+- the minimum user-visible value required for success;
+- non-goals, acceptable compromises, or deferred outcomes only when they prevent confusion about the purpose;
+- rejected alternatives only when their rejection reason protects the purpose;
+- concrete examples of implementations that could appear compliant while leaving the original problem unresolved;
+- priorities and trade-offs only when they affect what should count as success;
+- decisions only when a reviewer must know them to avoid approving the wrong outcome;
+- later corrections that materially changed the problem, outcome, priority, or boundary;
+- unresolved questions only when they affect purpose judgment.
+
+Exclude
+- exhaustive functional requirements or acceptance criteria;
+- architecture, component, API, schema, class, file, command, or configuration details;
+- task decomposition, implementation order, migration steps, or rollout instructions;
+- complete lists of accepted decisions, constraints, assumptions, or future ideas;
+- test commands, evidence inventories, traceability tables, Claim IDs, or provenance ledgers;
+- issue-by-issue or message-by-message chronology;
+- general engineering best practices not stated as part of the purpose;
+- implementation details whose replacement would not change the user-visible outcome.
+
+A technical decision belongs in the Goal Context only when its reason is purpose-critical. Describe the protected purpose and the consequence of violating it, not the full mechanism.
+
+Output language
+- Use the primary language of the user's substantive design and decision messages.
+- Follow an explicit user request for a different output language.
+- If the primary language cannot be determined, use Japanese.
 - Preserve code, CLI commands, file paths, schema keys, identifiers, product names, and established technical terms in their original form where appropriate.
 
-Purpose:
-- A later Codex or other AI must be able to perform purpose-achievement review without access to this conversation.
-- Preserve why the work matters, the desired outcome, current priorities, decisions and reasons, rejected alternatives, MVP boundaries, and ways an implementation can look compliant while still failing the purpose.
-
-This is not an Issue body, implementation plan, or chronological conversation summary. The Issue may be used only as a cross-check. Organize the result by problem, outcome, decisions, boundaries, evidence, and review questions.
-
-Source handling:
-1. Cover the conversation from its earliest available point through the current message.
-2. Identify unavailable, truncated, or unreviewed source portions explicitly.
-3. Extract decisions and constraints before drafting.
-4. Reconcile later user corrections and priority changes against earlier statements. Record each material supersession.
-5. If explicit statements conflict without a clear later resolution, keep the conflict as Unknown. Do not choose one.
-6. Separate MVP scope, Non-goals, and Future work.
-7. Preserve both accepted decisions and rejected alternatives with reasons.
-8. Do not infer missing product, policy, or scope decisions from silence.
-9. For segmented input, preserve stable Claim IDs, precise source pointers, provenance, and final disposition for every extracted claim.
-
-Provenance:
-- Prefix every material factual, requirement, decision, boundary, and assumption bullet with one of these tags:
-  - [Explicit]: directly stated or confirmed in the supplied source
-  - [Inferred]: bounded synthesis needed to connect explicit statements; include the supporting evidence and do not present it as a user decision
-  - [Unknown]: unresolved, missing, contradictory, or intentionally undecided
-- Never label an AI recommendation or likely implementation as Explicit unless the user accepted it.
-
-Safety:
+Safety
 - Exclude secrets, credentials, tokens, authentication material, private keys, and unnecessary personal data.
-- When a sensitive reference is decision-relevant, replace its value with a category marker such as <redacted: credential>.
-- Do not reproduce source excerpts merely as evidence; use concise source pointers.
+- Replace a purpose-relevant sensitive value with a category marker such as `<redacted: credential>`.
 
-Required frontmatter:
+Output structure
+
 ---
 document_type: goal-context
-status: draft
 topic: <durable topic summary>
 created_at: <YYYY-MM-DD>
-source_scope: <available conversation range and known gaps>
-sensitive_data_review: pending
+source_scope: <available conversation range and material gaps>
 ---
 
-Required headings, in this order:
 # Goal Context: <Topic>
-## Document control and source boundary
+
+> This document is for purpose-achievement review, not exhaustive specification checking. Judge the implementation primarily against the original problem and desired user-visible outcome.
+
 ## Original problem
-## Desired outcome
-## Concrete user situation and user scenarios
-## Scope and boundaries
-### MVP scope
-### Non-goals
-### Future work
-## Decisions and reasoning
-### Accepted decisions
-### Rejected alternatives
-## Constraints and invariants
-## Success scenarios
-## Acceptance evidence
-## Superficially compliant but wrong
-## Review questions
-## Open questions and assumptions
-## Conversation corrections and priority changes
-## Provenance and inference ledger
-## Human review record
 
-Content requirements:
-- Original problem states the underlying pain, not merely the requested feature.
-- Desired outcome states observable user value.
-- Concrete user situation and user scenarios explain how the result is used.
-- Accepted and rejected decisions include reasons and consequences or revisit conditions.
-- Acceptance evidence distinguishes evidence types where relevant.
-- Superficially compliant but wrong gives concrete purpose-level failure examples.
-- Open questions do not invent answers.
-- Human review record remains Pending because generation is not human review.
-- If a required section has no confirmed source content, write an Explicit or Unknown statement explaining that absence. Never invent an item to fill the section.
+## Desired user-visible outcome
 
-Filename proposal:
-- End with one proposed filename in the form goal-context-<topic-summary>.md.
-- Use lowercase kebab-case based on the durable subject or desired outcome.
-- Do not center the filename on an Issue number, PR number, ticket number, or one-time task slug.
+## Before and after
 
-Self-check before responding:
-1. Compare the draft against the full available source, not only recent messages.
-2. Check that corrections and current priorities replaced superseded statements.
-3. Check that rejected alternatives and negative purpose conditions remain visible.
-4. Check that MVP, Non-goals, and Future work are separate.
-5. Check that every material claim has an accurate provenance tag.
-6. Check that unknowns were not guessed closed.
-7. Check for secrets, authentication material, and unnecessary personal data.
-8. Check that the result is not an Issue copy or chronological summary.
+### Before
 
-Return the Markdown document first, then the single proposed filename. Do not claim human review is complete.
+### After
+
+## Purpose boundaries
+
+## Rejected or misleading outcomes
+
+Add the following headings only when supported by material source content:
+
+## Priorities and trade-offs
+
+## Purpose-critical decisions
+
+## Material corrections
+
+## Unknowns affecting purpose judgment
+
+Writing rules
+- Keep the original problem and desired outcome visually dominant.
+- Prefer a few distinct, high-value statements over exhaustive coverage.
+- Do not repeat the same point in multiple sections.
+- Do not add empty optional headings or filler such as “none observed.”
+- Use explicit rejected or misleading outcomes when available. If none were stated, add at most a few `[Inferred]` purpose-level failure examples that follow directly from the original problem and desired outcome; do not turn them into new feature requirements.
+- If the original problem or desired user-visible outcome cannot be determined, return `Goal Context generation blocked` and list the missing purpose information instead of drafting.
+- Do not add an acceptance-evidence matrix, review-question list, human-review record, lifecycle status, or sensitive-data approval state.
+- Do not claim that generation constitutes human review or approval.
+
+Filename
+- After the Markdown document, output one proposed filename in the form `goal-context-<topic-summary>.md`.
+- Use lowercase kebab-case based on the durable purpose or desired outcome.
+- Do not center the filename on an Issue number, PR number, ticket number, temporary branch, or one-time task slug.
+
+Self-check
+1. Can a later reviewer explain the original pain and desired user-visible change from the first two sections alone?
+2. Does every included lower-level decision protect a stated purpose, priority, boundary, or negative outcome?
+3. Have detailed requirements and implementation mechanics been removed unless essential to purpose judgment?
+4. Are concrete “looks compliant but still fails” examples present without becoming new requirements?
+5. Have later user corrections replaced superseded interpretations?
+6. Are material unknowns preserved rather than guessed closed?
+7. Is the document self-contained without becoming a second specification?
+8. Is the purpose signal stronger than process, audit, or traceability detail?
+9. Are secrets and unnecessary personal data excluded?
+
+Return the Goal Context Markdown first, then the single proposed filename. Do not add commentary outside those two outputs.
 ```
-
-## Long-conversation continuation protocol
-
-When the full conversation cannot be processed at once, use ordered segments and maintain this temporary claim ledger:
-
-| Claim ID | Segment | Source pointer | Contract dimension | Provenance | Extracted statement, reason, or evidence | Supersession / disposition |
-| --- | --- | --- | --- | --- | --- | --- |
-
-For every segment, consider every contract dimension below:
-
-- Original problem
-- Desired outcome
-- Concrete user situation
-- User scenario
-- MVP scope
-- Non-goal
-- Future work
-- Accepted decision and reason
-- Rejected alternative and reason
-- Constraint or invariant
-- Success scenario
-- Acceptance evidence
-- Superficially compliant but wrong
-- Review question
-- Open question or assumption
-- Correction or priority change
-
-Assign stable Claim IDs and precise source pointers. `None observed in this segment` is allowed only as temporary dimension-coverage status; it is not final Goal Context content. For each non-final segment, append this instruction:
-
-```text
-This is source segment <N> of <TOTAL or unknown>. Consider every required contract dimension and update the temporary claim ledger. Give every extracted claim a stable Claim ID, precise source pointer, and [Explicit], [Inferred], or [Unknown] provenance. Record None observed in this segment only as temporary coverage status. Do not draft the Goal Context yet. Do not discard or renumber earlier claims. Reply only with the ledger, dimension-coverage status, and the next segment requested.
-```
-
-For the final segment, append:
-
-```text
-This is the final source segment. Reconcile all segment claim ledgers against this segment and give every claim exactly one disposition: Included, Superseded by <Claim ID>, Duplicate of <Claim ID>, Excluded as sensitive, or Retained as Unknown. Apply later explicit corrections, retain unresolved conflicts as Unknown, and verify that every contract dimension was considered before executing the complete Goal Context generation prompt. Preserve relevant Claim IDs in the final provenance ledger. State the reviewed segment range in source_scope. If any expected segment is missing, stop and request it instead of drafting.
-```
-
-The human review must still compare the generated document with the authoritative conversation or decision notes. Segment ledgers reduce omission risk but do not prove completeness.
