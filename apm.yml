@@ -4,7 +4,9 @@ description: APM project for coding_agent_plan_and_verify_process
 author: suusanex
 dependencies:
   apm:
-  - suusanex/agent_skills_dotnet_utility/.agents/skills/dotnet-file-based-apps
+    - suusanex/agent_skills_dotnet_utility/.agents/skills/dotnet-file-based-apps
+    - suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution
+    - suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
   mcp: []
 includes: auto
 scripts: {}
