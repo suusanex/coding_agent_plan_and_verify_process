@@ -22,7 +22,7 @@
 
 Round 1では`N/A`とします。purpose-only roundでは、前roundまでの全active tracking IDを一行ずつ評価します。
 
-| Tracking ID | Previous state | Current state | Adaptive result reference | Current PR evidence | Rationale |
+| Tracking ID | Previous state | Current state | Parent remediation evidence | Current PR evidence | Rationale |
 | --- | --- | --- | --- | --- | --- |
 | N/A | N/A | N/A | N/A | N/A | N/A |
 

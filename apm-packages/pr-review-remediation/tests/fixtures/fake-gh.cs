@@ -6,6 +6,41 @@ using System.Text.Json;
 var scenario = Environment.GetEnvironmentVariable("FAKE_GH_SCENARIO") ?? "ready";
 var statePath = Environment.GetEnvironmentVariable("FAKE_GH_STATE")
     ?? throw new InvalidOperationException("FAKE_GH_STATE is required.");
+var sameParentHead = Environment.GetEnvironmentVariable("FAKE_GH_HEAD_OID")
+    ?? "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+if (args.Length >= 2 && args[0] == "repo" && args[1] == "view" && scenario.StartsWith("same-parent", StringComparison.Ordinal))
+{
+    Console.WriteLine("{\"nameWithOwner\":\"fixture/goal-context-review\"}");
+    return 0;
+}
+
+if (args.Length >= 2 && args[0] == "pr" && args[1] == "list" && scenario.StartsWith("same-parent", StringComparison.Ordinal))
+{
+    var first = new
+    {
+        number = 123,
+        url = "https://github.com/fixture/goal-context-review/pull/123",
+        isDraft = scenario == "same-parent-draft",
+        baseRefOid = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        headRefOid = sameParentHead
+    };
+    object[] result = scenario switch
+    {
+        "same-parent-missing" => [],
+        "same-parent-ambiguous" => [first, new
+        {
+            number = 124,
+            url = "https://github.com/fixture/goal-context-review/pull/124",
+            isDraft = false,
+            baseRefOid = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            headRefOid = "cccccccccccccccccccccccccccccccccccccccc"
+        }],
+        _ => [first]
+    };
+    Console.WriteLine(JsonSerializer.Serialize(result));
+    return 0;
+}
 
 if (scenario == "gh-failure")
 {
@@ -22,6 +57,29 @@ if (args.Length >= 2 && args[0] == "pr" && args[1] == "view")
     }
 
     var call = IncrementState(statePath);
+    if (scenario.StartsWith("same-parent", StringComparison.Ordinal))
+    {
+        var sameParentPullRequest = new
+        {
+            number = 123,
+            title = "Same-parent Goal Context review fixture",
+            state = "OPEN",
+            author = new { login = "fixture-user" },
+            body = "Synthetic same-parent input.",
+            url = "https://github.com/fixture/goal-context-review/pull/123",
+            baseRefName = "main",
+            baseRefOid = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            headRefName = "feature",
+            headRefOid = sameParentHead,
+            isDraft = scenario == "same-parent-draft",
+            mergeable = "MERGEABLE",
+            reviewDecision = "REVIEW_REQUIRED",
+            statusCheckRollup = new object[] { new { id = 9001, name = "fixture-contract", status = "COMPLETED", conclusion = "SUCCESS" } },
+            files = new object[] { new { path = "src/Fixture.cs", additions = 1, deletions = 1 } }
+        };
+        Console.WriteLine(JsonSerializer.Serialize(sameParentPullRequest));
+        return 0;
+    }
     if (scenario == "prr-002")
     {
         var replayPullRequest = new
@@ -84,6 +142,16 @@ if (args.Length >= 2 && args[0] == "pr" && args[1] == "view")
 
 if (args.Length >= 2 && args[0] == "pr" && args[1] == "diff")
 {
+    if (scenario.StartsWith("same-parent", StringComparison.Ordinal))
+    {
+        Console.WriteLine("diff --git a/src/Fixture.cs b/src/Fixture.cs");
+        Console.WriteLine("--- a/src/Fixture.cs");
+        Console.WriteLine("+++ b/src/Fixture.cs");
+        Console.WriteLine("@@ -1 +1 @@");
+        Console.WriteLine("-return false;");
+        Console.WriteLine("+return true;");
+        return 0;
+    }
     if (scenario == "prr-002")
     {
         Console.WriteLine("diff --git a/docs/handoff.md b/docs/handoff.md");
@@ -109,6 +177,30 @@ if (args.Length >= 2 && args[0] == "api")
 {
     var endpoint = args[1];
     var call = ReadState(statePath);
+    if (scenario.StartsWith("same-parent", StringComparison.Ordinal))
+    {
+        if (endpoint.EndsWith("/reviews", StringComparison.Ordinal))
+        {
+            Console.WriteLine(Paginate(new object[]
+            {
+                new { id = 700, user = new { login = "copilot-pull-request-reviewer[bot]" }, body = "Copilot generated 1 comment", state = "COMMENTED", submitted_at = "2026-07-25T00:00:00Z", commit_id = sameParentHead }
+            }));
+            return 0;
+        }
+        if (endpoint.EndsWith("/issues/123/comments", StringComparison.Ordinal))
+        {
+            Console.WriteLine(Paginate(Array.Empty<object>()));
+            return 0;
+        }
+        if (endpoint.EndsWith("/pulls/123/comments", StringComparison.Ordinal))
+        {
+            Console.WriteLine(Paginate(new object[]
+            {
+                new { id = 1700, pull_request_review_id = 700, commit_id = sameParentHead, original_commit_id = sameParentHead, user = new { login = "copilot-pull-request-reviewer[bot]" }, path = "src/Fixture.cs", line = 1, body = "Preserve the Goal Context boundary." }
+            }));
+            return 0;
+        }
+    }
     if (scenario == "prr-002")
     {
         if (endpoint.EndsWith("/reviews", StringComparison.Ordinal))

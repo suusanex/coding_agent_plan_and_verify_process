@@ -38,7 +38,7 @@
       "sha256": "123f46d0857a7be4d5da9620672b43e63b6d25974fc22da7166f8bb8a1be1cec"
     },
     {
-      "path": ".github/agents/local-reviewer.agent.md",
+      "path": "tests/pr-review-remediation/PRR-001/input-snapshots/local-reviewer.agent.md",
       "sha256": "05827d7a8e61d8212ac42ed5ad9fee44d81716cd197a7cb6e16b94b9423a499b"
     },
     {
@@ -46,7 +46,7 @@
       "sha256": "5f9d5c41ef2435416515e28b1563362de6eebafd36577ffabdd1ed0e5b1af70e"
     },
     {
-      "path": "apm-packages/pr-review-remediation/codex-agents/local-reviewer.toml",
+      "path": "tests/pr-review-remediation/PRR-001/input-snapshots/local-reviewer.toml",
       "sha256": "80b7831763c47f680d437b207db3bf63662e74945e36180e2e908794361b3027"
     },
     {

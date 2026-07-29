@@ -1,6 +1,6 @@
 # PRR-001 Canonical Profile Direct Execution Smoke
 
-`input-snapshots/`は、このactual external-model runで使用したbaseline planner contract、profile、templateのimmutable copyです。現行Goal Context拡張後のcontractを実行した証拠として流用しません。現行Goal Context flowはPRR-002 safe fixtureと静的contract validationで検証し、外部model smokeの再実行には別途明示同意が必要です。
+`input-snapshots/`は、このactual external-model runで使用したlocal reviewer / baseline planner contract、profile、templateのimmutable copyです。現行same-parent Goal Context contractを実行した証拠として流用しません。current deterministic contractは`validate-same-parent-review.ps1`、real-model behaviorは`manual-model-smoke/`で別に確認し、外部model smokeの再実行には明示同意が必要です。
 
 This fixture verifies the `local-reviewer` to `review-planner` sequence with two
 separate real-model `codex exec` invocations. It is a compatibility-path smoke,

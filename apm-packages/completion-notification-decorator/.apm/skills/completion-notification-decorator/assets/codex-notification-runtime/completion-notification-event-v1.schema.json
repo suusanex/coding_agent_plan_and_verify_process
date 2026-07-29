@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "completion-notification-event-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source", "primary_process", "observed_status", "occurred_at", "title", "repository", "resume_uri", "source_event_id", "notification_status"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "source": { "const": "codex.agent-turn-complete" },
+    "primary_process": { "type": "string" },
+    "observed_status": { "type": "string" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "title": { "type": "string" },
+    "repository": { "type": "string" },
+    "resume_uri": { "type": "string", "pattern": "^codex://threads/" },
+    "result_uri": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048,
+          "allOf": [
+            { "pattern": "^[Hh][Tt][Tt][Pp][Ss]://[^@/?#]+(?:/[^/?#]+)+(?:[?#].*)?$" },
+            { "not": { "pattern": "^[Hh][Tt][Tt][Pp][Ss]://[Gg][Ii][Tt][Hh][Uu][Bb]\\.[Cc][Oo][Mm](?:/[^/?#]+){0,2}/?(?:[?#].*)?$" } }
+          ]
+        }
+      ]
+    },
+    "source_event_id": { "type": "string", "pattern": "^codex:" },
+    "notification_status": { "enum": ["PENDING", "DELIVERED", "FAILED", "DUPLICATE"] }
+  }
+}

@@ -15,3 +15,4 @@ if ($Mode -eq 'provider') {
 }
 
 [System.IO.File]::AppendAllText($env:CODEX_NOTIFICATION_TEST_CHAIN_OUTPUT, $RemainingArguments[$RemainingArguments.Count - 1] + [Environment]::NewLine)
+exit ([int]($env:CODEX_NOTIFICATION_TEST_CHAIN_EXIT ?? '0'))

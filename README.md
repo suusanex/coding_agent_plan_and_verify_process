@@ -4,7 +4,7 @@ GitHub Copilot / Codex で Plan-first 開発をするための agent（`.github/
 
 ## Codex completion notification runtime
 
-WindowsでCodex親turnの終了を通知する共通runtimeは、[scripts/codex-notification-runtime](scripts/codex-notification-runtime) にあります。これは既存のuser-level `notify` commandを捨てずに転送し、`completion-notification` fenced blockからeventを作るFile-based apps群です。導入前には必ずdry-runを実行してください。
+WindowsでCodex turnの終了を通知する共通runtimeは、[scripts/codex-notification-runtime](scripts/codex-notification-runtime) にあります。user-level `notify`へ一度導入すると、marker、Decorator、envelopeを含まない通常のvalid `agent-turn-complete` callbackもgeneric通知に変換します。既存の`notify` commandは捨てずにchainし、導入前には必ずdry-runを実行してください。
 
 ```powershell
 dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --dry-run
@@ -18,7 +18,7 @@ dotnet run --file .\scripts\codex-notification-runtime\install-codex-notificatio
 
 配布・導入のsource of truthは3本の`.cs` File-based appsです。installerが導入時にsourceから一時領域へpublishするため、`scripts/codex-notification-runtime/artifacts/`の生成物は追跡・配布しません。
 
-最終回答へ付けるenvelopeは次の形式です。`result_uri`が有効なHTTPS URLなら、Windows通知は「結果を開く」と「このタスクを開く」の両ボタンを表示します。`result_uri`がなければ現在のCodex taskへ戻るボタンだけを表示します。runtimeは通知失敗をCodex turnの失敗へ変更しません。
+通常通知にenvelopeは不要です。runtimeはcallbackの`thread-id`と`turn-id`をidentity authorityとし、`codex://threads/<thread-id>`への復帰導線を常に生成します。validな追加metadataがある場合だけ、次のoptional envelopeでprocess、status、title、repository、resultをenrichできます。
 
 ````markdown
 ```completion-notification
@@ -26,13 +26,13 @@ dotnet run --file .\scripts\codex-notification-runtime\install-codex-notificatio
 ```
 ````
 
-`result_uri`は具体的な結果を指すuserinfoなしのHTTPS URLだけを受理します。hostのroot URL、およびGitHubのトップ・ownerトップ・repositoryトップは粗いリンクとして破棄します。`resume_uri`はcallbackのtask IDから常に導出し、有効な`result_uri`があっても保持します。
+`result_uri`は具体的な結果を指すuserinfoなしのHTTPS URLだけを受理します。hostのroot URL、およびGitHubのトップ・ownerトップ・repositoryトップは粗いリンクとして破棄します。valid envelopeでは「結果を開く」と「このタスクを開く」の両ボタンを表示します。envelopeがない、またはfieldやURIが不正な場合はenrichment全体を無視し、generic `TURN_ENDED`通知とtask復帰ボタンを維持します。runtime、provider、既存notify chainの失敗はCodex turnを失敗にしません。
 
-`$completion-notification-decorator`または`[completion-notification]`を入力に含めても、有効なterminal envelopeがないcallbackは通知されません。marker-onlyは`awaiting-terminal-envelope`、不正envelopeは`invalid-envelope`として診断logへ残し、terminal envelope後にだけproviderへ配送します。詳細とrollbackは [decision-record.md](scripts/codex-notification-runtime/decision-record.md)、実機確認状況は [manual-verification.md](scripts/codex-notification-runtime/manual-verification.md) を参照してください。
+詳細とrollbackは [decision-record.md](scripts/codex-notification-runtime/decision-record.md)、実機確認状況とManualOnly項目は [manual-verification.md](scripts/codex-notification-runtime/manual-verification.md) を参照してください。real Windows通知のbutton操作、real Codex callback、parent/subagent通知件数は実機確認が必要であり、公開callbackにないhierarchyを推測するfilterは実装しません。
 
 ## Completion Notification Decorator
 
-`completion-notification-decorator`は、任意の既存Codexプロセスと同じ親turnへ明示追加する観測用Skillです。主プロセスの選択・起動・routing・verdict再判定は行わず、最終回答の末尾へversion 1 envelopeだけを追加します。
+`completion-notification-decorator`は、常時通知へ任意のprocess statusやresult linkを追加する互換・enrichment用Skillです。通常通知には不要です。明示利用時も主プロセスの選択・起動・routing・verdict再判定は行わず、最終回答の末尾へversion 1 envelopeだけを追加します。
 
 ```text
 $completion-notification-decorator
@@ -41,14 +41,16 @@ $adaptive-implementation-execution
 このPlanを実装してください。
 ```
 
-SkillはAPM packageからrepository-localに導入し、上記のcanonical runtime installerをuser-level設定へ適用します。runtime sourceをpackageへ複製しません。
+SkillはAPM packageからrepository-localに導入します。packageにはcanonical runtime、provider、installer、schema、docsの検証済みmirrorが含まれるため、導入先だけでuser-level設定へ適用できます。
 
 ```powershell
 apm install .\apm-packages\completion-notification-decorator --target codex,agent-skills
-dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- install
+dotnet run --file .\.agents\skills\completion-notification-decorator\assets\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --dry-run
+dotnet run --file .\.agents\skills\completion-notification-decorator\assets\codex-notification-runtime\install-codex-notification-runtime-local.cs -- install
+dotnet run --file .\.agents\skills\completion-notification-decorator\assets\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --check
 ```
 
-使い方、terminal-envelope gating、2系統のintegration fixtureは [package README](apm-packages/completion-notification-decorator/README.md) を参照してください。
+使い方、generic fallback、optional enrichment、2系統のintegration fixtureは [package README](apm-packages/completion-notification-decorator/README.md) を参照してください。
 
 単純な Plan モードでは不十分と感じた点を、自分の用途向けに改善したものです。
 
@@ -113,7 +115,7 @@ Source requirement
 
 | package | Use when |
 | --- | --- |
-| `apm-packages/completion-notification-decorator` | 任意の既存Codex主プロセスを変更せず、同じ親turnの終了時にverdictと復帰リンクを通知したい |
+| `apm-packages/completion-notification-decorator` | 通常のCodex turnを常時task-link通知へ接続し、必要なprocessだけ任意のverdict/result metadataでenrichしたい |
 | `apm-packages/pr-review-remediation` | 基礎版またはGoal Context対応版でReady PRをreviewし、local / purpose / GitHub Copilot findingsを統合して、別親ターンの既存Adaptive Implementationへ渡したい |
 | `apm-packages/adaptive-implementation-execution` | CodexまたはGitHub Copilot Chat in VS Codeで、通常Plan後の非自明な実装をHIGH_MODELから開始し、valid handoff後だけSTANDARD_MODELへ直列委譲したい |
 | `apm-packages/design-pair-implementation-execution` | 利用者が明示選択した場合だけ、実装前に code の予定変更面を対話し、explicit Locked Decisions を通常の Adaptive Implementation へ渡したい |
@@ -135,7 +137,7 @@ Source requirement
 
 | Script | Use when | Installs / fixes |
 | --- | --- | --- |
-| `scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs` | Completion Notification Decoratorのcallback runtimeをuser-level Codex設定へ安全に導入・更新・検証したい | canonical runtimeとWindows providerをsourceからpublishし、既存`notify`をchainして、decorator Skill tokenとcompatibility markerをtarget宣言として設定 |
+| `scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs` | always-on callback runtimeをuser-level Codex設定へ安全に導入・更新・検証したい | canonical runtimeとWindows providerをsourceからpublishし、既存`notify`を自己再帰なしでchainして、すべてのvalid callbackをgeneric通知対象に設定 |
 | `apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs` | PR Review Remediation導入後にread-only review agentの具体的Codex profileを同期し、依存するAdaptive assets/profileの存在も確認したい | `.codex/agents/local-reviewer.toml`、`.codex/agents/purpose-reviewer.toml`、`.codex/agents/review-planner.toml`。Adaptive profileは既存Adaptive helperを使用し、`AGENTS.md`と`.codex/config.toml`は操作しない |
 | `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM 導入後に Adaptive Implementation の必須 concrete Codex profile を repository-local に同期・検証したい | `.codex/agents/high-implementation-starter.toml`、`.codex/agents/standard-implementation-completer.toml`。`AGENTS.md` は操作しない |
 | `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、Codex-first / Adaptive / Design Pair skills、canonical implementation agent contracts、`templates/*.md` |
@@ -312,26 +314,18 @@ $adaptive-implementation-execution を使って、直前の Plan を実装して
 
 ## PR Review Remediation
 
-`pr-review-remediation` packageはレビュー計画だけを目的としません。PRを成立させ、review findingsを統合し、その指摘を既存Adaptive Implementationで実装・検証するレビュー反映processです。入口は、目的reviewを行わない基礎版`$pr-review-remediation`と、Goal Contextを必須にする`$goal-context-pr-review`に分かれます。
-
-processはreviewとimplementationの二つの独立したrole taskに分かれます。同じPRでは各taskを維持し、工程ごとにそのtaskの新しい明示親ターンを開始します。
+`pr-review-remediation` packageの入口は、目的reviewを行わない基礎版`$pr-review-remediation`と、Goal Contextを必須にする`$goal-context-pr-review`に分かれます。基礎版はreview planを作成してseparate Adaptive turnの前で停止します。Goal Context対応版のcanonical normal pathは、初回実装を担当した同じ親task内でreview、修正、再reviewを完結します。
 
 ```text
-Implementation Thread: initial implementation -> branch/commit/push/ready PR
-
-Review Thread Phase 1:
-  -> review context + remote patch collection
-  -> local-reviewer [+ purpose-reviewer in Goal Context mode]
-  -> review-planner
-  -> review-plan.md / READY_FOR_ADAPTIVE_IMPLEMENTATION
-  -> parent turn stops
-
-Implementation Thread Phase 2: resume the same task for an explicit new parent turn
-  -> adaptive-implementation-execution
-  -> implementation and validation
+original implementation parent
+  -> auto-resolve current repository / exactly one Ready PR / Goal Context
+  -> round 1: GitHub Copilot + read-only local-reviewer + read-only purpose-reviewer
+  -> parent-only remediation and validation
+  -> round 2/3: new read-only purpose-reviewer only
+  -> Complete | HumanDecisionRequired | Blocked
 ```
 
-Phase 1の停止はprocess全体の完了ではありません。旧独自implementation routeは持たず、Adaptive Skillとcanonical HIGH / STANDARD agentsをAPM依存として再利用します。Draft PRは作成せず、既存Draftは人手でReady for reviewへ変更するまで停止します。
+Goal Context normal pathでは、別top-level Review / Implementation task、thread ID、PR番号、artifact path、hash、JSON、result referenceの転記を要求しません。reviewerはproduction source、tests、docs、GitHub stateを変更せず、元の親agentだけが修正write ownerです。Draft、Ready PRの0件/複数、Goal Context欠落/曖昧、head drift、mandatory reviewer不足はfail closedで停止します。
 
 導入:
 
@@ -343,35 +337,24 @@ dotnet run --file apm-packages/adaptive-implementation-execution/scripts/install
 dotnet run --file apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs -- . --check
 ```
 
-Phase 1起動例:
+基礎版起動例:
 
 ```text
 $pr-review-remediation を使って、このbranchのPRをレビュー反映プロセスで処理してください。
 review-plan.mdを作成したところで親ターンを停止してください。
 ```
 
-明示multi-roundではround 1だけが上記full reviewです。round 2以降は同じReview Threadを再開し、collectorを`--no-wait-for-copilot`で使ってidentityとpatchを更新し、`purpose-reviewer`と`review-planner`だけを実行します。修正は同じImplementation Threadを再開します。remote review/comment/checkは監査用`noAction`として保持し、local-reviewerとCopilotレビュー待機は繰り返しません。review／implementation間の自動起動は行いません。
-
-Goal Context対応版を通知付きで起動する例:
+Goal Context対応版を同じ親taskで起動する例:
 
 ```text
-$completion-notification-decorator
 $goal-context-pr-review
 
-このbranchのPRを docs/goal-context-example.md で目的達成レビューしてください。
-local-reviewerとpurpose-reviewerを独立に実行し、統合review-plan.mdを作成したところで停止してください。
+この実装のReady PRをGoal Contextに照らしてreviewし、必要な修正と再reviewを同じtask内で完了してください。
 ```
 
-Goal Contextが欠落・不正・複数候補で曖昧な場合、Issue本文だけで目的review済みとは扱いません。Goal Contextを修正・選択するか、利用者が基礎版を明示選択します。軽量開発、Plan Coverage、Design PairのいずれでPRを作った場合も、同じ通知付きGoal Context Review Threadと、別roleのImplementation Thread内の明示Adaptive turnへ進みます。
+exact Goal Context pathが必要な場合だけ同じpromptへ添えます。Issue本文だけで目的review済みとは扱いません。内部stateは`.review/pr-N/same-thread/<run-id>/`へ自動生成され、raw reviewer/collector evidenceがsummaryより上位です。round 1だけがfull reviewで、round 2/3は新しいpurpose reviewerだけです。automatic round 4はありません。
 
-Phase 2起動例:
-
-```text
-$completion-notification-decorator
-$adaptive-implementation-execution
-
-<cycle-root>/round-NNN/review-plan.md を実装してください。
-```
+terminalでは`schema_version`、`primary_process`、`observed_status`、safe title、current concrete HTTPS PR URIだけのoptional notification projectionを生成します。thread/turn identityはcallback authorityであり、review flowから生成しません。通常作業ではCompletion Notification Decoratorの明示指定を要求しません。
 
 詳細は`apm-packages/pr-review-remediation/README.md`を参照してください。
 
@@ -389,9 +372,9 @@ pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remedia
 
 `-DescribePayload`は外部modelへ送信せず対象一覧だけを表示します。内容を確認して送信を明示承認した場合だけ、`-ConfirmExternalModelPayload`で実model smokeを実行します。
 
-Goal Context対応版を本物のmodelで確認する場合は、検証対象のprocess PR自身ではなくdisposable target repositoryの小さなPRを使います。Codex Appがtarget選定とpackage準備を行った後、固定Implementation Thread自身がsynthetic fixtureの初回実装、commit、push、Ready PR作成を担当します。人はGitHub変更、model送信、通知runtime、Review／Implementation role taskの明示ターンを承認します。round 1 full review、初回実装と同じImplementation ThreadでのAdaptive、同じReview Threadでのround 2以降のpurpose-only review、terminal時だけのdirect-link通知までの手順と証拠様式は`tests/pr-review-remediation/manual-model-smoke/README.md`を参照してください。
+Goal Context対応版を本物のmodelで確認する場合は、検証対象のprocess PR自身ではなくdisposable target repositoryの小さなReady PRを使います。初回実装を担当した同じ親taskから一度開始し、round 1の独立reviewer roles/count、parent-owned remediation、round 2/3のpurpose-only reviewer、terminal statusを記録します。real GitHub write、real model independence、real Windows/Codex callback count/buttonはManualOnlyです。手順と証拠様式は`tests/pr-review-remediation/manual-model-smoke/README.md`を参照してください。
 
-固定実行証跡は`tests/pr-review-remediation/PRR-001/`、外部modelを呼ばないGoal Context contract replayは`PRR-002/`、multi-round state replayは`PRR-003/`に保存します。remote APM導入はAPM 0.26.0で次のように再現でき、CIではpull requestのfull head SHAまたはpushの`github.sha`を指定して検証対象を固定します。
+固定実行証跡は`tests/pr-review-remediation/PRR-001/`、外部modelを呼ばないGoal Context contract replayは`PRR-002/`に保存します。`PRR-003/`と`manage-review-cycle.cs`はhistorical fixed two-task evidenceのcompatibility validationだけに使用します。canonical same-parent stateは`validate-same-parent-review.ps1`で検証します。remote APM導入はAPM 0.26.0で次のように再現でき、CIではpull requestのfull head SHAまたはpushの`github.sha`を指定して検証対象を固定します。
 
 ```powershell
 pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1 `

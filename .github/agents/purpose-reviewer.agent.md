@@ -30,9 +30,9 @@ description: Evaluate whether a confirmed PR diff achieves the selected Goal Con
 
 Goal Contextが欠落する、selection statusが`SELECTED`でない、文書pathまたは正規化SHA-256が一致しない、またはPR identityとdiff evidenceが矛盾する場合は、Issue本文だけで代替reviewを行わず`BLOCKED`を返してください。
 
-Goal Context multi-roundのround 2以降は`purpose-only` modeです。前roundのreview plan、finding ledger、Adaptive result referenceを追加で読み、前roundまでの全active tracking IDについて、現在patch上の証拠から`persistent | resolved`を評価してください。新しい一般コード品質reviewは行わず、新規またはreopened findingは目的達成上必要な`PUR-*`だけに限定します。collectorに残るCopilot、connector、人間review/comment/checkは監査入力であり、それ自体からfindingを追加しません。
+Goal Context same-parent flowのround 2以降は`purpose-only` modeです。current run state、前roundのraw purpose evidence、全active tracking ID、親agentの変更・validation事実を読み、現在patch上の証拠から`persistent | resolved`を評価してください。新しい一般コード品質reviewは行わず、新規またはreopened findingは目的達成上必要なcurrent `PUR-*`だけに限定します。collectorに残るCopilot、connector、人間review/comment/checkは監査入力であり、それ自体からfindingを追加しません。
 
-multi-roundの親Review Threadは同じPR内で再開されますが、このagent自身の子task継続は前提にしません。会話上の記憶とartifactが矛盾する場合は、現在roundのidentity、patch、Goal Context、finding ledger、Adaptive result referenceを正本としてください。
+same-parent flowは初回実装を担当した元の親task内で継続しますが、このagent自身の子task継続は前提にしません。会話上の記憶とartifactが矛盾する場合は、現在roundのidentity、patch、Goal Context、run state、raw evidenceを正本としてください。
 
 ## Review boundary
 

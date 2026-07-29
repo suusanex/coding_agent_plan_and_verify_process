@@ -23,7 +23,7 @@ function Invoke-Checked([scriptblock]$Action, [string]$Description) {
 
 function Write-RuntimeConfig([string]$RuntimeDirectory, [string]$PowerShellPath, [int]$TimeoutMs = 5000) {
     @{
-        target_markers = @('[completion-notification]')
+        target_markers = @()
         chained_notify = @{ argv = @($PowerShellPath, '-NoProfile', '-File', $fakeCommand, 'chain') }
         providers = @(@{ name = 'fake'; argv = @($PowerShellPath, '-NoProfile', '-File', $fakeCommand, 'provider'); timeout_ms = $TimeoutMs })
     } | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $RuntimeDirectory 'runtime-config.json') -Encoding utf8
@@ -93,10 +93,10 @@ try {
     foreach ($status in @('COMPLETED', 'FAILED', 'HUMAN_DECISION_REQUIRED', 'TIMED_OUT')) {
         Invoke-Runtime $runtime (New-Payload ('status-' + $status) (New-Envelope $status))
     }
-    $beforeSuppressed = @(Get-Content $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT).Count
+    $beforeGenericFallback = @(Get-Content $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT).Count
     Invoke-Runtime $runtime (New-Payload 'marker-only-intermediate' $null)
     Invoke-Runtime $runtime (New-Payload 'invalid-terminal-envelope' ('```completion-notification' + "`n" + '{invalid}' + "`n" + '```'))
-    if (@(Get-Content $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT).Count -ne $beforeSuppressed) { throw 'Marker-only or invalid-envelope callback reached the provider.' }
+    if (@(Get-Content $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT).Count -ne ($beforeGenericFallback + 2)) { throw 'Markerless or invalid-envelope callback did not produce generic fallback delivery.' }
     Invoke-Runtime $runtime (New-Payload 'terminal-after-intermediate' (New-Envelope 'COMPLETED'))
     Invoke-Runtime $runtime (New-Payload 'null-input' (New-Envelope 'FAILED') $null)
     Invoke-Runtime $runtime (New-Payload 'coarse-uri' (New-Envelope 'COMPLETED' 'https://github.com/suusanex/coding_agent_plan_and_verify_process'))
@@ -108,14 +108,23 @@ try {
     foreach ($status in @('BLOCKED', 'COMPLETED', 'FAILED', 'HUMAN_DECISION_REQUIRED', 'TIMED_OUT')) {
         if (-not ($events.observed_status -contains $status)) { throw "Status was not preserved: $status" }
     }
-    if ($events.source_event_id -contains 'codex:fixture-thread:marker-only-intermediate' -or $events.source_event_id -contains 'codex:fixture-thread:invalid-terminal-envelope') { throw 'Suppressed callback was delivered.' }
+    foreach ($genericId in @('codex:fixture-thread:marker-only-intermediate', 'codex:fixture-thread:invalid-terminal-envelope', 'codex:fixture-thread:not-targeted')) {
+        $genericEvent = @($events | Where-Object source_event_id -eq $genericId)
+        if ($genericEvent.Count -ne 1 -or $genericEvent[0].primary_process -ne 'codex' -or $genericEvent[0].observed_status -ne 'TURN_ENDED' -or $genericEvent[0].resume_uri -ne 'codex://threads/fixture-thread') {
+            throw "Ordinary or invalid-envelope callback did not produce exactly one generic event: $genericId"
+        }
+    }
     if (@($events | Where-Object source_event_id -eq 'codex:fixture-thread:terminal-after-intermediate').Count -ne 1) { throw 'Terminal envelope after an intermediate callback was not delivered exactly once.' }
     $coarse = $events | Where-Object source_event_id -eq 'codex:fixture-thread:coarse-uri'
     if ($null -ne $coarse.result_uri -or $coarse.resume_uri -ne 'codex://threads/fixture-thread') { throw 'Coarse URI did not fall back to resume_uri.' }
     $mixedValid = $events | Where-Object source_event_id -eq 'codex:fixture-thread:mixed-valid-uri'
     $mixedCoarse = $events | Where-Object source_event_id -eq 'codex:fixture-thread:mixed-coarse-uri'
     if ($mixedValid.result_uri -ne 'HTTPS://Example.com/result/1' -or $null -ne $mixedCoarse.result_uri) { throw 'Mixed-case runtime URI contract failed.' }
-    if ($events.source_event_id -contains 'codex:fixture-thread:not-targeted') { throw 'Untargeted callback was delivered.' }
+
+    $env:CODEX_NOTIFICATION_TEST_CHAIN_EXIT = '17'
+    Invoke-Runtime $runtime (New-Payload 'chain-failure' $null @('ordinary turn'))
+    Remove-Item Env:CODEX_NOTIFICATION_TEST_CHAIN_EXIT -ErrorAction SilentlyContinue
+    if (@(Get-Content $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT | Where-Object { $_ -like '*codex:fixture-thread:chain-failure*' }).Count -ne 1) { throw 'Chained notify failure affected generic provider delivery.' }
 
     $env:CODEX_NOTIFICATION_TEST_PROVIDER_EXIT = '2'
     $failurePayload = New-Payload 'provider-retry' (New-Envelope 'FAILED')
@@ -146,7 +155,7 @@ try {
     if (-not ($validEnvelope | Test-Json -SchemaFile $envelopeSchema) -or -not ($mixedValidEnvelope | Test-Json -SchemaFile $envelopeSchema) -or ($coarseEnvelope | Test-Json -SchemaFile $envelopeSchema -ErrorAction SilentlyContinue) -or ($mixedCoarseEnvelope | Test-Json -SchemaFile $envelopeSchema -ErrorAction SilentlyContinue) -or ($userinfoEnvelope | Test-Json -SchemaFile $envelopeSchema -ErrorAction SilentlyContinue)) { throw 'Envelope URI schema contract failed.' }
     $log = Get-Content (Join-Path $runtimeHome 'runtime.log.jsonl') -Raw
     if ($log.Contains('github.com', [StringComparison]::OrdinalIgnoreCase) -or $log.Contains('completion-notification', [StringComparison]::Ordinal)) { throw 'Runtime log contains prohibited message or URI content.' }
-    if ($log -notmatch 'awaiting-terminal-envelope' -or $log -notmatch 'invalid-envelope') { throw 'Suppressed callback diagnostics were not recorded.' }
+    if ($log -notmatch 'generic-candidate' -or $log -notmatch 'generic-fallback-invalid-envelope' -or $log -match 'awaiting-terminal-envelope|not-targeted') { throw 'Generic candidate diagnostics do not match the always-on contract.' }
 
     $originalConfig = (@('model_provider = "openai"', 'notify = [ "C:\\existing-notifier.exe", "turn-ended" ]', '', '[features]', 'web_search = true') -join "`r`n") + "`r`n"
     Set-Content (Join-Path $codexHome 'config.toml') -Value $originalConfig -NoNewline -Encoding utf8
@@ -154,12 +163,7 @@ try {
     $installedConfig = Get-Content (Join-Path $codexHome 'config.toml') -Raw
     if ($installedConfig.IndexOf('notify =', [StringComparison]::Ordinal) -gt $installedConfig.IndexOf('[features]', [StringComparison]::Ordinal)) { throw 'Installer placed notify inside a TOML table.' }
     $installedRuntimeConfig = Get-Content (Join-Path $installRoot 'runtime-config.json') -Raw | ConvertFrom-Json
-    $installedTargetMarkers = @($installedRuntimeConfig.target_markers)
-    foreach ($requiredMarker in @('[completion-notification]', '$completion-notification-decorator')) {
-        if (@($installedTargetMarkers | Where-Object { $_ -ceq $requiredMarker }).Count -ne 1) {
-            throw "Installer did not configure required completion notification target marker exactly once: $requiredMarker"
-        }
-    }
+    if (@($installedRuntimeConfig.target_markers).Count -ne 0) { throw 'Always-on installer unexpectedly configured required target markers.' }
     $backup = Join-Path $codexHome 'config.toml.codex-notification-runtime.bak'
     $backupHash = (Get-FileHash $backup -Algorithm SHA256).Hash
     $checkOutput = & $installer --check --codex-home $codexHome --install-root $installRoot
@@ -226,7 +230,7 @@ try {
     if (-not $installerText.Contains('StandardOutput.ReadToEndAsync()', [StringComparison]::Ordinal) -or -not $installerText.Contains('StandardError.ReadToEndAsync()', [StringComparison]::Ordinal)) { throw 'Publish output streams are not drained concurrently.' }
 }
 finally {
-    foreach ($name in @('CODEX_NOTIFICATION_RUNTIME_HOME', 'CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT', 'CODEX_NOTIFICATION_TEST_CHAIN_OUTPUT', 'CODEX_NOTIFICATION_TEST_PROVIDER_EXIT', 'CODEX_NOTIFICATION_TEST_PROVIDER_DELAY_MS', 'CODEX_NOTIFICATION_TEST_FAIL_AFTER_BIN_SWAP', 'CODEX_NOTIFICATION_TEST_PROVIDER_UNSUPPORTED', 'CODEX_NOTIFICATION_TEST_PROVIDER_HANG', 'CODEX_NOTIFICATION_TEST_PROVIDER_HANG_PID_FILE')) {
+    foreach ($name in @('CODEX_NOTIFICATION_RUNTIME_HOME', 'CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT', 'CODEX_NOTIFICATION_TEST_CHAIN_OUTPUT', 'CODEX_NOTIFICATION_TEST_CHAIN_EXIT', 'CODEX_NOTIFICATION_TEST_PROVIDER_EXIT', 'CODEX_NOTIFICATION_TEST_PROVIDER_DELAY_MS', 'CODEX_NOTIFICATION_TEST_FAIL_AFTER_BIN_SWAP', 'CODEX_NOTIFICATION_TEST_PROVIDER_UNSUPPORTED', 'CODEX_NOTIFICATION_TEST_PROVIDER_HANG', 'CODEX_NOTIFICATION_TEST_PROVIDER_HANG_PID_FILE')) {
         Remove-Item ("Env:" + $name) -ErrorAction SilentlyContinue
     }
     if (Test-Path $validationRoot) { Remove-Item -LiteralPath $validationRoot -Recurse -Force }

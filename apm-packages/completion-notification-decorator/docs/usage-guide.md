@@ -2,7 +2,7 @@
 
 ## Responsibility boundary
 
-The decorator owns only target declaration and envelope authoring. The co-selected primary process owns all implementation, review, routing, artifacts, validation, handoffs, and terminal verdicts. Codex invokes the `notify` callback after the parent turn; the callback runtime owns link resolution, deduplication, provider delivery, delivery status, and fail-open behavior.
+The user-level runtime owns always-on callback targeting, callback-derived identity and link resolution, deduplication, provider delivery, delivery status, and fail-open behavior. The decorator owns only optional envelope authoring. The co-selected primary process owns all implementation, review, routing, artifacts, validation, handoffs, and terminal verdicts.
 
 One parent turn has exactly one `primary_process`. Internal agents used by that process are not separate primary processes.
 
@@ -49,10 +49,10 @@ On Windows, a valid `result_uri` produces two actions: `結果を開く` opens t
 
 ## Fallback and failure
 
-The runtime recognizes `$completion-notification-decorator` in the original input as the target declaration. `[completion-notification]` remains available for callers that cannot preserve the Skill token.
+Every valid `agent-turn-complete` callback is a notification candidate. `$completion-notification-decorator`, `[completion-notification]`, and the envelope are not targeting requirements.
 
-The runtime delivers only a valid terminal `completion-notification` envelope. A selected marker without an envelope is recorded as `awaiting-terminal-envelope` and does not display a notification. An invalid envelope is recorded as `invalid-envelope` and is also suppressed. If delivery fails, the runtime records notification failure while returning exit code 0; the primary result remains unchanged.
+Without an envelope, the runtime emits a generic `TURN_ENDED` notification. A fully valid envelope enriches process, status, title, repository, and optional result metadata. An invalid envelope, including one with an unsafe or coarse result URI, is ignored as a whole and falls back to the generic notification. If delivery fails, the runtime records notification failure while returning exit code 0; the primary result remains unchanged.
 
 ## Ambiguous selection
 
-When no primary process or more than one primary process is selected, do not choose or start one on the decorator's behalf. Allow any independently valid work to finish, omit the envelope, and report the metadata ambiguity. No completion notification is delivered without a valid terminal envelope.
+When no primary process or more than one primary process is selected, do not choose or start one on the decorator's behalf. Allow any independently valid work to finish, omit the envelope, and report the metadata ambiguity. The always-on generic notification still applies.
