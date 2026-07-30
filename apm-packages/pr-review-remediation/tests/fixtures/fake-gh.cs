@@ -17,25 +17,32 @@ if (args.Length >= 2 && args[0] == "repo" && args[1] == "view" && scenario.Start
 
 if (args.Length >= 2 && args[0] == "pr" && args[1] == "list" && scenario.StartsWith("same-parent", StringComparison.Ordinal))
 {
+    var isHeadQuery = args.Contains("--head", StringComparer.Ordinal);
     var first = new
     {
         number = 123,
         url = "https://github.com/fixture/goal-context-review/pull/123",
+        state = "OPEN",
         isDraft = scenario == "same-parent-draft",
+        baseRefOid = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        headRefOid = sameParentHead
+    };
+    var second = new
+    {
+        number = 124,
+        url = "https://github.com/fixture/goal-context-review/pull/124",
+        state = "OPEN",
+        isDraft = false,
         baseRefOid = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         headRefOid = sameParentHead
     };
     object[] result = scenario switch
     {
         "same-parent-missing" => [],
-        "same-parent-ambiguous" => [first, new
-        {
-            number = 124,
-            url = "https://github.com/fixture/goal-context-review/pull/124",
-            isDraft = false,
-            baseRefOid = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            headRefOid = "cccccccccccccccccccccccccccccccccccccccc"
-        }],
+        "same-parent-ambiguous" when isHeadQuery => [],
+        "same-parent-ambiguous" => [first, second],
+        "same-parent-branch-priority" when isHeadQuery => [second],
+        "same-parent-branch-priority" => [first, second],
         _ => [first]
     };
     Console.WriteLine(JsonSerializer.Serialize(result));
@@ -59,14 +66,15 @@ if (args.Length >= 2 && args[0] == "pr" && args[1] == "view")
     var call = IncrementState(statePath);
     if (scenario.StartsWith("same-parent", StringComparison.Ordinal))
     {
+        var requestedNumber = args.Length > 2 && int.TryParse(args[2], out var parsedNumber) ? parsedNumber : 123;
         var sameParentPullRequest = new
         {
-            number = 123,
+            number = requestedNumber,
             title = "Same-parent Goal Context review fixture",
-            state = "OPEN",
+            state = scenario == "same-parent-closed" ? "CLOSED" : "OPEN",
             author = new { login = "fixture-user" },
             body = "Synthetic same-parent input.",
-            url = "https://github.com/fixture/goal-context-review/pull/123",
+            url = $"https://github.com/fixture/goal-context-review/pull/{requestedNumber}",
             baseRefName = "main",
             baseRefOid = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             headRefName = "feature",
@@ -187,12 +195,12 @@ if (args.Length >= 2 && args[0] == "api")
             }));
             return 0;
         }
-        if (endpoint.EndsWith("/issues/123/comments", StringComparison.Ordinal))
+        if (endpoint.Contains("/issues/", StringComparison.Ordinal) && endpoint.EndsWith("/comments", StringComparison.Ordinal))
         {
             Console.WriteLine(Paginate(Array.Empty<object>()));
             return 0;
         }
-        if (endpoint.EndsWith("/pulls/123/comments", StringComparison.Ordinal))
+        if (endpoint.Contains("/pulls/", StringComparison.Ordinal) && endpoint.EndsWith("/comments", StringComparison.Ordinal))
         {
             Console.WriteLine(Paginate(new object[]
             {

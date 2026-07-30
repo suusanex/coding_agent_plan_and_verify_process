@@ -21,6 +21,13 @@ function Invoke-Native([string]$FilePath, [string[]]$Arguments, [string]$Descrip
     }
 }
 
+function Invoke-NativeJson([string]$FilePath, [string[]]$Arguments, [string]$Description) {
+    $output = & $FilePath @Arguments 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0) { throw "$Description failed with exit code $LASTEXITCODE. Output: $output" }
+    try { return $output | ConvertFrom-Json }
+    catch { throw "$Description returned invalid JSON. Output: $output" }
+}
+
 function Invoke-NativeFailure([string]$FilePath, [string[]]$Arguments, [string]$Description, [string]$ExpectedPattern) {
     $output = & $FilePath @Arguments 2>&1 | Out-String
     if ($LASTEXITCODE -eq 0) {
@@ -93,7 +100,6 @@ try {
 
     $deployedReviewSkill = Join-Path $scratch '.agents/skills/pr-review-remediation'
     $deployedGoalReviewSkill = Join-Path $scratch '.agents/skills/goal-context-pr-review'
-    $deployedGoalAuthoringSkill = Join-Path $scratch '.agents/skills/goal-context-authoring'
     $deployedAdaptiveSkill = Join-Path $scratch '.agents/skills/adaptive-implementation-execution'
     foreach ($relative in @(
         'SKILL.md',
@@ -124,10 +130,6 @@ try {
     foreach ($relative in @('SKILL.md', 'refs/intent.md', 'refs/handoff.md')) {
         Assert-File (Join-Path $deployedAdaptiveSkill $relative) "deployed Adaptive Skill asset $relative"
     }
-    foreach ($relative in @('SKILL.md', 'scripts/validate-goal-context.cs')) {
-        Assert-File (Join-Path $deployedGoalAuthoringSkill $relative) "deployed Goal Context Authoring Skill asset $relative"
-    }
-
     $parts = $Repository.Split('/')
     $repositoryModule = Join-Path $scratch ("apm_modules/{0}/{1}" -f $parts[0], $parts[1])
     foreach ($agent in @(
@@ -140,35 +142,47 @@ try {
         Assert-ApmCanonicalAgent (Join-Path $scratch 'apm_modules') $agent
     }
     $installedReviewHelper = Join-Path $repositoryModule 'apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs'
-    $reviewHelper = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'sync-pr-review-remediation-local.cs'))
-    $adaptiveHelper = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs'))
-    $sourceGoalContextFixture = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../tests/pr-review-remediation/PRR-002/fixture/docs/goal-context-direct-review-notification.md'))
+    $installedAdaptiveHelper = Join-Path $repositoryModule 'apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs'
+    $installedFakeGh = Join-Path $repositoryModule 'apm-packages/pr-review-remediation/tests/fixtures/fake-gh.cs'
     Assert-File $installedReviewHelper 'installed review profile helper'
-    Assert-File $reviewHelper 'canonical review profile helper from the source checkout'
-    Assert-File $adaptiveHelper 'canonical Adaptive profile helper from the source checkout'
-    Assert-File $sourceGoalContextFixture 'canonical reviewed Goal Context smoke fixture from the source checkout'
+    Assert-File $installedAdaptiveHelper 'installed Adaptive profile helper'
+    Assert-File $installedFakeGh 'installed fake GitHub fixture'
 
-    Invoke-Native 'dotnet' @('run', '--file', $reviewHelper, '--', $scratch) 'review profile synchronization'
-    Invoke-Native 'dotnet' @('run', '--file', $adaptiveHelper, '--', $scratch) 'Adaptive profile synchronization'
-    Invoke-Native 'dotnet' @('run', '--file', $adaptiveHelper, '--', $scratch, '--check') 'Adaptive profile check'
-    Invoke-Native 'dotnet' @('run', '--file', $reviewHelper, '--', $scratch, '--check') 'review profile check'
+    Invoke-Native 'dotnet' @('run', '--file', $installedReviewHelper, '--', $scratch) 'README review profile synchronization'
+    Invoke-Native 'dotnet' @('run', '--file', $installedAdaptiveHelper, '--', $scratch) 'README Adaptive profile synchronization'
+    Invoke-Native 'dotnet' @('run', '--file', $installedAdaptiveHelper, '--', $scratch, '--check') 'README Adaptive profile check'
+    Invoke-Native 'dotnet' @('run', '--file', $installedReviewHelper, '--', $scratch, '--check') 'README review profile check'
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedReviewSkill 'scripts/collect-pr-review-context.cs'), '--', '--help') 'deployed relative collector help'
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedGoalReviewSkill 'scripts/select-goal-context.cs'), '--', '--help') 'deployed Goal Context selector help'
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedGoalReviewSkill 'scripts/manage-same-parent-review.cs'), '--', '--help') 'deployed canonical same-parent manager help'
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedGoalReviewSkill 'scripts/manage-review-cycle.cs'), '--', '--help') 'deployed multi-round cycle manager help'
-    Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedGoalAuthoringSkill 'scripts/validate-goal-context.cs'), '--', '--help') 'deployed canonical Goal Context validator help'
-    Invoke-Native 'dotnet' @(
-        'run', '--file', (Join-Path $deployedGoalAuthoringSkill 'scripts/validate-goal-context.cs'), '--',
-        '--goal-context', $sourceGoalContextFixture,
-        '--mode', 'strict', '--format', 'json'
-    ) 'deployed canonical Goal Context validator reviewed example'
+
+    $freeFormGoalContext = Join-Path $scratch 'consumer-goal.txt'
+    Set-Content -LiteralPath $freeFormGoalContext -Encoding utf8 -NoNewline -Value 'Users should complete review and remediation in the original task without copying structured metadata into another task.'
+
+    Invoke-Native 'git' @('-C', $scratch, 'init', '-b', 'feature') 'empty consumer Git initialization'
+    $fakeGhPublish = Join-Path $scratch '.smoke/fake-gh'
+    Invoke-Native 'dotnet' @('publish', $installedFakeGh, '--output', $fakeGhPublish, '--disable-build-servers') 'installed fake GitHub fixture publish'
+    $fakeGhExecutable = Join-Path $fakeGhPublish ($(if ($IsWindows) { 'fake-gh.exe' } else { 'fake-gh' }))
+    Assert-File $fakeGhExecutable 'published fake GitHub fixture'
+    $env:FAKE_GH_SCENARIO = 'same-parent-ready'
+    $env:FAKE_GH_STATE = Join-Path $scratch '.smoke/fake-gh-state.txt'
+    $env:FAKE_GH_HEAD_OID = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+    $startResult = Invoke-NativeJson 'dotnet' @(
+        'run', '--file', (Join-Path $deployedGoalReviewSkill 'scripts/manage-same-parent-review.cs'), '--',
+        'start', '--repository-root', $scratch, '--pr', '123', '--goal-context', 'consumer-goal.txt',
+        '--gh-executable', $fakeGhExecutable, '--copilot-timeout-seconds', '3', '--format', 'json'
+    ) 'installed canonical same-parent start from empty consumer repository'
+    if ($startResult.status -ne 'Round1Reviewing' -or -not $startResult.runRoot) {
+        throw 'Installed canonical same-parent manager did not reach Round1Reviewing from the published consumer commands.'
+    }
 
     $selectorScript = Join-Path $deployedGoalReviewSkill 'scripts/select-goal-context.cs'
     $linkTestRoot = Join-Path $scratch 'selector-link-tests'
     $linkDocs = Join-Path $linkTestRoot 'docs'
     New-Item -ItemType Directory -Path $linkDocs -Force | Out-Null
     $outsideGoal = Join-Path $outside 'goal-context-outside.md'
-    Copy-Item -LiteralPath $sourceGoalContextFixture -Destination $outsideGoal
+    Copy-Item -LiteralPath $freeFormGoalContext -Destination $outsideGoal
     New-Item -ItemType SymbolicLink -Path (Join-Path $linkDocs 'goal-context-linked.md') -Target $outsideGoal | Out-Null
     Invoke-NativeFailure 'dotnet' @(
         'run', '--file', $selectorScript, '--', '--repository-root', $scratch,
@@ -216,7 +230,6 @@ try {
 
     Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'pr-review-remediation' 'APM lock direct package entry'
     Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'adaptive-implementation-execution' 'APM lock Adaptive dependency entry'
-    Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'goal-context-authoring' 'APM lock Goal Context Authoring dependency entry'
     Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'local-reviewer' 'APM lock local reviewer dependency entry'
     Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'purpose-reviewer' 'APM lock purpose reviewer dependency entry'
     Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'review-planner' 'APM lock review planner dependency entry'
@@ -230,6 +243,9 @@ try {
     Write-Output "APM: $($apmVersion.Trim())"
 }
 finally {
+    Remove-Item Env:FAKE_GH_SCENARIO -ErrorAction SilentlyContinue
+    Remove-Item Env:FAKE_GH_STATE -ErrorAction SilentlyContinue
+    Remove-Item Env:FAKE_GH_HEAD_OID -ErrorAction SilentlyContinue
     if ($null -eq $previousPythonUtf8) { Remove-Item Env:PYTHONUTF8 -ErrorAction SilentlyContinue } else { $env:PYTHONUTF8 = $previousPythonUtf8 }
     if ($null -eq $previousPythonIoEncoding) { Remove-Item Env:PYTHONIOENCODING -ErrorAction SilentlyContinue } else { $env:PYTHONIOENCODING = $previousPythonIoEncoding }
     if (Test-Path -LiteralPath $scratch) {

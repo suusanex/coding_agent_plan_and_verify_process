@@ -116,10 +116,10 @@ Source requirement
 | package | Use when |
 | --- | --- |
 | `apm-packages/completion-notification-decorator` | 通常のCodex turnを常時task-link通知へ接続し、必要なprocessだけ任意のverdict/result metadataでenrichしたい |
-| `apm-packages/pr-review-remediation` | 基礎版またはGoal Context対応版でReady PRをreviewし、local / purpose / GitHub Copilot findingsを統合して、別親ターンの既存Adaptive Implementationへ渡したい |
+| `apm-packages/pr-review-remediation` | 基礎版ではreview planまで、Goal Context対応版では元の実装task内でReady PRのreview・修正・purpose-only再reviewまで完結したい |
 | `apm-packages/adaptive-implementation-execution` | CodexまたはGitHub Copilot Chat in VS Codeで、通常Plan後の非自明な実装をHIGH_MODELから開始し、valid handoff後だけSTANDARD_MODELへ直列委譲したい |
 | `apm-packages/design-pair-implementation-execution` | 利用者が明示選択した場合だけ、実装前に code の予定変更面を対話し、explicit Locked Decisions を通常の Adaptive Implementation へ渡したい |
-| `apm-packages/goal-context-authoring` | 設計会話や意思決定記録から、目的・判断理由・scope・acceptance evidence を自己完結した `goal-context-*.md` として作成・検証し、人間レビュー後に後続 AI の実装・目的達成レビューへ引き継ぎたい |
+| `apm-packages/goal-context-authoring` | 任意の自然言語資料から、固定schemaや承認lifecycleを要求しないfree-form Goal Contextを作る補助がほしい |
 | `apm-packages/codex-first-ai-development-process` | Codex を第一優先にし、短い依頼から cost-aware routing、モデル tier 分担、READY / close gate、stateful resume に入りたい |
 | `apm-packages/copilot-fallback-ai-development-process` | Codex 枠が尽きた場合などに、GitHub Copilot Chat in VS Code へ同じ思想の cost-aware process を repo-local 導入したい |
 | `apm-packages/plan-coverage-residual-flow` | operator が Plan網羅チェック・残件判定フローを直接選べる。通常利用では `plan-coverage-residual-flow` skill を入口にして既存 agent 群を進行管理したい |
@@ -142,9 +142,9 @@ Source requirement
 | `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM 導入後に Adaptive Implementation の必須 concrete Codex profile を repository-local に同期・検証したい | `.codex/agents/high-implementation-starter.toml`、`.codex/agents/standard-implementation-completer.toml`。`AGENTS.md` は操作しない |
 | `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、Codex-first / Adaptive / Design Pair skills、canonical implementation agent contracts、`templates/*.md` |
 | `scripts/provision-work-repo-agents.cs` | 既存の token-aware / full-coverage package を APM 経由で導入し、agent TOML と template 配置を補正したい | `apm install` の実行、canonical Adaptive agents と legacy `.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level 設定補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置 |
-| `apm-packages/goal-context-authoring/.apm/skills/goal-context-authoring/scripts/validate-goal-context.cs` | 導入先を含む任意のGoal Context文書をcanonical contractで検証したい | 必須章、entry単位のprovenance、table、命名、human-review state、高確度のcredential pattern、正規化SHA-256を検証。semantic / privacy review は人間が行う |
-| `apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1` | Goal Context packageとfixtureを共通validator込みで検証したい | package構成とnegative mutationを検証し、文書検証は配布版canonical validatorへ委譲 |
-| `apm-packages/goal-context-authoring/scripts/test-apm-package-install.ps1` | Goal Context package の標準APM導入経路を検証したい | temporary root へ package root を導入し、Skill、4 references、canonical validatorの配置・SHA-256一致・起動を検証 |
+| `apm-packages/goal-context-authoring/.apm/skills/goal-context-authoring/scripts/validate-goal-context.cs` | Goal Contextがreadable free-form textとして扱えることを任意確認したい | non-empty text、高確度credential pattern、正規化SHA-256だけを検証。filename、frontmatter、見出し、lifecycle、approvalは検証しない |
+| `apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1` | Goal Context authoring packageとfree-form fixtureを検証したい | package構成、任意形式の受理、empty/NUL/credential fixtureの拒否を検証 |
+| `apm-packages/goal-context-authoring/scripts/test-apm-package-install.ps1` | Goal Context package の標準APM導入経路を検証したい | temporary root へ package root を導入し、Skill、4 references、readability validatorの配置・SHA-256一致・free-form起動を検証 |
 | `scripts/validate-architecture-slice-readiness.ps1` | Architecture Slice Readinessのagent、manifest、template、routing、validation resultを静的検証したい | dependency path、frontmatter、必須contract、旧direct routeの残存を検証 |
 
 Codex-first を使いたい場合の入口は `apply-codex-first-local.cs` です。
@@ -174,7 +174,7 @@ PR Review Remediation packageを変更した場合は、次を実行してくだ
 ./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1
 dotnet publish ./apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs
 dotnet publish ./apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/select-goal-context.cs
-dotnet publish ./apm-packages/goal-context-authoring/.apm/skills/goal-context-authoring/scripts/validate-goal-context.cs
+dotnet publish ./apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs
 dotnet publish ./apm-packages/pr-review-remediation/scripts/validate-prr-002-contract.cs
 dotnet publish ./apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs
 git diff --check
@@ -227,17 +227,15 @@ dotnet run --file scripts/provision-work-repo-agents.cs -- "C:\\path\\to\\work-r
 
 ## Goal Context Authoring
 
-設計会話や意思決定記録から、目的、利用状況、判断と理由、scope、constraints、acceptance evidence、目的上の失敗条件を抽出・構造化し、自己完結した `goal-context-*.md` を作成します。draft 検証、人間レビュー、strict 検証を経て保存し、元資料へアクセスできない後続 AI の実装および目的達成レビューへ引き継ぎます。
+任意の自然言語資料から、後続AIが目的を判断できる自己完結したGoal Contextを作るauthoring helperです。このpackageは便利な作成経路の一つであり、Goal Contextがこのpromptやrepositoryから作られたことを前提にしません。
 
 ```text
-design conversation finalized
-  -> goal-context-authoring
-  -> goal-context-<topic-summary>.md (draft)
-  -> human review
-  -> goal-context-<topic-summary>.md (human-reviewed)
+available natural-language source
+  -> optional goal-context-authoring helper
+  -> readable free-form Goal Context
 ```
 
-生成物は Issue 本文の長文化や会話の時系列要約ではありません。Original problem、Desired outcome、具体的な利用状況、MVP / Non-goals / Future work、採用・棄却判断と理由、constraints / invariants、success scenarios、acceptance evidence、形式上成立しても目的上失敗する条件、review questions、open questions、訂正・優先順位変更を保持します。material statement は `[Explicit]`、`[Inferred]`、`[Unknown]` で区別します。
+Goal Contextはfree-form textです。filename、拡張子、directory、frontmatter、見出し、table、provenance tag、draft/strict lifecycle、approval record、作成元は必須ではありません。一段落で目的が十分伝わるなら、それもvalidです。
 
 APM で導入する場合:
 
@@ -245,16 +243,15 @@ APM で導入する場合:
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/goal-context-authoring --target codex,agent-skills
 ```
 
-生成プロンプト、文書契約、template、human review checklist は Skill の `references/` に同梱されます。追加 installer は不要です。
+生成プロンプト、free-form interoperability contract、optional example、optional quality checklistはSkillの`references/`に同梱されます。追加installerは不要です。
 
-draft と human-reviewed artifact の検証例:
+readabilityの任意検証例:
 
 ```powershell
-./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1 -GoalContextPath ./docs/goal-context-<topic-summary>.md
-./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1 -GoalContextPath ./docs/goal-context-<topic-summary>.md -RequireHumanReview
+dotnet run --file .agents/skills/goal-context-authoring/scripts/validate-goal-context.cs -- --goal-context <path> --mode basic --format json
 ```
 
-validator は必須章、frontmatter、provenance vocabulary、命名、人間確認 state、高確度の secret pattern を検査しますが、元会話への semantic fidelity または privacy safety を証明しません。Desired outcome、棄却案、否定条件、MVP 境界、訂正・優先順位変更、機密情報の除外は人間が checklist で確認します。
+validatorはnon-empty readable textと高確度secret patternだけを検査します。semantic fidelity、完全性、privacy safety、承認は証明しません。`draft`と`strict`は既存commandとの互換aliasで、追加の文書schemaやapproval gateを課しません。
 
 詳細:
 
@@ -318,23 +315,24 @@ $adaptive-implementation-execution を使って、直前の Plan を実装して
 
 ```text
 original implementation parent
-  -> auto-resolve current repository / exactly one Ready PR / Goal Context
+  -> auto-resolve current repository / current-branch-or-unique Ready PR / free-form Goal Context
   -> round 1: GitHub Copilot + read-only local-reviewer + read-only purpose-reviewer
   -> parent-only remediation and validation
   -> round 2/3: new read-only purpose-reviewer only
   -> Complete | HumanDecisionRequired | Blocked
 ```
 
-Goal Context normal pathでは、別top-level Review / Implementation task、thread ID、PR番号、artifact path、hash、JSON、result referenceの転記を要求しません。reviewerはproduction source、tests、docs、GitHub stateを変更せず、元の親agentだけが修正write ownerです。Draft、Ready PRの0件/複数、Goal Context欠落/曖昧、head drift、mandatory reviewer不足はfail closedで停止します。
+Goal Context normal pathでは、別top-level Review / Implementation task、thread ID、artifact path、hash、JSON、result referenceの転記を要求しません。Goal Contextは自然言語のfree-form textであり、作成元や特定schemaを要求しません。reviewerはproduction source、tests、docs、GitHub stateを変更せず、元の親agentだけが修正write ownerです。current branchにReady PRがなければrepository全体のunique Ready PRへfallbackし、それでも曖昧な場合だけ短いPR番号またはURLを確認します。
 
 導入:
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills
-dotnet run --file apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs -- . --dry-run
-dotnet run --file apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs -- .
-dotnet run --file apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs -- .
-dotnet run --file apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs -- . --check
+$moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
+dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --dry-run
+dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- .
+dotnet run --file "$moduleRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- .
+dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --check
 ```
 
 基礎版起動例:
@@ -352,9 +350,9 @@ $goal-context-pr-review
 この実装のReady PRをGoal Contextに照らしてreviewし、必要な修正と再reviewを同じtask内で完了してください。
 ```
 
-exact Goal Context pathが必要な場合だけ同じpromptへ添えます。Issue本文だけで目的review済みとは扱いません。内部stateは`.review/pr-N/same-thread/<run-id>/`へ自動生成され、raw reviewer/collector evidenceがsummaryより上位です。round 1だけがfull reviewで、round 2/3は新しいpurpose reviewerだけです。automatic round 4はありません。
+exact Goal Context pathが必要な場合だけ同じpromptへ添えます。explicit pathではfilenameや拡張子も任意です。Issue本文だけで目的review済みとは扱いません。内部stateは`.review/pr-N/same-thread/<run-id>/`へ自動生成され、raw reviewer/collector evidenceがsummaryより上位です。round 1だけがfull reviewで、round 2/3は新しいpurpose reviewerだけです。automatic round 4はありません。
 
-terminalでは`schema_version`、`primary_process`、`observed_status`、safe title、current concrete HTTPS PR URIだけのoptional notification projectionを生成します。thread/turn identityはcallback authorityであり、review flowから生成しません。通常作業ではCompletion Notification Decoratorの明示指定を要求しません。
+terminalでは`schema_version`、`primary_process`、`observed_status`、safe title、current concrete HTTPS PR URIだけのoptional notification projectionを生成します。親agentは`completion-notification.txt`を最終assistant message末尾へverbatimで追加します。thread/turn identityはcallback authorityであり、review flowから生成しません。通常作業ではCompletion Notification Decoratorの明示指定を要求しません。
 
 詳細は`apm-packages/pr-review-remediation/README.md`を参照してください。
 

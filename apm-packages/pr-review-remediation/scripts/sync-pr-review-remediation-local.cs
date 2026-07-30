@@ -69,7 +69,7 @@ try
         if (adaptiveProblems.Count > 0)
         {
             Console.Error.WriteLine("Run the existing Adaptive helper because Adaptive assets or profiles are missing or invalid:");
-            Console.Error.WriteLine("dotnet run --file apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs -- .");
+            Console.Error.WriteLine("Run the Adaptive helper from apm_modules/<owner>/<repository>/apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs.");
         }
         return 1;
     }
@@ -378,7 +378,7 @@ static void ShowUsage()
 {
     Console.WriteLine("""
 Usage:
-  dotnet run --file apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs -- [target-repository] [--dry-run | --check] [--force] [--remove]
+  dotnet run --file <module-root>/apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs -- [target-repository] [--dry-run | --check] [--force] [--remove]
 
 Options:
   --dry-run, -n     Show review profile changes without writing.

@@ -7,8 +7,6 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 $skillRoot = Join-Path $repoRoot 'apm-packages\pr-review-remediation\.apm\skills\goal-context-pr-review'
 $manager = Join-Path $skillRoot 'scripts\manage-same-parent-review.cs'
 $fakeGhSource = Join-Path $repoRoot 'apm-packages\pr-review-remediation\tests\fixtures\fake-gh.cs'
-$validator = Join-Path $repoRoot 'apm-packages\goal-context-authoring\.apm\skills\goal-context-authoring\scripts\validate-goal-context.cs'
-$goalContextSource = Join-Path $repoRoot 'tests\pr-review-remediation\PRR-002\fixture\docs\goal-context-direct-review-notification.md'
 $failures = [System.Collections.Generic.List[string]]::new()
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('same-parent-review-' + [guid]::NewGuid().ToString('N'))
 
@@ -31,25 +29,28 @@ function Invoke-Manager {
 function New-FixtureRepository([string]$Name, [bool]$IncludeGoalContext = $true) {
     $root = Join-Path $tempRoot $Name
     New-Item -ItemType Directory -Path $root -Force | Out-Null
+    & git -C $root init -b feature | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Could not initialize fixture Git repository: $root" }
     if ($IncludeGoalContext) {
         $docs = Join-Path $root 'docs'
         New-Item -ItemType Directory -Path $docs -Force | Out-Null
-        Copy-Item -LiteralPath $goalContextSource -Destination (Join-Path $docs 'goal-context-same-parent-review.md')
+        Set-Content -LiteralPath (Join-Path $docs 'goal-context-same-parent-review.md') -Value 'The review should confirm that users can finish the work without a separate handoff task. This is deliberately free-form text with no required headings or metadata.'
     }
     return $root
 }
 
-function Start-Run([string]$FixtureRoot, [string]$Scenario = 'same-parent-ready') {
+function Start-Run([string]$FixtureRoot, [string]$Scenario = 'same-parent-ready', [string]$PullRequest = '') {
     $env:FAKE_GH_SCENARIO = $Scenario
     $env:FAKE_GH_STATE = Join-Path $FixtureRoot 'fake-gh-state.txt'
     $env:FAKE_GH_HEAD_OID = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
-    $result = Invoke-Manager @(
+    $arguments = @(
         'start', '--repository-root', $FixtureRoot,
         '--gh-executable', $script:fakeGh,
-        '--validator', $validator,
         '--skill-root', $skillRoot,
         '--copilot-timeout-seconds', '3', '--format', 'json'
     )
+    if ($PullRequest) { $arguments += @('--pr', $PullRequest) }
+    $result = Invoke-Manager $arguments
     if ($result.ExitCode -ne 0) { return $null }
     $json = $result.Output | ConvertFrom-Json
     $runRoot = Join-Path $FixtureRoot $json.runRoot
@@ -162,24 +163,43 @@ try {
         $projectionFields = @($projection.psobject.Properties.Name | Sort-Object)
         if (($projectionFields -join '|') -ne 'observed_status|primary_process|result_uri|schema_version|title') { Add-Failure 'terminal projection field set is not XC-001 safe.' }
         if ($projection.observed_status -ne 'Complete' -or $projection.result_uri -ne 'https://github.com/fixture/goal-context-review/pull/123') { Add-Failure 'terminal projection did not retain terminal status/current PR URI.' }
+        $notification = Get-Content -Raw -LiteralPath (Join-Path $runRoot 'completion-notification.txt')
+        if ($notification -notmatch '(?s)^```completion-notification\s*\{.*"result_uri"\s*:\s*"https://github.com/fixture/goal-context-review/pull/123".*\}\s*```\s*$') { Add-Failure 'terminal completion notification is not the exact fenced projection.' }
     }
+
+    $branchPriority = New-FixtureRepository 'branch-priority'
+    $branchPriorityRun = Start-Run $branchPriority 'same-parent-branch-priority'
+    if ($branchPriorityRun -and (Get-State $branchPriorityRun).pullRequest.number -ne 124) { Add-Failure 'current branch Ready PR was not preferred over repository-wide candidates.' }
+
+    $explicitNumber = New-FixtureRepository 'explicit-number'
+    $explicitNumberRun = Start-Run $explicitNumber 'same-parent-ambiguous' '124'
+    if ($explicitNumberRun -and (Get-State $explicitNumberRun).pullRequest.number -ne 124) { Add-Failure '--pr number did not resolve the requested Ready PR.' }
+
+    $explicitUrl = New-FixtureRepository 'explicit-url'
+    $explicitUrlRun = Start-Run $explicitUrl 'same-parent-ambiguous' 'https://github.com/fixture/goal-context-review/pull/124'
+    if ($explicitUrlRun -and (Get-State $explicitUrlRun).pullRequest.number -ne 124) { Add-Failure '--pr URL did not resolve the requested Ready PR.' }
+
+    $explicitClosed = New-FixtureRepository 'explicit-closed'
+    $env:FAKE_GH_SCENARIO = 'same-parent-closed'
+    $env:FAKE_GH_STATE = Join-Path $explicitClosed 'fake-gh-state.txt'
+    Invoke-Manager @('start', '--repository-root', $explicitClosed, '--pr', '123', '--gh-executable', $script:fakeGh, '--skill-root', $skillRoot, '--format', 'json') $false 'not open' | Out-Null
 
     foreach ($negative in @(
         @{ Name = 'draft'; Scenario = 'same-parent-draft'; Pattern = 'Draft' },
-        @{ Name = 'ambiguous'; Scenario = 'same-parent-ambiguous'; Pattern = 'ambiguous' },
+        @{ Name = 'ambiguous'; Scenario = 'same-parent-ambiguous'; Pattern = '--pr|2 Ready PRs' },
         @{ Name = 'missing-pr'; Scenario = 'same-parent-missing'; Pattern = 'No Ready PR' }
     )) {
         $fixture = New-FixtureRepository $negative.Name
         $env:FAKE_GH_SCENARIO = $negative.Scenario
         $env:FAKE_GH_STATE = Join-Path $fixture 'fake-gh-state.txt'
         $env:FAKE_GH_HEAD_OID = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
-        Invoke-Manager @('start', '--repository-root', $fixture, '--gh-executable', $script:fakeGh, '--validator', $validator, '--skill-root', $skillRoot, '--format', 'json') $false $negative.Pattern | Out-Null
+        Invoke-Manager @('start', '--repository-root', $fixture, '--gh-executable', $script:fakeGh, '--skill-root', $skillRoot, '--format', 'json') $false $negative.Pattern | Out-Null
     }
 
     $noGoal = New-FixtureRepository 'no-goal' $false
     $env:FAKE_GH_SCENARIO = 'same-parent-ready'
     $env:FAKE_GH_STATE = Join-Path $noGoal 'fake-gh-state.txt'
-    Invoke-Manager @('start', '--repository-root', $noGoal, '--gh-executable', $script:fakeGh, '--validator', $validator, '--skill-root', $skillRoot, '--format', 'json') $false 'No goal-context' | Out-Null
+    Invoke-Manager @('start', '--repository-root', $noGoal, '--gh-executable', $script:fakeGh, '--skill-root', $skillRoot, '--format', 'json') $false 'No goal-context' | Out-Null
 
     $stale = New-FixtureRepository 'stale'
     $staleRun = Start-Run $stale

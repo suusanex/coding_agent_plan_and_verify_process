@@ -7,6 +7,8 @@ source_scope: all four segments of docs/examples/source-conversation-fixture.md;
 sensitive_data_review: passed
 ---
 
+> Historical structured authoring example. Its frontmatter, headings, provenance tags, lifecycle, and review record are optional and are not part of the Goal Context interoperability contract.
+
 # Goal Context: Resumable local batch export
 
 ## Document control and source boundary

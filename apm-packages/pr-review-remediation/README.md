@@ -9,7 +9,7 @@ Goal Context normal pathは次のとおりです。
 
 ```text
 original implementation parent
-  -> auto-resolve current repository / exactly one Ready PR / Goal Context
+  -> auto-resolve current repository / current-branch-or-unique Ready PR / free-form Goal Context
   -> round 1: GitHub Copilot + read-only local-reviewer + read-only purpose-reviewer
   -> parent-only remediation and validation
   -> round 2/3: new read-only purpose-reviewer only
@@ -22,10 +22,11 @@ original implementation parent
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills
-dotnet run --file apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs -- . --dry-run
-dotnet run --file apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs -- .
-dotnet run --file apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs -- .
-dotnet run --file apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs -- . --check
+$moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
+dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --dry-run
+dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- .
+dotnet run --file "$moduleRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- .
+dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --check
 ```
 
 APMはSkillsとcanonical reviewer agentsを導入し、sync helperは`.codex/agents/local-reviewer.toml`、`purpose-reviewer.toml`、`review-planner.toml`を同期します。`review-planner`は基礎版とhistorical compatibility用です。Goal Context canonical same-parent pathのround decision/write ownershipは元の親agentが持ちます。helperは`AGENTS.md`と`.codex/config.toml`を操作しません。
@@ -40,11 +41,11 @@ $goal-context-pr-review
 この実装のReady PRをGoal Contextに照らしてreviewし、必要な修正と再reviewを同じtask内で完了してください。
 ```
 
-exact Goal Context pathが必要な場合だけ同じpromptへ添えます。内部run stateは`.review/pr-N/same-thread/<run-id>/`へ自動作成され、利用者は管理しません。
+Goal Contextは自然言語のfree-form textです。作成元、filename、frontmatter、見出し、lifecycle、approval recordを要求しません。exact Goal Context pathが必要な場合だけ同じpromptへ添えます。PRはcurrent branchのReady PRを優先し、fallbackが曖昧な場合だけ短い番号またはURLを確認します。内部run stateは`.review/pr-N/same-thread/<run-id>/`へ自動作成され、利用者は管理しません。
 
 Round 1はcurrent-head GitHub Copilot sourcesと二つのread-only reviewer raw outputsがmandatoryです。parentはactionable findingを修正・検証し、current remote headを更新します。Round 2/3はcollectorをCopilot waitなしでrefreshし、新しいpurpose reviewerだけを実行します。active findingがround 3に残る場合やproduct判断が必要な場合は`HumanDecisionRequired`、安全な入力・source・head更新が成立しない場合は`Blocked`です。automatic round 4はありません。
 
-Terminal projectionはschema/process/status/safe title/current concrete PR URIだけを含み、thread/turn IDを含みません。notification runtime consumer integrationとreal Windows actionはcross-slice/manual verificationです。
+Terminal projectionはschema/process/status/safe title/current concrete PR URIだけを含み、thread/turn IDを含みません。terminal時に親agentは`completion-notification.txt`を最終assistant message末尾へverbatimで追加し、callback runtimeへPR linkを渡します。real Windows actionはmanual verificationです。
 
 ## Package contents
 

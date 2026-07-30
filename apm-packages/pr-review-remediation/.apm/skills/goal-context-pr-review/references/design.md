@@ -4,7 +4,7 @@
 
 `scripts/manage-same-parent-review.cs` is the package-owned orchestration and minimal-state address. The APM-installed `$goal-context-pr-review` Skill invokes it from the original implementation parent task.
 
-The utility resolves the current repository, exactly one Ready PR, and an exact or unique Goal Context. It creates `.review/pr-N/same-thread/<run-id>/` automatically and owns only these projections:
+The utility resolves the current repository, prefers the current branch Ready PR, falls back to a unique repository-wide Ready PR, and selects an exact or conventionally discovered Goal Context. Goal Context content is arbitrary readable free-form text; authoring format and provenance are outside this flow. It creates `.review/pr-N/same-thread/<run-id>/` automatically and owns only these projections:
 
 - `run-state.json`: round, current head, Goal Context identity, reviewer role/count ledger, finding projection, terminal state
 - `run-summary.md`: human-readable projection; raw evidence has higher precedence
@@ -16,14 +16,14 @@ It does not spawn reviewers, edit production files, commit, push, or change GitH
 ## Authority and precedence
 
 1. current collector-declared remote PR head and patch
-2. selected Goal Context and canonical validation result
+2. exact selected Goal Context content identity
 3. unmodified reviewer raw outputs
 4. explicit current `PUR-*` prior assessment
 5. `run-state.json`
 6. `run-summary.md`
 7. terminal notification projection
 
-Issue text never replaces Goal Context. Text similarity never replaces stable finding IDs.
+Issue text never replaces Goal Context. A missing heading or lifecycle marker never invalidates Goal Context. Text similarity never replaces stable finding IDs.
 
 ## Round model
 
@@ -49,7 +49,7 @@ The producer projection contains only:
 - safe `title`
 - current concrete HTTPS PR `result_uri`
 
-It contains no thread or turn identity. The callback consumer remains authoritative for those fields. Consumer integration and real button operation are cross-slice/manual verification.
+It contains no thread or turn identity. The callback consumer remains authoritative for those fields. The parent appends `completion-notification.txt` verbatim to the terminal `last-assistant-message`; real callback and button operation remain manual verification.
 
 ## XC-002
 

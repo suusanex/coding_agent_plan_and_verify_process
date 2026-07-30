@@ -17,7 +17,7 @@ $goal-context-pr-review
 この実装のReady PRをGoal Contextに照らしてreviewし、必要な修正と再reviewを同じtask内で完了してください。
 ```
 
-別top-level Review / Implementation task、thread ID、artifact path、hash、JSON、result referenceの転記をnormal pathへ要求しません。Goal Contextのexact pathを利用者が短く指定することはできますが、pathやhashの管理を要求しません。
+別top-level Review / Implementation task、thread ID、artifact path、hash、JSON、result referenceの転記をnormal pathへ要求しません。Goal Contextのexact pathや、曖昧時のPR番号/URLを利用者が短く指定することはできますが、pathやhashの管理を要求しません。Goal Contextは自然言語のfree-form textであり、作成元、filename、frontmatter、見出し、lifecycle、approval recordを要求しません。
 
 ## Ownership and non-goals
 
@@ -34,18 +34,18 @@ $goal-context-pr-review
 親agentは現在のrepository rootから次の一操作を実行します。`--goal-context`はexact pathが会話で選択済みの場合だけ追加します。
 
 ```powershell
-dotnet run --file scripts/manage-same-parent-review.cs -- start --repository-root . --format json
+dotnet run --file .agents/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs -- start --repository-root . --format json
 ```
 
 このcommandは次をfail closedで行います。
 
 1. current GitHub repositoryを解決する。
-2. open PRからDraftを除外し、Ready PRがexactly oneであることを確認する。
-3. exact指定またはunique discoveryでGoal Contextを選び、canonical validatorを通す。
+2. current branchのReady PRを優先し、存在しない場合だけrepository全体のunique Ready PRへfallbackする。曖昧な場合は`--pr <number-or-url>`を短く確認する。
+3. exact指定または`goal-context-*.md`のunique discoveryでGoal Contextを選び、readable non-empty free-form textであることだけを確認する。exact指定ではfilenameや拡張子を制限しない。
 4. collectorでcurrent base/head、remote patch、GitHub Copilot reviewとinline sourcesを取得する。
 5. `.review/pr-N/same-thread/<run-id>/round-001/`と`run-state.json` / `run-summary.md`を自動生成する。
 
-Ready PRが0件/複数、Draft、Goal Contextが欠落/曖昧/不正、collector timeout、head driftの場合は、reviewerやremediationへ進まず、具体的なblockerを一つ返して`Blocked`で停止します。利用者へ内部stateの作成や修復を求めません。
+Ready PRが0件、current branchにも一意fallbackにも決められない、Draftを明示指定した、Goal Contextが欠落/曖昧/読取不能、collector timeout、head driftの場合は、reviewerやremediationへ進まず、具体的なblockerを一つ返して`Blocked`で停止します。PRだけが曖昧な場合は`--pr`へ短い番号またはURLを受け取って再実行します。利用者へ内部stateの作成や修復を求めません。
 
 ## Round 1: independent mandatory sources
 
@@ -64,7 +64,7 @@ collectorのGitHub Copilot sourcesが三つ目のmandatory sourceです。親age
 親agentはraw evidenceをstable `TRK-*`へprojectionし、同じroundの`round-assessment.json`へ保存して次を実行します。shapeは`templates/round-assessment.example.json`を使います。
 
 ```powershell
-dotnet run --file scripts/manage-same-parent-review.cs -- assess --run <auto-created-run-root> --round 1 --assessment <auto-created-run-root>/round-001/round-assessment.json --format json
+dotnet run --file .agents/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs -- assess --run <auto-created-run-root> --round 1 --assessment <auto-created-run-root>/round-001/round-assessment.json --format json
 ```
 
 `assess`はmandatory source、reviewed head、`Production code changed: No`、finding IDを検証し、`Complete | Remediating | HumanDecisionRequired | Blocked`へ遷移します。
@@ -79,7 +79,7 @@ dotnet run --file scripts/manage-same-parent-review.cs -- assess --run <auto-cre
 4. current remote headを推測せず、次のcommandでcollector authorityからrefreshする。
 
 ```powershell
-dotnet run --file scripts/manage-same-parent-review.cs -- next-round --run <auto-created-run-root> --format json
+dotnet run --file .agents/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs -- next-round --run <auto-created-run-root> --format json
 ```
 
 同じhead、Draft、head drift、collector failureは`Blocked`です。new current headを確認できた場合だけ`round-002/`または`round-003/`を作ります。
@@ -109,8 +109,10 @@ purpose-only `round-assessment.json`のmandatory sourceは`purpose-reviewer`だ�
 
 terminal時はrun rootへ`terminal-projection.json`と`completion-notification.txt`を自動生成します。projectionに含めるfieldは`schema_version`、`primary_process`、`observed_status`、safe `title`、current concrete HTTPS PR `result_uri`だけです。`thread-id` / `turn-id`を生成・推測・受領しません。callback identityはnotification runtimeのauthorityです。
 
+親agentはterminal responseを返す直前に`completion-notification.txt`をraw textとして読み、そこにあるfenced blockを最終assistant messageの末尾へ一字一句変更せず一度だけ追加します。blockの後へ本文を追加しません。notification runtimeはcallbackの`last-assistant-message`だけを読むため、このappendがcurrent task linkとPR linkを同じ通知へ渡すproducer/consumer境界です。
+
 ```powershell
-dotnet run --file scripts/manage-same-parent-review.cs -- validate --run <auto-created-run-root> --format json
+dotnet run --file .agents/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs -- validate --run <auto-created-run-root> --format json
 ```
 
 ## Manual-only evidence

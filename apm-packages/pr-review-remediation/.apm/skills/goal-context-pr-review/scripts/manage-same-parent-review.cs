@@ -42,14 +42,16 @@ static void ShowUsage()
 {
     Console.WriteLine("""
 Usage:
-  dotnet run --file scripts/manage-same-parent-review.cs -- start [--repository-root <path>] [--goal-context <repository-relative-path>] [--search-root <path>] [--gh-executable <path>] [--validator <path>] [--skill-root <path>] [--format json|text]
-  dotnet run --file scripts/manage-same-parent-review.cs -- assess --run <run-root> --round <number> --assessment <path> [--format json|text]
-  dotnet run --file scripts/manage-same-parent-review.cs -- next-round --run <run-root> [--gh-executable <path>] [--skill-root <path>] [--format json|text]
-  dotnet run --file scripts/manage-same-parent-review.cs -- block --run <run-root> --reason <text> [--format json|text]
-  dotnet run --file scripts/manage-same-parent-review.cs -- validate --run <run-root> [--format json|text]
+  dotnet run --file .agents/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs -- start [--repository-root <path>] [--pr <number-or-url>] [--goal-context <repository-relative-path>] [--search-root <path>] [--gh-executable <path>] [--skill-root <path>] [--format json|text]
+  dotnet run --file .agents/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs -- assess --run <run-root> --round <number> --assessment <path> [--format json|text]
+  dotnet run --file .agents/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs -- next-round --run <run-root> [--gh-executable <path>] [--skill-root <path>] [--format json|text]
+  dotnet run --file .agents/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs -- block --run <run-root> --reason <text> [--format json|text]
+  dotnet run --file .agents/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs -- validate --run <run-root> [--format json|text]
 
 Canonical normal path:
-  start resolves the current GitHub repository, exactly one Ready PR, and one selected or uniquely discoverable Goal Context.
+  start resolves the current GitHub repository, prefers the current branch Ready PR, then falls back to a unique repository-wide Ready PR.
+  Use --pr with a short PR number or URL only when the target remains ambiguous.
+  Goal Context is arbitrary readable natural-language text; no filename, headings, frontmatter, lifecycle, approval, or creation-source contract is imposed.
   It creates .review/pr-N/same-thread/<run-id>/ automatically. Users do not supply task IDs, artifact paths, hashes, JSON, or result references.
   Round 1 requires current-head GitHub Copilot, local-reviewer, and purpose-reviewer evidence.
   Rounds 2 and 3 require a new current head and purpose-reviewer evidence only.
@@ -87,7 +89,7 @@ static class SameParentReview
         var skillRoot = ResolveSkillRoot(repositoryRoot, options.SkillRoot);
         var gh = options.GhExecutable ?? "gh";
         var repository = ResolveRepository(gh, repositoryRoot);
-        var pullRequest = ResolveSingleReadyPullRequest(gh, repositoryRoot, repository);
+        var pullRequest = ResolveTargetReadyPullRequest(gh, repositoryRoot, repository, options.PullRequest);
         var runId = $"{DateTimeOffset.UtcNow:yyyyMMdd'T'HHmmss'Z'}-{Guid.NewGuid():N}"[..25];
         if (!SafeRunId.IsMatch(runId)) throw new ContractException("Generated run ID is invalid.");
         var runRoot = Path.Combine(repositoryRoot, ".review", $"pr-{pullRequest.Number}", "same-thread", runId);
@@ -190,6 +192,7 @@ static class SameParentReview
         var skillRoot = ResolveSkillRoot(repositoryRoot, options.SkillRoot);
         var gh = options.GhExecutable ?? "gh";
         var remote = ResolvePullRequest(gh, repositoryRoot, state.Repository, state.PullRequest.Number);
+        Require(remote.State == "OPEN", "The current PR is no longer open.");
         Require(!remote.IsDraft, "The current PR is Draft; make it Ready before continuing.");
         Require(!string.Equals(remote.HeadOid, state.PullRequest.HeadOid, StringComparison.OrdinalIgnoreCase),
             "The current PR head has not changed after remediation; purpose review would use stale evidence.");
@@ -358,13 +361,18 @@ static class SameParentReview
         if (IsTerminal(state.Status))
         {
             var projectionPath = Path.Combine(runRoot, "terminal-projection.json");
+            var notificationPath = Path.Combine(runRoot, "completion-notification.txt");
             Require(File.Exists(projectionPath), "Terminal run is missing terminal-projection.json.");
+            Require(File.Exists(notificationPath), "Terminal run is missing completion-notification.txt.");
             using var projection = JsonDocument.Parse(File.ReadAllText(projectionPath));
             var names = projection.RootElement.EnumerateObject().Select(item => item.Name).Order(StringComparer.Ordinal).ToArray();
             Require(names.SequenceEqual(new[] { "observed_status", "primary_process", "result_uri", "schema_version", "title" }),
                 "Terminal projection must contain only schema/process/status/title/current PR URI.");
             Require(!projection.RootElement.TryGetProperty("thread-id", out _) && !projection.RootElement.TryGetProperty("turn-id", out _),
                 "Terminal projection must not contain callback identity.");
+            var expectedNotification = $"```completion-notification\n{NormalizeLineEndings(File.ReadAllText(projectionPath)).TrimEnd('\n')}\n```\n";
+            Require(NormalizeLineEndings(File.ReadAllText(notificationPath)) == NormalizeLineEndings(expectedNotification),
+                "completion-notification.txt must contain exactly the fenced terminal projection.");
         }
     }
 
@@ -455,23 +463,64 @@ static class SameParentReview
         return repository;
     }
 
-    private static PullRequestCandidate ResolveSingleReadyPullRequest(string gh, string cwd, string repository)
+    private static PullRequestCandidate ResolveTargetReadyPullRequest(string gh, string cwd, string repository, string? explicitReference)
     {
-        using var doc = RunJson(gh, ["pr", "list", "--repo", repository, "--state", "open", "--json", "number,url,isDraft,baseRefOid,headRefOid", "--limit", "100"], cwd);
-        Require(doc.RootElement.ValueKind == JsonValueKind.Array, "GitHub PR list did not return an array.");
-        var candidates = doc.RootElement.EnumerateArray().Select(ReadPullRequestCandidate).ToList();
+        if (!string.IsNullOrWhiteSpace(explicitReference))
+        {
+            var number = ParsePullRequestReference(explicitReference!, repository);
+            var selected = ResolvePullRequest(gh, cwd, repository, number);
+            Require(selected.State == "OPEN", $"PR #{selected.Number} is not open; select an open Ready PR.");
+            Require(!selected.IsDraft, $"PR #{selected.Number} is Draft; select a Ready PR.");
+            return selected;
+        }
+
+        var branch = Run("git", ["branch", "--show-current"], cwd, "current Git branch resolution").Trim();
+        if (!string.IsNullOrWhiteSpace(branch))
+        {
+            var branchCandidates = ListOpenPullRequests(gh, cwd, repository, branch);
+            var branchReady = branchCandidates.Where(item => !item.IsDraft).ToList();
+            Require(branchReady.Count <= 1,
+                $"{branchReady.Count} Ready PRs target the current branch '{branch}'; re-run start with --pr <number-or-url>.");
+            if (branchReady.Count == 1) return branchReady[0];
+        }
+
+        var candidates = ListOpenPullRequests(gh, cwd, repository, null);
         var ready = candidates.Where(item => !item.IsDraft).ToList();
         if (ready.Count == 0 && candidates.Count == 1 && candidates[0].IsDraft)
-            throw new ContractException($"PR #{candidates[0].Number} is Draft; exactly one Ready PR is required.");
+            throw new ContractException($"PR #{candidates[0].Number} is Draft; no Ready PR can be selected.");
         Require(ready.Count == 1, ready.Count == 0
             ? "No Ready PR exists in the current repository."
-            : $"{ready.Count} Ready PRs exist in the current repository; the target is ambiguous.");
+            : $"{ready.Count} Ready PRs exist in the current repository; re-run start with --pr <number-or-url>.");
         return ready[0];
+    }
+
+    private static List<PullRequestCandidate> ListOpenPullRequests(string gh, string cwd, string repository, string? headBranch)
+    {
+        var arguments = new List<string> { "pr", "list", "--repo", repository, "--state", "open" };
+        if (!string.IsNullOrWhiteSpace(headBranch)) { arguments.Add("--head"); arguments.Add(headBranch); }
+        arguments.AddRange(["--json", "number,url,state,isDraft,baseRefOid,headRefOid", "--limit", "100"]);
+        using var doc = RunJson(gh, arguments, cwd);
+        Require(doc.RootElement.ValueKind == JsonValueKind.Array, "GitHub PR list did not return an array.");
+        return doc.RootElement.EnumerateArray().Select(ReadPullRequestCandidate).ToList();
+    }
+
+    private static int ParsePullRequestReference(string value, string repository)
+    {
+        if (int.TryParse(value, out var number) && number > 0) return number;
+        if (Uri.TryCreate(value, UriKind.Absolute, out var uri)
+            && uri.Scheme == Uri.UriSchemeHttps
+            && string.Equals(uri.Host, "github.com", StringComparison.OrdinalIgnoreCase))
+        {
+            var match = Regex.Match(uri.AbsolutePath, "^/(?<repository>[^/]+/[^/]+)/pull/(?<number>[1-9][0-9]*)$", RegexOptions.CultureInvariant);
+            if (match.Success && string.Equals(match.Groups["repository"].Value, repository, StringComparison.OrdinalIgnoreCase))
+                return int.Parse(match.Groups["number"].Value);
+        }
+        throw new ContractException("--pr must be a positive PR number or a concrete HTTPS GitHub PR URL for the current repository.");
     }
 
     private static PullRequestCandidate ResolvePullRequest(string gh, string cwd, string repository, int number)
     {
-        using var doc = RunJson(gh, ["pr", "view", number.ToString(), "--repo", repository, "--json", "number,url,isDraft,baseRefOid,headRefOid"], cwd);
+        using var doc = RunJson(gh, ["pr", "view", number.ToString(), "--repo", repository, "--json", "number,url,state,isDraft,baseRefOid,headRefOid"], cwd);
         return ReadPullRequestCandidate(doc.RootElement);
     }
 
@@ -480,6 +529,7 @@ static class SameParentReview
         var candidate = new PullRequestCandidate(
             RequiredInt(root, "number"), RequiredString(root, "url"),
             root.TryGetProperty("isDraft", out var draft) && draft.GetBoolean(),
+            RequiredString(root, "state"),
             RequiredString(root, "baseRefOid"), RequiredString(root, "headRefOid"));
         Require(IsConcretePullRequestUri(candidate.Url), $"PR #{candidate.Number} URL is not a concrete HTTPS pull URI.");
         Require(IsGitOid(candidate.BaseOid) && IsGitOid(candidate.HeadOid), $"PR #{candidate.Number} has invalid base/head OIDs.");
@@ -491,7 +541,6 @@ static class SameParentReview
         var arguments = new List<string> { "run", "--file", Path.Combine(skillRoot, "scripts", "select-goal-context.cs"), "--", "--repository-root", repositoryRoot, "--out", outputPath };
         if (!string.IsNullOrWhiteSpace(options.GoalContext)) { arguments.Add("--goal-context"); arguments.Add(options.GoalContext!); }
         else if (!string.IsNullOrWhiteSpace(options.SearchRoot)) { arguments.Add("--search-root"); arguments.Add(options.SearchRoot!); }
-        if (!string.IsNullOrWhiteSpace(options.ValidatorPath)) { arguments.Add("--validator"); arguments.Add(options.ValidatorPath!); }
         Run("dotnet", arguments, repositoryRoot, "Goal Context selection");
     }
 
@@ -519,7 +568,7 @@ static class SameParentReview
         using var doc = JsonDocument.Parse(File.ReadAllText(path));
         var root = doc.RootElement;
         Require(RequiredString(root, "selectionStatus") == "SELECTED", "Goal Context selection did not return SELECTED.");
-        Require(RequiredString(root, "validation") == "PASS", "Goal Context canonical validation did not pass.");
+        Require(RequiredString(root, "validation") == "PASS", "Goal Context readable free-form validation did not pass.");
         return new GoalContextSelection(RequiredString(root, "selectedPath"), RequiredString(root, "contentSha256"));
     }
 
@@ -591,6 +640,7 @@ static class SameParentReview
     private static bool IsConcretePullRequestUri(string value) => Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps &&
         Regex.IsMatch(uri.AbsolutePath, "^/[^/]+/[^/]+/pull/[1-9][0-9]*$", RegexOptions.CultureInvariant);
     private static string OneLine(string value) => Regex.Replace(value, "\\s+", " ").Trim();
+    private static string NormalizeLineEndings(string value) => value.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
     private static string EscapeCell(string value) => OneLine(value).Replace("|", "\\|", StringComparison.Ordinal);
     private static void EnsureEqual(string name, string expected, string actual) => Require(string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase), $"{name} mismatch: expected {expected}, actual {actual}.");
     private static void Require(bool condition, string message) { if (!condition) throw new ContractException(message); }
@@ -640,10 +690,10 @@ sealed class Options
 {
     public string Command { get; private set; } = "";
     public string? RepositoryRoot { get; private set; }
+    public string? PullRequest { get; private set; }
     public string? GoalContext { get; private set; }
     public string? SearchRoot { get; private set; }
     public string? GhExecutable { get; private set; }
-    public string? ValidatorPath { get; private set; }
     public string? SkillRoot { get; private set; }
     public string? RunRoot { get; private set; }
     public string? AssessmentPath { get; private set; }
@@ -665,10 +715,11 @@ sealed class Options
             switch (args[i])
             {
                 case "--repository-root": o.RepositoryRoot = Next(); break;
+                case "--pr": o.PullRequest = Next(); break;
                 case "--goal-context": o.GoalContext = Next(); break;
                 case "--search-root": o.SearchRoot = Next(); break;
                 case "--gh-executable": o.GhExecutable = Next(); break;
-                case "--validator": o.ValidatorPath = Next(); break;
+                case "--validator": _ = Next(); break;
                 case "--skill-root": o.SkillRoot = Next(); break;
                 case "--run": o.RunRoot = Next(); break;
                 case "--assessment": o.AssessmentPath = Next(); break;
@@ -696,7 +747,7 @@ static class JsonOptions
 }
 
 sealed record CommandOutput(string Status, string? RunRoot, int? Round, string? Blocker);
-sealed record PullRequestCandidate(int Number, string Url, bool IsDraft, string BaseOid, string HeadOid);
+sealed record PullRequestCandidate(int Number, string Url, bool IsDraft, string State, string BaseOid, string HeadOid);
 sealed record ReviewContext(string Repository, int PullRequest, string BaseOid, string HeadOid, bool IsDraft, string CopilotObservedState, bool CopilotTimedOut);
 sealed record GoalContextSelection(string SelectedPath, string ContentSha256);
 sealed record PullRequestState(int Number, string Url, string BaseOid, string HeadOid);

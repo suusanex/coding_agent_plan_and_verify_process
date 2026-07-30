@@ -10,8 +10,8 @@
 
 - process packageの対象refを固定してAPM install済み
 - `sync-pr-review-remediation-local.cs --check`がPASS
-- current target repositoryにexactly one Ready PR
-- valid `goal-context-*.md`がexactly one、または開始promptでexact pathを選択
+- current branchにReady PR、またはrepository全体にunique Ready PR。複数なら開始promptでPR番号/URLを短く指定
+- readable non-empty Goal Context。形式、filename、拡張子、作成元は任意。discoveryが曖昧なら開始promptでexact pathを選択
 - 初回実装、validation、commit/push、Ready PR作成を担当した元のCodex parent taskを、同じ親taskとして再開可能
 - target diff、Goal Context、promptにsecret/personal dataがない
 
@@ -25,7 +25,7 @@ $goal-context-pr-review
 この実装のReady PRをGoal Contextに照らしてreviewし、必要な修正と再reviewを同じtask内で完了してください。
 ```
 
-別top-level Review/Implementation taskを作成せず、thread ID、PR番号、cycle path、hash、JSON、result referenceを転記しません。
+別top-level Review/Implementation taskを作成せず、thread ID、cycle path、hash、JSON、result referenceを転記しません。PRが曖昧な場合だけ短い番号またはURLを追加します。
 
 ## Required observations
 
@@ -65,6 +65,19 @@ $goal-context-pr-review
 - user-visible notificationから元のparent taskとPRへ戻れる
 - reviewer subagent roles/countとuser-visible notification count/targetsをprivacy-safeに記録する
 - unsupported callback hierarchy filterを推測しない
+
+## Manual notification E2E
+
+人手での作業が必要: Windows notificationの表示とbutton遷移は自動fixtureでは証明できないため、次を実機で順番に確認します。
+
+1. notification runtimeの`--check`がPASSし、WindowsでCodexの通知が許可されていることを確認する。
+2. 新しい通常のCodex taskでDecoratorや`completion-notification` blockを指定せず、短い通常turnを完了する。Windows通知が一件表示されることを確認する。
+3. その通知の「このタスクを開く」を押し、手順2の入力と回答がある発火元taskをCodex Appが開くことを確認する。
+4. disposable Ready PRを持つ元の実装taskで`$goal-context-pr-review`を完了させる。terminal response末尾にrun rootの`completion-notification.txt`と同一のfenced blockが一度だけあり、block後に本文がないことを確認する。
+5. terminal通知の「このタスクを開く」が手順4の元の実装taskを開き、「結果を開く」が同じrunの対象PRを開くことをそれぞれ確認する。
+6. round 1と必要なpurpose-only roundの間に表示されたreviewer subagent由来の通知件数とtargetを記録する。親taskのterminal通知を見失うspamになっていないかを判定し、過剰なら実数と状況を残す。公開callbackにない親子fieldを仮定してfilterしない。
+
+各手順はPass/Failと観察時刻だけを`result-template.md`へ記録します。private thread ID、turn ID、callback payload、credentialは保存しません。
 
 ## Evidence boundary
 

@@ -16,7 +16,7 @@
 - Goal Context selection:
 - Goal Context:
 - Goal Context SHA-256:
-- Goal Context lifecycle:
+- Goal Context validation: readable free-form text
 
 ## Prior Finding Assessment
 
@@ -26,26 +26,23 @@ Round 1では`N/A`とします。purpose-only roundでは、前roundまでの全
 | --- | --- | --- | --- | --- | --- |
 | N/A | N/A | N/A | N/A | N/A | N/A |
 
-## Outcome Assessment
+## Purpose Assessment
+
+| Purpose statement or user situation | Goal Context evidence | PR evidence | Assessment | Notes |
+| --- | --- | --- | --- | --- |
+|  |  |  | Achieved / At risk / Not achieved / Unknown |  |
+
+## Stated Boundary Assessment
+
+Goal Context本文に境界が記述されている場合だけ行を追加します。見出しや特定の分類がないこと自体をfindingにしません。
 
 | Dimension | Goal Context evidence | PR evidence | Assessment | Notes |
 | --- | --- | --- | --- | --- |
-| Original problem |  |  | Achieved / At risk / Not achieved / Unknown |  |
-| Desired outcome |  |  | Achieved / At risk / Not achieved / Unknown |  |
-| User scenarios |  |  | Achieved / At risk / Not achieved / Unknown |  |
-
-## Boundary Assessment
-
-| Dimension | Goal Context evidence | PR evidence | Assessment | Notes |
-| --- | --- | --- | --- | --- |
-| MVP |  |  | Preserved / Violated / Unknown |  |
-| Non-goals |  |  | Preserved / Violated / Unknown |  |
-| Rejected alternatives |  |  | Preserved / Reintroduced / Unknown |  |
-| Superficially compliant but wrong |  |  | Avoided / Present / Unknown |  |
+|  |  |  | Preserved / Violated / Unknown |  |
 
 ## Findings
 
-| ID | Goal Context section | Summary | PR evidence | Purpose risk | Suggested outcome |
+| ID | Goal Context statement or location | Summary | PR evidence | Purpose risk | Suggested outcome |
 | --- | --- | --- | --- | --- | --- |
 | PUR-001 |  |  |  |  |  |
 

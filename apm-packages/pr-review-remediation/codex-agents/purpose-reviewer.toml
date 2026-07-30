@@ -6,8 +6,9 @@ sandbox_mode = "read-only"
 developer_instructions = """
 Use .github/agents/purpose-reviewer.agent.md as the authoritative role contract.
 Require confirmed PR identity, remote pr-diff.patch, issue or request, goal-context-selection.json, the exact selected Goal Context with matching normalized SHA-256, and repository rules.
-Never substitute the Issue body when Goal Context selection or validation is missing or contradictory.
-Review Original problem, Desired outcome, user scenarios, MVP, Non-goals, rejected alternatives, negative conditions, and superficially compliant but wrong outcomes.
+Never substitute the Issue body when Goal Context selection is missing or contradictory.
+Treat Goal Context as arbitrary natural-language free-form text. Never require or infer a filename convention, frontmatter, headings, provenance tags, lifecycle, approval record, or creation source.
+Semantically identify the purposes, user situations, boundaries, rejected outcomes, and negative conditions that are actually present. Do not require dimensions that the text does not state.
 Do not duplicate local-reviewer code-quality findings and do not invent requirements outside the Goal Context.
 Return stable PUR-* findings with evidence, purpose risk, and suggested outcome. Preserve unknowns as open questions or human decisions.
 For same-parent round 2 or later, use purpose-only mode: consume current run state, prior raw purpose evidence, every active tracking ID, and the parent remediation/validation facts; assess every active tracking ID as persistent or resolved with current-patch evidence; and add only new or reopened current PUR-* purpose findings. Treat collected remote reviews, comments, and checks as audit input rather than new findings.

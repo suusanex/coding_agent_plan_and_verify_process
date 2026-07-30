@@ -2,7 +2,7 @@
 
 ## Goal Context purpose review is required
 
-このSkillは基礎版です。Goal Contextを選択・検証し、`purpose-reviewer`を含む独立reviewが必要な場合は`$goal-context-pr-review`を明示指定してください。Goal Contextが不正なまま、この基礎版で目的review済みと扱うことはできません。
+このSkillは基礎版です。free-form Goal Contextを選択し、`purpose-reviewer`を含む独立reviewが必要な場合は`$goal-context-pr-review`を明示指定してください。Goal Contextが欠落したまま、この基礎版で目的review済みと扱うことはできません。
 
 ## The PR is a draft
 
@@ -28,7 +28,8 @@ base/head OID、Draft状態、PR stateが変化した場合、collectorは古い
 ## Review profile check fails
 
 ```powershell
-dotnet run --file apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs -- . --check
+$moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
+dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --check
 ```
 
 review profileが競合する場合だけ`--force`を検討します。Adaptive profile不足は既存Adaptive helperで修復します。

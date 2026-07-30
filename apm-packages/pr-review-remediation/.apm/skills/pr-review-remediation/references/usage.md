@@ -4,10 +4,11 @@
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills
-dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs -- . --dry-run
-dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs -- .
-dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs -- .
-dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs -- . --check
+$moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
+dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --dry-run
+dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- .
+dotnet run --file "$moduleRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- .
+dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --check
 ```
 
 最初のhelperはreview agent profileを同期します。Adaptiveのmodel mapping、agent validation、installation policyは既存Adaptive helperをsource of truthとして使います。

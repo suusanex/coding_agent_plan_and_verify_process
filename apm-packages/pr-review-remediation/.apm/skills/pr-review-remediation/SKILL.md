@@ -41,13 +41,13 @@ GitHubへのbranch作成、commit、push、PR作成は、この準備段階だ�
 Skill内のcollectorを実行します。
 
 ```powershell
-dotnet run --file scripts/collect-pr-review-context.cs -- --repo owner/name --pr 123 --out .review/pr-123
+dotnet run --file .agents/skills/pr-review-remediation/scripts/collect-pr-review-context.cs -- --repo owner/name --pr 123 --out .review/pr-123
 ```
 
 標準ではGitHub Copilot reviewを待ちます。必要な場合だけ待機設定を変更します。
 
 ```powershell
-dotnet run --file scripts/collect-pr-review-context.cs -- --repo owner/name --pr 123 --out .review/pr-123 --copilot-timeout-seconds 300 --copilot-poll-interval-seconds 10 --copilot-stable-samples 2
+dotnet run --file .agents/skills/pr-review-remediation/scripts/collect-pr-review-context.cs -- --repo owner/name --pr 123 --out .review/pr-123 --copilot-timeout-seconds 300 --copilot-poll-interval-seconds 10 --copilot-stable-samples 2
 ```
 
 `--no-wait-for-copilot`は明示的に待機を省略する場合だけ使います。timeout、disabled、observed `none`を「指摘なし」と読み替えません。

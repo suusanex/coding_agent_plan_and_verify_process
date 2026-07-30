@@ -1,7 +1,8 @@
 #:property TargetFramework=net10.0
 #:property PublishAot=false
 
-using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 var options = Options.Parse(args);
@@ -25,11 +26,10 @@ try
         throw new DirectoryNotFoundException($"Repository root does not exist: {repositoryRoot}");
     }
 
-    var validatorPath = ResolveValidatorPath(repositoryRoot, options.ValidatorPath);
     var candidates = ResolveCandidates(repositoryRoot, options);
     if (candidates.Count == 0)
     {
-        return Stop("NO_GOAL_CONTEXT", "No goal-context-*.md candidate was found. Create or select a valid Goal Context, or explicitly choose the baseline $pr-review-remediation Skill.");
+        return Stop("NO_GOAL_CONTEXT", "No goal-context-*.md candidate was found. Select a readable Goal Context with --goal-context, or explicitly choose the baseline $pr-review-remediation Skill.");
     }
 
     if (candidates.Count > 1)
@@ -43,42 +43,26 @@ try
     }
 
     var selected = candidates[0];
-    var validationMode = options.AllowDraft ? "draft" : "strict";
-    var validation = RunCanonicalValidator(validatorPath, selected, validationMode);
-    var validationErrors = validation.Errors.ToList();
-    if (!options.AllowDraft && validation.LifecycleStatus == "draft")
+    var content = Normalize(File.ReadAllText(selected));
+    if (string.IsNullOrWhiteSpace(content))
     {
-        validationErrors.Add("A draft Goal Context requires an exact --goal-context path plus explicit --allow-draft user override.");
+        throw new InvalidDataException("Selected Goal Context is empty.");
     }
-    if (options.AllowDraft && validation.LifecycleStatus != "draft")
+    if (content.IndexOf('\0') >= 0)
     {
-        validationErrors.Add("--allow-draft is only valid for a draft Goal Context.");
-    }
-    if (validation.Status != "PASS" || validationErrors.Count > 0)
-    {
-        Console.Error.WriteLine($"INVALID_GOAL_CONTEXT: {Relative(repositoryRoot, selected)}");
-        foreach (var error in validationErrors)
-        {
-            Console.Error.WriteLine($"- {error}");
-        }
-        Console.Error.WriteLine("Do not substitute the Issue body for purpose review. Fix the Goal Context or explicitly choose the baseline $pr-review-remediation Skill.");
-        return 2;
+        throw new InvalidDataException("Selected Goal Context contains NUL characters and is not readable text.");
     }
 
     var outputPath = ResolveContainedPath(repositoryRoot, options.OutputPath, requireExists: false);
     Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
     var artifact = new SelectionArtifact(
-        SchemaVersion: 2,
+        SchemaVersion: 3,
         SelectionStatus: "SELECTED",
         SelectedPath: Relative(repositoryRoot, selected),
-        SelectionMode: options.GoalContextPath is null ? "auto-unique" : options.AllowDraft ? "user-specified-draft-override" : "user-specified",
-        LifecycleStatus: validation.LifecycleStatus,
-        SensitiveDataReview: validation.SensitiveReview,
-        DraftOverride: validation.LifecycleStatus == "draft",
+        SelectionMode: options.GoalContextPath is null ? "auto-unique" : "user-specified",
         Validation: "PASS",
-        ValidationContractVersion: validation.ContractVersion,
-        ValidationMode: validation.Mode,
-        ContentSha256: validation.ContentSha256);
+        ValidationContract: "readable-free-form",
+        ContentSha256: Sha256(content));
     File.WriteAllText(outputPath, JsonSerializer.Serialize(artifact, new JsonSerializerOptions
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -86,7 +70,7 @@ try
     }) + "\n");
     Console.WriteLine($"Goal Context selection: SELECTED ({artifact.SelectionMode})");
     Console.WriteLine($"Goal Context: {artifact.SelectedPath}");
-    Console.WriteLine($"Lifecycle: {artifact.LifecycleStatus}/{artifact.SensitiveDataReview}");
+    Console.WriteLine("Validation: readable non-empty free-form text");
     Console.WriteLine($"Content SHA-256: {artifact.ContentSha256}");
     Console.WriteLine($"Artifact: {Relative(repositoryRoot, outputPath)}");
     return 0;
@@ -139,7 +123,9 @@ static List<string> ResolveCandidates(string repositoryRoot, Options options)
             {
                 pending.Push(resolved);
             }
-            else if (File.Exists(resolved) && Path.GetFileName(resolved).StartsWith("goal-context-", StringComparison.OrdinalIgnoreCase) && Path.GetExtension(resolved).Equals(".md", StringComparison.OrdinalIgnoreCase))
+            else if (File.Exists(resolved)
+                && Path.GetFileName(resolved).StartsWith("goal-context-", StringComparison.OrdinalIgnoreCase)
+                && Path.GetExtension(resolved).Equals(".md", StringComparison.OrdinalIgnoreCase))
             {
                 candidates.Add(resolved);
             }
@@ -158,64 +144,9 @@ static bool HasExcludedSegment(string relativePath)
     return relativePath.Split('/', '\\').Any(excluded.Contains);
 }
 
-static CanonicalValidation RunCanonicalValidator(string validatorPath, string goalContextPath, string mode)
-{
-    var start = new ProcessStartInfo("dotnet")
-    {
-        UseShellExecute = false,
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
-        CreateNoWindow = true
-    };
-    foreach (var argument in new[]
-    {
-        "run", "--file", validatorPath, "--", "--goal-context", goalContextPath, "--mode", mode, "--format", "json"
-    })
-    {
-        start.ArgumentList.Add(argument);
-    }
+static string Normalize(string value) => value.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
 
-    using var process = Process.Start(start) ?? throw new InvalidOperationException("Could not start the canonical Goal Context validator.");
-    var stdout = process.StandardOutput.ReadToEnd();
-    var stderr = process.StandardError.ReadToEnd();
-    process.WaitForExit();
-    CanonicalValidation? validation;
-    try
-    {
-        validation = JsonSerializer.Deserialize<CanonicalValidation>(stdout, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-    }
-    catch (JsonException ex)
-    {
-        throw new InvalidOperationException($"Canonical Goal Context validator returned invalid JSON: {ex.Message}");
-    }
-    if (validation is null)
-    {
-        throw new InvalidOperationException("Canonical Goal Context validator returned no result.");
-    }
-    if (process.ExitCode == 1)
-    {
-        throw new InvalidOperationException($"Canonical Goal Context validator failed operationally: {string.Join("; ", validation.Errors)} {stderr}".Trim());
-    }
-    if (process.ExitCode is not (0 or 2))
-    {
-        throw new InvalidOperationException($"Canonical Goal Context validator returned unexpected exit code {process.ExitCode}.");
-    }
-    return validation;
-}
-
-static string ResolveValidatorPath(string repositoryRoot, string? explicitPath)
-{
-    var candidates = new List<string>();
-    if (!string.IsNullOrWhiteSpace(explicitPath)) candidates.Add(explicitPath);
-    candidates.Add(Path.Combine(repositoryRoot, ".agents", "skills", "goal-context-authoring", "scripts", "validate-goal-context.cs"));
-    candidates.Add(Path.Combine(repositoryRoot, "apm-packages", "goal-context-authoring", ".apm", "skills", "goal-context-authoring", "scripts", "validate-goal-context.cs"));
-    foreach (var candidate in candidates)
-    {
-        var fullPath = Path.GetFullPath(candidate);
-        if (File.Exists(fullPath)) return fullPath;
-    }
-    throw new FileNotFoundException("The canonical Goal Context validator is not installed. Install the goal-context-authoring Skill dependency or pass --validator.");
-}
+static string Sha256(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
 
 static string ResolveContainedPath(string canonicalRoot, string path, bool requireExists)
 {
@@ -276,31 +207,24 @@ static void ShowUsage()
 {
     Console.WriteLine("""
 Usage:
-  dotnet run --file scripts/select-goal-context.cs -- --repository-root <path> [--goal-context <path> | --search-root <path>] --out <path> [--allow-draft] [--validator <path>]
+  dotnet run --file .agents/skills/goal-context-pr-review/scripts/select-goal-context.cs -- --repository-root <path> [--goal-context <path> | --search-root <path>] --out <path>
 
 Rules:
-  --goal-context selects one exact repository-contained file.
-  --search-root discovers goal-context-*.md and fails when zero or multiple candidates exist.
-  --allow-draft requires --goal-context and records an explicit draft override.
-  --validator overrides canonical validator discovery for package validation only.
+  --goal-context selects one exact repository-contained readable text file. Its filename, headings, frontmatter, lifecycle, and creation source are unrestricted.
+  --search-root is only a convenience discovery convention for goal-context-*.md and fails when zero or multiple candidates exist.
   Existing symlink and junction targets must remain inside the canonical repository root.
-  The canonical Goal Context Authoring validator defines naming, structure, provenance, tables, secrets, lifecycle, and human-review validity.
+  Selection validates only that the chosen file is readable, non-empty text and records its normalized SHA-256 identity.
+  --validator and --allow-draft are accepted as ignored compatibility options; they never impose structure or lifecycle rules.
 """);
 }
-
-sealed record CanonicalValidation(int ContractVersion, string Status, string Mode, string LifecycleStatus, string SensitiveReview, string ContentSha256, IReadOnlyList<string> Errors);
 
 sealed record SelectionArtifact(
     int SchemaVersion,
     string SelectionStatus,
     string SelectedPath,
     string SelectionMode,
-    string LifecycleStatus,
-    string SensitiveDataReview,
-    bool DraftOverride,
     string Validation,
-    int ValidationContractVersion,
-    string ValidationMode,
+    string ValidationContract,
     string ContentSha256);
 
 sealed record Options(
@@ -308,8 +232,6 @@ sealed record Options(
     string? GoalContextPath,
     string? SearchRoot,
     string OutputPath,
-    string? ValidatorPath,
-    bool AllowDraft,
     bool ShowHelp,
     bool Valid)
 {
@@ -319,8 +241,6 @@ sealed record Options(
         string? goalContext = null;
         string? searchRoot = null;
         string? output = null;
-        string? validator = null;
-        var allowDraft = false;
         var help = false;
         var valid = true;
         for (var index = 0; index < args.Length; index++)
@@ -336,16 +256,15 @@ sealed record Options(
                 case "--goal-context": goalContext = Next(); break;
                 case "--search-root": searchRoot = Next(); break;
                 case "--out": output = Next(); break;
-                case "--validator": validator = Next(); break;
-                case "--allow-draft": allowDraft = true; break;
+                case "--validator": _ = Next(); break;
+                case "--allow-draft": break;
                 case "--help":
                 case "-h": help = true; break;
                 default: valid = false; break;
             }
         }
         if (goalContext is not null && searchRoot is not null) valid = false;
-        if (allowDraft && goalContext is null) valid = false;
         if (string.IsNullOrWhiteSpace(output) && !help) valid = false;
-        return new Options(repositoryRoot, goalContext, searchRoot, output ?? "goal-context-selection.json", validator, allowDraft, help, valid);
+        return new Options(repositoryRoot, goalContext, searchRoot, output ?? "goal-context-selection.json", help, valid);
     }
 }

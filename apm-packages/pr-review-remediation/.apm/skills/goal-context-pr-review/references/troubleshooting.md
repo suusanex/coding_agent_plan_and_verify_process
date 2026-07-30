@@ -2,11 +2,11 @@
 
 ## No Ready PR, multiple Ready PRs, or Draft
 
-Current repositoryにはexactly one Ready PRが必要です。DraftをReadyへ変更する、不要なopen PRを整理する、または対象repositoryを確認してから、同じ親taskで再開します。PR番号を手入力して曖昧さを迂回しません。
+まずcurrent branchのReady PRを使います。存在しない場合だけrepository全体のunique Ready PRへfallbackします。それでも複数なら、利用者へ短いPR番号またはURLを確認し、`start --pr <number-or-url>`で再開します。Draftを指定した場合はReadyへ変更してから再開します。
 
 ## Goal Context missing, invalid, or ambiguous
 
-Issue本文で代替しません。Goal Contextを作成・修正するか、複数候補ならexact repository-relative pathを選択します。目的reviewを不要とする場合だけ利用者が基礎版`$pr-review-remediation`を明示選択します。
+Issue本文で代替しません。Goal Contextが存在しない場合は用意し、複数候補ならexact repository-relative pathを選択します。Goal Contextに特定のfilename、frontmatter、見出し、lifecycle、approval recordは不要です。empty、読取不能、repository外escapeだけを入力blockerにします。目的reviewを不要とする場合だけ利用者が基礎版`$pr-review-remediation`を明示選択します。
 
 ## GitHub Copilot or reviewer source missing
 
@@ -30,7 +30,7 @@ round 2/3でlocal reviewer、Copilot wait、non-`PUR-*` actionable sourceを追�
 
 ## Notification did not arrive
 
-notification failureはreview verdictを変更しません。run summaryとcurrent PR URLを確認し、runtime/providerは別途診断します。thread/turn IDをterminal projectionへ追加しません。
+notification failureはreview verdictを変更しません。terminal response末尾に`completion-notification.txt`のfenced blockがverbatimで一度だけ含まれることを確認し、run summaryとcurrent PR URL、runtime/providerを診断します。thread/turn IDをterminal projectionへ追加しません。
 
 ## Historical cycle validation
 

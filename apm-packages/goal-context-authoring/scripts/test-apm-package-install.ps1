@@ -63,9 +63,11 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "Installed Goal Context validator help failed with exit code $LASTEXITCODE"
     }
-    & dotnet run --file $installedValidator -- --goal-context (Join-Path $packageRoot 'docs/examples/goal-context-resumable-local-batch-export.md') --mode strict --format json
+    $freeFormContext = Join-Path $resolvedScratchPath 'context-without-schema.txt'
+    Set-Content -LiteralPath $freeFormContext -Encoding utf8 -NoNewline -Value 'The desired outcome is less manual handoff work. This context intentionally has no Markdown headings, frontmatter, or lifecycle record.'
+    & dotnet run --file $installedValidator -- --goal-context $freeFormContext --mode basic --format json
     if ($LASTEXITCODE -ne 0) {
-        throw "Installed Goal Context validator rejected the reviewed example with exit code $LASTEXITCODE"
+        throw "Installed Goal Context validator rejected free-form text with exit code $LASTEXITCODE"
     }
 
     Write-Output 'Goal Context Authoring package-root APM install smoke test: PASS'

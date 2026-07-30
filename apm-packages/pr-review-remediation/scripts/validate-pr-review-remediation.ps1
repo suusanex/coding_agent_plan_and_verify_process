@@ -84,7 +84,6 @@ foreach ($path in @(
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/design.md',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/usage.md',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/troubleshooting.md',
-    'apm-packages/goal-context-authoring/.apm/skills/goal-context-authoring/scripts/validate-goal-context.cs',
     'apm-packages/pr-review-remediation/codex-agents/local-reviewer.toml',
     'apm-packages/pr-review-remediation/codex-agents/purpose-reviewer.toml',
     'apm-packages/pr-review-remediation/codex-agents/review-planner.toml',
@@ -123,7 +122,7 @@ foreach ($path in @(
 
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?m)^name:\s*pr-review-remediation\s*$' 'package name'
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?m)^version:\s*0\.4\.0\s*$' 'package version'
-Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*apm-packages/goal-context-authoring/\.apm/skills/goal-context-authoring' 'canonical Goal Context Authoring Skill dependency'
+Assert-NotContains 'apm-packages/pr-review-remediation/apm.yml' 'goal-context-authoring' 'Goal Context authoring-path dependency in canonical review package'
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*\.github/agents/local-reviewer\.agent\.md' 'canonical local reviewer dependency'
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*\.github/agents/purpose-reviewer\.agent\.md' 'canonical purpose reviewer dependency'
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*\.github/agents/review-planner\.agent\.md' 'canonical review planner dependency'
@@ -166,12 +165,16 @@ Assert-Contains $goalSkill '--no-wait-for-copilot' 'later-round Copilot wait sup
 Assert-Contains $goalSkill 'Issue本文はGoal Contextの代替になりません' 'no Issue-only purpose fallback'
 Assert-Contains $goalSkill 'historical compatibility utility' 'fixed two-task historical boundary'
 Assert-Contains $goalSkill 'thread-id.*turn-id.*生成・推測・受領しません' 'XC-001 callback identity exclusion'
+Assert-Contains $goalSkill '自然言語のfree-form text' 'free-form Goal Context contract'
+Assert-Contains $goalSkill '\.agents/skills/goal-context-pr-review/scripts/manage-same-parent-review\.cs' 'installed Skill start path'
+Assert-Contains $goalSkill 'completion-notification\.txt.*raw text.*最終assistant messageの末尾' 'terminal notification handoff to last assistant message'
 Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/design.md' 'Canonical responsibility address' 'same-parent production address decision'
 Assert-Contains '.github/agents/purpose-reviewer.agent.md' '実装担当および`local-reviewer`から独立' 'purpose reviewer independence'
 Assert-Contains '.github/agents/purpose-reviewer.agent.md' 'コード上のbug.*`local-reviewer`' 'purpose and code quality separation'
 $sameParentManager = 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs'
 Assert-Contains $sameParentManager '(?m)^#:property TargetFramework=net10\.0\s*$' 'same-parent File-based App target framework'
-Assert-Contains $sameParentManager 'ResolveSingleReadyPullRequest' 'Ready PR auto-resolution'
+Assert-Contains $sameParentManager 'ResolveTargetReadyPullRequest' 'branch-aware Ready PR resolution'
+Assert-Contains $sameParentManager 'ParsePullRequestReference' 'explicit PR number or URL resolution'
 Assert-Contains $sameParentManager 'MaximumRounds = 3' 'same-parent maximum of three rounds'
 Assert-Contains $sameParentManager 'github-copilot.*local-reviewer.*purpose-reviewer' 'round 1 exact source coverage'
 Assert-Contains $sameParentManager 'purpose-only round must not contain local-reviewer output' 'purpose-only local reviewer rejection'
@@ -202,8 +205,8 @@ Assert-Contains $cycleManager 'acceptance ID sets must match exactly' 'intent an
 Assert-Contains $cycleManager 'Source-to-tracking mapping mismatch' 'bidirectional source-to-tracking validation'
 Assert-Contains $cycleManager 'ClassifySourceHeadRelationship' 'current historical and unknown source classification'
 Assert-Contains $cycleManager 'review-context remote patch path' 'collector remote patch path binding'
-Assert-Contains $cycleManager 'Goal Context selection schema version' 'canonical Goal Context selection schema validation'
-Assert-Contains $cycleManager 'strict Goal Context lifecycle' 'canonical Goal Context strict lifecycle validation'
+Assert-Contains $cycleManager 'Goal Context selection schema version' 'historical Goal Context selection schema validation'
+Assert-Contains $cycleManager 'strict Goal Context lifecycle' 'historical strict Goal Context lifecycle validation'
 Assert-Contains $cycleManager 'TryParseExact' 'strict invariant timestamp parsing'
 Assert-Contains $cycleManager 'explicit Z or UTC offset' 'explicit timestamp timezone requirement'
 Assert-Contains $cycleManager 'ResolvePhysicalPath' 'symlink and junction physical path containment'
@@ -312,9 +315,12 @@ Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' '(?s)chec
 Assert-NotContains '.github/workflows/validate-pr-review-remediation.yml' 'github\.event\.pull_request\.head\.repo' 'fork repository package source'
 Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' '(?s)pull_request:.*tests/pr-review-remediation/\*\*.*push:.*tests/pr-review-remediation/\*\*' 'fixed evidence path filters for pull request and push events'
 Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' '(?s)pull_request:.*purpose-reviewer\.agent\.md.*push:.*purpose-reviewer\.agent\.md' 'purpose reviewer path filters for pull request and push events'
-Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' '(?s)pull_request:.*apm-packages/goal-context-authoring/\*\*.*push:.*apm-packages/goal-context-authoring/\*\*' 'Goal Context Authoring dependency path filters for pull request and push events'
+Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' '(?s)pull_request:.*apm-packages/goal-context-authoring/\*\*.*push:.*apm-packages/goal-context-authoring/\*\*' 'Goal Context Authoring package path filters for pull request and push events'
 Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' 'git diff --check origin/main\.\.\.HEAD' 'branch-range whitespace gate'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'apm install|@\(''install''' 'real remote APM install command'
+Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' '\$installedReviewHelper.*README review profile synchronization' 'consumer command uses installed module review helper'
+Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'installed canonical same-parent start from empty consumer repository' 'consumer repository same-parent start smoke'
+Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'Round1Reviewing' 'consumer repository startability outcome'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'finally\s*\{' 'remote smoke cleanup boundary'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' '\$global:LASTEXITCODE\s*=\s*0' 'Linux success exit reset after expected native failures'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1' 'ConfirmExternalModelPayload' 'actual agent smoke external-payload consent gate'
@@ -328,7 +334,8 @@ foreach ($documentation in @(
 Assert-Contains 'tests/pr-review-remediation/PRR-001/README.md' 'customAgentSpawnObserved.*false' 'actual execution disclosure'
 Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)(?=.*disposable target repository)(?=.*external model payload)(?=.*local-reviewer)(?=.*purpose-reviewer)(?=.*同じ親task)(?=.*元のparentだけが修正)(?=.*purpose-only)(?=.*HumanDecisionRequired)' 'same-parent real-model smoke boundary and acceptance sequence'
 Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)(?=.*人手での作業が必要)(?=.*notification runtime install)(?=.*real Windows/Codex callback count)(?=.*ManualOnly)' 'manual approval and notification evidence boundary'
-Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '別top-level Review/Implementation taskを作成せず、thread ID、PR番号、cycle path、hash、JSON、result referenceを転記しません' 'no manual messenger smoke invocation'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '別top-level Review/Implementation taskを作成せず、thread ID、cycle path、hash、JSON、result referenceを転記しません' 'no manual messenger smoke invocation'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)通常のCodex task.*このタスクを開く.*completion-notification\.txt.*結果を開く.*reviewer subagent' 'manual notification end-to-end steps'
 Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' 'automatic round 4はありません|round 4を自動開始しない' 'manual smoke round cap'
 Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' 'unsupported callback hierarchy filterを推測しない' 'manual callback hierarchy boundary'
 Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/result-template.md' '(?s)(?=.*Same original implementation parent used)(?=.*Reviewer roles executed)(?=.*Original parent was sole write owner)(?=.*Round 2/3 local reviewer absent)(?=.*Automatic round 4 absent)(?=.*User-visible notification count)' 'same-parent real-model evidence checklist'
@@ -384,7 +391,6 @@ try {
     $syncOut = Join-Path $tempRoot 'sync'
     $selectorOut = Join-Path $tempRoot 'selector'
     $sameParentOut = Join-Path $tempRoot 'same-parent-manager'
-    $canonicalValidatorOut = Join-Path $tempRoot 'canonical-goal-context-validator'
     $replayValidatorOut = Join-Path $tempRoot 'prr-002-replay-validator'
     $adaptiveSyncOut = Join-Path $tempRoot 'adaptive-sync'
     $collectorPath = Join-Path $repoRoot $collector
@@ -392,7 +398,6 @@ try {
     $syncPath = Join-Path $packageRoot 'scripts\sync-pr-review-remediation-local.cs'
     $selectorPath = Join-Path $packageRoot '.apm\skills\goal-context-pr-review\scripts\select-goal-context.cs'
     $sameParentPath = Join-Path $packageRoot '.apm\skills\goal-context-pr-review\scripts\manage-same-parent-review.cs'
-    $canonicalValidatorPath = Join-Path $repoRoot 'apm-packages\goal-context-authoring\.apm\skills\goal-context-authoring\scripts\validate-goal-context.cs'
     $replayValidatorPath = Join-Path $packageRoot 'scripts\validate-prr-002-contract.cs'
     $adaptiveSyncPath = Join-Path $repoRoot 'apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs'
 
@@ -401,7 +406,6 @@ try {
     Invoke-Native 'dotnet' @('publish', $syncPath, '--output', $syncOut, '--disable-build-servers') 'profile sync helper publish' | Out-Null
     Invoke-Native 'dotnet' @('publish', $selectorPath, '--output', $selectorOut, '--disable-build-servers') 'Goal Context selector publish' | Out-Null
     Invoke-Native 'dotnet' @('publish', $sameParentPath, '--output', $sameParentOut, '--disable-build-servers') 'same-parent manager publish' | Out-Null
-    Invoke-Native 'dotnet' @('publish', $canonicalValidatorPath, '--output', $canonicalValidatorOut, '--disable-build-servers') 'canonical Goal Context validator publish' | Out-Null
     Invoke-Native 'dotnet' @('publish', $replayValidatorPath, '--output', $replayValidatorOut, '--disable-build-servers') 'PRR-002 replay validator publish' | Out-Null
     Invoke-Native 'dotnet' @('publish', $adaptiveSyncPath, '--output', $adaptiveSyncOut, '--disable-build-servers') 'Adaptive profile helper publish' | Out-Null
 
@@ -410,10 +414,9 @@ try {
     $syncExe = Join-Path $syncOut 'sync-pr-review-remediation-local.exe'
     $selectorExe = Join-Path $selectorOut 'select-goal-context.exe'
     $sameParentExe = Join-Path $sameParentOut 'manage-same-parent-review.exe'
-    $canonicalValidatorExe = Join-Path $canonicalValidatorOut 'validate-goal-context.exe'
     $replayValidatorExe = Join-Path $replayValidatorOut 'validate-prr-002-contract.exe'
     $adaptiveSyncExe = Join-Path $adaptiveSyncOut 'install-adaptive-implementation-local.exe'
-    foreach ($exe in @($collectorExe, $fakeExe, $syncExe, $selectorExe, $sameParentExe, $canonicalValidatorExe, $replayValidatorExe, $adaptiveSyncExe)) {
+    foreach ($exe in @($collectorExe, $fakeExe, $syncExe, $selectorExe, $sameParentExe, $replayValidatorExe, $adaptiveSyncExe)) {
         if (-not (Test-Path -LiteralPath $exe)) {
             Add-Failure "Missing published executable: $exe"
         }
@@ -423,7 +426,6 @@ try {
     Invoke-Native $syncExe @('--help') 'profile sync helper help' | Out-Null
     Invoke-Native $selectorExe @('--help') 'Goal Context selector help' | Out-Null
     Invoke-Native $sameParentExe @('--help') 'same-parent manager help' | Out-Null
-    Invoke-Native $canonicalValidatorExe @('--help') 'canonical Goal Context validator help' | Out-Null
     Invoke-Native $replayValidatorExe @('--help') 'PRR-002 replay validator help' | Out-Null
     Invoke-Native $collectorExe @('--unknown-option') 'collector invalid argument' $false | Out-Null
     Invoke-Native $syncExe @('--unknown-option') 'profile sync helper invalid argument' $false | Out-Null
@@ -432,84 +434,49 @@ try {
     $selectorRepository = Join-Path $tempRoot 'goal-context-repository'
     $selectorDocs = Join-Path $selectorRepository 'docs'
     New-Item -ItemType Directory -Path $selectorDocs -Force | Out-Null
-    $goalContextFixture = Join-Path $repoRoot 'tests\pr-review-remediation\PRR-002\fixture\docs\goal-context-direct-review-notification.md'
-    Copy-Item -LiteralPath $goalContextFixture -Destination $selectorDocs
-    Invoke-Native $selectorExe @('--repository-root', $selectorRepository, '--search-root', 'docs', '--out', '.review/pr-123/goal-context-selection.json', '--validator', $canonicalValidatorPath) 'unique human-reviewed Goal Context selection' | Out-Null
+    $goalContextFixture = Join-Path $selectorDocs 'goal-context-free-form.md'
+    Set-Content -LiteralPath $goalContextFixture -Encoding utf8 -NoNewline -Value 'People should finish review and remediation without a separate handoff task. This fixture intentionally has no headings or metadata.'
+    Invoke-Native $selectorExe @('--repository-root', $selectorRepository, '--search-root', 'docs', '--out', '.review/pr-123/goal-context-selection.json') 'unique free-form Goal Context selection' | Out-Null
     $selectionArtifactPath = Join-Path $selectorRepository '.review\pr-123\goal-context-selection.json'
     $selectionArtifact = Get-Content -Raw -LiteralPath $selectionArtifactPath | ConvertFrom-Json
-    if ($selectionArtifact.selectionStatus -ne 'SELECTED' -or $selectionArtifact.lifecycleStatus -ne 'human-reviewed') {
-        Add-Failure 'Goal Context selector did not record a confirmed unique selection.'
-    }
-    $expectedSelection = Get-Content -Raw -LiteralPath (Join-Path $repoRoot 'tests\pr-review-remediation\PRR-002\goal-context-selection.json') | ConvertFrom-Json
-    if ($selectionArtifact.selectedPath -ne $expectedSelection.selectedPath -or
-        $selectionArtifact.selectionMode -ne $expectedSelection.selectionMode -or
-        $selectionArtifact.validation -ne $expectedSelection.validation -or
-        $selectionArtifact.schemaVersion -ne 2 -or
-        $selectionArtifact.validationContractVersion -ne $expectedSelection.validationContractVersion -or
-        $selectionArtifact.validationMode -ne $expectedSelection.validationMode -or
-        $selectionArtifact.contentSha256 -ne $expectedSelection.contentSha256) {
-        Add-Failure 'Goal Context selector output does not match the committed PRR-002 selection contract.'
+    if ($selectionArtifact.selectionStatus -ne 'SELECTED' -or
+        $selectionArtifact.selectionMode -ne 'auto-unique' -or
+        $selectionArtifact.validation -ne 'PASS' -or
+        $selectionArtifact.validationContract -ne 'readable-free-form' -or
+        $selectionArtifact.schemaVersion -ne 3 -or
+        $selectionArtifact.contentSha256 -notmatch '^[a-f0-9]{64}$') {
+        Add-Failure 'Goal Context selector did not record the free-form selection contract.'
     }
 
     Copy-Item -LiteralPath $goalContextFixture -Destination (Join-Path $selectorDocs 'goal-context-second-candidate.md')
-    $multipleSelection = Invoke-Native $selectorExe @('--repository-root', $selectorRepository, '--search-root', 'docs', '--out', '.review/multiple.json', '--validator', $canonicalValidatorPath) 'ambiguous Goal Context selection' $false
+    $multipleSelection = Invoke-Native $selectorExe @('--repository-root', $selectorRepository, '--search-root', 'docs', '--out', '.review/multiple.json') 'ambiguous Goal Context selection' $false
     if ($multipleSelection.Output -notmatch 'HUMAN_DECISION_REQUIRED.*multiple Goal Context candidates') { Add-Failure 'Goal Context selector did not fail closed on multiple candidates.' }
     Remove-Item -LiteralPath (Join-Path $selectorDocs 'goal-context-second-candidate.md') -Force
 
     $missingRepository = Join-Path $tempRoot 'missing-goal-context-repository'
     New-Item -ItemType Directory -Path $missingRepository -Force | Out-Null
-    $missingSelection = Invoke-Native $selectorExe @('--repository-root', $missingRepository, '--search-root', '.', '--out', '.review/missing.json', '--validator', $canonicalValidatorPath) 'missing Goal Context selection' $false
+    $missingSelection = Invoke-Native $selectorExe @('--repository-root', $missingRepository, '--search-root', '.', '--out', '.review/missing.json') 'missing Goal Context selection' $false
     if ($missingSelection.Output -notmatch 'NO_GOAL_CONTEXT.*baseline \$pr-review-remediation') { Add-Failure 'Goal Context selector did not require an explicit baseline choice when no candidate exists.' }
 
-    $invalidRepository = Join-Path $tempRoot 'invalid-goal-context-repository'
-    $invalidDocs = Join-Path $invalidRepository 'docs'
-    New-Item -ItemType Directory -Path $invalidDocs -Force | Out-Null
-    $invalidPath = Join-Path $invalidDocs 'goal-context-invalid-document.md'
-    (Get-Content -Raw -LiteralPath $goalContextFixture).Replace('## Desired outcome', '## Desired result') | Set-Content -LiteralPath $invalidPath
-    $invalidSelection = Invoke-Native $selectorExe @('--repository-root', $invalidRepository, '--goal-context', 'docs/goal-context-invalid-document.md', '--out', '.review/invalid.json', '--validator', $canonicalValidatorPath) 'invalid Goal Context selection' $false
-    if ($invalidSelection.Output -notmatch '(?s)INVALID_GOAL_CONTEXT.*Missing required heading: ## Desired outcome') { Add-Failure 'Goal Context selector accepted a missing required section.' }
+    $explicitRepository = Join-Path $tempRoot 'explicit-free-form-repository'
+    New-Item -ItemType Directory -Path $explicitRepository -Force | Out-Null
+    Set-Content -LiteralPath (Join-Path $explicitRepository 'purpose-notes.txt') -Encoding utf8 -NoNewline -Value 'A one-paragraph arbitrary filename is valid Goal Context.'
+    Invoke-Native $selectorExe @('--repository-root', $explicitRepository, '--goal-context', 'purpose-notes.txt', '--out', '.review/explicit.json') 'explicit arbitrary Goal Context file' | Out-Null
+    $explicitArtifact = Get-Content -Raw -LiteralPath (Join-Path $explicitRepository '.review\explicit.json') | ConvertFrom-Json
+    if ($explicitArtifact.selectionMode -ne 'user-specified') { Add-Failure 'Explicit arbitrary Goal Context did not use user-specified selection mode.' }
 
-    $draftRepository = Join-Path $tempRoot 'draft-goal-context-repository'
-    $draftDocs = Join-Path $draftRepository 'docs'
-    New-Item -ItemType Directory -Path $draftDocs -Force | Out-Null
-    $draftPath = Join-Path $draftDocs 'goal-context-draft-review.md'
-    (Get-Content -Raw -LiteralPath $goalContextFixture).Replace('status: human-reviewed', 'status: draft').Replace('sensitive_data_review: passed', 'sensitive_data_review: pending') | Set-Content -LiteralPath $draftPath
-    $draftBlocked = Invoke-Native $selectorExe @('--repository-root', $draftRepository, '--goal-context', 'docs/goal-context-draft-review.md', '--out', '.review/draft-blocked.json', '--validator', $canonicalValidatorPath) 'draft Goal Context default gate' $false
-    if ($draftBlocked.Output -notmatch 'requires an exact --goal-context path plus explicit --allow-draft') { Add-Failure 'Goal Context selector accepted draft content without explicit override.' }
-    Invoke-Native $selectorExe @('--repository-root', $draftRepository, '--goal-context', 'docs/goal-context-draft-review.md', '--allow-draft', '--out', '.review/draft-selected.json', '--validator', $canonicalValidatorPath) 'explicit draft Goal Context override' | Out-Null
-    $draftArtifact = Get-Content -Raw -LiteralPath (Join-Path $draftRepository '.review\draft-selected.json') | ConvertFrom-Json
-    if (-not $draftArtifact.draftOverride -or $draftArtifact.selectionMode -ne 'user-specified-draft-override') { Add-Failure 'Goal Context selector did not record the explicit draft override.' }
-
-    function Test-SelectorMutation([string]$Scenario, [string]$MutatedContent, [string]$ExpectedPattern) {
-        $repository = Join-Path $tempRoot "selector-$Scenario"
-        $docs = Join-Path $repository 'docs'
-        New-Item -ItemType Directory -Path $docs -Force | Out-Null
-        $path = Join-Path $docs "goal-context-$Scenario.md"
-        Set-Content -LiteralPath $path -Value $MutatedContent -Encoding utf8 -NoNewline
-        $result = Invoke-Native $selectorExe @(
-            '--repository-root', $repository,
-            '--goal-context', "docs/goal-context-$Scenario.md",
-            '--out', '.review/selection.json',
-            '--validator', $canonicalValidatorPath
-        ) "selector negative fixture $Scenario" $false
-        if ($result.Output -notmatch $ExpectedPattern) { Add-Failure "Goal Context selector did not reject $Scenario with canonical evidence." }
-    }
-
-    $reviewedContent = Get-Content -Raw -LiteralPath $goalContextFixture
-    Test-SelectorMutation 'missing-mvp' ($reviewedContent.Replace('### MVP scope', '### MVP omitted')) 'Missing required heading: ### MVP scope'
-    Test-SelectorMutation 'missing-reviewer' ([regex]::Replace($reviewedContent, '(?m)^- Reviewer:.*\r?\n', '', 1)) 'requires a non-pending Reviewer'
-    Test-SelectorMutation 'missing-reviewed-at' ([regex]::Replace($reviewedContent, '(?m)^- Reviewed at:.*\r?\n', '', 1)) 'requires Reviewed at'
-    Test-SelectorMutation 'confirmation-no' ($reviewedContent.Replace('- Desired outcome confirmed: Yes', '- Desired outcome confirmed: No')) 'Desired outcome confirmed: Yes'
-    Test-SelectorMutation 'placeholder' ($reviewedContent + "`n<!-- unresolved -->") 'Unresolved template placeholder'
-    $fakeSecret = 's' + 'k-' + ('x' * 24)
-    Test-SelectorMutation 'credential' ($reviewedContent + "`napi_key = $fakeSecret") 'Potential exposed secret or credential'
+    $emptyRepository = Join-Path $tempRoot 'empty-goal-context-repository'
+    New-Item -ItemType Directory -Path $emptyRepository -Force | Out-Null
+    Set-Content -LiteralPath (Join-Path $emptyRepository 'empty.txt') -Encoding utf8 -NoNewline -Value '   '
+    $emptySelection = Invoke-Native $selectorExe @('--repository-root', $emptyRepository, '--goal-context', 'empty.txt', '--out', 'selection.json') 'empty Goal Context selection' $false
+    if ($emptySelection.Output -notmatch 'Selected Goal Context is empty') { Add-Failure 'Goal Context selector did not reject empty text.' }
 
     $junctionRepository = Join-Path $tempRoot 'selector-junction-repository'
     $junctionOutside = Join-Path $tempRoot 'selector-junction-outside'
     New-Item -ItemType Directory -Path $junctionRepository, $junctionOutside -Force | Out-Null
     Copy-Item -LiteralPath $goalContextFixture -Destination $junctionOutside
     New-Item -ItemType Junction -Path (Join-Path $junctionRepository 'docs') -Target $junctionOutside | Out-Null
-    $junctionInput = Invoke-Native $selectorExe @('--repository-root', $junctionRepository, '--search-root', 'docs', '--out', 'selection.json', '--validator', $canonicalValidatorPath) 'selector junction input escape' $false
+    $junctionInput = Invoke-Native $selectorExe @('--repository-root', $junctionRepository, '--search-root', 'docs', '--out', 'selection.json') 'selector junction input escape' $false
     if ($junctionInput.Output -notmatch 'canonical repository root') { Add-Failure 'Goal Context selector followed a junction outside the repository for input.' }
 
     $outputRepository = Join-Path $tempRoot 'selector-output-junction-repository'
@@ -518,7 +485,7 @@ try {
     New-Item -ItemType Directory -Path $outputDocs, $outputOutside -Force | Out-Null
     Copy-Item -LiteralPath $goalContextFixture -Destination $outputDocs
     New-Item -ItemType Junction -Path (Join-Path $outputRepository '.review') -Target $outputOutside | Out-Null
-    $junctionOutput = Invoke-Native $selectorExe @('--repository-root', $outputRepository, '--search-root', 'docs', '--out', '.review/selection.json', '--validator', $canonicalValidatorPath) 'selector junction output escape' $false
+    $junctionOutput = Invoke-Native $selectorExe @('--repository-root', $outputRepository, '--search-root', 'docs', '--out', '.review/selection.json') 'selector junction output escape' $false
     if ($junctionOutput.Output -notmatch 'canonical repository root') { Add-Failure 'Goal Context selector followed a junction outside the repository for output.' }
 
     $prr002Root = Join-Path $repoRoot 'tests\pr-review-remediation\PRR-002'

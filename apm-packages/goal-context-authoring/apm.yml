@@ -1,6 +1,6 @@
 name: goal-context-authoring
 version: 0.1.0
-description: Create, review, validate, and save portable Goal Context Markdown from a completed design conversation
+description: Optionally author and readability-check portable free-form Goal Context from natural-language source material
 type: hybrid
 targets:
   - codex
