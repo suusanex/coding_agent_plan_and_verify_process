@@ -55,6 +55,9 @@ function Start-Run([string]$FixtureRoot, [string]$Scenario = 'same-parent-ready'
     $json = $result.Output | ConvertFrom-Json
     $runRoot = Join-Path $FixtureRoot $json.runRoot
     if (-not (Test-Path -LiteralPath $runRoot)) { Add-Failure "start did not create run root: $runRoot" }
+    $requestPath = $env:FAKE_GH_STATE + '.copilot-requested'
+    if (-not (Test-Path -LiteralPath $requestPath)) { Add-Failure "start did not request a Copilot review: $requestPath" }
+    elseif ((Get-Content -Raw -LiteralPath $requestPath) -notmatch 'pr edit \d+ --repo fixture/goal-context-review --add-reviewer @copilot') { Add-Failure 'start used an unexpected Copilot review request command.' }
     return $runRoot
 }
 
@@ -171,6 +174,15 @@ try {
     $branchPriorityRun = Start-Run $branchPriority 'same-parent-branch-priority'
     if ($branchPriorityRun -and (Get-State $branchPriorityRun).pullRequest.number -ne 124) { Add-Failure 'current branch Ready PR was not preferred over repository-wide candidates.' }
 
+    $reviewOnly = New-FixtureRepository 'review-only'
+    $reviewOnlyRun = Start-Run $reviewOnly 'same-parent-review-only'
+    if ($reviewOnlyRun) {
+        $reviewOnlyContext = Get-Content -Raw -LiteralPath (Join-Path $reviewOnlyRun 'round-001/review-context.json') | ConvertFrom-Json
+        if (-not $reviewOnlyContext.copilotReviewWait.isComplete) { Add-Failure 'review-only fixture was not collector-complete.' }
+        if ($reviewOnlyContext.copilotReviewWait.observedReviewState -ne 'reviewOnly') { Add-Failure 'review-only fixture did not preserve reviewOnly observation.' }
+        if ((Get-State $reviewOnlyRun).status -ne 'Round1Reviewing') { Add-Failure 'collector-complete reviewOnly input did not enter Round1Reviewing.' }
+    }
+
     $explicitNumber = New-FixtureRepository 'explicit-number'
     $explicitNumberRun = Start-Run $explicitNumber 'same-parent-ambiguous' '124'
     if ($explicitNumberRun -and (Get-State $explicitNumberRun).pullRequest.number -ne 124) { Add-Failure '--pr number did not resolve the requested Ready PR.' }
@@ -200,6 +212,11 @@ try {
     $env:FAKE_GH_SCENARIO = 'same-parent-ready'
     $env:FAKE_GH_STATE = Join-Path $noGoal 'fake-gh-state.txt'
     Invoke-Manager @('start', '--repository-root', $noGoal, '--gh-executable', $script:fakeGh, '--skill-root', $skillRoot, '--format', 'json') $false 'No goal-context' | Out-Null
+
+    $requestFailure = New-FixtureRepository 'review-request-failure'
+    $env:FAKE_GH_SCENARIO = 'same-parent-review-request-failure'
+    $env:FAKE_GH_STATE = Join-Path $requestFailure 'fake-gh-state.txt'
+    Invoke-Manager @('start', '--repository-root', $requestFailure, '--gh-executable', $script:fakeGh, '--skill-root', $skillRoot, '--format', 'json') $false 'simulated Copilot review request failure' | Out-Null
 
     $stale = New-FixtureRepository 'stale'
     $staleRun = Start-Run $stale

@@ -53,9 +53,9 @@ Canonical normal path:
   Use --pr with a short PR number or URL only when the target remains ambiguous.
   Goal Context is arbitrary readable natural-language text; no filename, headings, frontmatter, lifecycle, approval, or creation-source contract is imposed.
   It creates .review/pr-N/same-thread/<run-id>/ automatically. Users do not supply task IDs, artifact paths, hashes, JSON, or result references.
-  Round 1 requires current-head GitHub Copilot, local-reviewer, and purpose-reviewer evidence.
+  Round 1 requests GitHub Copilot review, then requires collector-complete current-head Copilot, local-reviewer, and purpose-reviewer evidence.
   Rounds 2 and 3 require a new current head and purpose-reviewer evidence only.
-  The original parent is the only production/tests/docs write owner. This utility never edits production files or GitHub state.
+  The original parent is the only production/tests/docs write owner. This utility's only GitHub mutation is the round 1 Copilot review request.
   Complete, HumanDecisionRequired, and Blocked are terminal. A fourth round is never started automatically.
 
 Exit codes: 0 success, 2 fail-closed blocker or contract violation.
@@ -102,6 +102,7 @@ static class SameParentReview
             var selectionPath = Path.Combine(roundRoot, "goal-context-selection.json");
             RunSelector(repositoryRoot, skillRoot, selectionPath, options);
             var selection = ReadSelection(selectionPath);
+            RequestCopilotReview(gh, repositoryRoot, repository, pullRequest.Number);
             RunCollector(skillRoot, repositoryRoot, repository, pullRequest.Number, roundRoot, gh, waitForCopilot: true, options.CopilotTimeoutSeconds);
             var context = ReadContext(Path.Combine(roundRoot, "review-context.json"));
             EnsureContext(context, repository, pullRequest.Number, requireCopilot: true);
@@ -563,6 +564,12 @@ static class SameParentReview
         Run("dotnet", arguments, repositoryRoot, waitForCopilot ? "round 1 PR context collection" : "purpose-only PR context refresh");
     }
 
+    private static void RequestCopilotReview(string gh, string repositoryRoot, string repository, int pullRequest)
+    {
+        Run(gh, ["pr", "edit", pullRequest.ToString(), "--repo", repository, "--add-reviewer", "@copilot"],
+            repositoryRoot, "GitHub Copilot review request");
+    }
+
     private static GoalContextSelection ReadSelection(string path)
     {
         using var doc = JsonDocument.Parse(File.ReadAllText(path));
@@ -579,7 +586,8 @@ static class SameParentReview
         var target = root.GetProperty("target");
         var wait = root.GetProperty("copilotReviewWait");
         return new ReviewContext(RequiredString(target, "repository"), RequiredInt(target, "pullRequest"), RequiredString(target, "baseRefOid"),
-            RequiredString(target, "headRefOid"), target.GetProperty("isDraft").GetBoolean(), RequiredString(wait, "observedReviewState"), wait.GetProperty("timedOut").GetBoolean());
+            RequiredString(target, "headRefOid"), target.GetProperty("isDraft").GetBoolean(), RequiredString(wait, "observedReviewState"),
+            wait.GetProperty("timedOut").GetBoolean(), wait.GetProperty("isComplete").GetBoolean());
     }
 
     private static void EnsureContext(ReviewContext context, string repository, int pullRequest, bool requireCopilot)
@@ -589,8 +597,9 @@ static class SameParentReview
         Require(!context.IsDraft, "Collector resolved a Draft PR.");
         Require(IsGitOid(context.BaseOid) && IsGitOid(context.HeadOid), "Collector returned invalid base/head OIDs.");
         if (requireCopilot)
-            Require(!context.CopilotTimedOut && context.CopilotObservedState == "reviewAndInline",
-                "GitHub Copilot review and inline sources were not completely obtained for the current head.");
+            Require(!context.CopilotTimedOut && context.CopilotIsComplete
+                && context.CopilotObservedState is "reviewOnly" or "reviewAndInline",
+                "GitHub Copilot review collection did not complete for the current head.");
     }
 
     private static void CopyGoalContextSelection(string runRoot, string roundRoot)
@@ -748,7 +757,7 @@ static class JsonOptions
 
 sealed record CommandOutput(string Status, string? RunRoot, int? Round, string? Blocker);
 sealed record PullRequestCandidate(int Number, string Url, bool IsDraft, string State, string BaseOid, string HeadOid);
-sealed record ReviewContext(string Repository, int PullRequest, string BaseOid, string HeadOid, bool IsDraft, string CopilotObservedState, bool CopilotTimedOut);
+sealed record ReviewContext(string Repository, int PullRequest, string BaseOid, string HeadOid, bool IsDraft, string CopilotObservedState, bool CopilotTimedOut, bool CopilotIsComplete);
 sealed record GoalContextSelection(string SelectedPath, string ContentSha256);
 sealed record PullRequestState(int Number, string Url, string BaseOid, string HeadOid);
 sealed record GoalContextState(string Path, string ContentSha256);

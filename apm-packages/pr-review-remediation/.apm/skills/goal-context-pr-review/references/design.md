@@ -11,7 +11,7 @@ The utility resolves the current repository, prefers the current branch Ready PR
 - `round-NNN/`: collector context/patch, Goal Context selection, reviewer raw outputs, parent assessment
 - `terminal-projection.json` and `completion-notification.txt`: optional XC-001 producer fields
 
-It does not spawn reviewers, edit production files, commit, push, or change GitHub state. Those actions remain with the Codex parent or read-only reviewer roles defined by the Skill.
+It does not spawn reviewers, edit production files, commit, or push. Its only GitHub mutation is the round 1 Copilot review request. Other writes remain with the Codex parent; reviewer roles stay read-only.
 
 ## Authority and precedence
 
@@ -27,7 +27,7 @@ Issue text never replaces Goal Context. A missing heading or lifecycle marker ne
 
 ## Round model
 
-- Round 1: GitHub Copilot sources, `local-reviewer`, `purpose-reviewer`
+- Round 1: request GitHub Copilot review, accept collector-complete `reviewOnly` or `reviewAndInline`, then run `local-reviewer` and `purpose-reviewer`
 - Round 2/3: current-head collector refresh with no Copilot wait, then a new `purpose-reviewer` only
 - Parent: sole production/tests/docs writer and validator
 - Terminal: `Complete`, `HumanDecisionRequired`, or `Blocked`

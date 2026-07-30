@@ -138,7 +138,7 @@ Source requirement
 | Script | Use when | Installs / fixes |
 | --- | --- | --- |
 | `scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs` | always-on callback runtimeをuser-level Codex設定へ安全に導入・更新・検証したい | canonical runtimeとWindows providerをsourceからpublishし、既存`notify`を自己再帰なしでchainして、すべてのvalid callbackをgeneric通知対象に設定 |
-| `apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs` | PR Review Remediation導入後にread-only review agentの具体的Codex profileを同期し、依存するAdaptive assets/profileの存在も確認したい | `.codex/agents/local-reviewer.toml`、`.codex/agents/purpose-reviewer.toml`、`.codex/agents/review-planner.toml`。Adaptive profileは既存Adaptive helperを使用し、`AGENTS.md`と`.codex/config.toml`は操作しない |
+| `apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs` | PR Review Remediation導入後にread-only review agentの具体的Codex profileを同期したい。基礎版Phase 2を使う場合だけoptional Adaptive add-onも検査したい | `.codex/agents/local-reviewer.toml`、`.codex/agents/purpose-reviewer.toml`、`.codex/agents/review-planner.toml`。`--check-adaptive`は別途導入済みのAdaptiveだけを追加検査し、`AGENTS.md`と`.codex/config.toml`は操作しない |
 | `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM 導入後に Adaptive Implementation の必須 concrete Codex profile を repository-local に同期・検証したい | `.codex/agents/high-implementation-starter.toml`、`.codex/agents/standard-implementation-completer.toml`。`AGENTS.md` は操作しない |
 | `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、Codex-first / Adaptive / Design Pair skills、canonical implementation agent contracts、`templates/*.md` |
 | `scripts/provision-work-repo-agents.cs` | 既存の token-aware / full-coverage package を APM 経由で導入し、agent TOML と template 配置を補正したい | `apm install` の実行、canonical Adaptive agents と legacy `.codex/agents/slice-prep.toml` / `slice-impl.toml` の top-level 設定補正、`plans/_templates/full-coverage-parent-orchestration-state.md` の配置 |
@@ -316,13 +316,13 @@ $adaptive-implementation-execution を使って、直前の Plan を実装して
 ```text
 original implementation parent
   -> auto-resolve current repository / current-branch-or-unique Ready PR / free-form Goal Context
-  -> round 1: GitHub Copilot + read-only local-reviewer + read-only purpose-reviewer
+  -> round 1: request GitHub Copilot review, then collect Copilot + read-only local-reviewer + read-only purpose-reviewer
   -> parent-only remediation and validation
   -> round 2/3: new read-only purpose-reviewer only
   -> Complete | HumanDecisionRequired | Blocked
 ```
 
-Goal Context normal pathでは、別top-level Review / Implementation task、thread ID、artifact path、hash、JSON、result referenceの転記を要求しません。Goal Contextは自然言語のfree-form textであり、作成元や特定schemaを要求しません。reviewerはproduction source、tests、docs、GitHub stateを変更せず、元の親agentだけが修正write ownerです。current branchにReady PRがなければrepository全体のunique Ready PRへfallbackし、それでも曖昧な場合だけ短いPR番号またはURLを確認します。
+Goal Context normal pathでは、別top-level Review / Implementation task、thread ID、artifact path、hash、JSON、result referenceの転記を要求しません。Goal Contextは自然言語のfree-form textであり、作成元や特定schemaを要求しません。reviewerはproduction source、tests、docs、GitHub stateを変更せず、元の親agentだけが修正write ownerです。managerが行うGitHub mutationはround 1のCopilot review要求だけです。current branchにReady PRがなければrepository全体のunique Ready PRへfallbackし、それでも曖昧な場合だけ短いPR番号またはURLを確認します。
 
 導入:
 
@@ -331,8 +331,15 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review
 $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
 dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --dry-run
 dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- .
-dotnet run --file "$moduleRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- .
 dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --check
+```
+
+この通常導入だけでcanonical same-parent flowを開始できます。基礎版`$pr-review-remediation`のplanを別turnのAdaptive Phase 2で実装する場合だけ、次のoptional add-onを追加します。
+
+```powershell
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
+dotnet run --file "$moduleRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- .
+dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --check --check-adaptive
 ```
 
 基礎版起動例:
@@ -350,7 +357,7 @@ $goal-context-pr-review
 この実装のReady PRをGoal Contextに照らしてreviewし、必要な修正と再reviewを同じtask内で完了してください。
 ```
 
-exact Goal Context pathが必要な場合だけ同じpromptへ添えます。explicit pathではfilenameや拡張子も任意です。Issue本文だけで目的review済みとは扱いません。内部stateは`.review/pr-N/same-thread/<run-id>/`へ自動生成され、raw reviewer/collector evidenceがsummaryより上位です。round 1だけがfull reviewで、round 2/3は新しいpurpose reviewerだけです。automatic round 4はありません。
+exact Goal Context pathが必要な場合だけ同じpromptへ添えます。explicit pathではfilenameや拡張子も任意です。Issue本文だけで目的review済みとは扱いません。`start`はGitHub CLIでCopilot reviewを明示要求し、要求できなければpolling前に`Blocked`で停止します。collectorがcompleteとしたterminal reviewは、inline commentなしの`reviewOnly`と`reviewAndInline`をどちらも受理します。内部stateは`.review/pr-N/same-thread/<run-id>/`へ自動生成され、raw reviewer/collector evidenceがsummaryより上位です。round 1だけがfull reviewで、round 2/3は新しいpurpose reviewerだけです。automatic round 4はありません。
 
 terminalでは`schema_version`、`primary_process`、`observed_status`、safe title、current concrete HTTPS PR URIだけのoptional notification projectionを生成します。親agentは`completion-notification.txt`を最終assistant message末尾へverbatimで追加します。thread/turn identityはcallback authorityであり、review flowから生成しません。通常作業ではCompletion Notification Decoratorの明示指定を要求しません。
 

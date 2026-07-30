@@ -51,6 +51,19 @@ function Assert-Contains([string]$Path, [string]$Pattern, [string]$Description) 
     }
 }
 
+function Assert-NotContains([string]$Path, [string]$Pattern, [string]$Description) {
+    Assert-File $Path $Description
+    if ((Get-Content -Raw -LiteralPath $Path) -match $Pattern) {
+        throw "$Description contains a forbidden contract: $Path"
+    }
+}
+
+function Assert-Absent([string]$Path, [string]$Description) {
+    if (Test-Path -LiteralPath $Path) {
+        throw "Unexpected ${Description}: $Path"
+    }
+}
+
 function Assert-ApmCanonicalAgent([string]$ModulesRoot, [string]$FileName) {
     $matches = @(Get-ChildItem -LiteralPath $ModulesRoot -Recurse -Force -File -Filter $FileName | Where-Object {
         $_.Directory.Name -eq 'agents' -and $_.Directory.Parent.Name -eq '.apm'
@@ -100,7 +113,6 @@ try {
 
     $deployedReviewSkill = Join-Path $scratch '.agents/skills/pr-review-remediation'
     $deployedGoalReviewSkill = Join-Path $scratch '.agents/skills/goal-context-pr-review'
-    $deployedAdaptiveSkill = Join-Path $scratch '.agents/skills/adaptive-implementation-execution'
     foreach ($relative in @(
         'SKILL.md',
         'scripts/collect-pr-review-context.cs',
@@ -127,30 +139,22 @@ try {
     )) {
         Assert-File (Join-Path $deployedGoalReviewSkill $relative) "deployed Goal Context review Skill asset $relative"
     }
-    foreach ($relative in @('SKILL.md', 'refs/intent.md', 'refs/handoff.md')) {
-        Assert-File (Join-Path $deployedAdaptiveSkill $relative) "deployed Adaptive Skill asset $relative"
-    }
+    Assert-Absent (Join-Path $scratch '.agents/skills/adaptive-implementation-execution') 'Adaptive Skill in canonical same-parent installation'
     $parts = $Repository.Split('/')
     $repositoryModule = Join-Path $scratch ("apm_modules/{0}/{1}" -f $parts[0], $parts[1])
     foreach ($agent in @(
         'local-reviewer.agent.md',
         'purpose-reviewer.agent.md',
-        'review-planner.agent.md',
-        'high-implementation-starter.agent.md',
-        'standard-implementation-completer.agent.md'
+        'review-planner.agent.md'
     )) {
         Assert-ApmCanonicalAgent (Join-Path $scratch 'apm_modules') $agent
     }
     $installedReviewHelper = Join-Path $repositoryModule 'apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs'
-    $installedAdaptiveHelper = Join-Path $repositoryModule 'apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs'
     $installedFakeGh = Join-Path $repositoryModule 'apm-packages/pr-review-remediation/tests/fixtures/fake-gh.cs'
     Assert-File $installedReviewHelper 'installed review profile helper'
-    Assert-File $installedAdaptiveHelper 'installed Adaptive profile helper'
     Assert-File $installedFakeGh 'installed fake GitHub fixture'
 
     Invoke-Native 'dotnet' @('run', '--file', $installedReviewHelper, '--', $scratch) 'README review profile synchronization'
-    Invoke-Native 'dotnet' @('run', '--file', $installedAdaptiveHelper, '--', $scratch) 'README Adaptive profile synchronization'
-    Invoke-Native 'dotnet' @('run', '--file', $installedAdaptiveHelper, '--', $scratch, '--check') 'README Adaptive profile check'
     Invoke-Native 'dotnet' @('run', '--file', $installedReviewHelper, '--', $scratch, '--check') 'README review profile check'
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedReviewSkill 'scripts/collect-pr-review-context.cs'), '--', '--help') 'deployed relative collector help'
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedGoalReviewSkill 'scripts/select-goal-context.cs'), '--', '--help') 'deployed Goal Context selector help'
@@ -176,6 +180,7 @@ try {
     if ($startResult.status -ne 'Round1Reviewing' -or -not $startResult.runRoot) {
         throw 'Installed canonical same-parent manager did not reach Round1Reviewing from the published consumer commands.'
     }
+    Assert-Contains ($env:FAKE_GH_STATE + '.copilot-requested') 'pr edit 123 --repo fixture/goal-context-review --add-reviewer @copilot' 'installed canonical Copilot review request'
 
     $selectorScript = Join-Path $deployedGoalReviewSkill 'scripts/select-goal-context.cs'
     $linkTestRoot = Join-Path $scratch 'selector-link-tests'
@@ -215,11 +220,8 @@ try {
     Assert-Contains (Join-Path $profileRoot 'local-reviewer.toml') 'developer_instructions\s*=\s*"# Local Reviewer\\n' 'local reviewer full APM contract'
     Assert-Contains (Join-Path $profileRoot 'purpose-reviewer.toml') 'developer_instructions\s*=\s*"# Purpose Reviewer\\n' 'purpose reviewer full APM contract'
     Assert-Contains (Join-Path $profileRoot 'review-planner.toml') 'developer_instructions\s*=\s*"# Review Planner\\n' 'review planner full APM contract'
-    foreach ($profile in @('high-implementation-starter.toml', 'standard-implementation-completer.toml')) {
-        $path = Join-Path $profileRoot $profile
-        Assert-Contains $path '(?m)^model\s*=\s*"[^"\r\n]+"\s*$' "Adaptive profile $profile model"
-        Assert-Contains $path '(?m)^sandbox_mode\s*=\s*"workspace-write"\s*$' "Adaptive profile $profile sandbox"
-    }
+    Assert-Absent (Join-Path $profileRoot 'high-implementation-starter.toml') 'Adaptive HIGH profile in canonical same-parent installation'
+    Assert-Absent (Join-Path $profileRoot 'standard-implementation-completer.toml') 'Adaptive STANDARD profile in canonical same-parent installation'
 
     if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch 'AGENTS.md')).Hash -ne $agentsHash) {
         throw 'Remote APM install or profile helpers changed AGENTS.md.'
@@ -229,7 +231,7 @@ try {
     }
 
     Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'pr-review-remediation' 'APM lock direct package entry'
-    Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'adaptive-implementation-execution' 'APM lock Adaptive dependency entry'
+    Assert-NotContains (Join-Path $scratch 'apm.lock.yaml') 'adaptive-implementation-execution|high-implementation-starter|standard-implementation-completer' 'APM lock canonical Adaptive dependency exclusion'
     Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'local-reviewer' 'APM lock local reviewer dependency entry'
     Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'purpose-reviewer' 'APM lock purpose reviewer dependency entry'
     Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'review-planner' 'APM lock review planner dependency entry'

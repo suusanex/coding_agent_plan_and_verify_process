@@ -12,7 +12,9 @@ GitHub Copilot reviewを待つ対象はReady for reviewの通常PRです。colle
 
 ## Copilot wait timed out
 
-`waitStatus: timeout`は未取得です。コメントなしではありません。次のどちらかを明示的に決めます。
+collectorを開始する前に`gh pr edit <number> --repo <owner/name> --add-reviewer @copilot`を実行します。要求が失敗した場合は、GitHub CLI認証のreviewer要求権限とCopilot code reviewの利用条件を確認します。
+
+要求成功後の`waitStatus: timeout`は未取得です。コメントなしではありません。次のどちらかを明示的に決めます。
 
 - Copilot reviewを再依頼・再待機する
 - local Codex reviewだけで進むことを人が承認し、そのdecisionをreview planへ記録する
@@ -32,7 +34,7 @@ $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
 dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --check
 ```
 
-review profileが競合する場合だけ`--force`を検討します。Adaptive profile不足は既存Adaptive helperで修復します。
+review profileが競合する場合だけ`--force`を検討します。通常の`--check`はcanonical same-parent/基礎版Phase 1だけを検査します。基礎版Phase 2を選び、Adaptive packageを別途導入済みの場合だけ`--check --check-adaptive`を使い、Adaptive profile不足は既存Adaptive helperで修復します。
 
 ## `.codex/config.toml`
 

@@ -12,7 +12,7 @@ $goal-context-pr-review
 
 Goal Context候補が複数ある場合は、開始promptへexact repository-relative pathを一つ添えます。Goal Contextはfree-form textであり、特定の文書構造や作成経路は不要です。PRはcurrent branchのReady PRを優先し、fallbackも曖昧な場合だけ番号またはURLを短く指定します。thread ID、artifact path、hash、JSON、result referenceは入力しません。
 
-親agentはSkillの`start` commandを実行し、自動生成されたrun rootを内部で使用します。round 1のread-only reviewersを独立に起動し、raw outputsを保存してassessmentを記録します。findingがあれば親自身が修正・検証・current PR head更新を行い、`next-round`でpurpose-only reviewへ進みます。
+親agentはSkillの`start` commandを実行し、自動生成されたrun rootを内部で使用します。`start`はGitHub Copilot reviewを明示要求してからcollectorで待機します。collector-completeな`reviewOnly`と`reviewAndInline`をどちらも正常系として受理します。round 1のread-only reviewersを独立に起動し、raw outputsを保存してassessmentを記録します。findingがあれば親自身が修正・検証・current PR head更新を行い、`next-round`でpurpose-only reviewへ進みます。
 
 installed Skillのcommand pathはrepository rootから`.agents/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs`です。source checkoutの`apm-packages/...` pathはpackage開発時だけ使います。
 
@@ -20,7 +20,7 @@ installed Skillのcommand pathはrepository rootから`.agents/skills/goal-conte
 
 - `Complete`: mandatory evidenceが揃いactive findingなし
 - `HumanDecisionRequired`: product/risk判断、またはround 3でactive findingあり
-- `Blocked`: Ready PR/Goal Context/reviewer/current head/validation/pushが安全に成立しない
+- `Blocked`: Ready PR/Goal Context/Copilot review要求/reviewer/current head/validation/pushが安全に成立しない
 
 terminal responseでは、親agentがrun rootの`completion-notification.txt`を読み、その内容を最終assistant message末尾へverbatimで一度だけ追加します。fenced blockの後に文章を置きません。
 

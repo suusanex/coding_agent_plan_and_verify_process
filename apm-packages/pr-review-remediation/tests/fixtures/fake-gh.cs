@@ -49,6 +49,17 @@ if (args.Length >= 2 && args[0] == "pr" && args[1] == "list" && scenario.StartsW
     return 0;
 }
 
+if (args.Length >= 2 && args[0] == "pr" && args[1] == "edit" && scenario.StartsWith("same-parent", StringComparison.Ordinal))
+{
+    if (scenario == "same-parent-review-request-failure")
+    {
+        Console.Error.WriteLine("simulated Copilot review request failure");
+        return 8;
+    }
+    File.WriteAllText(statePath + ".copilot-requested", string.Join(' ', args));
+    return 0;
+}
+
 if (scenario == "gh-failure")
 {
     Console.Error.WriteLine("simulated GitHub CLI failure");
@@ -191,7 +202,7 @@ if (args.Length >= 2 && args[0] == "api")
         {
             Console.WriteLine(Paginate(new object[]
             {
-                new { id = 700, user = new { login = "copilot-pull-request-reviewer[bot]" }, body = "Copilot generated 1 comment", state = "COMMENTED", submitted_at = "2026-07-25T00:00:00Z", commit_id = sameParentHead }
+                new { id = 700, user = new { login = "copilot-pull-request-reviewer[bot]" }, body = scenario == "same-parent-review-only" ? "No findings." : "Copilot generated 1 comment", state = "COMMENTED", submitted_at = "2026-07-25T00:00:00Z", commit_id = sameParentHead }
             }));
             return 0;
         }
@@ -202,10 +213,12 @@ if (args.Length >= 2 && args[0] == "api")
         }
         if (endpoint.Contains("/pulls/", StringComparison.Ordinal) && endpoint.EndsWith("/comments", StringComparison.Ordinal))
         {
-            Console.WriteLine(Paginate(new object[]
-            {
-                new { id = 1700, pull_request_review_id = 700, commit_id = sameParentHead, original_commit_id = sameParentHead, user = new { login = "copilot-pull-request-reviewer[bot]" }, path = "src/Fixture.cs", line = 1, body = "Preserve the Goal Context boundary." }
-            }));
+            Console.WriteLine(Paginate(scenario == "same-parent-review-only"
+                ? Array.Empty<object>()
+                : new object[]
+                {
+                    new { id = 1700, pull_request_review_id = 700, commit_id = sameParentHead, original_commit_id = sameParentHead, user = new { login = "copilot-pull-request-reviewer[bot]" }, path = "src/Fixture.cs", line = 1, body = "Preserve the Goal Context boundary." }
+                }));
             return 0;
         }
     }
@@ -291,9 +304,11 @@ static object[] BuildReviews(string scenario, int call)
         return Array.Empty<object>();
     }
 
-    var currentBody = scenario is "delayed" or "inline-then-review"
-        ? "Copilot generated 2 comments"
-        : "Copilot generated 1 comment";
+    var currentBody = scenario == "review-only"
+        ? "No findings."
+        : scenario is "delayed" or "inline-then-review"
+            ? "Copilot generated 2 comments"
+            : "Copilot generated 1 comment";
     object currentUser = scenario == "copilot-app-url"
         ? new { login = "renamed-reviewer[bot]", html_url = "https://github.com/apps/copilot-pull-request-reviewer" }
         : new { login = "copilot-pull-request-reviewer[bot]" };
@@ -346,7 +361,7 @@ static object[] BuildReviews(string scenario, int call)
 
 static object[] BuildInlineComments(string scenario, int call)
 {
-    if (scenario == "timeout" || scenario == "head-change")
+    if (scenario is "timeout" or "head-change" or "review-only")
     {
         return Array.Empty<object>();
     }

@@ -32,7 +32,9 @@
 
 ## Round 1
 
+- GitHub Copilot review request issued successfully: Yes / No
 - GitHub Copilot current-head sources obtained: Yes / No
+- Collector completion/state: complete reviewOnly / complete reviewAndInline / incomplete
 - Reviewer roles executed: local-reviewer, purpose-reviewer / other
 - Reviewer count:
 - Raw outputs retained separately: Yes / No

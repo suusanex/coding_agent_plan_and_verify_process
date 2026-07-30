@@ -24,6 +24,7 @@ $goal-context-pr-review
 - production source、tests、docsの唯一のwrite ownerは、このSkillを開始した元の親agentです。
 - `local-reviewer`と`purpose-reviewer`は毎回新しいread-only subagentとして実行し、raw outputだけを返します。
 - reviewerはcommit、push、PR更新、review artifact編集を行いません。
+- same-parent managerが行うGitHub mutationは、round 1開始時のGitHub Copilot review要求だけです。
 - round 1だけがGitHub Copilot sources + local reviewer + purpose reviewerです。
 - round 2/3は新しいpurpose reviewerだけです。Copilot待機とlocal reviewerを再実行しません。
 - 自動round 4、Adaptive executorへの置換、複数top-level task間の復旧、Goal Contextの多段承認、Plugin移行は行いません。
@@ -31,7 +32,7 @@ $goal-context-pr-review
 
 ## Start: auto-resolve and bind current inputs
 
-親agentは現在のrepository rootから次の一操作を実行します。`--goal-context`はexact pathが会話で選択済みの場合だけ追加します。
+親agentは現在のrepository rootから次の一操作を実行します。`--goal-context`はexact pathが会話で選択済みの場合だけ追加します。GitHub CLI認証には対象PRへreviewerを要求できる権限が必要です。
 
 ```powershell
 dotnet run --file .agents/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs -- start --repository-root . --format json
@@ -42,10 +43,11 @@ dotnet run --file .agents/skills/goal-context-pr-review/scripts/manage-same-pare
 1. current GitHub repositoryを解決する。
 2. current branchのReady PRを優先し、存在しない場合だけrepository全体のunique Ready PRへfallbackする。曖昧な場合は`--pr <number-or-url>`を短く確認する。
 3. exact指定または`goal-context-*.md`のunique discoveryでGoal Contextを選び、readable non-empty free-form textであることだけを確認する。exact指定ではfilenameや拡張子を制限しない。
-4. collectorでcurrent base/head、remote patch、GitHub Copilot reviewとinline sourcesを取得する。
-5. `.review/pr-N/same-thread/<run-id>/round-001/`と`run-state.json` / `run-summary.md`を自動生成する。
+4. `gh pr edit <number> --add-reviewer @copilot`でGitHub Copilot reviewを明示要求する。
+5. collectorでcurrent base/head、remote patch、GitHub Copilot terminal reviewとinline sourcesを取得する。collectorがcompleteと判定した場合は、inline commentなしの`reviewOnly`と、inline commentありの`reviewAndInline`をどちらも受理する。
+6. `.review/pr-N/same-thread/<run-id>/round-001/`と`run-state.json` / `run-summary.md`を自動生成する。
 
-Ready PRが0件、current branchにも一意fallbackにも決められない、Draftを明示指定した、Goal Contextが欠落/曖昧/読取不能、collector timeout、head driftの場合は、reviewerやremediationへ進まず、具体的なblockerを一つ返して`Blocked`で停止します。PRだけが曖昧な場合は`--pr`へ短い番号またはURLを受け取って再実行します。利用者へ内部stateの作成や修復を求めません。
+Ready PRが0件、current branchにも一意fallbackにも決められない、Draftを明示指定した、Goal Contextが欠落/曖昧/読取不能、Copilot review要求が権限・policy・利用条件によって失敗した、collector timeout、head driftの場合は、reviewerやremediationへ進まず、具体的なblockerを一つ返して`Blocked`で停止します。PRだけが曖昧な場合は`--pr`へ短い番号またはURLを受け取って再実行します。利用者へ内部stateの作成や修復を求めません。
 
 ## Round 1: independent mandatory sources
 
@@ -121,7 +123,7 @@ deterministic fixtureはsame-parent state contractとreviewer role/count ledger�
 
 - real model reviewer independence
 - real parent-owned remediation
-- real GitHub write / current remote PR head update
+- real GitHub Copilot review request / current remote PR head update
 - real Windows/Codex callback count、notification target、button operation
 
 real same-parent smokeではreviewer roles/countを`run-summary.md`から記録し、private callback identityやunsupported hierarchy filterを作りません。

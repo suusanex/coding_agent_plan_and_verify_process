@@ -1,5 +1,5 @@
 name: pr-review-remediation
-version: 0.4.0
+version: 0.5.0
 description: Baseline PR review planning plus canonical same-parent Goal Context review, parent-owned remediation, and bounded purpose-only re-review
 type: hybrid
 targets:
@@ -15,10 +15,3 @@ dependencies:
       path: .github/agents/review-planner.agent.md
     - git: parent
       path: .github/agents/purpose-reviewer.agent.md
-    # Adaptive Implementation remains the only remediation implementation source of truth.
-    - git: parent
-      path: apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
-    - git: parent
-      path: .github/agents/high-implementation-starter.agent.md
-    - git: parent
-      path: .github/agents/standard-implementation-completer.agent.md

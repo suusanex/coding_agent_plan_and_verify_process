@@ -121,14 +121,12 @@ foreach ($path in @(
 }
 
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?m)^name:\s*pr-review-remediation\s*$' 'package name'
-Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?m)^version:\s*0\.4\.0\s*$' 'package version'
+Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?m)^version:\s*0\.5\.0\s*$' 'package version'
 Assert-NotContains 'apm-packages/pr-review-remediation/apm.yml' 'goal-context-authoring' 'Goal Context authoring-path dependency in canonical review package'
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*\.github/agents/local-reviewer\.agent\.md' 'canonical local reviewer dependency'
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*\.github/agents/purpose-reviewer\.agent\.md' 'canonical purpose reviewer dependency'
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*\.github/agents/review-planner\.agent\.md' 'canonical review planner dependency'
-Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*apm-packages/adaptive-implementation-execution/\.apm/skills/adaptive-implementation-execution' 'Adaptive Skill dependency'
-Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*\.github/agents/high-implementation-starter\.agent\.md' 'Adaptive HIGH agent dependency'
-Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*\.github/agents/standard-implementation-completer\.agent\.md' 'Adaptive STANDARD agent dependency'
+Assert-NotContains 'apm-packages/pr-review-remediation/apm.yml' 'adaptive-implementation-execution|high-implementation-starter|standard-implementation-completer' 'canonical package Adaptive dependency'
 
 foreach ($profile in @('local-reviewer.toml', 'purpose-reviewer.toml', 'review-planner.toml')) {
     $relative = "apm-packages/pr-review-remediation/codex-agents/$profile"
@@ -143,6 +141,8 @@ Assert-Contains $skill '別の親ターン' 'separate parent-turn boundary'
 Assert-Contains $skill 'Adaptiveを自動起動' 'no automatic Adaptive startup rule'
 Assert-Contains $skill 'Draft PRを作成してはいけない' 'Draft creation prohibition'
 Assert-Contains $skill 'scripts/collect-pr-review-context\.cs' 'relative collector asset'
+Assert-Contains $skill 'gh pr edit 123 --repo owner/name --add-reviewer @copilot' 'baseline explicit Copilot review request'
+Assert-Contains $skill 'Phase 2はcanonical same-parent flowの導入要件ではありません' 'baseline optional Adaptive boundary'
 Assert-Contains $skill 'templates/local-review-findings\.md' 'relative local findings template'
 Assert-Contains $skill 'templates/review-plan\.md' 'relative review plan template'
 $sharedPlanTemplate = 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md'
@@ -168,6 +168,8 @@ Assert-Contains $goalSkill 'thread-id.*turn-id.*生成・推測・受領しま�
 Assert-Contains $goalSkill '自然言語のfree-form text' 'free-form Goal Context contract'
 Assert-Contains $goalSkill '\.agents/skills/goal-context-pr-review/scripts/manage-same-parent-review\.cs' 'installed Skill start path'
 Assert-Contains $goalSkill 'completion-notification\.txt.*raw text.*最終assistant messageの末尾' 'terminal notification handoff to last assistant message'
+Assert-Contains $goalSkill 'gh pr edit <number> --add-reviewer @copilot' 'canonical explicit Copilot review request'
+Assert-Contains $goalSkill 'reviewOnly.*reviewAndInline.*どちらも受理' 'collector-complete no-inline acceptance'
 Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/design.md' 'Canonical responsibility address' 'same-parent production address decision'
 Assert-Contains '.github/agents/purpose-reviewer.agent.md' '実装担当および`local-reviewer`から独立' 'purpose reviewer independence'
 Assert-Contains '.github/agents/purpose-reviewer.agent.md' 'コード上のbug.*`local-reviewer`' 'purpose and code quality separation'
@@ -175,6 +177,9 @@ $sameParentManager = 'apm-packages/pr-review-remediation/.apm/skills/goal-contex
 Assert-Contains $sameParentManager '(?m)^#:property TargetFramework=net10\.0\s*$' 'same-parent File-based App target framework'
 Assert-Contains $sameParentManager 'ResolveTargetReadyPullRequest' 'branch-aware Ready PR resolution'
 Assert-Contains $sameParentManager 'ParsePullRequestReference' 'explicit PR number or URL resolution'
+Assert-Contains $sameParentManager 'RequestCopilotReview' 'round 1 Copilot review request'
+Assert-Contains $sameParentManager '"--add-reviewer", "@copilot"' 'official Copilot reviewer request arguments'
+Assert-Contains $sameParentManager 'CopilotIsComplete' 'collector completion authority'
 Assert-Contains $sameParentManager 'MaximumRounds = 3' 'same-parent maximum of three rounds'
 Assert-Contains $sameParentManager 'github-copilot.*local-reviewer.*purpose-reviewer' 'round 1 exact source coverage'
 Assert-Contains $sameParentManager 'purpose-only round must not contain local-reviewer output' 'purpose-only local reviewer rejection'
@@ -303,6 +308,7 @@ Assert-Contains $collector 'EnsureIdentityUnchanged' 'PR identity drift gate'
 Assert-Contains $collector 'pull_request_review_id' 'review ID inline correlation'
 Assert-Contains $collector 'waitStatus' 'wait lifecycle output'
 Assert-Contains $collector 'observedReviewState' 'review observation output'
+Assert-Contains $collector '\["isComplete"\]\s*=\s*IsComplete' 'collector completion output'
 Assert-Contains $collector 'pr-diff\.patch' 'remote patch artifact'
 Assert-Contains $collector 'sourceId' 'stable review source identifiers'
 Assert-Contains $collector 'StableSourceId' 'deterministic check source identifier fallback'
@@ -321,6 +327,8 @@ Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-r
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' '\$installedReviewHelper.*README review profile synchronization' 'consumer command uses installed module review helper'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'installed canonical same-parent start from empty consumer repository' 'consumer repository same-parent start smoke'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'Round1Reviewing' 'consumer repository startability outcome'
+Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'Assert-Absent.*adaptive-implementation-execution' 'canonical consumer Adaptive Skill exclusion'
+Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'Assert-NotContains.*adaptive-implementation-execution.*APM lock' 'canonical consumer Adaptive lock exclusion'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'finally\s*\{' 'remote smoke cleanup boundary'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' '\$global:LASTEXITCODE\s*=\s*0' 'Linux success exit reset after expected native failures'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1' 'ConfirmExternalModelPayload' 'actual agent smoke external-payload consent gate'
@@ -338,7 +346,7 @@ Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '別t
 Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' '(?s)通常のCodex task.*このタスクを開く.*completion-notification\.txt.*結果を開く.*reviewer subagent' 'manual notification end-to-end steps'
 Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' 'automatic round 4はありません|round 4を自動開始しない' 'manual smoke round cap'
 Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/README.md' 'unsupported callback hierarchy filterを推測しない' 'manual callback hierarchy boundary'
-Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/result-template.md' '(?s)(?=.*Same original implementation parent used)(?=.*Reviewer roles executed)(?=.*Original parent was sole write owner)(?=.*Round 2/3 local reviewer absent)(?=.*Automatic round 4 absent)(?=.*User-visible notification count)' 'same-parent real-model evidence checklist'
+Assert-Contains 'tests/pr-review-remediation/manual-model-smoke/result-template.md' '(?s)(?=.*Same original implementation parent used)(?=.*GitHub Copilot review request issued successfully)(?=.*Collector completion/state)(?=.*Reviewer roles executed)(?=.*Original parent was sole write owner)(?=.*Round 2/3 local reviewer absent)(?=.*Automatic round 4 absent)(?=.*User-visible notification count)' 'same-parent real-model evidence checklist'
 
 $fixtureLocal = 'apm-packages/pr-review-remediation/tests/fixtures/expected-local-review-findings.md'
 $fixturePlan = 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md'
@@ -618,6 +626,13 @@ try {
     }
     if (-not (Test-Path -LiteralPath (Join-Path $tempRoot 'ready\pr-diff.patch'))) { Add-Failure 'ready fixture did not produce pr-diff.patch' }
 
+    Invoke-Fixture 'review-only' @('--copilot-timeout-seconds', '3', '--copilot-poll-interval-seconds', '1', '--copilot-stable-samples', '1') | Out-Null
+    $reviewOnly = Read-Context (Join-Path $tempRoot 'review-only')
+    if ($null -ne $reviewOnly) {
+        if ($reviewOnly.copilotReviewWait.waitStatus -ne 'completed' -or -not $reviewOnly.copilotReviewWait.isComplete) { Add-Failure 'review-only fixture was not emitted as collector-complete' }
+        if ($reviewOnly.copilotReviewWait.observedReviewState -ne 'reviewOnly' -or $reviewOnly.copilotReviewWait.actualInlineCommentCount -ne 0) { Add-Failure 'review-only fixture did not preserve the no-inline terminal review state' }
+    }
+
     Invoke-Fixture 'old-head' @('--no-wait-for-copilot') | Out-Null
     $oldHead = Read-Context (Join-Path $tempRoot 'old-head')
     if ($null -ne $oldHead) {
@@ -699,29 +714,37 @@ try {
     $ghFailure = Invoke-Fixture 'gh-failure' @('--no-wait-for-copilot') $false
     if ($ghFailure.Output -notmatch 'simulated GitHub CLI failure') { Add-Failure 'GitHub CLI failure was not surfaced' }
 
-    # Reproduce the supported two-helper local setup without relying on APM's
-    # unsupported local-path resolution for transitive `git: parent` dependencies.
+    # Prove the canonical setup without Adaptive first, then exercise the optional
+    # baseline Phase 2 add-on as a separate installation/check boundary.
     $scratch = Join-Path $tempRoot 'scratch-repository'
+    $scratchCodex = Join-Path $scratch '.codex'
+    New-Item -ItemType Directory -Path $scratchCodex -Force | Out-Null
+    Set-Content -LiteralPath (Join-Path $scratch 'AGENTS.md') -Value 'sentinel-agents'
+    Set-Content -LiteralPath (Join-Path $scratchCodex 'config.toml') -Value 'sentinel-config'
+
+    Invoke-Native $syncExe @($scratch, '--dry-run') 'review helper dry-run' | Out-Null
+    Invoke-Native $syncExe @($scratch) 'review helper install' | Out-Null
+    Invoke-Native $syncExe @($scratch, '--check') 'canonical review helper check without Adaptive' | Out-Null
+    foreach ($profile in @('high-implementation-starter.toml', 'standard-implementation-completer.toml')) {
+        if (Test-Path -LiteralPath (Join-Path $scratch ".codex\agents\$profile")) { Add-Failure "Canonical review setup unexpectedly installed Adaptive profile: $profile" }
+    }
+
+    $missingAdaptive = Invoke-Native $syncExe @($scratch, '--check', '--check-adaptive') 'optional Adaptive add-on missing gate' $false
+    if ($missingAdaptive.Output -notmatch 'Install apm-packages/adaptive-implementation-execution separately') { Add-Failure 'optional Adaptive check did not explain the separate package installation boundary' }
+    $invalidAdaptiveCheck = Invoke-Native $syncExe @($scratch, '--check-adaptive') 'optional Adaptive flag requires review check' $false
+    if ($invalidAdaptiveCheck.Output -notmatch 'Usage:') { Add-Failure '--check-adaptive without --check did not fail with usage' }
+
     $scratchSkill = Join-Path $scratch '.agents\skills\adaptive-implementation-execution'
     $scratchAgents = Join-Path $scratch '.github\agents'
-    $scratchCodex = Join-Path $scratch '.codex'
-    New-Item -ItemType Directory -Path $scratchSkill, $scratchAgents, $scratchCodex -Force | Out-Null
+    New-Item -ItemType Directory -Path $scratchSkill, $scratchAgents -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path $repoRoot 'apm-packages\adaptive-implementation-execution\.apm\skills\adaptive-implementation-execution\SKILL.md') -Destination (Join-Path $scratchSkill 'SKILL.md')
     foreach ($agent in @('high-implementation-starter.agent.md', 'standard-implementation-completer.agent.md')) {
         Copy-Item -LiteralPath (Join-Path $repoRoot ".github\agents\$agent") -Destination (Join-Path $scratchAgents $agent)
     }
-    Set-Content -LiteralPath (Join-Path $scratch 'AGENTS.md') -Value 'sentinel-agents'
-    Set-Content -LiteralPath (Join-Path $scratchCodex 'config.toml') -Value 'sentinel-config'
-
-    $missingAdaptive = Invoke-Native $syncExe @($scratch, '--check') 'review helper missing-Adaptive gate' $false
-    if ($missingAdaptive.Output -notmatch 'install-adaptive-implementation-local\.cs') { Add-Failure 'review helper did not return the existing Adaptive helper command' }
-
-    Invoke-Native $syncExe @($scratch, '--dry-run') 'review helper dry-run' | Out-Null
-    Invoke-Native $syncExe @($scratch) 'review helper install' | Out-Null
     Invoke-Native $adaptiveSyncExe @($scratch, '--dry-run') 'Adaptive helper dry-run' | Out-Null
     Invoke-Native $adaptiveSyncExe @($scratch) 'Adaptive helper install' | Out-Null
     Invoke-Native $adaptiveSyncExe @($scratch, '--check') 'Adaptive helper check' | Out-Null
-    Invoke-Native $syncExe @($scratch, '--check') 'review helper check' | Out-Null
+    Invoke-Native $syncExe @($scratch, '--check', '--check-adaptive') 'review helper optional Adaptive add-on check' | Out-Null
 
     foreach ($profile in @('local-reviewer.toml', 'purpose-reviewer.toml', 'review-planner.toml', 'high-implementation-starter.toml', 'standard-implementation-completer.toml')) {
         if (-not (Test-Path -LiteralPath (Join-Path $scratch ".codex\agents\$profile"))) { Add-Failure "Missing scratch profile after helper synchronization: $profile" }

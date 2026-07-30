@@ -44,7 +44,7 @@ try
             conflicts);
     }
 
-    if (options.Check)
+    if (options.CheckAdaptive)
     {
         adaptiveProblems.AddRange(ValidateAdaptiveInstallation(targetRoot));
         foreach (var problem in adaptiveProblems)
@@ -68,14 +68,17 @@ try
 
         if (adaptiveProblems.Count > 0)
         {
-            Console.Error.WriteLine("Run the existing Adaptive helper because Adaptive assets or profiles are missing or invalid:");
+            Console.Error.WriteLine("The optional baseline Phase 2 Adaptive add-on is missing or invalid.");
+            Console.Error.WriteLine("Install apm-packages/adaptive-implementation-execution separately, then run its helper:");
             Console.Error.WriteLine("Run the Adaptive helper from apm_modules/<owner>/<repository>/apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs.");
         }
         return 1;
     }
 
     Console.WriteLine(options.Check
-        ? "PR Review Remediation profile check: PASS"
+        ? options.CheckAdaptive
+            ? "PR Review Remediation profile and optional Adaptive add-on check: PASS"
+            : "PR Review Remediation profile check: PASS"
         : options.DryRun
             ? "PR Review Remediation profile dry-run: PASS"
             : options.Remove
@@ -378,17 +381,18 @@ static void ShowUsage()
 {
     Console.WriteLine("""
 Usage:
-  dotnet run --file <module-root>/apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs -- [target-repository] [--dry-run | --check] [--force] [--remove]
+  dotnet run --file <module-root>/apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs -- [target-repository] [--dry-run | --check [--check-adaptive]] [--force] [--remove]
 
 Options:
   --dry-run, -n     Show review profile changes without writing.
-  --check           Verify review profiles and required Adaptive assets/profiles without writing.
+  --check           Verify the review profiles required by the canonical same-parent flow without writing.
+  --check-adaptive  Also verify the optional Adaptive assets/profiles used only by baseline Phase 2. Requires --check.
   --force, -f       Overwrite or remove conflicting review profile files.
   --remove          Remove package-owned review profiles. Adaptive profiles are never removed.
   --help, -h        Show this help.
 
 This helper never reads or writes AGENTS.md or .codex/config.toml.
-Use the existing Adaptive helper for Adaptive profile installation and repair.
+Install the Adaptive package separately and use its helper only when baseline Phase 2 is required.
 """);
 }
 
@@ -396,6 +400,7 @@ sealed record Options(
     string TargetRoot,
     bool DryRun,
     bool Check,
+    bool CheckAdaptive,
     bool Force,
     bool Remove,
     bool ShowHelp,
@@ -407,6 +412,7 @@ sealed record Options(
         var targetSet = false;
         var dryRun = false;
         var check = false;
+        var checkAdaptive = false;
         var force = false;
         var remove = false;
         var help = false;
@@ -422,6 +428,9 @@ sealed record Options(
                     break;
                 case "--check":
                     check = true;
+                    break;
+                case "--check-adaptive":
+                    checkAdaptive = true;
                     break;
                 case "--force":
                 case "-f":
@@ -448,11 +457,11 @@ sealed record Options(
             }
         }
 
-        if ((dryRun && check) || (remove && check))
+        if ((dryRun && check) || (remove && check) || (checkAdaptive && !check))
         {
             valid = false;
         }
 
-        return new Options(target, dryRun, check, force, remove, help, valid);
+        return new Options(target, dryRun, check, checkAdaptive, force, remove, help, valid);
     }
 }

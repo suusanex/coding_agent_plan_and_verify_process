@@ -10,7 +10,9 @@ Issue本文で代替しません。Goal Contextが存在しない場合は用意
 
 ## GitHub Copilot or reviewer source missing
 
-Round 1のCopilot、local、purposeはいずれもmandatoryです。timeout、read-only reviewer failure、raw output欠落をno findingsへ変換せず`Blocked`にします。raw evidenceを親agentの自己評価で置き換えません。
+`start`はGitHub Copilot reviewを明示要求します。要求自体が失敗した場合は、GitHub CLI認証がreviewer要求権限を持つことと、対象organization/repositoryでCopilot code reviewが利用可能なことを確認します。automatic review設定は前提にしません。
+
+Round 1のCopilot、local、purposeはいずれもmandatoryです。collectorがcompleteとしたterminal `reviewOnly`はinline指摘0件の正常系として受理します。timeout、read-only reviewer failure、raw output欠落をno findingsへ変換せず`Blocked`にします。raw evidenceを親agentの自己評価で置き換えません。
 
 ## Reviewer reports a write
 

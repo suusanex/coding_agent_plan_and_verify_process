@@ -10,6 +10,7 @@
 
 - process packageの対象refを固定してAPM install済み
 - `sync-pr-review-remediation-local.cs --check`がPASS
+- GitHub CLI認証が対象PRへreviewerを要求でき、対象organization/repositoryでCopilot code reviewが利用可能
 - current branchにReady PR、またはrepository全体にunique Ready PR。複数なら開始promptでPR番号/URLを短く指定
 - readable non-empty Goal Context。形式、filename、拡張子、作成元は任意。discoveryが曖昧なら開始promptでexact pathを選択
 - 初回実装、validation、commit/push、Ready PR作成を担当した元のCodex parent taskを、同じ親taskとして再開可能
@@ -37,7 +38,8 @@ $goal-context-pr-review
 
 ### Round 1
 
-- GitHub Copilot review/inline sourceがcurrent headにbindingされる
+- managerがGitHub Copilot reviewを明示要求し、automatic review設定なしでもreviewが開始される
+- GitHub Copilot terminal reviewがcurrent headにbindingされる。inline指摘が0件ならcollector-completeな`reviewOnly`、1件以上なら`reviewAndInline`を記録する
 - `local-reviewer`と`purpose-reviewer`が別read-only subagentとして実行される
 - raw outputが別artifactとして保持され、両方に`Production code changed: No`がある
 - reviewer role/countとreviewed headがrun summaryへ記録される
@@ -84,6 +86,7 @@ $goal-context-pr-review
 次はManualOnlyです。
 
 - real model reviewer independence and output quality
+- real GitHub Copilot review request and no-inline completion path
 - real parent-owned remediation and GitHub write
 - real Windows/Codex callback count and targets
 - notification button operation
