@@ -67,6 +67,8 @@ AI は予定変更面全体を bounded に調査し、具体的な file / symbol
 
 利用者が Target と初期案だけを返した場合、AI は evidence、反論または支持、代替案、trade-off、production wiring / lifecycle / state ownership / test seam への影響、validation expectation を提示し、`AWAITING_USER_INPUT / disposition-confirmation` で再停止します。利用者が Target Map 提示後に全 Target を Adaptive へ委ねると明示した場合は、個別議論なしで `Adaptive-Owned` として READY にできます。
 
+親フローや検証harnessは利用者の応答を補完しません。Target IDだけのpartial selectionを受けた場合、Skillはcode evidenceと判断候補を説明して不足する初期案や未選択Targetの委任方針を尋ね、`AWAITING_USER_INPUT / target-selection`を維持します。必要項目が揃う前に`disposition-confirmation`へ進めず、`design-discussion`等の独自stageを作りません。各turnの保存前にheader、Target Map、summary集合、Readiness Checkを再計算し、post-map user responseの有無とreferenceを一致させます。
+
 READY判定ではTarget MapのIDを一意な全集合とし、handoff summaryの`Selected Target IDs`、`Delegated-to-Adaptive Target IDs`、`No-Change Target IDs`、`Upstream-Decision-Required Target IDs`、`Pending human-owned Target IDs`を照合します。全summary IDがMapに実在し、5集合が互いに素で、和集合がMap全体と一致し、各集合がrow Dispositionと一致しなければなりません。`Selected`は`Locked` / `Discussed-Unlocked`、delegatedは`Adaptive-Owned`、残り3集合は同名Dispositionまたはpending Dispositionへ対応します。
 
 Locked DecisionのTarget IDはSelected集合に含まれ、rowが`Locked`である必要があります。explicit all-Adaptiveでは`Selected Target IDs: None`、`Pending human-owned Target IDs: None`、Locked Decisionsなし、全rowが`Adaptive-Owned`、delegated集合がMap全体と一致する場合だけREADYにできます。

@@ -45,6 +45,8 @@ Discuss <Target ID>. My initial position is to keep parsing close to the retry p
 
 Verify that the model discusses code evidence, alternatives, trade-offs, production wiring or lifecycle effects, and validation expectations. It must not self-confirm a Locked Decision. The handoff must become `AWAITING_USER_INPUT / disposition-confirmation`, and `src/` and `tests/` must remain unchanged.
 
+Forward the human response verbatim to the same Codex task. The smoke operator must not ask a separate harness question, append an initial position, or synthesize delegation. If the human returns only a Target ID, record an additional partial-selection turn. The process must keep `AWAITING_USER_INPUT / target-selection`, ask for the missing initial position or delegation itself, keep production/tests unchanged, and synchronize the handoff header and Readiness Check from the same user evidence. An invented stage such as `design-discussion` or contradictory evidence is `FAIL`.
+
 ## Turn 3: explicit final disposition and Adaptive start
 
 After reviewing the Turn 2 trade-offs, send a final disposition that names the Target ID and exact decision. Verify that:
@@ -63,6 +65,7 @@ Before Turn 2 or Turn 3, a separate run may close and resume the task while the 
 ## Evidence rules
 
 - Keep the exact prompt/response turn references, but do not store secrets or raw hidden reasoning.
+- Forward each human response unchanged; record extra partial-selection turns instead of completing the input in the harness.
 - Record `git diff -- src tests` or an equivalent clean proof after Turns 1 and 2.
 - Record the tracked handoff path and verdict sequence.
 - Mark unexecuted steps `NOT RUN`; never copy a static validator PASS into the runtime result.

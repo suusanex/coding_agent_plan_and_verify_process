@@ -147,6 +147,10 @@ Assert-Contains $skill '(?s)## Phase 3: Present the Target Map and stop.*AWAITIN
 Assert-Contains $skill '(?s)初回 turn では次を禁止する.*READY_FOR_ADAPTIVE_IMPLEMENTATION.*adaptive-implementation-execution.*production code / tests.*Locked Decision' 'initial turn prohibitions'
 Assert-Contains $skill '最初の依頼が「実装してください」であっても、この boundary を省略しない' 'implementation request cannot skip interaction boundary'
 Assert-Contains $skill '(?s)resume では.*interaction stage.*Target Map.*presentation evidence.*Target Map 提示後の user response.*BLOCKED.*Adaptive へ fallback しない' 'resume waiting evidence fail-closed rule'
+Assert-Contains $skill '(?s)user response は、test harness や parent が補足、言い換え、または必要項目を合成せず、そのまま.*Target ID の選択だけ.*partial selection.*`AWAITING_USER_INPUT / target-selection` を維持' 'verbatim partial-selection handling'
+Assert-Contains $skill '(?s)必要な selection input が揃い.*trade-off.*`AWAITING_USER_INPUT / disposition-confirmation` へ進める' 'partial selection cannot advance early'
+Assert-Contains $skill '(?s)各 response.*handoff header、Target Map row、summary Target sets、Readiness Check.*同じ observed evidence から再計算.*User response occurred after Target Map presentation: Yes.*同名 row.*`PASS`' 'mirrored user evidence synchronization'
+Assert-Contains $skill 'interaction stage は `target-selection`、`disposition-confirmation`、`upstream-decision`、`complete` のいずれかだけ' 'closed Design Pair interaction stage vocabulary'
 Assert-Contains $skill '(?s)AWAITING_USER_INPUT.*interaction_stage: disposition-confirmation' 'disposition confirmation waiting state'
 Assert-Contains $skill '全 Target を Adaptive へ委ねると明示した場合.*Locked Decision を作らず READY' 'explicit all-Adaptive delegation path'
 Assert-Contains $skill 'Target 未選択を空集合として PASS にしない' 'empty selection readiness prevention'
@@ -219,6 +223,8 @@ Assert-Contains $handoff 'Target が一件も選択されず.*Adaptive delegatio
 Assert-Contains $handoff 'Selected Target IDs: Pending / None / <DP-Txx list>' 'formal None value for selected Targets'
 Assert-Contains $handoff '(?s)Target Map IDs are unique and every summary ID exists in the Target Map.*Summary Target sets are pairwise disjoint and exactly cover the Target Map.*Summary classifications match every Target Map row Disposition.*Locked Decision Target IDs are selected and their Target Map rows are Locked.*Explicit all-Adaptive delegation has None selected/pending, no Locked Decisions, and every Target is Adaptive-Owned' 'handoff set invariant readiness checks'
 Assert-Contains $handoff '5集合を Target Map と照合し、架空 ID、重複 ID、未分類 Target、row / summary 不一致を一件でも許可しない' 'handoff set invariant failure rule'
+Assert-Contains $handoff '(?s)Target IDだけ.*partial selection.*User response occurred after Target Map presentation: Yes.*Interaction stage: target-selection.*pending分類を維持' 'handoff partial-selection representation'
+Assert-Contains $handoff '(?s)`design-discussion`等の独自stageを作ってはいけない.*headerとReadiness Check.*Yes / No、PASS / FAIL、user referenceを矛盾させない' 'handoff mirrored evidence consistency'
 Assert-Contains $handoff 'Plan / Issue / acceptance criteria / repository policy / public contract.*Design Pair Decision ID を付けず' 'handoff upstream constraint separation'
 
 $adaptiveSkill = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md'
@@ -384,7 +390,7 @@ Assert-Contains $fullCoverageSkill 'Adaptiveへ補完せずartifact mismatchと�
 Assert-Contains $fullCoverageSkill '(?s)最初のturnはTarget Map全体を提示.*AWAITING_USER_INPUT / target-selection.*停止.*AWAITING_USER_INPUT / disposition-confirmation.*再停止' 'full-coverage mandatory Design Pair turn boundaries'
 Assert-Contains $fullCoverageSkill 'design_pair_user_evidence' 'full-coverage user evidence propagation'
 
-foreach ($id in 1..25) {
+foreach ($id in 1..27) {
     $scenarioId = 'DP-VAL-{0:D3}' -f $id
     Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' $scenarioId "validation scenario $scenarioId"
 }
@@ -397,6 +403,7 @@ Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'A
 Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/usage-guide.md' 'AWAITING_USER_INPUT / disposition-confirmation.*再停止' 'usage guide multi-turn stop'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'without adding a stop instruction' 'manual smoke verifies skill-owned stop'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'Human action required' 'manual smoke human participation boundary'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' '(?s)Forward the human response verbatim.*must not ask a separate harness question.*If the human returns only a Target ID.*keep `AWAITING_USER_INPUT / target-selection`.*invented stage such as `design-discussion`.*`FAIL`' 'manual smoke verbatim partial-selection behavior'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md' '(?m)^- Status: NOT RUN\r?$' 'manual runtime result starts unexecuted'
 foreach ($field in @('Configured model', 'Configured reasoning effort', 'Process repository revision', 'Plan reference', 'Turn sequence', 'Tracked handoff path', 'Verdict sequence', 'No-Change Target IDs', 'Upstream-Decision-Required Target IDs', 'Target Map / summary set reconciliation evidence')) {
     Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md' ([regex]::Escape($field)) "manual runtime evidence field $field"

@@ -285,6 +285,27 @@ Expected:
 - readinessをFAILとする
 - `Selected Target IDs: None`、`Pending human-owned Target IDs: None`、Locked Decisionsなし、全row `Adaptive-Owned`、Delegated集合=Target Map全集合へ修復するまでAdaptiveを開始しない
 
+## DP-VAL-026: Target-only partial selection stays in target-selection
+
+Input: Target Map提示後、利用者が`DP-T01について議論します`とだけ返し、初期案と未選択Targetのdelegationをまだ示していない。
+
+Expected:
+
+- 利用者応答を親フローまたはtest harnessで補完せず、そのままDesign Pairへ渡す
+- AIはDP-T01のcode evidenceと判断候補を説明し、不足する初期案とdelegationを尋ねる
+- `AWAITING_USER_INPUT / target-selection`を維持し、`design-discussion`等の独自stageを作らない
+- production code / testsを編集せず、Adaptiveを開始しない
+
+## DP-VAL-027: Mirrored user evidence mismatch fails closed
+
+Input: handoff headerは`User response occurred after Target Map presentation: Yes`と実際のuser referenceを持つが、Readiness Checkは同じcheckを`FAIL / No post-map user response`としている。
+
+Expected:
+
+- header、Target Map、summary集合、Readiness Checkを同じobserved evidenceから再計算する
+- Yes / No、PASS / FAIL、user referenceが一致するまでartifactをREADYまたはAdaptiveへ渡さない
+- 不整合をAI summaryから正当化せず、artifact repairを行う
+
 ## Repository static validation
 
 ```powershell

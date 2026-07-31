@@ -22,6 +22,8 @@
 | 2 | | disposition-confirmation | NOT RUN | NOT RUN | NOT RUN | |
 | 3 | | complete | NOT RUN | NOT RUN | NOT RUN | |
 
+Add rows for any partial-selection turns. Record the exact human message and do not synthesize missing input in the smoke harness.
+
 ## Artifact evidence
 
 - Target Map presentation evidence:
@@ -51,6 +53,7 @@ NOT RUN
 - Turn 1 Adaptive not started: NOT RUN
 - Upstream proposal not converted to Locked Decision: NOT RUN
 - Turn 2 trade-off response observed: NOT RUN
+- Partial selection remained at target-selection with internally consistent evidence, if exercised: NOT RUN
 - Turn 2 stopped for final disposition: NOT RUN
 - Turn 3 post-map confirmation evidence valid: NOT RUN
 - Adaptive started only after READY: NOT RUN
