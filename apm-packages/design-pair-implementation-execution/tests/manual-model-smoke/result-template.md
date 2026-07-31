@@ -6,6 +6,7 @@
 - Completed at:
 - Process repository revision:
 - Design Pair package version:
+- Adaptive package version:
 - Fixture baseline revision:
 - Disposable repository root:
 - Plan reference: plans/retry-after-plan.md
