@@ -62,6 +62,14 @@ Target Map 提示前の技術案はここに保存できるが、Design Pair Loc
 
 各 Locked Decision の Target ID は `Selected Target IDs` に含まれ、対応する Target Map row の Disposition は `Locked` でなければならない。`Locked` row には一件以上の valid Locked Decision が必要である。
 
+## Target Disposition Evidence
+
+| Target ID | Final disposition | User message / turn reference | Confirmed content quote or faithful summary | Confirmation after Target Map |
+| --- | --- | --- | --- | --- |
+| DP-T01 | Locked / Discussed-Unlocked / Adaptive-Owned | | | Yes |
+
+`Locked`、`Discussed-Unlocked`、`Adaptive-Owned`の各Targetに一件だけrowを作る。Target IDはTarget Mapに実在し、Final dispositionはTarget Map rowおよびsummary分類と一致し、actual user message / turn referenceと`Confirmation after Target Map: Yes`を持たなければならない。`Locked`は対応するLocked Decisionのconfirmation evidenceを参照または同じ内容で記録できる。明示的な複数Target委任またはall-Adaptive委任では同じuser turn referenceを複数rowに使用できるが、Targetごとのrowは省略しない。AIの推奨、Target Map、Plan、Issue、repository docs、過去会話、AI summary、利用者の沈黙はevidenceにならない。
+
 ## Selected Target Discussion Evidence
 
 | Target ID | Assistant turn reference | Concrete file / symbol / line evidence | Current responsibility / invariant | Caller / wiring / lifecycle / test-seam evidence | Alternatives and trade-offs | Non-binding AI proposal or No proposal reason | Validation expectation | Open questions |
@@ -119,6 +127,7 @@ Knowledge Candidates は自動的に knowledge card または repository policy 
 | User-selected discussion targets have final dispositions | PASS / FAIL | |
 | Selected Targets have concrete user-facing discussion evidence | PASS / FAIL / N/A | <Target IDs, assistant turn references, code locations, trade-offs, proposal, validation> |
 | Locked Decisions have valid post-map confirmation evidence | PASS / FAIL / N/A | |
+| Every Locked, Discussed-Unlocked, and Adaptive-Owned Target has matching post-map Target Disposition Evidence | PASS / FAIL / N/A | <Target IDs, dispositions, actual user turn references> |
 | Locked Decisions do not conflict with upstream contracts | PASS / FAIL / N/A | |
 | No pending human-owned Target remains | PASS / FAIL | |
 | No blocking Upstream-Decision-Required remains | PASS / FAIL | |
@@ -128,6 +137,8 @@ Knowledge Candidates は自動的に knowledge card または repository policy 
 | Summary classifications match every Target Map row Disposition | PASS / FAIL | <per-class comparison evidence> |
 | Locked Decision Target IDs are selected and their Target Map rows are Locked | PASS / FAIL / N/A | <Decision ID / Target ID evidence> |
 | Explicit all-Adaptive delegation has None selected/pending, no Locked Decisions, and every Target is Adaptive-Owned | PASS / FAIL / N/A | <all Target IDs and dispositions> |
+
+READY前に、`Locked` / `Discussed-Unlocked` / `Adaptive-Owned`のTarget集合と`Target Disposition Evidence`のTarget集合を完全一致させる。各Targetは一件だけ、Final dispositionはTarget Map rowとsummary分類に一致し、confirmationはTarget Map提示後のactual user turnを参照する。欠落、架空ID、重複Target、row / evidence不一致、pre-map evidence、AI summaryによる補完が一件でもあればFAILとする。all-Adaptiveでも全Targetのevidence rowが必要である。
 
 Target が一件も選択されず、全 Target の Adaptive delegation も明示されていない状態を空集合として PASS にしない。READY 判定では `Selected Target IDs`、`Delegated-to-Adaptive Target IDs`、`No-Change Target IDs`、`Upstream-Decision-Required Target IDs`、`Pending human-owned Target IDs` の5集合を Target Map と照合し、架空 ID、重複 ID、未分類 Target、row / summary 不一致を一件でも許可しない。全 row が PASS または有効な N/A で、`Interaction stage: complete` の場合だけ `READY_FOR_ADAPTIVE_IMPLEMENTATION` を設定する。
 

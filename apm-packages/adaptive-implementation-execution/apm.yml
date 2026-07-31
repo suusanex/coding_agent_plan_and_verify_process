@@ -1,5 +1,5 @@
 name: adaptive-implementation-execution
-version: 0.3.0
+version: 0.4.0
 description: Adaptive serial implementation routing from ordinary Plans or completed post-map Design Pair handoffs through high-model implementation and bounded standard-model completion
 type: hybrid
 targets:

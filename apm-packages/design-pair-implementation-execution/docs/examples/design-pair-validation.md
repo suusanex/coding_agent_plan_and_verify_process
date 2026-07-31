@@ -349,6 +349,46 @@ Expected:
 - 選択後は`<DP-Txx> Internal design discussion` blockの全fieldを実際のresponse本文へ出す
 - 応答本文のfieldが欠ける場合、handoff ReadinessをPASSにせず応答を修復する
 
+## DP-VAL-032: Undelegated Target cannot become Adaptive-Owned
+
+Input: 利用者は`DP-T01`だけをLockedと明示し、`DP-T02` / `DP-T03`を委任していないが、AIが両Targetを`Adaptive-Owned`にしてDelegated集合へ入れる。対応するactual user turnを持つ`Target Disposition Evidence`はない。
+
+Expected:
+
+- Design Pair readinessをFAILとする
+- Adaptive / HIGH_MODELは`BlockedByInvalidCompletionHandoff`で編集前に停止する
+- AI recommendation、Target Map、Plan、summaryから委任evidenceを補完しない
+
+## DP-VAL-033: Discussed-Unlocked requires final user disposition
+
+Input: 利用者がTargetを選んで議論したが、最終dispositionを返していない。AIがdiscussion完了だけを根拠にrowを`Discussed-Unlocked`へ移す。
+
+Expected:
+
+- `Pending-User-Disposition`と`AWAITING_USER_INPUT / disposition-confirmation`を維持する
+- actual post-map user turnとconfirmed contentを持つ`Target Disposition Evidence`が作られるまでREADYにしない
+- Adaptive / HIGH_MODELはinvalidなREADY handoffを編集前に拒否する
+
+## DP-VAL-034: Explicit multi-Target delegation is evidenced per Target
+
+Input: Target Map提示後、利用者が`DP-T02とDP-T03をAdaptiveに委ねる`と明示する。
+
+Expected:
+
+- `DP-T02`と`DP-T03`を`Adaptive-Owned`およびDelegated集合へ分類する
+- 同じactual user turn referenceを使い、各Targetに一件ずつ`Target Disposition Evidence`を作る
+- 他のreadiness条件を満たす場合はPASSとする
+
+## DP-VAL-035: Explicit all-Adaptive delegation has complete evidence
+
+Input: Target Map提示後、利用者が全TargetをAdaptiveに委ねると明示する。
+
+Expected:
+
+- Selected / Pendingを`None`、Locked Decisionsなし、全rowを`Adaptive-Owned`、Delegated集合をTarget Map全集合とする
+- 同じactual user turn referenceを使用できるが、全Targetに一件ずつ一致する`Target Disposition Evidence`を作る
+- evidence集合とTarget Map全集合が一致する場合だけPASSとする
+
 ## Repository static validation
 
 ```powershell

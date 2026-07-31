@@ -61,11 +61,13 @@ Before resuming, recheck the disposable repository root. If the resumed process 
 After reviewing the Turn 2 trade-offs, send a final disposition that names the Target ID and exact decision. Verify that:
 
 - the Locked Decision contains a Decision ID, Target ID, actual user turn reference, a short quote or faithful summary, and post-map confirmation `Yes`;
+- every `Locked`, `Discussed-Unlocked`, and `Adaptive-Owned` Target has exactly one matching `Target Disposition Evidence` row with its actual post-map user turn, confirmed content, and confirmation `Yes`;
+- an explicit multi-Target delegation records one evidence row per delegated Target, even when the rows share the same user turn reference;
 - the handoff becomes `complete / READY_FOR_ADAPTIVE_IMPLEMENTATION` only after that response;
 - only then does the existing Adaptive Implementation route start;
 - the final record distinguishes Design Pair readiness, Adaptive result, validation, and final review status.
 
-To exercise the no-discussion shortcut in a separate run, respond after Turn 1 with an explicit all-Target Adaptive delegation. The handoff may become READY without Locked Decisions if every other readiness check passes.
+To exercise the no-discussion shortcut in a separate run, respond after Turn 1 with an explicit all-Target Adaptive delegation. The handoff may become READY without Locked Decisions if every other readiness check passes and every Target has a matching `Adaptive-Owned` disposition evidence row.
 
 ## Resume check
 

@@ -23,6 +23,8 @@ Plan Coverage Flow が必要な課題は、既存の `plan-coverage-residual-flo
 
 `design-pair-implementation-execution` を利用者が明示選択した場合、この package は tracked Design Pair handoff を追加 input として受け取ります。`READY_FOR_ADAPTIVE_IMPLEMENTATION` だけでなく、`Interaction stage: complete`、Target Map の提示・選択要求、提示後の actual user response、non-empty selection または explicit all-Adaptive delegation、pending Target なしを編集前に検証します。さらに全summary IDのMap実在、5分類集合の相互排他と完全被覆、row Disposition一致、Locked Targetとall-Adaptiveの整合を再検証します。`AWAITING_USER_INPUT`、空の selected set、架空・重複・未分類Target、上流文書から再構成した user evidence は受理せず、`BLOCKED / BlockedByInvalidCompletionHandoff` で停止します。
 
+Selected / Delegated-to-Adaptiveの各Targetには、Target Map rowと一致するfinal disposition、actual post-map user turn、confirmed contentを持つ`Target Disposition Evidence`を一件だけ要求します。AIが未委任Targetを`Adaptive-Owned`へ移したhandoff、最終user responseなしで`Discussed-Unlocked`へ移したhandoff、欠落・重複・架空・pre-map evidenceは編集前に拒否します。
+
 selected Targetがある場合は、user-facing turn reference、具体的code location、current invariant、alternatives / trade-offs、proposalまたはNo proposal理由、validation expectationを含む`Selected Target Discussion Evidence`も要求します。Target名やartifact linkだけの抽象的evidenceでは開始しません。
 
 Target Map presentation evidenceも、全Targetの具体的file / symbol、current invariant、内部設計判断候補、relevant evidenceをuser-facingに提示したturnを参照する必要があります。artifact linkやTarget名だけの初回応答は受理しません。

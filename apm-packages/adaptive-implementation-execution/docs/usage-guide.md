@@ -58,6 +58,8 @@ Design Pair route は利用者が明示選択した場合だけ使います。De
 
 Adaptive は production code / tests を編集する前に、Design Pair handoff が `READY_FOR_ADAPTIVE_IMPLEMENTATION` かつ `Interaction stage: complete` であること、Target Map の提示・選択要求、提示後の actual user response、一件以上の selected Target または explicit all-Adaptive delegation、pending human-owned Target なし、各 Locked Decision の post-map confirmation を検証します。`AWAITING_USER_INPUT`、空集合を暗黙に all-Adaptive とした handoff、上流 Plan や AI summary から user response を再構成した handoffは `BLOCKED / BlockedByInvalidCompletionHandoff` で停止します。
 
+Selected / Delegated-to-Adaptiveの各Targetには、Target Map rowと一致するfinal disposition、actual post-map user turn、confirmed content、confirmation `Yes`を持つ`Target Disposition Evidence`を一件だけ要求します。明示的な複数Target委任とall-Adaptiveでは同じturn referenceを再利用できますが、Targetごとのrowは必要です。AIによる未委任Targetの`Adaptive-Owned`化、最終応答のない`Discussed-Unlocked`化、欠落・重複・架空・pre-map evidenceは拒否します。
+
 selected Targetごとに、user-facing assistant turn reference、具体的code location、current invariant、alternatives / trade-offs、非binding proposalまたはNo proposal理由、validation expectationを持つ`Selected Target Discussion Evidence`も検証します。抽象的な論点名やartifact linkだけの場合は編集前に停止します。
 
 Target Map presentation evidenceについても、全Targetの具体的file / symbol、current invariant、内部設計判断候補、relevant evidenceをuser-facingに提示したturnを要求します。artifact内だけに詳細がある場合は不十分です。

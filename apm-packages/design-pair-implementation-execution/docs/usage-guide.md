@@ -69,6 +69,8 @@ AI は予定変更面全体を bounded に調査し、具体的な file / symbol
 
 `Locked` は Target Map 提示後に AI が trade-off と validation expectation を説明し、その後の user message / turn で明示確認された Decision ID 付き entry だけです。Plan / Issue / acceptance / gold document / AI summary は confirmation ではありません。利用者が初回 prompt に書いた技術案は initial position として保存し、post-map confirmation まで Locked にしません。
 
+`Locked`、`Discussed-Unlocked`、`Adaptive-Owned`は、Targetごとの`Target Disposition Evidence`にactual post-map user turn、確認内容、`Confirmation after Target Map: Yes`がある場合だけ確定できます。AIが未選択Targetを自己判断でAdaptiveへ委ねたり、最終応答なしでDiscussed-Unlockedへ移したりできません。複数Target委任またはall-Adaptiveでは同じuser turnを複数Target rowに使用できます。
+
 利用者が Target だけ、または Target と初期案を返した場合、AI は evidence、反論または支持、代替案、trade-off、production wiring / lifecycle / state ownership / test seam への影響、非binding proposal、validation expectation を提示し、`AWAITING_USER_INPUT / disposition-confirmation` で再停止します。利用者が Target Map 提示後に全 Target を Adaptive へ委ねると明示した場合は、個別議論なしで `Adaptive-Owned` として READY にできます。
 
 親フローや検証harnessは利用者の応答を補完しません。Target Mapに実在するTarget IDだけでも選択成立です。Skillは選択Targetのcode evidence、判断候補、alternatives / trade-offs、非binding proposal、validation expectationを説明し、初期案の提示や同じTarget選択を再要求せず`AWAITING_USER_INPUT / disposition-confirmation`へ進みます。未選択Targetの委任または分類は、選択Targetの最終dispositionと同じ確認で求めます。`design-discussion`等の独自stageを作りません。各turnの保存前にheader、Target Map、summary集合、Readiness Checkを再計算し、post-map user responseの有無とreferenceを一致させます。
@@ -105,5 +107,6 @@ Design Pair route の実装完了は final code review、human review、総合 a
 - selected Target が空で readiness が PASS: invalid handoff。明示的な all-Adaptive delegation がない限り FAIL とする。
 - summaryに架空ID、重複ID、未分類Target、row / summary不一致がある: invalid handoff。Target Mapと5集合を修復する。
 - all-AdaptiveなのにSelected / Pendingが`None`でない、Locked Decisionがある、またはAdaptive-Ownedでないrowがある: invalid handoff。
+- Selected / Delegated Targetの`Target Disposition Evidence`が欠落、重複、架空ID、row不一致、pre-map reference、AI summary由来: invalid handoff。
 - `Locked` の confirmation が Plan / Issue を参照する: `Upstream Binding Constraints` へ移し、actual user turn evidence を要求する。
 - resume artifact が `DRAFT` のみで interaction stage 不明: READY を推測せず artifact repair で停止する。

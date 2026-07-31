@@ -36,6 +36,7 @@ Add rows for any optional question-and-answer turns during `disposition-confirma
 - Pending human-owned Target IDs:
 - Target Map / summary set reconciliation evidence:
 - Selected Target Discussion Evidence:
+- Target Disposition Evidence:
 - Upstream Binding Constraints:
 - Upstream User Initial Positions:
 - Locked Decision IDs:
@@ -61,6 +62,8 @@ NOT RUN
 - Selected Target user-facing response included concrete code structure, trade-offs, proposal, and validation expectations: NOT RUN
 - Turn 2 stopped for final disposition: NOT RUN
 - Final post-map confirmation evidence valid: NOT RUN
+- Every Locked / Discussed-Unlocked / Adaptive-Owned Target has matching post-map disposition evidence: NOT RUN
+- Explicit multi-Target delegation has one disposition evidence row per Target: NOT RUN
 - Adaptive started only after READY: NOT RUN
 - Resume waiting behavior, if exercised: NOT RUN
 

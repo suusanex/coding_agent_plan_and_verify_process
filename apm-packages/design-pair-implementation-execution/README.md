@@ -78,6 +78,8 @@ $design-pair-implementation-execution を明示的に選びます。
 
 READY前にはTarget Mapとhandoff summaryを集合照合します。summaryの全Target IDはMapに実在し、Selected / Delegated-to-Adaptive / No-Change / Upstream-Decision-Required / Pendingの5集合は重複なくMap全体を覆い、各分類はrowのDispositionと一致する必要があります。Locked DecisionはSelectedかつ`Locked` rowだけを参照できます。all-AdaptiveではSelected / Pendingを`None`、Locked Decisionsなし、全Targetを`Adaptive-Owned`としてdelegated集合へ含めます。
 
+`Locked`、`Discussed-Unlocked`、`Adaptive-Owned`の各Targetには、Target Map提示後のactual user turnと確認内容を記録する`Target Disposition Evidence`が一件必要です。複数Target委任とall-Adaptiveは同じturn referenceを各Target rowで再利用できますが、AIの推奨やsummaryから人間のDispositionを補完できません。
+
 Plan Coverage Flow で使う場合は、この package と Plan Coverage package の両方を Codex / agent-skills target へ導入し、flow 開始時に Design Pair を明示選択します。
 
 ## Validation

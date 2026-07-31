@@ -217,6 +217,10 @@ interaction_stage: disposition-confirmation
 
 upstream Plan、Issue、acceptance criteria、gold document、repository docs、AI summary、過去会話からの推測、利用者の沈黙は confirmation evidence に使用しない。
 
+`Locked`、`Discussed-Unlocked`、`Adaptive-Owned` は、Targetごとに `Target Disposition Evidence` を一件持つ場合だけ最終 disposition として扱う。各 evidence row には Target ID、Target Map row と一致する final disposition、実際の user message / turn reference、確認内容の短い引用または忠実な要約、`Confirmation after Target Map: Yes` を保存する。Target ID はTarget Mapに実在し、同一Targetのrowは一件だけでなければならない。`Locked` rowは対応するLocked Decisionのconfirmation evidenceを同じ値で参照または複製できる。明示的な複数Target委任またはall-Adaptive委任では、同じuser turn referenceを複数Target rowに使用できるが、Targetごとのrowを省略してはいけない。
+
+AIの推奨、Target Map、Plan、Issue、repository docs、過去会話、AI summaryを `Target Disposition Evidence` に使用しない。利用者が委任していないTargetをAIが`Adaptive-Owned`へ移すこと、利用者の最終応答なしに`Discussed-Unlocked`へ移すこと、pre-mapの発言をpost-map confirmationとして扱うことを禁止する。valid evidenceがないhuman-owned Targetはpendingのまま残してturnを終了する。
+
 ## Phase 5: Finalize the tracked handoff
 
 `handoff.md` の schema を使い、次を明確に分離する。
@@ -224,6 +228,7 @@ upstream Plan、Issue、acceptance criteria、gold document、repository docs、
 - `Upstream Binding Constraints`: Plan / Issue / acceptance / repository policy に既存の binding requirement。Design Pair Decision ID は付けない
 - `Upstream User Initial Positions`: Target Map 提示前の利用者案。Design Pair decision ではない
 - `Locked Decisions`: Target Map 提示後に利用者が明示的に確定した Decision ID 付き binding constraint
+- `Target Disposition Evidence`: `Locked`、`Discussed-Unlocked`、`Adaptive-Owned`をTarget単位で許可したpost-map user evidence
 - `Discussed but Unlocked`: 参考情報
 - `Adaptive-Owned`: HIGH_MODEL の通常裁量
 - `Known Evidence` / `Known Assumptions`: 参考情報
@@ -236,6 +241,7 @@ Adaptive Implementation へ進める条件は次のとおり。
 - Target Map 提示後の利用者 response がある
 - 利用者が一件以上の Target を議論対象として選択した、または全 Target を Adaptive に委ねると明示した
 - 選択された全 Target に利用者由来の最終 disposition があり、pending human-owned Target がない
+- `Locked`、`Discussed-Unlocked`、`Adaptive-Owned`の全Targetに、row dispositionと一致する一意なpost-map `Target Disposition Evidence`がある
 - 選択された全 Target にuser-facingな`Selected Target Discussion Evidence`があり、具体的code location、current invariant、alternatives / trade-offs、proposalまたはNo proposal理由、validation expectationを含む
 - Locked Decisions が有効な post-map confirmation evidence を持ち、upstream contract と矛盾しない
 - blocking な `Upstream-Decision-Required` がない
@@ -252,6 +258,8 @@ summary と Target Map row の対応は次の完全一致とする。
 - `Pending human-owned Target IDs`: disposition が `Pending-User-Selection` または `Pending-User-Disposition`
 
 各 Locked Decision の Target ID は `Selected Target IDs` に含まれ、その Target Map row は `Locked` でなければならない。`Locked` row には一件以上の valid Locked Decision が必要である。`Explicit all-Adaptive delegation: Yes` では、`Selected Target IDs: None`、`Pending human-owned Target IDs: None`、Locked Decisionsなし、Target Map の全 Target row が `Adaptive-Owned`、`Delegated-to-Adaptive Target IDs` が全 Target IDと完全一致する場合だけ READY にできる。
+
+READY判定では`Target Disposition Evidence`も集合照合する。`Locked`、`Discussed-Unlocked`、`Adaptive-Owned`のTarget全集合とevidence rowのTarget ID集合が完全一致し、各Targetが一回だけ現れ、evidenceのfinal dispositionがTarget Map rowおよびsummary分類と一致し、各confirmationがTarget Map提示後のactual user turnを参照する必要がある。evidenceの欠落、架空ID、重複Target、row / evidence disposition不一致、pre-map reference、AIが作った要約だけのreferenceはreadinessをFAILにする。all-Adaptiveでも全Targetに一件ずつevidence rowが必要である。
 
 Target 未選択を空集合として PASS にしない。Target Map 提示後に利用者が全 Target を Adaptive へ委ねると明示した場合は、個別対話や Locked Decision を作らず READY にできる。条件を満たす場合だけ `interaction_stage: complete` と `READY_FOR_ADAPTIVE_IMPLEMENTATION` を同時に設定する。選択または disposition 待ちは `AWAITING_USER_INPUT`、blocking な上流判断は `interaction_stage: upstream-decision` と `HUMAN_DECISION_REQUIRED` または `REPLAN_REQUIRED`、tool / permission / environment blocker は `BLOCKED` とする。
 
