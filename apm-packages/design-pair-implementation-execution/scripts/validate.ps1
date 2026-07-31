@@ -149,6 +149,8 @@ Assert-Contains $skill '最初の依頼が「実装してください」であ�
 Assert-Contains $skill '(?s)resume では.*interaction stage.*Target Map.*presentation evidence.*Target Map 提示後の user response.*BLOCKED.*Adaptive へ fallback しない' 'resume waiting evidence fail-closed rule'
 Assert-Contains $skill '(?s)user response は、test harness や parent が補足、言い換え、または必要項目を合成せず、そのまま.*Target ID の選択だけ.*partial selection.*`AWAITING_USER_INPUT / target-selection` を維持' 'verbatim partial-selection handling'
 Assert-Contains $skill '(?s)必要な selection input が揃い.*trade-off.*`AWAITING_USER_INPUT / disposition-confirmation` へ進める' 'partial selection cannot advance early'
+Assert-Contains $skill '(?s)選択された Target の対話では.*handoff artifactへのlinkまたは論点名だけを返してはいけない.*Target ID と具体的な file / symbol.*現在の責務と invariant.*直接 caller、production wiring、lifecycle / state ownership、test seam.*実在する代替案.*trade-off.*非 binding の AI proposal.*`No proposal`.*validation expectation' 'selected Target minimum discussion surface'
+Assert-Contains $skill '(?s)Target IDだけのpartial selectionでも.*minimum discussion surfaceを提示.*Target Map内に詳細があることをuser-facing説明の代替にせず.*`Selected Target Discussion Evidence`' 'partial selection concrete discussion evidence'
 Assert-Contains $skill '(?s)各 response.*handoff header、Target Map row、summary Target sets、Readiness Check.*同じ observed evidence から再計算.*User response occurred after Target Map presentation: Yes.*同名 row.*`PASS`' 'mirrored user evidence synchronization'
 Assert-Contains $skill '(?s)Target Map 提示後の通常 interaction stage は `target-selection`、`disposition-confirmation`、`upstream-decision`、`complete` のいずれかだけ.*`target-map-building` は提示前の `DRAFT`.*`artifact-repair` は.*`BLOCKED`' 'closed Design Pair interaction stage vocabulary'
 Assert-Contains $skill '(?s)AWAITING_USER_INPUT.*interaction_stage: disposition-confirmation' 'disposition confirmation waiting state'
@@ -195,6 +197,7 @@ foreach ($field in @(
     'Upstream-Decision-Required Target IDs',
     'Explicit all-Adaptive delegation',
     'Pending human-owned Target IDs',
+    'Selected Target discussion evidence',
     'Design Pair Target Map',
     'Upstream Binding Constraints',
     'Upstream User Initial Positions',
@@ -228,6 +231,9 @@ Assert-Contains $handoff '(?s)`design-discussion`等の独自stageを作って�
 Assert-Contains $handoff 'Interaction stage: target-map-building / target-selection / disposition-confirmation / upstream-decision / complete / artifact-repair' 'handoff closed stage schema'
 Assert-NotContains $handoff '(?m)^- Interaction stage:.*design-discussion' 'deprecated design-discussion stage in handoff schema'
 Assert-Contains $handoff '(?s)`target-map-building`はTarget Map提示前の`DRAFT`だけ.*`artifact-repair`は.*`BLOCKED`だけ.*Target Map提示後の通常経路.*`target-selection`、`disposition-confirmation`、`upstream-decision`、`complete`以外へ遷移しない' 'handoff stage applicability rules'
+Assert-Contains $handoff '(?s)## Selected Target Discussion Evidence.*Target ID.*Assistant turn reference.*Concrete file / symbol / line evidence.*Current responsibility / invariant.*Caller / wiring / lifecycle / test-seam evidence.*Alternatives and trade-offs.*Non-binding AI proposal or No proposal reason.*Validation expectation.*Open questions' 'selected Target discussion evidence schema'
+Assert-Contains $handoff '(?s)Selected Targets have concrete user-facing discussion evidence.*Target IDs, assistant turn references, code locations, trade-offs, proposal, validation' 'selected Target discussion readiness check'
+Assert-Contains $handoff '(?s)partial selectionでも.*具体的file / symbol.*current responsibility / invariant.*caller / wiring / lifecycle / test seam.*alternatives / trade-offs.*proposalまたはNo proposal理由.*validation expectation.*論点名だけの応答はFAIL' 'partial selection concrete handoff evidence rule'
 Assert-Contains $handoff 'Plan / Issue / acceptance criteria / repository policy / public contract.*Design Pair Decision ID を付けず' 'handoff upstream constraint separation'
 
 $adaptiveSkill = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md'
@@ -239,7 +245,9 @@ Assert-Contains $adaptiveSkill 'automatic Design Pair re-entry' 'Adaptive no aut
 Assert-Contains $adaptiveSkill 'Locked Decision conflict' 'Adaptive conflict stop report'
 Assert-Contains $adaptiveSkill '(?s)Target Map ID が一意.*summary の全 Target ID が Target Map に実在.*5集合が互いに素.*和集合が Target Map 全体と完全一致.*summary 集合が Target Map row.*一致' 'Adaptive Target set reconciliation gate'
 Assert-Contains $adaptiveSkill '(?s)Locked Decision Target ID が `Selected Target IDs` に含まれ.*Target Map row が `Locked`.*all-Adaptive delegation.*selected / pending が `None`.*全 Target row が `Adaptive-Owned`.*delegated集合と完全一致' 'Adaptive Locked and all-Adaptive invariants'
-Assert-Contains $adaptiveSkill '架空 ID、重複 ID、未分類 Target、row / summary 不一致も拒否' 'Adaptive malformed Target set rejection'
+Assert-Contains $adaptiveSkill '架空 ID、重複 ID、未分類 Target、row / summary 不一致.*も拒否' 'Adaptive malformed Target set rejection'
+Assert-Contains $adaptiveSkill '(?s)selected Targetごとに`Selected Target Discussion Evidence`.*user-facing assistant turn reference.*具体的code location.*current invariant.*alternatives / trade-offs.*proposalまたはNo proposal理由.*validation expectation' 'Adaptive selected Target discussion evidence gate'
+Assert-Contains $adaptiveSkill '抽象的な論点名だけで具体的なSelected Target discussion evidenceがないartifactも拒否' 'Adaptive abstract discussion rejection'
 Assert-Contains $adaptiveSkill '新規 intake と resume を分けます' 'fresh intake and resume distinction'
 Assert-Contains $adaptiveSkill '欠落や矛盾を Adaptive へ補完しません' 'resume fail-closed route metadata'
 Assert-Contains $adaptiveSkill 'route_metadata_normalization: legacy-adaptive-handoff' 'legacy Adaptive handoff normalization marker'
@@ -288,6 +296,8 @@ Assert-Contains $highAgent 'Target Map.*allowed edit surface' 'HIGH non-allowlis
 Assert-Contains $highAgent '(?s)Target Map IDは一意.*全summary IDはTarget Mapに実在.*5集合は互いに素かつTarget Map全体を完全被覆.*各summary分類はrow Dispositionと一致' 'HIGH Target set reconciliation gate'
 Assert-Contains $highAgent '(?s)Locked Decision TargetはSelectedかつrowがLocked.*all-AdaptiveではSelected / PendingがNone.*全Target rowがAdaptive-OwnedかつDelegated集合と完全一致' 'HIGH Locked and all-Adaptive invariants'
 Assert-Contains $highAgent '架空ID、重複ID、未分類Target、row / summary不一致' 'HIGH malformed Target set rejection'
+Assert-Contains $highAgent '(?s)selected Targetにはuser-facing assistant turn reference.*具体的code location.*current invariant.*alternatives / trade-offs.*非binding proposalまたはNo proposal理由.*validation expectation.*`Selected Target Discussion Evidence`' 'HIGH selected Target discussion evidence gate'
+Assert-Contains $highAgent '抽象的な論点名だけのdiscussion evidence' 'HIGH abstract discussion rejection'
 Assert-Contains $highAgent '(?s)## Required inputs.*- implementation_route.*- implementation_route_source.*- Design Pair Implementation Handoff path または `N/A`.*`BLOCKED`.*BlockedByInvalidCompletionHandoff' 'HIGH required route input validation'
 Assert-Contains $highAgent '(?s)`Implementation Completion Handoff` には次を含めます。.*- implementation_route.*- implementation_route_source.*- Validation performed' 'HIGH completion handoff route propagation'
 Assert-Contains $highAgent 're-entry handoffと元のImplementation Completion Handoffから`implementation_route`、`implementation_route_source`、Design Pair handoff pathを読み.*一致' 'HIGH re-entry route identity input'
@@ -321,6 +331,8 @@ foreach ($toml in @($adaptiveHighToml, $codexHighToml)) {
     Assert-Contains $toml 'require unique Target Map IDs; every summary Target ID to exist in the map; Selected, Delegated-to-Adaptive, No-Change, Upstream-Decision-Required, and Pending sets to be pairwise disjoint and exactly cover the map; and each set to match its row Disposition' 'portable HIGH Target set reconciliation gate'
     Assert-Contains $toml 'Require every Locked Decision Target to be Selected with a Locked row.*explicit all-Adaptive delegation.*Selected and Pending to be None.*every Target row to be Adaptive-Owned and present in the Delegated set' 'portable HIGH Locked and all-Adaptive invariants'
     Assert-Contains $toml 'Reject invented IDs, overlaps, unclassified Targets, or row/summary mismatches with BlockedByInvalidCompletionHandoff' 'portable HIGH malformed Target set rejection'
+    Assert-Contains $toml 'For every selected Target, require Selected Target Discussion Evidence with a user-facing assistant turn reference, concrete code location, current invariant, alternatives and trade-offs, a non-binding proposal or an evidence-backed No proposal reason, and validation expectations' 'portable HIGH selected Target discussion evidence gate'
+    Assert-Contains $toml 'A topic label, artifact link, or abstract option list alone is invalid' 'portable HIGH abstract discussion rejection'
 }
 foreach ($toml in @($adaptiveStandardToml, $codexStandardToml)) {
     Assert-Contains $toml 'accept only implementation_route: adaptive with implementation_route_source: default, or implementation_route: design-pair with implementation_route_source: explicit-user-selection' 'portable STANDARD exact route pairs'
@@ -393,7 +405,7 @@ Assert-Contains $fullCoverageSkill 'Adaptiveへ補完せずartifact mismatchと�
 Assert-Contains $fullCoverageSkill '(?s)最初のturnはTarget Map全体を提示.*AWAITING_USER_INPUT / target-selection.*停止.*AWAITING_USER_INPUT / disposition-confirmation.*再停止' 'full-coverage mandatory Design Pair turn boundaries'
 Assert-Contains $fullCoverageSkill 'design_pair_user_evidence' 'full-coverage user evidence propagation'
 
-foreach ($id in 1..27) {
+foreach ($id in 1..29) {
     $scenarioId = 'DP-VAL-{0:D3}' -f $id
     Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' $scenarioId "validation scenario $scenarioId"
 }
@@ -410,7 +422,7 @@ Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' '(?s)Before every initial or resumed turn.*git rev-parse --show-toplevel.*disposable repository.*codex exec resume.*no `-C` option' 'manual smoke execution root precondition'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' '(?s)resumed process observes a different worktree.*mark the run `FAIL`.*neither repository was changed.*Do not move or copy the handoff' 'manual smoke wrong-worktree failure rule'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md' '(?m)^- Status: NOT RUN\r?$' 'manual runtime result starts unexecuted'
-foreach ($field in @('Configured model', 'Configured reasoning effort', 'Process repository revision', 'Plan reference', 'Turn sequence', 'Disposable repository root', 'Observed repository root', 'Tracked handoff path', 'Verdict sequence', 'No-Change Target IDs', 'Upstream-Decision-Required Target IDs', 'Target Map / summary set reconciliation evidence')) {
+foreach ($field in @('Configured model', 'Configured reasoning effort', 'Process repository revision', 'Plan reference', 'Turn sequence', 'Disposable repository root', 'Observed repository root', 'Tracked handoff path', 'Verdict sequence', 'No-Change Target IDs', 'Upstream-Decision-Required Target IDs', 'Target Map / summary set reconciliation evidence', 'Selected Target Discussion Evidence')) {
     Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md' ([regex]::Escape($field)) "manual runtime evidence field $field"
 }
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/fixture/plans/retry-after-plan.md' 'upstream user input for discussion, not a confirmed Design Pair Locked Decision' 'manual fixture pre-map proposal boundary'

@@ -20,6 +20,7 @@
 - Upstream-Decision-Required Target IDs: Pending / None / <DP-Txx list>
 - Explicit all-Adaptive delegation: Pending / Yes / No
 - Pending human-owned Target IDs: Pending / None / <DP-Txx list>
+- Selected Target discussion evidence: Pending / None / <Target IDs and assistant turn references>
 - Parent / resume state reference: N/A / <artifact path and field references>
 - Adaptive implementation behavior: unchanged
 - Locked decision policy: binding-only-for-explicit-entries
@@ -56,6 +57,13 @@ Target Map 提示前の技術案はここに保存できるが、Design Pair Loc
 この section に Decision ID、presented Target ID、実際の user message / turn reference、確認内容、`Confirmation occurred after Target Map presentation: Yes` がある entry だけが binding である。upstream Plan / Issue / acceptance criteria / gold document / repository docs、AI summary、過去会話からの推測、利用者の沈黙は explicit human confirmation ではない。
 
 各 Locked Decision の Target ID は `Selected Target IDs` に含まれ、対応する Target Map row の Disposition は `Locked` でなければならない。`Locked` row には一件以上の valid Locked Decision が必要である。
+
+## Selected Target Discussion Evidence
+
+| Target ID | Assistant turn reference | Concrete file / symbol / line evidence | Current responsibility / invariant | Caller / wiring / lifecycle / test-seam evidence | Alternatives and trade-offs | Non-binding AI proposal or No proposal reason | Validation expectation | Open questions |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+選択Targetの初期案または最終dispositionを求める前に、この内容をuser-facing responseにも提示する。artifactへのlink、Target名、抽象的な選択肢だけではdiscussion evidenceにならない。
 
 ## Discussed but Unlocked
 
@@ -102,6 +110,7 @@ Knowledge Candidates は自動的に knowledge card または repository policy 
 | A user response occurred after Target Map presentation | PASS / FAIL | <user message / turn reference> |
 | Non-empty user participation or explicit all-Adaptive delegation exists | PASS / FAIL | <selected Target IDs or explicit all-Adaptive response> |
 | User-selected discussion targets have final dispositions | PASS / FAIL | |
+| Selected Targets have concrete user-facing discussion evidence | PASS / FAIL / N/A | <Target IDs, assistant turn references, code locations, trade-offs, proposal, validation> |
 | Locked Decisions have valid post-map confirmation evidence | PASS / FAIL / N/A | |
 | Locked Decisions do not conflict with upstream contracts | PASS / FAIL / N/A | |
 | No pending human-owned Target remains | PASS / FAIL | |
@@ -116,6 +125,8 @@ Knowledge Candidates は自動的に knowledge card または repository policy 
 Target が一件も選択されず、全 Target の Adaptive delegation も明示されていない状態を空集合として PASS にしない。READY 判定では `Selected Target IDs`、`Delegated-to-Adaptive Target IDs`、`No-Change Target IDs`、`Upstream-Decision-Required Target IDs`、`Pending human-owned Target IDs` の5集合を Target Map と照合し、架空 ID、重複 ID、未分類 Target、row / summary 不一致を一件でも許可しない。全 row が PASS または有効な N/A で、`Interaction stage: complete` の場合だけ `READY_FOR_ADAPTIVE_IMPLEMENTATION` を設定する。
 
 Target IDだけが返り、初期案または未選択Targetのdelegationが不足するpartial selectionでは、実際のuser response referenceと`User response occurred after Target Map presentation: Yes`を保存する一方、`Interaction stage: target-selection`とpending分類を維持する。`design-discussion`等の独自stageを作ってはいけない。各turnの保存前にheaderとReadiness Checkを同じevidenceから同期し、同名checkのYes / No、PASS / FAIL、user referenceを矛盾させない。
+
+partial selectionでも選択Targetについて具体的file / symbol、current responsibility / invariant、caller / wiring / lifecycle / test seam、alternatives / trade-offs、非binding proposalまたはNo proposal理由、validation expectationをuser-facingに提示し、`Selected Target Discussion Evidence`へ同じassistant turn referenceで保存する。論点名だけの応答はFAILである。
 
 `target-map-building`はTarget Map提示前の`DRAFT`だけ、`artifact-repair`は不整合を報告する`BLOCKED`だけに使用する。Target Map提示後の通常経路では`target-selection`、`disposition-confirmation`、`upstream-decision`、`complete`以外へ遷移しない。
 

@@ -23,6 +23,8 @@ Plan Coverage Flow が必要な課題は、既存の `plan-coverage-residual-flo
 
 `design-pair-implementation-execution` を利用者が明示選択した場合、この package は tracked Design Pair handoff を追加 input として受け取ります。`READY_FOR_ADAPTIVE_IMPLEMENTATION` だけでなく、`Interaction stage: complete`、Target Map の提示・選択要求、提示後の actual user response、non-empty selection または explicit all-Adaptive delegation、pending Target なしを編集前に検証します。さらに全summary IDのMap実在、5分類集合の相互排他と完全被覆、row Disposition一致、Locked Targetとall-Adaptiveの整合を再検証します。`AWAITING_USER_INPUT`、空の selected set、架空・重複・未分類Target、上流文書から再構成した user evidence は受理せず、`BLOCKED / BlockedByInvalidCompletionHandoff` で停止します。
 
+selected Targetがある場合は、user-facing turn reference、具体的code location、current invariant、alternatives / trade-offs、proposalまたはNo proposal理由、validation expectationを含む`Selected Target Discussion Evidence`も要求します。Target名やartifact linkだけの抽象的evidenceでは開始しません。
+
 Design Pair が新たに作る decision のうち binding なのは、handoff の `Locked Decisions` に Decision ID、Target ID、Target Map 提示後の explicit human confirmation がある entry だけです。original Plan、repository policy、`Upstream Binding Constraints` は Design Pair Decision ID を持たない既存の binding input として別に守ります。Target Map、Upstream User Initial Positions、Discussed-Unlocked、Adaptive-Owned、Known Evidence、file / symbol references は HIGH_MODEL の通常 authority または allowed edit surface を拘束しません。Locked Decision conflict は黙って変更せず、Decision ID と actual-code evidence を伴う stop verdict で返します。Design Pair 未使用時の通常 Adaptive route は変わりません。
 
 ## Flow

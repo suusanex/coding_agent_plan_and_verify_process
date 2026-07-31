@@ -35,6 +35,7 @@ Add rows for any partial-selection turns. Record the exact human message and do 
 - Upstream-Decision-Required Target IDs:
 - Pending human-owned Target IDs:
 - Target Map / summary set reconciliation evidence:
+- Selected Target Discussion Evidence:
 - Upstream Binding Constraints:
 - Upstream User Initial Positions:
 - Locked Decision IDs:
@@ -56,6 +57,7 @@ NOT RUN
 - Upstream proposal not converted to Locked Decision: NOT RUN
 - Turn 2 trade-off response observed: NOT RUN
 - Partial selection remained at target-selection with internally consistent evidence, if exercised: NOT RUN
+- Selected Target user-facing response included concrete code structure, trade-offs, proposal, and validation expectations: NOT RUN
 - Turn 2 stopped for final disposition: NOT RUN
 - Turn 3 post-map confirmation evidence valid: NOT RUN
 - Adaptive started only after READY: NOT RUN

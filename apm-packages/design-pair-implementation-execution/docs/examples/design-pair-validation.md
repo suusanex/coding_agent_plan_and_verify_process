@@ -306,6 +306,27 @@ Expected:
 - Yes / No、PASS / FAIL、user referenceが一致するまでartifactをREADYまたはAdaptiveへ渡さない
 - 不整合をAI summaryから正当化せず、artifact repairを行う
 
+## DP-VAL-028: Selected Target discussion is code-grounded and user-facing
+
+Input: 利用者がTarget Map提示後に`DP-T01について議論します`と返す。
+
+Expected:
+
+- user-facing responseに`src/RetryPolicy.cs`のexact symbol、current responsibility / invariant、`RetryingClient` caller、test seam、存在しないwiringのN/A evidenceを提示する
+- 内部設計論点、実在する代替案とtrade-off、既存codeから支持できる非binding proposalまたはNo proposal理由、validation expectation、open questionを提示する
+- 同じassistant turn referenceと内容を`Selected Target Discussion Evidence`へ保存する
+- Target名、artifact link、抽象的な選択肢だけの応答はFAILとする
+
+## DP-VAL-029: READY with missing selected discussion evidence fails closed
+
+Input: `Selected Target IDs: DP-T01`かつrowが`Locked`または`Discussed-Unlocked`だが、`Selected Target Discussion Evidence`に具体的code location、invariant、trade-off、proposal / No proposal理由、validation expectation、user-facing turn referenceのいずれかがない。
+
+Expected:
+
+- Design Pair readinessをFAILとする
+- Adaptive / HIGH_MODELは`BlockedByInvalidCompletionHandoff`で編集前に停止する
+- Target MapまたはAI summaryの詳細をdiscussion evidenceとして暗黙補完しない
+
 ## Repository static validation
 
 ```powershell

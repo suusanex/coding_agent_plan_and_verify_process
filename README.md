@@ -432,6 +432,8 @@ Design Pair は予定変更面全体を bounded に調査し、具体的な file
 
 利用者のpost-map応答は親フローや検証harnessで補完せず、そのままDesign Pairへ渡します。Target IDだけのpartial selectionでは、Skill自身が不足する初期案や委任方針を尋ね、`target-selection`のまま再停止します。独自stageを作らず、handoff headerとReadiness Checkのuser evidenceを同期します。
 
+選択Targetの対話は内部設計の判断材料をuser-facingに提示します。具体的file / symbol、current responsibility / invariant、caller / wiring / lifecycle / test seam、代替案とtrade-off、根拠付きの非binding proposalまたはNo proposal理由、validation expectationを含め、論点名やartifact linkだけで判断を求めません。
+
 人間が選んだ論点だけを対話し、AIのtrade-off提示後に利用者が明示確認した`Locked Decisions`だけをbindingとします。upstream binding constraintsは別sectionに保存し、Design Pair Decision IDを付けません。最終dispositionが未確定なら`AWAITING_USER_INPUT / disposition-confirmation`で再停止します。READY前にはsummaryの5分類集合がTarget Mapの全rowを重複なく覆い、ID実在とDisposition一致を確認します。利用者がTarget Map提示後に全TargetをAdaptiveへ委ねると明示した場合は、Selected / Pendingを`None`、全Targetを`Adaptive-Owned`として、個別対話やLocked Decisionなしで進めます。
 
 Design Pair phase の完了前に production code / tests を編集しません。validなpost-map user evidenceがあり、interaction stageが`complete`でtracked handoffが`READY_FOR_ADAPTIVE_IMPLEMENTATION`になった後だけ、既存の HIGH -> optional STANDARD -> HIGH re-entry route を開始します。Locked Decision conflict は黙って変更せず、Decision ID と actual-code evidence を伴う stop verdict で返します。automatic Design Pair re-entry は行いません。

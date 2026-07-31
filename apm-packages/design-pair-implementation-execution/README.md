@@ -70,6 +70,8 @@ $design-pair-implementation-execution を明示的に選びます。
 
 利用者の応答は親フローや検証harnessで補完せず、そのままDesign Pairへ渡します。Target IDだけが返り、初期案または未選択Targetの委任方針が不足する場合は、Skill自身が不足を尋ね、`AWAITING_USER_INPUT / target-selection`のまま再停止します。`design-discussion`等の独自stageへ遷移せず、headerとReadiness Checkのuser evidenceを同じ内容へ同期します。
 
+選択Targetの対話では、具体的file / symbol、現在の責務・invariant、caller / wiring / lifecycle / test seam、内部設計論点、代替案とtrade-off、根拠付きの非binding proposalまたはNo proposal理由、validation expectationをuser-facingに提示します。Target名やartifact linkだけを提示して利用者へ判断を委ねません。
+
 READY前にはTarget Mapとhandoff summaryを集合照合します。summaryの全Target IDはMapに実在し、Selected / Delegated-to-Adaptive / No-Change / Upstream-Decision-Required / Pendingの5集合は重複なくMap全体を覆い、各分類はrowのDispositionと一致する必要があります。Locked DecisionはSelectedかつ`Locked` rowだけを参照できます。all-AdaptiveではSelected / Pendingを`None`、Locked Decisionsなし、全Targetを`Adaptive-Owned`としてdelegated集合へ含めます。
 
 Plan Coverage Flow で使う場合は、この package と Plan Coverage package の両方を Codex / agent-skills target へ導入し、flow 開始時に Design Pair を明示選択します。

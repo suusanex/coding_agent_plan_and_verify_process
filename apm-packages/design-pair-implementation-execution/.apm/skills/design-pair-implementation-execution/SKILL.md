@@ -116,6 +116,18 @@ resume では、tracked handoff の route identity、interaction stage、Target 
 
 Target Map 提示後の user response は、test harness や parent が補足、言い換え、または必要項目を合成せず、そのままこの skill に渡す。response が Target ID の選択だけで、初期案、懸念、または未選択 Target の delegation が不足する場合は partial selection として扱う。AI は選択済み Target の code evidence と判断候補を説明して不足項目を尋ねてもよいが、未定義の interaction stage を作らず、`AWAITING_USER_INPUT / target-selection` を維持してその turn を終了する。必要な selection input が揃い、AI が trade-off と validation expectation を提示した後だけ `AWAITING_USER_INPUT / disposition-confirmation` へ進める。
 
+選択された Target の対話では、handoff artifactへのlinkまたは論点名だけを返してはいけない。初期案や最終 disposition を求める前に、user-facing responseへ Target ごとに次の minimum discussion surface を提示する。
+
+- Target ID と具体的な file / symbol。現在行を安定して示せる場合は line evidence、示せない場合は exact symbol / section
+- 現在の責務と invariant
+- 直接 caller、production wiring、lifecycle / state ownership、test seam の関係。存在しない surface は調査 evidence 付き N/A
+- 今回決める内部設計論点と、なぜ実装前に判断が必要か
+- 実在する代替案、各案の trade-off、既存 code への影響
+- code evidence から支持できる非 binding の AI proposal。提案できない場合は `No proposal` と evidence-backed reason
+- validation expectation と残る open question
+
+Target IDだけのpartial selectionでも、このminimum discussion surfaceを提示してから不足する初期案やdelegationを尋ねる。Target Map内に詳細があることをuser-facing説明の代替にせず、選択Targetの具体的なcode location、構造上の論点、提案を対話上で読める形にする。handoffの`Selected Target Discussion Evidence`には、Target ID、assistant turn reference、提示したcode location、trade-off、proposalまたはNo proposal理由、validation expectationを保存する。
+
 各 response を処理して turn を終了する前に、handoff header、Target Map row、summary Target sets、Readiness Check を同じ observed evidence から再計算する。`User response occurred after Target Map presentation: Yes` なら Readiness Check の同名 row も同じ user reference で `PASS` にしなければならない。Target Map 提示後の通常 interaction stage は `target-selection`、`disposition-confirmation`、`upstream-decision`、`complete` のいずれかだけを使用し、partial input を独自 stage で表現してはいけない。`target-map-building` は提示前の `DRAFT`、`artifact-repair` は不整合を報告する `BLOCKED` だけに使用する。headerとReadiness、summaryとrow、stageとpending状態に矛盾がある artifact は保存せず、修復してから停止する。
 
 各重要 Target は次の順で扱う。
@@ -181,6 +193,7 @@ Adaptive Implementation へ進める条件は次のとおり。
 - Target Map 提示後の利用者 response がある
 - 利用者が一件以上の Target を議論対象として選択した、または全 Target を Adaptive に委ねると明示した
 - 選択された全 Target に利用者由来の最終 disposition があり、pending human-owned Target がない
+- 選択された全 Target にuser-facingな`Selected Target Discussion Evidence`があり、具体的code location、current invariant、alternatives / trade-offs、proposalまたはNo proposal理由、validation expectationを含む
 - Locked Decisions が有効な post-map confirmation evidence を持ち、upstream contract と矛盾しない
 - blocking な `Upstream-Decision-Required` がない
 - tracked handoff が current worktree と upstream artifact を参照している
@@ -239,6 +252,7 @@ Design Pair または Adaptive Implementation の completion verdict を、final
 - tracked handoff path
 - Target Map summary
 - Target Map presentation / user response evidence
+- Selected Target Discussion Evidence とuser-facing turn reference
 - selected / Adaptive-delegated / No-Change / Upstream-Decision-Required / pending Target IDs と Target Map 集合照合 evidence
 - Upstream Binding Constraints
 - Locked Decision IDs

@@ -317,7 +317,9 @@ Assert-Contains $skill '(?s)verdict が `READY_FOR_ADAPTIVE_IMPLEMENTATION`.*`In
 Assert-Contains $skill 'Target 未選択を空集合として PASS にせず.*HIGH_MODELを起動しません' 'empty Target selection fail-closed rule'
 Assert-Contains $skill '(?s)Target Map ID が一意.*summary の全 Target ID が Target Map に実在.*5集合が互いに素.*和集合が Target Map 全体と完全一致.*summary 集合が Target Map row.*一致' 'Design Pair Target set reconciliation gate'
 Assert-Contains $skill '(?s)Locked Decision Target ID が `Selected Target IDs` に含まれ.*Target Map row が `Locked`.*all-Adaptive delegation.*selected / pending が `None`.*全 Target row が `Adaptive-Owned`.*delegated集合と完全一致' 'Design Pair Locked and all-Adaptive invariants'
-Assert-Contains $skill '架空 ID、重複 ID、未分類 Target、row / summary 不一致も拒否' 'Design Pair malformed Target set rejection'
+Assert-Contains $skill '架空 ID、重複 ID、未分類 Target、row / summary 不一致.*も拒否' 'Design Pair malformed Target set rejection'
+Assert-Contains $skill '(?s)selected Targetごとに`Selected Target Discussion Evidence`.*user-facing assistant turn reference.*具体的code location.*current invariant.*alternatives / trade-offs.*proposalまたはNo proposal理由.*validation expectation' 'Design Pair selected Target discussion evidence gate'
+Assert-Contains $skill '抽象的な論点名だけで具体的なSelected Target discussion evidenceがないartifactも拒否' 'Design Pair abstract discussion rejection'
 Assert-Contains $skill 'Upstream Binding Constraints.*Design Pair Decision ID を持たない既存の binding input' 'upstream binding separation rule'
 Assert-Contains $skill 'Affected files / symbols.*Allowed edit surface.*扱いません' 'Design Pair file-symbol non-allowlist rule'
 Assert-Contains $skill 'automatic Design Pair re-entry' 'no automatic Design Pair re-entry'
@@ -514,6 +516,8 @@ foreach ($toml in @($highToml, $codexHighToml)) {
     Assert-Contains $toml 'require unique Target Map IDs; every summary Target ID to exist in the map; Selected, Delegated-to-Adaptive, No-Change, Upstream-Decision-Required, and Pending sets to be pairwise disjoint and exactly cover the map; and each set to match its row Disposition' 'portable HIGH Target set reconciliation gate'
     Assert-Contains $toml 'Require every Locked Decision Target to be Selected with a Locked row.*explicit all-Adaptive delegation.*Selected and Pending to be None.*every Target row to be Adaptive-Owned and present in the Delegated set' 'portable HIGH Locked and all-Adaptive invariants'
     Assert-Contains $toml 'Reject invented IDs, overlaps, unclassified Targets, or row/summary mismatches with BlockedByInvalidCompletionHandoff' 'portable HIGH malformed Target set rejection'
+    Assert-Contains $toml 'For every selected Target, require Selected Target Discussion Evidence with a user-facing assistant turn reference, concrete code location, current invariant, alternatives and trade-offs, a non-binding proposal or an evidence-backed No proposal reason, and validation expectations' 'portable HIGH selected Target discussion evidence gate'
+    Assert-Contains $toml 'A topic label, artifact link, or abstract option list alone is invalid' 'portable HIGH abstract discussion rejection'
     Assert-Contains $toml 'keep the original Plan and Upstream Binding Constraints as separate binding inputs without Design Pair Decision IDs' 'portable HIGH upstream binding separation'
 }
 foreach ($toml in @($standardToml, $codexStandardToml)) {
