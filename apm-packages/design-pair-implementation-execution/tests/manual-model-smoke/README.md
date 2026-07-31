@@ -14,6 +14,7 @@ Copy `fixture/` to a new temporary directory, initialize a Git repository, and i
 - Record the configured model and reasoning effort. If the effective model cannot be independently observed, record it as `Unknown`.
 - Open the disposable repository in an interactive Codex task with the current Design Pair Skill installed.
 - Copy `result-template.md` to a run-specific result file outside the fixture or under an ignored evidence directory.
+- Before every initial or resumed turn, verify that the execution process current directory and `git rev-parse --show-toplevel` both resolve to the disposable repository. For `codex exec resume`, invoke the command with the disposable repository as the shell working directory because the resume subcommand has no `-C` option.
 
 ## Turn 1: mandatory target-selection stop
 
@@ -47,6 +48,8 @@ Verify that the model discusses code evidence, alternatives, trade-offs, product
 
 Forward the human response verbatim to the same Codex task. The smoke operator must not ask a separate harness question, append an initial position, or synthesize delegation. If the human returns only a Target ID, record an additional partial-selection turn. The process must keep `AWAITING_USER_INPUT / target-selection`, ask for the missing initial position or delegation itself, keep production/tests unchanged, and synchronize the handoff header and Readiness Check from the same user evidence. An invented stage such as `design-discussion` or contradictory evidence is `FAIL`.
 
+Before resuming, recheck the disposable repository root. If the resumed process observes a different worktree, mark the run `FAIL`, verify that neither repository was changed, and start a clean run. Do not move or copy the handoff to repair a harness working-directory error.
+
 ## Turn 3: explicit final disposition and Adaptive start
 
 After reviewing the Turn 2 trade-offs, send a final disposition that names the Target ID and exact decision. Verify that:
@@ -67,6 +70,7 @@ Before Turn 2 or Turn 3, a separate run may close and resume the task while the 
 - Keep the exact prompt/response turn references, but do not store secrets or raw hidden reasoning.
 - Forward each human response unchanged; record extra partial-selection turns instead of completing the input in the harness.
 - Record `git diff -- src tests` or an equivalent clean proof after Turns 1 and 2.
+- Record the observed repository root for every turn and require it to equal the disposable fixture root.
 - Record the tracked handoff path and verdict sequence.
 - Mark unexecuted steps `NOT RUN`; never copy a static validator PASS into the runtime result.
 

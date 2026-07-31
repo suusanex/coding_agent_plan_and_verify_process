@@ -7,6 +7,7 @@
 - Process repository revision:
 - Design Pair package version:
 - Fixture baseline revision:
+- Disposable repository root:
 - Plan reference: plans/retry-after-plan.md
 - Execution surface: Codex App / Codex IDE / other
 - Configured model:
@@ -16,11 +17,11 @@
 
 ## Turn sequence
 
-| Turn | User message / turn reference | Expected stage | Observed verdict / stage | Production or test diff | Adaptive started? | Evidence |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | | target-selection | NOT RUN | NOT RUN | NOT RUN | |
-| 2 | | disposition-confirmation | NOT RUN | NOT RUN | NOT RUN | |
-| 3 | | complete | NOT RUN | NOT RUN | NOT RUN | |
+| Turn | User message / turn reference | Expected stage | Observed repository root | Observed verdict / stage | Production or test diff | Adaptive started? | Evidence |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | | target-selection | NOT RUN | NOT RUN | NOT RUN | NOT RUN | |
+| 2 | | disposition-confirmation | NOT RUN | NOT RUN | NOT RUN | NOT RUN | |
+| 3 | | complete | NOT RUN | NOT RUN | NOT RUN | NOT RUN | |
 
 Add rows for any partial-selection turns. Record the exact human message and do not synthesize missing input in the smoke harness.
 
@@ -49,6 +50,7 @@ NOT RUN
 ## Validation
 
 - Turn 1 stopped before READY: NOT RUN
+- Every turn executed in the disposable repository root: NOT RUN
 - Turn 1 production/tests unchanged: NOT RUN
 - Turn 1 Adaptive not started: NOT RUN
 - Upstream proposal not converted to Locked Decision: NOT RUN
