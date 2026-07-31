@@ -259,8 +259,9 @@ Input:
 
 Expected:
 
-- `high-implementation-starter` omits `tools` so Copilot uses its default tool set and APM does not produce a lossy Codex agent compilation; it has `model: GPT-5.6 Terra (copilot)`, `target: vscode`, and a single bounded-completion handoff to `standard-implementation-completer`
-- `standard-implementation-completer` omits `tools` for the same reason; it has `model: GPT-5.6 Luna (copilot)`, `target: vscode`, and a single structural re-entry handoff to `high-implementation-starter` using Terra
+- `high-implementation-starter` omits `tools` so Copilot uses its default tool set and APM does not produce a lossy Codex agent compilation; it has `model: GPT-5.6 Terra (copilot)`, `target: vscode`, `disable-model-invocation: true`, and a single bounded-completion handoff to `standard-implementation-completer`
+- `standard-implementation-completer` omits `tools` for the same reason; it has `model: GPT-5.6 Luna (copilot)`, `target: vscode`, `disable-model-invocation: true`, and a single structural re-entry handoff to `high-implementation-starter` using Terra
+- both agents remain user-invocable in the picker but are unavailable for model-decided subagent invocation
 - STANDARD direct start is rejected without a valid tracked `READY_FOR_STANDARD_COMPLETION`
 - `COMPLETED_BY_HIGH_MODEL` and stop verdicts do not route to another agent
 - Copilot model / agent transitions use tracked completion and re-entry artifacts containing original Implementation Intent, unchanged route identity, Locked Decisions, Design Pair Decision IDs when present, and current worktree state

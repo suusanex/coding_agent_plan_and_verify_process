@@ -122,10 +122,12 @@ try {
     Assert-NotContains $copilotHigh '(?m)^tools:' 'Copilot HIGH explicit tools frontmatter'
     Assert-Contains $copilotHigh '(?m)^model:\s*GPT-5\.6 Terra \(copilot\)\s*$' 'Copilot HIGH model'
     Assert-Contains $copilotHigh '(?m)^target:\s*vscode\s*$' 'Copilot HIGH target'
+    Assert-Contains $copilotHigh '(?m)^disable-model-invocation:\s*true\s*$' 'Copilot HIGH explicit-only invocation'
     Assert-Contains $copilotHigh 'agent:\s*standard-implementation-completer' 'Copilot bounded completion handoff'
     Assert-NotContains $copilotStandard '(?m)^tools:' 'Copilot STANDARD explicit tools frontmatter'
     Assert-Contains $copilotStandard '(?m)^model:\s*GPT-5\.6 Luna \(copilot\)\s*$' 'Copilot STANDARD model'
     Assert-Contains $copilotStandard '(?m)^target:\s*vscode\s*$' 'Copilot STANDARD target'
+    Assert-Contains $copilotStandard '(?m)^disable-model-invocation:\s*true\s*$' 'Copilot STANDARD explicit-only invocation'
     Assert-Contains $copilotStandard 'agent:\s*high-implementation-starter' 'Copilot HIGH re-entry handoff'
 
     $codexHigh = Join-Path $scratch '.codex/agents/high-implementation-starter.toml'

@@ -57,7 +57,7 @@ HIGH_MODEL と STANDARD_MODEL の write-heavy work は並列化しません。�
 | Executable route scenarios A-G | `tests/routing-scenarios.json` + `tests/validate-routing-scenarios.ps1` |
 | Pre-Design-Pair resume fixture | `docs/examples/legacy-adaptive-handoff.md` |
 
-root `.github/agents/high-implementation-starter.agent.md` と `standard-implementation-completer.agent.md` がcanonical contractです。APM 0.26.0は同じsourceをCopilotではmodel / handoffsを持つ`.agent.md`として、Codexではmodel-less TOML stubとしてtarget別に変換します。`tools`は省略してCopilotの全toolを許可し、Codex変換時のfrontmatter dropを防ぎます。Codexのconcrete modelだけをcompatibility installerで補完します。
+root `.github/agents/high-implementation-starter.agent.md` と `standard-implementation-completer.agent.md` がcanonical contractです。APM 0.26.0は同じsourceをCopilotではmodel / handoffsを持つ`.agent.md`として、Codexではmodel-less TOML stubとしてtarget別に変換します。両agentは`disable-model-invocation: true`によりagent pickerからの明示選択を維持しつつ、他agentのmodel判断によるsubagent起動を禁止します。`tools`は省略してCopilotの全toolを許可し、Codex変換時のfrontmatter dropを防ぎます。Codexのconcrete modelだけをcompatibility installerで補完します。
 
 `copilot-fallback-ai-development-process`のlocal installerも同じroot canonical filesを直接コピーします。同名templateをpackage内に複製せず、Adaptive validatorがsingle sourceとinstaller経路を検証します。
 

@@ -32,6 +32,8 @@ APM install で skill と portable custom agents を導入します。この ski
 
 model mappingはHIGH start / re-entryが`GPT-5.6 Terra (copilot)`、bounded STANDARD completionが`GPT-5.6 Luna (copilot)`です。Lunaからfresh intakeを開始しません。`COMPLETED_BY_HIGH_MODEL`またはstop verdictではhandoff buttonを使わず停止します。buttonが表示されていること自体はauthorizationではありません。
 
+両custom agentは`disable-model-invocation: true`を指定し、agent pickerには表示したまま、他agentのmodel判断ではsubagentとして起動されないようにします。HIGH startは利用者がpickerから明示選択し、STANDARDへの遷移はvalidなtracked handoff確認後のhandoff buttonに限定します。
+
 Copilot plan、organization policy、extension version、model pickerによりrequested modelを利用できない場合は、別tierへ黙って実行しません。mapping変更を明示的に決めるかpolicy管理者へ確認し、requested / observed modelと差異をmanual evidenceへ記録します。
 
 ```text
