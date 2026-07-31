@@ -378,7 +378,7 @@ Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'A
 Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/usage-guide.md' 'AWAITING_USER_INPUT / disposition-confirmation.*再停止' 'usage guide multi-turn stop'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'without adding a stop instruction' 'manual smoke verifies skill-owned stop'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'Human action required' 'manual smoke human participation boundary'
-Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md' '(?m)^- Status: NOT RUN$' 'manual runtime result starts unexecuted'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md' '(?m)^- Status: NOT RUN\r?$' 'manual runtime result starts unexecuted'
 foreach ($field in @('Configured model', 'Configured reasoning effort', 'Process repository revision', 'Plan reference', 'Turn sequence', 'Tracked handoff path', 'Verdict sequence')) {
     Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md' ([regex]::Escape($field)) "manual runtime evidence field $field"
 }
