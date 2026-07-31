@@ -51,13 +51,13 @@ STANDARD_MODELからHIGH_MODELへre-entryする場合は、High-model Re-entry H
 
 ## Target Map discussion
 
-AI は予定変更面全体を bounded に調査し、具体的な file / symbol、現在の責務、current invariant、requested change との関係、内部設計判断候補、evidence、不明点を説明します。初回 turn は handoff に `AWAITING_USER_INPUT / target-selection` を保存し、利用者へ Target ID、初期案、未選択 Target の Adaptive delegation を求めて必ず終了します。「実装してください」という初回依頼はこの post-map response の代わりになりません。
+AI は予定変更面全体を bounded に調査し、具体的な file / symbol、現在の責務、current invariant、requested change との関係、内部設計判断候補、evidence、不明点を説明します。初回 turn は handoff に `AWAITING_USER_INPUT / target-selection` を保存し、利用者へ議論する Target IDを求めて必ず終了します。初期案、懸念、質問、未選択 Target の Adaptive delegationは任意で併記できます。「実装してください」という初回依頼はこの post-map response の代わりになりません。
 
 この説明はuser-facing responseそのものに各Targetのfile / symbol、responsibility / invariant、変更との関係、判断候補、expected modification / verification、evidence、open questionを含めます。handoffへのlink、Target ID、論点名だけの一覧は完全なTarget Map提示ではありません。
 
 実際の応答では7列の`Design Pair Target Map` table、Coverage evidence、Selection requestを省略せず出力します。handoffだけを詳細にし、最終応答を短いTarget一覧へ圧縮した場合はpresentation FAILです。選択後の対話では`<DP-Txx> Internal design discussion` blockのCode location、invariant、関連surface、判断、alternatives / trade-offs、proposal、validation、open questionsをすべて提示します。
 
-利用者は議論したい Target を選び、初期案を提示します。その後、AI が trade-off、反論、代替案、追加 evidence、validation expectation を返します。
+利用者は議論したい Target を選びます。初期案、懸念、質問は任意で併記できます。その後、AI がcode evidence、trade-off、反論または支持、代替案、非binding proposal、追加 evidence、validation expectation を返します。
 
 選択可能な disposition:
 
@@ -69,9 +69,9 @@ AI は予定変更面全体を bounded に調査し、具体的な file / symbol
 
 `Locked` は Target Map 提示後に AI が trade-off と validation expectation を説明し、その後の user message / turn で明示確認された Decision ID 付き entry だけです。Plan / Issue / acceptance / gold document / AI summary は confirmation ではありません。利用者が初回 prompt に書いた技術案は initial position として保存し、post-map confirmation まで Locked にしません。
 
-利用者が Target と初期案だけを返した場合、AI は evidence、反論または支持、代替案、trade-off、production wiring / lifecycle / state ownership / test seam への影響、validation expectation を提示し、`AWAITING_USER_INPUT / disposition-confirmation` で再停止します。利用者が Target Map 提示後に全 Target を Adaptive へ委ねると明示した場合は、個別議論なしで `Adaptive-Owned` として READY にできます。
+利用者が Target だけ、または Target と初期案を返した場合、AI は evidence、反論または支持、代替案、trade-off、production wiring / lifecycle / state ownership / test seam への影響、非binding proposal、validation expectation を提示し、`AWAITING_USER_INPUT / disposition-confirmation` で再停止します。利用者が Target Map 提示後に全 Target を Adaptive へ委ねると明示した場合は、個別議論なしで `Adaptive-Owned` として READY にできます。
 
-親フローや検証harnessは利用者の応答を補完しません。Target IDだけのpartial selectionを受けた場合、Skillはcode evidenceと判断候補を説明して不足する初期案や未選択Targetの委任方針を尋ね、`AWAITING_USER_INPUT / target-selection`を維持します。必要項目が揃う前に`disposition-confirmation`へ進めず、`design-discussion`等の独自stageを作りません。各turnの保存前にheader、Target Map、summary集合、Readiness Checkを再計算し、post-map user responseの有無とreferenceを一致させます。
+親フローや検証harnessは利用者の応答を補完しません。Target Mapに実在するTarget IDだけでも選択成立です。Skillは選択Targetのcode evidence、判断候補、alternatives / trade-offs、非binding proposal、validation expectationを説明し、初期案の提示や同じTarget選択を再要求せず`AWAITING_USER_INPUT / disposition-confirmation`へ進みます。未選択Targetの委任または分類は、選択Targetの最終dispositionと同じ確認で求めます。`design-discussion`等の独自stageを作りません。各turnの保存前にheader、Target Map、summary集合、Readiness Checkを再計算し、post-map user responseの有無とreferenceを一致させます。
 
 ここでいうcode evidenceは抽象的な論点名ではありません。選択Targetごとに具体的file / symbol、current responsibility / invariant、caller / wiring / lifecycle / test seam、内部設計判断の必要性、代替案とtrade-off、既存codeに基づく非binding proposalまたはNo proposal理由、validation expectationをuser-facing responseへ出します。同じ内容とassistant turn referenceを`Selected Target Discussion Evidence`へ保存します。
 

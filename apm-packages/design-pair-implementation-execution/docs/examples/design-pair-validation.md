@@ -160,7 +160,7 @@ Input: valid Plan / Implementation Intent、explicit Design Pair selection、「
 Expected:
 
 - bounded Target Map全体と内部設計判断候補を利用者へ提示する
-- Target ID、初期案、未選択TargetのAdaptive delegationを求める
+- Target IDを求め、初期案、懸念、質問、未選択TargetのAdaptive delegationは任意で併記できると示す
 - `AWAITING_USER_INPUT / target-selection`をtracked handoffへ保存してturnを終了する
 - Design Pair Locked Decisionを作らない
 - `READY_FOR_ADAPTIVE_IMPLEMENTATION`を返さず、Adaptiveを開始しない
@@ -285,15 +285,17 @@ Expected:
 - readinessをFAILとする
 - `Selected Target IDs: None`、`Pending human-owned Target IDs: None`、Locked Decisionsなし、全row `Adaptive-Owned`、Delegated集合=Target Map全集合へ修復するまでAdaptiveを開始しない
 
-## DP-VAL-026: Target-only partial selection stays in target-selection
+## DP-VAL-026: Target-only selection starts discussion and disposition confirmation
 
 Input: Target Map提示後、利用者が`DP-T01について議論します`とだけ返し、初期案と未選択Targetのdelegationをまだ示していない。
 
 Expected:
 
 - 利用者応答を親フローまたはtest harnessで補完せず、そのままDesign Pairへ渡す
-- AIはDP-T01のcode evidenceと判断候補を説明し、不足する初期案とdelegationを尋ねる
-- `AWAITING_USER_INPUT / target-selection`を維持し、`design-discussion`等の独自stageを作らない
+- AIはDP-T01のcode evidence、判断候補、alternatives / trade-offs、非binding proposal、validation expectationを説明する
+- 初期案または同じTarget選択を再要求しない
+- 未選択Targetのdelegationまたは分類をDP-T01の最終dispositionと合わせて尋ねる
+- `AWAITING_USER_INPUT / disposition-confirmation`へ進み、`design-discussion`等の独自stageを作らない
 - production code / testsを編集せず、Adaptiveを開始しない
 
 ## DP-VAL-027: Mirrored user evidence mismatch fails closed

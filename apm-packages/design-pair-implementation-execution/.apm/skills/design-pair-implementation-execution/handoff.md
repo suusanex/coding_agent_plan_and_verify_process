@@ -113,7 +113,7 @@ Knowledge Candidates は自動的に knowledge card または repository policy 
 | Goal, scope, and acceptance support implementation start | PASS / FAIL | |
 | Target Map was presented to the user | PASS / FAIL | <assistant message / turn reference and Target IDs> |
 | Target Map presentation includes concrete code structure for every Target | PASS / FAIL | <assistant turn, file/symbol, invariant, decision candidate, evidence> |
-| Target selection and initial positions were requested | PASS / FAIL | <assistant message / turn reference> |
+| Target selection was requested and optional initial positions were invited | PASS / FAIL | <assistant message / turn reference> |
 | A user response occurred after Target Map presentation | PASS / FAIL | <user message / turn reference> |
 | Non-empty user participation or explicit all-Adaptive delegation exists | PASS / FAIL | <selected Target IDs or explicit all-Adaptive response> |
 | User-selected discussion targets have final dispositions | PASS / FAIL | |
@@ -131,9 +131,9 @@ Knowledge Candidates は自動的に knowledge card または repository policy 
 
 Target が一件も選択されず、全 Target の Adaptive delegation も明示されていない状態を空集合として PASS にしない。READY 判定では `Selected Target IDs`、`Delegated-to-Adaptive Target IDs`、`No-Change Target IDs`、`Upstream-Decision-Required Target IDs`、`Pending human-owned Target IDs` の5集合を Target Map と照合し、架空 ID、重複 ID、未分類 Target、row / summary 不一致を一件でも許可しない。全 row が PASS または有効な N/A で、`Interaction stage: complete` の場合だけ `READY_FOR_ADAPTIVE_IMPLEMENTATION` を設定する。
 
-Target IDだけが返り、初期案または未選択Targetのdelegationが不足するpartial selectionでは、実際のuser response referenceと`User response occurred after Target Map presentation: Yes`を保存する一方、`Interaction stage: target-selection`とpending分類を維持する。`design-discussion`等の独自stageを作ってはいけない。各turnの保存前にheaderとReadiness Checkを同じevidenceから同期し、同名checkのYes / No、PASS / FAIL、user referenceを矛盾させない。
+Target Mapに実在するTarget IDだけが返った場合も選択成立である。実際のuser response referenceと`User response occurred after Target Map presentation: Yes`を保存し、選択Targetのminimum discussion surfaceをuser-facingに提示したうえで`Interaction stage: disposition-confirmation`へ進む。初期案は任意であり、不足を理由に同じTargetの選択を再要求しない。未選択Targetのdelegationまたは分類はpendingのまま保持し、選択Targetの最終dispositionと同じ確認で求める。`design-discussion`等の独自stageを作ってはいけない。各turnの保存前にheaderとReadiness Checkを同じevidenceから同期し、同名checkのYes / No、PASS / FAIL、user referenceを矛盾させない。
 
-partial selectionでも選択Targetについて具体的file / symbol、current responsibility / invariant、caller / wiring / lifecycle / test seam、alternatives / trade-offs、非binding proposalまたはNo proposal理由、validation expectationをuser-facingに提示し、`Selected Target Discussion Evidence`へ同じassistant turn referenceで保存する。論点名だけの応答はFAILである。
+Target IDだけの選択でも、選択Targetについて具体的file / symbol、current responsibility / invariant、caller / wiring / lifecycle / test seam、alternatives / trade-offs、非binding proposalまたはNo proposal理由、validation expectationをuser-facingに提示し、`Selected Target Discussion Evidence`へ同じassistant turn referenceで保存する。論点名だけの応答はFAILである。
 
 `target-map-building`はTarget Map提示前の`DRAFT`だけ、`artifact-repair`は不整合を報告する`BLOCKED`だけに使用する。Target Map提示後の通常経路では`target-selection`、`disposition-confirmation`、`upstream-decision`、`complete`以外へ遷移しない。
 

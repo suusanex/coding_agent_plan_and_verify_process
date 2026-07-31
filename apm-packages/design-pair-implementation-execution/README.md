@@ -62,7 +62,7 @@ dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\a
 ```text
 $design-pair-implementation-execution を明示的に選びます。
 直前の Plan の予定変更面を調査し、Target Map と内部設計判断候補を提示してください。
-私が議論対象と初期案を回答するため、そこで停止してください。
+私が議論対象を回答するため、そこで停止してください。初期案や懸念があれば併記します。
 対話で disposition が確定した後に Adaptive Implementation へ進んでください。
 ```
 
@@ -72,7 +72,7 @@ $design-pair-implementation-execution を明示的に選びます。
 
 初回応答は7列の`Design Pair Target Map`、Coverage evidence、Selection requestを含む固定Markdown構造を使います。handoff内だけに詳細を保存し、応答をTarget名の短い箇条書きへ圧縮することはできません。選択Targetの対話もCode locationからOpen questionsまでを固定blockで提示します。
 
-利用者の応答は親フローや検証harnessで補完せず、そのままDesign Pairへ渡します。Target IDだけが返り、初期案または未選択Targetの委任方針が不足する場合は、Skill自身が不足を尋ね、`AWAITING_USER_INPUT / target-selection`のまま再停止します。`design-discussion`等の独自stageへ遷移せず、headerとReadiness Checkのuser evidenceを同じ内容へ同期します。
+利用者の応答は親フローや検証harnessで補完せず、そのままDesign Pairへ渡します。Target Mapに実在するTarget IDだけでも選択は成立します。Skillは選択Targetの具体的なcode evidence、alternatives / trade-offs、非binding proposal、validation expectationを提示し、同じTarget選択や初期案を再要求せず`AWAITING_USER_INPUT / disposition-confirmation`で停止します。未選択Targetの委任または分類は最終dispositionと合わせて確認します。`design-discussion`等の独自stageへ遷移せず、headerとReadiness Checkのuser evidenceを同じ内容へ同期します。
 
 選択Targetの対話では、具体的file / symbol、現在の責務・invariant、caller / wiring / lifecycle / test seam、内部設計論点、代替案とtrade-off、根拠付きの非binding proposalまたはNo proposal理由、validation expectationをuser-facingに提示します。Target名やartifact linkだけを提示して利用者へ判断を委ねません。
 

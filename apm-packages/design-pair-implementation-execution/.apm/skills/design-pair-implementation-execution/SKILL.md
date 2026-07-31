@@ -104,7 +104,7 @@ Target Map を作成した最初の Design Pair turn では、bounded な予定�
 ### Selection request
 
 - Target IDs to discuss:
-- Initial positions or concerns:
+- Initial positions or concerns (optional):
 - Delegation for unselected Targets:
 ```
 
@@ -113,7 +113,7 @@ turn終了前にuser-facing responseをself-checkし、全Target rowの全7列�
 続いて次を明示的に求める。
 
 - 議論したい Target ID
-- 各 Target に対する初期案、懸念、検討したい技術または構造
+- 各 Target に対する初期案、懸念、検討したい技術または構造（あれば。Target 選択の必須条件にしない）
 - 議論しない Target を Adaptive に委ねるか
 - 全 Target を Adaptive に委ねる場合は、その包括的な明示
 
@@ -141,7 +141,7 @@ user_response_after_target_map: Pending
 
 resume では、tracked handoff の route identity、interaction stage、Target Map、presentation evidence、Target 選択要求 evidence、Target Map 提示後の user response、disposition evidence を検証する。欠落または矛盾がある場合は upstream text や AI summary から補完せず、`BLOCKED` / artifact repair で停止する。`AWAITING_USER_INPUT` で有効な新しい user response がない場合は同じ waiting state を維持し、Adaptive へ fallback しない。
 
-Target Map 提示後の user response は、test harness や parent が補足、言い換え、または必要項目を合成せず、そのままこの skill に渡す。response が Target ID の選択だけで、初期案、懸念、または未選択 Target の delegation が不足する場合は partial selection として扱う。AI は選択済み Target の code evidence と判断候補を説明して不足項目を尋ねてもよいが、未定義の interaction stage を作らず、`AWAITING_USER_INPUT / target-selection` を維持してその turn を終了する。必要な selection input が揃い、AI が trade-off と validation expectation を提示した後だけ `AWAITING_USER_INPUT / disposition-confirmation` へ進める。
+Target Map 提示後の user response は、test harness や parent が補足、言い換え、または必要項目を合成せず、そのままこの skill に渡す。response が Target Map に実在する Target ID の選択だけでも、その Target の選択は完了したものとして扱う。初期案、懸念、質問は任意であり、選択を受理するための必須 input にしない。AI は選択済み Target の code evidence、判断候補、alternatives / trade-offs、非 binding proposal、validation expectation を提示し、未選択 Target の delegation または分類が未確定なら最終 disposition と合わせて確認する。選択後の同じ Target ID を再要求せず、discussion response を提示した turn は `AWAITING_USER_INPUT / disposition-confirmation` で終了する。Target Map に存在しない ID だけが返った場合は選択未成立として `target-selection` を維持する。
 
 選択された Target の対話では、handoff artifactへのlinkまたは論点名だけを返してはいけない。初期案や最終 disposition を求める前に、user-facing responseへ Target ごとに次の minimum discussion surface を提示する。
 
@@ -168,20 +168,21 @@ Target Map 提示後の user response は、test harness や parent が補足、
 - Open questions:
 ```
 
-Target IDだけのpartial selectionでも、このminimum discussion surfaceを提示してから不足する初期案やdelegationを尋ねる。Target Map内に詳細があることをuser-facing説明の代替にせず、選択Targetの具体的なcode location、構造上の論点、提案を対話上で読める形にする。handoffの`Selected Target Discussion Evidence`には、Target ID、assistant turn reference、提示したcode location、trade-off、proposalまたはNo proposal理由、validation expectationを保存する。
+Target IDだけの選択でも、このminimum discussion surfaceを提示してから最終 disposition を尋ねる。初期案がないことを理由に同じ Target の選択を再要求しない。未選択Targetのdelegationまたは分類が不足する場合は、選択Targetの最終 disposition と同じ確認で回答を求める。Target Map内に詳細があることをuser-facing説明の代替にせず、選択Targetの具体的なcode location、構造上の論点、提案を対話上で読める形にする。handoffの`Selected Target Discussion Evidence`には、Target ID、assistant turn reference、提示したcode location、trade-off、proposalまたはNo proposal理由、validation expectationを保存する。
 
 各 response を処理して turn を終了する前に、handoff header、Target Map row、summary Target sets、Readiness Check を同じ observed evidence から再計算する。`User response occurred after Target Map presentation: Yes` なら Readiness Check の同名 row も同じ user reference で `PASS` にしなければならない。Target Map 提示後の通常 interaction stage は `target-selection`、`disposition-confirmation`、`upstream-decision`、`complete` のいずれかだけを使用し、partial input を独自 stage で表現してはいけない。`target-map-building` は提示前の `DRAFT`、`artifact-repair` は不整合を報告する `BLOCKED` だけに使用する。headerとReadiness、summaryとrow、stageとpending状態に矛盾がある artifact は保存せず、修復してから停止する。
 
 各重要 Target は次の順で扱う。
 
-1. AI が現在の構造、具体的 code location、現在の invariant、今回必要になり得る判断、不明点を説明する。
-2. 利用者が初期案、問題の捉え方、検討したい技術や構造を提示する。
-3. AI が反論、代替案、trade-off、追加 evidence、validation expectation を提示する。
-4. 利用者が最終 disposition を明示的に決める。
+1. AI が Target Map で現在の構造、具体的 code location、現在の invariant、今回必要になり得る判断、不明点を説明する。
+2. 利用者が議論する Target を選ぶ。初期案、問題の捉え方、質問、検討したい技術や構造は任意で併記できる。
+3. AI が選択Targetの具体的code evidence、反論または支持、代替案、trade-off、非 binding proposal、追加 evidence、validation expectation を提示し、`disposition-confirmation`で停止する。
+4. 利用者とAIは必要なら同じstageで質疑を続ける。
+5. 利用者が最終 disposition と未選択Targetの分類を明示的に決める。
 
 AI の推奨案を最初から確定案として提示してはいけない。利用者の沈黙、AI の提案、既存 pattern、または「異論なし」から `Locked` を推定してはいけない。
 
-利用者が Target と初期案だけを返した場合、AI は code evidence、反論または支持、代替案、trade-off、production wiring / lifecycle / state ownership / test seam への影響、validation expectation、未解決点を提示する。その response の前に与えられた initial position を自動的に最終 disposition とせず、次を保存して再び turn を終了する。
+利用者が Target だけ、または Target と初期案を返した場合、AI は code evidence、反論または支持、代替案、trade-off、production wiring / lifecycle / state ownership / test seam への影響、非 binding proposal、validation expectation、未解決点を提示する。その response の前に与えられた initial position を自動的に最終 disposition とせず、次を保存して再び turn を終了する。
 
 ```yaml
 verdict: AWAITING_USER_INPUT
