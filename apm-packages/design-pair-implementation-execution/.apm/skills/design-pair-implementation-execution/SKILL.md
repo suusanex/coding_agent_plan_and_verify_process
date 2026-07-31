@@ -181,6 +181,18 @@ Adaptive Implementation へ進める条件は次のとおり。
 - blocking な `Upstream-Decision-Required` がない
 - tracked handoff が current worktree と upstream artifact を参照している
 
+READY 判定前に、Target Map と summary field を集合として照合する。Target Map の全 Target ID は一意でなければならない。`Selected Target IDs`、`Delegated-to-Adaptive Target IDs`、`No-Change Target IDs`、`Upstream-Decision-Required Target IDs`、`Pending human-owned Target IDs` の concrete ID はすべて Target Map に実在し、5集合は互いに素で、その和集合は Target Map の全 Target ID と完全一致しなければならない。架空 ID、重複 ID、未分類 Target、summary にだけある ID、Target Map にだけある ID は readiness を FAIL にする。
+
+summary と Target Map row の対応は次の完全一致とする。
+
+- `Selected Target IDs`: disposition が `Locked` または `Discussed-Unlocked`
+- `Delegated-to-Adaptive Target IDs`: disposition が `Adaptive-Owned`
+- `No-Change Target IDs`: disposition が `No-Change`
+- `Upstream-Decision-Required Target IDs`: disposition が `Upstream-Decision-Required`
+- `Pending human-owned Target IDs`: disposition が `Pending-User-Selection` または `Pending-User-Disposition`
+
+各 Locked Decision の Target ID は `Selected Target IDs` に含まれ、その Target Map row は `Locked` でなければならない。`Locked` row には一件以上の valid Locked Decision が必要である。`Explicit all-Adaptive delegation: Yes` では、`Selected Target IDs: None`、`Pending human-owned Target IDs: None`、Locked Decisionsなし、Target Map の全 Target row が `Adaptive-Owned`、`Delegated-to-Adaptive Target IDs` が全 Target IDと完全一致する場合だけ READY にできる。
+
 Target 未選択を空集合として PASS にしない。Target Map 提示後に利用者が全 Target を Adaptive へ委ねると明示した場合は、個別対話や Locked Decision を作らず READY にできる。条件を満たす場合だけ `interaction_stage: complete` と `READY_FOR_ADAPTIVE_IMPLEMENTATION` を同時に設定する。選択または disposition 待ちは `AWAITING_USER_INPUT`、blocking な上流判断は `interaction_stage: upstream-decision` と `HUMAN_DECISION_REQUIRED` または `REPLAN_REQUIRED`、tool / permission / environment blocker は `BLOCKED` とする。
 
 ## Phase 6: Hand off to Adaptive Implementation
@@ -223,7 +235,7 @@ Design Pair または Adaptive Implementation の completion verdict を、final
 - tracked handoff path
 - Target Map summary
 - Target Map presentation / user response evidence
-- selected / Adaptive-delegated / pending Target IDs
+- selected / Adaptive-delegated / No-Change / Upstream-Decision-Required / pending Target IDs と Target Map 集合照合 evidence
 - Upstream Binding Constraints
 - Locked Decision IDs
 - Discussed-Unlocked / Adaptive-Owned items

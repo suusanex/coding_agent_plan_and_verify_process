@@ -71,12 +71,17 @@ Design Pair Implementation Handoff が入力にある場合、次を検証しま
 - Target Map presentation evidence と Target 選択要求 evidence がある
 - Target Map 提示後の actual user response reference と `User response occurred after Target Map presentation: Yes` がある
 - 一件以上の selected Target、または explicit all-Adaptive delegation があり、pending human-owned Target がない
+- Target Map ID が一意で、summary の全 Target ID が Target Map に実在する
+- `Selected`、`Delegated-to-Adaptive`、`No-Change`、`Upstream-Decision-Required`、`Pending human-owned` の5集合が互いに素で、和集合が Target Map 全体と完全一致する
+- 各 summary 集合が Target Map row の `Locked` / `Discussed-Unlocked`、`Adaptive-Owned`、`No-Change`、`Upstream-Decision-Required`、pending disposition と一致する
 - blocking な `Upstream-Decision-Required` がない
 - `Locked Decisions` の各 entry に Design Pair Decision ID、Target ID、actual user message / turn reference、confirmed content、post-map confirmation `Yes` がある
+- 各 Locked Decision Target ID が `Selected Target IDs` に含まれ、その Target Map row が `Locked` である
+- explicit all-Adaptive delegation では selected / pending が `None`、Locked Decisions がなく、全 Target row が `Adaptive-Owned` で delegated集合と完全一致する
 
 Design Pair が今回新たに作る decision のうち binding なのは `Locked Decisions` に明示された事項だけです。original Plan / Implementation Intent、repository policy、および handoff の `Upstream Binding Constraints` は Design Pair Decision ID を持たない既存の binding input として別に守ります。Target Map、`Upstream User Initial Positions`、`Discussed but Unlocked`、`Adaptive-Owned`、Known Evidence、Known Assumptions、Knowledge Candidates は参考情報であり、HIGH_MODEL の通常 authority を拘束しません。
 
-上の条件が欠落または矛盾する場合、Target 未選択を空集合として PASS にせず、HIGH_MODELを起動しません。`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてraw observed fields、`<missing>`、artifact repair evidenceを返し、upstream textからuser responseを再構成したりAdaptiveへfallbackしたりしません。
+上の条件が欠落または矛盾する場合、Target 未選択を空集合として PASS にせず、架空 ID、重複 ID、未分類 Target、row / summary 不一致も拒否して HIGH_MODELを起動しません。`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてraw observed fields、`<missing>`、artifact repair evidenceを返し、upstream textからuser responseを再構成したりAdaptiveへfallbackしたりしません。
 
 Design Pair handoff の `Affected files / symbols` と Target Map の file / symbol は Decision の適用対象または調査 evidence であり、Adaptive Implementation の `Allowed edit surface` として扱いません。HIGH_MODEL は goal、scope、acceptance を満たすために必要な関連 code / tests / production wiring を通常どおり調査・編集できます。
 

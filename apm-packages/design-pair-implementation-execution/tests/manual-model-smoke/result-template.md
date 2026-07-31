@@ -28,7 +28,10 @@
 - Target selection request evidence:
 - Selected Target IDs:
 - Delegated-to-Adaptive Target IDs:
+- No-Change Target IDs:
+- Upstream-Decision-Required Target IDs:
 - Pending human-owned Target IDs:
+- Target Map / summary set reconciliation evidence:
 - Upstream Binding Constraints:
 - Upstream User Initial Positions:
 - Locked Decision IDs:

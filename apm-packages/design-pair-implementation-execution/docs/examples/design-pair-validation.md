@@ -247,6 +247,44 @@ Expected:
 - validなDesign Pair readinessまでAdaptive、verification、residual flowを開始しない
 - completion後は既存downstream verification / residual flowへ戻る
 
+## DP-VAL-022: Unknown or duplicate Target IDs fail closed
+
+Input: summaryにTarget Mapへ存在しない`DP-T99`がある、または同じTarget IDがSelectedとDelegated-to-Adaptiveの両方にある。
+
+Expected:
+
+- readinessをFAILとする
+- Adaptive / HIGH_MODELを開始しない
+- 架空IDまたは重複する集合と該当summary fieldをartifact repair evidenceとして返す
+
+## DP-VAL-023: Unclassified Target fails closed
+
+Input: Target Mapに`DP-T03`があるが、Selected / Delegated-to-Adaptive / No-Change / Upstream-Decision-Required / Pendingのどのsummary集合にもない。
+
+Expected:
+
+- 5集合の和集合とTarget Map全集合が一致しないためreadinessをFAILとする
+- `DP-T03`を未分類Targetとして報告し、Adaptiveを開始しない
+
+## DP-VAL-024: Summary, row, and Locked Decision mismatch fails closed
+
+Input: `DP-T01`がSelected summaryにあるがrowは`Adaptive-Owned`、またはLocked DecisionがSelectedでないTarget / `Locked`でないrowを参照する。
+
+Expected:
+
+- summary分類とrow Dispositionの不一致を拒否する
+- invalidなDecision ID / Target IDを示して`BlockedByInvalidCompletionHandoff`で停止する
+- Locked DecisionをAIが別Targetへ付け替えない
+
+## DP-VAL-025: Explicit all-Adaptive must cover every Target
+
+Input: `Explicit all-Adaptive delegation: Yes`だがSelectedまたはPendingが`None`でない、Locked Decisionがある、Adaptive-Ownedでないrowがある、またはDelegated集合がTarget Map全体を覆わない。
+
+Expected:
+
+- readinessをFAILとする
+- `Selected Target IDs: None`、`Pending human-owned Target IDs: None`、Locked Decisionsなし、全row `Adaptive-Owned`、Delegated集合=Target Map全集合へ修復するまでAdaptiveを開始しない
+
 ## Repository static validation
 
 ```powershell
@@ -257,6 +295,6 @@ dotnet publish ./apm-packages/codex-first-ai-development-process/scripts/apply-c
 git diff --check
 ```
 
-Static validation は package layout、routing contract、handoff schema、Adaptive propagation、Plan Coverage / full-coverage / Codex-first state integration、Copilot support boundary を検証します。実モデルを使う対話、HIGH -> STANDARD -> HIGH runtime orchestration、品質比較は `NOT RUN` です。
+Static validation は package layout、routing contract、handoff schema、Target集合不変条件、Adaptive propagation、Plan Coverage / full-coverage / Codex-first state integration、Copilot support boundary を検証します。実モデルを使う対話、HIGH -> STANDARD -> HIGH runtime orchestration、品質比較はrun-specific recordがない限り `NOT RUN` です。
 
 人手での作業が必要: `../../tests/manual-model-smoke/README.md`のdisposable fixtureでDP-VAL-013、015、017、019、021相当のmulti-turn behaviorを実モデルで実行し、result templateへmodel、reasoning、revision、Plan、turn sequence、artifact path、verdict sequenceを記録してください。static PASSをruntime PASSとして転記してはいけません。

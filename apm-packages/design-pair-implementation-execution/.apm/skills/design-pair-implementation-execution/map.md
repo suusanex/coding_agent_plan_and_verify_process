@@ -31,3 +31,5 @@
 この Target Map は bounded な予定変更面の説明であり、repository 全体の inventory または Adaptive Implementation の allowed edit surface ではない。
 
 Target Map 作成時点の human-owned disposition は `Pending-User-Selection` とする。Target Map 提示後の明示的な利用者応答なしに `Locked`、`Discussed-Unlocked`、`Adaptive-Owned` を割り当てない。客観的 evidence による `No-Change` 候補でも human-owned decision に関係する場合は利用者の disposition を要求する。
+
+READY 判定時は Target ID を一意な集合として扱い、handoff summary の全IDがこの表に実在すること、summaryの5分類が重複なく全rowを覆うこと、各分類がDispositionと一致することを照合する。架空ID、重複ID、未分類row、summary / row不一致はartifact repairが必要である。

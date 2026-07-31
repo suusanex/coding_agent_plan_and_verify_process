@@ -14,8 +14,10 @@
 - Target selection request evidence: Pending / <assistant message or turn reference>
 - Latest user response reference: Pending / <user message or turn reference>
 - User response occurred after Target Map presentation: Pending / Yes / No
-- Selected Target IDs: Pending / <DP-Txx list>
+- Selected Target IDs: Pending / None / <DP-Txx list>
 - Delegated-to-Adaptive Target IDs: Pending / None / <DP-Txx list>
+- No-Change Target IDs: Pending / None / <DP-Txx list>
+- Upstream-Decision-Required Target IDs: Pending / None / <DP-Txx list>
 - Explicit all-Adaptive delegation: Pending / Yes / No
 - Pending human-owned Target IDs: Pending / None / <DP-Txx list>
 - Parent / resume state reference: N/A / <artifact path and field references>
@@ -52,6 +54,8 @@ Target Map 提示前の技術案はここに保存できるが、Design Pair Loc
 | DP-D01 | DP-T01 | | | | | | | | Yes |
 
 この section に Decision ID、presented Target ID、実際の user message / turn reference、確認内容、`Confirmation occurred after Target Map presentation: Yes` がある entry だけが binding である。upstream Plan / Issue / acceptance criteria / gold document / repository docs、AI summary、過去会話からの推測、利用者の沈黙は explicit human confirmation ではない。
+
+各 Locked Decision の Target ID は `Selected Target IDs` に含まれ、対応する Target Map row の Disposition は `Locked` でなければならない。`Locked` row には一件以上の valid Locked Decision が必要である。
 
 ## Discussed but Unlocked
 
@@ -103,8 +107,13 @@ Knowledge Candidates は自動的に knowledge card または repository policy 
 | No pending human-owned Target remains | PASS / FAIL | |
 | No blocking Upstream-Decision-Required remains | PASS / FAIL | |
 | Target Map covers the bounded planned change surface | PASS / FAIL | |
+| Target Map IDs are unique and every summary ID exists in the Target Map | PASS / FAIL | <set comparison evidence> |
+| Summary Target sets are pairwise disjoint and exactly cover the Target Map | PASS / FAIL | <union / intersection evidence> |
+| Summary classifications match every Target Map row Disposition | PASS / FAIL | <per-class comparison evidence> |
+| Locked Decision Target IDs are selected and their Target Map rows are Locked | PASS / FAIL / N/A | <Decision ID / Target ID evidence> |
+| Explicit all-Adaptive delegation has None selected/pending, no Locked Decisions, and every Target is Adaptive-Owned | PASS / FAIL / N/A | <all Target IDs and dispositions> |
 
-Target が一件も選択されず、全 Target の Adaptive delegation も明示されていない状態を空集合として PASS にしない。全 row が PASS または有効な N/A で、`Interaction stage: complete` の場合だけ `READY_FOR_ADAPTIVE_IMPLEMENTATION` を設定する。
+Target が一件も選択されず、全 Target の Adaptive delegation も明示されていない状態を空集合として PASS にしない。READY 判定では `Selected Target IDs`、`Delegated-to-Adaptive Target IDs`、`No-Change Target IDs`、`Upstream-Decision-Required Target IDs`、`Pending human-owned Target IDs` の5集合を Target Map と照合し、架空 ID、重複 ID、未分類 Target、row / summary 不一致を一件でも許可しない。全 row が PASS または有効な N/A で、`Interaction stage: complete` の場合だけ `READY_FOR_ADAPTIVE_IMPLEMENTATION` を設定する。
 
 ## Adaptive Implementation Result
 

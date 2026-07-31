@@ -58,6 +58,8 @@ Design Pair route は利用者が明示選択した場合だけ使います。De
 
 Adaptive は production code / tests を編集する前に、Design Pair handoff が `READY_FOR_ADAPTIVE_IMPLEMENTATION` かつ `Interaction stage: complete` であること、Target Map の提示・選択要求、提示後の actual user response、一件以上の selected Target または explicit all-Adaptive delegation、pending human-owned Target なし、各 Locked Decision の post-map confirmation を検証します。`AWAITING_USER_INPUT`、空集合を暗黙に all-Adaptive とした handoff、上流 Plan や AI summary から user response を再構成した handoffは `BLOCKED / BlockedByInvalidCompletionHandoff` で停止します。
 
+同時に、Target Map IDの一意性、全summary IDのMap実在、Selected / Delegated-to-Adaptive / No-Change / Upstream-Decision-Required / Pending集合の相互排他と完全被覆、各row Dispositionとの一致を再検証します。Locked DecisionはSelectedかつ`Locked` rowだけを参照できます。all-AdaptiveではSelected / Pendingが`None`、Locked Decisionsなし、全rowが`Adaptive-Owned`でdelegated集合と完全一致する必要があります。架空ID、重複ID、未分類Target、row / summary不一致は編集前に拒否します。
+
 Design Pair が今回作る binding decision は、完全な confirmation evidence を持つ `Locked Decisions` だけです。original Plan、repository policy、`Upstream Binding Constraints` は別の binding input として維持し、`Upstream User Initial Positions` は未確認の初期位置として参考情報に留めます。
 
 durable routeやresume evidenceがない通常Adaptiveのfresh intakeは、`implementation_route: adaptive`、`implementation_route_source: default`、`design_pair_handoff: N/A`の3項目を初期化します。parentはHIGH_MODELへ3項目を常に渡し、Design Pair handoff pathを省略しません。

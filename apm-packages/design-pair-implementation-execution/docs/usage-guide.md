@@ -67,6 +67,10 @@ AI は予定変更面全体を bounded に調査し、具体的な file / symbol
 
 利用者が Target と初期案だけを返した場合、AI は evidence、反論または支持、代替案、trade-off、production wiring / lifecycle / state ownership / test seam への影響、validation expectation を提示し、`AWAITING_USER_INPUT / disposition-confirmation` で再停止します。利用者が Target Map 提示後に全 Target を Adaptive へ委ねると明示した場合は、個別議論なしで `Adaptive-Owned` として READY にできます。
 
+READY判定ではTarget MapのIDを一意な全集合とし、handoff summaryの`Selected Target IDs`、`Delegated-to-Adaptive Target IDs`、`No-Change Target IDs`、`Upstream-Decision-Required Target IDs`、`Pending human-owned Target IDs`を照合します。全summary IDがMapに実在し、5集合が互いに素で、和集合がMap全体と一致し、各集合がrow Dispositionと一致しなければなりません。`Selected`は`Locked` / `Discussed-Unlocked`、delegatedは`Adaptive-Owned`、残り3集合は同名Dispositionまたはpending Dispositionへ対応します。
+
+Locked DecisionのTarget IDはSelected集合に含まれ、rowが`Locked`である必要があります。explicit all-Adaptiveでは`Selected Target IDs: None`、`Pending human-owned Target IDs: None`、Locked Decisionsなし、全rowが`Adaptive-Owned`、delegated集合がMap全体と一致する場合だけREADYにできます。
+
 ## Handoff semantics
 
 tracked handoff は `plans/<slug>-design-pair-implementation-handoff.md` に保存します。
@@ -91,5 +95,7 @@ Design Pair route の実装完了は final code review、human review、総合 a
 
 - `READY_FOR_ADAPTIVE_IMPLEMENTATION` だが post-map user response がない: invalid handoff。`target-selection` waiting state へ修復する。
 - selected Target が空で readiness が PASS: invalid handoff。明示的な all-Adaptive delegation がない限り FAIL とする。
+- summaryに架空ID、重複ID、未分類Target、row / summary不一致がある: invalid handoff。Target Mapと5集合を修復する。
+- all-AdaptiveなのにSelected / Pendingが`None`でない、Locked Decisionがある、またはAdaptive-Ownedでないrowがある: invalid handoff。
 - `Locked` の confirmation が Plan / Issue を参照する: `Upstream Binding Constraints` へ移し、actual user turn evidence を要求する。
 - resume artifact が `DRAFT` のみで interaction stage 不明: READY を推測せず artifact repair で停止する。

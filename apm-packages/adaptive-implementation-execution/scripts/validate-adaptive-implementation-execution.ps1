@@ -315,6 +315,9 @@ Assert-Contains $skill 'Design Pair Implementation Handoff' 'Design Pair handoff
 Assert-Contains $skill '(?s)binding なのは.*Locked Decisions.*だけ' 'Design Pair binding-only rule'
 Assert-Contains $skill '(?s)verdict が `READY_FOR_ADAPTIVE_IMPLEMENTATION`.*`Interaction stage: complete`.*Target Map presentation evidence.*actual user response reference.*explicit all-Adaptive delegation.*pending human-owned Target がない' 'complete post-map Design Pair readiness validation'
 Assert-Contains $skill 'Target 未選択を空集合として PASS にせず.*HIGH_MODELを起動しません' 'empty Target selection fail-closed rule'
+Assert-Contains $skill '(?s)Target Map ID が一意.*summary の全 Target ID が Target Map に実在.*5集合が互いに素.*和集合が Target Map 全体と完全一致.*summary 集合が Target Map row.*一致' 'Design Pair Target set reconciliation gate'
+Assert-Contains $skill '(?s)Locked Decision Target ID が `Selected Target IDs` に含まれ.*Target Map row が `Locked`.*all-Adaptive delegation.*selected / pending が `None`.*全 Target row が `Adaptive-Owned`.*delegated集合と完全一致' 'Design Pair Locked and all-Adaptive invariants'
+Assert-Contains $skill '架空 ID、重複 ID、未分類 Target、row / summary 不一致も拒否' 'Design Pair malformed Target set rejection'
 Assert-Contains $skill 'Upstream Binding Constraints.*Design Pair Decision ID を持たない既存の binding input' 'upstream binding separation rule'
 Assert-Contains $skill 'Affected files / symbols.*Allowed edit surface.*扱いません' 'Design Pair file-symbol non-allowlist rule'
 Assert-Contains $skill 'automatic Design Pair re-entry' 'no automatic Design Pair re-entry'
@@ -508,6 +511,9 @@ foreach ($toml in @($highToml, $codexHighToml)) {
     Assert-Contains $toml 'Stop before editing and return BLOCKED with Stop reason: BlockedByInvalidCompletionHandoff when any route identity field is missing.*raw observed field value or <missing> plus repair evidence; never infer or fabricate' 'portable HIGH invalid route classification and raw output'
     Assert-Contains $toml 'Normally return unchanged implementation_route, implementation_route_source, and the Design Pair Implementation Handoff path or N/A with every implementation result and completion handoff.*only exception is BLOCKED with Stop reason: BlockedByInvalidCompletionHandoff.*raw observed values or <missing>.*Other BLOCKED results still require the complete unchanged identity' 'portable HIGH conditional route output continuity'
     Assert-Contains $toml 'require READY_FOR_ADAPTIVE_IMPLEMENTATION, interaction stage complete, Target Map presentation and selection-request evidence, an actual post-map user response, non-empty selected Targets or explicit all-Adaptive delegation, no pending human-owned Target' 'portable HIGH complete post-map authorization gate'
+    Assert-Contains $toml 'require unique Target Map IDs; every summary Target ID to exist in the map; Selected, Delegated-to-Adaptive, No-Change, Upstream-Decision-Required, and Pending sets to be pairwise disjoint and exactly cover the map; and each set to match its row Disposition' 'portable HIGH Target set reconciliation gate'
+    Assert-Contains $toml 'Require every Locked Decision Target to be Selected with a Locked row.*explicit all-Adaptive delegation.*Selected and Pending to be None.*every Target row to be Adaptive-Owned and present in the Delegated set' 'portable HIGH Locked and all-Adaptive invariants'
+    Assert-Contains $toml 'Reject invented IDs, overlaps, unclassified Targets, or row/summary mismatches with BlockedByInvalidCompletionHandoff' 'portable HIGH malformed Target set rejection'
     Assert-Contains $toml 'keep the original Plan and Upstream Binding Constraints as separate binding inputs without Design Pair Decision IDs' 'portable HIGH upstream binding separation'
 }
 foreach ($toml in @($standardToml, $codexStandardToml)) {
