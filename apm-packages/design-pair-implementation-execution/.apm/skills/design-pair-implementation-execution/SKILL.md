@@ -116,7 +116,7 @@ resume では、tracked handoff の route identity、interaction stage、Target 
 
 Target Map 提示後の user response は、test harness や parent が補足、言い換え、または必要項目を合成せず、そのままこの skill に渡す。response が Target ID の選択だけで、初期案、懸念、または未選択 Target の delegation が不足する場合は partial selection として扱う。AI は選択済み Target の code evidence と判断候補を説明して不足項目を尋ねてもよいが、未定義の interaction stage を作らず、`AWAITING_USER_INPUT / target-selection` を維持してその turn を終了する。必要な selection input が揃い、AI が trade-off と validation expectation を提示した後だけ `AWAITING_USER_INPUT / disposition-confirmation` へ進める。
 
-各 response を処理して turn を終了する前に、handoff header、Target Map row、summary Target sets、Readiness Check を同じ observed evidence から再計算する。`User response occurred after Target Map presentation: Yes` なら Readiness Check の同名 row も同じ user reference で `PASS` にしなければならない。interaction stage は `target-selection`、`disposition-confirmation`、`upstream-decision`、`complete` のいずれかだけを使用し、partial input を独自 stage で表現してはいけない。headerとReadiness、summaryとrow、stageとpending状態に矛盾がある artifact は保存せず、修復してから停止する。
+各 response を処理して turn を終了する前に、handoff header、Target Map row、summary Target sets、Readiness Check を同じ observed evidence から再計算する。`User response occurred after Target Map presentation: Yes` なら Readiness Check の同名 row も同じ user reference で `PASS` にしなければならない。Target Map 提示後の通常 interaction stage は `target-selection`、`disposition-confirmation`、`upstream-decision`、`complete` のいずれかだけを使用し、partial input を独自 stage で表現してはいけない。`target-map-building` は提示前の `DRAFT`、`artifact-repair` は不整合を報告する `BLOCKED` だけに使用する。headerとReadiness、summaryとrow、stageとpending状態に矛盾がある artifact は保存せず、修復してから停止する。
 
 各重要 Target は次の順で扱う。
 

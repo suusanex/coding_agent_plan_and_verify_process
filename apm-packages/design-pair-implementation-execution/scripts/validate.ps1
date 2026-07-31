@@ -150,7 +150,7 @@ Assert-Contains $skill '(?s)resume では.*interaction stage.*Target Map.*presen
 Assert-Contains $skill '(?s)user response は、test harness や parent が補足、言い換え、または必要項目を合成せず、そのまま.*Target ID の選択だけ.*partial selection.*`AWAITING_USER_INPUT / target-selection` を維持' 'verbatim partial-selection handling'
 Assert-Contains $skill '(?s)必要な selection input が揃い.*trade-off.*`AWAITING_USER_INPUT / disposition-confirmation` へ進める' 'partial selection cannot advance early'
 Assert-Contains $skill '(?s)各 response.*handoff header、Target Map row、summary Target sets、Readiness Check.*同じ observed evidence から再計算.*User response occurred after Target Map presentation: Yes.*同名 row.*`PASS`' 'mirrored user evidence synchronization'
-Assert-Contains $skill 'interaction stage は `target-selection`、`disposition-confirmation`、`upstream-decision`、`complete` のいずれかだけ' 'closed Design Pair interaction stage vocabulary'
+Assert-Contains $skill '(?s)Target Map 提示後の通常 interaction stage は `target-selection`、`disposition-confirmation`、`upstream-decision`、`complete` のいずれかだけ.*`target-map-building` は提示前の `DRAFT`.*`artifact-repair` は.*`BLOCKED`' 'closed Design Pair interaction stage vocabulary'
 Assert-Contains $skill '(?s)AWAITING_USER_INPUT.*interaction_stage: disposition-confirmation' 'disposition confirmation waiting state'
 Assert-Contains $skill '全 Target を Adaptive へ委ねると明示した場合.*Locked Decision を作らず READY' 'explicit all-Adaptive delegation path'
 Assert-Contains $skill 'Target 未選択を空集合として PASS にしない' 'empty selection readiness prevention'
@@ -225,6 +225,9 @@ Assert-Contains $handoff '(?s)Target Map IDs are unique and every summary ID exi
 Assert-Contains $handoff '5集合を Target Map と照合し、架空 ID、重複 ID、未分類 Target、row / summary 不一致を一件でも許可しない' 'handoff set invariant failure rule'
 Assert-Contains $handoff '(?s)Target IDだけ.*partial selection.*User response occurred after Target Map presentation: Yes.*Interaction stage: target-selection.*pending分類を維持' 'handoff partial-selection representation'
 Assert-Contains $handoff '(?s)`design-discussion`等の独自stageを作ってはいけない.*headerとReadiness Check.*Yes / No、PASS / FAIL、user referenceを矛盾させない' 'handoff mirrored evidence consistency'
+Assert-Contains $handoff 'Interaction stage: target-map-building / target-selection / disposition-confirmation / upstream-decision / complete / artifact-repair' 'handoff closed stage schema'
+Assert-NotContains $handoff '(?m)^- Interaction stage:.*design-discussion' 'deprecated design-discussion stage in handoff schema'
+Assert-Contains $handoff '(?s)`target-map-building`はTarget Map提示前の`DRAFT`だけ.*`artifact-repair`は.*`BLOCKED`だけ.*Target Map提示後の通常経路.*`target-selection`、`disposition-confirmation`、`upstream-decision`、`complete`以外へ遷移しない' 'handoff stage applicability rules'
 Assert-Contains $handoff 'Plan / Issue / acceptance criteria / repository policy / public contract.*Design Pair Decision ID を付けず' 'handoff upstream constraint separation'
 
 $adaptiveSkill = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md'

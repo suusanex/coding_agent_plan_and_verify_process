@@ -1,7 +1,7 @@
 # Design Pair Implementation Handoff
 
 - Verdict: DRAFT / AWAITING_USER_INPUT / READY_FOR_ADAPTIVE_IMPLEMENTATION / HUMAN_DECISION_REQUIRED / REPLAN_REQUIRED / BLOCKED
-- Interaction stage: target-map-building / target-selection / design-discussion / disposition-confirmation / upstream-decision / complete / artifact-repair
+- Interaction stage: target-map-building / target-selection / disposition-confirmation / upstream-decision / complete / artifact-repair
 - Route: design-pair
 - implementation_route: design-pair
 - implementation_route_source: explicit-user-selection
@@ -116,6 +116,8 @@ Knowledge Candidates は自動的に knowledge card または repository policy 
 Target が一件も選択されず、全 Target の Adaptive delegation も明示されていない状態を空集合として PASS にしない。READY 判定では `Selected Target IDs`、`Delegated-to-Adaptive Target IDs`、`No-Change Target IDs`、`Upstream-Decision-Required Target IDs`、`Pending human-owned Target IDs` の5集合を Target Map と照合し、架空 ID、重複 ID、未分類 Target、row / summary 不一致を一件でも許可しない。全 row が PASS または有効な N/A で、`Interaction stage: complete` の場合だけ `READY_FOR_ADAPTIVE_IMPLEMENTATION` を設定する。
 
 Target IDだけが返り、初期案または未選択Targetのdelegationが不足するpartial selectionでは、実際のuser response referenceと`User response occurred after Target Map presentation: Yes`を保存する一方、`Interaction stage: target-selection`とpending分類を維持する。`design-discussion`等の独自stageを作ってはいけない。各turnの保存前にheaderとReadiness Checkを同じevidenceから同期し、同名checkのYes / No、PASS / FAIL、user referenceを矛盾させない。
+
+`target-map-building`はTarget Map提示前の`DRAFT`だけ、`artifact-repair`は不整合を報告する`BLOCKED`だけに使用する。Target Map提示後の通常経路では`target-selection`、`disposition-confirmation`、`upstream-decision`、`complete`以外へ遷移しない。
 
 ## Adaptive Implementation Result
 
