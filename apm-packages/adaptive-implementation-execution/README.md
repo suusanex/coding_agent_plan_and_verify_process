@@ -1,6 +1,6 @@
 # Adaptive Implementation Execution
 
-通常の Plan Mode output、短い実装計画、または明示選択された Design Pair handoff から、非自明な実装を HIGH_MODEL が開始し、残作業から構造上の意思決定がなくなった場合だけ STANDARD_MODEL へ直列委譲する APM package です。
+通常の Plan Mode output、短い実装計画、または明示選択された Design Pair handoff から、非自明な実装を HIGH_MODEL が開始し、残作業から構造上の意思決定がなくなった場合だけ STANDARD_MODEL へ直列委譲する、Codex / GitHub Copilot Chat in VS Code対応のAPM packageです。
 
 ## 解決する問題
 
@@ -53,17 +53,27 @@ HIGH_MODEL と STANDARD_MODEL の write-heavy work は並列化しません。�
 | Codex agent configuration sources | `codex-agents/*.toml` |
 | Compatibility installer | `scripts/install-adaptive-implementation-local.cs` |
 | Static validator | `scripts/validate-adaptive-implementation-execution.ps1` |
+| APM 0.26.0 remote install smoke | `scripts/validate-adaptive-implementation-apm-smoke.ps1` |
+| Deterministic route scenarios A-G | `tests/routing-scenarios.yml` |
 | Pre-Design-Pair resume fixture | `docs/examples/legacy-adaptive-handoff.md` |
 
-Templates are bundled inside the skill instead of being standalone manifest file dependencies. Their short `refs/` paths keep APM 0.18.0 remote installs below the legacy Windows path-length boundary while preserving separate template files.
+root `.github/agents/high-implementation-starter.agent.md` と `standard-implementation-completer.agent.md` がcanonical contractです。APM 0.26.0は同じsourceをCopilotではmodel / tools / handoffsを持つ`.agent.md`として、Codexではmodel-less TOML stubとしてtarget別に変換します。Codexのconcrete modelだけをcompatibility installerで補完します。
+
+`copilot-fallback-ai-development-process`の同名agent templateは既存利用者向けの短いadapter mirrorです。Adaptive validatorがHIGH-first、direct STANDARD禁止、verdict、route identity、Locked Decisions、Design Pair Decision ID、Allowed edit surface、tracked re-entry metadata、Implementation Self-Map Deltaの同期を検証し、独立した別契約へ分岐させません。
 
 ## Quick start
 
+CodexとGitHub Copilot Chat in VS Codeを同じrepositoryへ導入する場合:
+
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target copilot,codex,agent-skills
 ```
 
+片方だけ使う場合は、Codexを`codex,agent-skills`、Copilotを`copilot,agent-skills`に絞れます。APM 0.26.0では`vscode`指定も`copilot`へ正規化されますが、manifestと文書ではcanonical target名`copilot`を使用します。`github-copilot`はAPM target名ではありません。
+
 APM install が skill と portable custom agents を導入する本体です。現行 APM が `.codex/agents/*.toml` に concrete model 設定を生成しない場合だけ、互換処理として package 付属の設定を同期し、検証します。
+
+CopilotではVS CodeのChat viewでagent pickerから`high-implementation-starter`を選びます。`standard-implementation-completer`から直接開始しません。model mappingはHIGH / re-entryが`GPT-5.6 Terra (copilot)`、valid `READY_FOR_STANDARD_COMPLETION`後のSTANDARDが`GPT-5.6 Luna (copilot)`です。Terra -> Luna -> Terraの遷移ではtracked handoff pathを渡し、会話履歴だけにstateを置きません。
 
 ```powershell
 dotnet run --file .\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --dry-run
@@ -79,6 +89,8 @@ skill の選択条件と、選択後の実行順序、handoff、re-entry、verif
 
 通常Adaptiveのfresh intakeは`implementation_route: adaptive`、`implementation_route_source: default`、`design_pair_handoff: N/A`を初期化し、3項目をHIGH_MODELへ明示的に渡します。invalid-artifact `BLOCKED`だけは欠落identityを捏造せず、raw observed valueまたは`<missing>`とrepair evidenceを返します。
 
+Copilotのmodel名と利用可否はCopilot plan、VS Code / extension version、organization policyに依存します。requested modelとobserved modelが一致しない、またはTerra / Lunaを選択できない場合は別tierへ黙って開始せず、mappingを明示変更するかpolicy管理者へ確認し、manual smokeへrequested / observed modelを記録します。
+
 Design Pair導入前のtracked Adaptive handoffは、旧必須fieldがすべて揃い、Design Pair evidenceが一切ない場合だけ`Legacy Adaptive handoff normalization`でresumeできます。`route_metadata_normalization: legacy-adaptive-handoff`とdeterministic `LEGACY-HIGH-Dxx` Decision IDsを記録し、新Design Pair fieldsの欠落だけを理由にHIGH_MODELへ戻しません。部分的な新schema、Design Pair evidence、不完全な旧schemaは`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてartifact repairを要求します。
 
 起動例:
@@ -92,3 +104,4 @@ $adaptive-implementation-execution を使って、この Plan を実装してく
 - [Install guide](docs/install-guide.md)
 - [Usage guide](docs/usage-guide.md)
 - [Validation scenarios](docs/examples/adaptive-routing-validation.md)
+- [Manual Copilot smoke](docs/examples/copilot-manual-smoke.md)

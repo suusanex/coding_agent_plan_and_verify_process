@@ -27,6 +27,8 @@ always-on instructions だけでなく明示的に起動したい場合は promp
 
 非自明な実装は `high-implementation-starter` から始まります。実コード上の構造判断が解消し、complete な completion handoff が作られた場合だけ `standard-implementation-completer` が残作業を担当します。STANDARD_MODEL で新しい構造判断が発生した場合は `NEEDS_HIGH_MODEL_REENTRY` として HIGH_MODEL に戻ります。
 
+この二つのAdaptive agentだけが必要な場合は、fallback packageを追加導入せず`adaptive-implementation-execution --target copilot,agent-skills`で利用できます。fallback packageの同名agentは既存のcost-router利用者向けmirrorで、canonical contractはAdaptive packageにあります。
+
 ## 止まる理由
 
 次が残る場合は完了扱いしません。

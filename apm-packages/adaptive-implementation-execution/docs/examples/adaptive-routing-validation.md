@@ -7,12 +7,14 @@
 実行 validation では次を保存します。
 
 - source Plan / Implementation Intent
+- original Implementation Intent artifact path or durable snapshot
 - agent verdict sequence
 - implementation owner by phase
 - files changed by each agent
 - validation commands and results
 - acceptance status and evidence for every in-scope item
 - handoff persistence
+- requested / observed model for Copilot runs
 - re-entry handoff, if any
 - final review status
 
@@ -157,12 +159,12 @@ Checks:
 
 Steps:
 
-1. Install the package with APM for `codex,agent-skills`.
+1. Install the package with APM 0.26.0 for `copilot,codex,agent-skills`.
 2. Confirm skill and both reference templates are deployed.
-3. Confirm both portable agents are available to Codex.
+3. Confirm both portable agents are available to Codex and GitHub Copilot Chat in VS Code.
 4. If APM leaves model-less custom agent TOMLs, complete their settings with `install-adaptive-implementation-local.cs`.
 5. Run installer `--check`.
-6. Confirm Codex can select the skill and both custom agents.
+6. Confirm Codex can select the skill and both custom agents; confirm Copilot agent frontmatter requests Terra for HIGH / re-entry and Luna for STANDARD.
 7. Confirm the installer does not access an existing `AGENTS.md`, and review collision behavior with same-name TOML.
 8. Dry-run APM uninstall, custom agent configuration removal, and orphan prune before rollback.
 
@@ -175,6 +177,8 @@ Expected:
 - the installer does not create, read, update, or remove `AGENTS.md`
 - APM-generated model-less stubs with matching package metadata are completed without `--force`
 - other same-name TOML collisions fail closed unless `--force` is explicit
+- pre-existing unmanaged `.github/agents` customization is preserved without `--force`
+- a frozen reinstall leaves package-managed skill and agent content unchanged
 
 ## VAL-009: Explicit Design Pair handoff
 
@@ -246,6 +250,24 @@ Expected:
 - invalid-artifact `BLOCKED` returns raw observed values or `<missing>` plus repair evidence instead of fabricating a complete identity
 - STANDARD_MODEL reserves `NEEDS_HIGH_MODEL_REENTRY` for structural decisions found after a valid handoff passes authorization
 
+## VAL-013: GitHub Copilot VS Code adapter
+
+Input:
+
+- APM 0.26.0 installs the package for `copilot,codex,agent-skills` from a full commit SHA
+- VS Code loads both repository-local custom agents
+
+Expected:
+
+- `high-implementation-starter` has `tools`, `model: GPT-5.6 Terra (copilot)`, `target: vscode`, and a single bounded-completion handoff to `standard-implementation-completer`
+- `standard-implementation-completer` has `tools`, `model: GPT-5.6 Luna (copilot)`, `target: vscode`, and a single structural re-entry handoff to `high-implementation-starter` using Terra
+- STANDARD direct start is rejected without a valid tracked `READY_FOR_STANDARD_COMPLETION`
+- `COMPLETED_BY_HIGH_MODEL` and stop verdicts do not route to another agent
+- Copilot model / agent transitions use tracked completion and re-entry artifacts containing original Implementation Intent, unchanged route identity, Locked Decisions, Design Pair Decision IDs when present, and current worktree state
+- fallback package adapters contain the same critical contract markers and are checked by the Adaptive validator
+- deterministic scenarios A-G in `tests/routing-scenarios.yml` cover direct HIGH completion, bounded completion, incomplete handoff, structural re-entry, repeated trigger, invalid route identity, and Design Pair preservation
+- actual model execution remains `NOT RUN` until the manual smoke template records selected agent, requested / observed model, files, checks, terminal verdict, and absence of unexpected handoff
+
 ## Issue #44 integration validation matrix
 
 次のシナリオは standalone Adaptive package だけでなく、Plan Coverage、full-coverage slice、Codex-first、Copilot fallback の routing surface を同じ contract で検証します。`trivial-local` は対象外です。
@@ -308,7 +330,7 @@ The static validator checks the package layout and Windows path budget, standalo
 
 ## Local validation result
 
-Originally validated on 2026-07-13 with APM CLI 0.18.0 and a .NET 11 preview SDK targeting `net10.0`; Windows path, APM-generated stub, TOML-only installer, and `AGENTS.md` non-access regression checks were updated on 2026-07-16:
+The historical Codex checks below were first recorded with APM 0.18.0. The Copilot adapter work targets APM 0.26.0; current results must be recorded from the commands in this document rather than inferred from the historical rows.
 
 | Check | Result | Evidence |
 | --- | --- | --- |
@@ -325,7 +347,11 @@ Originally validated on 2026-07-13 with APM CLI 0.18.0 and a .NET 11 preview SDK
 | Remote branch package install | PASS | APM resolved the virtual package and both `git: parent` portable agents from `#codex/issue-45` at `66e1234b`, then deployed the skill, references, and both Codex agents |
 | Remote rollback | PASS | `apm uninstall` removed the direct package and skill, custom agent removal deleted package-owned TOMLs, and `apm prune` removed both orphaned portable agent packages; no integrated skill, agent, or package files remained |
 | Agent discovery contract | PASS | remote install created both named `.codex/agents` entries and the static validator confirmed that the skill routes to those names |
+| Copilot frontmatter and deterministic scenarios | PASS | current static validator checks both canonical agents, fallback mirrors, and scenarios A-G |
+| APM 0.26.0 local adapter-equivalent install | PASS | a temporary dependency composed from the canonical root agents and packaged Skill deployed Copilot agents, Codex stubs, and the shared Skill; frozen reinstall preserved hashes, the Codex helper completed and checked both model mappings, and an unmanaged same-name Copilot agent was preserved without `--force` |
+| APM 0.26.0 pinned remote install smoke | NOT RUN | requires a remotely reachable full commit SHA; CI runs `validate-adaptive-implementation-apm-smoke.ps1` |
+| GitHub Copilot Chat in VS Code manual model smoke | NOT RUN | follow `copilot-manual-smoke.md`; do not infer model execution from fixtures or static validation |
 | Runtime multi-agent orchestration | NOT RUN | installation validation does not execute the skill and both implementation agents; this remains a separate Codex runtime validation |
-| Full package local-path install | NOT APPLICABLE | APM 0.18.0 cannot inherit `git: parent` from a local path dependency; the supported remote repository route is validated separately above |
+| Full package local-path install | NOT APPLICABLE | APM 0.26.0 cannot inherit `git: parent` from a local path dependency; the supported remote repository route is validated separately above |
 
-The full-package local-path limitation does not change the package manifest. The remote branch validation confirms that the `git: parent` convention resolves the root portable agents when APM installs the repository subdirectory package.
+The local adapter-equivalent smoke validates current transformation and collision behavior but does not replace the pinned remote smoke for the real `git: parent` dependency graph. The full-package local-path limitation does not change the package manifest. The remote branch validation confirms that the `git: parent` convention resolves the root portable agents when APM installs the repository subdirectory package.

@@ -1,0 +1,63 @@
+schema_version: 1
+contract: adaptive-implementation-execution
+source_of_truth:
+  - .github/agents/high-implementation-starter.agent.md
+  - .github/agents/standard-implementation-completer.agent.md
+  - .apm/skills/adaptive-implementation-execution/SKILL.md
+
+scenarios:
+  - id: A
+    name: high-completes-directly
+    input: fresh-valid-adaptive-intent
+    verdict_sequence: [COMPLETED_BY_HIGH_MODEL]
+    owner_sequence: [high-implementation-starter]
+    standard_started: false
+
+  - id: B
+    name: bounded-completion
+    input: valid-ready-for-standard-completion
+    verdict_sequence: [READY_FOR_STANDARD_COMPLETION, COMPLETED]
+    owner_sequence: [high-implementation-starter, standard-implementation-completer]
+    standard_started: true
+
+  - id: C
+    name: incomplete-handoff
+    input: ready-verdict-with-missing-authorization-field
+    verdict_sequence: [READY_FOR_STANDARD_COMPLETION]
+    handoff_accepted: false
+    parent_action: return-to-high-for-handoff-repair-or-continued-implementation
+    owner_sequence: [high-implementation-starter]
+    standard_started: false
+
+  - id: D
+    name: structural-reentry
+    input: valid-handoff-then-new-structural-decision
+    verdict_sequence: [READY_FOR_STANDARD_COMPLETION, NEEDS_HIGH_MODEL_REENTRY, COMPLETED_BY_HIGH_MODEL]
+    owner_sequence: [high-implementation-starter, standard-implementation-completer, high-implementation-starter]
+    standard_started: true
+    required_tracked_state: [original_implementation_intent, implementation_completion_handoff, high_model_reentry_handoff, implementation_route, implementation_route_source, design_pair_handoff, locked_decisions, current_worktree_state]
+
+  - id: E
+    name: repeated-trigger
+    input: recurring-reentry-trigger-without-strict-surface-reduction
+    verdict_sequence: [READY_FOR_STANDARD_COMPLETION, NEEDS_HIGH_MODEL_REENTRY, COMPLETED_BY_HIGH_MODEL]
+    owner_sequence: [high-implementation-starter, standard-implementation-completer, high-implementation-starter]
+    second_standard_started: false
+
+  - id: F
+    name: invalid-route-identity
+    input: resume-with-missing-or-contradictory-route-fields
+    verdict_sequence: [BLOCKED]
+    stop_reason: BlockedByInvalidCompletionHandoff
+    adaptive_default_inferred: false
+    write_owner: none
+
+  - id: G
+    name: design-pair-preservation
+    input: valid-design-pair-implementation-handoff
+    implementation_route: design-pair
+    implementation_route_source: explicit-user-selection
+    design_pair_handoff: plans/example-design-pair-implementation-handoff.md
+    preserve_through: [HIGH_MODEL, STANDARD_MODEL, HIGH_MODEL_REENTRY]
+    required_preserved_fields: [locked_decisions, design_pair_decision_ids, explicit_human_confirmation, implementation_self_map_delta]
+    standard_may_change_locked_decision: false

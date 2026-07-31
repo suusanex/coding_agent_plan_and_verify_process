@@ -108,6 +108,13 @@ ordinary Plan / short implementation intent
 
 すべての非自明な implementation は `high-implementation-starter` から開始します。課題全体が small-bounded、low risk、少数ファイルであることだけを理由に STANDARD_MODEL へ直行してはいけません。
 
+## Runtime adapters
+
+- Codex: `high-implementation-starter` / `standard-implementation-completer`のportable contractを使い、concrete modelはrepository-local `.codex/agents/*.toml`で補完できる。
+- GitHub Copilot Chat in VS Code: `high-implementation-starter`は`GPT-5.6 Terra (copilot)`、`standard-implementation-completer`は`GPT-5.6 Luna (copilot)`、re-entryは再びTerraを要求する。
+
+Copilotのhandoff buttonは手動遷移候補であり、verdictを検証するrouterではありません。HIGHからSTANDARDへのbuttonはvalidな`READY_FOR_STANDARD_COMPLETION`でだけ使い、`COMPLETED_BY_HIGH_MODEL`とstop verdictでは次agentを起動しません。STANDARDからHIGHへのbuttonはvalidな`NEEDS_HIGH_MODEL_REENTRY`でだけ使います。Copilotのagent/model遷移ではtracked handoffを必須とし、会話履歴だけを唯一のstate保持手段にしません。
+
 ## Step 1: Validate the intent
 
 1. repository instructions と user constraints を確認する。
@@ -159,6 +166,7 @@ HIGH_MODEL が scope 内の acceptance item をすべて `Complete` とし、各
 
 `refs/handoff.md` の必須 field がすべて存在し、次を満たす場合だけ受理します。
 
+- Original Implementation Intentのtracked pathまたはgoal / scope / acceptance / constraints / validation snapshotがある
 - representative production path / wiring evidence がある
 - production path / wiring、test harness、test seam、mock boundary の applicability evidence がある。該当しない concern は `N/A` と理由がある
 - focused verification が実行済み
@@ -188,7 +196,7 @@ Locked Decision conflict で停止する場合は、少なくとも affected Des
 
 ## Step 4: Delegate bounded completion
 
-`READY_FOR_STANDARD_COMPLETION` のときだけ `standard-implementation-completer` を起動します。
+`READY_FOR_STANDARD_COMPLETION` のときだけ `standard-implementation-completer` を起動します。GitHub Copilot Chat in VS CodeではTerraからLunaへの別model / agent遷移になるため、Implementation Completion Handoffを必ず`tracked`で保存し、そのpathをhandoff promptへ渡します。
 
 渡すもの:
 
@@ -210,7 +218,7 @@ completion scope、validation results、Design Pair Decision ID ごとの locked
 
 ### NEEDS_HIGH_MODEL_REENTRY
 
-`NEEDS_HIGH_MODEL_REENTRY`は、有効なImplementation Completion Handoffのauthorization後、許可された実装または検証の途中で新しい構造判断が判明した場合だけ受理します。STANDARD_MODEL の `High-model Re-entry Handoff`、元の `Implementation Completion Handoff`、元の Implementation Intent、元の locked decisions、current worktree state を保持して `high-implementation-starter` を直列に再実行します。両handoffの`implementation_route`、`implementation_route_source`、Design Pair handoff pathが一致することを再実行前に検証し、欠落または不一致があればHIGH_MODELを起動せず`BLOCKED`で停止し、`Stop reason: BlockedByInvalidCompletionHandoff`を報告します。
+`NEEDS_HIGH_MODEL_REENTRY`は、有効なImplementation Completion Handoffのauthorization後、許可された実装または検証の途中で新しい構造判断が判明した場合だけ受理します。STANDARD_MODEL の tracked `High-model Re-entry Handoff`、元の tracked `Implementation Completion Handoff`、元の Implementation Intent、元の locked decisions、current worktree state を保持して `high-implementation-starter` を直列に再実行します。両handoffの`implementation_route`、`implementation_route_source`、Design Pair handoff pathが一致することを再実行前に検証し、欠落または不一致があればHIGH_MODELを起動せず`BLOCKED`で停止し、`Stop reason: BlockedByInvalidCompletionHandoff`を報告します。Copilotでは両artifact pathをTerraへのhandoff promptに渡します。
 
 STANDARD_MODEL に redesign を続行させません。re-entry 後の HIGH_MODEL は actual code と new evidence を読み、必要な設計判断と実装を行います。1 回 re-entry した後は HIGH_MODEL が完了まで担当することを既定とします。
 
@@ -228,10 +236,10 @@ re-entry state は次の順に更新します。
 
 ## Handoff persistence
 
-- `inline`: 同一 run / 同一 parent orchestration 内の通常 handoff。既定値。
-- `tracked`: resume、別 thread、別 model、別作業者へ渡す場合。
+- `inline`: 同一 run / 同一 parent orchestration / 同一model内の通常 handoff。Codexの同一parent orchestrationでは既定値にできる。
+- `tracked`: resume、別 thread、別 model、別agent、別作業者へ渡す場合。GitHub Copilot Chat in VS CodeのHIGH -> STANDARDとSTANDARD -> HIGHでは必須。
 
-tracked handoff の推奨 path は `plans/<slug>-implementation-completion-handoff.md` です。実コードを source of truth とし、handoff は後段の自由度と re-entry trigger を伝える短い実行情報に留めます。
+tracked completion handoff の推奨 path は `plans/<slug>-implementation-completion-handoff.md`、re-entry handoffは`plans/<slug>-high-model-reentry-handoff.md`です。実コードを source of truth としつつ、Original Implementation Intent、route identity、Design Pair handoff path / Decision IDs、Locked Decisions、current worktree stateをmodel間で失わないだけのdurable stateを保持します。
 
 ## Verification boundary
 

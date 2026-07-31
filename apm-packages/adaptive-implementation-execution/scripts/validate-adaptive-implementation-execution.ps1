@@ -110,8 +110,11 @@ $requiredFiles = @(
     'apm-packages/adaptive-implementation-execution/docs/install-guide.md',
     'apm-packages/adaptive-implementation-execution/docs/usage-guide.md',
     'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md',
+    'apm-packages/adaptive-implementation-execution/docs/examples/copilot-manual-smoke.md',
     'apm-packages/adaptive-implementation-execution/docs/examples/legacy-adaptive-handoff.md',
+    'apm-packages/adaptive-implementation-execution/tests/routing-scenarios.yml',
     'apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs',
+    'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-apm-smoke.ps1',
     'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1',
     'apm-packages/design-pair-implementation-execution/apm.yml',
     'apm-packages/design-pair-implementation-execution/.apm/skills/design-pair-implementation-execution/SKILL.md',
@@ -145,14 +148,15 @@ if ($packageAgentsFiles.Count -gt 0) {
 
 $manifest = 'apm-packages/adaptive-implementation-execution/apm.yml'
 Assert-Contains $manifest '(?m)^name:\s*adaptive-implementation-execution\s*$' 'package name'
-Assert-Contains $manifest '(?m)^version:\s*0\.2\.0\s*$' 'package version 0.2.0'
+Assert-Contains $manifest '(?m)^version:\s*0\.3\.0\s*$' 'package version 0.3.0'
+Assert-Contains $manifest '(?m)^\s*-\s+copilot\s*$' 'Copilot target'
 Assert-Contains $manifest '(?m)^\s*-\s+codex\s*$' 'codex target'
 Assert-Contains $manifest '(?m)^\s*-\s+agent-skills\s*$' 'agent-skills target'
-Assert-NotContains $manifest '(?m)^\s*-\s+copilot\s*$' 'unverified Copilot target'
+Assert-NotContains $manifest '(?m)^\s*-\s+(?:github-copilot|vscode)\s*$' 'non-canonical Copilot target alias'
 Assert-NotContains $manifest 'token-aware|codex-first|plan-coverage' 'Plan Coverage or Codex-first dependency'
 Assert-NotContains $manifest 'path:\s+.*(?:implementation-intent|implementation-completion-handoff)\.md' 'standalone template dependency'
 
-# APM 0.18.0 materializes the complete package below a deep Git cache prefix on Windows.
+# APM remote install materializes the complete package below a deep Git cache prefix on Windows.
 # Keep every repository-relative package path bounded instead of checking only deployed skill files.
 $maxWindowsPackagePathLength = 110
 $packageRelativeRoot = 'apm-packages/adaptive-implementation-execution'
@@ -185,7 +189,7 @@ $integratedManifests = @(
     @{ Path = 'apm-packages/plan-coverage-residual-flow/apm.yml'; Version = '0\.7\.0' },
     @{ Path = 'apm-packages/token-aware-full-coverage-3layer/apm.yml'; Version = '0\.4\.0' },
     @{ Path = 'apm-packages/codex-first-ai-development-process/apm.yml'; Version = '0\.5\.0' },
-    @{ Path = 'apm-packages/copilot-fallback-ai-development-process/apm.yml'; Version = '0\.2\.0' }
+    @{ Path = 'apm-packages/copilot-fallback-ai-development-process/apm.yml'; Version = '0\.3\.0' }
 )
 
 foreach ($integratedManifest in $integratedManifests) {
@@ -310,14 +314,22 @@ Assert-Contains $skill '(?s)## Step 2: Start with HIGH_MODEL.*渡すもの:.*- `
 Assert-Contains $skill 'Design Pair Implementation Handoff path（`adaptive / default`では明示的な`N/A`、`design-pair / explicit-user-selection`ではcurrent tracked path）' 'HIGH_MODEL explicit default N/A path payload'
 Assert-Contains $skill '`adaptive / default`ではpathが明示的な`N/A`' 'parent default route path validation'
 Assert-Contains $skill 'previous Implementation Completion Handoff と High-model Re-entry Handoff' 'HIGH_MODEL re-entry dual handoff payload'
-Assert-Contains $skill '(?s)### NEEDS_HIGH_MODEL_REENTRY.*元の `Implementation Completion Handoff`.*両handoffの`implementation_route`、`implementation_route_source`、Design Pair handoff pathが一致' 'HIGH_MODEL re-entry route identity validation'
+Assert-Contains $skill '(?s)### NEEDS_HIGH_MODEL_REENTRY.*元の (?:tracked )?`Implementation Completion Handoff`.*両handoffの`implementation_route`、`implementation_route_source`、Design Pair handoff pathが一致' 'HIGH_MODEL re-entry route identity validation'
 Assert-Contains $skill '(?s)通常はすべてのHIGH_MODEL result.*incoming durable route identityと完全一致.*唯一の例外.*`Verdict: BLOCKED`.*`Stop reason: BlockedByInvalidCompletionHandoff`.*raw observed value.*`<missing>`.*artifact repair evidence' 'parent HIGH invalid-artifact BLOCKED route exception'
 Assert-Contains $skill '(?s)通常はすべてのSTANDARD_MODEL result.*incoming Implementation Completion Handoffと完全一致.*唯一の例外.*`Verdict: BLOCKED`.*`Stop reason: BlockedByInvalidCompletionHandoff`.*raw observed value.*`<missing>`.*artifact repair evidence' 'parent STANDARD invalid-artifact BLOCKED route exception'
 Assert-Contains $skill '(?s)### COMPLETED_BY_HIGH_MODEL.*検証済みroute identity' 'parent validates HIGH_MODEL completion route identity'
 Assert-Contains $skill '(?s)### COMPLETED.*検証済みroute identity' 'parent validates STANDARD_MODEL completion route identity'
 Assert-Contains $skill '(?s)### NEEDS_HIGH_MODEL_REENTRY.*有効なImplementation Completion Handoff.*構造判断.*欠落または不一致.*`BLOCKED`.*BlockedByInvalidCompletionHandoff' 'parent separates structural re-entry from invalid handoff'
+Assert-Contains $skill 'GitHub Copilot Chat in VS Code.*GPT-5\.6 Terra \(copilot\).*GPT-5\.6 Luna \(copilot\).*re-entry.*Terra' 'Copilot model route mapping'
+Assert-Contains $skill 'handoff button.*手動遷移候補.*verdictを検証するrouterではありません' 'Copilot handoff UI authorization boundary'
+Assert-Contains $skill 'Copilot.*tracked handoff.*会話履歴だけを唯一のstate保持手段にしません' 'Copilot tracked handoff state boundary'
+Assert-Contains $skill '`COMPLETED_BY_HIGH_MODEL`とstop verdictでは次agentを起動しません' 'Copilot stop verdict routing boundary'
 
 $highAgent = '.github/agents/high-implementation-starter.agent.md'
+Assert-Contains $highAgent '(?m)^tools:\s*\[' 'Copilot HIGH tools frontmatter'
+Assert-Contains $highAgent '(?m)^model:\s*GPT-5\.6 Terra \(copilot\)\s*$' 'Copilot HIGH model frontmatter'
+Assert-Contains $highAgent '(?m)^target:\s*vscode\s*$' 'Copilot HIGH VS Code target'
+Assert-Contains $highAgent '(?s)handoffs:.*agent:\s*standard-implementation-completer.*model:\s*GPT-5\.6 Luna \(copilot\)' 'Copilot HIGH bounded completion handoff'
 Assert-Contains $highAgent 'edit production code and tests' 'real implementation loop'
 Assert-Contains $highAgent 'CONTINUE_HIGH_IMPLEMENTATION' 'continue-high verdict'
 Assert-Contains $highAgent 'COMPLETED_BY_HIGH_MODEL' 'high completion verdict'
@@ -325,6 +337,7 @@ Assert-Contains $highAgent 'Allowed edit surface' 'handoff allowed surface'
 Assert-Contains $highAgent 'acceptance status table' 'high-model acceptance evidence output'
 Assert-Contains $highAgent '一度 re-entry した後' 'high-model re-entry ownership'
 Assert-Contains $highAgent 'すべての `Incomplete` acceptance item' 'high-model incomplete acceptance mapping gate'
+Assert-Contains $highAgent 'scope 内の全 acceptance item.*`Acceptance status`' 'high-model complete acceptance enumeration gate'
 Assert-Contains $highAgent 're-entry handoff の `reentry_count` を維持' 'high-model re-entry count propagation'
 Assert-Contains $highAgent 'You are the "High Implementation Starter" agent\.' 'APM stub high-agent opening'
 Assert-Contains $highAgent 'Implementation Self-Map Delta' 'HIGH_MODEL Self-Map delta output'
@@ -337,8 +350,15 @@ Assert-Contains $highAgent 're-entry handoffと元のImplementation Completion H
 Assert-Contains $highAgent '(?s)## Output.*通常はすべてのverdict.*唯一の例外.*`Verdict: BLOCKED`.*`Stop reason: BlockedByInvalidCompletionHandoff`.*raw observed value.*`<missing>`.*外部blocker.*完全なunchanged identity.*- implementation_route.*- implementation_route_source.*- Design Pair handoff path または `N/A`' 'HIGH_MODEL conditional route identity output'
 Assert-NotContains $highAgent '(?m)^すべてのverdictでincoming route identityを変更せず返します。$' 'unconditional HIGH_MODEL route identity output'
 Assert-Contains $highAgent '(?s)fieldの欠落、組み合わせ矛盾、またはevidence不一致.*`BLOCKED`.*BlockedByInvalidCompletionHandoff.*raw observed value.*`<missing>`.*推測または補完してはいけません' 'HIGH_MODEL invalid route classification and raw output'
+Assert-Contains $highAgent 'Original Implementation Intent.*goal / scope / acceptance / constraints / validation' 'HIGH_MODEL original intent persistence'
+Assert-Contains $highAgent 'GitHub Copilot Chat in VS Code.*必ずtracked artifact.*会話履歴だけを唯一の状態保持手段' 'Copilot HIGH tracked handoff requirement'
+Assert-NotContains $highAgent 'agent:\s*copilot-standard-verifier' 'Copilot HIGH stop/completion verification handoff'
 
 $standardAgent = '.github/agents/standard-implementation-completer.agent.md'
+Assert-Contains $standardAgent '(?m)^tools:\s*\[' 'Copilot STANDARD tools frontmatter'
+Assert-Contains $standardAgent '(?m)^model:\s*GPT-5\.6 Luna \(copilot\)\s*$' 'Copilot STANDARD model frontmatter'
+Assert-Contains $standardAgent '(?m)^target:\s*vscode\s*$' 'Copilot STANDARD VS Code target'
+Assert-Contains $standardAgent '(?s)handoffs:.*agent:\s*high-implementation-starter.*model:\s*GPT-5\.6 Terra \(copilot\)' 'Copilot STANDARD HIGH re-entry handoff'
 Assert-Contains $standardAgent 'NEEDS_HIGH_MODEL_REENTRY' 're-entry verdict'
 Assert-Contains $standardAgent 'Locked decisions' 'locked decision boundary'
 Assert-Contains $standardAgent 'Allowed edit surface' 'allowed edit boundary'
@@ -358,17 +378,24 @@ Assert-Contains $standardAgent '(?s)条件を満たす場合、production code /
 Assert-Contains $standardAgent '(?s)## Required authorization.*- implementation_route.*- implementation_route_source.*- Validation performed' 'STANDARD_MODEL required authorization route metadata'
 Assert-Contains $standardAgent '(?s)## High-model Re-entry Handoff.*- implementation_route:.*- implementation_route_source:.*- Design Pair handoff: N/A / plans/<slug>-design-pair-implementation-handoff\.md.*```' 'STANDARD_MODEL re-entry route identity fields'
 Assert-Contains $standardAgent '`implementation_route`、`implementation_route_source`、Design Pair handoff pathはincoming Implementation Completion Handoffの値を変更せず維持' 'STANDARD_MODEL re-entry route identity propagation'
-Assert-Contains $standardAgent 'この handoff、incoming Implementation Completion Handoff、元の Implementation Intent' 'STANDARD_MODEL re-entry original completion handoff retention'
+Assert-Contains $standardAgent 'この tracked handoff、incoming tracked Implementation Completion Handoff、元の Implementation Intent' 'STANDARD_MODEL re-entry original completion handoff retention'
 Assert-Contains $standardAgent '(?s)部分的な新schema、不完全な旧schema、矛盾するevidence.*`BLOCKED`.*BlockedByInvalidCompletionHandoff' 'STANDARD_MODEL invalid legacy artifact classification'
 Assert-Contains $standardAgent '(?s)片方が欠ける、矛盾する、またはevidenceと一致しないcurrent-schema handoff.*`BLOCKED`.*BlockedByInvalidCompletionHandoff' 'STANDARD_MODEL invalid current route classification'
 Assert-Contains $standardAgent '(?s)`NEEDS_HIGH_MODEL_REENTRY` は.*Required authorizationを通過.*構造判断.*invalid.*re-entry handoffを作成しません' 'STANDARD_MODEL structural-only re-entry boundary'
 Assert-Contains $standardAgent '(?s)## Output.*通常はすべてのverdict.*唯一の例外.*`Verdict: BLOCKED`.*`Stop reason: BlockedByInvalidCompletionHandoff`.*raw observed value.*`<missing>`.*外部blocker.*完全なunchanged identity.*- implementation_route.*- implementation_route_source.*- Design Pair handoff path または `N/A`' 'STANDARD_MODEL conditional route identity output'
 Assert-NotContains $standardAgent '(?m)^すべてのverdictでincoming route identityを変更せず返します。$' 'unconditional STANDARD_MODEL route identity output'
+Assert-Contains $standardAgent 'fresh intake.*直接選択.*編集せず.*tracked `READY_FOR_STANDARD_COMPLETION` handoff' 'STANDARD direct-start prohibition'
+Assert-Contains $standardAgent '(?s)High-model Re-entry Handoff.*Verdict: NEEDS_HIGH_MODEL_REENTRY.*Handoff persistence: tracked.*Original Implementation Intent:.*Worktree state:' 'complete tracked re-entry metadata'
+Assert-Contains $standardAgent 'state ownership、error、cancellation、retry' 'STANDARD policy decision re-entry trigger'
+Assert-Contains $standardAgent '(?s)## High-model re-entry.*public / internal API、schema、serialized format、config surface.*DI / factory / entrypoint / production wiring.*state ownership / error / cancellation / retry' 'STANDARD complete structural re-entry trigger set'
+Assert-Contains $standardAgent '会話履歴だけを唯一の状態保持手段にしてはいけません' 'Copilot STANDARD tracked handoff requirement'
+Assert-NotContains $standardAgent 'agent:\s*copilot-standard-verifier' 'Copilot STANDARD verification handoff'
 
 $handoff = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md'
 foreach ($field in @(
     'Verdict',
     'Handoff persistence',
+    'Original Implementation Intent',
     'Plan reference',
     'implementation_route',
     'implementation_route_source',
@@ -398,6 +425,7 @@ Assert-Contains $handoff 'Legacy Adaptive handoff normalization' 'legacy Adaptiv
 Assert-Contains $handoff 'LEGACY-HIGH-D01' 'deterministic legacy Decision ID rule'
 Assert-Contains $handoff '(?s)# Implementation Completion Handoff.*- implementation_route: adaptive / design-pair.*- implementation_route_source: default / explicit-user-selection.*## Acceptance status' 'current handoff header route metadata'
 Assert-Contains $handoff 'current-schema handoff.*`BLOCKED` / `BlockedByInvalidCompletionHandoff`.*legacy normalizationで補完しない' 'current handoff invalid route classification'
+Assert-Contains $handoff 'GitHub Copilot Chat in VS Code.*必ず`tracked`.*会話履歴だけをdurable stateにしない' 'Copilot handoff persistence contract'
 
 $legacyFixture = 'apm-packages/adaptive-implementation-execution/docs/examples/legacy-adaptive-handoff.md'
 Assert-Contains $legacyFixture 'Verdict: READY_FOR_STANDARD_COMPLETION' 'legacy handoff READY verdict'
@@ -545,8 +573,13 @@ Assert-Contains $auditTemplate 'HIGH and STANDARD write ownership did not overla
 
 $copilotHighAgent = 'apm-packages/copilot-fallback-ai-development-process/templates/github/agents/high-implementation-starter.agent.md'
 $copilotStandardAgent = 'apm-packages/copilot-fallback-ai-development-process/templates/github/agents/standard-implementation-completer.agent.md'
+$copilotFallbackManifest = 'apm-packages/copilot-fallback-ai-development-process/apm.yml'
+Assert-Contains $copilotFallbackManifest '(?m)^\s*-\s+copilot\s*$' 'fallback canonical Copilot target'
+Assert-NotContains $copilotFallbackManifest '(?m)^\s*-\s+(?:github-copilot|vscode)\s*$' 'fallback non-canonical Copilot target alias'
 Assert-Contains $copilotHighAgent '(?m)^name:\s*high-implementation-starter\s*$' 'Copilot canonical HIGH agent name'
+Assert-Contains $copilotHighAgent '(?m)^tools:\s*\[' 'Copilot fallback HIGH tools'
 Assert-Contains $copilotHighAgent '(?m)^model:\s*GPT-5\.6 Terra \(copilot\)\s*$' 'Copilot HIGH model mapping'
+Assert-Contains $copilotHighAgent '(?m)^target:\s*vscode\s*$' 'Copilot fallback HIGH VS Code target'
 Assert-Contains $copilotHighAgent 'agent: standard-implementation-completer' 'Copilot completion handoff'
 Assert-Contains $copilotHighAgent 'edit real production code and tests' 'Copilot real implementation loop'
 Assert-Contains $copilotHighAgent 'READY_FOR_STANDARD_COMPLETION' 'Copilot HIGH handoff verdict'
@@ -555,15 +588,58 @@ Assert-Contains $copilotHighAgent 'Blocked acceptance items' 'Copilot blocked ac
 Assert-Contains $copilotHighAgent 'evidence for Complete items' 'Copilot complete acceptance evidence rule'
 Assert-Contains $copilotHighAgent 'Own completion unless both Remaining work and Allowed edit surface strictly shrink' 'Copilot re-entry ownership rule'
 Assert-Contains $copilotHighAgent 'Implementation Self-Map Delta' 'Copilot HIGH Self-Map delta output'
+Assert-Contains $copilotHighAgent 'original Implementation Intent' 'Copilot fallback HIGH original intent continuity'
+Assert-Contains $copilotHighAgent 'implementation_route.*implementation_route_source.*Design Pair handoff path' 'Copilot fallback HIGH route identity continuity'
+Assert-Contains $copilotHighAgent 'bidirectional acceptance-to-work mapping' 'Copilot fallback HIGH acceptance-work mapping'
+Assert-Contains $copilotHighAgent 'Acceptance status for every in-scope item' 'Copilot fallback HIGH complete acceptance enumeration'
+Assert-Contains $copilotHighAgent 'representative production path.*production wiring.*test harness.*test seam.*mock boundary.*focused verification' 'Copilot fallback HIGH applicability and verification gate'
+Assert-Contains $copilotHighAgent 'conversation history is not the durable state' 'Copilot fallback HIGH tracked state rule'
+Assert-NotContains $copilotHighAgent 'agent:\s*copilot-standard-verifier' 'Copilot fallback HIGH verification handoff'
 Assert-Contains $copilotStandardAgent '(?m)^name:\s*standard-implementation-completer\s*$' 'Copilot canonical STANDARD agent name'
+Assert-Contains $copilotStandardAgent '(?m)^tools:\s*\[' 'Copilot fallback STANDARD tools'
 Assert-Contains $copilotStandardAgent '(?m)^model:\s*GPT-5\.6 Luna \(copilot\)\s*$' 'Copilot STANDARD model mapping'
+Assert-Contains $copilotStandardAgent '(?m)^target:\s*vscode\s*$' 'Copilot fallback STANDARD VS Code target'
 Assert-Contains $copilotStandardAgent 'agent: high-implementation-starter' 'Copilot HIGH re-entry handoff'
 Assert-Contains $copilotStandardAgent 'NEEDS_HIGH_MODEL_REENTRY' 'Copilot HIGH re-entry verdict'
 Assert-Contains $copilotStandardAgent 'Allowed edit surface' 'Copilot bounded edit surface'
-Assert-Contains $copilotStandardAgent 'preserve Locked decisions' 'Copilot locked decision boundary'
+Assert-Contains $copilotStandardAgent 'preserve Locked Decisions' 'Copilot locked decision boundary'
 Assert-Contains $copilotStandardAgent 'incremented reentry count' 'Copilot re-entry count rule'
 Assert-Contains $copilotStandardAgent 'every in-scope acceptance item is Complete' 'Copilot completion evidence gate'
 Assert-Contains $copilotStandardAgent 'Implementation Self-Map Delta' 'Copilot STANDARD Self-Map delta output'
+Assert-Contains $copilotStandardAgent 'Never accept fresh intake or direct start' 'Copilot fallback STANDARD direct-start prohibition'
+Assert-Contains $copilotStandardAgent 'original Implementation Intent.*unchanged route identity.*Design Pair handoff path' 'Copilot fallback STANDARD re-entry state continuity'
+Assert-Contains $copilotStandardAgent 'Design Pair Decision IDs' 'Copilot fallback STANDARD Design Pair continuity'
+Assert-Contains $copilotStandardAgent 'bidirectional acceptance-to-work mapping' 'Copilot fallback STANDARD acceptance-work mapping'
+Assert-Contains $copilotStandardAgent 'conversation history is not the durable state' 'Copilot fallback STANDARD tracked state rule'
+Assert-Contains $copilotStandardAgent 'BlockedByInvalidCompletionHandoff' 'Copilot fallback invalid handoff classification'
+Assert-NotContains $copilotStandardAgent 'agent:\s*copilot-standard-verifier' 'Copilot fallback STANDARD verification handoff'
+
+foreach ($sharedMarker in @(
+    'READY_FOR_STANDARD_COMPLETION',
+    'Original Implementation Intent',
+    'implementation_route',
+    'implementation_route_source',
+    'Design Pair handoff',
+    'Decision ID',
+    'Allowed edit surface',
+    'Implementation Self-Map Delta'
+)) {
+    Assert-Contains $highAgent ([regex]::Escape($sharedMarker)) "canonical HIGH shared marker $sharedMarker"
+    Assert-Contains $copilotHighAgent ([regex]::Escape($sharedMarker)) "fallback HIGH shared marker $sharedMarker"
+}
+foreach ($sharedMarker in @(
+    'NEEDS_HIGH_MODEL_REENTRY',
+    'Original Implementation Intent',
+    'implementation_route',
+    'implementation_route_source',
+    'Design Pair handoff',
+    'Decision ID',
+    'Allowed edit surface',
+    'Implementation Self-Map Delta'
+)) {
+    Assert-Contains $standardAgent ([regex]::Escape($sharedMarker)) "canonical STANDARD shared marker $sharedMarker"
+    Assert-Contains $copilotStandardAgent ([regex]::Escape($sharedMarker)) "fallback STANDARD shared marker $sharedMarker"
+}
 Assert-Contains 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs' 'shape_handoff_status.*remaining_design_uncertainty.*completion_scope.*shape_reentry_reason' 'managed AGENTS Adaptive state guidance'
 
 $codexInstaller = 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs'
@@ -597,6 +673,19 @@ Assert-Contains $validation 'async \+ retry \+ cancellation' 'async retry cancel
 Assert-Contains $validation '既存 pattern が明確な早期 STANDARD 委譲' 'early STANDARD delegation integration scenario'
 Assert-Contains $validation 'STANDARD 中の構造判断再発と HIGH re-entry' 'HIGH re-entry integration scenario'
 Assert-Contains $validation '実モデル比較.*NOT RUN' 'manual runtime comparison status'
+Assert-Contains $validation 'VAL-013: GitHub Copilot VS Code adapter' 'Copilot adapter validation scenario'
+
+$routingScenarios = 'apm-packages/adaptive-implementation-execution/tests/routing-scenarios.yml'
+foreach ($scenarioId in @('A', 'B', 'C', 'D', 'E', 'F', 'G')) {
+    Assert-Contains $routingScenarios ("(?m)^\s*- id: " + $scenarioId + '\s*$') "deterministic routing scenario $scenarioId"
+}
+Assert-Contains $routingScenarios '(?s)id: A.*COMPLETED_BY_HIGH_MODEL.*standard_started: false' 'HIGH direct completion scenario'
+Assert-Contains $routingScenarios '(?s)id: B.*READY_FOR_STANDARD_COMPLETION.*COMPLETED.*standard_started: true' 'bounded completion scenario'
+Assert-Contains $routingScenarios '(?s)id: C.*handoff_accepted: false.*return-to-high-for-handoff-repair-or-continued-implementation.*standard_started: false' 'incomplete handoff rejection scenario'
+Assert-Contains $routingScenarios '(?s)id: D.*NEEDS_HIGH_MODEL_REENTRY.*original_implementation_intent.*current_worktree_state' 'structural re-entry tracked state scenario'
+Assert-Contains $routingScenarios '(?s)id: E.*repeated-trigger.*second_standard_started: false' 'repeated trigger HIGH ownership scenario'
+Assert-Contains $routingScenarios '(?s)id: F.*BLOCKED.*BlockedByInvalidCompletionHandoff.*adaptive_default_inferred: false' 'invalid route identity scenario'
+Assert-Contains $routingScenarios '(?s)id: G.*implementation_route: design-pair.*implementation_route_source: explicit-user-selection.*design_pair_decision_ids.*standard_may_change_locked_decision: false' 'Design Pair preservation scenario'
 
 $installer = 'apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs'
 Assert-Contains $installer '(?m)^#:property TargetFramework=net10\.0\s*$' 'File-based app target framework'
@@ -612,6 +701,16 @@ Assert-Contains $installer 'apm-packages/adaptive-implementation-execution/scrip
 Assert-Contains $installer 'Path\.Combine\(packageRoot, "codex-agents"\)' 'custom agent source directory'
 Assert-NotContains $installer 'AGENTS\.md|adaptive-implementation-execution:start|PlanManagedInstructions' 'AGENTS.md access or managed marker logic'
 
+$apmSmoke = 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-apm-smoke.ps1'
+Assert-Contains $apmSmoke 'APM 0\.26\.0 is required' 'pinned APM 0.26.0 requirement'
+Assert-Contains $apmSmoke 'copilot,codex,agent-skills' 'combined Copilot Codex Skill install target'
+Assert-Contains $apmSmoke 'apm-packages/adaptive-implementation-execution#\$Ref' 'commit or ref pinned package spec'
+Assert-Contains $apmSmoke "'install', '--frozen'" 'idempotent frozen reinstall'
+Assert-Contains $apmSmoke 'USER_CUSTOM_HIGH_AGENT' 'existing Copilot customization collision fixture'
+Assert-Contains $apmSmoke 'without --force' 'default collision protection assertion'
+Assert-Contains $apmSmoke '(?s)Copilot HIGH model.*Copilot STANDARD model' 'Copilot model deployment assertions'
+Assert-Contains $apmSmoke '(?s)Codex HIGH model.*Codex STANDARD model' 'Codex model compatibility assertions'
+
 Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' 'APM install が skill と portable custom agents を導入する本体' 'APM-first quick start'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '`AGENTS\.md` を作成・変更・削除せず' 'documented AGENTS.md non-access'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' 'route_metadata_normalization: legacy-adaptive-handoff' 'documented legacy resume normalization marker'
@@ -623,8 +722,21 @@ Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' 'legacy-adaptive-handoff\.md' 'documented legacy resume fixture'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'installer does not create, read, update, or remove `AGENTS\.md`' 'validation scenario for AGENTS.md non-access'
 
+$copilotManualSmoke = 'apm-packages/adaptive-implementation-execution/docs/examples/copilot-manual-smoke.md'
+Assert-Contains $copilotManualSmoke '(?s)VS Code version.*GitHub Copilot / Copilot Chat extension version' 'manual Copilot environment record'
+Assert-Contains $copilotManualSmoke 'Selected agent.*Requested model.*Observed model.*Files changed.*Validation commands / results.*Terminal verdict.*Unexpected automatic handoff' 'manual Copilot phase evidence schema'
+Assert-Contains $copilotManualSmoke 'COMPLETED_BY_HIGH_MODEL.*STANDARDへ自動handoffされず' 'manual direct HIGH completion check'
+Assert-Contains $copilotManualSmoke '(?is)NEEDS_HIGH_MODEL_REENTRY.*original Implementation Intent|original Implementation Intent.*NEEDS_HIGH_MODEL_REENTRY' 'manual structural re-entry state check'
+Assert-Contains $copilotManualSmoke '利用可否はCopilot planとorganization policyに依存' 'Copilot model availability caveat'
+Assert-Contains $copilotManualSmoke 'NOT RUN' 'manual smoke unexecuted disclosure'
+
 $workflow = '.github/workflows/validate-adaptive-implementation-execution.yml'
 Assert-Contains $workflow 'validate-adaptive-implementation-execution\.ps1' 'Adaptive Implementation CI validator invocation'
+Assert-Contains $workflow 'microsoft/apm-action@v1' 'APM setup action'
+Assert-Contains $workflow "apm-version: '0\.26\.0'" 'pinned APM workflow version'
+Assert-Contains $workflow 'validate-adaptive-implementation-apm-smoke\.ps1' 'remote APM install smoke invocation'
+Assert-Contains $workflow 'github\.event\.pull_request\.head\.repo\.full_name.*github\.repository' 'fork-safe remote smoke repository'
+Assert-Contains $workflow 'github\.event\.pull_request\.head\.sha.*github\.sha' 'commit SHA pinned smoke ref'
 foreach ($pathFilter in @(
     'apm-packages/design-pair-implementation-execution/\*\*',
     'apm-packages/plan-coverage-residual-flow/\*\*',

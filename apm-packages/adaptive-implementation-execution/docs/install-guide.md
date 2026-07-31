@@ -4,17 +4,18 @@
 
 - APM CLI
 - Codex custom agents を使用できる環境
+- GitHub Copilot Chat custom agentsを使用できるVS Code環境（Copilot経路を使う場合）
 - .NET 10 SDK 以降（現行 APM の不足設定を補完する互換スクリプトを使う場合）
-- 対象 repository の `.codex/agents` を確認できる権限
+- 対象 repository の `.codex/agents` / `.github/agents` を確認できる権限
 
-正式サポート target は `codex` と `agent-skills` です。Copilot の model tier switching と re-entry routing はこの package では検証済みとして扱いません。
+正式サポート target は `copilot`、`codex`、`agent-skills` です。repositoryで固定しているAPM CLIは0.26.0です。APMの`vscode`入力は`copilot`へ正規化され、`github-copilot`は有効なAPM targetではありません。
 
 ## Install with APM
 
 対象 repository の root で実行します。
 
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target copilot,codex,agent-skills
 ```
 
 APM install が skill と portable custom agents を導入する本体です。導入後、少なくとも次を確認します。
@@ -22,13 +23,15 @@ APM install が skill と portable custom agents を導入する本体です。�
 - `.agents/skills/adaptive-implementation-execution/SKILL.md`
 - `.agents/skills/adaptive-implementation-execution/refs/intent.md`
 - `.agents/skills/adaptive-implementation-execution/refs/handoff.md`
+- `.github/agents/high-implementation-starter.agent.md`
+- `.github/agents/standard-implementation-completer.agent.md`
 - Codex が生成した `high-implementation-starter` と `standard-implementation-completer` の custom agent entry
 
 現行 APM が生成した Codex TOML に concrete model、reasoning、sandbox 設定がない場合だけ、次節の互換スクリプトで package 付属設定を補完します。
 
-### Local package validation on APM 0.18.0
+### Local package validation on APM 0.26.0
 
-この package の manifest は repository root の portable agent を `git: parent` で参照します。APM 0.18.0 は package 全体を local filesystem path から導入すると、parent repository を継承できず `git: parent cannot inherit from a local path dependency` で停止します。
+この package の manifest は repository root のportable agentを`git: parent`で参照します。APM 0.26.0でもpackage全体をlocal filesystem pathから導入すると、parent repositoryを継承できず`git: parent cannot inherit from a local path dependency`で停止します。
 
 これは repository URL から導入する通常経路とは別の local development 制約です。未公開の変更を local 検証する場合は、skill directory を直接導入し、互換スクリプトと static validator を組み合わせます。
 
@@ -39,7 +42,23 @@ dotnet run --file C:\path\to\adaptive-implementation-execution\scripts\install-a
 
 portable agent の `git: parent` dependency は static validator で path existence を確認します。repository URL と branch ref を使った remote install / rollback の実証結果は [Adaptive Routing Validation](examples/adaptive-routing-validation.md) に記録しています。
 
-APM 0.18.0 の Windows remote install は、Git cache の深い checkout path から package をコピーします。この package は skill 内 template を短い `refs/intent.md` と `refs/handoff.md` に配置し、legacy path-length boundary を超えないよう static validator で path budget を検証します。
+Windows remote installはGit cacheの深いcheckout pathからpackageをコピーするため、このpackageはskill内templateを短い`refs/intent.md`と`refs/handoff.md`に配置し、legacy path-length boundaryを超えないようstatic validatorでpath budgetを検証します。
+
+## GitHub Copilot Chat in VS Code
+
+APM install後、VS Codeでrepositoryを開き、Copilot Chatのagent pickerから`high-implementation-starter`を選択します。fresh intakeで`standard-implementation-completer`を選ばないでください。
+
+| Role | Agent | Requested model |
+| --- | --- | --- |
+| HIGH start | `high-implementation-starter` | `GPT-5.6 Terra (copilot)` |
+| Bounded STANDARD completion | `standard-implementation-completer` | `GPT-5.6 Luna (copilot)` |
+| Structural re-entry | `high-implementation-starter` | `GPT-5.6 Terra (copilot)` |
+
+HIGHからSTANDARDへのhandoff buttonはvalidな`READY_FOR_STANDARD_COMPLETION`とtracked artifactがある場合だけ使います。`COMPLETED_BY_HIGH_MODEL`、`REPLAN_REQUIRED`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`では次agentへ進みません。STANDARDからHIGHへのbuttonは`NEEDS_HIGH_MODEL_REENTRY`とtracked re-entry artifactがある場合だけ使います。
+
+modelがpickerにない、organization policyで禁止される、またはobserved modelがrequested modelと異なる場合は実行済みとして扱いません。HIGHをLunaで黙って代替せず、管理者への確認または明示的なadapter mapping変更を行い、requested / observed modelをmanual smoke evidenceへ記録します。
+
+Design Pair Implementation HandoffはAdaptiveへのvalid inputとして保持されますが、`design-pair-implementation-execution` package自体のCopilot起動・対話・handoff生成はこの変更の正式E2E supportではありません。
 
 ## Complete missing Codex custom agent settings
 
@@ -77,6 +96,7 @@ skill と bundled refs、portable agent dependency は package static validator 
 - APM-generated model-less stub: 既知の3 key shape、package metadata、agent instruction opening が一致する場合だけ自動補完する
 - その他の異なる同名 TOML: 既定では停止し、`--force` の明示がある場合だけ置換する
 - skill: APM の ownership に従う。補助スクリプトは skill を読み書きしない
+- `.github/agents/*.agent.md`: 初回APM install時に異なる未管理同名fileがある場合は`--force`なしで保持される。内容を確認せず`--force`を使わない
 - `AGENTS.md`: 補助スクリプトは存在確認を含めてアクセスしない
 
 ## Verify
@@ -85,6 +105,7 @@ package source repository では次を実行します。
 
 ```powershell
 ./scripts/validate-adaptive-implementation-execution.ps1
+./scripts/validate-adaptive-implementation-apm-smoke.ps1 -Repository suusanex/coding_agent_plan_and_verify_process -Ref <full-commit-sha>
 dotnet publish ./scripts/install-adaptive-implementation-local.cs
 git diff --check
 ```

@@ -1,0 +1,175 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory)]
+    [ValidatePattern('^[^/]+/[^/]+$')]
+    [string]$Repository,
+
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]$Ref,
+
+    [string]$ApmExecutable = 'apm'
+)
+
+$ErrorActionPreference = 'Stop'
+$PSNativeCommandUseErrorActionPreference = $false
+
+function Invoke-Native([string]$FilePath, [string[]]$Arguments, [string]$Description) {
+    & $FilePath @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Description failed with exit code $LASTEXITCODE."
+    }
+}
+
+function Assert-File([string]$Path, [string]$Description) {
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "Missing ${Description}: $Path"
+    }
+}
+
+function Assert-Contains([string]$Path, [string]$Pattern, [string]$Description) {
+    Assert-File $Path $Description
+    if ((Get-Content -Raw -LiteralPath $Path) -notmatch $Pattern) {
+        throw "$Description does not contain the required contract: $Path"
+    }
+}
+
+function Get-Hashes([string[]]$Paths) {
+    $result = @{}
+    foreach ($path in $Paths) {
+        Assert-File $path 'no-op hash input'
+        $result[$path] = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash
+    }
+    return $result
+}
+
+function Assert-Hashes([hashtable]$Expected) {
+    foreach ($path in $Expected.Keys) {
+        $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash
+        if ($actual -ne $Expected[$path]) {
+            throw "Reinstall changed package-managed content: $path"
+        }
+    }
+}
+
+$apmVersion = & $ApmExecutable --version 2>&1 | Out-String
+if ($LASTEXITCODE -ne 0) {
+    throw "APM executable failed: $ApmExecutable"
+}
+if ($apmVersion -notmatch '\b0\.26\.0\b') {
+    throw "APM 0.26.0 is required for the reproducible smoke. Observed: $($apmVersion.Trim())"
+}
+
+$tempRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
+$scratch = [System.IO.Path]::GetFullPath((Join-Path $tempRoot ("adaptive-apm-smoke-" + [guid]::NewGuid().ToString('N'))))
+$collision = [System.IO.Path]::GetFullPath((Join-Path $tempRoot ("adaptive-apm-collision-" + [guid]::NewGuid().ToString('N'))))
+foreach ($path in @($scratch, $collision)) {
+    if (-not $path.StartsWith($tempRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Unsafe scratch path: $path"
+    }
+}
+
+$previousPythonUtf8 = $env:PYTHONUTF8
+$previousPythonIoEncoding = $env:PYTHONIOENCODING
+$packageSpec = "$Repository/apm-packages/adaptive-implementation-execution#$Ref"
+
+try {
+    $env:PYTHONUTF8 = '1'
+    $env:PYTHONIOENCODING = 'utf-8'
+    New-Item -ItemType Directory -Path (Join-Path $scratch '.codex') -Force | Out-Null
+    Set-Content -LiteralPath (Join-Path $scratch 'AGENTS.md') -Value 'sentinel-agents'
+    Set-Content -LiteralPath (Join-Path $scratch '.codex/config.toml') -Value 'sentinel-config'
+    $agentsHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch 'AGENTS.md')).Hash
+    $configHash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch '.codex/config.toml')).Hash
+
+    Push-Location $scratch
+    try {
+        Invoke-Native $ApmExecutable @('install', $packageSpec, '--target', 'copilot,codex,agent-skills', '--https') 'remote APM install'
+    }
+    finally {
+        Pop-Location
+    }
+
+    $skillRoot = Join-Path $scratch '.agents/skills/adaptive-implementation-execution'
+    foreach ($relative in @('SKILL.md', 'refs/intent.md', 'refs/handoff.md')) {
+        Assert-File (Join-Path $skillRoot $relative) "deployed Skill asset $relative"
+    }
+
+    $copilotHigh = Join-Path $scratch '.github/agents/high-implementation-starter.agent.md'
+    $copilotStandard = Join-Path $scratch '.github/agents/standard-implementation-completer.agent.md'
+    Assert-Contains $copilotHigh '(?m)^tools:\s*\[' 'Copilot HIGH tools'
+    Assert-Contains $copilotHigh '(?m)^model:\s*GPT-5\.6 Terra \(copilot\)\s*$' 'Copilot HIGH model'
+    Assert-Contains $copilotHigh '(?m)^target:\s*vscode\s*$' 'Copilot HIGH target'
+    Assert-Contains $copilotHigh 'agent:\s*standard-implementation-completer' 'Copilot bounded completion handoff'
+    Assert-Contains $copilotStandard '(?m)^tools:\s*\[' 'Copilot STANDARD tools'
+    Assert-Contains $copilotStandard '(?m)^model:\s*GPT-5\.6 Luna \(copilot\)\s*$' 'Copilot STANDARD model'
+    Assert-Contains $copilotStandard '(?m)^target:\s*vscode\s*$' 'Copilot STANDARD target'
+    Assert-Contains $copilotStandard 'agent:\s*high-implementation-starter' 'Copilot HIGH re-entry handoff'
+
+    $codexHigh = Join-Path $scratch '.codex/agents/high-implementation-starter.toml'
+    $codexStandard = Join-Path $scratch '.codex/agents/standard-implementation-completer.toml'
+    $managedPaths = @(
+        (Join-Path $skillRoot 'SKILL.md'),
+        $copilotHigh,
+        $copilotStandard,
+        $codexHigh,
+        $codexStandard
+    )
+    $beforeReinstall = Get-Hashes $managedPaths
+    Push-Location $scratch
+    try {
+        Invoke-Native $ApmExecutable @('install', '--frozen') 'idempotent APM reinstall'
+    }
+    finally {
+        Pop-Location
+    }
+    Assert-Hashes $beforeReinstall
+
+    $adaptiveHelper = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'install-adaptive-implementation-local.cs'))
+    Invoke-Native 'dotnet' @('run', '--file', $adaptiveHelper, '--', $scratch) 'Codex profile completion'
+    Invoke-Native 'dotnet' @('run', '--file', $adaptiveHelper, '--', $scratch, '--check') 'Codex profile check'
+    Assert-Contains $codexHigh '(?m)^model\s*=\s*"gpt-5\.6-terra"\s*$' 'Codex HIGH model'
+    Assert-Contains $codexStandard '(?m)^model\s*=\s*"gpt-5\.6-luna"\s*$' 'Codex STANDARD model'
+
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch 'AGENTS.md')).Hash -ne $agentsHash) {
+        throw 'Remote APM install or Codex helper changed AGENTS.md.'
+    }
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch '.codex/config.toml')).Hash -ne $configHash) {
+        throw 'Remote APM install or Codex helper changed .codex/config.toml.'
+    }
+
+    $collisionAgentDir = Join-Path $collision '.github/agents'
+    New-Item -ItemType Directory -Path $collisionAgentDir -Force | Out-Null
+    $customHigh = Join-Path $collisionAgentDir 'high-implementation-starter.agent.md'
+    Set-Content -LiteralPath $customHigh -Value 'USER_CUSTOM_HIGH_AGENT'
+    $customHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $customHigh).Hash
+    Push-Location $collision
+    try {
+        Invoke-Native $ApmExecutable @('install', $packageSpec, '--target', 'copilot', '--https') 'collision-protection APM install'
+    }
+    finally {
+        Pop-Location
+    }
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $customHigh).Hash -ne $customHash) {
+        throw 'APM overwrote an existing unmanaged Copilot custom agent without --force.'
+    }
+    Assert-File (Join-Path $collisionAgentDir 'standard-implementation-completer.agent.md') 'non-conflicting Copilot STANDARD agent'
+
+    $global:LASTEXITCODE = 0
+    Write-Output 'Adaptive Implementation remote APM smoke: PASS'
+    Write-Output "Package: $packageSpec"
+    Write-Output "APM: $($apmVersion.Trim())"
+}
+finally {
+    if ($null -eq $previousPythonUtf8) { Remove-Item Env:PYTHONUTF8 -ErrorAction SilentlyContinue } else { $env:PYTHONUTF8 = $previousPythonUtf8 }
+    if ($null -eq $previousPythonIoEncoding) { Remove-Item Env:PYTHONIOENCODING -ErrorAction SilentlyContinue } else { $env:PYTHONIOENCODING = $previousPythonIoEncoding }
+    foreach ($path in @($scratch, $collision)) {
+        if (Test-Path -LiteralPath $path) {
+            $resolved = [System.IO.Path]::GetFullPath($path)
+            if (-not $resolved.StartsWith($tempRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+                throw "Refusing to remove unsafe scratch path: $resolved"
+            }
+            Remove-Item -LiteralPath $resolved -Recurse -Force
+        }
+    }
+}

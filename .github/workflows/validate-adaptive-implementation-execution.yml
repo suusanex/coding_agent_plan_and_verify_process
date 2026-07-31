@@ -42,6 +42,21 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Set up pinned APM CLI
+        uses: microsoft/apm-action@v1
+        with:
+          setup-only: 'true'
+          apm-version: '0.26.0'
       - name: Validate Adaptive Implementation contracts
         shell: pwsh
         run: ./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1
+      - name: Validate remote Adaptive package installation
+        shell: pwsh
+        env:
+          PACKAGE_REPOSITORY: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+          PACKAGE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          GITHUB_APM_PAT: ${{ github.token }}
+        run: |
+          ./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-apm-smoke.ps1 `
+            -Repository $env:PACKAGE_REPOSITORY `
+            -Ref $env:PACKAGE_REF

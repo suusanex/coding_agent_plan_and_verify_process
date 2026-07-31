@@ -2,6 +2,8 @@
 
 ## Dry-run first
 
+canonical Adaptive implementation agentはAdaptive packageからAPM 0.26.0の`copilot`targetで導入できます。fallback全体を導入する場合も、manifestのcanonical target名は`copilot`です。
+
 対象 repository へ入れる前に dry-run を実行してください。
 
 ```powershell
@@ -40,4 +42,15 @@ dotnet run --file .\apm-packages\copilot-fallback-ai-development-process\scripts
 - close blocker が残る場合に完了扱いしない
 
 確認結果は state artifact の `current_status`、`selected_agent_name`、`recommended_model_tier`、`edit_owner`、Adaptive Implementation fields と Agent Usage Ledger に記録してください。実モデルを使わない installer 確認では、品質・token cost・re-entry 回数は `NOT RUN` とします。
+
+同名Adaptive agentsのownershipはAdaptive packageがcanonical、fallback templatesが互換mirrorです。既存同名fileが異なる場合、local installerは`--force`なしで停止します。Adaptive APM installでも初回の未管理同名fileは保持されるため、内容とownerを確認せず上書きしません。
+
+## Adaptive agent ownership and migration
+
+- Adaptive packageをAPMで導入した`.github/agents/high-implementation-starter.agent.md`と`standard-implementation-completer.agent.md`はAPM lockfileのownershipに従い、`apm update` / `apm uninstall`で管理する。
+- fallback local installerで配置した同名fileはfallback template mirrorのownershipとし、同内容の再installはno-op、異なる内容は`--force`なしで停止する。
+- 両packageを併用して同名fileが同内容なら衝突しない。異なる場合はAdaptive canonicalを採用するかrepository customizationを保持するかを人が決め、無条件上書きしない。
+- fallback local installerは利用者変更を誤削除しないため自動removeを提供しない。Adaptive APM ownershipへ移行する場合は、mirrorとの差分がないことを確認してからfallback managed filesを人手で外し、Adaptive packageをAPM installする。
+
+人手での作業が必要: 既存fallback導入先で同名Adaptive agentにcustomizationがある場合は差分を確認し、Adaptive canonicalへ移行するかcustomizationを維持するかを決めてください。
 

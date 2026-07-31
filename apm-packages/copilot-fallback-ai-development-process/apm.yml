@@ -1,10 +1,9 @@
 name: copilot-fallback-ai-development-process
-version: 0.2.0
+version: 0.3.0
 description: GitHub Copilot Chat fallback package for cost-aware Plan-first routing, HIGH-first Adaptive Implementation, stateful resume, and close gates
 type: hybrid
 targets:
-  - github-copilot
-  - vscode
+  - copilot
 includes: auto
 
 dependencies:
