@@ -259,14 +259,15 @@ Input:
 
 Expected:
 
-- `high-implementation-starter` has `tools`, `model: GPT-5.6 Terra (copilot)`, `target: vscode`, and a single bounded-completion handoff to `standard-implementation-completer`
-- `standard-implementation-completer` has `tools`, `model: GPT-5.6 Luna (copilot)`, `target: vscode`, and a single structural re-entry handoff to `high-implementation-starter` using Terra
+- `high-implementation-starter` omits `tools` so Copilot uses its default tool set and APM does not produce a lossy Codex agent compilation; it has `model: GPT-5.6 Terra (copilot)`, `target: vscode`, and a single bounded-completion handoff to `standard-implementation-completer`
+- `standard-implementation-completer` omits `tools` for the same reason; it has `model: GPT-5.6 Luna (copilot)`, `target: vscode`, and a single structural re-entry handoff to `high-implementation-starter` using Terra
 - STANDARD direct start is rejected without a valid tracked `READY_FOR_STANDARD_COMPLETION`
 - `COMPLETED_BY_HIGH_MODEL` and stop verdicts do not route to another agent
 - Copilot model / agent transitions use tracked completion and re-entry artifacts containing original Implementation Intent, unchanged route identity, Locked Decisions, Design Pair Decision IDs when present, and current worktree state
 - fallback local installer copies the canonical root Adaptive agents directly and does not keep same-name mirrors
 - executable scenarios A-G in `tests/routing-scenarios.json` are interpreted by `tests/validate-routing-scenarios.ps1`; negative mutations reject direct STANDARD start, incomplete handoff acceptance, incomplete re-entry state, repeated delegation without surface reduction, implicit route defaulting, and locked Design Pair decision changes
-- actual model execution remains `NOT RUN` until the manual smoke template records selected agent, requested / observed model, files, checks, terminal verdict, and absence of unexpected handoff
+- GitHub Copilot CLI real-model execution is `PASS` for Terra direct completion, Terra-to-Luna bounded completion, Luna-to-Terra structural re-entry, invalid handoff rejection, selected agent / model evidence, files, checks, terminal verdicts, and absence of unexpected automatic transitions; see `copilot-cli-real-model-e2e-2026-07-31.md`
+- VS Code-specific `target` filtering and handoff-button behavior remain `NOT RUN` and use the manual smoke template
 
 ## Issue #44 integration validation matrix
 
@@ -349,9 +350,10 @@ The historical Codex checks below were first recorded with APM 0.18.0. The Copil
 | Agent discovery contract | PASS | remote install created both named `.codex/agents` entries and the static validator confirmed that the skill routes to those names |
 | Copilot frontmatter and executable scenarios | PASS | the validator checks canonical agents and the fallback single-source installer, then executes the A-G state machine and negative mutations |
 | APM 0.26.0 local adapter-equivalent install | PASS | a temporary dependency composed from the canonical root agents and packaged Skill deployed Copilot agents, Codex stubs, and the shared Skill; frozen reinstall preserved hashes, the Codex helper completed and checked both model mappings, and an unmanaged same-name Copilot agent was preserved without `--force` |
-| APM 0.26.0 pinned remote install smoke | NOT RUN | requires a remotely reachable full commit SHA; CI runs `validate-adaptive-implementation-apm-smoke.ps1` |
-| GitHub Copilot Chat in VS Code manual model smoke | NOT RUN | follow `copilot-manual-smoke.md`; do not infer model execution from fixtures or static validation |
-| Runtime multi-agent orchestration | NOT RUN | installation validation does not execute the skill and both implementation agents; this remains a separate Codex runtime validation |
+| APM 0.26.0 pinned remote install smoke | PASS | the disposable Copilot CLI E2E installed the package from full commit `816268eea12ae4e61a40f045de9448d180ef4a2c`; CI also runs `validate-adaptive-implementation-apm-smoke.ps1` |
+| GitHub Copilot CLI real-model orchestration | PASS | `copilot-cli-real-model-e2e-2026-07-31.md` records Terra direct completion, Terra-to-Luna bounded completion, Luna-to-Terra structural re-entry, negative routing, and validations |
+| GitHub Copilot Chat in VS Code UI smoke | NOT RUN | follow `copilot-manual-smoke.md` only for VS Code-specific agent picker, `target` filter, and handoff-button coverage; real-model routing itself is covered by the CLI E2E |
+| Runtime multi-agent orchestration | PASS | Copilot CLI executed both implementation agents with the shared Skill and tracked handoffs; model resolution and terminal verdict evidence are recorded in `copilot-cli-real-model-e2e-2026-07-31.md` |
 | Full package local-path install | NOT APPLICABLE | APM 0.26.0 cannot inherit `git: parent` from a local path dependency; the supported remote repository route is validated separately above |
 
 The local adapter-equivalent smoke validates current transformation and collision behavior but does not replace the pinned remote smoke for the real `git: parent` dependency graph. The full-package local-path limitation does not change the package manifest. The remote branch validation confirms that the `git: parent` convention resolves the root portable agents when APM installs the repository subdirectory package.

@@ -119,6 +119,7 @@ $requiredFiles = @(
     'apm-packages/adaptive-implementation-execution/docs/usage-guide.md',
     'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md',
     'apm-packages/adaptive-implementation-execution/docs/examples/copilot-manual-smoke.md',
+    'apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-07-31.md',
     'apm-packages/adaptive-implementation-execution/docs/examples/legacy-adaptive-handoff.md',
     'apm-packages/adaptive-implementation-execution/tests/routing-scenarios.json',
     'apm-packages/adaptive-implementation-execution/tests/validate-routing-scenarios.ps1',
@@ -648,6 +649,8 @@ Assert-Contains $validation '既存 pattern が明確な早期 STANDARD 委譲' 
 Assert-Contains $validation 'STANDARD 中の構造判断再発と HIGH re-entry' 'HIGH re-entry integration scenario'
 Assert-Contains $validation '実モデル比較.*NOT RUN' 'manual runtime comparison status'
 Assert-Contains $validation 'VAL-013: GitHub Copilot VS Code adapter' 'Copilot adapter validation scenario'
+Assert-Contains $validation 'Copilot CLI real-model orchestration.*PASS' 'Copilot CLI real-model validation status'
+Assert-Contains $validation 'omits `tools` so Copilot uses its default tool set' 'Copilot default tool-set contract'
 
 $routingScenarios = 'apm-packages/adaptive-implementation-execution/tests/routing-scenarios.json'
 $routingValidator = 'apm-packages/adaptive-implementation-execution/tests/validate-routing-scenarios.ps1'
@@ -705,6 +708,16 @@ Assert-Contains $copilotManualSmoke 'COMPLETED_BY_HIGH_MODEL.*STANDARDへ自動h
 Assert-Contains $copilotManualSmoke '(?is)NEEDS_HIGH_MODEL_REENTRY.*original Implementation Intent|original Implementation Intent.*NEEDS_HIGH_MODEL_REENTRY' 'manual structural re-entry state check'
 Assert-Contains $copilotManualSmoke '利用可否はCopilot planとorganization policyに依存' 'Copilot model availability caveat'
 Assert-Contains $copilotManualSmoke 'NOT RUN' 'manual smoke unexecuted disclosure'
+Assert-Contains $copilotManualSmoke 'GitHub Copilot CLI.*copilot-cli-real-model-e2e-2026-07-31.md' 'Copilot CLI automation equivalence'
+
+$copilotCliEvidence = 'apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-07-31.md'
+Assert-Contains $copilotCliEvidence '816268eea12ae4e61a40f045de9448d180ef4a2c' 'real-model source commit'
+Assert-Contains $copilotCliEvidence 'gpt-5\.6-terra -> gpt-5\.6-luna -> gpt-5\.6-terra' 'observed Terra Luna Terra route'
+Assert-Contains $copilotCliEvidence 'COMPLETED_BY_HIGH_MODEL' 'real-model HIGH completion verdict'
+Assert-Contains $copilotCliEvidence 'READY_FOR_STANDARD_COMPLETION' 'real-model bounded handoff verdict'
+Assert-Contains $copilotCliEvidence 'NEEDS_HIGH_MODEL_REENTRY' 'real-model structural re-entry verdict'
+Assert-Contains $copilotCliEvidence 'BlockedByInvalidCompletionHandoff' 'real-model invalid handoff rejection'
+Assert-Contains $copilotCliEvidence 'unknown fields ignored: target, handoffs' 'Copilot CLI VS Code field limitation'
 
 $workflow = '.github/workflows/validate-adaptive-implementation-execution.yml'
 Assert-Contains $workflow 'validate-adaptive-implementation-execution\.ps1' 'Adaptive Implementation CI validator invocation'

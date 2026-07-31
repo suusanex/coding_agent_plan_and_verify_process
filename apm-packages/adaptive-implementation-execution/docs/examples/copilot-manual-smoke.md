@@ -1,6 +1,10 @@
 # GitHub Copilot Chat in VS Code Manual Smoke
 
-このrunbookは、static fixtureでは検証できない実model / UI handoffを人手で確認するためのものです。未実行の行を`PASS`にせず、実際に観測した値だけを記録します。
+このrunbookは、static fixtureでは検証できない実model / VS Code UI handoffを確認するためのものです。未実行の行を`PASS`にせず、実際に観測した値だけを記録します。
+
+## Automation equivalence
+
+実model、選択agent、Skill実行、tracked artifact、変更境界、validation、terminal verdictの確認にはGitHub Copilot CLIを使用できます。CLIによる実行証拠は[`copilot-cli-real-model-e2e-2026-07-31.md`](copilot-cli-real-model-e2e-2026-07-31.md)に記録します。VS Codeのagent picker、`target` filter、handoff button自体をacceptance対象にする場合だけ、このtemplateをVS Codeで別途実行します。
 
 ## Safety and setup
 
@@ -74,4 +78,4 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-
 - no unexpected automatic handoff: NOT RUN
 - terminal verdict: NOT RUN
 
-人手での作業が必要: 利用可能なGitHub Copilot Chat in VS Code環境で上記を実行し、このtemplateを実測値で複製してevidenceを保存してください。Terra / Lunaの利用可否はCopilot planとorganization policyに依存します。指定modelを選べない、またはobserved modelが異なる場合はその差異を記録し、要求どおりのmodel smokeを`PASS`にしません。
+実行環境が必要: VS Code固有UIまで検証する場合は、利用可能なGitHub Copilot Chat in VS Code環境で上記を実行し、このtemplateを実測値で複製してevidenceを保存します。Terra / Lunaの利用可否はCopilot planとorganization policyに依存します。指定modelを選べない、またはobserved modelが異なる場合はその差異を記録し、要求どおりのmodel smokeを`PASS`にしません。
