@@ -173,4 +173,4 @@ Codexの抽象tierと具体的modelの対応は`codex-agents/*.toml`で変更し
 - `model_reasoning_effort`: role に必要な reasoning
 - `sandbox_mode`: implementation agent では `workspace-write`
 
-Copilotのconcrete modelはcanonical root `.github/agents/*.agent.md`のfrontmatterで指定します。fallback側の同名templateは既存利用者向けの短いmirrorであり、validatorが重要契約の同期を検証します。skill選択後の実行契約は`SKILL.md`とcanonical agentsをsource of truthとします。
+Copilotのconcrete modelはcanonical root `.github/agents/*.agent.md`のfrontmatterで指定します。fallback local installerも同じroot filesを直接配布し、同名templateを別管理しません。skill選択後の実行契約は`SKILL.md`とcanonical agentsをsource of truthとします。

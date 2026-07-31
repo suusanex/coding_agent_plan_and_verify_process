@@ -1,7 +1,6 @@
 ---
 name: standard-implementation-completer
 description: Complete only a high-model handoff's bounded implementation remainder without changing locked structural decisions, and return to the high model when new design work appears.
-tools: ['read', 'search', 'edit', 'execute']
 model: GPT-5.6 Luna (copilot)
 target: vscode
 handoffs:

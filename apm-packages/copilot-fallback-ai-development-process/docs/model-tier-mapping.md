@@ -1,6 +1,6 @@
 # Copilot Model Tier Mapping
 
-Copilot fallbackのplanner、verifier、scanner、close agentのmodel mappingはCodex-firstとは別管理です。ただしcanonical Adaptive implementation routeのHIGH / STANDARD / re-entry mappingは`adaptive-implementation-execution`をsource of truthとし、このpackageの同名templateは互換mirrorとしてvalidatorで同期します。
+Copilot fallbackのplanner、verifier、scanner、close agentのmodel mappingはCodex-firstとは別管理です。ただしcanonical Adaptive implementation routeのHIGH / STANDARD / re-entry mappingはrepository rootと`adaptive-implementation-execution`をsource of truthとし、fallback local installerも同じroot agent filesを直接配布します。
 
 VS Code / GitHub Copilot 側で利用可能な model 名、組織 policy、premium request、品質要求は変わるため、次の対応は初期例として扱ってください。
 

@@ -54,12 +54,12 @@ HIGH_MODEL と STANDARD_MODEL の write-heavy work は並列化しません。�
 | Compatibility installer | `scripts/install-adaptive-implementation-local.cs` |
 | Static validator | `scripts/validate-adaptive-implementation-execution.ps1` |
 | APM 0.26.0 remote install smoke | `scripts/validate-adaptive-implementation-apm-smoke.ps1` |
-| Deterministic route scenarios A-G | `tests/routing-scenarios.yml` |
+| Executable route scenarios A-G | `tests/routing-scenarios.json` + `tests/validate-routing-scenarios.ps1` |
 | Pre-Design-Pair resume fixture | `docs/examples/legacy-adaptive-handoff.md` |
 
-root `.github/agents/high-implementation-starter.agent.md` と `standard-implementation-completer.agent.md` がcanonical contractです。APM 0.26.0は同じsourceをCopilotではmodel / tools / handoffsを持つ`.agent.md`として、Codexではmodel-less TOML stubとしてtarget別に変換します。Codexのconcrete modelだけをcompatibility installerで補完します。
+root `.github/agents/high-implementation-starter.agent.md` と `standard-implementation-completer.agent.md` がcanonical contractです。APM 0.26.0は同じsourceをCopilotではmodel / handoffsを持つ`.agent.md`として、Codexではmodel-less TOML stubとしてtarget別に変換します。`tools`は省略してCopilotの全toolを許可し、Codex変換時のfrontmatter dropを防ぎます。Codexのconcrete modelだけをcompatibility installerで補完します。
 
-`copilot-fallback-ai-development-process`の同名agent templateは既存利用者向けの短いadapter mirrorです。Adaptive validatorがHIGH-first、direct STANDARD禁止、verdict、route identity、Locked Decisions、Design Pair Decision ID、Allowed edit surface、tracked re-entry metadata、Implementation Self-Map Deltaの同期を検証し、独立した別契約へ分岐させません。
+`copilot-fallback-ai-development-process`のlocal installerも同じroot canonical filesを直接コピーします。同名templateをpackage内に複製せず、Adaptive validatorがsingle sourceとinstaller経路を検証します。
 
 ## Quick start
 

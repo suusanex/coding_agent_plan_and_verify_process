@@ -1,7 +1,6 @@
 ---
 name: high-implementation-starter
 description: Start and, when necessary, complete a non-trivial implementation from an ordinary Plan by editing real production code and tests before deciding whether a bounded remainder can be delegated.
-tools: ['read', 'search', 'edit', 'execute']
 model: GPT-5.6 Terra (copilot)
 target: vscode
 handoffs:

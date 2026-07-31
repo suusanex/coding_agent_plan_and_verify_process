@@ -264,8 +264,8 @@ Expected:
 - STANDARD direct start is rejected without a valid tracked `READY_FOR_STANDARD_COMPLETION`
 - `COMPLETED_BY_HIGH_MODEL` and stop verdicts do not route to another agent
 - Copilot model / agent transitions use tracked completion and re-entry artifacts containing original Implementation Intent, unchanged route identity, Locked Decisions, Design Pair Decision IDs when present, and current worktree state
-- fallback package adapters contain the same critical contract markers and are checked by the Adaptive validator
-- deterministic scenarios A-G in `tests/routing-scenarios.yml` cover direct HIGH completion, bounded completion, incomplete handoff, structural re-entry, repeated trigger, invalid route identity, and Design Pair preservation
+- fallback local installer copies the canonical root Adaptive agents directly and does not keep same-name mirrors
+- executable scenarios A-G in `tests/routing-scenarios.json` are interpreted by `tests/validate-routing-scenarios.ps1`; negative mutations reject direct STANDARD start, incomplete handoff acceptance, incomplete re-entry state, repeated delegation without surface reduction, implicit route defaulting, and locked Design Pair decision changes
 - actual model execution remains `NOT RUN` until the manual smoke template records selected agent, requested / observed model, files, checks, terminal verdict, and absence of unexpected handoff
 
 ## Issue #44 integration validation matrix
@@ -347,7 +347,7 @@ The historical Codex checks below were first recorded with APM 0.18.0. The Copil
 | Remote branch package install | PASS | APM resolved the virtual package and both `git: parent` portable agents from `#codex/issue-45` at `66e1234b`, then deployed the skill, references, and both Codex agents |
 | Remote rollback | PASS | `apm uninstall` removed the direct package and skill, custom agent removal deleted package-owned TOMLs, and `apm prune` removed both orphaned portable agent packages; no integrated skill, agent, or package files remained |
 | Agent discovery contract | PASS | remote install created both named `.codex/agents` entries and the static validator confirmed that the skill routes to those names |
-| Copilot frontmatter and deterministic scenarios | PASS | current static validator checks both canonical agents, fallback mirrors, and scenarios A-G |
+| Copilot frontmatter and executable scenarios | PASS | the validator checks canonical agents and the fallback single-source installer, then executes the A-G state machine and negative mutations |
 | APM 0.26.0 local adapter-equivalent install | PASS | a temporary dependency composed from the canonical root agents and packaged Skill deployed Copilot agents, Codex stubs, and the shared Skill; frozen reinstall preserved hashes, the Codex helper completed and checked both model mappings, and an unmanaged same-name Copilot agent was preserved without `--force` |
 | APM 0.26.0 pinned remote install smoke | NOT RUN | requires a remotely reachable full commit SHA; CI runs `validate-adaptive-implementation-apm-smoke.ps1` |
 | GitHub Copilot Chat in VS Code manual model smoke | NOT RUN | follow `copilot-manual-smoke.md`; do not infer model execution from fixtures or static validation |

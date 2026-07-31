@@ -625,7 +625,7 @@ dotnet run --file .\apm-packages\copilot-fallback-ai-development-process\scripts
 dotnet run --file .\apm-packages\copilot-fallback-ai-development-process\scripts\install-copilot-fallback-local.cs -- <target-repo-path>
 ```
 
-同名 template を上書きする必要がある場合だけ `--force` を使います。既存 `.github/copilot-instructions.md` は marker 管理された `copilot-fallback` block だけを差し替え、marker がない既存 file は manual merge blocker として停止します。
+同名 managed file を上書きする必要がある場合だけ `--force` を使います。Adaptive agentsはこのrepository rootのcanonical filesから直接コピーされます。別checkoutをsourceにする場合は`--repository-root <dir>`を指定します。既存 `.github/copilot-instructions.md` は marker 管理された `copilot-fallback` block だけを差し替え、marker がない既存 file は manual merge blocker として停止します。
 
 導入後は主に次が配置されます。
 
@@ -672,7 +672,7 @@ dotnet run --file .\apm-packages\copilot-fallback-ai-development-process\scripts
 
 ### モデル tier
 
-Copilot fallbackのplanner / verifier / scanner tierはCodex-firstと別管理です。canonical Adaptive implementation agentはAdaptive packageをsource of truthとし、fallback側の同名templateはvalidatorで重要契約を同期する互換mirrorです。
+Copilot fallbackのplanner / verifier / scanner tierはCodex-firstと別管理です。canonical Adaptive implementation agentはrepository rootとAdaptive packageをsource of truthとし、fallback local installerもそのroot filesを直接配布します。同名templateの互換mirrorは保持しません。
 
 | Label | Intended use |
 | --- | --- |

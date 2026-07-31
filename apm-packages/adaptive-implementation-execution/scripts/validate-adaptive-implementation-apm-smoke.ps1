@@ -21,6 +21,18 @@ function Invoke-Native([string]$FilePath, [string[]]$Arguments, [string]$Descrip
     }
 }
 
+function Invoke-NativeCapture([string]$FilePath, [string[]]$Arguments, [string]$Description) {
+    $output = @(& $FilePath @Arguments 2>&1)
+    $exitCode = $LASTEXITCODE
+    foreach ($line in $output) {
+        Write-Host $line
+    }
+    if ($exitCode -ne 0) {
+        throw "$Description failed with exit code $exitCode."
+    }
+    return ($output | Out-String)
+}
+
 function Assert-File([string]$Path, [string]$Description) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
         throw "Missing ${Description}: $Path"
@@ -31,6 +43,13 @@ function Assert-Contains([string]$Path, [string]$Pattern, [string]$Description) 
     Assert-File $Path $Description
     if ((Get-Content -Raw -LiteralPath $Path) -notmatch $Pattern) {
         throw "$Description does not contain the required contract: $Path"
+    }
+}
+
+function Assert-NotContains([string]$Path, [string]$Pattern, [string]$Description) {
+    Assert-File $Path $Description
+    if ((Get-Content -Raw -LiteralPath $Path) -match $Pattern) {
+        throw "$Description contains a forbidden contract: $Path"
     }
 }
 
@@ -84,7 +103,10 @@ try {
 
     Push-Location $scratch
     try {
-        Invoke-Native $ApmExecutable @('install', $packageSpec, '--target', 'copilot,codex,agent-skills', '--https') 'remote APM install'
+        $installOutput = Invoke-NativeCapture $ApmExecutable @('install', $packageSpec, '--target', 'copilot,codex,agent-skills', '--https') 'remote APM install'
+        if ($installOutput -match '(?i)lossy agent compilation warnings|frontmatter field[^\r\n]*dropped|may inherit all project/session MCP servers') {
+            throw 'Remote APM install reported lossy agent compilation. Canonical agents must compile without dropped frontmatter.'
+        }
     }
     finally {
         Pop-Location
@@ -97,11 +119,11 @@ try {
 
     $copilotHigh = Join-Path $scratch '.github/agents/high-implementation-starter.agent.md'
     $copilotStandard = Join-Path $scratch '.github/agents/standard-implementation-completer.agent.md'
-    Assert-Contains $copilotHigh '(?m)^tools:\s*\[' 'Copilot HIGH tools'
+    Assert-NotContains $copilotHigh '(?m)^tools:' 'Copilot HIGH explicit tools frontmatter'
     Assert-Contains $copilotHigh '(?m)^model:\s*GPT-5\.6 Terra \(copilot\)\s*$' 'Copilot HIGH model'
     Assert-Contains $copilotHigh '(?m)^target:\s*vscode\s*$' 'Copilot HIGH target'
     Assert-Contains $copilotHigh 'agent:\s*standard-implementation-completer' 'Copilot bounded completion handoff'
-    Assert-Contains $copilotStandard '(?m)^tools:\s*\[' 'Copilot STANDARD tools'
+    Assert-NotContains $copilotStandard '(?m)^tools:' 'Copilot STANDARD explicit tools frontmatter'
     Assert-Contains $copilotStandard '(?m)^model:\s*GPT-5\.6 Luna \(copilot\)\s*$' 'Copilot STANDARD model'
     Assert-Contains $copilotStandard '(?m)^target:\s*vscode\s*$' 'Copilot STANDARD target'
     Assert-Contains $copilotStandard 'agent:\s*high-implementation-starter' 'Copilot HIGH re-entry handoff'
