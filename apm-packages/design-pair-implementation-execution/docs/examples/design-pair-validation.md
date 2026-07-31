@@ -337,6 +337,16 @@ Expected:
 - 各Targetの具体的file / symbol、current responsibility / invariant、requested changeとの関係、内部設計判断候補、expected modification / verification、relevant evidence、open questionをuser-facingに提示するまで選択を求めない
 - artifact内の詳細をuser-facing presentation evidenceとして代用しない
 
+## DP-VAL-031: Required user-facing structures are not compressed
+
+Input: handoffは完全だが、初回応答がTarget名の短い箇条書き、または選択後応答がalternativesだけの短いparagraphに圧縮されている。
+
+Expected:
+
+- 初回は7列の`Design Pair Target Map` table、Coverage evidence、Selection requestを実際のresponse本文へ出す
+- 選択後は`<DP-Txx> Internal design discussion` blockの全fieldを実際のresponse本文へ出す
+- 応答本文のfieldが欠ける場合、handoff ReadinessをPASSにせず応答を修復する
+
 ## Repository static validation
 
 ```powershell

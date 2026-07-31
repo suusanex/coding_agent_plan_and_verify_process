@@ -28,6 +28,7 @@ Verify and record:
 
 - the response presents the entire bounded Target Map and internal design decision candidates;
 - the user-facing response gives every Target's concrete file and symbol, current responsibility and invariant, relation to the change, expected modification or verification, relevant evidence, and open question rather than only Target labels or an artifact link;
+- the response uses the required seven-column `Design Pair Target Map`, Coverage evidence, and Selection request structure without compressing the map to a short Target list;
 - the response asks for Target IDs, initial positions, and delegation of unselected Targets;
 - the tracked handoff is `AWAITING_USER_INPUT / target-selection`;
 - no Design Pair Locked Decision exists;
@@ -48,6 +49,8 @@ Discuss <Target ID>. My initial position is to keep parsing close to the retry p
 Verify that the model discusses code evidence, alternatives, trade-offs, production wiring or lifecycle effects, and validation expectations. It must not self-confirm a Locked Decision. The handoff must become `AWAITING_USER_INPUT / disposition-confirmation`, and `src/` and `tests/` must remain unchanged.
 
 For every selected Target, verify that the user-facing response itself includes the concrete file and symbol, current responsibility and invariant, caller/wiring/lifecycle/test-seam evidence, the internal design decision, realistic alternatives and trade-offs, a non-binding proposal or an evidence-backed `No proposal` reason, validation expectations, and open questions. An artifact link, Target label, or abstract option list alone is `FAIL` even when the tracked handoff contains more detail.
+
+Verify that the response uses the required `<DP-Txx> Internal design discussion` block and does not collapse its fields into an abstract paragraph or option list.
 
 Forward the human response verbatim to the same Codex task. The smoke operator must not ask a separate harness question, append an initial position, or synthesize delegation. If the human returns only a Target ID, record an additional partial-selection turn. The process must present the complete selected-Target discussion surface described above, keep `AWAITING_USER_INPUT / target-selection`, ask for the missing initial position or delegation itself, keep production/tests unchanged, and synchronize the handoff header and Readiness Check from the same user evidence. An invented stage such as `design-discussion`, contradictory evidence, or a topic-only response is `FAIL`.
 

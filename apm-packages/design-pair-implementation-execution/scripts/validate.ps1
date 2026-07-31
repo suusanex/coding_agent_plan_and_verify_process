@@ -145,6 +145,8 @@ Assert-Contains $skill '利用者が初期案' 'human-first discussion order'
 Assert-Contains $skill 'AI の推奨案を最初から確定案として提示してはいけない' 'non-leading discussion rule'
 Assert-Contains $skill '(?s)## Phase 3: Present the Target Map and stop.*AWAITING_USER_INPUT.*interaction_stage: target-selection.*その turn を終了する' 'mandatory initial post-map turn stop'
 Assert-Contains $skill '(?s)handoff artifactへのlinkまたはTarget IDと論点名の要約だけではTarget Map提示と認めない.*各TargetのTarget ID、具体的file / symbol、current responsibility / invariant、requested changeとの関係、内部設計判断候補、expected modification or verification、relevant evidence、open question' 'concrete user-facing initial Target Map'
+Assert-Contains $skill '(?s)初回のuser-facing responseは次のMarkdown構造を省略せず使用する.*## Design Pair Target Map.*Target ID.*File / Symbol.*Current responsibility / invariant.*Relation to change / internal decision.*Expected modification or verification.*Relevant evidence.*Open question.*### Coverage evidence.*Production symbol and direct callers.*Tests / fixtures / test seam.*DI / factory / startup / production wiring.*Lifecycle / cancellation / state ownership.*### Selection request' 'required initial Target Map response schema'
+Assert-Contains $skill '(?s)turn終了前にuser-facing responseをself-check.*全Target rowの全7列とCoverage evidence.*handoff artifact内だけに詳細.*短い箇条書きへ圧縮.*PASSにせず、応答を修復' 'initial response content self-check'
 Assert-Contains $skill '(?s)初回 turn では次を禁止する.*READY_FOR_ADAPTIVE_IMPLEMENTATION.*adaptive-implementation-execution.*production code / tests.*Locked Decision' 'initial turn prohibitions'
 Assert-Contains $skill '最初の依頼が「実装してください」であっても、この boundary を省略しない' 'implementation request cannot skip interaction boundary'
 Assert-Contains $skill '(?s)resume では.*interaction stage.*Target Map.*presentation evidence.*Target Map 提示後の user response.*BLOCKED.*Adaptive へ fallback しない' 'resume waiting evidence fail-closed rule'
@@ -152,6 +154,7 @@ Assert-Contains $skill '(?s)user response は、test harness や parent が補�
 Assert-Contains $skill '(?s)必要な selection input が揃い.*trade-off.*`AWAITING_USER_INPUT / disposition-confirmation` へ進める' 'partial selection cannot advance early'
 Assert-Contains $skill '(?s)選択された Target の対話では.*handoff artifactへのlinkまたは論点名だけを返してはいけない.*Target ID と具体的な file / symbol.*現在の責務と invariant.*直接 caller、production wiring、lifecycle / state ownership、test seam.*実在する代替案.*trade-off.*非 binding の AI proposal.*`No proposal`.*validation expectation' 'selected Target minimum discussion surface'
 Assert-Contains $skill '(?s)Target IDだけのpartial selectionでも.*minimum discussion surfaceを提示.*Target Map内に詳細があることをuser-facing説明の代替にせず.*`Selected Target Discussion Evidence`' 'partial selection concrete discussion evidence'
+Assert-Contains $skill '(?s)選択Targetのuser-facing responseは.*## <DP-Txx> Internal design discussion.*Code location.*Current responsibility / invariant.*Callers / wiring / lifecycle / state / test seam.*Internal design decision needed.*Alternatives and trade-offs.*Non-binding AI proposal.*Validation expectations.*Open questions' 'required selected Target discussion response schema'
 Assert-Contains $skill '(?s)各 response.*handoff header、Target Map row、summary Target sets、Readiness Check.*同じ observed evidence から再計算.*User response occurred after Target Map presentation: Yes.*同名 row.*`PASS`' 'mirrored user evidence synchronization'
 Assert-Contains $skill '(?s)Target Map 提示後の通常 interaction stage は `target-selection`、`disposition-confirmation`、`upstream-decision`、`complete` のいずれかだけ.*`target-map-building` は提示前の `DRAFT`.*`artifact-repair` は.*`BLOCKED`' 'closed Design Pair interaction stage vocabulary'
 Assert-Contains $skill '(?s)AWAITING_USER_INPUT.*interaction_stage: disposition-confirmation' 'disposition confirmation waiting state'
@@ -236,7 +239,9 @@ Assert-Contains $handoff '(?s)## Selected Target Discussion Evidence.*Target ID.
 Assert-Contains $handoff '(?s)Selected Targets have concrete user-facing discussion evidence.*Target IDs, assistant turn references, code locations, trade-offs, proposal, validation' 'selected Target discussion readiness check'
 Assert-Contains $handoff '(?s)`Target Map presentation evidence`は.*各TargetについてTarget ID、具体的file / symbol、current responsibility / invariant、requested changeとの関係、内部設計判断候補、expected modification or verification、relevant evidence、open question.*artifact linkまたはTarget IDと論点名だけの要約はpresentation evidenceにならない' 'handoff concrete Target Map presentation rule'
 Assert-Contains $handoff 'Target Map presentation includes concrete code structure for every Target' 'concrete Target Map readiness check'
+Assert-Contains $handoff '(?s)user-facing responseは`Design Pair Target Map`の7列Markdown table、Coverage evidence、Selection request.*final responseがTarget名と論点の短い箇条書きだけ.*PASSにしてはいけない' 'handoff initial response structure rule'
 Assert-Contains $handoff '(?s)partial selectionでも.*具体的file / symbol.*current responsibility / invariant.*caller / wiring / lifecycle / test seam.*alternatives / trade-offs.*proposalまたはNo proposal理由.*validation expectation.*論点名だけの応答はFAIL' 'partial selection concrete handoff evidence rule'
+Assert-Contains $handoff '(?s)`<DP-Txx> Internal design discussion` block.*Code location.*Current responsibility / invariant.*Callers / wiring / lifecycle / state / test seam.*Internal design decision needed.*Alternatives and trade-offs.*Non-binding AI proposal.*Validation expectations.*Open questions' 'handoff selected Target response structure rule'
 Assert-Contains $handoff 'Plan / Issue / acceptance criteria / repository policy / public contract.*Design Pair Decision ID を付けず' 'handoff upstream constraint separation'
 
 $adaptiveSkill = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md'
@@ -412,7 +417,7 @@ Assert-Contains $fullCoverageSkill 'Adaptiveへ補完せずartifact mismatchと�
 Assert-Contains $fullCoverageSkill '(?s)最初のturnはTarget Map全体を提示.*AWAITING_USER_INPUT / target-selection.*停止.*AWAITING_USER_INPUT / disposition-confirmation.*再停止' 'full-coverage mandatory Design Pair turn boundaries'
 Assert-Contains $fullCoverageSkill 'design_pair_user_evidence' 'full-coverage user evidence propagation'
 
-foreach ($id in 1..30) {
+foreach ($id in 1..31) {
     $scenarioId = 'DP-VAL-{0:D3}' -f $id
     Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' $scenarioId "validation scenario $scenarioId"
 }
@@ -427,6 +432,8 @@ Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'Human action required' 'manual smoke human participation boundary'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' '(?s)Forward the human response verbatim.*must not ask a separate harness question.*If the human returns only a Target ID.*keep `AWAITING_USER_INPUT / target-selection`.*invented stage such as `design-discussion`.*`FAIL`' 'manual smoke verbatim partial-selection behavior'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' "every Target's concrete file and symbol, current responsibility and invariant, relation to the change, expected modification or verification, relevant evidence, and open question" 'manual smoke concrete initial Target Map evidence'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'required seven-column `Design Pair Target Map`, Coverage evidence, and Selection request structure' 'manual smoke initial response structure'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'required `<DP-Txx> Internal design discussion` block' 'manual smoke selected Target response structure'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' '(?s)Before every initial or resumed turn.*git rev-parse --show-toplevel.*disposable repository.*codex exec resume.*no `-C` option' 'manual smoke execution root precondition'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' '(?s)resumed process observes a different worktree.*mark the run `FAIL`.*neither repository was changed.*Do not move or copy the handoff' 'manual smoke wrong-worktree failure rule'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md' '(?m)^- Status: NOT RUN\r?$' 'manual runtime result starts unexecuted'

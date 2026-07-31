@@ -85,6 +85,31 @@ upstream Plan、Issue、acceptance criteria、gold document、repository policy 
 
 Target Map を作成した最初の Design Pair turn では、bounded な予定変更面全体と各 Target の判断候補を利用者へ説明する。handoff artifactへのlinkまたはTarget IDと論点名の要約だけではTarget Map提示と認めない。user-facing responseへ各TargetのTarget ID、具体的file / symbol、current responsibility / invariant、requested changeとの関係、内部設計判断候補、expected modification or verification、relevant evidence、open questionを最低限提示する。line evidenceを安定して示せる場合は添え、caller / wiring / lifecycle / test seamの主要な関係または調査済みN/AもTarget選択に必要な範囲で説明する。
 
+初回のuser-facing responseは次のMarkdown構造を省略せず使用する。handoffの各Target rowをこの表へ同じ粒度で転記し、複数のfieldをTarget名だけの一行へ圧縮しない。
+
+```markdown
+## Design Pair Target Map
+
+| Target ID | File / Symbol | Current responsibility / invariant | Relation to change / internal decision | Expected modification or verification | Relevant evidence | Open question |
+| --- | --- | --- | --- | --- | --- | --- |
+| DP-Txx | ... | ... | ... | ... | ... | ... |
+
+### Coverage evidence
+
+- Production symbol and direct callers: ...
+- Tests / fixtures / test seam: ...
+- DI / factory / startup / production wiring: ... / N/A with evidence
+- Lifecycle / cancellation / state ownership: ... / N/A with evidence
+
+### Selection request
+
+- Target IDs to discuss:
+- Initial positions or concerns:
+- Delegation for unselected Targets:
+```
+
+turn終了前にuser-facing responseをself-checkし、全Target rowの全7列とCoverage evidenceが実際の応答本文にある場合だけ`Target Map was presented to the user`と`Target Map presentation includes concrete code structure for every Target`をPASSにする。handoff artifact内だけに詳細がある場合、またはfinal responseがTarget IDと論点の短い箇条書きへ圧縮された場合はPASSにせず、応答を修復してから終了する。artifact linkは補助として添えてよいが、表の代替にしない。
+
 続いて次を明示的に求める。
 
 - 議論したい Target ID
@@ -127,6 +152,21 @@ Target Map 提示後の user response は、test harness や parent が補足、
 - 実在する代替案、各案の trade-off、既存 code への影響
 - code evidence から支持できる非 binding の AI proposal。提案できない場合は `No proposal` と evidence-backed reason
 - validation expectation と残る open question
+
+選択Targetのuser-facing responseは、各Targetについて次の固定blockを使用し、項目を省略しない。
+
+```markdown
+## <DP-Txx> Internal design discussion
+
+- Code location:
+- Current responsibility / invariant:
+- Callers / wiring / lifecycle / state / test seam:
+- Internal design decision needed:
+- Alternatives and trade-offs:
+- Non-binding AI proposal: <proposal / No proposal with reason>
+- Validation expectations:
+- Open questions:
+```
 
 Target IDだけのpartial selectionでも、このminimum discussion surfaceを提示してから不足する初期案やdelegationを尋ねる。Target Map内に詳細があることをuser-facing説明の代替にせず、選択Targetの具体的なcode location、構造上の論点、提案を対話上で読める形にする。handoffの`Selected Target Discussion Evidence`には、Target ID、assistant turn reference、提示したcode location、trade-off、proposalまたはNo proposal理由、validation expectationを保存する。
 

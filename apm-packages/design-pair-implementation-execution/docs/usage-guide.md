@@ -55,6 +55,8 @@ AI は予定変更面全体を bounded に調査し、具体的な file / symbol
 
 この説明はuser-facing responseそのものに各Targetのfile / symbol、responsibility / invariant、変更との関係、判断候補、expected modification / verification、evidence、open questionを含めます。handoffへのlink、Target ID、論点名だけの一覧は完全なTarget Map提示ではありません。
 
+実際の応答では7列の`Design Pair Target Map` table、Coverage evidence、Selection requestを省略せず出力します。handoffだけを詳細にし、最終応答を短いTarget一覧へ圧縮した場合はpresentation FAILです。選択後の対話では`<DP-Txx> Internal design discussion` blockのCode location、invariant、関連surface、判断、alternatives / trade-offs、proposal、validation、open questionsをすべて提示します。
+
 利用者は議論したい Target を選び、初期案を提示します。その後、AI が trade-off、反論、代替案、追加 evidence、validation expectation を返します。
 
 選択可能な disposition:

@@ -36,6 +36,8 @@ Target Map の file / symbol は調査範囲と decision の適用対象を示�
 
 `Target Map presentation evidence`は、この表の各TargetについてTarget ID、具体的file / symbol、current responsibility / invariant、requested changeとの関係、内部設計判断候補、expected modification or verification、relevant evidence、open questionをuser-facingに提示したassistant turnを参照する。artifact linkまたはTarget IDと論点名だけの要約はpresentation evidenceにならない。
 
+user-facing responseは`Design Pair Target Map`の7列Markdown table、Coverage evidence、Selection requestを含む。handoff内だけに詳細がある状態、またはfinal responseがTarget名と論点の短い箇条書きだけの場合、Readiness CheckのTarget Map presentation rowsをPASSにしてはいけない。
+
 ## Upstream Binding Constraints
 
 | Constraint ID | Constraint | Source artifact | Evidence | Relation to Target IDs |
@@ -66,6 +68,8 @@ Target Map 提示前の技術案はここに保存できるが、Design Pair Loc
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 選択Targetの初期案または最終dispositionを求める前に、この内容をuser-facing responseにも提示する。artifactへのlink、Target名、抽象的な選択肢だけではdiscussion evidenceにならない。
+
+user-facing responseでは`<DP-Txx> Internal design discussion` blockにCode location、Current responsibility / invariant、Callers / wiring / lifecycle / state / test seam、Internal design decision needed、Alternatives and trade-offs、Non-binding AI proposalまたはNo proposal理由、Validation expectations、Open questionsを明示する。
 
 ## Discussed but Unlocked
 

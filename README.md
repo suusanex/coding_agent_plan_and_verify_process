@@ -432,6 +432,8 @@ Design Pair は予定変更面全体を bounded に調査し、具体的な file
 
 Target Map提示はartifact linkやTarget名だけの要約ではなく、各Targetの具体的file / symbol、current responsibility / invariant、変更との関係、内部設計判断候補、expected modification / verification、evidence、open questionをuser-facingに含めます。
 
+初回応答は7列のTarget Map table、Coverage evidence、Selection requestを含む固定構造を使い、選択TargetはCode locationからproposal・validation・open questionsまでを固定discussion blockで対話します。
+
 利用者のpost-map応答は親フローや検証harnessで補完せず、そのままDesign Pairへ渡します。Target IDだけのpartial selectionでは、Skill自身が不足する初期案や委任方針を尋ね、`target-selection`のまま再停止します。独自stageを作らず、handoff headerとReadiness Checkのuser evidenceを同期します。
 
 選択Targetの対話は内部設計の判断材料をuser-facingに提示します。具体的file / symbol、current responsibility / invariant、caller / wiring / lifecycle / test seam、代替案とtrade-off、根拠付きの非binding proposalまたはNo proposal理由、validation expectationを含め、論点名やartifact linkだけで判断を求めません。
