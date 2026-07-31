@@ -68,6 +68,8 @@ $design-pair-implementation-execution を明示的に選びます。
 
 利用者が毎回「停止してください」と補足する必要はありません。最初の依頼が単に「実装してください」であっても、Skill は Target Map を提示し、`AWAITING_USER_INPUT / target-selection` を保存してその turn を終了します。Target Map 提示前の Plan / Issue / gold document や利用者の技術案は upstream constraint / initial position であり、Design Pair Locked Decision ではありません。
 
+初回Target Mapはartifact linkやTarget名だけの一覧ではありません。各Targetの具体的file / symbol、current responsibility / invariant、requested changeとの関係、内部設計判断候補、expected modification / verification、evidence、open questionをuser-facingに提示してから選択を求めます。
+
 利用者の応答は親フローや検証harnessで補完せず、そのままDesign Pairへ渡します。Target IDだけが返り、初期案または未選択Targetの委任方針が不足する場合は、Skill自身が不足を尋ね、`AWAITING_USER_INPUT / target-selection`のまま再停止します。`design-discussion`等の独自stageへ遷移せず、headerとReadiness Checkのuser evidenceを同じ内容へ同期します。
 
 選択Targetの対話では、具体的file / symbol、現在の責務・invariant、caller / wiring / lifecycle / test seam、内部設計論点、代替案とtrade-off、根拠付きの非binding proposalまたはNo proposal理由、validation expectationをuser-facingに提示します。Target名やartifact linkだけを提示して利用者へ判断を委ねません。

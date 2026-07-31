@@ -51,6 +51,7 @@ NOT RUN
 ## Validation
 
 - Turn 1 stopped before READY: NOT RUN
+- Turn 1 user-facing Target Map included concrete code structure for every Target: NOT RUN
 - Every turn executed in the disposable repository root: NOT RUN
 - Turn 1 production/tests unchanged: NOT RUN
 - Turn 1 Adaptive not started: NOT RUN

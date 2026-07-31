@@ -327,6 +327,16 @@ Expected:
 - Adaptive / HIGH_MODELは`BlockedByInvalidCompletionHandoff`で編集前に停止する
 - Target MapまたはAI summaryの詳細をdiscussion evidenceとして暗黙補完しない
 
+## DP-VAL-030: Initial Target Map presentation is concrete and user-facing
+
+Input: 初回Design Pair turnがhandoffへ詳細なTarget Mapを保存する一方、user-facing responseでは`DP-T01: RetryPolicyの解析`のようなTarget名と論点、artifact linkだけを返す。
+
+Expected:
+
+- Target Map presentationをFAILとする
+- 各Targetの具体的file / symbol、current responsibility / invariant、requested changeとの関係、内部設計判断候補、expected modification / verification、relevant evidence、open questionをuser-facingに提示するまで選択を求めない
+- artifact内の詳細をuser-facing presentation evidenceとして代用しない
+
 ## Repository static validation
 
 ```powershell

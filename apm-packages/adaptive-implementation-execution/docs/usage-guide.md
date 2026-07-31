@@ -60,6 +60,8 @@ Adaptive は production code / tests を編集する前に、Design Pair handoff
 
 selected Targetごとに、user-facing assistant turn reference、具体的code location、current invariant、alternatives / trade-offs、非binding proposalまたはNo proposal理由、validation expectationを持つ`Selected Target Discussion Evidence`も検証します。抽象的な論点名やartifact linkだけの場合は編集前に停止します。
 
+Target Map presentation evidenceについても、全Targetの具体的file / symbol、current invariant、内部設計判断候補、relevant evidenceをuser-facingに提示したturnを要求します。artifact内だけに詳細がある場合は不十分です。
+
 同時に、Target Map IDの一意性、全summary IDのMap実在、Selected / Delegated-to-Adaptive / No-Change / Upstream-Decision-Required / Pending集合の相互排他と完全被覆、各row Dispositionとの一致を再検証します。Locked DecisionはSelectedかつ`Locked` rowだけを参照できます。all-AdaptiveではSelected / Pendingが`None`、Locked Decisionsなし、全rowが`Adaptive-Owned`でdelegated集合と完全一致する必要があります。架空ID、重複ID、未分類Target、row / summary不一致は編集前に拒否します。
 
 Design Pair が今回作る binding decision は、完全な confirmation evidence を持つ `Locked Decisions` だけです。original Plan、repository policy、`Upstream Binding Constraints` は別の binding input として維持し、`Upstream User Initial Positions` は未確認の初期位置として参考情報に留めます。

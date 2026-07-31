@@ -69,6 +69,7 @@ Design Pair Implementation Handoff が入力にある場合、次を検証しま
 - `Interaction stage: complete`
 - original Plan / Implementation Intent reference、Target Map、`Upstream Binding Constraints`、Locked Decisions、readiness check が存在する
 - Target Map presentation evidence と Target 選択要求 evidence がある
+- Target Map presentation evidenceが、全Targetのuser-facingな具体的file / symbol、current invariant、内部設計判断候補、relevant evidenceを参照し、artifact linkまたは論点名だけの要約ではない
 - Target Map 提示後の actual user response reference と `User response occurred after Target Map presentation: Yes` がある
 - 一件以上の selected Target、または explicit all-Adaptive delegation があり、pending human-owned Target がない
 - Target Map ID が一意で、summary の全 Target ID が Target Map に実在する

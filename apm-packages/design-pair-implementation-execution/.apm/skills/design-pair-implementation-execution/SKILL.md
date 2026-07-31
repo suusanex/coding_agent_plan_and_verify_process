@@ -83,7 +83,9 @@ upstream Plan、Issue、acceptance criteria、gold document、repository policy 
 
 ## Phase 3: Present the Target Map and stop
 
-Target Map を作成した最初の Design Pair turn では、bounded な予定変更面全体と各 Target の判断候補を利用者へ説明する。続いて次を明示的に求める。
+Target Map を作成した最初の Design Pair turn では、bounded な予定変更面全体と各 Target の判断候補を利用者へ説明する。handoff artifactへのlinkまたはTarget IDと論点名の要約だけではTarget Map提示と認めない。user-facing responseへ各TargetのTarget ID、具体的file / symbol、current responsibility / invariant、requested changeとの関係、内部設計判断候補、expected modification or verification、relevant evidence、open questionを最低限提示する。line evidenceを安定して示せる場合は添え、caller / wiring / lifecycle / test seamの主要な関係または調査済みN/AもTarget選択に必要な範囲で説明する。
+
+続いて次を明示的に求める。
 
 - 議論したい Target ID
 - 各 Target に対する初期案、懸念、検討したい技術または構造

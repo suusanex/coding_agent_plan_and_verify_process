@@ -27,6 +27,7 @@ Use $design-pair-implementation-execution and implement plans/retry-after-plan.m
 Verify and record:
 
 - the response presents the entire bounded Target Map and internal design decision candidates;
+- the user-facing response gives every Target's concrete file and symbol, current responsibility and invariant, relation to the change, expected modification or verification, relevant evidence, and open question rather than only Target labels or an artifact link;
 - the response asks for Target IDs, initial positions, and delegation of unselected Targets;
 - the tracked handoff is `AWAITING_USER_INPUT / target-selection`;
 - no Design Pair Locked Decision exists;

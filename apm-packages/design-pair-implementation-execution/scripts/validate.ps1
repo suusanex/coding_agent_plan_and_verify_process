@@ -144,6 +144,7 @@ Assert-Contains $skill '全設計確定、全 unknown の除去、`Unknown == 0`
 Assert-Contains $skill '利用者が初期案' 'human-first discussion order'
 Assert-Contains $skill 'AI の推奨案を最初から確定案として提示してはいけない' 'non-leading discussion rule'
 Assert-Contains $skill '(?s)## Phase 3: Present the Target Map and stop.*AWAITING_USER_INPUT.*interaction_stage: target-selection.*その turn を終了する' 'mandatory initial post-map turn stop'
+Assert-Contains $skill '(?s)handoff artifactへのlinkまたはTarget IDと論点名の要約だけではTarget Map提示と認めない.*各TargetのTarget ID、具体的file / symbol、current responsibility / invariant、requested changeとの関係、内部設計判断候補、expected modification or verification、relevant evidence、open question' 'concrete user-facing initial Target Map'
 Assert-Contains $skill '(?s)初回 turn では次を禁止する.*READY_FOR_ADAPTIVE_IMPLEMENTATION.*adaptive-implementation-execution.*production code / tests.*Locked Decision' 'initial turn prohibitions'
 Assert-Contains $skill '最初の依頼が「実装してください」であっても、この boundary を省略しない' 'implementation request cannot skip interaction boundary'
 Assert-Contains $skill '(?s)resume では.*interaction stage.*Target Map.*presentation evidence.*Target Map 提示後の user response.*BLOCKED.*Adaptive へ fallback しない' 'resume waiting evidence fail-closed rule'
@@ -233,6 +234,8 @@ Assert-NotContains $handoff '(?m)^- Interaction stage:.*design-discussion' 'depr
 Assert-Contains $handoff '(?s)`target-map-building`はTarget Map提示前の`DRAFT`だけ.*`artifact-repair`は.*`BLOCKED`だけ.*Target Map提示後の通常経路.*`target-selection`、`disposition-confirmation`、`upstream-decision`、`complete`以外へ遷移しない' 'handoff stage applicability rules'
 Assert-Contains $handoff '(?s)## Selected Target Discussion Evidence.*Target ID.*Assistant turn reference.*Concrete file / symbol / line evidence.*Current responsibility / invariant.*Caller / wiring / lifecycle / test-seam evidence.*Alternatives and trade-offs.*Non-binding AI proposal or No proposal reason.*Validation expectation.*Open questions' 'selected Target discussion evidence schema'
 Assert-Contains $handoff '(?s)Selected Targets have concrete user-facing discussion evidence.*Target IDs, assistant turn references, code locations, trade-offs, proposal, validation' 'selected Target discussion readiness check'
+Assert-Contains $handoff '(?s)`Target Map presentation evidence`は.*各TargetについてTarget ID、具体的file / symbol、current responsibility / invariant、requested changeとの関係、内部設計判断候補、expected modification or verification、relevant evidence、open question.*artifact linkまたはTarget IDと論点名だけの要約はpresentation evidenceにならない' 'handoff concrete Target Map presentation rule'
+Assert-Contains $handoff 'Target Map presentation includes concrete code structure for every Target' 'concrete Target Map readiness check'
 Assert-Contains $handoff '(?s)partial selectionでも.*具体的file / symbol.*current responsibility / invariant.*caller / wiring / lifecycle / test seam.*alternatives / trade-offs.*proposalまたはNo proposal理由.*validation expectation.*論点名だけの応答はFAIL' 'partial selection concrete handoff evidence rule'
 Assert-Contains $handoff 'Plan / Issue / acceptance criteria / repository policy / public contract.*Design Pair Decision ID を付けず' 'handoff upstream constraint separation'
 
@@ -248,6 +251,7 @@ Assert-Contains $adaptiveSkill '(?s)Locked Decision Target ID が `Selected Targ
 Assert-Contains $adaptiveSkill '架空 ID、重複 ID、未分類 Target、row / summary 不一致.*も拒否' 'Adaptive malformed Target set rejection'
 Assert-Contains $adaptiveSkill '(?s)selected Targetごとに`Selected Target Discussion Evidence`.*user-facing assistant turn reference.*具体的code location.*current invariant.*alternatives / trade-offs.*proposalまたはNo proposal理由.*validation expectation' 'Adaptive selected Target discussion evidence gate'
 Assert-Contains $adaptiveSkill '抽象的な論点名だけで具体的なSelected Target discussion evidenceがないartifactも拒否' 'Adaptive abstract discussion rejection'
+Assert-Contains $adaptiveSkill '(?s)Target Map presentation evidenceが.*全Targetのuser-facingな具体的file / symbol.*current invariant.*内部設計判断候補.*relevant evidence.*artifact linkまたは論点名だけの要約ではない' 'Adaptive concrete Target Map presentation gate'
 Assert-Contains $adaptiveSkill '新規 intake と resume を分けます' 'fresh intake and resume distinction'
 Assert-Contains $adaptiveSkill '欠落や矛盾を Adaptive へ補完しません' 'resume fail-closed route metadata'
 Assert-Contains $adaptiveSkill 'route_metadata_normalization: legacy-adaptive-handoff' 'legacy Adaptive handoff normalization marker'
@@ -297,7 +301,8 @@ Assert-Contains $highAgent '(?s)Target Map IDは一意.*全summary IDはTarget M
 Assert-Contains $highAgent '(?s)Locked Decision TargetはSelectedかつrowがLocked.*all-AdaptiveではSelected / PendingがNone.*全Target rowがAdaptive-OwnedかつDelegated集合と完全一致' 'HIGH Locked and all-Adaptive invariants'
 Assert-Contains $highAgent '架空ID、重複ID、未分類Target、row / summary不一致' 'HIGH malformed Target set rejection'
 Assert-Contains $highAgent '(?s)selected Targetにはuser-facing assistant turn reference.*具体的code location.*current invariant.*alternatives / trade-offs.*非binding proposalまたはNo proposal理由.*validation expectation.*`Selected Target Discussion Evidence`' 'HIGH selected Target discussion evidence gate'
-Assert-Contains $highAgent '抽象的な論点名だけのdiscussion evidence' 'HIGH abstract discussion rejection'
+Assert-Contains $highAgent '抽象的なTarget Mapまたはdiscussion evidence' 'HIGH abstract discussion rejection'
+Assert-Contains $highAgent '(?s)Target Map presentation evidenceは全Targetのuser-facingな具体的file / symbol.*current invariant.*内部設計判断候補.*relevant evidence.*artifact linkまたは論点名だけの要約ではない' 'HIGH concrete Target Map presentation gate'
 Assert-Contains $highAgent '(?s)## Required inputs.*- implementation_route.*- implementation_route_source.*- Design Pair Implementation Handoff path または `N/A`.*`BLOCKED`.*BlockedByInvalidCompletionHandoff' 'HIGH required route input validation'
 Assert-Contains $highAgent '(?s)`Implementation Completion Handoff` には次を含めます。.*- implementation_route.*- implementation_route_source.*- Validation performed' 'HIGH completion handoff route propagation'
 Assert-Contains $highAgent 're-entry handoffと元のImplementation Completion Handoffから`implementation_route`、`implementation_route_source`、Design Pair handoff pathを読み.*一致' 'HIGH re-entry route identity input'
@@ -333,6 +338,8 @@ foreach ($toml in @($adaptiveHighToml, $codexHighToml)) {
     Assert-Contains $toml 'Reject invented IDs, overlaps, unclassified Targets, or row/summary mismatches with BlockedByInvalidCompletionHandoff' 'portable HIGH malformed Target set rejection'
     Assert-Contains $toml 'For every selected Target, require Selected Target Discussion Evidence with a user-facing assistant turn reference, concrete code location, current invariant, alternatives and trade-offs, a non-binding proposal or an evidence-backed No proposal reason, and validation expectations' 'portable HIGH selected Target discussion evidence gate'
     Assert-Contains $toml 'A topic label, artifact link, or abstract option list alone is invalid' 'portable HIGH abstract discussion rejection'
+    Assert-Contains $toml "Require Target Map presentation evidence to reference a user-facing turn that presented every Target's concrete file and symbol, current invariant, internal design decision candidate, and relevant evidence" 'portable HIGH concrete Target Map presentation gate'
+    Assert-Contains $toml 'An artifact link, Target ID, or topic summary alone is invalid presentation evidence' 'portable HIGH abstract Target Map rejection'
 }
 foreach ($toml in @($adaptiveStandardToml, $codexStandardToml)) {
     Assert-Contains $toml 'accept only implementation_route: adaptive with implementation_route_source: default, or implementation_route: design-pair with implementation_route_source: explicit-user-selection' 'portable STANDARD exact route pairs'
@@ -405,7 +412,7 @@ Assert-Contains $fullCoverageSkill 'Adaptiveへ補完せずartifact mismatchと�
 Assert-Contains $fullCoverageSkill '(?s)最初のturnはTarget Map全体を提示.*AWAITING_USER_INPUT / target-selection.*停止.*AWAITING_USER_INPUT / disposition-confirmation.*再停止' 'full-coverage mandatory Design Pair turn boundaries'
 Assert-Contains $fullCoverageSkill 'design_pair_user_evidence' 'full-coverage user evidence propagation'
 
-foreach ($id in 1..29) {
+foreach ($id in 1..30) {
     $scenarioId = 'DP-VAL-{0:D3}' -f $id
     Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' $scenarioId "validation scenario $scenarioId"
 }
@@ -419,6 +426,7 @@ Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/usage-gu
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'without adding a stop instruction' 'manual smoke verifies skill-owned stop'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'Human action required' 'manual smoke human participation boundary'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' '(?s)Forward the human response verbatim.*must not ask a separate harness question.*If the human returns only a Target ID.*keep `AWAITING_USER_INPUT / target-selection`.*invented stage such as `design-discussion`.*`FAIL`' 'manual smoke verbatim partial-selection behavior'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' "every Target's concrete file and symbol, current responsibility and invariant, relation to the change, expected modification or verification, relevant evidence, and open question" 'manual smoke concrete initial Target Map evidence'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' '(?s)Before every initial or resumed turn.*git rev-parse --show-toplevel.*disposable repository.*codex exec resume.*no `-C` option' 'manual smoke execution root precondition'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' '(?s)resumed process observes a different worktree.*mark the run `FAIL`.*neither repository was changed.*Do not move or copy the handoff' 'manual smoke wrong-worktree failure rule'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md' '(?m)^- Status: NOT RUN\r?$' 'manual runtime result starts unexecuted'

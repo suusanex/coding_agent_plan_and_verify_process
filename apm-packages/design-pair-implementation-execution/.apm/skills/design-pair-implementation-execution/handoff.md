@@ -34,6 +34,8 @@
 
 Target Map の file / symbol は調査範囲と decision の適用対象を示す。Adaptive Implementation の allowed edit surface ではない。
 
+`Target Map presentation evidence`は、この表の各TargetについてTarget ID、具体的file / symbol、current responsibility / invariant、requested changeとの関係、内部設計判断候補、expected modification or verification、relevant evidence、open questionをuser-facingに提示したassistant turnを参照する。artifact linkまたはTarget IDと論点名だけの要約はpresentation evidenceにならない。
+
 ## Upstream Binding Constraints
 
 | Constraint ID | Constraint | Source artifact | Evidence | Relation to Target IDs |
@@ -106,6 +108,7 @@ Knowledge Candidates は自動的に knowledge card または repository policy 
 | --- | --- | --- |
 | Goal, scope, and acceptance support implementation start | PASS / FAIL | |
 | Target Map was presented to the user | PASS / FAIL | <assistant message / turn reference and Target IDs> |
+| Target Map presentation includes concrete code structure for every Target | PASS / FAIL | <assistant turn, file/symbol, invariant, decision candidate, evidence> |
 | Target selection and initial positions were requested | PASS / FAIL | <assistant message / turn reference> |
 | A user response occurred after Target Map presentation | PASS / FAIL | <user message / turn reference> |
 | Non-empty user participation or explicit all-Adaptive delegation exists | PASS / FAIL | <selected Target IDs or explicit all-Adaptive response> |

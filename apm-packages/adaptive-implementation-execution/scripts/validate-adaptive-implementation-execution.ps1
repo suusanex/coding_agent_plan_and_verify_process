@@ -320,6 +320,7 @@ Assert-Contains $skill '(?s)Locked Decision Target ID が `Selected Target IDs` 
 Assert-Contains $skill '架空 ID、重複 ID、未分類 Target、row / summary 不一致.*も拒否' 'Design Pair malformed Target set rejection'
 Assert-Contains $skill '(?s)selected Targetごとに`Selected Target Discussion Evidence`.*user-facing assistant turn reference.*具体的code location.*current invariant.*alternatives / trade-offs.*proposalまたはNo proposal理由.*validation expectation' 'Design Pair selected Target discussion evidence gate'
 Assert-Contains $skill '抽象的な論点名だけで具体的なSelected Target discussion evidenceがないartifactも拒否' 'Design Pair abstract discussion rejection'
+Assert-Contains $skill '(?s)Target Map presentation evidenceが.*全Targetのuser-facingな具体的file / symbol.*current invariant.*内部設計判断候補.*relevant evidence.*artifact linkまたは論点名だけの要約ではない' 'Design Pair concrete Target Map presentation gate'
 Assert-Contains $skill 'Upstream Binding Constraints.*Design Pair Decision ID を持たない既存の binding input' 'upstream binding separation rule'
 Assert-Contains $skill 'Affected files / symbols.*Allowed edit surface.*扱いません' 'Design Pair file-symbol non-allowlist rule'
 Assert-Contains $skill 'automatic Design Pair re-entry' 'no automatic Design Pair re-entry'
@@ -518,6 +519,8 @@ foreach ($toml in @($highToml, $codexHighToml)) {
     Assert-Contains $toml 'Reject invented IDs, overlaps, unclassified Targets, or row/summary mismatches with BlockedByInvalidCompletionHandoff' 'portable HIGH malformed Target set rejection'
     Assert-Contains $toml 'For every selected Target, require Selected Target Discussion Evidence with a user-facing assistant turn reference, concrete code location, current invariant, alternatives and trade-offs, a non-binding proposal or an evidence-backed No proposal reason, and validation expectations' 'portable HIGH selected Target discussion evidence gate'
     Assert-Contains $toml 'A topic label, artifact link, or abstract option list alone is invalid' 'portable HIGH abstract discussion rejection'
+    Assert-Contains $toml "Require Target Map presentation evidence to reference a user-facing turn that presented every Target's concrete file and symbol, current invariant, internal design decision candidate, and relevant evidence" 'portable HIGH concrete Target Map presentation gate'
+    Assert-Contains $toml 'An artifact link, Target ID, or topic summary alone is invalid presentation evidence' 'portable HIGH abstract Target Map rejection'
     Assert-Contains $toml 'keep the original Plan and Upstream Binding Constraints as separate binding inputs without Design Pair Decision IDs' 'portable HIGH upstream binding separation'
 }
 foreach ($toml in @($standardToml, $codexStandardToml)) {

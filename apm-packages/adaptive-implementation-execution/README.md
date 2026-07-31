@@ -25,6 +25,8 @@ Plan Coverage Flow が必要な課題は、既存の `plan-coverage-residual-flo
 
 selected Targetがある場合は、user-facing turn reference、具体的code location、current invariant、alternatives / trade-offs、proposalまたはNo proposal理由、validation expectationを含む`Selected Target Discussion Evidence`も要求します。Target名やartifact linkだけの抽象的evidenceでは開始しません。
 
+Target Map presentation evidenceも、全Targetの具体的file / symbol、current invariant、内部設計判断候補、relevant evidenceをuser-facingに提示したturnを参照する必要があります。artifact linkやTarget名だけの初回応答は受理しません。
+
 Design Pair が新たに作る decision のうち binding なのは、handoff の `Locked Decisions` に Decision ID、Target ID、Target Map 提示後の explicit human confirmation がある entry だけです。original Plan、repository policy、`Upstream Binding Constraints` は Design Pair Decision ID を持たない既存の binding input として別に守ります。Target Map、Upstream User Initial Positions、Discussed-Unlocked、Adaptive-Owned、Known Evidence、file / symbol references は HIGH_MODEL の通常 authority または allowed edit surface を拘束しません。Locked Decision conflict は黙って変更せず、Decision ID と actual-code evidence を伴う stop verdict で返します。Design Pair 未使用時の通常 Adaptive route は変わりません。
 
 ## Flow
