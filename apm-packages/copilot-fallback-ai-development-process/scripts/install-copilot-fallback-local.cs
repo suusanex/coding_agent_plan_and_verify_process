@@ -31,6 +31,14 @@ if (packageRoot is null)
     Environment.Exit(2);
 }
 
+var repositoryRoot = ResolveRepositoryRoot(packageRoot, options.RepositoryRoot);
+if (repositoryRoot is null)
+{
+    Console.WriteLine("Error: repository root containing the canonical Adaptive agents was not found.");
+    Console.WriteLine("Run from this repository checkout, or pass --repository-root <dir>.");
+    Environment.Exit(2);
+}
+
 var logs = new List<string>();
 var blockers = new List<string>();
 
@@ -47,6 +55,7 @@ try
     {
         CopyTemplateGroup(packageRoot, targetRepoRoot, options, "templates/github/instructions", ".github/instructions", "*.instructions.md", logs, blockers);
         CopyTemplateGroup(packageRoot, targetRepoRoot, options, "templates/github/agents", ".github/agents", "*.agent.md", logs, blockers);
+        CopyCanonicalAdaptiveAgents(repositoryRoot, targetRepoRoot, options, logs, blockers);
         CopyTemplateGroup(packageRoot, targetRepoRoot, options, "templates/github/prompts", ".github/prompts", "*.prompt.md", logs, blockers);
         CopySingleTemplate(packageRoot, targetRepoRoot, options, "templates/codex-first-state.md", "templates/codex-first-state.md", logs, blockers);
     }
@@ -83,7 +92,7 @@ if (blockers.Count > 0)
 
     Console.WriteLine();
     Console.WriteLine("Resolve marker or merge blockers manually.");
-    Console.WriteLine("--force only overwrites same-name template files or replaces an existing managed copilot-fallback block.");
+    Console.WriteLine("--force only overwrites same-name managed files or replaces an existing managed copilot-fallback block.");
     Environment.Exit(2);
 }
 
@@ -126,6 +135,16 @@ static InstallOptions ParseArguments(string[] args)
 
                 options.PackageRoot = args[++i];
                 continue;
+            case "--repository-root":
+                if (i + 1 >= args.Length)
+                {
+                    options.HasError = true;
+                    options.ShowHelp = true;
+                    continue;
+                }
+
+                options.RepositoryRoot = args[++i];
+                continue;
         }
 
         if (arg.StartsWith("-", StringComparison.Ordinal))
@@ -155,9 +174,10 @@ static void ShowUsage()
     Console.WriteLine();
     Console.WriteLine("Options:");
     Console.WriteLine("  --dry-run, -n        show planned changes without writing files");
-    Console.WriteLine("  --force, -f          overwrite same-name template files when content differs");
+    Console.WriteLine("  --force, -f          overwrite same-name managed files when content differs");
     Console.WriteLine("  --verbose, -v        show detailed error output");
     Console.WriteLine("  --package-root <dir> explicit package root");
+    Console.WriteLine("  --repository-root <dir> repository root containing canonical Adaptive agents");
     Console.WriteLine("  --help, -h           show this help");
 }
 
@@ -188,6 +208,21 @@ static bool IsPackageRoot(string dir)
 {
     return File.Exists(Path.Combine(dir, "apm.yml"))
         && File.Exists(Path.Combine(dir, "templates", "github", "copilot-instructions.md"));
+}
+
+static string? ResolveRepositoryRoot(string packageRoot, string? overrideRoot)
+{
+    var candidate = string.IsNullOrWhiteSpace(overrideRoot)
+        ? Path.GetFullPath(Path.Combine(packageRoot, "..", ".."))
+        : Path.GetFullPath(overrideRoot);
+
+    return HasCanonicalAdaptiveAgents(candidate) ? candidate : null;
+}
+
+static bool HasCanonicalAdaptiveAgents(string dir)
+{
+    return File.Exists(Path.Combine(dir, ".github", "agents", "high-implementation-starter.agent.md"))
+        && File.Exists(Path.Combine(dir, ".github", "agents", "standard-implementation-completer.agent.md"));
 }
 
 static void DetectExistingCustomizations(string targetRepoRoot, List<string> logs)
@@ -297,6 +332,29 @@ static void CopySingleTemplate(
         blockers);
 }
 
+static void CopyCanonicalAdaptiveAgents(
+    string repositoryRoot,
+    string targetRepoRoot,
+    InstallOptions options,
+    List<string> logs,
+    List<string> blockers)
+{
+    foreach (var fileName in new[]
+    {
+        "high-implementation-starter.agent.md",
+        "standard-implementation-completer.agent.md"
+    })
+    {
+        CopyFileWithConflictPolicy(
+            Path.Combine(repositoryRoot, ".github", "agents", fileName),
+            Path.Combine(targetRepoRoot, ".github", "agents", fileName),
+            options,
+            ToSlash(Path.Combine(".github", "agents", fileName)),
+            logs,
+            blockers);
+    }
+}
+
 static void CopyFileWithConflictPolicy(
     string sourcePath,
     string targetPath,
@@ -321,7 +379,7 @@ static void CopyFileWithConflictPolicy(
 
     if (!options.Force)
     {
-        blockers.Add($"{displayPath}: existing file differs; rerun with --force to overwrite this template.");
+        blockers.Add($"{displayPath}: existing file differs; rerun with --force to overwrite this managed file.");
         return;
     }
 
@@ -355,6 +413,7 @@ sealed class InstallOptions
 {
     public string? TargetRepoRoot { get; set; }
     public string? PackageRoot { get; set; }
+    public string? RepositoryRoot { get; set; }
     public bool DryRun { get; set; }
     public bool Force { get; set; }
     public bool Verbose { get; set; }

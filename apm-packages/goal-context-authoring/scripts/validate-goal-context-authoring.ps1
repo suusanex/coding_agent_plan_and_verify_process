@@ -144,11 +144,10 @@ try {
 
     $promptPath = '.apm/skills/goal-context-authoring/references/generation-prompt.md'
     foreach ($pattern in @(
-        'earliest available point', 'corrections and priority changes', 'Rejected alternatives',
-        'Superficially compliant but wrong', '\[Explicit\]', '\[Inferred\]', '\[Unknown\]',
-        'secrets, credentials', 'Long-conversation continuation protocol', 'Claim ID',
-        'Contract dimension', 'None observed in this segment', 'Superseded by <Claim ID>',
-        'Excluded as sensitive', 'Retained as Unknown', 'not an Issue body'
+        'purpose-achievement review', 'not a second specification, an Issue body', 'Purpose hierarchy',
+        'earliest relevant discussion', 'corrections and priority changes', 'rejected alternatives',
+        'appear compliant while leaving the original problem unresolved', '\[Inferred\]', '\[Unknown\]',
+        'secrets, credentials', 'ordered segments', 'Do not create Claim IDs or a detailed provenance ledger'
     )) { Assert-Contains $promptPath $pattern "prompt requirement '$pattern'" }
 
     $contractPath = '.apm/skills/goal-context-authoring/references/goal-context-contract.md'

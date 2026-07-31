@@ -115,7 +115,7 @@ Source requirement
 | --- | --- |
 | `apm-packages/completion-notification-decorator` | 任意の既存Codex主プロセスを変更せず、同じ親turnの終了時にverdictと復帰リンクを通知したい |
 | `apm-packages/pr-review-remediation` | 基礎版またはGoal Context対応版でReady PRをreviewし、local / purpose / GitHub Copilot findingsを統合して、別親ターンの既存Adaptive Implementationへ渡したい |
-| `apm-packages/adaptive-implementation-execution` | 通常 Plan Mode 後の非自明な実装を HIGH_MODEL で開始し、実コード上の decision surface が解消した場合だけ STANDARD_MODEL へ直列委譲したい |
+| `apm-packages/adaptive-implementation-execution` | CodexまたはGitHub Copilot Chat in VS Codeで、通常Plan後の非自明な実装をHIGH_MODELから開始し、valid handoff後だけSTANDARD_MODELへ直列委譲したい |
 | `apm-packages/design-pair-implementation-execution` | 利用者が明示選択した場合だけ、実装前に code の予定変更面を対話し、explicit Locked Decisions を通常の Adaptive Implementation へ渡したい |
 | `apm-packages/goal-context-authoring` | 設計会話や意思決定記録から、目的・判断理由・scope・acceptance evidence を自己完結した `goal-context-*.md` として作成・検証し、人間レビュー後に後続 AI の実装・目的達成レビューへ引き継ぎたい |
 | `apm-packages/codex-first-ai-development-process` | Codex を第一優先にし、短い依頼から cost-aware routing、モデル tier 分担、READY / close gate、stateful resume に入りたい |
@@ -152,6 +152,7 @@ Adaptive Implementation package を変更した場合は、次を実行してく
 
 ```powershell
 ./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1
+./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-apm-smoke.ps1 -Repository suusanex/coding_agent_plan_and_verify_process -Ref <full-commit-sha>
 dotnet publish ./apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs
 git diff --check
 ```
@@ -264,7 +265,7 @@ validator は必須章、frontmatter、provenance vocabulary、命名、人間�
 
 ## Adaptive Implementation Execution
 
-通常 Plan Mode output、手書き Plan、repository-tracked Plan、Issue 内の実装計画、または明示選択された Design Pair handoff を入力にする、独立した implementation-only flow です。
+通常 Plan Mode output、手書き Plan、repository-tracked Plan、Issue 内の実装計画、または明示選択された Design Pair handoff を入力にする、Codex / GitHub Copilot Chat in VS Code対応の独立した implementation-only flow です。
 
 すべての非自明な implementation は `high-implementation-starter` が開始し、production code / tests を実際に編集して focused verification を行います。残作業に新しい構造上の意思決定が不要になった場合だけ、`Implementation Completion Handoff` を介して `standard-implementation-completer` へ直列委譲します。
 
@@ -286,10 +287,12 @@ ordinary Plan
 APM で導入する場合:
 
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target copilot,codex,agent-skills
 ```
 
-APM install が skill と portable custom agents を導入する本体です。現行 APM が model 未設定の custom agent TOML を生成する場合だけ、package 付属の補助スクリプトを `--dry-run`、install、`--check` の順で実行して具体的なmodel設定を補完します。補助スクリプトは `AGENTS.md` を変更せず、実行してもskillの使用を強制しません。詳細は install guide を参照してください。
+APM 0.26.0のcanonical target名は`copilot`です。`vscode`は同名targetへ正規化され、`github-copilot`はAPM targetではありません。APM installはshared Skill、Copilotの`.github/agents/*.agent.md`、Codexの`.codex/agents/*.toml`を同じcanonical agent sourceからtarget別に配置します。Codex TOMLがmodel未設定の場合だけ、package付属の補助スクリプトを`--dry-run`、install、`--check`の順で実行します。
+
+Copilotではagent pickerから`high-implementation-starter`を選びます。HIGH start / re-entryは`GPT-5.6 Terra (copilot)`、validなtracked`READY_FOR_STANDARD_COMPLETION`後のSTANDARDだけ`GPT-5.6 Luna (copilot)`です。Lunaからfresh intakeを開始せず、`COMPLETED_BY_HIGH_MODEL`とstop verdictでは次agentへ進みません。model利用可否はCopilot plan / organization policyに依存し、requested / observed modelが異なる場合はmanual evidenceへ差異を記録します。
 
 起動例:
 
@@ -303,6 +306,7 @@ $adaptive-implementation-execution を使って、直前の Plan を実装して
 - `apm-packages/adaptive-implementation-execution/docs/install-guide.md`
 - `apm-packages/adaptive-implementation-execution/docs/usage-guide.md`
 - `apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md`
+- `apm-packages/adaptive-implementation-execution/docs/examples/copilot-manual-smoke.md`
 
 ---
 
@@ -424,10 +428,10 @@ Design Pair は予定変更面全体を bounded に調査し、具体的な file
 
 Design Pair phase の完了前に production code / tests を編集しません。tracked handoff が `READY_FOR_ADAPTIVE_IMPLEMENTATION` になった後、既存の HIGH -> optional STANDARD -> HIGH re-entry route を開始します。Locked Decision conflict は黙って変更せず、Decision ID と actual-code evidence を伴う stop verdict で返します。automatic Design Pair re-entry は行いません。
 
-Plan Coverage Flow では handoff review または equivalent Inline Ready Gate 後に Design Pair を起動し、後段の verification / residual decision を省略しません。package の正式 target は `codex` と `agent-skills` です。GitHub Copilot の Design Pair -> Adaptive end-to-end route は未検証であり、対応済みとは宣言しません。
+Plan Coverage Flow では handoff review または equivalent Inline Ready Gate 後に Design Pair を起動し、後段の verification / residual decision を省略しません。Adaptive packageの正式targetは`copilot`、`codex`、`agent-skills`ですが、Design Pair packageの正式targetは引き続き`codex`と`agent-skills`です。validなtracked Design Pair handoffをCopilot Adaptive routeへ入力する契約は保持しますが、Design Pair package自体のCopilot起動・対話・handoff生成はE2E対応済みとは宣言しません。
 
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target copilot,codex,agent-skills
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target codex,agent-skills
 dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs -- . --dry-run
 dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs -- .
@@ -621,7 +625,7 @@ dotnet run --file .\apm-packages\copilot-fallback-ai-development-process\scripts
 dotnet run --file .\apm-packages\copilot-fallback-ai-development-process\scripts\install-copilot-fallback-local.cs -- <target-repo-path>
 ```
 
-同名 template を上書きする必要がある場合だけ `--force` を使います。既存 `.github/copilot-instructions.md` は marker 管理された `copilot-fallback` block だけを差し替え、marker がない既存 file は manual merge blocker として停止します。
+同名 managed file を上書きする必要がある場合だけ `--force` を使います。Adaptive agentsはこのrepository rootのcanonical filesから直接コピーされます。別checkoutをsourceにする場合は`--repository-root <dir>`を指定します。既存 `.github/copilot-instructions.md` は marker 管理された `copilot-fallback` block だけを差し替え、marker がない既存 file は manual merge blocker として停止します。
 
 導入後は主に次が配置されます。
 
@@ -668,7 +672,7 @@ dotnet run --file .\apm-packages\copilot-fallback-ai-development-process\scripts
 
 ### モデル tier
 
-Copilot fallback の抽象 tier は Codex-first と別管理です。
+Copilot fallbackのplanner / verifier / scanner tierはCodex-firstと別管理です。canonical Adaptive implementation agentはrepository rootとAdaptive packageをsource of truthとし、fallback local installerもそのroot filesを直接配布します。同名templateの互換mirrorは保持しません。
 
 | Label | Intended use |
 | --- | --- |

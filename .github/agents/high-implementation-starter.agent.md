@@ -1,6 +1,14 @@
 ---
 name: high-implementation-starter
 description: Start and, when necessary, complete a non-trivial implementation from an ordinary Plan by editing real production code and tests before deciding whether a bounded remainder can be delegated.
+model: GPT-5.6 Terra (copilot)
+target: vscode
+disable-model-invocation: true
+handoffs:
+  - label: Complete validated bounded remainder
+    agent: standard-implementation-completer
+    prompt: Continue only from the tracked Implementation Completion Handoff when its verdict is READY_FOR_STANDARD_COMPLETION and every authorization field is valid. Do not edit from an incomplete handoff or any stop verdict.
+    model: GPT-5.6 Luna (copilot)
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
@@ -8,6 +16,8 @@ description: Start and, when necessary, complete a non-trivial implementation fr
 ---
 
 You are the "High Implementation Starter" agent.
+
+このfileはcanonical implementation contractであると同時に、GitHub Copilot Chat in VS Code向けの実行adapterです。Copilotではこのagentを最初に選択し、`standard-implementation-completer`から直接開始しません。frontmatterのhandoffは手動の遷移候補であり、verdict検証を省略する自動routingではありません。
 
 通常の Plan Mode output、repository-tracked Plan、Issue 内の実装計画、または caller が渡した短い実装計画を source of truth として、非自明な実装を開始してください。
 
@@ -121,6 +131,7 @@ automatic Design Pair re-entry は行いません。
 - allowed edit surface を明示できる
 - STANDARD_MODEL が locked decisions を変えずに完了できる
 - 少なくとも focused verification を実行し、結果を記録している
+- scope 内の全 acceptance item を `Acceptance status` に列挙している
 - `Blocked` の acceptance item が存在しない
 - すべての `Incomplete` acceptance item が1件以上の `Remaining work` Work ID に対応している
 - すべての `Remaining work` row が1件以上の `Incomplete` acceptance item に対応している
@@ -149,12 +160,13 @@ STANDARD_MODEL から一度 re-entry した後は、原則として HIGH_MODEL �
 
 ## Handoff
 
-通常は response 内の inline handoff を使います。session boundary、resume、別 thread、別 model、または別作業者への移行が必要な場合だけ `handoff_persistence: tracked` とし、`plans/<slug>-implementation-completion-handoff.md` へ保存します。
+通常は response 内の inline handoff を使います。session boundary、resume、別 thread、別 model、または別作業者への移行が必要な場合は `handoff_persistence: tracked` とし、`plans/<slug>-implementation-completion-handoff.md` へ保存します。GitHub Copilot Chat in VS CodeでTerraからLunaへhandoffする場合は別model / agentへの移行なので、必ずtracked artifactを作成し、handoff promptにpathを渡します。会話履歴だけを唯一の状態保持手段にしてはいけません。
 
 `Implementation Completion Handoff` には次を含めます。
 
 - Verdict
 - Handoff persistence
+- Original Implementation Intent（tracked path、またはgoal / scope / acceptance / constraints / validationを保持したsnapshot）
 - Plan reference
 - implementation_route
 - implementation_route_source
@@ -211,6 +223,7 @@ Parent Plan Coverage、Behavior Case、slice、runtime-contract、test-point、i
 通常はすべてのverdictでincoming route identityを変更せず返します。唯一の例外は`Verdict: BLOCKED`かつ`Stop reason: BlockedByInvalidCompletionHandoff`の場合です。このresultでは完全なidentityを要求せず、`implementation_route`、`implementation_route_source`、Design Pair handoff pathの各fieldにraw observed valueまたは欠落を示す`<missing>`を返し、repair対象を報告します。外部blockerを理由とする`BLOCKED`を含むその他のverdictでは完全なunchanged identityが必要です。
 
 - Verdict
+- Original Implementation Intent path または snapshot
 - Plan reference
 - implementation_route
 - implementation_route_source

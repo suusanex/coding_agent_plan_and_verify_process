@@ -1,6 +1,6 @@
 # Copilot Model Tier Mapping
 
-Copilot fallback の model mapping は Codex-first の model mapping とは別管理です。
+Copilot fallbackのplanner、verifier、scanner、close agentのmodel mappingはCodex-firstとは別管理です。ただしcanonical Adaptive implementation routeのHIGH / STANDARD / re-entry mappingはrepository rootと`adaptive-implementation-execution`をsource of truthとし、fallback local installerも同じroot agent filesを直接配布します。
 
 VS Code / GitHub Copilot 側で利用可能な model 名、組織 policy、premium request、品質要求は変わるため、次の対応は初期例として扱ってください。
 
@@ -25,4 +25,4 @@ Recommended runtime reasoning is Terra/high for planner, risk, implementation st
 
 `copilot-standard-implementer` は既存 invocation の互換入口としてのみ残します。標準ルートは `high-implementation-starter -> standard-implementation-completer -> high-implementation-starter` です。
 
-未指定の場合は VS Code の model picker の現在値が使われます。この package は route policy と template model を固定しますが、selected / observed reasoning、reported model、effective model は Agent Usage Ledger で別々に記録します。
+未指定の場合は VS Code の model picker の現在値が使われます。この package は route policy と template model を固定しますが、selected / observed reasoning、reported model、effective model は Agent Usage Ledger で別々に記録します。Terra / LunaがCopilot planやorganization policyで利用できない場合は黙ってtierを置き換えず、明示的なmapping変更または管理者確認を要求します。

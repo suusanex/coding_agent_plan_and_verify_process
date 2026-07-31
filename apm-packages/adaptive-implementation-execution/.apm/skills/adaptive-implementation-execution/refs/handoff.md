@@ -2,6 +2,7 @@
 
 - Verdict: READY_FOR_STANDARD_COMPLETION
 - Handoff persistence: inline / tracked
+- Original Implementation Intent: <tracked path or goal / scope / acceptance / constraints / validation snapshot>
 - Plan reference:
 - implementation_route: adaptive / design-pair
 - implementation_route_source: default / explicit-user-selection
@@ -11,7 +12,7 @@
 - previous_reentry_trigger: N/A
 - delegation_surface_reduced: N/A
 
-初回 handoff は上記の初期値を使用する。`implementation_route` と `implementation_route_source` はincoming durable route pairを変更せず伝播し、`adaptive / default`または`design-pair / explicit-user-selection`の組み合わせだけを許可する。current-schema handoffで片方が欠ける、矛盾する、またはDesign Pair evidenceと一致しない場合は`BLOCKED` / `BlockedByInvalidCompletionHandoff`として停止し、下記のlegacy normalizationで補完しない。re-entry 後に再委譲する場合は、re-entry handoff の `reentry_count` を維持し、`previous_reentry_trigger` にその `Trigger` を設定し、`delegation_surface_reduced: Yes` とする。
+初回 handoff は上記の初期値を使用する。`implementation_route` と `implementation_route_source` はincoming durable route pairを変更せず伝播し、`adaptive / default`または`design-pair / explicit-user-selection`の組み合わせだけを許可する。current-schema handoffで片方が欠ける、矛盾する、またはDesign Pair evidenceと一致しない場合は`BLOCKED` / `BlockedByInvalidCompletionHandoff`として停止し、下記のlegacy normalizationで補完しない。re-entry 後に再委譲する場合は、re-entry handoff の `reentry_count` を維持し、`previous_reentry_trigger` にその `Trigger` を設定し、`delegation_surface_reduced: Yes` とする。GitHub Copilot Chat in VS CodeのTerra -> Luna -> Terra遷移では必ず`tracked`を使用し、Original Implementation Intentと両handoff pathをpromptに渡す。会話履歴だけをdurable stateにしない。
 
 ## Acceptance status
 

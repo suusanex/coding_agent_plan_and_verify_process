@@ -14,13 +14,27 @@
 - final code review や総合 architecture review だけを行いたい request
 - write-heavy agent を並列実行したい request
 - CHEAP_MODEL に一般的な production implementation を任せたい request
-- 未検証の Copilot model tier switching を前提にした運用
+- organization policyやmodel pickerでrequested modelを利用できず、明示的な代替判断も記録できないCopilot運用
 
 ## Start after ordinary Plan Mode
 
 APM install で skill と portable custom agents を導入します。この skill は、利用者が明示指定した場合、または現在の task がこの package の HIGH_MODEL → STANDARD_MODEL 直列 workflow を明確に必要とする場合に選択します。導入されているだけで repository 内の実装作業へ自動適用しません。
 
 現行 APM が model 未設定の custom agent TOML を生成した場合は、補助スクリプトで concrete model 設定を補完し、`--check` で確認します。この補完は runtime configuration の互換処理であり、skill の選択や使用を強制しません。
+
+## Start in GitHub Copilot Chat in VS Code
+
+1. Adaptive packageを`--target copilot,agent-skills`、またはCodex併用なら`--target copilot,codex,agent-skills`で導入する。
+2. VS CodeでCopilot Chatを開き、agent pickerから`high-implementation-starter`を選ぶ。
+3. ordinary Plan / Implementation Intent、fresh route identity、必要ならtracked Design Pair handoff pathを渡す。
+4. HIGHがvalidなtracked `READY_FOR_STANDARD_COMPLETION`を返した場合だけhandoff buttonで`standard-implementation-completer`へ移る。
+5. STANDARDがtracked `NEEDS_HIGH_MODEL_REENTRY`を返した場合だけ、両handoff pathを渡して`high-implementation-starter`へ戻る。
+
+model mappingはHIGH start / re-entryが`GPT-5.6 Terra (copilot)`、bounded STANDARD completionが`GPT-5.6 Luna (copilot)`です。Lunaからfresh intakeを開始しません。`COMPLETED_BY_HIGH_MODEL`またはstop verdictではhandoff buttonを使わず停止します。buttonが表示されていること自体はauthorizationではありません。
+
+両custom agentは`disable-model-invocation: true`を指定し、agent pickerには表示したまま、他agentのmodel判断ではsubagentとして起動されないようにします。HIGH startは利用者がpickerから明示選択し、STANDARDへの遷移はvalidなtracked handoff確認後のhandoff buttonに限定します。
+
+Copilot plan、organization policy、extension version、model pickerによりrequested modelを利用できない場合は、別tierへ黙って実行しません。mapping変更を明示的に決めるかpolicy管理者へ確認し、requested / observed modelと差異をmanual evidenceへ記録します。
 
 ```text
 $adaptive-implementation-execution を使って、直前の Plan を実装してください。
@@ -40,7 +54,7 @@ $design-pair-implementation-execution で作成した plans/issue-123-design-pai
 Locked Decisions だけを binding とし、その他の実装判断は actual code と verification evidence から行ってください。
 ```
 
-Design Pair route は利用者が明示選択した場合だけ使います。Design Pair handoff の Target Map や `Affected files / symbols` は allowed edit surface ではありません。
+Design Pair route は利用者が明示選択した場合だけ使います。Design Pair handoff の Target Map や `Affected files / symbols` は allowed edit surface ではありません。Copilot経路でもvalidなtracked handoffをAdaptive inputとして保持しますが、Design Pair package自体のCopilotでの対話・handoff生成は正式E2E対応済みとは扱いません。
 
 durable routeやresume evidenceがない通常Adaptiveのfresh intakeは、`implementation_route: adaptive`、`implementation_route_source: default`、`design_pair_handoff: N/A`の3項目を初期化します。parentはHIGH_MODELへ3項目を常に渡し、Design Pair handoff pathを省略しません。
 
@@ -102,7 +116,7 @@ READY_FOR_STANDARD_COMPLETION
   -> high-implementation-starter resumes with the original intent, original completion handoff, and re-entry handoff
 ```
 
-STANDARD_MODEL は registration を暗黙変更しません。re-entry handoff に invalidating evidence、変更済み files、実行した checks、必要な decision、incomingの`implementation_route`、`implementation_route_source`、Design Pair handoff pathを変更せず記録します。parentは元のcompletion handoffも保持し、両handoffのroute identityが一致することを確認してからHIGH_MODELを再実行します。HIGH_MODELとSTANDARD_MODELは通常完了を含むresultで同じ3項目を返し、parentはincoming identityとの一致を検証します。
+STANDARD_MODEL は registration を暗黙変更しません。re-entry handoff にoriginal Implementation Intent、invalidating evidence、変更済み files、実行した checks、必要な decision、current worktree state、incomingの`implementation_route`、`implementation_route_source`、Design Pair handoff pathを変更せず記録します。parentは元のcompletion handoffも保持し、両handoffのroute identityが一致することを確認してからHIGH_MODELを再実行します。HIGH_MODELとSTANDARD_MODELは通常完了を含むresultで同じ3項目を返し、parentはincoming identityとの一致を検証します。
 
 例外は`Verdict: BLOCKED`かつ`Stop reason: BlockedByInvalidCompletionHandoff`だけです。欠落したidentityを捏造せず、各fieldのraw observed valueまたは`<missing>`とrepair evidenceを返します。parentはこのresultに完全なpairを要求せず受理して停止します。外部blockerを理由とする`BLOCKED`では完全なunchanged identityが必要です。
 
@@ -114,7 +128,7 @@ STANDARD_MODEL は registration を暗黙変更しません。re-entry handoff �
 
 ### inline
 
-同一 run / 同一 parent orchestration 内で agent を直列実行できる通常経路です。repository file を増やしません。
+同一 run / 同一 parent orchestration / 同一model内でagentを直列実行できるCodex通常経路です。repository fileを増やしません。
 
 ### tracked
 
@@ -122,9 +136,10 @@ STANDARD_MODEL は registration を暗黙変更しません。re-entry handoff �
 
 - session boundary または resume が必要
 - 別 thread / 別 model / 別作業者へ移行する
+- GitHub Copilot Chat in VS CodeでTerra -> LunaまたはLuna -> Terraへagent handoffする
 - execution time limit により同一 run で続けられない
 
-tracked handoff は実コードの代替設計書ではありません。locked decisions、remaining work、allowed surface、validation、re-entry trigger の短い実行情報に留めます。
+tracked handoff は実コードの代替設計書ではありません。ただしCopilotのmodel間遷移では会話履歴だけをstate sourceにせず、Original Implementation Intent、route identity、Design Pair handoff path / Decision IDs、Locked Decisions、remaining work、allowed surface、validation、re-entry trigger、current worktree stateを保持します。completionは`plans/<slug>-implementation-completion-handoff.md`、re-entryは`plans/<slug>-high-model-reentry-handoff.md`を使います。
 
 ### pre-Design-Pair tracked handoffのresume
 
@@ -154,10 +169,10 @@ HIGH_MODEL と STANDARD_MODEL は、それぞれの変更に関連する build�
 
 ## Changing model assignment
 
-抽象 tier と具体的 model の対応は `codex-agents/*.toml` で変更します。
+Codexの抽象tierと具体的modelの対応は`codex-agents/*.toml`で変更します。
 
 - `model`: runtime で利用可能な model
 - `model_reasoning_effort`: role に必要な reasoning
 - `sandbox_mode`: implementation agent では `workspace-write`
 
-skill や portable agent の本文に具体的 model 名を追加しません。skill 選択後の実行契約は `SKILL.md` を source of truth とします。
+Copilotのconcrete modelはcanonical root `.github/agents/*.agent.md`のfrontmatterで指定します。fallback local installerも同じroot filesを直接配布し、同名templateを別管理しません。skill選択後の実行契約は`SKILL.md`とcanonical agentsをsource of truthとします。

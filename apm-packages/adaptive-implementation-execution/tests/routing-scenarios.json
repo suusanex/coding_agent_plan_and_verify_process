@@ -1,0 +1,156 @@
+{
+  "schema_version": 2,
+  "contract": "adaptive-implementation-execution",
+  "required_reentry_state": [
+    "original_implementation_intent",
+    "implementation_completion_handoff",
+    "high_model_reentry_handoff",
+    "implementation_route",
+    "implementation_route_source",
+    "design_pair_handoff",
+    "locked_decisions",
+    "current_worktree_state",
+    "invalidating_evidence",
+    "completed_work",
+    "files_changed",
+    "validation",
+    "new_decision",
+    "reentry_count",
+    "trigger",
+    "delegation_surface_reduced"
+  ],
+  "scenarios": [
+    {
+      "id": "A",
+      "name": "high-completes-directly",
+      "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
+      "events": [
+        { "kind": "start", "owner": "high-implementation-starter" },
+        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "COMPLETED_BY_HIGH_MODEL" }
+      ],
+      "expected": { "final_state": "Completed", "standard_starts": 0 }
+    },
+    {
+      "id": "B",
+      "name": "bounded-completion",
+      "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
+      "events": [
+        { "kind": "start", "owner": "high-implementation-starter" },
+        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "READY_FOR_STANDARD_COMPLETION", "handoff": { "valid": true, "remaining_work": ["W-1"], "allowed_edit_surface": ["src/Bounded.cs"] } },
+        { "kind": "start", "owner": "standard-implementation-completer" },
+        { "kind": "verdict", "owner": "standard-implementation-completer", "verdict": "COMPLETED" }
+      ],
+      "expected": { "final_state": "Completed", "standard_starts": 1 }
+    },
+    {
+      "id": "C",
+      "name": "incomplete-handoff",
+      "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
+      "events": [
+        { "kind": "start", "owner": "high-implementation-starter" },
+        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "READY_FOR_STANDARD_COMPLETION", "expected_rejected": true, "handoff": { "valid": false, "remaining_work": ["W-1"], "allowed_edit_surface": [] } }
+      ],
+      "expected": { "final_state": "HighActive", "standard_starts": 0 }
+    },
+    {
+      "id": "D",
+      "name": "structural-reentry",
+      "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
+      "events": [
+        { "kind": "start", "owner": "high-implementation-starter" },
+        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "READY_FOR_STANDARD_COMPLETION", "handoff": { "valid": true, "remaining_work": ["W-1"], "allowed_edit_surface": ["src/Bounded.cs"] } },
+        { "kind": "start", "owner": "standard-implementation-completer" },
+        {
+          "kind": "verdict",
+          "owner": "standard-implementation-completer",
+          "verdict": "NEEDS_HIGH_MODEL_REENTRY",
+          "structural_trigger": true,
+          "tracked_state": {
+            "original_implementation_intent": "plans/example-implementation-intent.md",
+            "implementation_completion_handoff": "plans/example-implementation-completion-handoff.md",
+            "high_model_reentry_handoff": "plans/example-high-model-reentry-handoff.md",
+            "implementation_route": "adaptive",
+            "implementation_route_source": "default",
+            "design_pair_handoff": "N/A",
+            "locked_decisions": ["HIGH-D01"],
+            "current_worktree_state": "clean except bounded implementation changes",
+            "invalidating_evidence": "public API choice is unresolved",
+            "completed_work": ["W-1"],
+            "files_changed": ["src/Bounded.cs"],
+            "validation": ["dotnet test"],
+            "new_decision": "choose the public API boundary",
+            "reentry_count": 1,
+            "trigger": "public API decision",
+            "delegation_surface_reduced": true
+          }
+        },
+        { "kind": "start", "owner": "high-implementation-starter" },
+        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "COMPLETED_BY_HIGH_MODEL" }
+      ],
+      "expected": { "final_state": "Completed", "standard_starts": 1 }
+    },
+    {
+      "id": "E",
+      "name": "repeated-trigger-without-surface-reduction",
+      "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
+      "events": [
+        { "kind": "start", "owner": "high-implementation-starter" },
+        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "READY_FOR_STANDARD_COMPLETION", "handoff": { "valid": true, "remaining_work": ["W-1"], "allowed_edit_surface": ["src/Bounded.cs"] } },
+        { "kind": "start", "owner": "standard-implementation-completer" },
+        {
+          "kind": "verdict",
+          "owner": "standard-implementation-completer",
+          "verdict": "NEEDS_HIGH_MODEL_REENTRY",
+          "structural_trigger": true,
+          "tracked_state": {
+            "original_implementation_intent": "plans/example-implementation-intent.md",
+            "implementation_completion_handoff": "plans/example-implementation-completion-handoff.md",
+            "high_model_reentry_handoff": "plans/example-high-model-reentry-handoff.md",
+            "implementation_route": "adaptive",
+            "implementation_route_source": "default",
+            "design_pair_handoff": "N/A",
+            "locked_decisions": ["HIGH-D01"],
+            "current_worktree_state": "bounded implementation changes remain",
+            "invalidating_evidence": "same trigger recurred",
+            "completed_work": ["W-1"],
+            "files_changed": ["src/Bounded.cs"],
+            "validation": ["dotnet test"],
+            "new_decision": "HIGH retains completion ownership",
+            "reentry_count": 2,
+            "trigger": "same public API decision",
+            "delegation_surface_reduced": false
+          }
+        },
+        { "kind": "start", "owner": "high-implementation-starter" },
+        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "COMPLETED_BY_HIGH_MODEL" }
+      ],
+      "expected": { "final_state": "Completed", "standard_starts": 1 }
+    },
+    {
+      "id": "F",
+      "name": "invalid-route-identity",
+      "route": { "implementation_route": "adaptive", "implementation_route_source": null, "design_pair_handoff": "N/A" },
+      "events": [
+        { "kind": "verdict", "owner": "none", "write_owner": "none", "verdict": "BLOCKED", "stop_reason": "BlockedByInvalidCompletionHandoff", "adaptive_default_inferred": false }
+      ],
+      "expected": { "final_state": "Blocked", "standard_starts": 0 }
+    },
+    {
+      "id": "G",
+      "name": "design-pair-preservation",
+      "route": {
+        "implementation_route": "design-pair",
+        "implementation_route_source": "explicit-user-selection",
+        "design_pair_handoff": "plans/example-design-pair-implementation-handoff.md",
+        "locked_decision_ids": ["DESIGN-A-D01", "DESIGN-B-D01"]
+      },
+      "events": [
+        { "kind": "start", "owner": "high-implementation-starter" },
+        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "READY_FOR_STANDARD_COMPLETION", "handoff": { "valid": true, "remaining_work": ["W-1"], "allowed_edit_surface": ["src/Bounded.cs"], "locked_decision_ids": ["DESIGN-A-D01", "DESIGN-B-D01"] } },
+        { "kind": "start", "owner": "standard-implementation-completer" },
+        { "kind": "verdict", "owner": "standard-implementation-completer", "verdict": "COMPLETED", "locked_decision_ids": ["DESIGN-A-D01", "DESIGN-B-D01"], "changed_locked_decision": false }
+      ],
+      "expected": { "final_state": "Completed", "standard_starts": 1 }
+    }
+  ]
+}
