@@ -60,7 +60,7 @@ NOT RUN
 - Target-only selection advanced to disposition-confirmation without requiring an initial position or repeating selection: NOT RUN
 - Selected Target user-facing response included concrete code structure, trade-offs, proposal, and validation expectations: NOT RUN
 - Turn 2 stopped for final disposition: NOT RUN
-- Turn 3 post-map confirmation evidence valid: NOT RUN
+- Final post-map confirmation evidence valid: NOT RUN
 - Adaptive started only after READY: NOT RUN
 - Resume waiting behavior, if exercised: NOT RUN
 
