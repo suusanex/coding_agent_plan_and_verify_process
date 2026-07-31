@@ -420,15 +420,21 @@ implementation_route_source: explicit-user-selection
 ```text
 ordinary Plan / Implementation Intent
   -> design-pair-implementation-execution
+  -> Target Map presentation
+  -> AWAITING_USER_INPUT / target-selection [turn stop]
+  -> discussion / AWAITING_USER_INPUT / disposition-confirmation [when needed]
   -> plans/<slug>-design-pair-implementation-handoff.md
+  -> complete / READY_FOR_ADAPTIVE_IMPLEMENTATION
   -> adaptive-implementation-execution
 ```
 
-Design Pair は予定変更面全体を bounded に調査し、具体的な file / symbol、current responsibility、requested change との関係、evidence を Target Map に記録します。人間が選んだ論点だけを対話し、explicit confirmation のある `Locked Decisions` だけを binding とします。`Discussed-Unlocked`、`Adaptive-Owned`、Target Map、Known Evidence は HIGH_MODEL の通常 authority または allowed edit surface を拘束しません。
+Design Pair は予定変更面全体を bounded に調査し、具体的な file / symbol、current responsibility、current invariant、requested change との関係、内部設計判断候補、evidence を Target Map に記録します。最初のturnはTarget Map全体を利用者へ提示し、Target IDと初期案を求め、`AWAITING_USER_INPUT / target-selection`をtracked handoffへ保存して必ず終了します。「実装してください」という最初の依頼、upstream Plan / Issue / gold document、Target Map提示前の技術案は、このpost-map user responseの代わりになりません。
 
-Design Pair phase の完了前に production code / tests を編集しません。tracked handoff が `READY_FOR_ADAPTIVE_IMPLEMENTATION` になった後、既存の HIGH -> optional STANDARD -> HIGH re-entry route を開始します。Locked Decision conflict は黙って変更せず、Decision ID と actual-code evidence を伴う stop verdict で返します。automatic Design Pair re-entry は行いません。
+人間が選んだ論点だけを対話し、AIのtrade-off提示後に利用者が明示確認した`Locked Decisions`だけをbindingとします。upstream binding constraintsは別sectionに保存し、Design Pair Decision IDを付けません。最終dispositionが未確定なら`AWAITING_USER_INPUT / disposition-confirmation`で再停止します。利用者がTarget Map提示後に全TargetをAdaptiveへ委ねると明示した場合は、個別対話やLocked Decisionなしで進めます。
 
-Plan Coverage Flow では handoff review または equivalent Inline Ready Gate 後に Design Pair を起動し、後段の verification / residual decision を省略しません。Adaptive packageの正式targetは`copilot`、`codex`、`agent-skills`ですが、Design Pair packageの正式targetは引き続き`codex`と`agent-skills`です。validなtracked Design Pair handoffをCopilot Adaptive routeへ入力する契約は保持しますが、Design Pair package自体のCopilot起動・対話・handoff生成はE2E対応済みとは宣言しません。
+Design Pair phase の完了前に production code / tests を編集しません。validなpost-map user evidenceがあり、interaction stageが`complete`でtracked handoffが`READY_FOR_ADAPTIVE_IMPLEMENTATION`になった後だけ、既存の HIGH -> optional STANDARD -> HIGH re-entry route を開始します。Locked Decision conflict は黙って変更せず、Decision ID と actual-code evidence を伴う stop verdict で返します。automatic Design Pair re-entry は行いません。
+
+Plan Coverage Flow では handoff review または equivalent Inline Ready Gate 後に Design Pair を起動し、parent stateへhandoff path、interaction stage、user evidenceを保存します。waiting中はAdaptive / verification / residual decisionへ進みません。Adaptive packageの正式targetは`copilot`、`codex`、`agent-skills`ですが、Design Pair packageの正式targetは引き続き`codex`と`agent-skills`です。validなtracked Design Pair handoffをCopilot Adaptive routeへ入力する契約は保持しますが、Design Pair package自体のCopilot起動・対話・handoff生成はE2E対応済みとは宣言しません。
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target copilot,codex,agent-skills
@@ -445,6 +451,7 @@ fresh Codex targetではAdaptiveとのco-installとconcrete HIGH / STANDARD prof
 - `apm-packages/design-pair-implementation-execution/README.md`
 - `apm-packages/design-pair-implementation-execution/docs/usage-guide.md`
 - `apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md`
+- `apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md`
 
 ---
 

@@ -195,9 +195,9 @@ if (Test-Path -LiteralPath $manifestPath) {
 }
 
 $integratedManifests = @(
-    @{ Path = 'apm-packages/plan-coverage-residual-flow/apm.yml'; Version = '0\.7\.0' },
-    @{ Path = 'apm-packages/token-aware-full-coverage-3layer/apm.yml'; Version = '0\.4\.0' },
-    @{ Path = 'apm-packages/codex-first-ai-development-process/apm.yml'; Version = '0\.5\.0' },
+    @{ Path = 'apm-packages/plan-coverage-residual-flow/apm.yml'; Version = '0\.8\.0' },
+    @{ Path = 'apm-packages/token-aware-full-coverage-3layer/apm.yml'; Version = '0\.5\.0' },
+    @{ Path = 'apm-packages/codex-first-ai-development-process/apm.yml'; Version = '0\.6\.0' },
     @{ Path = 'apm-packages/copilot-fallback-ai-development-process/apm.yml'; Version = '0\.3\.0' }
 )
 
@@ -313,6 +313,9 @@ Assert-Contains $skill 'existing code から scope を狭めない' 'safe non-go
 Assert-Contains $skill 'package が導入されているだけで.*自動適用しません' 'non-automatic skill selection rule'
 Assert-Contains $skill 'Design Pair Implementation Handoff' 'Design Pair handoff input support'
 Assert-Contains $skill '(?s)binding なのは.*Locked Decisions.*だけ' 'Design Pair binding-only rule'
+Assert-Contains $skill '(?s)verdict が `READY_FOR_ADAPTIVE_IMPLEMENTATION`.*`Interaction stage: complete`.*Target Map presentation evidence.*actual user response reference.*explicit all-Adaptive delegation.*pending human-owned Target がない' 'complete post-map Design Pair readiness validation'
+Assert-Contains $skill 'Target 未選択を空集合として PASS にせず.*HIGH_MODELを起動しません' 'empty Target selection fail-closed rule'
+Assert-Contains $skill 'Upstream Binding Constraints.*Design Pair Decision ID を持たない既存の binding input' 'upstream binding separation rule'
 Assert-Contains $skill 'Affected files / symbols.*Allowed edit surface.*扱いません' 'Design Pair file-symbol non-allowlist rule'
 Assert-Contains $skill 'automatic Design Pair re-entry' 'no automatic Design Pair re-entry'
 Assert-Contains $skill '新規 intake と resume を分けます' 'fresh intake and resume distinction'
@@ -354,6 +357,8 @@ Assert-Contains $highAgent 'Implementation Self-Map Delta' 'HIGH_MODEL Self-Map 
 Assert-Contains $highAgent 'Related Plan item.*Related Behavior Case IDs.*Related SL / XC / RC / TP / IC / Gap item.*Assumption made.*Review hint' 'HIGH_MODEL Self-Map schema'
 Assert-Contains $highAgent 'Design Pair Implementation Handoff' 'HIGH_MODEL Design Pair input support'
 Assert-Contains $highAgent 'Locked Decision conflict' 'HIGH_MODEL Locked Decision conflict stop'
+Assert-Contains $highAgent '(?s)`design-pair / explicit-user-selection`では.*`Interaction stage: complete`.*post-map user response evidence.*explicit all-Adaptive delegation.*pending human-owned Targetなし.*空集合PASS.*BlockedByInvalidCompletionHandoff' 'HIGH_MODEL complete post-map authorization gate'
+Assert-Contains $highAgent 'Upstream Binding Constraints.*Design Pair Decision IDを持たない既存のbinding input' 'HIGH_MODEL upstream binding separation'
 Assert-Contains $highAgent '(?s)## Required inputs.*- implementation_route.*- implementation_route_source.*- Design Pair Implementation Handoff path または `N/A`.*`BLOCKED`.*BlockedByInvalidCompletionHandoff' 'HIGH_MODEL required route input validation'
 Assert-Contains $highAgent '(?s)`Implementation Completion Handoff` には次を含めます。.*- implementation_route.*- implementation_route_source.*- Validation performed' 'HIGH_MODEL required handoff route metadata'
 Assert-Contains $highAgent 're-entry handoffと元のImplementation Completion Handoffから`implementation_route`、`implementation_route_source`、Design Pair handoff pathを読み.*一致' 'HIGH_MODEL re-entry route identity input'
@@ -502,6 +507,8 @@ foreach ($toml in @($highToml, $codexHighToml)) {
     Assert-Contains $toml 'Accept only implementation_route: adaptive with implementation_route_source: default and an explicit N/A path, or implementation_route: design-pair with implementation_route_source: explicit-user-selection and the current tracked path' 'portable HIGH exact route identity tuples'
     Assert-Contains $toml 'Stop before editing and return BLOCKED with Stop reason: BlockedByInvalidCompletionHandoff when any route identity field is missing.*raw observed field value or <missing> plus repair evidence; never infer or fabricate' 'portable HIGH invalid route classification and raw output'
     Assert-Contains $toml 'Normally return unchanged implementation_route, implementation_route_source, and the Design Pair Implementation Handoff path or N/A with every implementation result and completion handoff.*only exception is BLOCKED with Stop reason: BlockedByInvalidCompletionHandoff.*raw observed values or <missing>.*Other BLOCKED results still require the complete unchanged identity' 'portable HIGH conditional route output continuity'
+    Assert-Contains $toml 'require READY_FOR_ADAPTIVE_IMPLEMENTATION, interaction stage complete, Target Map presentation and selection-request evidence, an actual post-map user response, non-empty selected Targets or explicit all-Adaptive delegation, no pending human-owned Target' 'portable HIGH complete post-map authorization gate'
+    Assert-Contains $toml 'keep the original Plan and Upstream Binding Constraints as separate binding inputs without Design Pair Decision IDs' 'portable HIGH upstream binding separation'
 }
 foreach ($toml in @($standardToml, $codexStandardToml)) {
     Assert-Contains $toml 'including implementation_route and implementation_route_source, before editing' 'portable STANDARD route authorization'

@@ -55,6 +55,8 @@ read relevant code
 
 route pairは`adaptive / default`または`design-pair / explicit-user-selection`だけを許可し、Design Pair evidenceおよびhandoff pathと一致させます。`adaptive / default`ではpathに明示的な`N/A`を要求します。fieldの欠落、組み合わせ矛盾、またはevidence不一致がある場合は編集前に`BLOCKED`を返し、`Stop reason: BlockedByInvalidCompletionHandoff`、各route identity fieldのraw observed valueまたは`<missing>`、artifact repairに必要なevidenceを報告します。値を推測または補完してはいけません。
 
+`design-pair / explicit-user-selection`では、handoffの`Verdict: READY_FOR_ADAPTIVE_IMPLEMENTATION`、`Interaction stage: complete`、Target Map presentation / Target selection request / post-map user response evidence、non-empty selected Targetまたはexplicit all-Adaptive delegation、pending human-owned Targetなし、valid Locked confirmation evidence、blocking upstream decisionなしを編集前に検証します。欠落、矛盾、waiting state、空集合PASSがある場合は同じ`BLOCKED / BlockedByInvalidCompletionHandoff`で停止し、Plan、Issue、docs、AI summaryからuser evidenceを補完しません。
+
 次は任意 input です。明示されていない場合は、次の規則で扱い、推定した内容を出力に記録します。
 
 - constraints: user request または repository instructions が強制する内容だけを採用する
@@ -66,7 +68,7 @@ validation expectation が明示されていない場合は repository standard 
 
 Plan Coverage、change-risk-triage、runtime-contract、test-design、coverage ledger、residual-decision artifact は必須ではありません。caller が binding input として渡した場合だけ守ってください。
 
-利用者が Design Pair route を明示選択した場合は、`Design Pair Implementation Handoff` を追加 input として受け取ります。handoff の `Locked Decisions` に Decision ID と explicit human confirmation がある entry だけを binding とし、Target Map、`Discussed but Unlocked`、`Adaptive-Owned`、Known Evidence、Known Assumptions、Knowledge Candidates は参考情報として扱ってください。Target Map と `Affected files / symbols` は allowed edit surface ではありません。
+利用者が Design Pair route を明示選択した場合は、`Design Pair Implementation Handoff` を追加 input として受け取ります。Design Pairが今回新たに作るdecisionは、handoffの`Locked Decisions`にDecision ID、Target ID、actual user turn reference、confirmed content、post-map confirmation `Yes`があるentryだけをbindingとします。original Plan、repository policy、`Upstream Binding Constraints`はDesign Pair Decision IDを持たない既存のbinding inputです。Target Map、`Upstream User Initial Positions`、`Discussed but Unlocked`、`Adaptive-Owned`、Known Evidence、Known Assumptions、Knowledge Candidates は参考情報として扱ってください。Target Map と `Affected files / symbols` は allowed edit surface ではありません。
 
 Design Pair handoff がある場合も、通常の adaptive implementation と同じ authority を維持します。Locked Decisions 以外の責務配置、signature、dependency、wiring、state ownership、error / cancellation / retry、test seam 等は actual code と verification evidence に基づいて判断してください。
 

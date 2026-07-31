@@ -1,6 +1,7 @@
 # Design Pair Implementation Handoff
 
-- Verdict: DRAFT / READY_FOR_ADAPTIVE_IMPLEMENTATION / HUMAN_DECISION_REQUIRED / REPLAN_REQUIRED / BLOCKED
+- Verdict: DRAFT / AWAITING_USER_INPUT / READY_FOR_ADAPTIVE_IMPLEMENTATION / HUMAN_DECISION_REQUIRED / REPLAN_REQUIRED / BLOCKED
+- Interaction stage: target-map-building / target-selection / design-discussion / disposition-confirmation / upstream-decision / complete / artifact-repair
 - Route: design-pair
 - implementation_route: design-pair
 - implementation_route_source: explicit-user-selection
@@ -9,24 +10,48 @@
 - Handoff review reference, when present:
 - Tracked handoff path: plans/<slug>-design-pair-implementation-handoff.md
 - Worktree / revision evidence:
+- Target Map presentation evidence: Pending / <assistant message or turn reference and presented Target IDs>
+- Target selection request evidence: Pending / <assistant message or turn reference>
+- Latest user response reference: Pending / <user message or turn reference>
+- User response occurred after Target Map presentation: Pending / Yes / No
+- Selected Target IDs: Pending / <DP-Txx list>
+- Delegated-to-Adaptive Target IDs: Pending / None / <DP-Txx list>
+- Explicit all-Adaptive delegation: Pending / Yes / No
+- Pending human-owned Target IDs: Pending / None / <DP-Txx list>
+- Parent / resume state reference: N/A / <artifact path and field references>
 - Adaptive implementation behavior: unchanged
 - Locked decision policy: binding-only-for-explicit-entries
 - Production code / tests edited during Design Pair: No
 
 ## Design Pair Target Map
 
-| Target ID | File / Symbol | Current responsibility | Relation to requested change | Expected modification or verification | Evidence | Open question | Disposition |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+| Target ID | File / Symbol | Current responsibility | Current invariant | Relation to requested change | Internal design decision candidate | Expected modification or verification | Relevant evidence | Open question | Disposition |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| DP-T01 | | | | | | | | | Pending-User-Selection / Pending-User-Disposition / Locked / Discussed-Unlocked / Adaptive-Owned / No-Change / Upstream-Decision-Required |
 
 Target Map の file / symbol は調査範囲と decision の適用対象を示す。Adaptive Implementation の allowed edit surface ではない。
 
+## Upstream Binding Constraints
+
+| Constraint ID | Constraint | Source artifact | Evidence | Relation to Target IDs |
+| --- | --- | --- | --- | --- |
+
+この section は Plan / Issue / acceptance criteria / repository policy / public contract に既存の binding requirement を記録する。Design Pair Decision ID を付けず、今回の Design Pair interaction の confirmation として計上しない。
+
+## Upstream User Initial Positions
+
+| Position ID | Initial position | Source user message / turn | Relation to Target IDs | Status |
+| --- | --- | --- | --- | --- |
+
+Target Map 提示前の技術案はここに保存できるが、Design Pair Locked Decision へ自動昇格しない。
+
 ## Locked Decisions
 
-| Decision ID | Decision | Affected files / symbols | Rationale | Validation expectations | Conflict conditions | Explicit human confirmation |
-| --- | --- | --- | --- | --- | --- | --- |
-| DP-D01 | | | | | | <message / comment / meeting reference> |
+| Decision ID | Target ID | Decision | Affected files / symbols | Rationale | Validation expectations | Conflict conditions | User message / turn reference | Confirmed content quote or faithful summary | Confirmation occurred after Target Map presentation |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| DP-D01 | DP-T01 | | | | | | | | Yes |
 
-この section に Decision ID と explicit human confirmation がある entry だけが binding である。
+この section に Decision ID、presented Target ID、実際の user message / turn reference、確認内容、`Confirmation occurred after Target Map presentation: Yes` がある entry だけが binding である。upstream Plan / Issue / acceptance criteria / gold document / repository docs、AI summary、過去会話からの推測、利用者の沈黙は explicit human confirmation ではない。
 
 ## Discussed but Unlocked
 
@@ -68,11 +93,18 @@ Knowledge Candidates は自動的に knowledge card または repository policy 
 | Check | Status | Evidence |
 | --- | --- | --- |
 | Goal, scope, and acceptance support implementation start | PASS / FAIL | |
-| User-selected discussion targets have dispositions | PASS / FAIL | |
-| Locked Decisions are explicit and unambiguous | PASS / FAIL / N/A | |
+| Target Map was presented to the user | PASS / FAIL | <assistant message / turn reference and Target IDs> |
+| Target selection and initial positions were requested | PASS / FAIL | <assistant message / turn reference> |
+| A user response occurred after Target Map presentation | PASS / FAIL | <user message / turn reference> |
+| Non-empty user participation or explicit all-Adaptive delegation exists | PASS / FAIL | <selected Target IDs or explicit all-Adaptive response> |
+| User-selected discussion targets have final dispositions | PASS / FAIL | |
+| Locked Decisions have valid post-map confirmation evidence | PASS / FAIL / N/A | |
 | Locked Decisions do not conflict with upstream contracts | PASS / FAIL / N/A | |
+| No pending human-owned Target remains | PASS / FAIL | |
 | No blocking Upstream-Decision-Required remains | PASS / FAIL | |
 | Target Map covers the bounded planned change surface | PASS / FAIL | |
+
+Target が一件も選択されず、全 Target の Adaptive delegation も明示されていない状態を空集合として PASS にしない。全 row が PASS または有効な N/A で、`Interaction stage: complete` の場合だけ `READY_FOR_ADAPTIVE_IMPLEMENTATION` を設定する。
 
 ## Adaptive Implementation Result
 

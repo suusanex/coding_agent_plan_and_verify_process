@@ -36,20 +36,22 @@ goal、scope、acceptance が不足する場合は production code / tests を�
 1. flow 開始時に Design Pair を明示選択し、route metadata を durable artifact / resume state に保存する。
 2. 通常の Plan Coverage pre-implementation gates を完了する。
 3. `implementation-handoff-review` または equivalent Inline Ready Gate が READY の場合だけ Design Pair を開始する。
-4. tracked Design Pair handoff が `READY_FOR_ADAPTIVE_IMPLEMENTATION` になった後、Adaptive Implementation を HIGH_MODEL から開始する。
-5. verification-kernel、coverage gap handling、residual-decision-gate へ戻る。
+4. Target Map 提示後は `AWAITING_USER_INPUT / target-selection` と handoff path を parent state に保存し、その turn を終了する。
+5. user discussion 後に最終 disposition がなければ `AWAITING_USER_INPUT / disposition-confirmation` を保存して再停止する。
+6. tracked Design Pair handoff が `interaction_stage: complete` かつ `READY_FOR_ADAPTIVE_IMPLEMENTATION` になった後だけ、Adaptive Implementation を HIGH_MODEL から開始する。
+7. verification-kernel、coverage gap handling、residual-decision-gate へ戻る。
 
 Design Pair package は Copilot target を宣言しません。Plan Coverage package が Copilot target を持っていても、Design Pair route は Codex / agent-skills で両 package を導入した場合だけ利用します。
 
 ## Resume
 
-`implementation_route`、`implementation_route_source`、`design_pair_handoff`はdurable artifactから再読します。resume時に欠ける、矛盾する、またはDesign Pair evidenceがあるのにtracked handoffが欠ける場合、Adaptiveへ補完せず`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてartifact repairを要求します。3項目を`adaptive / default / N/A`へ自動初期化できるのはfresh intakeだけです。
+`implementation_route`、`implementation_route_source`、`design_pair_handoff`、`design_pair_interaction_stage`はdurable artifactから再読します。Design Pair resume では Target Map presentation、Target 選択要求、post-map user response、disposition、Locked confirmation evidence も検証します。欠ける、矛盾する、またはwaiting中なのにREADYへ正規化されている場合、upstream textから補完せず`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてartifact repairを要求します。3 route項目を`adaptive / default / N/A`へ自動初期化できるのはfresh intakeだけです。
 
 STANDARD_MODELからHIGH_MODELへre-entryする場合は、High-model Re-entry Handoffに両route fieldとDesign Pair handoff pathをincoming completion handoffから変更せずコピーします。parentは元のcompletion handoffとre-entry handoffの両方をHIGH_MODELへ渡し、route identityが一致しない場合は再実行前に`BLOCKED` / `BlockedByInvalidCompletionHandoff`で停止します。HIGH_MODELとSTANDARD_MODELは通常完了を含む非invalid resultで同じ3項目を返します。invalid-artifact `BLOCKED`だけはraw observed valueまたは`<missing>`とrepair evidenceを返し、parentは完全なpairを要求せず停止resultとして受理します。
 
 ## Target Map discussion
 
-AI は予定変更面全体を bounded に調査し、具体的な file / symbol、現在の責務、requested change との関係、evidence、不明点を説明します。
+AI は予定変更面全体を bounded に調査し、具体的な file / symbol、現在の責務、current invariant、requested change との関係、内部設計判断候補、evidence、不明点を説明します。初回 turn は handoff に `AWAITING_USER_INPUT / target-selection` を保存し、利用者へ Target ID、初期案、未選択 Target の Adaptive delegation を求めて必ず終了します。「実装してください」という初回依頼はこの post-map response の代わりになりません。
 
 利用者は議論したい Target を選び、初期案を提示します。その後、AI が trade-off、反論、代替案、追加 evidence、validation expectation を返します。
 
@@ -61,13 +63,17 @@ AI は予定変更面全体を bounded に調査し、具体的な file / symbol
 - `No-Change`
 - `Upstream-Decision-Required`
 
-`Locked` は explicit human confirmation と Decision ID がある entry だけです。Target Map の全項目を Locked にする必要はありません。
+`Locked` は Target Map 提示後に AI が trade-off と validation expectation を説明し、その後の user message / turn で明示確認された Decision ID 付き entry だけです。Plan / Issue / acceptance / gold document / AI summary は confirmation ではありません。利用者が初回 prompt に書いた技術案は initial position として保存し、post-map confirmation まで Locked にしません。
+
+利用者が Target と初期案だけを返した場合、AI は evidence、反論または支持、代替案、trade-off、production wiring / lifecycle / state ownership / test seam への影響、validation expectation を提示し、`AWAITING_USER_INPUT / disposition-confirmation` で再停止します。利用者が Target Map 提示後に全 Target を Adaptive へ委ねると明示した場合は、個別議論なしで `Adaptive-Owned` として READY にできます。
 
 ## Handoff semantics
 
 tracked handoff は `plans/<slug>-design-pair-implementation-handoff.md` に保存します。
 
 - binding: `Locked Decisions` の explicit entry だけ
+- binding but not Design Pair decisions: `Upstream Binding Constraints`
+- non-binding pre-map input: `Upstream User Initial Positions`
 - advisory: Target Map、Discussed but Unlocked、Adaptive-Owned、Known Evidence、Known Assumptions、Knowledge Candidates
 - not an allowed edit surface: Target Map と `Affected files / symbols`
 
@@ -80,3 +86,10 @@ Locked Decision が actual code、production wiring、dependency evidence、ま�
 ## Completion boundary
 
 Design Pair route の実装完了は final code review、human review、総合 architecture review、独立 verification の完了を意味しません。実行済み verification と未検証範囲を分けて報告します。
+
+## Troubleshooting
+
+- `READY_FOR_ADAPTIVE_IMPLEMENTATION` だが post-map user response がない: invalid handoff。`target-selection` waiting state へ修復する。
+- selected Target が空で readiness が PASS: invalid handoff。明示的な all-Adaptive delegation がない限り FAIL とする。
+- `Locked` の confirmation が Plan / Issue を参照する: `Upstream Binding Constraints` へ移し、actual user turn evidence を要求する。
+- resume artifact が `DRAFT` のみで interaction stage 不明: READY を推測せず artifact repair で停止する。

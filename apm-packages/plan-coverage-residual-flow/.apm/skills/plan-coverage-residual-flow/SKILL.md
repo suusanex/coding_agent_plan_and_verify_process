@@ -106,7 +106,7 @@ implementation_route_source: explicit-user-selection
 
 Do not automatically select, recommend, or propose Design Pair based on difficulty, risk, task size, or architecture. Do not ask the user to choose between the routes when no explicit selection exists; keep the default Adaptive route.
 
-Preserve both fields through the Plan Coverage Lite artifact, canonical coverage ledger / handoff review, full-coverage parent orchestration state, resume, and implementation result. For the Design Pair route, also record `design_pair_handoff: plans/<slug>-design-pair-implementation-handoff.md` once created. Missing or contradictory route metadata must not be inferred during resume. The only compatibility exception is an exact pre-Design-Pair Adaptive completion handoff with all former required fields and no Design Pair evidence; apply the canonical `Legacy Adaptive handoff normalization`, record `route_metadata_normalization: legacy-adaptive-handoff`, and reject partial new-schema or Design Pair evidence cases.
+Preserve both fields through the Plan Coverage Lite artifact, canonical coverage ledger / handoff review, full-coverage parent orchestration state, resume, and implementation result. For the Design Pair route, also record `design_pair_handoff: plans/<slug>-design-pair-implementation-handoff.md` and `design_pair_interaction_stage: not-started / target-selection / disposition-confirmation / upstream-decision / complete / artifact-repair`. Missing or contradictory route metadata, interaction state, Target Map presentation evidence, or post-map user evidence must not be inferred during resume. The only compatibility exception is an exact pre-Design-Pair Adaptive completion handoff with all former required fields and no Design Pair evidence; apply the canonical `Legacy Adaptive handoff normalization`, record `route_metadata_normalization: legacy-adaptive-handoff`, and reject partial new-schema or Design Pair evidence cases.
 
 The `design-pair-implementation-execution` package is a separate Codex / agent-skills package. Plan Coverage can use the route when both packages are installed for those targets. This Plan Coverage package's Copilot target does not make the Design Pair -> Adaptive route supported or verified on GitHub Copilot.
 
@@ -133,7 +133,8 @@ Run the flow in this order unless a stop condition applies:
    - `implementation-handoff-review.agent.md`
 9. Implement only after the handoff review or a documented equivalent Inline Ready Gate allows implementation for the bounded parent Plan pass.
    - When `implementation_route: adaptive`, start the existing Adaptive route directly.
-   - When `implementation_route: design-pair` and `implementation_route_source: explicit-user-selection`, run `design-pair-implementation-execution` first. It may inspect bounded source and write only the tracked Design Pair handoff; it must not edit production code / tests. Start Adaptive Implementation only after that handoff returns `READY_FOR_ADAPTIVE_IMPLEMENTATION` with no blocking `Upstream-Decision-Required`.
+   - When `implementation_route: design-pair` and `implementation_route_source: explicit-user-selection`, run `design-pair-implementation-execution` first. It may inspect bounded source and write only the tracked Design Pair handoff; it must not edit production code / tests. Its first turn must present the complete bounded Target Map, save `AWAITING_USER_INPUT / target-selection`, and stop for a new user response. If final disposition is still missing after discussion, save `AWAITING_USER_INPUT / disposition-confirmation` and stop again. Start Adaptive Implementation only after the same handoff records valid post-map user evidence, `interaction_stage: complete`, and `READY_FOR_ADAPTIVE_IMPLEMENTATION` with no blocking `Upstream-Decision-Required`.
+   - While Design Pair is waiting, persist the handoff path and interaction stage in the parent artifact. Do not treat waiting as completion, fall back to Adaptive, or start verification / residual handling.
    - If an explicitly selected Design Pair skill is unavailable, route metadata is missing, or the handoff is invalid, stop instead of silently falling back to Adaptive or implementing directly.
    After this optional pre-stage, every non-trivial pass starts with `high-implementation-starter.agent.md` on `HIGH_MODEL`; do not classify shape need from documents or route directly to a standard implementation agent.
    - `READY_FOR_STANDARD_COMPLETION`: validate the complete Implementation Completion Handoff, then run `standard-implementation-completer.agent.md` on `STANDARD_MODEL` serially.
@@ -176,7 +177,7 @@ When `change-risk-triage.agent.md` recommends `full-coverage`:
 3. Do not continue while any `ArchitectureCritical` or `NeedsHumanDecision` residual remains.
    Recompute tracked source content hashes / explicit revisions and inspect the source-repository-commit-to-current diff for declared watch paths. HEAD equality is not required, and generated readiness/architecture artifact commits do not self-invalidate the baseline. Path equality is insufficient; any semantic baseline change makes the verdict stale and requires a readiness rerun.
 4. Run `plan-slice-decomposition.agent.md` only after the architecture gate permits it.
-5. Treat each resulting slice as a bounded parent Plan pass with parent Plan item and architecture traceability. Preserve `implementation_route`, `implementation_route_source`, and `design_pair_handoff` in parent orchestration state and each implementation-ready slice handoff.
+5. Treat each resulting slice as a bounded parent Plan pass with parent Plan item and architecture traceability. Preserve `implementation_route`, `implementation_route_source`, `design_pair_handoff`, and `design_pair_interaction_stage` in parent orchestration state and each implementation-ready slice handoff. A waiting slice must not advance to Adaptive or verification.
 6. Use `token-aware-full-coverage-3layer` or an equivalent advanced route for slice preparation, architecture-drift review, adaptive slice implementation, and slice-local verification. Every non-trivial READY slice starts with `high-implementation-starter`; `slice-impl` is a legacy compatibility entry and is not the default implementation owner.
 7. After slice verification, run `cross-slice-verification-kernel.agent.md`.
 8. If cross-slice verification emits unresolved coverage items or FixNow candidates, run `coverage-gap-triage.agent.md`.
@@ -231,7 +232,7 @@ Every parent-agent turn using this skill should report:
 - current adaptive implementation owner and verdict sequence, once implementation has started
 - completion handoff status and high-model re-entry reason, when applicable
 - implementation_route and implementation_route_source
-- Design Pair handoff path, Target Map summary, Locked Decision IDs, and compliance/conflict evidence when explicitly selected
+- Design Pair handoff path, interaction stage, Target Map presentation / post-map user evidence, selected / delegated / pending Target IDs, Locked Decision IDs, and compliance/conflict evidence when explicitly selected
 - residual, manual, or human-decision candidates
 - close readiness
 - concrete next action

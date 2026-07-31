@@ -66,7 +66,14 @@ $requiredFiles = @(
     'apm-packages/design-pair-implementation-execution/.apm/skills/design-pair-implementation-execution/handoff.md',
     'apm-packages/design-pair-implementation-execution/docs/usage-guide.md',
     'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md',
+    'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md',
+    'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md',
+    'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/fixture/plans/retry-after-plan.md',
+    'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/fixture/src/RetryPolicy.cs',
+    'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/fixture/src/RetryingClient.cs',
+    'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/fixture/tests/RetryPolicyTests.cs',
     'apm-packages/design-pair-implementation-execution/scripts/validate.ps1',
+    'apm-packages/adaptive-implementation-execution/apm.yml',
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md',
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md',
     'apm-packages/adaptive-implementation-execution/docs/examples/legacy-adaptive-handoff.md',
@@ -95,7 +102,7 @@ if ($packageAgentsFiles.Count -gt 0) {
 
 $manifest = 'apm-packages/design-pair-implementation-execution/apm.yml'
 Assert-Contains $manifest '(?m)^name:\s*design-pair-implementation-execution\s*$' 'package name'
-Assert-Contains $manifest '(?m)^version:\s*0\.1\.0\s*$' 'package version 0.1.0'
+Assert-Contains $manifest '(?m)^version:\s*0\.2\.0\s*$' 'package version 0.2.0'
 Assert-Contains $manifest '(?m)^\s*-\s+codex\s*$' 'codex target'
 Assert-Contains $manifest '(?m)^\s*-\s+agent-skills\s*$' 'agent-skills target'
 Assert-NotContains $manifest '(?m)^\s*-\s+copilot\s*$' 'unverified Copilot target'
@@ -103,6 +110,10 @@ Assert-Contains $manifest 'adaptive-implementation-execution/\.apm/skills/adapti
 Assert-Contains $manifest '\.github/agents/high-implementation-starter\.agent\.md' 'canonical HIGH agent dependency'
 Assert-Contains $manifest '\.github/agents/standard-implementation-completer\.agent\.md' 'canonical STANDARD agent dependency'
 Assert-NotContains $manifest 'implementation-execution\.agent\.md' 'legacy implementation orchestration dependency'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/apm.yml' '(?m)^version:\s*0\.8\.0\s*$' 'Plan Coverage package version 0.8.0'
+Assert-Contains 'apm-packages/token-aware-full-coverage-3layer/apm.yml' '(?m)^version:\s*0\.5\.0\s*$' 'full-coverage package version 0.5.0'
+Assert-Contains 'apm-packages/codex-first-ai-development-process/apm.yml' '(?m)^version:\s*0\.6\.0\s*$' 'Codex-first package version 0.6.0'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/apm.yml' '(?m)^version:\s*0\.3\.0\s*$' 'Adaptive package version 0.3.0'
 
 $maxWindowsPackagePathLength = 112
 $packageRelativeRoot = 'apm-packages/design-pair-implementation-execution'
@@ -132,6 +143,16 @@ Assert-Contains $skill '(?s)`Locked`.*`Discussed-Unlocked`.*`Adaptive-Owned`.*`N
 Assert-Contains $skill '全設計確定、全 unknown の除去、`Unknown == 0` は完了条件ではない' 'non-exhaustive completion condition'
 Assert-Contains $skill '利用者が初期案' 'human-first discussion order'
 Assert-Contains $skill 'AI の推奨案を最初から確定案として提示してはいけない' 'non-leading discussion rule'
+Assert-Contains $skill '(?s)## Phase 3: Present the Target Map and stop.*AWAITING_USER_INPUT.*interaction_stage: target-selection.*その turn を終了する' 'mandatory initial post-map turn stop'
+Assert-Contains $skill '(?s)初回 turn では次を禁止する.*READY_FOR_ADAPTIVE_IMPLEMENTATION.*adaptive-implementation-execution.*production code / tests.*Locked Decision' 'initial turn prohibitions'
+Assert-Contains $skill '最初の依頼が「実装してください」であっても、この boundary を省略しない' 'implementation request cannot skip interaction boundary'
+Assert-Contains $skill '(?s)resume では.*interaction stage.*Target Map.*presentation evidence.*Target Map 提示後の user response.*BLOCKED.*Adaptive へ fallback しない' 'resume waiting evidence fail-closed rule'
+Assert-Contains $skill '(?s)AWAITING_USER_INPUT.*interaction_stage: disposition-confirmation' 'disposition confirmation waiting state'
+Assert-Contains $skill '全 Target を Adaptive へ委ねると明示した場合.*Locked Decision を作らず READY' 'explicit all-Adaptive delegation path'
+Assert-Contains $skill 'Target 未選択を空集合として PASS にしない' 'empty selection readiness prevention'
+Assert-Contains $skill '(?s)user message / turn reference.*Target ID.*忠実な要約.*confirmation occurred after Target Map presentation: Yes' 'post-map confirmation evidence requirements'
+Assert-Contains $skill 'upstream Plan、Issue、acceptance criteria、gold document、repository policy / public contract.*Upstream Binding Constraints' 'upstream constraint separation'
+Assert-Contains $skill 'Target Map と code evidence の提示前に Locked Decision へ昇格しない' 'initial position is not automatic Locked Decision'
 Assert-Contains $skill 'plans/<slug>-design-pair-implementation-handoff\.md' 'tracked handoff path'
 Assert-Contains $skill 'Affected files / symbols.*allowed edit surface ではない' 'file-symbol non-allowlist rule'
 Assert-Contains $skill 'Locked Decisions.*binding constraint' 'binding-only Locked Decisions rule'
@@ -140,17 +161,32 @@ Assert-Contains $skill 'automatic Design Pair re-entry は行わない' 'no auto
 Assert-Contains $skill 'final code review.*独立 verification' 'final review boundary'
 
 $map = 'apm-packages/design-pair-implementation-execution/.apm/skills/design-pair-implementation-execution/map.md'
-Assert-Contains $map 'Target ID.*File / Symbol.*Current responsibility.*Relation to requested change.*Expected modification or verification.*Evidence.*Open question.*Disposition' 'complete Target Map schema'
+Assert-Contains $map 'Target ID.*File / Symbol.*Current responsibility.*Current invariant.*Relation to requested change.*Internal design decision candidate.*Expected modification or verification.*Relevant evidence.*Open question.*Disposition' 'complete Target Map schema'
 Assert-Contains $map 'Production symbol and direct call sites' 'production call-site coverage row'
 Assert-Contains $map 'Tests / fixtures / test seam' 'test coverage row'
 Assert-Contains $map 'DI / factory / startup / entrypoint / production wiring' 'wiring coverage row'
 Assert-Contains $map 'allowed edit surface ではない' 'Target Map non-allowlist note'
+Assert-Contains $map 'Target Map presentation evidence' 'Target Map presentation evidence field'
+Assert-Contains $map 'Target selection request evidence' 'Target selection request evidence field'
+Assert-Contains $map 'Pending-User-Selection.*Pending-User-Disposition' 'pending human disposition vocabulary'
+Assert-Contains $map '提示後の明示的な利用者応答なしに.*Locked.*Discussed-Unlocked.*Adaptive-Owned' 'no pre-response human disposition assignment'
 
 $handoff = 'apm-packages/design-pair-implementation-execution/.apm/skills/design-pair-implementation-execution/handoff.md'
 foreach ($field in @(
     'implementation_route',
     'implementation_route_source',
+    'Interaction stage',
+    'Target Map presentation evidence',
+    'Target selection request evidence',
+    'Latest user response reference',
+    'User response occurred after Target Map presentation',
+    'Selected Target IDs',
+    'Delegated-to-Adaptive Target IDs',
+    'Explicit all-Adaptive delegation',
+    'Pending human-owned Target IDs',
     'Design Pair Target Map',
+    'Upstream Binding Constraints',
+    'Upstream User Initial Positions',
     'Locked Decisions',
     'Explicit human confirmation',
     'Discussed but Unlocked',
@@ -168,9 +204,12 @@ foreach ($field in @(
 )) {
     Assert-Contains $handoff ([regex]::Escape($field)) "handoff field $field"
 }
-Assert-Contains $handoff 'Decision ID.*Decision.*Affected files / symbols.*Rationale.*Validation expectations.*Conflict conditions.*Explicit human confirmation' 'complete Locked Decision schema'
-Assert-Contains $handoff 'section に Decision ID と explicit human confirmation がある entry だけが binding' 'explicit binding rule'
+Assert-Contains $handoff 'Decision ID.*Target ID.*Decision.*Affected files / symbols.*Rationale.*Validation expectations.*Conflict conditions.*User message / turn reference.*Confirmed content quote or faithful summary.*Confirmation occurred after Target Map presentation' 'complete Locked Decision schema'
+Assert-Contains $handoff 'section に Decision ID、presented Target ID、実際の user message / turn reference、確認内容.*Confirmation occurred after Target Map presentation: Yes.*binding' 'explicit post-map binding rule'
 Assert-Contains $handoff 'allowed edit surface ではない' 'handoff non-allowlist rule'
+Assert-Contains $handoff '(?s)Readiness Check.*Target Map was presented to the user.*Target selection and initial positions were requested.*A user response occurred after Target Map presentation.*Non-empty user participation or explicit all-Adaptive delegation exists.*User-selected discussion targets have final dispositions.*No pending human-owned Target remains' 'non-empty post-map readiness checks'
+Assert-Contains $handoff 'Target が一件も選択されず.*Adaptive delegation.*空集合として PASS にしない' 'handoff empty-selection failure rule'
+Assert-Contains $handoff 'Plan / Issue / acceptance criteria / repository policy / public contract.*Design Pair Decision ID を付けず' 'handoff upstream constraint separation'
 
 $adaptiveSkill = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md'
 Assert-Contains $adaptiveSkill 'Design Pair Implementation Handoff' 'Design Pair input support'
@@ -274,7 +313,10 @@ Assert-Contains $planCoverageSkill 'implementation_route:\s*adaptive' 'Plan Cove
 Assert-Contains $planCoverageSkill 'implementation_route_source:\s*default' 'Plan Coverage default route source'
 Assert-Contains $planCoverageSkill 'design-pair-implementation-execution' 'Plan Coverage explicit Design Pair route'
 Assert-Contains $planCoverageSkill 'Do not automatically select, recommend, or propose Design Pair' 'Plan Coverage no automatic Design Pair selection'
-Assert-Contains $planCoverageSkill 'Missing or contradictory route metadata must not be inferred during resume' 'Plan Coverage resume fail-closed rule'
+Assert-Contains $planCoverageSkill 'Missing or contradictory route metadata.*must not be inferred during resume' 'Plan Coverage resume fail-closed rule'
+Assert-Contains $planCoverageSkill 'design_pair_interaction_stage' 'Plan Coverage interaction stage propagation'
+Assert-Contains $planCoverageSkill '(?s)first turn must present.*AWAITING_USER_INPUT / target-selection.*stop.*AWAITING_USER_INPUT / disposition-confirmation.*stop again' 'Plan Coverage mandatory Design Pair turn boundaries'
+Assert-Contains $planCoverageSkill 'While Design Pair is waiting.*Do not treat waiting as completion.*verification / residual' 'Plan Coverage waiting blocks downstream flow'
 
 foreach ($statePath in @(
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md',
@@ -285,17 +327,23 @@ foreach ($statePath in @(
     Assert-Contains $statePath 'implementation_route' 'implementation route state field'
     Assert-Contains $statePath 'implementation_route_source' 'implementation route source state field'
     Assert-Contains $statePath 'design_pair_handoff' 'Design Pair handoff state field'
+    Assert-Contains $statePath 'design_pair_interaction_stage' 'Design Pair interaction stage state field'
+    Assert-Contains $statePath 'design_pair_user_evidence' 'Design Pair user evidence state field'
 }
 
 Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'implementation_route' 'handoff review route propagation'
 Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'design-pair-implementation-execution' 'handoff review explicit next route'
 Assert-Contains '.github/agents/implementation-handoff-review.agent.md' '新規 intake.*だけ `adaptive / default` を初期化' 'handoff review fresh-intake-only default'
 Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'resume.*BLOCKED_BY_ARTIFACT_MISMATCH' 'handoff review resume fail-closed rule'
+Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'design_pair_interaction_stage' 'handoff review interaction stage propagation'
+Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'waiting中はAdaptiveやverificationを次stepにしない' 'handoff review waiting downstream block'
 
 $codexManifest = 'apm-packages/codex-first-ai-development-process/apm.yml'
 Assert-Contains $codexManifest 'design-pair-implementation-execution/\.apm/skills/design-pair-implementation-execution' 'Codex-first Design Pair skill dependency'
 Assert-Contains 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs' 'sourceDesignPairSkill' 'Codex-first Design Pair skill bootstrap source'
 Assert-Contains 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs' 'design-pair-implementation-execution' 'Codex-first Design Pair skill bootstrap target'
+Assert-Contains 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs' 'Path\.Combine\(sourceDesignPairSkill, "map\.md"\)' 'Codex-first Design Pair map installer input'
+Assert-Contains 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs' 'Path\.Combine\(sourceDesignPairSkill, "handoff\.md"\)' 'Codex-first Design Pair handoff installer input'
 
 $launcher = 'apm-packages/codex-first-ai-development-process/scripts/codex-first-start.ps1'
 Assert-Contains $launcher 'adaptiveSkillSource' 'one-off launcher Adaptive skill source'
@@ -308,12 +356,16 @@ Assert-Contains $launcher 'Copy-Item.*designPairSkillSource\.Path' 'one-off laun
 $codexRouter = 'apm-packages/codex-first-ai-development-process/.apm/skills/codex-first-cost-router/SKILL.md'
 Assert-Contains $codexRouter 'fresh intake.*no durable route artifact' 'Codex-first fresh-intake default boundary'
 Assert-Contains $codexRouter 'On resume.*missing or contradictory metadata must stop' 'Codex-first resume fail-closed rule'
+Assert-Contains $codexRouter '(?s)first turn must present.*AWAITING_USER_INPUT / target-selection.*stop.*AWAITING_USER_INPUT / disposition-confirmation.*stop again' 'Codex-first mandatory Design Pair turn boundaries'
+Assert-Contains $codexRouter 'design_pair_interaction_stage' 'Codex-first interaction stage state'
 
 $fullCoverageSkill = 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md'
 Assert-Contains $fullCoverageSkill 'resumeではParent Orchestration State.*必須' 'full-coverage resume route requirement'
 Assert-Contains $fullCoverageSkill 'Adaptiveへ補完せずartifact mismatchとして停止' 'full-coverage resume fail-closed rule'
+Assert-Contains $fullCoverageSkill '(?s)最初のturnはTarget Map全体を提示.*AWAITING_USER_INPUT / target-selection.*停止.*AWAITING_USER_INPUT / disposition-confirmation.*再停止' 'full-coverage mandatory Design Pair turn boundaries'
+Assert-Contains $fullCoverageSkill 'design_pair_user_evidence' 'full-coverage user evidence propagation'
 
-foreach ($id in 1..11) {
+foreach ($id in 1..21) {
     $scenarioId = 'DP-VAL-{0:D3}' -f $id
     Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' $scenarioId "validation scenario $scenarioId"
 }
@@ -322,6 +374,15 @@ Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'G
 Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'adaptive-implementation-execution --target codex,agent-skills' 'fresh install Adaptive co-install command'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'install-adaptive-implementation-local\.cs.*--check' 'fresh install Adaptive profile check'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'package単体のinstallだけでは.*model mapping' 'incomplete single-package install warning'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'AWAITING_USER_INPUT / target-selection.*その turn を終了' 'README mandatory initial stop'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/usage-guide.md' 'AWAITING_USER_INPUT / disposition-confirmation.*再停止' 'usage guide multi-turn stop'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'without adding a stop instruction' 'manual smoke verifies skill-owned stop'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'Human action required' 'manual smoke human participation boundary'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md' '(?m)^- Status: NOT RUN$' 'manual runtime result starts unexecuted'
+foreach ($field in @('Configured model', 'Configured reasoning effort', 'Process repository revision', 'Plan reference', 'Turn sequence', 'Tracked handoff path', 'Verdict sequence')) {
+    Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md' ([regex]::Escape($field)) "manual runtime evidence field $field"
+}
+Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/fixture/plans/retry-after-plan.md' 'upstream user input for discussion, not a confirmed Design Pair Locked Decision' 'manual fixture pre-map proposal boundary'
 Assert-Contains 'apm-packages/codex-first-ai-development-process/docs/team-profile-launcher.md' 'Adaptive skill and refs, and Design Pair skill and refs' 'documented one-off launcher payload'
 Assert-Contains 'README.md' 'apm-packages/design-pair-implementation-execution' 'root Design Pair package link'
 

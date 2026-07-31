@@ -73,7 +73,7 @@ Guardrail Focus coverage の guardrail chain が整っていても、parent Plan
 - **No-Guardrail-Focus standard route**: change-risk-triage が selected runtime contracts / Guardrail Focus を要求していない標準 route では、runtime-contract-kernel と test-design-kernel は必須ではありません。この場合、Check 2〜6 は `N/A (no Guardrail Focus)` として扱い、missing runtime/test artifacts だけを理由に BLOCKED にしてはいけません。
 - **Slice decomposition aware**: full-coverage decomposition 由来の slice では、Plan → Slice → RC / TP → XC の接続を確認する。cross-slice contract を slice 内で完了扱いしている handoff は blocking として扱う。
 - **Parent Plan Coverage Ledger required**: Plan の FR / AC を Guardrail Focus RC / TP / slice / cross-slice contract / deferred residual / out-of-scope のいずれかへ分類する。Guardrail Focus coverage に含まれなかった parent Plan item を黙って落としてはいけない。
-- **Implementation route propagation**: durable route artifact、resume evidence、Design Pair evidenceがないfresh intakeだけ`implementation_route: adaptive` / `implementation_route_source: default`を初期化する。resumeではupstream durable artifactの両route fieldを必須とし、欠落または矛盾があればAdaptiveへ補完せず`BLOCKED_BY_ARTIFACT_MISMATCH`とする。唯一の互換例外はcanonical `Legacy Adaptive handoff normalization`を満たすexact pre-Design-Pair Adaptive completion handoffとする。Design Pair はupstream durable artifactに`implementation_route: design-pair` / `implementation_route_source: explicit-user-selection`とexplicit user evidenceがある場合だけ保持する。riskやarchitectureから自動選択、推奨、提案してはいけない。
+- **Implementation route propagation**: durable route artifact、resume evidence、Design Pair evidenceがないfresh intakeだけ`implementation_route: adaptive` / `implementation_route_source: default`を初期化する。resumeではupstream durable artifactの両route fieldを必須とし、欠落または矛盾があればAdaptiveへ補完せず`BLOCKED_BY_ARTIFACT_MISMATCH`とする。唯一の互換例外はcanonical `Legacy Adaptive handoff normalization`を満たすexact pre-Design-Pair Adaptive completion handoffとする。Design Pair はupstream durable artifactに`implementation_route: design-pair` / `implementation_route_source: explicit-user-selection`とexplicit user evidenceがある場合だけ保持する。`design_pair_handoff`、`design_pair_interaction_stage`、`design_pair_user_evidence`を下流へ伝播し、waiting中はAdaptiveやverificationを次stepにしない。riskやarchitectureから自動選択、推奨、提案してはいけない。
 - **Canonical coverage ledger aware**: `plans/<ticket-or-slug>-coverage-ledger.md` が存在する場合は canonical Parent Plan Coverage Ledger として読み、今回の handoff で変わった行だけを `Coverage Ledger Delta` に記録する。canonical ledger がない場合は、この artifact に full Parent Plan Coverage Ledger を作成する。full ledger と delta が矛盾する場合は `BLOCKED_BY_ARTIFACT_MISMATCH` とする。
 - **Behavior Case Coverage Ledger conditional required**: Plan の `Expansion required: Yes` の場合は、Black-box Behavior Spec artifact を条件付き必須入力とし、relevant Case IDs をすべて Behavior Case Coverage Ledger に記録する。Guardrail Focus readiness を Behavior Case / parent Plan readiness の代替にしてはいけない。
 - **Inline Ready Gate equivalence**: `documentation_level: lite` の Plan Coverage Lite artifact では、Inline Ready Gate が明示的に `implementation-handoff-review` 相当として PASS している場合だけ、この agent の separate artifact を省略できる。相当 gate は source of truth、FR / AC coverage、Case-to-Plan mapping、risk checklist、implementation scope、human decision、必要な Behavior Case Coverage Ledger、Implementation allowed の全 required row が PASS または根拠付き N/A である必要がある。この equivalence は bounded implementation pass の authorization だけであり、parent Plan close readiness ではない。
@@ -317,7 +317,7 @@ Plan Slice Decomposition artifact が必要なのに存在しない、または�
 1. `Verdict`
 2. `Readiness scope`
 
-route metadata も決定ではなく upstream から伝播する。新規 intake で durable route artifact、resume evidence、Design Pair の explicit selection evidence がまだ一切ない場合だけ `adaptive / default` を初期化する。resume、既存 handoff、または Design Pair selection evidence がある状態で `implementation_route` / `implementation_route_source` の一方でも欠ける場合は補完せず `BLOCKED_BY_ARTIFACT_MISMATCH` とする。`design-pair / explicit-user-selection` なのに tracked Design Pair handoff が必要な phase で欠ける場合も同じく停止し、Adaptive へ黙って降格させない。
+route metadata も決定ではなく upstream から伝播する。新規 intake で durable route artifact、resume evidence、Design Pair の explicit selection evidence がまだ一切ない場合だけ `adaptive / default` を初期化する。resume、既存 handoff、または Design Pair selection evidence がある状態で `implementation_route` / `implementation_route_source` の一方でも欠ける場合は補完せず `BLOCKED_BY_ARTIFACT_MISMATCH` とする。`design-pair / explicit-user-selection` ではtracked Design Pair handoff、interaction stage、stageに必要なTarget Map presentation / post-map user evidenceも検証する。欠落、矛盾、waiting中のREADY正規化は停止し、upstream textから補完したりAdaptiveへ黙って降格させない。
 
 #### Verdict
 
@@ -408,6 +408,8 @@ READY_FOR_BOUNDED_PARENT_PLAN_PASS | READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DEC
 | implementation_route | adaptive / design-pair |
 | implementation_route_source | default / explicit-user-selection |
 | design_pair_handoff | N/A / pending until Design Pair / plans/<ticket-or-slug>-design-pair-implementation-handoff.md |
+| design_pair_interaction_stage | N/A / not-started / target-selection / disposition-confirmation / upstream-decision / complete / artifact-repair |
+| design_pair_user_evidence | N/A / Pending / <Target Map presentation and post-map user response references> |
 
 ## ブロッキング問題
 
@@ -470,6 +472,8 @@ canonical coverage ledger が存在する場合は "See: plans/<ticket-or-slug>-
 - implementation_route: adaptive / design-pair
 - implementation_route_source: default / explicit-user-selection
 - design_pair_handoff: N/A / pending until Design Pair / plans/<ticket-or-slug>-design-pair-implementation-handoff.md
+- design_pair_interaction_stage: N/A / not-started / target-selection / disposition-confirmation / upstream-decision / complete / artifact-repair
+- design_pair_user_evidence: N/A / Pending / <Target Map presentation and post-map user response references>
 - Source artifacts: <読み込んだ artifacts の一覧>
 - Coverage ledger source: <plans/<ticket-or-slug>-coverage-ledger.md / not found; full ledger emitted here>
 - Selected contracts / IDs: <レビュー対象の Contract IDs / Test Point IDs。特定できない場合はその理由>

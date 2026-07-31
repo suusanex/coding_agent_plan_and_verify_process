@@ -17,6 +17,8 @@ risk_triage_artifact_status: Complete / Incomplete / Missing / Unknown
 implementation_route: adaptive / design-pair
 implementation_route_source: default / explicit-user-selection
 design_pair_handoff: N/A / plans/<ticket-or-slug>-design-pair-implementation-handoff.md
+design_pair_interaction_stage: N/A / not-started / target-selection / disposition-confirmation / upstream-decision / complete / artifact-repair
+design_pair_user_evidence: N/A / Pending / <Target Map presentation and post-map user response references>
 shape_handoff_status: NotStarted / Pending / Ready / Consumed / Invalidated / NotRequired / Blocked / Unknown
 remaining_design_uncertainty: None / Unknown / <evidence-backed summary>
 completion_scope: N/A / Unknown / <Work IDs and allowed edit surface>
@@ -116,7 +118,13 @@ allowed_stop_reasons:
 - implementation_route: adaptive / design-pair
 - implementation_route_source: default / explicit-user-selection
 - design_pair_handoff: N/A / plans/<ticket-or-slug>-design-pair-implementation-handoff.md
-- design_pair_status: NotSelected / Pending / Ready / Blocked / Invalid / Unknown
+- design_pair_status: NotSelected / AwaitingUserInput / Ready / Blocked / Invalid / Unknown
+- design_pair_interaction_stage: N/A / not-started / target-selection / disposition-confirmation / upstream-decision / complete / artifact-repair
+- design_pair_target_map_presentation_evidence: N/A / Pending / <assistant message or turn reference>
+- design_pair_user_response_evidence: N/A / Pending / <post-map user message or turn reference>
+- design_pair_selected_target_ids: N/A / Pending / <DP-Txx list>
+- design_pair_delegated_target_ids: N/A / Pending / None / <DP-Txx list>
+- design_pair_pending_human_target_ids: N/A / Pending / None / <DP-Txx list>
 - design_pair_locked_decision_ids: N/A / <DP-Dxx list>
 - design_pair_conflict: N/A / None / <Decision ID and evidence>
 - shape_handoff_status: NotStarted / Pending / Ready / Consumed / Invalidated / NotRequired / Blocked / Unknown
@@ -174,6 +182,8 @@ unresolved_residuals:
 operations_not_allowed_in_current_state:
 - Do not infer, recommend, or propose design-pair from task weight, risk, size, or architecture. Initialize adaptive / default only at fresh intake with no durable route, resume, or Design Pair evidence. On resume, preserve both durable route fields and stop on missing or contradictory metadata instead of defaulting to Adaptive, except for an exact legacy handoff accepted by `Legacy Adaptive handoff normalization`.
 - Do not edit production code / tests during the Design Pair pre-stage. Allow only the tracked design_pair_handoff path until READY_FOR_ADAPTIVE_IMPLEMENTATION.
+- After the first Design Pair Target Map presentation, save `AWAITING_USER_INPUT / target-selection` and end the turn. Keep waiting on resume without a new valid post-map user response. If final disposition is still open after trade-off discussion, save `AWAITING_USER_INPUT / disposition-confirmation` and end the turn again.
+- Do not derive Design Pair confirmation from Plan, Issue, acceptance criteria, gold documents, repository docs, AI summaries, silence, or pre-map initial positions. Do not advance to Adaptive, verification, or close until `design_pair_interaction_stage: complete` and the handoff is READY.
 - Do not silently fall back to Adaptive when an explicitly selected Design Pair skill or valid handoff is missing.
 - Keep `current_status` equal to the actual Adaptive verdict, and switch `selected_agent_name`, `recommended_model_tier`, and `edit_owner` to the active `high-implementation-starter`, `standard-implementation-completer`, or `standard-verifier` phase.
 - Record `delegation_required: Yes` for both HIGH implementation start/re-entry and STANDARD completion.

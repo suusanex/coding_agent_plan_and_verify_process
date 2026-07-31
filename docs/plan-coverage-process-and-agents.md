@@ -215,7 +215,8 @@ Use for the main lightweight process this repository now targets.
    - `runtime-contract-kernel.agent.md`
    - `test-design-kernel.agent.md`
    - `implementation-handoff-review.agent.md`
-   - implementation by normal agent or human-guided implementation agent
+   - when explicitly selected, Design Pair Target Map presentation and mandatory `AWAITING_USER_INPUT` boundary
+   - Adaptive implementation by the canonical HIGH -> optional STANDARD -> HIGH route
    - `verification-kernel.agent.md`
 9. When decomposition was used, run `cross-slice-verification-kernel.agent.md`
 10. `coverage-gap-triage.agent.md`, when FixNow candidates or unresolved implementation coverage items need classification and no complete `Direct FixNow selectors` table exists
@@ -236,6 +237,8 @@ Implementation handoff must include:
 - `runtime-contract-kernel` output
 - `test-design-kernel` output
 - `implementation-handoff-review` output
+- durable `implementation_route`, `implementation_route_source`, `design_pair_handoff`, and `design_pair_interaction_stage`
+- for Design Pair, Target Map presentation / post-map user evidence and selected / delegated / pending Target IDs
 - parent Plan implementation surface and non-goals
 - Parent Plan Coverage Ledger
 - Behavior Case Coverage Ledger, when expansion was required
@@ -246,6 +249,8 @@ Implementation handoff must include:
 - unresolved implementation-realization items
 
 The implementation agent must treat the Plan as the source of truth. Kernel artifacts are guardrails for Guardrail Focus coverage, not substitutes for the Plan.
+
+When Design Pair is explicitly selected, the first Design Pair turn presents the complete bounded Target Map, saves `AWAITING_USER_INPUT / target-selection`, and stops. A pre-map Plan, Issue, gold document, or initial technical proposal is not Design Pair confirmation. After discussion, missing final disposition produces `AWAITING_USER_INPUT / disposition-confirmation` and another stop. The parent retains the handoff path and interaction stage and does not start Adaptive implementation, verification, or residual handling until valid post-map user evidence makes the handoff `complete / READY_FOR_ADAPTIVE_IMPLEMENTATION`. An explicit post-map all-Adaptive delegation may complete the gate without individual Locked Decisions.
 
 If triage does not recommend `full-coverage`, step 4 can be executed as a single bounded pass without decomposition.
 

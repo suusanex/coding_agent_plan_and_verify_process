@@ -24,7 +24,7 @@ Codex は内部で `documentation_level: lite` または `documentation_level: s
 3. いきなり実装せず、Plan / risk / scan / contract のどこから始めるか判断する。
 4. Risk gate を通る場合は `plans/<slug>-change-risk-triage.md` を残す。
 5. 実装前に handoff review で実装許可と coverage ledger を確認する。
-6. 利用者が Design Pair を明示選択した場合だけ、予定変更面を対話し、tracked handoff を作る。通常はこの工程を挟まない。
+6. 利用者が Design Pair を明示選択した場合だけ、予定変更面のTarget Mapを提示し、`AWAITING_USER_INPUT / target-selection`で必ず一度停止する。初期案へのtrade-off提示後に最終dispositionがなければ`disposition-confirmation`で再停止し、validなpost-map user evidenceを含むtracked handoffを作る。通常はこの工程を挟まない。
 7. READY になった非自明な範囲を `high-implementation-starter` へ委譲して実装を開始する。
 8. 構造判断が解消して complete な handoff ができた場合だけ、`standard-implementation-completer` へ残作業を直列委譲する。再び構造判断が必要なら HIGH_MODEL に戻す。
 9. 実装後に `standard-verifier` などで test / verification / close 可否を確認する。
@@ -55,7 +55,7 @@ dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\appl
 - `templates/*.md`
 
 標準ルートに必要な skill / agent / template はこのインストーラだけで入るため、別途 APM 実行を前提にしない。
-Design Pair skill も配置されますが、自動選択、推奨、提案はされません。通常経路は Adaptive Implementation です。
+Design Pair skill も配置されますが、自動選択、推奨、提案はされません。通常経路は Adaptive Implementation です。Design Pairを選んだ場合、最初の「実装してください」だけではAdaptiveへ進まず、Target Map提示後の利用者応答を待ちます。
 `--dry-run` と `--check` はファイルやディレクトリを作成しない。`--check-only` は互換 alias である。
 必要なら `--force` を使って既存の `AGENTS.md` section / skill / agent / template を上書きし、VS Code 再読込して反映確認する。
 
@@ -64,6 +64,8 @@ Design Pair skill も配置されますが、自動選択、推奨、提案は�
 よくある停止理由は次の通り。
 
 - `NeedsHumanDecision`: 仕様や優先順位を人が決める必要がある。
+- `AWAITING_USER_INPUT / target-selection`: Design PairのTarget Mapを確認し、議論するTarget、初期案、未選択TargetをAdaptiveへ委ねるかを回答する必要がある。
+- `AWAITING_USER_INPUT / disposition-confirmation`: AIのtrade-offを確認し、selected Targetの最終dispositionを明示する必要がある。
 - `ManualVerificationRequired`: 外部環境や目視など、人の確認が必要。
 - `NeedsSecretInput`: secret や認証情報が必要。
 - `NeedsExternalOperation`: 本番環境、課金、外部サービス操作が必要。

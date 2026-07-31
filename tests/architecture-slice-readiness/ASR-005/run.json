@@ -1,8 +1,8 @@
 {
-  "run_id": "asr-005-20260712-review-r2",
-  "executed_at": "2026-07-12T15:14:00+09:00",
+  "run_id": "asr-005-20260731-issue65-r3",
+  "executed_at": "2026-07-31T19:18:04+09:00",
   "executor": "Codex primary agent",
-  "environment": "repository-local fresh bounded contract evaluation",
+  "environment": "repository-local deterministic fixture revalidation against Issue #65 state propagation contracts",
   "inputs": ["input-plan.md", "input-triage.md", "input-architecture.md", "input-slice-prep.md"],
   "outputs": ["actual-readiness.md", "actual-parent-review.md", "actual.json"]
 }

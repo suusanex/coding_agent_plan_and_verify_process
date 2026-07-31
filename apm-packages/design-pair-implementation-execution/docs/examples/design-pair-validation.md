@@ -153,6 +153,100 @@ Expected:
 - invalid-artifact `BLOCKED`だけはraw observed valueまたは`<missing>`とrepair evidenceを返す
 - STANDARDは有効なhandoffのauthorization後に構造判断を発見した場合だけ`NEEDS_HIGH_MODEL_REENTRY`を返す
 
+## DP-VAL-013: Initial Design Pair turn must stop
+
+Input: valid Plan / Implementation Intent、explicit Design Pair selection、「実装してください」という依頼、post-map user responseなし。
+
+Expected:
+
+- bounded Target Map全体と内部設計判断候補を利用者へ提示する
+- Target ID、初期案、未選択TargetのAdaptive delegationを求める
+- `AWAITING_USER_INPUT / target-selection`をtracked handoffへ保存してturnを終了する
+- Design Pair Locked Decisionを作らない
+- `READY_FOR_ADAPTIVE_IMPLEMENTATION`を返さず、Adaptiveを開始しない
+- production code / testsを編集しない
+
+## DP-VAL-014: Upstream text is not Design Pair confirmation
+
+Input: Plan / Issue / gold documentに実装方針らしい文があるが、Target Map提示後のuser responseはない。
+
+Expected:
+
+- 文言を`Upstream Binding Constraints`、`Upstream User Initial Positions`、またはKnown Evidenceへ分類できる
+- Design Pair Decision IDへ変換しない
+- explicit human confirmationはabsentのまま、`target-selection`で待機する
+
+## DP-VAL-015: User selects discussion targets
+
+Input: Target Map提示後、利用者がTarget IDと初期案を返すが、AIのtrade-off提示後の最終dispositionはまだない。
+
+Expected:
+
+- AIがcode evidence、反論または支持、代替案、trade-off、wiring / lifecycle / ownership / test seamへの影響、validation expectationを説明する
+- AIは`Locked`を自己確定しない
+- `AWAITING_USER_INPUT / disposition-confirmation`を保存して再停止する
+
+## DP-VAL-016: Explicit all-Adaptive delegation
+
+Input: Target Map提示後、利用者が全TargetをAdaptiveへ委ねると明示する。
+
+Expected:
+
+- applicable Targetを`Adaptive-Owned`にできる
+- 人工的な個別対話やLocked Decisionを作らない
+- 他のreadiness checkがPASSなら`complete / READY_FOR_ADAPTIVE_IMPLEMENTATION`へ進める
+
+## DP-VAL-017: Locked Decision requires post-map confirmation
+
+Input: Target Map提示、selected Targetの議論、AIのtrade-off response後に利用者がdecisionを明示確認する。
+
+Expected:
+
+- Decision IDとTarget IDを記録する
+- user message / turn reference、確認内容の短い引用または忠実な要約、`Confirmation occurred after Target Map presentation: Yes`を記録する
+- validation expectationが明確で、他のcheckも満たせばreadinessがPASSできる
+
+## DP-VAL-018: Initial position is not automatic Lock
+
+Input: 最初のinvocationに技術案があるが、Target Mapはまだ提示されていない。
+
+Expected:
+
+- 提案をupstream user initial positionとして保存する
+- Design Pair Locked Decisionへ自動昇格しない
+- code-informed Target Mapを提示し、post-map confirmationを求めて停止する
+
+## DP-VAL-019: Resume while awaiting user input
+
+Input: tracked handoffが`AWAITING_USER_INPUT`で、validな新しいuser responseがない。
+
+Expected:
+
+- interaction stageを維持して待機する
+- Adaptiveへfallbackせず、READYへ正規化しない
+- Plan、Issue、docs、AI summaryからuser responseを再構成しない
+
+## DP-VAL-020: Invalid confirmation evidence fails closed
+
+Input: Locked DecisionのconfirmationがPlan / Issue / AI summaryだけを参照するか、必要fieldが欠ける。
+
+Expected:
+
+- readinessをFAILとする
+- Adaptiveを開始しない
+- artifact repairまたはactual post-map user confirmationを要求する
+
+## DP-VAL-021: Plan Coverage preserves interaction boundary
+
+Input: Plan CoverageでDesign Pair routeを選択し、implementation handoff reviewがREADY。
+
+Expected:
+
+- Design PairがTarget Mapを提示して待機する
+- parent stateがhandoff pathと`target-selection`または`disposition-confirmation`を保持する
+- validなDesign Pair readinessまでAdaptive、verification、residual flowを開始しない
+- completion後は既存downstream verification / residual flowへ戻る
+
 ## Repository static validation
 
 ```powershell
@@ -165,4 +259,4 @@ git diff --check
 
 Static validation は package layout、routing contract、handoff schema、Adaptive propagation、Plan Coverage / full-coverage / Codex-first state integration、Copilot support boundary を検証します。実モデルを使う対話、HIGH -> STANDARD -> HIGH runtime orchestration、品質比較は `NOT RUN` です。
 
-人手での作業が必要: 同一 Plan、revision、環境で通常 Adaptive route と Design Pair route を実行し、quality、token、wall time、Locked Decision compliance、review findings を比較してください。
+人手での作業が必要: `../../tests/manual-model-smoke/README.md`のdisposable fixtureでDP-VAL-013、015、017、019、021相当のmulti-turn behaviorを実モデルで実行し、result templateへmodel、reasoning、revision、Plan、turn sequence、artifact path、verdict sequenceを記録してください。static PASSをruntime PASSとして転記してはいけません。

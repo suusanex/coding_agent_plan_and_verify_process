@@ -29,6 +29,8 @@ codex-first-cost-router
 -> plan-slice-decomposition
 -> Parent Orchestration State
 -> slice-prep
+-> optional explicit Design Pair Target Map
+-> AWAITING_USER_INPUT until post-map selection / disposition is complete
 -> high-implementation-starter for each non-trivial READY slice
 -> standard-implementation-completer only after a valid slice-local handoff
 -> high-implementation-starter on re-entry
@@ -66,6 +68,7 @@ codex-first-cost-router
 - Missing HIGH start evidence is `BlockedByMissingAdaptiveImplementationDelegation`, not success.
 - `slice-impl` remains a legacy compatibility entry and is not selected by the standard route.
 - `PARENT_DIRECT_IMPLEMENTATION_EXCEPTION` needs explicit human approval and is excluded from delegated completion metrics.
+- When Design Pair was explicitly selected, each READY slice preserves its tracked handoff path, interaction stage, and post-map user evidence in Parent Orchestration State. The first Design Pair turn stops at `target-selection`; an unresolved final disposition stops at `disposition-confirmation`. Adaptive and every verification stage remain unavailable until `complete / READY_FOR_ADAPTIVE_IMPLEMENTATION`.
 
 ## Resume state
 
@@ -76,6 +79,7 @@ codex-first-cost-router
 - When switching between Codex, GitHub Copilot, sessions, or tools, the next parent agent first selects the state matching the current ticket, slug, branch, work item, or PR. If multiple candidates match or none can be matched, fail closed and ask for the target state.
 - Then the next parent agent reads the selected state, verifies the audit artifact Agent Usage Ledger and listed artifacts, and continues.
 - Agent Usage Ledger records delegation evidence in the audit artifact. Parent Orchestration State records current phase, next action, artifact index, slice queue, parent decisions made, cross-slice blockers, and pending parent decisions.
+- A resumed Design Pair waiting stage must remain waiting without a new valid user response. Missing Target Map presentation or user evidence fails closed; the parent must not reconstruct it from Plan text or fall back to Adaptive.
 
 ## Closure
 

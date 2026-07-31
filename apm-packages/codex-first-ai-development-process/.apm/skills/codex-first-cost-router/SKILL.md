@@ -44,6 +44,8 @@ Minimum fields:
 - implementation route
 - implementation route source
 - Design Pair handoff path
+- Design Pair interaction stage
+- Design Pair user evidence
 - shape handoff status
 - remaining design uncertainty
 - completion scope
@@ -96,6 +98,8 @@ At fresh intake, use this default only when no durable route artifact, resume re
 implementation_route: adaptive
 implementation_route_source: default
 design_pair_handoff: N/A
+design_pair_interaction_stage: N/A
+design_pair_user_evidence: N/A
 ```
 
 Only explicit user selection may set:
@@ -104,9 +108,11 @@ Only explicit user selection may set:
 implementation_route: design-pair
 implementation_route_source: explicit-user-selection
 design_pair_handoff: plans/<slug>-design-pair-implementation-handoff.md
+design_pair_interaction_stage: not-started
+design_pair_user_evidence: Pending
 ```
 
-Do not choose, recommend, propose, or ask the user about Design Pair based on task weight, risk, size, architecture, or model-routing considerations. Persist the selected pair through state, handoff review, resume, implementation, verification, and close. On resume, require both route fields from durable state; missing or contradictory metadata must stop instead of being initialized as Adaptive. The only compatibility exception is an exact pre-Design-Pair Adaptive completion handoff accepted by the canonical `Legacy Adaptive handoff normalization`; record its normalization marker before continuing. If explicit Design Pair metadata is contradictory, its handoff is missing for the current phase, or its skill is unavailable, stop instead of silently falling back to Adaptive.
+Do not choose, recommend, propose, or ask the user about Design Pair based on task weight, risk, size, architecture, or model-routing considerations. Persist the selected pair through state, handoff review, resume, implementation, verification, and close. On resume, require both route fields from durable state; for Design Pair also require the tracked handoff path, interaction stage, Target Map presentation evidence, and post-map user evidence appropriate to that stage. Missing or contradictory metadata must stop instead of being initialized as Adaptive or reconstructed from upstream text. The only compatibility exception is an exact pre-Design-Pair Adaptive completion handoff accepted by the canonical `Legacy Adaptive handoff normalization`; record its normalization marker before continuing. If explicit Design Pair metadata is contradictory, its handoff is missing for the current phase, or its skill is unavailable, stop instead of silently falling back to Adaptive.
 
 For "続きやって", read the newest matching state artifact before deciding the next step.
 Read the matching audit artifact when the next step depends on delegation evidence, model-observability detail, route history, or close permission.
@@ -206,7 +212,7 @@ Rules:
 - `STANDARD_MODEL` READY verification MUST delegate to `standard-verifier` before close, unless close risk requires `high-closure-reviewer`.
 - `HIGH_MODEL` plan, behavior expansion, risk, implementation handoff review, implementation contract, and dangerous close judgment may stay with the parent or high agents.
 - Normal READY implementation requires an `implementation-handoff-review` artifact, or an explicitly equivalent pre-implementation gate such as a Plan Coverage Lite artifact whose Inline Ready Gate is PASS, before selecting `high-implementation-starter`.
-- When `implementation_route = design-pair`, the explicit Design Pair pre-stage runs after that authorization and before `high-implementation-starter`. It may write only `plans/<slug>-design-pair-implementation-handoff.md`, must not edit production code / tests, and must reach `READY_FOR_ADAPTIVE_IMPLEMENTATION` before implementation starts.
+- When `implementation_route = design-pair`, the explicit Design Pair pre-stage runs after that authorization and before `high-implementation-starter`. It may write only `plans/<slug>-design-pair-implementation-handoff.md`, must not edit production code / tests, and its first turn must present the complete bounded Target Map, save `AWAITING_USER_INPUT / target-selection`, and stop for a new user response. If disposition remains open after discussion, it must save `AWAITING_USER_INPUT / disposition-confirmation` and stop again. Only valid post-map user evidence plus `interaction_stage: complete / READY_FOR_ADAPTIVE_IMPLEMENTATION` permits implementation to start.
 - Implementation handoff review requires the durable risk artifact `plans/<slug>-change-risk-triage.md`. Do not select `implementation-handoff-review` until `risk_triage_artifact_status = Complete`.
 - When `Expansion required = Yes`, the implementation-handoff-review artifact or Plan Coverage Lite artifact must include `Behavior Case Coverage Ledger` and state must record `behavior_case_coverage_ledger_status = Complete` before selecting `high-implementation-starter`.
 - `READY_FOR_STANDARD_COMPLETION` sets `shape_handoff_status = Ready`; starting `standard-implementation-completer` sets it to `Consumed`; `NEEDS_HIGH_MODEL_REENTRY` sets it to `Invalidated` and requires the next implementation owner to be `high-implementation-starter`.
@@ -406,7 +412,7 @@ Use `STANDARD_MODEL` only for a bounded decision-free completion handoff. `CHEAP
 
 Do:
 
-- for `implementation_route = design-pair`, set the pre-stage Edit owner to `design-pair-implementation-execution`, allow only its tracked handoff path, and require `READY_FOR_ADAPTIVE_IMPLEMENTATION` before changing the implementation owner
+- for `implementation_route = design-pair`, set the pre-stage Edit owner to `design-pair-implementation-execution`, allow only its tracked handoff path, propagate interaction stage and user evidence, and keep the same owner while `target-selection` or `disposition-confirmation` is waiting; require `interaction_stage: complete` and `READY_FOR_ADAPTIVE_IMPLEMENTATION` before changing the implementation owner
 - set `Delegation required = Yes` and `Edit owner = high-implementation-starter` for every non-trivial Adaptive implementation start after any explicit Design Pair pre-stage
 - require either the implementation-handoff-review parent authorization artifact or a Plan Coverage Lite artifact with Inline Ready Gate equivalence before selecting `high-implementation-starter`
 - when `Expansion required = Yes`, require `behavior_case_coverage_ledger_status = Complete`

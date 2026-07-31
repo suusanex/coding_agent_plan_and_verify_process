@@ -31,8 +31,8 @@ The implementation route defaults to `adaptive`. `design-pair` is used only when
 - Require the Risk gate to create or update `plans/<slug>-change-risk-triage.md` and record `risk_triage_artifact_status`.
 - Require `implementation-handoff-review` or an explicitly equivalent pre-implementation gate before normal READY implementation.
 - Require `Behavior Case Coverage Ledger` status `Complete` before implementation when behavior expansion is required.
-- Record `implementation_route`, `implementation_route_source`, and `design_pair_handoff` in durable state. Use `design-pair` only with `implementation_route_source = explicit-user-selection`.
-- When `design-pair` is selected, complete its Target Map, dialogue, disposition record, and tracked handoff without editing production code or tests before the HIGH implementation owner starts.
+- Record `implementation_route`, `implementation_route_source`, `design_pair_handoff`, `design_pair_interaction_stage`, and stage-appropriate user evidence in durable state. Use `design-pair` only with `implementation_route_source = explicit-user-selection`.
+- When `design-pair` is selected, present the complete bounded Target Map, persist `AWAITING_USER_INPUT / target-selection`, and end the first turn. After discussion, persist `AWAITING_USER_INPUT / disposition-confirmation` and stop again when the user has not supplied a final disposition. Complete the tracked handoff without editing production code or tests before the HIGH implementation owner starts.
 - MUST start normal non-trivial READY implementation with `high-implementation-starter`.
 - MUST use `standard-implementation-completer` only after a valid decision-free completion handoff and return re-entry to `high-implementation-starter`.
 - MUST delegate normal READY verification to `standard-verifier`.
@@ -54,7 +54,7 @@ The implementation route defaults to `adaptive`. `design-pair` is used only when
 | Scan | collect summarized evidence | `CHEAP_MODEL` |
 | Contract | decide implementation approach and human decisions | `HIGH_MODEL` |
 | Implementation handoff review | create parent authorization and coverage ledgers before implementation | `HIGH_MODEL` / `STANDARD_MODEL` |
-| Design Pair pre-stage | when explicitly selected, produce bounded evidence, dispositions, Locked Decisions, and a tracked handoff without implementation edits | `HIGH_MODEL` |
+| Design Pair pre-stage | when explicitly selected, produce bounded evidence, stop for post-map user selection, discuss and obtain human-owned dispositions, then create a tracked handoff without implementation edits | `HIGH_MODEL` |
 | Implementation start / re-entry | edit non-trivial READY scope through delegated high owner | `HIGH_MODEL` |
 | Bounded completion | edit only valid handoff remainder through delegated standard owner | `STANDARD_MODEL` |
 | Verification | map evidence to acceptance criteria through delegated owner | `STANDARD_MODEL` |
@@ -89,7 +89,7 @@ Classification axes:
 | Route | Select when | Required output |
 | --- | --- | --- |
 | Normal standard route | Task is `small-bounded`, `medium-bounded`, or safely reducible to a bounded Plan | Routing Plan, Edit Permission, required artifacts, READY / close gates |
-| Design Pair implementation route | User explicitly selected Design Pair before implementation | `implementation_route = design-pair`, `implementation_route_source = explicit-user-selection`, and `plans/<slug>-design-pair-implementation-handoff.md`; then continue through Adaptive HIGH implementation |
+| Design Pair implementation route | User explicitly selected Design Pair before implementation | durable route plus handoff path and interaction stage; mandatory post-map user response; then continue through Adaptive HIGH implementation only after `complete / READY_FOR_ADAPTIVE_IMPLEMENTATION` |
 | Plan behavior expansion route | Task is `needs-plan-behavior-expansion` or Plan readiness is not `ReadyForRiskTriage` because source-to-case expansion or Case-to-Plan mapping is missing | `NeedsPlanBehaviorExpansion`, behavior spec next action or Plan rerun, no risk/profile selection |
 | Advanced full-coverage route | Ready Plan is broad, strongly interconnected, or unsafe to bound as one implementation pass | Advanced-route note, decomposition next action, no READY implementation until slice readiness exists |
 | Human decision wait | Required behavior, scope, priority, rollout target, secret, external operation, or manual evidence owner is missing | `NeedsHumanDecision`, `NeedsSecretInput`, `NeedsExternalOperation`, or `ManualVerificationRequired` |
@@ -103,6 +103,7 @@ READY implementation is only selected when the state has a bounded source of tru
 - No implementation without READY or an equivalent low-risk trivial-fix decision.
 - No automatic selection, suggestion, or recommendation of Design Pair; absent explicit user selection, record or retain `implementation_route = adaptive`.
 - No Design Pair implementation handoff before its tracked artifact is complete, and no production or test edits during the Design Pair pre-stage.
+- No READY verdict, Adaptive start, verification, or fallback while Design Pair is `target-selection` or `disposition-confirmation`. Do not reconstruct user confirmation from upstream artifacts or pre-map initial positions.
 - No treatment of Target Map file or symbol references as an allowed edit surface; only explicit Locked Decisions are binding on Adaptive implementation.
 - On a conflict between a Locked Decision and current repository evidence or a higher-priority contract, stop with the conflicting decision ID and evidence. Do not automatically re-enter Design Pair.
 - No risk/profile selection before `ReadyForRiskTriage`.

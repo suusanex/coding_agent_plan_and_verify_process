@@ -20,6 +20,7 @@
 - Small independent slices require `Small slice justification`; otherwise they should be recorded as `merge-candidate`, `too-small-to-delegate`, or `coalesce-with-SL-xxx` and not sent to `slice-prep`.
 - The broad autonomous flow remains available only as an explicit, separate process choice; it is not the default interpretation of `full-coverage` inside Plan網羅チェック triage.
 - Each resulting slice re-enters the Plan網羅チェック・残件判定フロー as a bounded parent Plan pass.
+- If Design Pair was explicitly selected, each slice preserves `design_pair_handoff`, `design_pair_interaction_stage`, and post-map user evidence in Parent Orchestration State. Its first Design Pair turn stops at `target-selection`; unresolved final disposition stops at `disposition-confirmation`. No Adaptive or verification step starts while either stage is waiting.
 - Cross-slice contracts must remain explicit and must be verified after slice implementations.
 - Cross-slice verification must confirm runtime postconditions after production wiring, not only structural wiring. Production interface / implementation / wiring, source-structure tests, and CI green are not enough unless they prove the parent acceptance condition postcondition.
 - Parent acceptance condition forbidden states must be carried into the cross-slice verification artifact and denied by evidence before a pass verdict is allowed.
@@ -39,6 +40,8 @@ Parent Plan Kernel
   → Architecture Elaboration and readiness rerun when needed
 → Plan Slice Decomposition
 → Per-slice Plan網羅チェック・残件判定フロー
+  → Explicit Design Pair Target Map / user disposition boundary when selected
+  → Adaptive implementation only after complete / READY_FOR_ADAPTIVE_IMPLEMENTATION
 → Cross-Slice Verification Kernel
 → Residual Decision Gate
 → FixNow repair only when explicit selector exists

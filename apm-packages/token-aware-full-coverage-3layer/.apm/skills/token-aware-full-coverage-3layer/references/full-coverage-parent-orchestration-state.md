@@ -3,8 +3,11 @@
 implementation_route: adaptive / design-pair
 implementation_route_source: default / explicit-user-selection
 design_pair_handoff: N/A / plans/<ticket-or-slug>-design-pair-implementation-handoff.md / per-slice paths
+design_pair_interaction_stage: N/A / not-started / target-selection / disposition-confirmation / upstream-decision / complete / artifact-repair
+design_pair_user_evidence: N/A / Pending / <Target Map presentation and post-map user response references>
 
 Design Pair は explicit-user-selection の場合だけ使用する。difficulty、risk、size、architecture から自動選択、推奨、提案しない。
+Design Pair が `target-selection` または `disposition-confirmation` で待機中の slice は、Adaptive、slice verification、cross-slice verificationへ進めない。resumeでinteraction stateまたはuser evidenceが欠ける場合は補完せずartifact repairで停止する。
 
 This artifact is the single resume entrypoint for full-coverage parent orchestration.
 Keep it compact. Do not paste full source artifacts, full subagent outputs, or long reasoning traces.

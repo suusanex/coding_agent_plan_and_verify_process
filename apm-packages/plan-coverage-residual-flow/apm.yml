@@ -1,6 +1,6 @@
 name: plan-coverage-residual-flow
-version: 0.7.0
-description: Plan Coverage Check and Residual Decision Flow with explicit Adaptive or Design Pair implementation route metadata, bounded parent Plan passes, Architecture Slice Readiness, Guardrail Focus, and residual decision gating
+version: 0.8.0
+description: Plan Coverage Check and Residual Decision Flow with durable Design Pair waiting state, bounded parent Plan passes, Architecture Slice Readiness, Guardrail Focus, and residual decision gating
 type: hybrid
 targets:
   - copilot
