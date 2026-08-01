@@ -17,9 +17,10 @@ Phase 1の停止点はprocess boundaryであり、レビュー反映全体の完
 
 ## Required tools and inputs
 
-- GitHub CLIと対象repositoryを読書きできる認証
+- GitHub CLIと対象repositoryを読書きでき、Copilot reviewerを要求できる認証
 - File-based Appsを実行できる.NET 10 SDK以降
-- APMで導入された`local-reviewer`、`review-planner`、`adaptive-implementation-execution`
+- APMで導入された`local-reviewer`、`review-planner`
+- Phase 2を開始する場合だけ、別途導入したoptional `adaptive-implementation-execution`
 - repository、PR番号または現在branch、出力先。既定出力先は`.review/pr-<number>`
 - 対象repositoryの`AGENTS.md`、README、build/test手順
 
@@ -38,16 +39,22 @@ GitHubへのbranch作成、commit、push、PR作成は、この準備段階だ�
 
 ### 2. Collect remote PR context
 
-Skill内のcollectorを実行します。
+まずCopilot reviewを明示要求します。対象repositoryのautomatic review設定は前提にしません。
 
 ```powershell
-dotnet run --file scripts/collect-pr-review-context.cs -- --repo owner/name --pr 123 --out .review/pr-123
+gh pr edit 123 --repo owner/name --add-reviewer @copilot
+```
+
+要求が権限・policy・利用条件によって失敗した場合は、collectorのtimeoutまで待たず`BLOCKED`で停止します。成功後、Skill内のcollectorを実行します。
+
+```powershell
+dotnet run --file .agents/skills/pr-review-remediation/scripts/collect-pr-review-context.cs -- --repo owner/name --pr 123 --out .review/pr-123
 ```
 
 標準ではGitHub Copilot reviewを待ちます。必要な場合だけ待機設定を変更します。
 
 ```powershell
-dotnet run --file scripts/collect-pr-review-context.cs -- --repo owner/name --pr 123 --out .review/pr-123 --copilot-timeout-seconds 300 --copilot-poll-interval-seconds 10 --copilot-stable-samples 2
+dotnet run --file .agents/skills/pr-review-remediation/scripts/collect-pr-review-context.cs -- --repo owner/name --pr 123 --out .review/pr-123 --copilot-timeout-seconds 300 --copilot-poll-interval-seconds 10 --copilot-stable-samples 2
 ```
 
 `--no-wait-for-copilot`は明示的に待機を省略する場合だけ使います。timeout、disabled、observed `none`を「指摘なし」と読み替えません。
@@ -96,7 +103,7 @@ Copilot waitがtimeoutで、Copilot未取得でも進む明示判断がない場
 
 ## Phase 2
 
-利用者が別の親ターンで次を実行します。
+Phase 2はcanonical same-parent flowの導入要件ではありません。利用者が基礎版のreview planを別の親ターンで実装すると明示した場合だけ、`adaptive-implementation-execution` packageとprofilesを別途導入して次を実行します。
 
 ```text
 $adaptive-implementation-execution を使って .review/pr-123/review-plan.md を実装してください。

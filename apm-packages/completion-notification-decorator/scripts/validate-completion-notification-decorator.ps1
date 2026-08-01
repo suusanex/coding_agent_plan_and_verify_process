@@ -4,10 +4,13 @@ param()
 $ErrorActionPreference = 'Stop'
 $packageRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $repositoryRoot = (Resolve-Path (Join-Path $packageRoot '..\..')).Path
-$runtimeSource = Join-Path $repositoryRoot 'scripts/codex-notification-runtime/codex-notification-runtime.cs'
-$providerSource = Join-Path $repositoryRoot 'scripts/codex-notification-runtime/windows-app-notification-provider.cs'
-$runtimeInstaller = Join-Path $repositoryRoot 'scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs'
-$envelopeSchema = Join-Path $repositoryRoot 'scripts/codex-notification-runtime/completion-notification-envelope-v1.schema.json'
+$canonicalRuntimeRoot = Join-Path $repositoryRoot 'scripts/codex-notification-runtime'
+$assetRoot = Join-Path $packageRoot '.apm/skills/completion-notification-decorator/assets/codex-notification-runtime'
+$runtimeSource = Join-Path $assetRoot 'codex-notification-runtime.cs'
+$providerSource = Join-Path $assetRoot 'windows-app-notification-provider.cs'
+$runtimeInstaller = Join-Path $assetRoot 'install-codex-notification-runtime-local.cs'
+$envelopeSchema = Join-Path $assetRoot 'completion-notification-envelope-v1.schema.json'
+$eventSchema = Join-Path $assetRoot 'completion-notification-event-v1.schema.json'
 $fakeProvider = Join-Path $repositoryRoot 'scripts/codex-notification-runtime/tests/fake-notification-command.ps1'
 $fixturePath = Join-Path $packageRoot 'tests/integration-fixtures.json'
 $failures = [System.Collections.Generic.List[string]]::new()
@@ -89,7 +92,15 @@ $requiredFiles = @(
     '.apm/skills/completion-notification-decorator/references/envelope-authoring-contract.md',
     'docs/usage-guide.md',
     'docs/examples/integration-validation.md',
-    'tests/integration-fixtures.json'
+    'tests/integration-fixtures.json',
+    '.apm/skills/completion-notification-decorator/assets/codex-notification-runtime/README.md',
+    '.apm/skills/completion-notification-decorator/assets/codex-notification-runtime/codex-notification-runtime.cs',
+    '.apm/skills/completion-notification-decorator/assets/codex-notification-runtime/windows-app-notification-provider.cs',
+    '.apm/skills/completion-notification-decorator/assets/codex-notification-runtime/install-codex-notification-runtime-local.cs',
+    '.apm/skills/completion-notification-decorator/assets/codex-notification-runtime/completion-notification-envelope-v1.schema.json',
+    '.apm/skills/completion-notification-decorator/assets/codex-notification-runtime/completion-notification-event-v1.schema.json',
+    '.apm/skills/completion-notification-decorator/assets/codex-notification-runtime/decision-record.md',
+    '.apm/skills/completion-notification-decorator/assets/codex-notification-runtime/manual-verification.md'
 )
 foreach ($relativePath in $requiredFiles) {
     if (-not (Test-Path -LiteralPath (Join-Path $packageRoot $relativePath) -PathType Leaf)) {
@@ -103,7 +114,7 @@ $openAiPath = Join-Path $packageRoot '.apm/skills/completion-notification-decora
 $contractPath = Join-Path $packageRoot '.apm/skills/completion-notification-decorator/references/envelope-authoring-contract.md'
 
 Assert-Contains $manifestPath 'name: completion-notification-decorator' 'canonical package name'
-Assert-Contains $manifestPath 'version: 0.1.0' 'package version'
+Assert-Contains $manifestPath 'version: 0.2.0' 'package version'
 Assert-Contains $manifestPath '  - codex' 'Codex target'
 Assert-Contains $manifestPath '  - agent-skills' 'agent-skills target'
 Assert-Contains $skillPath 'name: completion-notification-decorator' 'canonical Skill name'
@@ -112,9 +123,11 @@ Assert-Contains $skillPath 'Do not select, start, route, reproduce, or replace t
 Assert-Contains $skillPath 'Preserve its terminal verdict vocabulary exactly.' 'verdict preservation rule'
 Assert-Contains $skillPath 'append exactly one `completion-notification` fenced block' 'single envelope rule'
 Assert-Contains $skillPath 'omit the envelope' 'fallback authoring rule'
+Assert-Contains $skillPath 'ordinary notifications do not require this Skill' 'optional enrichment boundary'
 Assert-Contains $openAiPath 'allow_implicit_invocation: false' 'explicit-only invocation policy'
 Assert-Contains $contractPath 'The runtime generates `resume_uri`' 'runtime-owned resume link rule'
 Assert-Contains $contractPath 'both a result action and a current-task action' 'dual notification action rule'
+Assert-Contains $contractPath 'generic `TURN_ENDED` notification' 'generic fallback rule'
 Assert-Contains (Join-Path $packageRoot 'docs/usage-guide.md') '`結果を開く` opens that resource and `このタスクを開く` opens the callback''s Codex task' 'Windows dual-button usage'
 Assert-Contains $providerSource 'new ButtonSpec("結果を開く"' 'result action button'
 Assert-Contains $providerSource 'new ButtonSpec("このタスクを開く"' 'current task action button'
@@ -142,10 +155,19 @@ if ($customAgents) {
 if (-not (Test-Path -LiteralPath $runtimeSource -PathType Leaf) -or
     -not (Test-Path -LiteralPath $providerSource -PathType Leaf) -or
     -not (Test-Path -LiteralPath $runtimeInstaller -PathType Leaf) -or
-    -not (Test-Path -LiteralPath $envelopeSchema -PathType Leaf)) {
-    Add-Failure 'Canonical notification runtime assets are not resolvable from the repository root.'
+    -not (Test-Path -LiteralPath $envelopeSchema -PathType Leaf) -or
+    -not (Test-Path -LiteralPath $eventSchema -PathType Leaf)) {
+    Add-Failure 'Installed notification runtime assets are incomplete.'
 }
 else {
+    foreach ($relativePath in @('codex-notification-runtime.cs', 'windows-app-notification-provider.cs', 'install-codex-notification-runtime-local.cs', 'completion-notification-envelope-v1.schema.json', 'completion-notification-event-v1.schema.json', 'decision-record.md', 'manual-verification.md')) {
+        $canonicalPath = Join-Path $canonicalRuntimeRoot $relativePath
+        $assetPath = Join-Path $assetRoot $relativePath
+        if (-not (Test-Path -LiteralPath $canonicalPath -PathType Leaf) -or
+            (Get-FileHash -LiteralPath $canonicalPath -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $assetPath -Algorithm SHA256).Hash) {
+            Add-Failure "Installed asset mirror does not match canonical source: $relativePath"
+        }
+    }
     $schema = Get-Content -Raw $envelopeSchema | ConvertFrom-Json
     if ($schema.properties.schema_version.const -ne 1 -or
         'primary_process' -notin @($schema.required) -or
@@ -153,9 +175,9 @@ else {
         Add-Failure 'Canonical envelope schema does not match the decorator authoring contract.'
     }
     $installerText = Get-Content -Raw $runtimeInstaller
-    if (-not $installerText.Contains('$completion-notification-decorator', [StringComparison]::Ordinal) -or
-        -not $installerText.Contains('[completion-notification]', [StringComparison]::Ordinal)) {
-        Add-Failure 'Canonical runtime installer does not configure both decorator fallback markers.'
+    if (-not $installerText.Contains('TargetMarkers = parsed.TargetMarkers', [StringComparison]::Ordinal) -or
+        -not $installerText.Contains('always-on install must not require target markers', [StringComparison]::Ordinal)) {
+        Add-Failure 'Installed runtime installer still requires notification target markers.'
     }
 }
 
@@ -231,11 +253,24 @@ try {
     $runtimeExecutable = Join-Path $publishRoot ('completion-notification-decorator-runtime' + $(if ($IsWindows) { '.exe' } else { '' }))
     if (-not (Test-Path -LiteralPath $runtimeExecutable -PathType Leaf)) { throw "Published runtime is missing: $runtimeExecutable" }
 
+    $installerPublishRoot = Join-Path $resolvedValidationRoot 'installer-bin'
+    & dotnet publish $runtimeInstaller --output $installerPublishRoot '-p:AssemblyName=completion-notification-decorator-installer'
+    if ($LASTEXITCODE -ne 0) { throw "Installed-asset installer publish failed with exit code $LASTEXITCODE" }
+    $installerExecutable = Join-Path $installerPublishRoot ('completion-notification-decorator-installer' + $(if ($IsWindows) { '.exe' } else { '' }))
+    if (-not (Test-Path -LiteralPath $installerExecutable -PathType Leaf)) { throw "Published installer is missing: $installerExecutable" }
+    & $installerExecutable --self-test
+    if ($LASTEXITCODE -ne 0) { throw "Installed-asset installer self-test failed with exit code $LASTEXITCODE" }
+    $assetCodexHome = Join-Path $resolvedValidationRoot 'asset-codex-home'
+    $assetInstallRoot = Join-Path $resolvedValidationRoot 'asset-install-root'
+    $null = New-Item -ItemType Directory -Path $assetCodexHome
+    & $installerExecutable --dry-run --codex-home $assetCodexHome --install-root $assetInstallRoot
+    if ($LASTEXITCODE -ne 0) { throw "Installed-asset installer could not resolve adjacent runtime sources, exit code $LASTEXITCODE" }
+
     $runtimeHome = Join-Path $resolvedValidationRoot 'runtime-home'
     $providerOutput = Join-Path $resolvedValidationRoot 'provider-output.jsonl'
     $pwshPath = (Get-Process -Id $PID).Path
     $runtimeConfig = @{
-        target_markers = @('$completion-notification-decorator', '[completion-notification]')
+        target_markers = @()
         chained_notify = $null
         providers = @(@{
             name = 'fixture-provider'
@@ -320,7 +355,7 @@ try {
         throw 'Multiple repository executions were not distinguishable in emitted events.'
     }
 
-    $providerCountBeforeMarkerOnly = @(Get-Content -LiteralPath $providerOutput).Count
+    $providerCountBeforeMarkerless = @(Get-Content -LiteralPath $providerOutput).Count
     $markerOnlyPayload = [ordered]@{
         type = 'agent-turn-complete'
         'thread-id' = 'marker-only-thread'
@@ -331,12 +366,31 @@ try {
     } | ConvertTo-Json -Compress -Depth 6
     & $runtimeExecutable dispatch $markerOnlyPayload
     if ($LASTEXITCODE -ne 0) { throw "Marker-only callback returned exit code $LASTEXITCODE." }
-    if (@(Get-Content -LiteralPath $providerOutput).Count -ne $providerCountBeforeMarkerOnly) {
-        throw 'Decorator Skill marker produced a notification before a terminal envelope existed.'
+    if (@(Get-Content -LiteralPath $providerOutput).Count -ne ($providerCountBeforeMarkerless + 1)) {
+        throw 'Markerless callback did not produce a generic notification.'
     }
-    $markerOnlyLog = Get-Content -LiteralPath (Join-Path $runtimeHome 'runtime.log.jsonl') | Select-Object -Last 1 | ConvertFrom-Json
-    if ($markerOnlyLog.status -ne 'awaiting-terminal-envelope') {
-        throw 'Marker-only callback did not record awaiting-terminal-envelope.'
+    $markerlessEvent = Get-Content -LiteralPath $providerOutput | Select-Object -Last 1 | ConvertFrom-Json
+    if ($markerlessEvent.primary_process -ne 'codex' -or $markerlessEvent.observed_status -ne 'TURN_ENDED' -or $markerlessEvent.resume_uri -ne 'codex://threads/marker-only-thread') {
+        throw 'Markerless callback did not preserve the generic notification contract.'
+    }
+    $markerlessLog = Get-Content -LiteralPath (Join-Path $runtimeHome 'runtime.log.jsonl') | Select-Object -Last 1 | ConvertFrom-Json
+    if ($markerlessLog.status -ne 'delivered') {
+        throw 'Markerless callback did not complete generic delivery.'
+    }
+
+    $invalidEnvelopePayload = [ordered]@{
+        type = 'agent-turn-complete'
+        'thread-id' = 'invalid-envelope-thread'
+        'turn-id' = 'invalid-envelope-turn'
+        cwd = $repositoryRoot
+        'input-messages' = @('ordinary Codex task')
+        'last-assistant-message' = "``````completion-notification`n{invalid}`n``````"
+    } | ConvertTo-Json -Compress -Depth 6
+    & $runtimeExecutable dispatch $invalidEnvelopePayload
+    if ($LASTEXITCODE -ne 0) { throw "Invalid-envelope callback returned exit code $LASTEXITCODE." }
+    $invalidEnvelopeEvent = Get-Content -LiteralPath $providerOutput | Select-Object -Last 1 | ConvertFrom-Json
+    if ($invalidEnvelopeEvent.primary_process -ne 'codex' -or $invalidEnvelopeEvent.observed_status -ne 'TURN_ENDED' -or $null -ne $invalidEnvelopeEvent.result_uri -or $invalidEnvelopeEvent.resume_uri -ne 'codex://threads/invalid-envelope-thread') {
+        throw 'Invalid envelope did not fall back to a generic thread-only notification.'
     }
 
     $env:CODEX_NOTIFICATION_TEST_PROVIDER_EXIT = '9'
@@ -376,5 +430,5 @@ finally {
     }
 }
 
-Write-Output "Completion Notification Decorator validation: PASS ($($fixtures.Count) canonical primary-process fixtures, terminal-envelope gating, direct links, multi-repository identity, fail-open)"
+Write-Output "Completion Notification Decorator validation: PASS ($($fixtures.Count) canonical enrichment fixtures, generic fallback, installed assets, direct links, multi-repository identity, fail-open)"
 $global:LASTEXITCODE = 0

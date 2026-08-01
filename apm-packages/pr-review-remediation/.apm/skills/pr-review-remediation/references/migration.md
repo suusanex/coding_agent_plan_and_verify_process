@@ -16,8 +16,8 @@
 | `local-reviewer` | Migrated as canonical read-only agent | root `.github/agents/` |
 | `review-planner` | Migrated and made Adaptive-ready | root `.github/agents/` |
 | review plan template | Replaced with finding ledger and canonical Implementation Intent | Skill `templates/review-plan.md` |
-| installer/profile synchronization | Reworked for monorepo package conventions | package sync helper and existing Adaptive helper |
-| implementation agent | Removed | existing `adaptive-implementation-execution` dependency |
+| installer/profile synchronization | Reworked for monorepo package conventions | package sync helper; existing Adaptive helper is an optional Phase 2 add-on |
+| implementation agent | Removed | separately installed `adaptive-implementation-execution` for optional Phase 2 |
 | implementation result report | Removed | existing Adaptive output/handoff |
 
 The former `spark-implementer` is not retained as an agent, alias, compatibility route, fallback, template owner, or profile. Its implementation responsibility is transferred to the existing Adaptive Implementation flow; the overall review remediation process still includes implementation and validation in a separate parent turn.

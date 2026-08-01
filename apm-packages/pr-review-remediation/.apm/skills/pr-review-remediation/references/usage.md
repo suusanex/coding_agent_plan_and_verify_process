@@ -4,13 +4,13 @@
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills
-dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs -- . --dry-run
-dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs -- .
-dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs -- .
-dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs -- . --check
+$moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
+dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --dry-run
+dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- .
+dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --check
 ```
 
-最初のhelperはreview agent profileを同期します。Adaptiveのmodel mapping、agent validation、installation policyは既存Adaptive helperをsource of truthとして使います。
+この導入はreview agent profileだけを同期し、canonical same-parent flowにも基礎版Phase 1にも十分です。
 
 ## Start Phase 1
 
@@ -30,7 +30,15 @@ $pr-review-remediation を使って owner/name#123 を処理してください�
 
 ## Start Phase 2
 
-Phase 1が`READY_FOR_ADAPTIVE_IMPLEMENTATION`になった後、別の親ターンで開始します。
+Phase 1が`READY_FOR_ADAPTIVE_IMPLEMENTATION`になり、利用者が別の親ターンでの実装を選んだ場合だけ、Adaptiveをoptional add-onとして別途導入します。
+
+```powershell
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
+dotnet run --file "$moduleRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- .
+dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --check --check-adaptive
+```
+
+Adaptiveのmodel mapping、agent validation、installation policyは既存Adaptive helperをsource of truthとして使います。その後、別の親ターンで開始します。
 
 ```text
 $adaptive-implementation-execution を使って .review/pr-123/review-plan.md を実装してください。

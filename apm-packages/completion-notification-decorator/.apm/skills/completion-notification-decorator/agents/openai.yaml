@@ -1,7 +1,7 @@
 interface:
   display_name: "Completion Notification Decorator"
-  short_description: "Notify when an explicitly selected Codex process ends"
-  default_prompt: "Use $completion-notification-decorator together with one primary process Skill and notify me when this parent turn ends."
+  short_description: "Enrich an always-on Codex completion notification"
+  default_prompt: "Use $completion-notification-decorator with one primary process Skill to enrich this turn's completion notification."
 
 policy:
   allow_implicit_invocation: false

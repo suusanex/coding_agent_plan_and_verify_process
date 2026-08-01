@@ -16,6 +16,7 @@
     "waitStatus": "disabled",
     "observedReviewState": "reviewAndInline",
     "timedOut": false,
+    "isComplete": true,
     "startedAt": "2026-07-27T03:25:46.5608754+00:00",
     "completedAt": "2026-07-27T03:25:47.0633784+00:00",
     "elapsedSeconds": 0.503,

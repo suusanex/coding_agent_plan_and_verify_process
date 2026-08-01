@@ -23,6 +23,6 @@ The runtime generates `resume_uri` from the callback thread ID. Do not author it
 
 ## Failure behavior
 
-- Missing or invalid envelope: the runtime records diagnostic state and suppresses notification delivery. A marker alone is not a terminal result.
-- Invalid or coarse `result_uri`: the runtime omits it and retains the generated current-task resume link.
+- Missing envelope: the runtime emits a generic `TURN_ENDED` notification with the callback-derived current-task link.
+- Invalid envelope, including an invalid or coarse `result_uri`: the runtime ignores all enrichment fields and emits the generic notification. It never loses the current-task link.
 - Provider or runtime failure: the primary process response and terminal status remain authoritative. Notification delivery status is separate observational state.

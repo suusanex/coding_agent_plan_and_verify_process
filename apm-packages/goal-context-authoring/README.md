@@ -1,70 +1,44 @@
 # Goal Context Authoring
 
-設計会話や意思決定記録から、目的、利用状況、判断と理由、scope、constraints、acceptance evidence、目的上の失敗条件を抽出・構造化し、自己完結した `goal-context-*.md` を作成する APM package です。draft 検証、人間レビュー、strict 検証を経て保存し、元資料へアクセスできない後続 AI の実装および目的達成レビューへ引き継ぎます。
+自然言語の資料から、後続の実装・目的達成reviewで利用できる自己完結したGoal Contextを作る任意のauthoring helperです。
 
-Issue の長文化や会話の時系列要約ではなく、Original problem、Desired outcome、具体的な利用状況、MVP / Non-goals / Future work、採用判断、棄却案、制約、成功シナリオ、acceptance evidence、形式上は成立しても目的上失敗する条件を自己完結して残します。
-
-## Package contents
-
-| Content | Path |
-| --- | --- |
-| Authoring skill | `.apm/skills/goal-context-authoring/SKILL.md` |
-| Copyable ChatGPT prompt | skill の `references/generation-prompt.md` |
-| Normative document contract | skill の `references/goal-context-contract.md` |
-| Goal Context template | skill の `references/goal-context-template.md` |
-| Human review checklist | skill の `references/human-review-checklist.md` |
-| Usage and install guide | `docs/usage-and-install-guide.md` |
-| Source conversation fixture | `docs/examples/source-conversation-fixture.md` |
-| Expected reviewed example | `docs/examples/goal-context-resumable-local-batch-export.md` |
-| Distributed canonical validator | `.apm/skills/goal-context-authoring/scripts/validate-goal-context.cs` |
-| Package compatibility validator | `scripts/validate-goal-context-authoring.ps1` |
-| Package-root install smoke test | `scripts/test-apm-package-install.ps1` |
-
-Prompt、contract、template、checklist は bundled Skill の `references/`、canonical validatorは`scripts/`として配布します。standalone Markdown file を manifest dependency にしないため、APM の標準導入経路で一式が対象 repository の `.agents/skills/goal-context-authoring/` に配置されます。
+Goal Contextはfree-form textです。このpackageのpromptやexampleを使わずに作成された文書も同じように利用できます。filename、拡張子、frontmatter、見出し、table、provenance tag、lifecycle、approval record、作成元は必須ではありません。
 
 ## Install
 
-対象 repository の root で実行します。
+対象repositoryのrootで実行します。
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/goal-context-authoring --target codex,agent-skills
 ```
 
-追加 installer は不要です。導入後に次を確認します。
-
-- `.agents/skills/goal-context-authoring/SKILL.md`
-- `.agents/skills/goal-context-authoring/references/generation-prompt.md`
-- `.agents/skills/goal-context-authoring/references/goal-context-contract.md`
-- `.agents/skills/goal-context-authoring/references/goal-context-template.md`
-- `.agents/skills/goal-context-authoring/references/human-review-checklist.md`
-
 ## Use
 
-1. 初期検討と Issue 文面を確定する。
-2. `generation-prompt.md` を元の ChatGPT 会話へ渡す。
-3. 出力を `goal-context-<topic-summary>.md` として draft 保存する。
-4. validator を実行する。
-5. 人間が checklist に従い、特に Desired outcome、棄却案、否定条件、MVP 境界、訂正・優先順位変更、provenance、機密情報を確認する。
-6. 確認後だけ `status: human-reviewed` と `sensitive_data_review: passed` に変更し、strict validation を実行する。
+1. `.agents/skills/goal-context-authoring/references/generation-prompt.md`を任意のauthoring補助として使う、または別経路でGoal Contextを書く。
+2. 利用できる資料に忠実な自然言語で、目的と望まれる変化を自己完結して説明する。
+3. 必要に応じてproblem、利用状況、境界、目的を外す結果、unknownを加える。これらの見出しは任意です。
+4. secret、credential、認証情報、不要な個人情報を除く。
+5. 任意でreadability validatorを実行する。
 
 ```powershell
-dotnet run --file ./.agents/skills/goal-context-authoring/scripts/validate-goal-context.cs -- --goal-context ./docs/goal-context-<topic-summary>.md --mode draft --format json
-dotnet run --file ./.agents/skills/goal-context-authoring/scripts/validate-goal-context.cs -- --goal-context ./docs/goal-context-<topic-summary>.md --mode strict --format json
-
-# package source repository compatibility commands
-./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1 -GoalContextPath ./docs/goal-context-<topic-summary>.md
-./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1 -GoalContextPath ./docs/goal-context-<topic-summary>.md -RequireHumanReview
+dotnet run --file .agents/skills/goal-context-authoring/scripts/validate-goal-context.cs -- --goal-context <path> --mode basic --format json
 ```
 
-package source 自体の fixture と契約を検証する場合は引数なしで実行します。
+`draft`と`strict`は既存commandとの互換aliasで、`basic`と同じ検査を行います。人間reviewやapproval状態を要求しません。
 
-```powershell
-./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1
-./apm-packages/goal-context-authoring/scripts/test-apm-package-install.ps1
-```
+validatorのPASSは、non-empty readable textであり高確度credential patternを検出しなかったことだけを示します。semantic fidelity、完全性、privacy safety、承認を証明しません。
 
-install smoke test は system temporary directory で package root を `codex,agent-skills` target へ導入し、Skill、4 bundled references、canonical validatorの SHA-256 一致とvalidator起動を確認します。CI は APM CLI `0.26.0` を固定します。
+## Package contents
 
-構造 validator は semantic fidelity、長大な会話の完全な coverage、推論の正しさ、privacy safety を証明しません。人間による最終確認は必須です。
+| Content | Path |
+| --- | --- |
+| Authoring Skill | `.apm/skills/goal-context-authoring/SKILL.md` |
+| Optional generation prompt | Skillの`references/generation-prompt.md` |
+| Free-form interoperability contract | Skillの`references/goal-context-contract.md` |
+| Optional example | Skillの`references/goal-context-template.md` |
+| Optional quality checklist | Skillの`references/human-review-checklist.md` |
+| Readability validator | Skillの`scripts/validate-goal-context.cs` |
+| Package validator | `scripts/validate-goal-context-authoring.ps1` |
+| APM install smoke | `scripts/test-apm-package-install.ps1` |
 
-詳細は [usage and install guide](docs/usage-and-install-guide.md) を参照してください。
+詳細は[usage and install guide](docs/usage-and-install-guide.md)を参照してください。

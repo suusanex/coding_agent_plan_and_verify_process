@@ -1,51 +1,13 @@
-# Goal Context human review checklist
+# Optional Goal Context quality review
 
-The reviewer must have access to the source conversation or authoritative decision notes. Structural validator success is not a substitute for this review.
+Human review is optional unless the user or another governing process explicitly requests it. Completing this checklist does not change a machine lifecycle state, because Goal Context has no required lifecycle metadata.
 
-## Purpose and boundaries
+- Does the text explain enough purpose for a later reader to judge whether the work helped?
+- Are stated outcomes and boundaries faithful to the available source?
+- Are uncertainty and contradictions visible rather than guessed closed?
+- Does the text avoid turning implementation details or general best practices into unstated product requirements?
+- Can a reviewer recognize an implementation that looks complete but leaves the described problem in place?
+- Are secrets, credentials, authentication material, and unnecessary personal data absent?
+- Is every added heading or label useful to this document rather than copied from a template mechanically?
 
-- [ ] Original problem describes the underlying pain, not only the requested feature.
-- [ ] Desired outcome states the observable user value and current priority.
-- [ ] Concrete user situations and scenarios match how the result will actually be used.
-- [ ] MVP scope is complete enough to deliver the intended value.
-- [ ] Non-goals and future work are separate from the MVP.
-
-## Decisions and negative conditions
-
-- [ ] Accepted decisions include the reasons that matter to later design choices.
-- [ ] Rejected alternatives and rejection reasons are present and accurate.
-- [ ] No rejected alternative was silently reintroduced as a recommendation.
-- [ ] `Superficially compliant but wrong` includes concrete ways to satisfy the wording while missing the purpose.
-- [ ] Review questions would expose those purpose-level failures.
-
-## Conversation fidelity
-
-- [ ] The full available conversation, including its early portion, was covered.
-- [ ] Later corrections supersede earlier statements where the user actually changed direction.
-- [ ] Priority changes are visible and not flattened into an undated list.
-- [ ] The document is organized by purpose and decision, not by message chronology.
-- [ ] The document adds context beyond an Issue copy without adding unsupported requirements.
-
-## Provenance and uncertainty
-
-- [ ] Material statements use `[Explicit]`, `[Inferred]`, or `[Unknown]` accurately.
-- [ ] Inferences name their evidence and are not presented as user decisions.
-- [ ] Contradictions and missing source remain open rather than being guessed closed.
-- [ ] Assumptions state the consequence if they are wrong.
-
-## Evidence and safety
-
-- [ ] Acceptance evidence would demonstrate the desired outcome, not only task completion.
-- [ ] Automated, runtime, document-review, and human evidence are distinguished where relevant.
-- [ ] Secrets, credentials, authentication material, and private keys are absent.
-- [ ] Unnecessary names, email addresses, account identifiers, and other personal data are absent or generalized.
-- [ ] Necessary redactions retain only decision-relevant meaning.
-
-## Naming and finalization
-
-- [ ] Filename matches `goal-context-<topic-summary>.md` in lowercase kebab-case.
-- [ ] The topic summary describes the durable subject and is not centered on an Issue, PR, ticket, or one-time task slug.
-- [ ] Known source gaps are recorded under Document control and source boundary.
-- [ ] Requested corrections from this review have been applied.
-- [ ] Human review record identifies the reviewer, date, confirmations, and review changes.
-- [ ] Frontmatter is changed to `status: human-reviewed` and `sensitive_data_review: passed` only after all checks above pass.
+The author may revise the text in any format. Do not add approval fields merely to record that this checklist was used.

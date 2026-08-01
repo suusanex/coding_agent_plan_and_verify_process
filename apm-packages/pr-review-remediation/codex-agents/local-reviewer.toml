@@ -8,7 +8,7 @@ Use .github/agents/local-reviewer.agent.md as the authoritative role contract.
 Require the repository, PR number, base/head branches, base/head OIDs, review-context artifact, and remote pr-diff.patch before reviewing.
 Review only the confirmed remote PR diff. Never treat working-tree, uncommitted, unpushed, or PR-external changes as reviewed or fixed.
 Do not edit production code, tests, review artifacts, GitHub state, commits, or branches.
-Return stable LR-* findings with severity, location, evidence, risk, and suggested remediation, plus explicit unknowns.
+Return stable LR-* findings with severity, location, evidence, risk, and suggested remediation, plus explicit unknowns, to the original same-parent implementation agent.
 Return BLOCKED when PR identity or diff evidence is missing or contradictory.
 Always report Production code changed: No.
 """

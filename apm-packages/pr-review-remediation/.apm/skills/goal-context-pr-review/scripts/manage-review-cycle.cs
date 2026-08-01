@@ -80,10 +80,10 @@ static void ShowUsage()
 {
     Console.WriteLine("""
 Usage:
-  dotnet run --file scripts/manage-review-cycle.cs -- start --cycle <path> --repository owner/name --pr <number> --goal-context-path <path> --goal-context-sha <sha256> --base-oid <oid> --head-oid <oid> --started-at <ISO-8601> --review-thread-id <task-id> --implementation-thread-id <task-id> [--adaptive-result-reference <path-or-uri> --adaptive-thread-id <task-id>] [--format json|text]
-  dotnet run --file scripts/manage-review-cycle.cs -- complete --cycle <path> --round-result <path> [--format json|text]
-  dotnet run --file scripts/manage-review-cycle.cs -- resolve --cycle <path> --resolve-decision <decision-id> --decision-resolution <text> --decision-approved-by <identity> --decision-approved-at <ISO-8601> --approved-plan <path> [override options] [--format json|text]
-  dotnet run --file scripts/manage-review-cycle.cs -- validate --cycle <path> [--format json|text]
+  dotnet run --file .agents/skills/goal-context-pr-review/scripts/manage-review-cycle.cs -- start --cycle <path> --repository owner/name --pr <number> --goal-context-path <path> --goal-context-sha <sha256> --base-oid <oid> --head-oid <oid> --started-at <ISO-8601> --review-thread-id <task-id> --implementation-thread-id <task-id> [--adaptive-result-reference <path-or-uri> --adaptive-thread-id <task-id>] [--format json|text]
+  dotnet run --file .agents/skills/goal-context-pr-review/scripts/manage-review-cycle.cs -- complete --cycle <path> --round-result <path> [--format json|text]
+  dotnet run --file .agents/skills/goal-context-pr-review/scripts/manage-review-cycle.cs -- resolve --cycle <path> --resolve-decision <decision-id> --decision-resolution <text> --decision-approved-by <identity> --decision-approved-at <ISO-8601> --approved-plan <path> [override options] [--format json|text]
+  dotnet run --file .agents/skills/goal-context-pr-review/scripts/manage-review-cycle.cs -- validate --cycle <path> [--format json|text]
 
 Override options (all required together):
   --override-maximum-rounds <number>
