@@ -92,5 +92,35 @@
     "expected_authorized": true,
     "expected_forbidden_actions": [],
     "expected_return": "authorized-flow"
+  },
+  {
+    "id": "G",
+    "name": "negated route mention",
+    "current_user_message": "plan-coverage-residual-flowは使わず、通常の実装ルートで進めて",
+    "upstream_artifact": null,
+    "context": {},
+    "expected_authorized": false,
+    "expected_forbidden_actions": [
+      "read-repository-artifacts-for-flow",
+      "write-plan-coverage-artifacts",
+      "invoke-plan-coverage-agents",
+      "recommend-route"
+    ],
+    "expected_return": "caller-or-normal-route"
+  },
+  {
+    "id": "H",
+    "name": "question about route selection",
+    "current_user_message": "plan-coverage-residual-flowが自動選択された理由を説明して",
+    "upstream_artifact": null,
+    "context": {},
+    "expected_authorized": false,
+    "expected_forbidden_actions": [
+      "read-repository-artifacts-for-flow",
+      "write-plan-coverage-artifacts",
+      "invoke-plan-coverage-agents",
+      "recommend-route"
+    ],
+    "expected_return": "caller-or-normal-route"
   }
 ]

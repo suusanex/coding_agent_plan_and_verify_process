@@ -32,6 +32,18 @@ function Get-NormalizedText([string]$Path) {
     return [System.IO.File]::ReadAllText($Path).Replace("`r`n", "`n").Replace("`r", "`n")
 }
 
+function Test-AffirmativeDirectRouteSelection([string]$Message) {
+    if ([string]::IsNullOrWhiteSpace($Message)) {
+        return $false
+    }
+
+    $routeName = '(?<![A-Za-z0-9-])plan-coverage-residual-flow(?![A-Za-z0-9-])'
+    $negativeSelection = "(?i)(?:\b(?:do not|don't|not)\s+(?:use|run|invoke|start|select).*${routeName}|${routeName}\s*(?:は|を)?\s*(?:使わない|使用しない|使わず|使用せず|選択しない|選ばない))"
+    $affirmativeSelection = "(?i)(?:\b(?:use|run|invoke|start|select)\s+(?:the\s+)?${routeName}|${routeName}\s*(?:を)?\s*(?:使(?:って|い)|使用して|実行して|開始して|選択して|で進めて))"
+
+    return (($Message -cnotmatch $negativeSelection) -and ($Message -cmatch $affirmativeSelection))
+}
+
 $skillRelativePath = 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md'
 $deployedSkillRelativePath = '.agents/skills/plan-coverage-residual-flow/SKILL.md'
 $manifestRelativePath = 'apm-packages/plan-coverage-residual-flow/apm.yml'
@@ -72,7 +84,7 @@ if ($failures.Count -eq 0) {
         }
 
         Assert-Matches $description '(?i)explicit-invocation-only' 'frontmatter must identify the Skill as explicit-invocation-only'
-        Assert-Matches $description 'current user explicitly selects.*`plan-coverage-residual-flow`' 'frontmatter must require exact direct user selection'
+        Assert-Matches $description 'current user explicitly and affirmatively selects.*`plan-coverage-residual-flow`' 'frontmatter must require affirmative exact direct user selection'
         Assert-Matches $description 'upstream process.*durable evidence.*user explicitly selected this exact route' 'frontmatter must require durable upstream user-selection evidence'
         Assert-Matches $description 'Never select, recommend, or propose.*generic.*implementation, fix, continue, or proceed' 'frontmatter must exclude generic implementation requests'
         Assert-Matches $description 'task size.*difficulty.*risk.*complexity.*architecture' 'frontmatter must exclude task characteristics'
@@ -87,7 +99,8 @@ if ($failures.Count -eq 0) {
         if ($gateMatch.Success) {
             $gate = $gateMatch.Groups['gate'].Value
             Assert-Matches $gate 'Before reading any repository artifact.*creating or updating any Plan Coverage artifact.*invoking any agent' 'authorization must precede repository reads, artifact writes, and agent invocation'
-            Assert-Matches $gate 'current user message.*exact literal route name `plan-coverage-residual-flow`' 'direct authorization must require the exact current-message route name'
+            Assert-Matches $gate 'current user message.*explicitly and affirmatively selects.*exact literal route name `plan-coverage-residual-flow`' 'direct authorization must require affirmative exact current-message route selection'
+            Assert-Matches $gate 'literal, quoted, negated, rejected, comparative, question-based, or informational mention.*not direct authorization' 'direct authorization must reject non-affirmative route mentions'
             Assert-Matches $gate 'process_route:\s*plan-coverage-residual-flow' 'upstream authorization must require process_route'
             Assert-Matches $gate 'process_route_source:\s*explicit-user-selection' 'upstream authorization must require explicit-user-selection'
             Assert-Matches $gate 'user_selection_evidence:.*actual user message' 'upstream authorization must require actual user message evidence'
@@ -125,11 +138,11 @@ if ($failures.Count -eq 0) {
     Assert-True ((Get-NormalizedText $skillPath) -ceq (Get-NormalizedText $deployedSkillPath)) 'tracked installed Skill projection must match the canonical Skill'
 
     $scenarios = @(Get-Content -Raw -LiteralPath (Join-Path $repoRoot $scenarioRelativePath) | ConvertFrom-Json)
-    Assert-True ($scenarios.Count -eq 6) 'Scenario fixture must contain exactly A through F'
-    Assert-True ((@($scenarios.id) -join ',') -ceq 'A,B,C,D,E,F') 'Scenario IDs must be ordered A through F'
+    Assert-True ($scenarios.Count -eq 8) 'Scenario fixture must contain exactly A through H'
+    Assert-True ((@($scenarios.id) -join ',') -ceq 'A,B,C,D,E,F,G,H') 'Scenario IDs must be ordered A through H'
     foreach ($scenario in $scenarios) {
         $message = [string]$scenario.current_user_message
-        $directAuthorized = -not [string]::IsNullOrWhiteSpace($message) -and $message -cmatch '(?<![A-Za-z0-9-])plan-coverage-residual-flow(?![A-Za-z0-9-])'
+        $directAuthorized = Test-AffirmativeDirectRouteSelection $message
         $upstream = $scenario.upstream_artifact
         $upstreamAuthorized = $null -ne $upstream -and
             $upstream.process_route -ceq 'plan-coverage-residual-flow' -and
@@ -150,10 +163,10 @@ if ($failures.Count -eq 0) {
 
     $manualReadme = Get-NormalizedText (Join-Path $repoRoot $manualReadmeRelativePath)
     $manualTemplate = Get-NormalizedText (Join-Path $repoRoot $manualTemplateRelativePath)
-    Assert-Matches $manualReadme 'Scenarios A, B, C, and E.*not selected.*no Plan Coverage artifact.*no Plan Coverage agent' 'manual smoke must define unauthorized observations'
+    Assert-Matches $manualReadme 'Scenarios A, B, C, E, G, and H.*not selected.*no Plan Coverage artifact.*no Plan Coverage agent' 'manual smoke must define unauthorized observations'
     Assert-Matches $manualReadme 'Scenarios D and F.*accepts.*existing flow can proceed' 'manual smoke must define authorized observations'
     Assert-Matches $manualReadme '`NOT RUN`.*`UNOBSERVABLE`.*Neither status counts as a pass' 'manual smoke must keep unexecuted or unobservable evidence separate'
-    foreach ($scenarioId in 'A'..'F') {
+    foreach ($scenarioId in 'A'..'H') {
         Assert-Matches $manualTemplate "(?m)^\| $scenarioId \| NOT RUN \|" "manual result template must include Scenario $scenarioId"
     }
 

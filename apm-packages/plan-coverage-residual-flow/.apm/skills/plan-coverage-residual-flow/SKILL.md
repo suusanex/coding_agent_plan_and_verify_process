@@ -2,7 +2,7 @@
 name: plan-coverage-residual-flow
 description: >
   Explicit-invocation-only Plan Coverage Check and Residual Decision Flow.
-  Use only when the current user explicitly selects
+  Use only when the current user explicitly and affirmatively selects
   `plan-coverage-residual-flow`, or when an upstream process forwards
   durable evidence that the user explicitly selected this exact route.
   Never select, recommend, or propose this skill from a generic
@@ -26,7 +26,7 @@ Before reading any repository artifact, creating or updating any Plan Coverage a
 
 Authorization exists only when one of the following is true:
 
-1. The current user message explicitly contains the exact literal route name `plan-coverage-residual-flow`.
+1. The current user message explicitly and affirmatively selects the exact literal route name `plan-coverage-residual-flow` for this task.
 2. An upstream durable artifact contains all of the following fields and evidence:
 
    ```yaml
@@ -36,6 +36,8 @@ Authorization exists only when one of the following is true:
    ```
 
 `user_selection_evidence` must identify an actual user message or durable user-turn reference. An upstream process, agent, or AI recommendation is not user selection evidence.
+
+A literal, quoted, negated, rejected, comparative, question-based, or informational mention of `plan-coverage-residual-flow` is not direct authorization. When the current message does not clearly and affirmatively select this route, treat authorization as absent.
 
 None of the following authorizes this route:
 

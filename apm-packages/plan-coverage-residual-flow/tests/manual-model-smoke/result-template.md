@@ -15,7 +15,9 @@
 | D | NOT RUN |  |  |  |  |  |
 | E | NOT RUN |  |  |  |  |  |
 | F | NOT RUN |  |  |  |  |  |
+| G | NOT RUN |  |  |  |  |  |
+| H | NOT RUN |  |  |  |  |  |
 
 ## Notes and limitations
 
-- 
+- Record environment limits, unavailable observations, and follow-up evidence here.

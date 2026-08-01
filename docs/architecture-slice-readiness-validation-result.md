@@ -2,9 +2,9 @@
 
 ## Execution metadata
 
-- Executed at: `2026-08-01T17:06:49+09:00`
+- Executed at: `2026-08-01T17:48:26+09:00`
 - Executor: Codex, deterministic ASR-001 through ASR-006 fixture revalidation against the repository agent contracts
-- Branch: detached `a3918f0` plus Issue #74 working tree
+- Branch: `main` with PR #79 projection sync merged, plus Issue #74 working tree
 - Reviewed source: Issue #74 invocation authorization changes plus the existing Design Pair waiting-state and full-coverage contracts, captured by the exact contract hashes below
 - Scope: entry authorization, routing, artifact, and existing architecture semantics only; no production code or external system changes
 
@@ -20,7 +20,7 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | `slice-prep.agent.md` | `469723cb9935d71a24dbf7b2b37d0969de9a45cf452b1108e850e144d15f3b30` |
 | `slice-impl.agent.md` | `699b6e85f0e47daaa25a6628364091a2b292c4956df064635f72d372fbc30950` |
 | `token-aware-full-coverage-3layer/SKILL.md` | `3aef17dd4545a530117f480dd422cf48bfe13b8826782f60f3a881cc46b70640` |
-| `plan-coverage-residual-flow/SKILL.md` | `524e67d67db6a450c378fecf0be044b0aa4e1de13f91fecaffb2c33a0ebedeca` |
+| `plan-coverage-residual-flow/SKILL.md` | `59f0d2573a5fa604b517c9407d63c472b296a0c774e0e7521fe33f15bc63e508` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 | `coverage-ledger.md` template | `b1a532b4ab59dbaa1471d8bd1beb6af5e7f570f3086719c8fcbe452f7f493962` |
 | `plan-coverage-lite.md` template | `e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90` |
@@ -29,6 +29,8 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 ## Durable fixture evidence
 
 Complete input, actual output, expected JSON, machine-readable actual JSON, and run metadata are stored under `tests/architecture-slice-readiness/ASR-001` through `ASR-006`.
+
+ASR-001 through ASR-006 fixture output and run IDs are reused from the prior Issue #65 deterministic scenario set. This Issue #74 revalidation reruns the unchanged fixture comparison and updates the validated contract hash and evidence metadata; it does not relabel or reconstruct the prior run IDs.
 
 | Fixture | Run ID | Complete evidence root |
 | --- | --- | --- |
