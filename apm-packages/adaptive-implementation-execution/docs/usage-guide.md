@@ -56,6 +56,18 @@ Locked Decisions だけを binding とし、その他の実装判断は actual c
 
 Design Pair route は利用者が明示選択した場合だけ使います。Design Pair handoff の Target Map や `Affected files / symbols` は allowed edit surface ではありません。Copilot経路でもvalidなtracked handoffをAdaptive inputとして保持しますが、Design Pair package自体のCopilotでの対話・handoff生成は正式E2E対応済みとは扱いません。
 
+Adaptive は production code / tests を編集する前に、Design Pair handoff が `READY_FOR_ADAPTIVE_IMPLEMENTATION` かつ `Interaction stage: complete` であること、Target Map の提示・選択要求、提示後の actual user response、一件以上の selected Target または explicit all-Adaptive delegation、pending human-owned Target なし、各 Locked Decision の post-map confirmation を検証します。`AWAITING_USER_INPUT`、空集合を暗黙に all-Adaptive とした handoff、上流 Plan や AI summary から user response を再構成した handoffは `BLOCKED / BlockedByInvalidCompletionHandoff` で停止します。
+
+Selected / Delegated-to-Adaptiveの各Targetには、Target Map rowと一致するfinal disposition、actual post-map user turn、confirmed content、confirmation `Yes`を持つ`Target Disposition Evidence`を一件だけ要求します。明示的な複数Target委任とall-Adaptiveでは同じturn referenceを再利用できますが、Targetごとのrowは必要です。AIによる未委任Targetの`Adaptive-Owned`化、最終応答のない`Discussed-Unlocked`化、欠落・重複・架空・pre-map evidenceは拒否します。
+
+selected Targetごとに、user-facing assistant turn reference、具体的code location、current invariant、alternatives / trade-offs、非binding proposalまたはNo proposal理由、validation expectationを持つ`Selected Target Discussion Evidence`も検証します。抽象的な論点名やartifact linkだけの場合は編集前に停止します。
+
+Target Map presentation evidenceについても、全Targetの具体的file / symbol、current invariant、内部設計判断候補、relevant evidenceをuser-facingに提示したturnを要求します。artifact内だけに詳細がある場合は不十分です。
+
+同時に、Target Map IDの一意性、全summary IDのMap実在、Selected / Delegated-to-Adaptive / No-Change / Upstream-Decision-Required / Pending集合の相互排他と完全被覆、各row Dispositionとの一致を再検証します。Locked DecisionはSelectedかつ`Locked` rowだけを参照できます。all-AdaptiveではSelected / Pendingが`None`、Locked Decisionsなし、全rowが`Adaptive-Owned`でdelegated集合と完全一致する必要があります。架空ID、重複ID、未分類Target、row / summary不一致は編集前に拒否します。
+
+Design Pair が今回作る binding decision は、完全な confirmation evidence を持つ `Locked Decisions` だけです。original Plan、repository policy、`Upstream Binding Constraints` は別の binding input として維持し、`Upstream User Initial Positions` は未確認の初期位置として参考情報に留めます。
+
 durable routeやresume evidenceがない通常Adaptiveのfresh intakeは、`implementation_route: adaptive`、`implementation_route_source: default`、`design_pair_handoff: N/A`の3項目を初期化します。parentはHIGH_MODELへ3項目を常に渡し、Design Pair handoff pathを省略しません。
 
 短い caller intent の例:

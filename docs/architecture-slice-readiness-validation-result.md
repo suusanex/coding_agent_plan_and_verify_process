@@ -2,10 +2,10 @@
 
 ## Execution metadata
 
-- Executed at: `2026-07-24T16:26:17+09:00`
+- Executed at: `2026-07-31T19:18:05+09:00`
 - Executor: Codex, deterministic ASR-001 through ASR-006 fixture revalidation against the repository agent contracts
-- Branch: detached `a36af0c` plus APM package rename working tree
-- Reviewed source: `plan-coverage-residual-flow` package naming alignment and synchronized full-coverage dependency description, captured by the exact contract hashes below
+- Branch: detached `5a0c42f` plus Issue #65 working tree
+- Reviewed source: Issue #65 Design Pair waiting-state propagation through Plan Coverage and full-coverage contracts, captured by the exact contract hashes below
 - Scope: routing / artifact / authorization semantics only; no production code or external system changes
 
 ### Contract revisions evaluated
@@ -19,12 +19,12 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | `.github/agents/plan-slice-decomposition.agent.md` | `f90c0aebed89b200a4f2b0ba09c5aba80b2b11a8ca6c1d4497290bb9bd12df84` |
 | `slice-prep.agent.md` | `469723cb9935d71a24dbf7b2b37d0969de9a45cf452b1108e850e144d15f3b30` |
 | `slice-impl.agent.md` | `699b6e85f0e47daaa25a6628364091a2b292c4956df064635f72d372fbc30950` |
-| `token-aware-full-coverage-3layer/SKILL.md` | `e3c2bef99d25ea92e5a9a6b392e722a814f525eada351782d6a8722336e963bc` |
-| `plan-coverage-residual-flow/SKILL.md` | `4f3198effad1fc7666f1f11749071ae62b27b41e45907421236ad505d5512a9e` |
+| `token-aware-full-coverage-3layer/SKILL.md` | `3aef17dd4545a530117f480dd422cf48bfe13b8826782f60f3a881cc46b70640` |
+| `plan-coverage-residual-flow/SKILL.md` | `692aeccc6618cd0905b52019b665cf3864c629d2dbf894af41583e13789777c3` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
-| `coverage-ledger.md` template | `ec80098b03f915a9389437915e1bd5ec952d75a1a957f12d085ff74a2de1f065` |
-| `plan-coverage-lite.md` template | `bdb9964acc4266034aa1bfa98425712c37e72ca958a44dfd4b53916b65bbab64` |
-| `full-coverage-parent-orchestration-state.md` template | `9f9bd17a0af5e318f86e0272659f81509b9638532a713e8de597ebe7ecd8f329` |
+| `coverage-ledger.md` template | `b1a532b4ab59dbaa1471d8bd1beb6af5e7f570f3086719c8fcbe452f7f493962` |
+| `plan-coverage-lite.md` template | `e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90` |
+| `full-coverage-parent-orchestration-state.md` template | `3c4d37bcae30a90735718eb9e19762ac9399820016269af077107f06a237efc8` |
 
 ## Durable fixture evidence
 
@@ -32,12 +32,12 @@ Complete input, actual output, expected JSON, machine-readable actual JSON, and 
 
 | Fixture | Run ID | Complete evidence root |
 | --- | --- | --- |
-| ASR-001 | `asr-001-20260712-review-r3` | `tests/architecture-slice-readiness/ASR-001/` |
-| ASR-002 | `asr-002-20260712-review-r2` | `tests/architecture-slice-readiness/ASR-002/` |
-| ASR-003 | `asr-003-20260712-review-r2` | `tests/architecture-slice-readiness/ASR-003/` |
-| ASR-004 | `asr-004-20260712-review-r2` | `tests/architecture-slice-readiness/ASR-004/` |
-| ASR-005 | `asr-005-20260712-review-r2` | `tests/architecture-slice-readiness/ASR-005/` |
-| ASR-006 | `asr-006-20260712-review-r2` | `tests/architecture-slice-readiness/ASR-006/` |
+| ASR-001 | `asr-001-20260731-issue65-r4` | `tests/architecture-slice-readiness/ASR-001/` |
+| ASR-002 | `asr-002-20260731-issue65-r3` | `tests/architecture-slice-readiness/ASR-002/` |
+| ASR-003 | `asr-003-20260731-issue65-r3` | `tests/architecture-slice-readiness/ASR-003/` |
+| ASR-004 | `asr-004-20260731-issue65-r3` | `tests/architecture-slice-readiness/ASR-004/` |
+| ASR-005 | `asr-005-20260731-issue65-r3` | `tests/architecture-slice-readiness/ASR-005/` |
+| ASR-006 | `asr-006-20260731-issue65-r3` | `tests/architecture-slice-readiness/ASR-006/` |
 
 The validator compares every `actual.json` with `expected.json`, verifies all run-referenced input/output files, checks unique run IDs and execution metadata, and confirms that verdict, residual, next action, drift, and parent authorization values are present in the complete Markdown outputs.
 
@@ -145,7 +145,7 @@ Immediate next action: stop until the decision source is recorded
 | Slice Architecture template path | PASS | canonical template exists and all affected manifests reference an existing path |
 | Durable fixture artifacts | PASS | ASR-001〜006 input/output/run files exist and every run reference resolves |
 | Expected / actual comparison | PASS | validator compared every `actual.json` with `expected.json` and checked values against full Markdown outputs |
-| Current contract revision hashes | PASS | all eleven normalized contract hashes above match the files revalidated on 2026-07-19 |
+| Current contract revision hashes | PASS | all eleven normalized contract hashes above match the files revalidated on 2026-07-31 |
 | `git diff --check` | PASS | no whitespace errors; Windows line-ending warnings only |
 
 ## Limitations

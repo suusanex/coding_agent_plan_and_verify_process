@@ -31,6 +31,8 @@ Lite は guardrail を削るものではありません。Plan source of truth�
 - implementation_route: adaptive / design-pair
 - implementation_route_source: default / explicit-user-selection
 - design_pair_handoff: N/A / plans/<slug>-design-pair-implementation-handoff.md
+- design_pair_interaction_stage: N/A / not-started / target-selection / disposition-confirmation / upstream-decision / complete / artifact-repair
+- design_pair_user_evidence: N/A / Pending / <Target Map presentation and post-map user response references>
 - Explicit user selection evidence: N/A / <source pointer>
 
 Use `design-pair` only with `explicit-user-selection`. Do not select, recommend, or propose it from difficulty, risk, size, or architecture. The default is `adaptive`.
@@ -137,6 +139,8 @@ No fake-only completion rule: do not claim implementation or close readiness usi
 - implementation_route:
 - implementation_route_source:
 - design_pair_handoff:
+- design_pair_interaction_stage:
+- design_pair_user_evidence:
 - Plan readiness:
 - Inline behavior sketch sufficient:
 - Behavior spec artifact required:

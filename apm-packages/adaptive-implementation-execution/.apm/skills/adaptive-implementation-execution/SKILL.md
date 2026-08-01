@@ -66,11 +66,25 @@ Design Pair Implementation Handoff が入力にある場合、次を検証しま
 - `implementation_route: design-pair`
 - `implementation_route_source: explicit-user-selection`
 - verdict が `READY_FOR_ADAPTIVE_IMPLEMENTATION`
-- original Plan / Implementation Intent reference、Target Map、Locked Decisions、readiness check が存在する
+- `Interaction stage: complete`
+- original Plan / Implementation Intent reference、Target Map、`Upstream Binding Constraints`、Locked Decisions、readiness check が存在する
+- Target Map presentation evidence と Target 選択要求 evidence がある
+- Target Map presentation evidenceが、全Targetのuser-facingな具体的file / symbol、current invariant、内部設計判断候補、relevant evidenceを参照し、artifact linkまたは論点名だけの要約ではない
+- Target Map 提示後の actual user response reference と `User response occurred after Target Map presentation: Yes` がある
+- 一件以上の selected Target、または explicit all-Adaptive delegation があり、pending human-owned Target がない
+- Target Map ID が一意で、summary の全 Target ID が Target Map に実在する
+- `Selected`、`Delegated-to-Adaptive`、`No-Change`、`Upstream-Decision-Required`、`Pending human-owned` の5集合が互いに素で、和集合が Target Map 全体と完全一致する
+- 各 summary 集合が Target Map row の `Locked` / `Discussed-Unlocked`、`Adaptive-Owned`、`No-Change`、`Upstream-Decision-Required`、pending disposition と一致する
 - blocking な `Upstream-Decision-Required` がない
-- `Locked Decisions` の各 entry に Design Pair Decision ID と explicit human confirmation がある
+- `Locked Decisions` の各 entry に Design Pair Decision ID、Target ID、actual user message / turn reference、confirmed content、post-map confirmation `Yes` がある
+- 各 Locked Decision Target ID が `Selected Target IDs` に含まれ、その Target Map row が `Locked` である
+- `Selected Target IDs`と`Delegated-to-Adaptive Target IDs`の各Targetに一件だけ`Target Disposition Evidence`があり、Target Map rowと一致する`Locked` / `Discussed-Unlocked` / `Adaptive-Owned`、actual user message / turn reference、confirmed content、post-map confirmation `Yes`を持つ
+- selected Targetごとに`Selected Target Discussion Evidence`があり、user-facing assistant turn reference、具体的code location、current invariant、alternatives / trade-offs、proposalまたはNo proposal理由、validation expectationを含む
+- explicit all-Adaptive delegation では selected / pending が `None`、Locked Decisions がなく、全 Target row が `Adaptive-Owned` で delegated集合と完全一致する
 
-binding なのは `Locked Decisions` に明示された事項だけです。Target Map、`Discussed but Unlocked`、`Adaptive-Owned`、Known Evidence、Known Assumptions、Knowledge Candidates は参考情報であり、HIGH_MODEL の通常 authority を拘束しません。
+Design Pair が今回新たに作る decision のうち binding なのは `Locked Decisions` に明示された事項だけです。original Plan / Implementation Intent、repository policy、および handoff の `Upstream Binding Constraints` は Design Pair Decision ID を持たない既存の binding input として別に守ります。Target Map、`Upstream User Initial Positions`、`Discussed but Unlocked`、`Adaptive-Owned`、Known Evidence、Known Assumptions、Knowledge Candidates は参考情報であり、HIGH_MODEL の通常 authority を拘束しません。
+
+上の条件が欠落または矛盾する場合、Target 未選択を空集合として PASS にせず、架空 ID、重複 ID、未分類 Target、row / summary 不一致、Target Disposition Evidenceの欠落・重複・架空ID・row disposition不一致・pre-map reference、抽象的な論点名だけで具体的なSelected Target discussion evidenceがないartifactも拒否して HIGH_MODELを起動しません。AIが未選択Targetを自己判断で`Adaptive-Owned`へ移したartifact、または利用者の最終応答なしに`Discussed-Unlocked`へ移したartifactも拒否します。`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてraw observed fields、`<missing>`、artifact repair evidenceを返し、upstream textからuser responseを再構成したりAdaptiveへfallbackしたりしません。
 
 Design Pair handoff の `Affected files / symbols` と Target Map の file / symbol は Decision の適用対象または調査 evidence であり、Adaptive Implementation の `Allowed edit surface` として扱いません。HIGH_MODEL は goal、scope、acceptance を満たすために必要な関連 code / tests / production wiring を通常どおり調査・編集できます。
 
@@ -86,7 +100,7 @@ resume または既存 artifact がある状態では `implementation_route`、`
 
 唯一の互換例外は、Design Pair 導入前の `Implementation Completion Handoff` schema と一致し、Design Pair evidence が一切ない tracked handoff の resume です。この場合は `Legacy Adaptive handoff normalization` を適用し、`implementation_route: adaptive`、`implementation_route_source: default`、`design_pair_handoff: N/A`、`route_metadata_normalization: legacy-adaptive-handoff` を記録してから続行できます。部分的に新schemaを持つ handoff、Design Pair evidence がある handoff、旧schemaの必須fieldが欠ける handoffにはこの例外を適用しません。
 
-Design Pair route の場合も HIGH_MODEL は通常の adaptive implementation と同じ authority を維持し、Locked Decisions 以外の新しい decision surface を実コードと verification evidence に基づいて処理します。
+Design Pair route の場合も HIGH_MODEL は通常の adaptive implementation と同じ authority を維持し、original Plan / upstream constraints と Locked Decisions を守ったうえで、それ以外の新しい decision surface を実コードと verification evidence に基づいて処理します。
 
 ## Required execution order
 

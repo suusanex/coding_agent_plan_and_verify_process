@@ -153,6 +153,242 @@ Expected:
 - invalid-artifact `BLOCKED`だけはraw observed valueまたは`<missing>`とrepair evidenceを返す
 - STANDARDは有効なhandoffのauthorization後に構造判断を発見した場合だけ`NEEDS_HIGH_MODEL_REENTRY`を返す
 
+## DP-VAL-013: Initial Design Pair turn must stop
+
+Input: valid Plan / Implementation Intent、explicit Design Pair selection、「実装してください」という依頼、post-map user responseなし。
+
+Expected:
+
+- bounded Target Map全体と内部設計判断候補を利用者へ提示する
+- Target IDを求め、初期案、懸念、質問、未選択TargetのAdaptive delegationは任意で併記できると示す
+- `AWAITING_USER_INPUT / target-selection`をtracked handoffへ保存してturnを終了する
+- Design Pair Locked Decisionを作らない
+- `READY_FOR_ADAPTIVE_IMPLEMENTATION`を返さず、Adaptiveを開始しない
+- production code / testsを編集しない
+
+## DP-VAL-014: Upstream text is not Design Pair confirmation
+
+Input: Plan / Issue / gold documentに実装方針らしい文があるが、Target Map提示後のuser responseはない。
+
+Expected:
+
+- 文言を`Upstream Binding Constraints`、`Upstream User Initial Positions`、またはKnown Evidenceへ分類できる
+- Design Pair Decision IDへ変換しない
+- explicit human confirmationはabsentのまま、`target-selection`で待機する
+
+## DP-VAL-015: User selects discussion targets
+
+Input: Target Map提示後、利用者がTarget IDと初期案を返すが、AIのtrade-off提示後の最終dispositionはまだない。
+
+Expected:
+
+- AIがcode evidence、反論または支持、代替案、trade-off、wiring / lifecycle / ownership / test seamへの影響、validation expectationを説明する
+- AIは`Locked`を自己確定しない
+- `AWAITING_USER_INPUT / disposition-confirmation`を保存して再停止する
+
+## DP-VAL-016: Explicit all-Adaptive delegation
+
+Input: Target Map提示後、利用者が全TargetをAdaptiveへ委ねると明示する。
+
+Expected:
+
+- applicable Targetを`Adaptive-Owned`にできる
+- 人工的な個別対話やLocked Decisionを作らない
+- 他のreadiness checkがPASSなら`complete / READY_FOR_ADAPTIVE_IMPLEMENTATION`へ進める
+
+## DP-VAL-017: Locked Decision requires post-map confirmation
+
+Input: Target Map提示、selected Targetの議論、AIのtrade-off response後に利用者がdecisionを明示確認する。
+
+Expected:
+
+- Decision IDとTarget IDを記録する
+- user message / turn reference、確認内容の短い引用または忠実な要約、`Confirmation occurred after Target Map presentation: Yes`を記録する
+- validation expectationが明確で、他のcheckも満たせばreadinessがPASSできる
+
+## DP-VAL-018: Initial position is not automatic Lock
+
+Input: 最初のinvocationに技術案があるが、Target Mapはまだ提示されていない。
+
+Expected:
+
+- 提案をupstream user initial positionとして保存する
+- Design Pair Locked Decisionへ自動昇格しない
+- code-informed Target Mapを提示し、post-map confirmationを求めて停止する
+
+## DP-VAL-019: Resume while awaiting user input
+
+Input: tracked handoffが`AWAITING_USER_INPUT`で、validな新しいuser responseがない。
+
+Expected:
+
+- interaction stageを維持して待機する
+- Adaptiveへfallbackせず、READYへ正規化しない
+- Plan、Issue、docs、AI summaryからuser responseを再構成しない
+
+## DP-VAL-020: Invalid confirmation evidence fails closed
+
+Input: Locked DecisionのconfirmationがPlan / Issue / AI summaryだけを参照するか、必要fieldが欠ける。
+
+Expected:
+
+- readinessをFAILとする
+- Adaptiveを開始しない
+- artifact repairまたはactual post-map user confirmationを要求する
+
+## DP-VAL-021: Plan Coverage preserves interaction boundary
+
+Input: Plan CoverageでDesign Pair routeを選択し、implementation handoff reviewがREADY。
+
+Expected:
+
+- Design PairがTarget Mapを提示して待機する
+- parent stateがhandoff pathと`target-selection`または`disposition-confirmation`を保持する
+- validなDesign Pair readinessまでAdaptive、verification、residual flowを開始しない
+- completion後は既存downstream verification / residual flowへ戻る
+
+## DP-VAL-022: Unknown or duplicate Target IDs fail closed
+
+Input: summaryにTarget Mapへ存在しない`DP-T99`がある、または同じTarget IDがSelectedとDelegated-to-Adaptiveの両方にある。
+
+Expected:
+
+- readinessをFAILとする
+- Adaptive / HIGH_MODELを開始しない
+- 架空IDまたは重複する集合と該当summary fieldをartifact repair evidenceとして返す
+
+## DP-VAL-023: Unclassified Target fails closed
+
+Input: Target Mapに`DP-T03`があるが、Selected / Delegated-to-Adaptive / No-Change / Upstream-Decision-Required / Pendingのどのsummary集合にもない。
+
+Expected:
+
+- 5集合の和集合とTarget Map全集合が一致しないためreadinessをFAILとする
+- `DP-T03`を未分類Targetとして報告し、Adaptiveを開始しない
+
+## DP-VAL-024: Summary, row, and Locked Decision mismatch fails closed
+
+Input: `DP-T01`がSelected summaryにあるがrowは`Adaptive-Owned`、またはLocked DecisionがSelectedでないTarget / `Locked`でないrowを参照する。
+
+Expected:
+
+- summary分類とrow Dispositionの不一致を拒否する
+- invalidなDecision ID / Target IDを示して`BlockedByInvalidCompletionHandoff`で停止する
+- Locked DecisionをAIが別Targetへ付け替えない
+
+## DP-VAL-025: Explicit all-Adaptive must cover every Target
+
+Input: `Explicit all-Adaptive delegation: Yes`だがSelectedまたはPendingが`None`でない、Locked Decisionがある、Adaptive-Ownedでないrowがある、またはDelegated集合がTarget Map全体を覆わない。
+
+Expected:
+
+- readinessをFAILとする
+- `Selected Target IDs: None`、`Pending human-owned Target IDs: None`、Locked Decisionsなし、全row `Adaptive-Owned`、Delegated集合=Target Map全集合へ修復するまでAdaptiveを開始しない
+
+## DP-VAL-026: Target-only selection starts discussion and disposition confirmation
+
+Input: Target Map提示後、利用者が`DP-T01について議論します`とだけ返し、初期案と未選択Targetのdelegationをまだ示していない。
+
+Expected:
+
+- 利用者応答を親フローまたはtest harnessで補完せず、そのままDesign Pairへ渡す
+- AIはDP-T01のcode evidence、判断候補、alternatives / trade-offs、非binding proposal、validation expectationを説明する
+- 初期案または同じTarget選択を再要求しない
+- 未選択Targetのdelegationまたは分類をDP-T01の最終dispositionと合わせて尋ねる
+- `AWAITING_USER_INPUT / disposition-confirmation`へ進み、`design-discussion`等の独自stageを作らない
+- production code / testsを編集せず、Adaptiveを開始しない
+
+## DP-VAL-027: Mirrored user evidence mismatch fails closed
+
+Input: handoff headerは`User response occurred after Target Map presentation: Yes`と実際のuser referenceを持つが、Readiness Checkは同じcheckを`FAIL / No post-map user response`としている。
+
+Expected:
+
+- header、Target Map、summary集合、Readiness Checkを同じobserved evidenceから再計算する
+- Yes / No、PASS / FAIL、user referenceが一致するまでartifactをREADYまたはAdaptiveへ渡さない
+- 不整合をAI summaryから正当化せず、artifact repairを行う
+
+## DP-VAL-028: Selected Target discussion is code-grounded and user-facing
+
+Input: 利用者がTarget Map提示後に`DP-T01について議論します`と返す。
+
+Expected:
+
+- user-facing responseに`src/RetryPolicy.cs`のexact symbol、current responsibility / invariant、`RetryingClient` caller、test seam、存在しないwiringのN/A evidenceを提示する
+- 内部設計論点、実在する代替案とtrade-off、既存codeから支持できる非binding proposalまたはNo proposal理由、validation expectation、open questionを提示する
+- 同じassistant turn referenceと内容を`Selected Target Discussion Evidence`へ保存する
+- Target名、artifact link、抽象的な選択肢だけの応答はFAILとする
+
+## DP-VAL-029: READY with missing selected discussion evidence fails closed
+
+Input: `Selected Target IDs: DP-T01`かつrowが`Locked`または`Discussed-Unlocked`だが、`Selected Target Discussion Evidence`に具体的code location、invariant、trade-off、proposal / No proposal理由、validation expectation、user-facing turn referenceのいずれかがない。
+
+Expected:
+
+- Design Pair readinessをFAILとする
+- Adaptive / HIGH_MODELは`BlockedByInvalidCompletionHandoff`で編集前に停止する
+- Target MapまたはAI summaryの詳細をdiscussion evidenceとして暗黙補完しない
+
+## DP-VAL-030: Initial Target Map presentation is concrete and user-facing
+
+Input: 初回Design Pair turnがhandoffへ詳細なTarget Mapを保存する一方、user-facing responseでは`DP-T01: RetryPolicyの解析`のようなTarget名と論点、artifact linkだけを返す。
+
+Expected:
+
+- Target Map presentationをFAILとする
+- 各Targetの具体的file / symbol、current responsibility / invariant、requested changeとの関係、内部設計判断候補、expected modification / verification、relevant evidence、open questionをuser-facingに提示するまで選択を求めない
+- artifact内の詳細をuser-facing presentation evidenceとして代用しない
+
+## DP-VAL-031: Required user-facing structures are not compressed
+
+Input: handoffは完全だが、初回応答がTarget名の短い箇条書き、または選択後応答がalternativesだけの短いparagraphに圧縮されている。
+
+Expected:
+
+- 初回は7列の`Design Pair Target Map` table、Coverage evidence、Selection requestを実際のresponse本文へ出す
+- 選択後は`<DP-Txx> Internal design discussion` blockの全fieldを実際のresponse本文へ出す
+- 応答本文のfieldが欠ける場合、handoff ReadinessをPASSにせず応答を修復する
+
+## DP-VAL-032: Undelegated Target cannot become Adaptive-Owned
+
+Input: 利用者は`DP-T01`だけをLockedと明示し、`DP-T02` / `DP-T03`を委任していないが、AIが両Targetを`Adaptive-Owned`にしてDelegated集合へ入れる。対応するactual user turnを持つ`Target Disposition Evidence`はない。
+
+Expected:
+
+- Design Pair readinessをFAILとする
+- Adaptive / HIGH_MODELは`BlockedByInvalidCompletionHandoff`で編集前に停止する
+- AI recommendation、Target Map、Plan、summaryから委任evidenceを補完しない
+
+## DP-VAL-033: Discussed-Unlocked requires final user disposition
+
+Input: 利用者がTargetを選んで議論したが、最終dispositionを返していない。AIがdiscussion完了だけを根拠にrowを`Discussed-Unlocked`へ移す。
+
+Expected:
+
+- `Pending-User-Disposition`と`AWAITING_USER_INPUT / disposition-confirmation`を維持する
+- actual post-map user turnとconfirmed contentを持つ`Target Disposition Evidence`が作られるまでREADYにしない
+- Adaptive / HIGH_MODELはinvalidなREADY handoffを編集前に拒否する
+
+## DP-VAL-034: Explicit multi-Target delegation is evidenced per Target
+
+Input: Target Map提示後、利用者が`DP-T02とDP-T03をAdaptiveに委ねる`と明示する。
+
+Expected:
+
+- `DP-T02`と`DP-T03`を`Adaptive-Owned`およびDelegated集合へ分類する
+- 同じactual user turn referenceを使い、各Targetに一件ずつ`Target Disposition Evidence`を作る
+- 他のreadiness条件を満たす場合はPASSとする
+
+## DP-VAL-035: Explicit all-Adaptive delegation has complete evidence
+
+Input: Target Map提示後、利用者が全TargetをAdaptiveに委ねると明示する。
+
+Expected:
+
+- Selected / Pendingを`None`、Locked Decisionsなし、全rowを`Adaptive-Owned`、Delegated集合をTarget Map全集合とする
+- 同じactual user turn referenceを使用できるが、全Targetに一件ずつ一致する`Target Disposition Evidence`を作る
+- evidence集合とTarget Map全集合が一致する場合だけPASSとする
+
 ## Repository static validation
 
 ```powershell
@@ -163,6 +399,6 @@ dotnet publish ./apm-packages/codex-first-ai-development-process/scripts/apply-c
 git diff --check
 ```
 
-Static validation は package layout、routing contract、handoff schema、Adaptive propagation、Plan Coverage / full-coverage / Codex-first state integration、Copilot support boundary を検証します。実モデルを使う対話、HIGH -> STANDARD -> HIGH runtime orchestration、品質比較は `NOT RUN` です。
+Static validation は package layout、routing contract、handoff schema、Target集合不変条件、Adaptive propagation、Plan Coverage / full-coverage / Codex-first state integration、Copilot support boundary を検証します。実モデルを使う対話、HIGH -> STANDARD -> HIGH runtime orchestration、品質比較はrun-specific recordがない限り `NOT RUN` です。
 
-人手での作業が必要: 同一 Plan、revision、環境で通常 Adaptive route と Design Pair route を実行し、quality、token、wall time、Locked Decision compliance、review findings を比較してください。
+人手での作業が必要: `../../tests/manual-model-smoke/README.md`のdisposable fixtureでDP-VAL-013、015、017、019、021相当のmulti-turn behaviorを実モデルで実行し、result templateへmodel、reasoning、revision、Plan、turn sequence、artifact path、verdict sequenceを記録してください。static PASSをruntime PASSとして転記してはいけません。
