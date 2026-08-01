@@ -9,3 +9,5 @@ For Scenarios A, B, C, E, G, and H, pass only when `plan-coverage-residual-flow`
 For Scenarios D and F, pass only when the invocation authorization gate accepts the direct exact name or the complete durable evidence tuple and the existing flow can proceed past the gate.
 
 Use `NOT RUN` when a scenario was not executed. Use `UNOBSERVABLE` when the client cannot expose Skill or agent selection evidence. Neither status counts as a pass.
+
+The latest observed A-H run is recorded in `results/20260801-99e88a8.md`. Its evidence uses the model's final routing response together with JSONL command/artifact deltas; Codex CLI does not expose a separate internal Skill-router event.
