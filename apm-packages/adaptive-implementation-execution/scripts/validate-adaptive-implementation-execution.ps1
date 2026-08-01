@@ -195,7 +195,7 @@ if (Test-Path -LiteralPath $manifestPath) {
 }
 
 $integratedManifests = @(
-    @{ Path = 'apm-packages/plan-coverage-residual-flow/apm.yml'; Version = '0\.8\.0' },
+    @{ Path = 'apm-packages/plan-coverage-residual-flow/apm.yml'; Version = '0\.8\.1' },
     @{ Path = 'apm-packages/token-aware-full-coverage-3layer/apm.yml'; Version = '0\.5\.0' },
     @{ Path = 'apm-packages/codex-first-ai-development-process/apm.yml'; Version = '0\.6\.0' },
     @{ Path = 'apm-packages/copilot-fallback-ai-development-process/apm.yml'; Version = '0\.3\.0' }

@@ -110,7 +110,7 @@ Assert-Contains $manifest 'adaptive-implementation-execution/\.apm/skills/adapti
 Assert-Contains $manifest '\.github/agents/high-implementation-starter\.agent\.md' 'canonical HIGH agent dependency'
 Assert-Contains $manifest '\.github/agents/standard-implementation-completer\.agent\.md' 'canonical STANDARD agent dependency'
 Assert-NotContains $manifest 'implementation-execution\.agent\.md' 'legacy implementation orchestration dependency'
-Assert-Contains 'apm-packages/plan-coverage-residual-flow/apm.yml' '(?m)^version:\s*0\.8\.0\s*$' 'Plan Coverage package version 0.8.0'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/apm.yml' '(?m)^version:\s*0\.8\.1\s*$' 'Plan Coverage package version 0.8.1'
 Assert-Contains 'apm-packages/token-aware-full-coverage-3layer/apm.yml' '(?m)^version:\s*0\.5\.0\s*$' 'full-coverage package version 0.5.0'
 Assert-Contains 'apm-packages/codex-first-ai-development-process/apm.yml' '(?m)^version:\s*0\.6\.0\s*$' 'Codex-first package version 0.6.0'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/apm.yml' '(?m)^version:\s*0\.4\.0\s*$' 'Adaptive package version 0.4.0'
