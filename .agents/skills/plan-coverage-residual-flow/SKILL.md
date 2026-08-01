@@ -1,6 +1,14 @@
 ---
 name: plan-coverage-residual-flow
-description: Orchestrate the standard Plan Coverage Check and Residual Decision Flow for bounded Plan-first work. Use when Codex or GitHub Copilot should decide the next phase, required artifact, stop condition, full-coverage decomposition boundary, residual decision gate, and close readiness while preserving parent Plan FR / AC as the source of truth.
+description: >
+  Explicit-invocation-only Plan Coverage Check and Residual Decision Flow.
+  Use only when the current user explicitly selects
+  `plan-coverage-residual-flow`, or when an upstream process forwards
+  durable evidence that the user explicitly selected this exact route.
+  Never select, recommend, or propose this skill from a generic
+  implementation, fix, continue, or proceed request; from task size,
+  difficulty, risk, complexity, or architecture; from existing Plan or
+  coverage artifacts; from repository history; or from mere Skill availability.
 ---
 
 # Plan Coverage Check and Residual Decision Flow
@@ -12,22 +20,57 @@ License: https://creativecommons.org/licenses/by/4.0/
 Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
 -->
 
-This skill is the entrypoint for the standard Plan網羅チェック・残件判定フロー.
+## Invocation authorization
+
+Before reading any repository artifact, creating or updating any Plan Coverage artifact, or invoking any agent, verify that this route is authorized.
+
+Authorization exists only when one of the following is true:
+
+1. The current user message explicitly contains the exact literal route name `plan-coverage-residual-flow`.
+2. An upstream durable artifact contains all of the following fields and evidence:
+
+   ```yaml
+   process_route: plan-coverage-residual-flow
+   process_route_source: explicit-user-selection
+   user_selection_evidence: <reference to the actual user message that selected this exact route>
+   ```
+
+`user_selection_evidence` must identify an actual user message or durable user-turn reference. An upstream process, agent, or AI recommendation is not user selection evidence.
+
+None of the following authorizes this route:
+
+- `実装して`, `修正して`, `続けて`, `このPlanを実装して`, or another generic implementation, fix, continue, or proceed request
+- a large, difficult, high-risk, complex, or architecture-heavy task
+- an existing Plan, Plan Coverage artifact, coverage ledger, or prior handoff
+- prior use of this process in the repository
+- an agent or upstream process deciding that this flow would be useful
+- the Skill being installed or otherwise available
+
+When authorization is absent:
+
+- do not run this flow
+- do not read repository artifacts on behalf of this flow
+- do not create or update Plan Coverage artifacts
+- do not invoke Plan Coverage agents
+- do not recommend or propose this route
+- return control to the caller or the repository's normal implementation route
+- do not select another large process from this Skill
+
+## Authorized use
+
+After the invocation authorization gate passes, this skill is the entrypoint for the standard Plan網羅チェック・残件判定フロー.
 
 The APM package and this entrypoint skill use the same name, `plan-coverage-residual-flow`. Use that name as the normal invocation name for the flow.
 
 This skill does not replace the individual agents. The source of truth for agent-specific rules, output formats, and verdict vocabulary remains `.github/agents/*.agent.md`.
 
-## Use when
+After authorization, use this flow to:
 
-Use this skill when:
-
-- a bounded Plan-first change should preserve the full parent Plan FR / AC as the source of truth
-- a parent agent must decide which Plan網羅チェック agent runs next
-- runtime, production-binding, production-wiring, or test-substitute risk needs deeper checking without moving to a full autonomous flow
-- unresolved items must not be closed by agent inference alone
-- Codex or GitHub Copilot should progress a whole Plan Coverage Check and Residual Decision Flow
-- a user asks for a request such as: `この issue を plan-coverage-residual-flow で進めて`
+- preserve the full parent Plan FR / AC as the source of truth for a bounded Plan-first change
+- decide which Plan網羅チェック agent runs next
+- check runtime, production-binding, production-wiring, or test-substitute risk within this authorized flow
+- prevent unresolved items from being closed by agent inference alone
+- progress the complete Plan Coverage Check and Residual Decision Flow
 
 ## Do not use when
 

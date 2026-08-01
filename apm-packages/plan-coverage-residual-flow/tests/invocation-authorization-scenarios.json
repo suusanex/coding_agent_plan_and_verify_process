@@ -1,0 +1,96 @@
+[
+  {
+    "id": "A",
+    "name": "generic implementation request",
+    "current_user_message": "実装して",
+    "upstream_artifact": null,
+    "context": {},
+    "expected_authorized": false,
+    "expected_forbidden_actions": [
+      "read-repository-artifacts-for-flow",
+      "write-plan-coverage-artifacts",
+      "invoke-plan-coverage-agents",
+      "recommend-route"
+    ],
+    "expected_return": "caller-or-normal-route"
+  },
+  {
+    "id": "B",
+    "name": "large task without route selection",
+    "current_user_message": "実装して",
+    "upstream_artifact": null,
+    "context": {
+      "large": true,
+      "high_risk": true,
+      "architecture_change": true
+    },
+    "expected_authorized": false,
+    "expected_forbidden_actions": [
+      "read-repository-artifacts-for-flow",
+      "write-plan-coverage-artifacts",
+      "invoke-plan-coverage-agents",
+      "recommend-route"
+    ],
+    "expected_return": "caller-or-normal-route"
+  },
+  {
+    "id": "C",
+    "name": "existing artifacts without current route selection",
+    "current_user_message": "この変更を続けて",
+    "upstream_artifact": null,
+    "context": {
+      "existing_plan": true,
+      "existing_plan_coverage_artifacts": true,
+      "prior_repository_use": true
+    },
+    "expected_authorized": false,
+    "expected_forbidden_actions": [
+      "read-repository-artifacts-for-flow",
+      "write-plan-coverage-artifacts",
+      "invoke-plan-coverage-agents",
+      "recommend-route"
+    ],
+    "expected_return": "caller-or-normal-route"
+  },
+  {
+    "id": "D",
+    "name": "explicit direct invocation",
+    "current_user_message": "plan-coverage-residual-flowを使って実装して",
+    "upstream_artifact": null,
+    "context": {},
+    "expected_authorized": true,
+    "expected_forbidden_actions": [],
+    "expected_return": "authorized-flow"
+  },
+  {
+    "id": "E",
+    "name": "upstream invocation without user evidence",
+    "current_user_message": null,
+    "upstream_artifact": {
+      "process_route": "plan-coverage-residual-flow"
+    },
+    "context": {},
+    "expected_authorized": false,
+    "expected_forbidden_actions": [
+      "read-repository-artifacts-for-flow",
+      "write-plan-coverage-artifacts",
+      "invoke-plan-coverage-agents",
+      "recommend-route"
+    ],
+    "expected_return": "caller-or-normal-route"
+  },
+  {
+    "id": "F",
+    "name": "upstream invocation with explicit user evidence",
+    "current_user_message": null,
+    "upstream_artifact": {
+      "process_route": "plan-coverage-residual-flow",
+      "process_route_source": "explicit-user-selection",
+      "user_selection_evidence": "user-turn:42"
+    },
+    "context": {},
+    "expected_authorized": true,
+    "expected_forbidden_actions": [],
+    "expected_return": "authorized-flow"
+  }
+]

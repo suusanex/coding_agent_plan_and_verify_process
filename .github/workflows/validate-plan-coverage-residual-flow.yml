@@ -1,0 +1,75 @@
+name: Validate Plan Coverage Residual Flow
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-plan-coverage-residual-flow.yml'
+      - '.agents/skills/plan-coverage-residual-flow/**'
+      - 'apm-packages/plan-coverage-residual-flow/**'
+      - 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1'
+      - 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/validate-plan-coverage-residual-flow.yml'
+      - '.agents/skills/plan-coverage-residual-flow/**'
+      - 'apm-packages/plan-coverage-residual-flow/**'
+      - 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1'
+      - 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate invocation authorization contract
+        shell: pwsh
+        run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1
+      - name: Check branch or PR whitespace
+        shell: pwsh
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          $zeroSha = '0000000000000000000000000000000000000000'
+          if ($env:GITHUB_EVENT_NAME -eq 'pull_request' -and $env:BASE_SHA) {
+            git diff --check "$env:BASE_SHA...HEAD"
+          }
+          elseif ($env:BEFORE_SHA -and $env:BEFORE_SHA -ne $zeroSha) {
+            git cat-file -e "$($env:BEFORE_SHA)^{commit}" 2>$null
+            if ($LASTEXITCODE -eq 0) {
+              git diff --check "$env:BEFORE_SHA...HEAD"
+            }
+            else {
+              git show --check --format= HEAD
+            }
+          }
+          else {
+            git show --check --format= HEAD
+          }
+
+  validate-install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pinned APM CLI
+        uses: microsoft/apm-action@v1
+        with:
+          setup-only: 'true'
+          apm-version: '0.26.0'
+      - name: Validate fresh package installation
+        shell: pwsh
+        env:
+          PACKAGE_REPOSITORY: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+          PACKAGE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          GITHUB_APM_PAT: ${{ github.token }}
+        run: |
+          ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1 `
+            -Repository $env:PACKAGE_REPOSITORY `
+            -Ref $env:PACKAGE_REF
