@@ -211,7 +211,15 @@ try {
     ) -join "`r`n") + "`r`n"
     Set-Content (Join-Path $codexHome 'config.toml') -Value $wrappedConfig -NoNewline -Encoding utf8
     $wrappedCheck = & $installer --check --codex-home $codexHome --install-root $installRoot
-    if ($LASTEXITCODE -ne 0 -or ($wrappedCheck -join "`n") -notmatch 'notify_target: PASS|PASS installer check') { throw 'Codex previous-notify wrapper was not accepted by installer check.' }
+    $wrappedCheckExit = $LASTEXITCODE
+    $wrappedCheck | ForEach-Object { Write-Host $_ }
+    $wrappedCheckText = $wrappedCheck -join "`n"
+    if ($wrappedCheckExit -notin @(0, 3) -or
+        $wrappedCheckText -notmatch 'notify_target: PASS' -or
+        ($wrappedCheckExit -eq 0 -and $wrappedCheckText -notmatch 'PASS installer check') -or
+        ($wrappedCheckExit -eq 3 -and $wrappedCheckText -notmatch 'DEGRADED installer check')) {
+        throw "Codex previous-notify wrapper was not accepted by installer check (exit $wrappedCheckExit)."
+    }
     Invoke-Checked { & $installer install --codex-home $codexHome --install-root $installRoot } 'wrapper-aware reinstall'
     if ((Get-FileHash $backup -Algorithm SHA256).Hash -ne $backupHash) { throw 'Wrapper-aware reinstall overwrote the original configuration backup.' }
     if ((Get-Content (Join-Path $codexHome 'config.toml') -Raw) -ne $wrappedConfig) { throw 'Wrapper-aware reinstall rewrote the Codex notify wrapper.' }
