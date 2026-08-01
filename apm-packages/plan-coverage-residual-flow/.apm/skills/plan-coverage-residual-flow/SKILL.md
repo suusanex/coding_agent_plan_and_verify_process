@@ -9,6 +9,8 @@ description: >
   implementation, fix, continue, or proceed request; from task size,
   difficulty, risk, complexity, or architecture; from existing Plan or
   coverage artifacts; from repository history; or from mere Skill availability.
+  A question, quote, negation, comparison, or informational mention of the
+  route name is not an invocation; do not activate or read this Skill for it.
 ---
 
 # Plan Coverage Check and Residual Decision Flow

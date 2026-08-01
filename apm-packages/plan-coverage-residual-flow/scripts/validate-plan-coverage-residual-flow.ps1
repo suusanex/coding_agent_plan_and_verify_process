@@ -89,6 +89,7 @@ if ($failures.Count -eq 0) {
         Assert-Matches $description 'Never select, recommend, or propose.*generic.*implementation, fix, continue, or proceed' 'frontmatter must exclude generic implementation requests'
         Assert-Matches $description 'task size.*difficulty.*risk.*complexity.*architecture' 'frontmatter must exclude task characteristics'
         Assert-Matches $description 'existing Plan or.*coverage artifacts.*repository history.*Skill availability' 'frontmatter must exclude artifact, history, and availability inference'
+        Assert-Matches $description 'question, quote, negation, comparison, or informational mention.*not an invocation.*do not activate or read this Skill' 'frontmatter must reject non-invocation route mentions before Skill activation'
         Assert-NotMatches $frontmatter 'bounded Plan-first work|should decide the next phase|required artifact, stop condition' 'legacy broad discovery conditions must not remain in frontmatter'
 
         $firstH2 = [regex]::Match($body, '(?m)^##\s+(.+?)\s*$')

@@ -20,7 +20,7 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | `slice-prep.agent.md` | `469723cb9935d71a24dbf7b2b37d0969de9a45cf452b1108e850e144d15f3b30` |
 | `slice-impl.agent.md` | `699b6e85f0e47daaa25a6628364091a2b292c4956df064635f72d372fbc30950` |
 | `token-aware-full-coverage-3layer/SKILL.md` | `3aef17dd4545a530117f480dd422cf48bfe13b8826782f60f3a881cc46b70640` |
-| `plan-coverage-residual-flow/SKILL.md` | `59f0d2573a5fa604b517c9407d63c472b296a0c774e0e7521fe33f15bc63e508` |
+| `plan-coverage-residual-flow/SKILL.md` | `cb102b4ba7405d2110834be0d94f728ca2b18c39da631b9c4f3752460d5b8f1d` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 | `coverage-ledger.md` template | `b1a532b4ab59dbaa1471d8bd1beb6af5e7f570f3086719c8fcbe452f7f493962` |
 | `plan-coverage-lite.md` template | `e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90` |
