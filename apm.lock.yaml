@@ -12,35 +12,6 @@ dependencies:
   - .agents/skills/dotnet-file-based-apps
   content_hash: sha256:f915ad8100702665872888bdede4363e60af398d1ab1f012176361de551b05de
 - repo_url: suusanex/coding_agent_plan_and_verify_process
-  name: adaptive-implementation-execution
-  host: github.com
-  resolved_commit: 5a0c42f554858936cc8c1132428537536fa47120
-  version: 0.2.0
-  virtual_path: apm-packages/adaptive-implementation-execution
-  is_virtual: true
-  package_type: apm_package
-  content_hash: sha256:82485130eaf57e7bee0aa5ef2d5c71f927b2c91965208b98d99de05f67addc6b
-- repo_url: suusanex/coding_agent_plan_and_verify_process
-  name: plan-coverage-residual-flow
-  host: github.com
-  resolved_commit: 5a0c42f554858936cc8c1132428537536fa47120
-  version: 0.7.0
-  virtual_path: apm-packages/plan-coverage-residual-flow
-  is_virtual: true
-  package_type: apm_package
-  deployed_files:
-  - .agents/skills/plan-coverage-residual-flow
-  - .agents/skills/plan-coverage-residual-flow/SKILL.md
-  - .agents/skills/plan-coverage-residual-flow/references/coverage-ledger.md
-  - .agents/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md
-  - .agents/skills/plan-coverage-residual-flow/references/slice-architecture.md
-  deployed_file_hashes:
-    .agents/skills/plan-coverage-residual-flow/SKILL.md: sha256:4f3198effad1fc7666f1f11749071ae62b27b41e45907421236ad505d5512a9e
-    .agents/skills/plan-coverage-residual-flow/references/coverage-ledger.md: sha256:ec80098b03f915a9389437915e1bd5ec952d75a1a957f12d085ff74a2de1f065
-    .agents/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md: sha256:bdb9964acc4266034aa1bfa98425712c37e72ca958a44dfd4b53916b65bbab64
-    .agents/skills/plan-coverage-residual-flow/references/slice-architecture.md: sha256:fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb
-  content_hash: sha256:3d6e0d54b11c180d64fc88b67e1fecdd730b9517a9f0a3661b12a449b9ecc932
-- repo_url: suusanex/coding_agent_plan_and_verify_process
   name: coding_agent_plan_and_verify_process-architecture-elaboration
   host: github.com
   resolved_commit: 5a0c42f554858936cc8c1132428537536fa47120
@@ -396,51 +367,6 @@ deployments:
   - suusanex/agent_skills_dotnet_utility/.agents/skills/dotnet-file-based-apps
   active_owner: suusanex/agent_skills_dotnet_utility/.agents/skills/dotnet-file-based-apps
   content_hash: null
-- kind: project-relative
-  target: agents
-  value: .agents/skills/plan-coverage-residual-flow
-  runtime: null
-  scope: project
-  owners:
-  - suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
-  active_owner: suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
-  content_hash: null
-- kind: project-relative
-  target: agents
-  value: .agents/skills/plan-coverage-residual-flow/SKILL.md
-  runtime: null
-  scope: project
-  owners:
-  - suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
-  active_owner: suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
-  content_hash: sha256:4f3198effad1fc7666f1f11749071ae62b27b41e45907421236ad505d5512a9e
-- kind: project-relative
-  target: agents
-  value: .agents/skills/plan-coverage-residual-flow/references/coverage-ledger.md
-  runtime: null
-  scope: project
-  owners:
-  - suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
-  active_owner: suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
-  content_hash: sha256:ec80098b03f915a9389437915e1bd5ec952d75a1a957f12d085ff74a2de1f065
-- kind: project-relative
-  target: agents
-  value: .agents/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md
-  runtime: null
-  scope: project
-  owners:
-  - suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
-  active_owner: suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
-  content_hash: sha256:bdb9964acc4266034aa1bfa98425712c37e72ca958a44dfd4b53916b65bbab64
-- kind: project-relative
-  target: agents
-  value: .agents/skills/plan-coverage-residual-flow/references/slice-architecture.md
-  runtime: null
-  scope: project
-  owners:
-  - suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
-  active_owner: suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
-  content_hash: sha256:fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb
 - kind: project-relative
   target: codex
   value: .codex/agents/architecture-elaboration.toml
