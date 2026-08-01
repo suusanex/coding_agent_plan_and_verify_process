@@ -197,6 +197,25 @@ try {
     Invoke-Checked { & $installer install --codex-home $codexHome --install-root $installRoot } 'isolated reinstall'
     if ((Get-FileHash $backup -Algorithm SHA256).Hash -ne $backupHash) { throw 'Reinstall overwrote the original configuration backup.' }
 
+    $installedRuntimePath = Join-Path $installRoot 'bin/codex-notification-runtime.exe'
+    $wrappedPreviousJson = @($installedRuntimePath, 'dispatch') | ConvertTo-Json -Compress
+    $wrappedPreviousToml = $wrappedPreviousJson.Replace('\', '\\').Replace('"', '\"')
+    $wrapperPath = 'C:\Codex\codex-computer-use.exe'
+    $wrapperToml = $wrapperPath.Replace('\', '\\').Replace('"', '\"')
+    $wrappedConfig = (@(
+        'model_provider = "openai"',
+        "notify = [ `"$wrapperToml`", `"turn-ended`", `"--previous-notify`", `"$wrappedPreviousToml`" ]",
+        '',
+        '[features]',
+        'web_search = true'
+    ) -join "`r`n") + "`r`n"
+    Set-Content (Join-Path $codexHome 'config.toml') -Value $wrappedConfig -NoNewline -Encoding utf8
+    $wrappedCheck = & $installer --check --codex-home $codexHome --install-root $installRoot
+    if ($LASTEXITCODE -ne 0 -or ($wrappedCheck -join "`n") -notmatch 'notify_target: PASS|PASS installer check') { throw 'Codex previous-notify wrapper was not accepted by installer check.' }
+    Invoke-Checked { & $installer install --codex-home $codexHome --install-root $installRoot } 'wrapper-aware reinstall'
+    if ((Get-FileHash $backup -Algorithm SHA256).Hash -ne $backupHash) { throw 'Wrapper-aware reinstall overwrote the original configuration backup.' }
+    if ((Get-Content (Join-Path $codexHome 'config.toml') -Raw) -ne $wrappedConfig) { throw 'Wrapper-aware reinstall rewrote the Codex notify wrapper.' }
+
     $runtimeHash = (Get-FileHash (Join-Path $installRoot 'bin/codex-notification-runtime.exe') -Algorithm SHA256).Hash
     $env:CODEX_NOTIFICATION_TEST_FAIL_AFTER_BIN_SWAP = '1'
     & $installer install --codex-home $codexHome --install-root $installRoot 2>$null

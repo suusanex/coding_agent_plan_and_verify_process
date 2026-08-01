@@ -4,7 +4,7 @@ GitHub Copilot / Codex で Plan-first 開発をするための agent（`.github/
 
 ## Codex completion notification runtime
 
-WindowsでCodex turnの終了を通知する共通runtimeは、[scripts/codex-notification-runtime](scripts/codex-notification-runtime) にあります。user-level `notify`へ一度導入すると、marker、Decorator、envelopeを含まない通常のvalid `agent-turn-complete` callbackもgeneric通知に変換します。既存の`notify` commandは捨てずにchainし、導入前には必ずdry-runを実行してください。
+WindowsでCodex turnの終了を通知する共通runtimeは、[scripts/codex-notification-runtime](scripts/codex-notification-runtime) にあります。user-level `notify`へ一度導入すると、marker、Decorator、envelopeを含まない通常のvalid `agent-turn-complete` callbackもgeneric通知に変換します。既存の`notify` commandは捨てずにchainし、Codex自身の`codex-computer-use --previous-notify` wrapper内にruntimeがある場合も接続済みとして更新します。導入前には必ずdry-runを実行してください。
 
 ```powershell
 dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --dry-run

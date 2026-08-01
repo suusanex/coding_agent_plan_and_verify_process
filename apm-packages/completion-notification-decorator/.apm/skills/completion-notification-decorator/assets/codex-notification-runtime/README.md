@@ -10,6 +10,6 @@ dotnet run --file .\assets\codex-notification-runtime\install-codex-notification
 dotnet run --file .\assets\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --check
 ```
 
-The installer publishes the adjacent runtime and Windows provider sources, preserves an existing user-level `notify` command as a bounded chain, and replaces only the top-level Codex `notify` entry. Ordinary valid `agent-turn-complete` callbacks are notified without a marker, decorator, or envelope. A valid version 1 envelope is optional enrichment.
+The installer publishes the adjacent runtime and Windows provider sources, preserves an existing user-level `notify` command as a bounded chain, and replaces the top-level Codex `notify` entry when needed. If Codex has placed the runtime inside its `codex-computer-use --previous-notify` wrapper, the installer recognizes that connected state and updates it without re-wrapping or overwriting the original backup. Ordinary valid `agent-turn-complete` callbacks are notified without a marker, decorator, or envelope. A valid version 1 envelope is optional enrichment.
 
 Read `decision-record.md` for the runtime contract and `manual-verification.md` for automated and manual verification boundaries.

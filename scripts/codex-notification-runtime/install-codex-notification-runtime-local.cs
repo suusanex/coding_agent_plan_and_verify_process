@@ -41,7 +41,8 @@ if (existing.Count > 1) throw new InvalidOperationException("top-level notify �
 var currentNotify = existing.Count == 1 ? ParseNotifyArray(existing[0].Value) : null;
 if (existing.Count == 1 && currentNotify is null) throw new InvalidOperationException("notify は一行のstring arrayである必要があります。multilineまたは不正な値は手動で解消してください。");
 var targetNotify = new List<string> { runtimePath, "dispatch" };
-var alreadyInstalled = currentNotify is not null && currentNotify.SequenceEqual(targetNotify, StringComparer.OrdinalIgnoreCase);
+var notifyWrapped = currentNotify is not null && TryGetPreviousNotify(currentNotify, out var wrappedPreviousNotify) && wrappedPreviousNotify.SequenceEqual(targetNotify, StringComparer.OrdinalIgnoreCase);
+var alreadyInstalled = currentNotify is not null && (currentNotify.SequenceEqual(targetNotify, StringComparer.OrdinalIgnoreCase) || notifyWrapped);
 var runtimeConfigPath = Path.Combine(installRoot, "runtime-config.json");
 var runtimeJsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower, WriteIndented = true };
 var stored = File.Exists(runtimeConfigPath) ? JsonSerializer.Deserialize<RuntimeConfig>(File.ReadAllText(runtimeConfigPath), runtimeJsonOptions) : null;
@@ -116,7 +117,11 @@ try
         OriginalConfigExisted = alreadyInstalled ? stored!.OriginalConfigExisted : File.Exists(configPath)
     };
     var replacement = "notify = [ " + string.Join(", ", targetNotify.Select(TomlString)) + " ]";
-    var output = existing.Count == 0 ? InsertTopLevelNotify(configText, replacement) : configText[..existing[0].Start] + replacement + configText[existing[0].End..];
+    var output = notifyWrapped
+        ? configText
+        : existing.Count == 0
+            ? InsertTopLevelNotify(configText, replacement)
+            : configText[..existing[0].Start] + replacement + configText[existing[0].End..];
     if (!TomlSerializer.TryDeserialize<Dictionary<string, object?>>(output, out _, new TomlSerializerOptions()))
         throw new InvalidOperationException("生成後のconfig.tomlがTOMLとして不正です。");
 
@@ -247,9 +252,59 @@ static void EnsureExitCode(string executable, string argument, int expected)
 
 static bool IsSelfCommand(CommandSpec? command, string runtimePath)
 {
-    if (command?.Argv is not { Count: > 0 }) return false;
-    try { return string.Equals(Path.GetFullPath(command.Argv[0]), Path.GetFullPath(runtimePath), StringComparison.OrdinalIgnoreCase); }
+    return ContainsRuntimeArgument(command?.Argv, runtimePath, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+}
+
+static bool ContainsRuntimeArgument(IReadOnlyList<string>? argv, string runtimePath, HashSet<string> visited)
+{
+    if (argv is not { Count: > 0 }) return false;
+    foreach (var argument in argv)
+    {
+        if (argument.TrimStart().StartsWith("[", StringComparison.Ordinal))
+        {
+            if (!visited.Add(argument)) continue;
+            if (TryParseArgvJson(argument, out var nested) && ContainsRuntimeArgument(nested, runtimePath, visited)) return true;
+            continue;
+        }
+        if (SamePath(argument, runtimePath)) return true;
+    }
+    return false;
+}
+
+static bool SamePath(string left, string right)
+{
+    try { return string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.OrdinalIgnoreCase); }
     catch { return true; }
+}
+
+static bool TryGetPreviousNotify(IReadOnlyList<string>? argv, out List<string> previous)
+{
+    previous = [];
+    if (argv is not { Count: > 0 }) return false;
+    string fileName;
+    try { fileName = Path.GetFileName(argv[0]); }
+    catch { return false; }
+    if (!string.Equals(fileName, "codex-computer-use.exe", StringComparison.OrdinalIgnoreCase)) return false;
+    for (var i = 1; i < argv.Count - 1; i++)
+    {
+        if (string.Equals(argv[i], "--previous-notify", StringComparison.Ordinal))
+            return TryParseArgvJson(argv[i + 1], out previous);
+    }
+    return false;
+}
+
+static bool TryParseArgvJson(string value, out List<string> argv)
+{
+    try
+    {
+        argv = JsonSerializer.Deserialize<List<string>>(value) ?? [];
+        return argv.Count > 0;
+    }
+    catch (JsonException)
+    {
+        argv = [];
+        return false;
+    }
 }
 
 static void TryDelete(string path) { try { if (File.Exists(path)) File.Delete(path); } catch { } }
@@ -268,7 +323,13 @@ static void InstallerSelfTest()
     var markerOptions = Parse(["--target-marker", "one", "--target-marker", "two"]);
     if (!markerOptions.TargetMarkers.SequenceEqual(["one", "two"], StringComparer.Ordinal)) throw new InvalidOperationException("legacy target marker parsing failed");
     if (Parse([]).TargetMarkers.Count != 0) throw new InvalidOperationException("always-on install must not require target markers");
-    Console.WriteLine("PASS installer self-test (5 cases)");
+    var runtimePath = Path.Combine(Path.GetTempPath(), "CodexNotificationRuntime", "bin", "codex-notification-runtime.exe");
+    var wrapped = new List<string> { "C:\\Codex\\codex-computer-use.exe", "turn-ended", "--previous-notify", JsonSerializer.Serialize(new[] { runtimePath, "dispatch" }) };
+    if (!TryGetPreviousNotify(wrapped, out var wrappedPrevious) || !wrappedPrevious.SequenceEqual([runtimePath, "dispatch"], StringComparer.OrdinalIgnoreCase)) throw new InvalidOperationException("Codex previous-notify wrapper parsing failed");
+    if (!IsSelfCommand(new CommandSpec { Argv = wrapped }, runtimePath)) throw new InvalidOperationException("nested runtime self-wrap was not detected");
+    var wrappedSafe = new List<string> { "C:\\Codex\\codex-computer-use.exe", "turn-ended", "--previous-notify", JsonSerializer.Serialize(new[] { "C:\\existing-notifier.exe", "dispatch" }) };
+    if (IsSelfCommand(new CommandSpec { Argv = wrappedSafe }, runtimePath)) throw new InvalidOperationException("unrelated JSON notify was treated as a runtime self-wrap");
+    Console.WriteLine("PASS installer self-test (8 cases)");
 }
 
 static List<NotifyLine> FindTopLevelNotify(string text)
