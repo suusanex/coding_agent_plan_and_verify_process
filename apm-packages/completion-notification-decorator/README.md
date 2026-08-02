@@ -2,7 +2,7 @@
 
 `completion-notification-decorator` distributes the always-on Codex completion Local Spool runtime and provides an optional observational Skill for richer process/result metadata. Once installed, every valid `agent-turn-complete` callback produces one editor-readable JSON spool item without requiring this Skill, a marker, or an envelope.
 
-The package contains no custom agent or generic process runner. It includes checked mirrors of the canonical File-based apps, schemas, and runtime documentation under the installed Skill's `assets/codex-notification-runtime/` directory.
+The package contains no custom agent or generic process runner. It includes checked mirrors of the canonical File-based apps, schemas, and runtime documentation under the installed Skill's `assets/codex-notification-runtime/` directory. The producer/consumer boundary is documented in [local-spool-interface.md](.apm/skills/completion-notification-decorator/assets/codex-notification-runtime/local-spool-interface.md).
 
 ## Install or update
 

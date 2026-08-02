@@ -34,6 +34,7 @@ try {
         'agents/openai.yaml',
         'references/envelope-authoring-contract.md',
         'assets/codex-notification-runtime/README.md',
+        'assets/codex-notification-runtime/local-spool-interface.md',
         'assets/codex-notification-runtime/codex-notification-runtime.cs',
         'assets/codex-notification-runtime/windows-app-notification-provider.cs',
         'assets/codex-notification-runtime/local-spool-provider.cs',

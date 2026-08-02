@@ -28,7 +28,7 @@ dotnet run --file .\scripts\codex-notification-runtime\install-codex-notificatio
 
 `result_uri`は具体的な結果を指すuserinfoなしのHTTPS URLだけを受理します。hostのroot URL、およびGitHubのトップ・ownerトップ・repositoryトップは粗いリンクとして破棄します。envelopeがない、またはfieldやURIが不正な場合はenrichment全体を無視し、generic `TURN_ENDED` itemを保存する。runtimeまたはproviderの失敗はCodex turnを失敗にしない。
 
-詳細とrollbackは [decision-record.md](scripts/codex-notification-runtime/decision-record.md)、実機確認状況とManualOnly項目は [manual-verification.md](scripts/codex-notification-runtime/manual-verification.md) を参照してください。今回のproducer scopeはreal Codex callbackからSpool folderへの保存と通常editorでの閲覧までで、toast・button・consumer・Inboxは後続実装です。
+詳細とrollbackは [decision-record.md](scripts/codex-notification-runtime/decision-record.md)、producer/consumer間のI/Fは [local-spool-interface.md](scripts/codex-notification-runtime/local-spool-interface.md)、実機確認状況とManualOnly項目は [manual-verification.md](scripts/codex-notification-runtime/manual-verification.md) を参照してください。今回のproducer scopeはreal Codex callbackからSpool folderへの保存と通常editorでの閲覧までで、toast・button・consumer・Inboxは後続実装です。
 
 ## Completion Notification Decorator
 
