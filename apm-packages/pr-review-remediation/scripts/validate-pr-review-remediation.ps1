@@ -334,7 +334,7 @@ Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-r
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1' 'ConfirmExternalModelPayload' 'actual agent smoke external-payload consent gate'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1' 'DescribePayload' 'no-send payload description mode'
 foreach ($documentation in @(
-    'README.md',
+    'apm-packages/pr-review-remediation/README.md',
     'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/references/usage.md'
 )) {
     Assert-Contains $documentation '(?s)run-pr-review-remediation-agent-smoke\.ps1.*-DescribePayload.*run-pr-review-remediation-agent-smoke\.ps1.*-ConfirmExternalModelPayload' 'payload preview and authorized smoke commands'
@@ -415,7 +415,7 @@ try {
     Invoke-Native 'dotnet' @('publish', $selectorPath, '--output', $selectorOut, '--disable-build-servers') 'Goal Context selector publish' | Out-Null
     Invoke-Native 'dotnet' @('publish', $sameParentPath, '--output', $sameParentOut, '--disable-build-servers') 'same-parent manager publish' | Out-Null
     Invoke-Native 'dotnet' @('publish', $replayValidatorPath, '--output', $replayValidatorOut, '--disable-build-servers') 'PRR-002 replay validator publish' | Out-Null
-    Invoke-Native 'dotnet' @('publish', $adaptiveSyncPath, '--output', $adaptiveSyncOut, '--disable-build-servers') 'Adaptive profile helper publish' | Out-Null
+    Invoke-Native 'dotnet' @('publish', $adaptiveSyncPath, '--output', $adaptiveSyncOut, '--disable-build-servers', '-p:PublishAot=false') 'Adaptive profile helper publish' | Out-Null
 
     $collectorExe = Join-Path $collectorOut 'collect-pr-review-context.exe'
     $fakeExe = Join-Path $fakeOut 'fake-gh.exe'

@@ -3,6 +3,9 @@
 Codex Local Inbox is a packaged WinUI 3 application that displays completed
 `spool-item-v1` files from the Local Spool producer.
 
+This is a local application, not an APM process. Install and configure the
+producer first by following the [Codex Notification Runtime documentation](../../scripts/codex-notification-runtime/README.md).
+
 ## Prerequisites and build
 
 Install a .NET 11 preview SDK and the Windows App SDK prerequisites. From the

@@ -650,7 +650,7 @@ Assert-Contains $codexInstaller 'refs.*handoff\.md' 'complete handoff reference 
 Assert-Contains $codexInstaller 'CopyCanonicalAgentFiles' 'canonical root agent bootstrap'
 Assert-Contains $codexInstaller 'high-implementation-starter\.agent\.md' 'canonical HIGH agent bootstrap path'
 Assert-Contains $codexInstaller 'standard-implementation-completer\.agent\.md' 'canonical STANDARD agent bootstrap path'
-Assert-Contains 'README.md' '--check`.*canonical agent contracts.*`refs/handoff\.md`.*対象 repository' 'post-bootstrap file validation documentation'
+Assert-Contains 'apm-packages/codex-first-ai-development-process/README.md' '--check`.*canonical agent contracts.*`refs/handoff\.md`.*対象repository' 'post-bootstrap file validation documentation'
 
 $codexLauncher = 'apm-packages/codex-first-ai-development-process/scripts/codex-first-start.ps1'
 Assert-Contains $codexLauncher 'adaptiveSkillSource' 'one-off launcher Adaptive skill source'
@@ -771,8 +771,8 @@ foreach ($pathFilter in @(
 
 Assert-Contains 'README.md' 'apm-packages/adaptive-implementation-execution' 'root package link'
 Assert-Contains 'README.md' 'apm-packages/design-pair-implementation-execution' 'root Design Pair package link'
-Assert-Contains 'README.md' '`AGENTS\.md` は操作しない' 'Adaptive helper AGENTS.md non-access statement'
-Assert-NotContains 'README.md' 'install-adaptive-implementation-local\.cs[^\r\n]*`AGENTS\.md` の managed section' 'obsolete Adaptive helper AGENTS.md managed-section claim'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '`AGENTS\.md` を作成・変更・削除せず' 'Adaptive helper AGENTS.md non-access statement'
+Assert-NotContains 'apm-packages/adaptive-implementation-execution/README.md' 'install-adaptive-implementation-local\.cs[^\r\n]*`AGENTS\.md` の managed section' 'obsolete Adaptive helper AGENTS.md managed-section claim'
 
 if ($failures.Count -gt 0) {
     Write-Error ("Adaptive Implementation validation failed:`n- " + ($failures -join "`n- "))

@@ -73,6 +73,18 @@ Terminal projectionはschema/process/status/safe title/current concrete PR URI�
 
 ## Validation
 
+外部modelへ送信するpayloadを伴うagent smokeは、先に送信対象だけを表示します。内容を確認し、送信を明示承認した場合だけ実行します。
+
+```powershell
+pwsh -File apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1 `
+  -DescribePayload
+
+pwsh -File apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1 `
+  -ConfirmExternalModelPayload
+```
+
+`-DescribePayload`は外部modelを呼びません。通常の文書変更やstatic contract変更では、`-ConfirmExternalModelPayload`を自動実行しません。
+
 ```powershell
 pwsh -NoProfile -File apm-packages/pr-review-remediation/scripts/validate-same-parent-review.ps1
 pwsh -NoProfile -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
