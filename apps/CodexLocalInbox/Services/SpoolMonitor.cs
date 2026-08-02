@@ -2,18 +2,21 @@ using System.Threading;
 
 namespace CodexLocalInbox.Services;
 
-public sealed class SpoolMonitor : IDisposable
+public sealed class SpoolMonitor : IAsyncDisposable
 {
+    private readonly object _stateGate = new();
     private readonly SpoolInboxService _service;
     private readonly Func<IReadOnlyList<Models.InboxEntry>, Task> _publish;
     private readonly TimeSpan _debounce;
     private readonly TimeSpan _period;
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _scanGate = new(1, 1);
+    private readonly HashSet<Task> _debounceTasks = [];
     private FileSystemWatcher? _watcher;
-    private CancellationTokenSource? _debounceCts;
     private Task? _periodicTask;
-    private bool _disposed;
+    private Task? _stopTask;
+    private long _debounceVersion;
+    private int _state;
 
     public SpoolMonitor(
         SpoolInboxService service,
@@ -29,38 +32,50 @@ public sealed class SpoolMonitor : IDisposable
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        ThrowIfDisposed();
+        ThrowIfStopping();
         await ScanAsync(cancellationToken).ConfigureAwait(false);
+        ThrowIfStopping();
         ConfigureWatcher();
-        _periodicTask = PeriodicLoopAsync(_cts.Token);
+        lock (_stateGate)
+        {
+            ThrowIfStopping();
+            _periodicTask ??= PeriodicLoopAsync(_cts.Token);
+        }
     }
 
-    public Task RequestRescanAsync(CancellationToken cancellationToken = default) =>
-        ScanAsync(cancellationToken);
+    public Task RequestRescanAsync(CancellationToken cancellationToken = default)
+    {
+        ThrowIfStopping();
+        return ScanAsync(cancellationToken);
+    }
 
     private void ConfigureWatcher()
     {
-        if (_watcher is not null)
+        lock (_stateGate)
         {
-            return;
-        }
+            if (_state != 0 || _watcher is not null)
+            {
+                return;
+            }
 
-        var root = _service.RootPath;
-        if (!Directory.Exists(root))
-        {
-            return;
-        }
+            var root = _service.RootPath;
+            if (!Directory.Exists(root))
+            {
+                return;
+            }
 
-        _watcher = new FileSystemWatcher(root, "*.json")
-        {
-            NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size,
-            IncludeSubdirectories = false,
-            EnableRaisingEvents = true
-        };
-        _watcher.Created += OnFileEvent;
-        _watcher.Changed += OnFileEvent;
-        _watcher.Deleted += OnFileEvent;
-        _watcher.Renamed += OnRenamed;
+            var watcher = new FileSystemWatcher(root, "*.json")
+            {
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size,
+                IncludeSubdirectories = false
+            };
+            watcher.Created += OnFileEvent;
+            watcher.Changed += OnFileEvent;
+            watcher.Deleted += OnFileEvent;
+            watcher.Renamed += OnRenamed;
+            watcher.EnableRaisingEvents = true;
+            _watcher = watcher;
+        }
     }
 
     private void OnFileEvent(object sender, FileSystemEventArgs args) => ScheduleDebouncedScan();
@@ -68,26 +83,55 @@ public sealed class SpoolMonitor : IDisposable
 
     private void ScheduleDebouncedScan()
     {
-        if (_disposed)
+        Task debounceTask;
+        long debounceVersion;
+        lock (_stateGate)
         {
-            return;
+            if (_state != 0)
+            {
+                return;
+            }
+
+            debounceVersion = ++_debounceVersion;
+            debounceTask = DebouncedScanAsync(debounceVersion, _cts.Token);
+            _debounceTasks.Add(debounceTask);
         }
 
-        _debounceCts?.Cancel();
-        _debounceCts?.Dispose();
-        _debounceCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
-        var token = _debounceCts.Token;
-        _ = Task.Run(async () =>
+        _ = debounceTask.ContinueWith(
+            completedTask =>
+            {
+                _ = completedTask.Exception;
+                lock (_stateGate)
+                {
+                    _debounceTasks.Remove(completedTask);
+                }
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+    }
+
+    private async Task DebouncedScanAsync(long debounceVersion, CancellationToken token)
+    {
+        try
         {
-            try
+            await Task.Delay(_debounce, token).ConfigureAwait(false);
+            lock (_stateGate)
             {
-                await Task.Delay(_debounce, token).ConfigureAwait(false);
-                await ScanAsync(token).ConfigureAwait(false);
+                if (_state != 0 || debounceVersion != _debounceVersion)
+                {
+                    return;
+                }
             }
-            catch (OperationCanceledException) when (token.IsCancellationRequested)
-            {
-            }
-        }, token);
+
+            await ScanAsync(token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
     }
 
     private async Task PeriodicLoopAsync(CancellationToken token)
@@ -97,8 +141,14 @@ public sealed class SpoolMonitor : IDisposable
         {
             while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
             {
-                ConfigureWatcher();
-                await ScanAsync(token).ConfigureAwait(false);
+                try
+                {
+                    ConfigureWatcher();
+                    await ScanAsync(token).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                }
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -108,10 +158,13 @@ public sealed class SpoolMonitor : IDisposable
 
     private async Task ScanAsync(CancellationToken cancellationToken)
     {
-        await _scanGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            _cts.Token);
+        await _scanGate.WaitAsync(linkedCts.Token).ConfigureAwait(false);
         try
         {
-            var snapshot = await Task.Run(_service.Scan, cancellationToken).ConfigureAwait(false);
+            var snapshot = await Task.Run(_service.Scan, linkedCts.Token).ConfigureAwait(false);
             await _publish(snapshot).ConfigureAwait(false);
         }
         finally
@@ -120,25 +173,72 @@ public sealed class SpoolMonitor : IDisposable
         }
     }
 
-    public void Dispose()
+    public Task StopAsync()
     {
-        if (_disposed)
+        lock (_stateGate)
         {
-            return;
-        }
+            if (_stopTask is not null)
+            {
+                return _stopTask;
+            }
 
-        _disposed = true;
-        _cts.Cancel();
-        _watcher?.Dispose();
-        _debounceCts?.Cancel();
-        _debounceCts?.Dispose();
-        _scanGate.Dispose();
-        _cts.Dispose();
+            _state = 1;
+            _stopTask = StopCoreAsync();
+            return _stopTask;
+        }
     }
 
-    private void ThrowIfDisposed()
+    private async Task StopCoreAsync()
     {
-        if (_disposed)
+        _cts.Cancel();
+        FileSystemWatcher? watcher;
+        Task? periodicTask;
+        Task[] debounceTasks;
+        lock (_stateGate)
+        {
+            watcher = _watcher;
+            _watcher = null;
+            periodicTask = _periodicTask;
+            debounceTasks = [.. _debounceTasks];
+        }
+
+        watcher?.Dispose();
+
+        var backgroundTasks = periodicTask is null
+            ? debounceTasks
+            : [periodicTask, .. debounceTasks];
+        foreach (var task in backgroundTasks)
+        {
+            try
+            {
+                await task.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (_cts.IsCancellationRequested)
+            {
+            }
+        }
+
+        await _scanGate.WaitAsync().ConfigureAwait(false);
+        _scanGate.Release();
+
+        lock (_stateGate)
+        {
+            _state = 2;
+        }
+
+        _cts.Dispose();
+        _scanGate.Dispose();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopAsync().ConfigureAwait(false);
+        GC.SuppressFinalize(this);
+    }
+
+    private void ThrowIfStopping()
+    {
+        if (Volatile.Read(ref _state) != 0)
         {
             throw new ObjectDisposedException(nameof(SpoolMonitor));
         }

@@ -65,7 +65,38 @@ public sealed class SpoolInboxService
             }
         }
 
-        return entries
+        var canonicalBySourceEventId = entries
+            .Where(entry => !entry.IsError)
+            .GroupBy(entry => entry.Item!.SourceEventId, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .OrderBy(entry => Path.GetFullPath(entry.FilePath), StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(entry => Path.GetFullPath(entry.FilePath), StringComparer.Ordinal)
+                    .First(),
+                StringComparer.Ordinal);
+
+        var deduplicatedEntries = entries.Select(entry =>
+        {
+            if (entry.IsError)
+            {
+                return entry;
+            }
+
+            var sourceEventId = entry.Item!.SourceEventId;
+            var canonical = canonicalBySourceEventId[sourceEventId];
+            if (ReferenceEquals(entry, canonical))
+            {
+                return entry;
+            }
+
+            return new InboxEntry(
+                entry.FilePath,
+                null,
+                $"Duplicate source_event_id '{sourceEventId}'. The canonical file is '{Path.GetFullPath(canonical.FilePath)}'.");
+        });
+
+        return deduplicatedEntries
             .OrderByDescending(entry => entry.OccurredAt ?? DateTimeOffset.MinValue)
             .ThenBy(entry => entry.Identity, StringComparer.Ordinal)
             .ThenBy(entry => Path.GetFullPath(entry.FilePath), StringComparer.OrdinalIgnoreCase)

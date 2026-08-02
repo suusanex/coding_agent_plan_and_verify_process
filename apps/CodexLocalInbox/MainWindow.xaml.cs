@@ -18,6 +18,7 @@ namespace CodexLocalInbox;
 public sealed partial class MainWindow : Window
 {
     private bool _allowClose;
+    private bool _isExiting;
     public IRelayCommand ShowWindowCommand { get; }
 
     [DllImport("user32.dll")]
@@ -61,19 +62,25 @@ public sealed partial class MainWindow : Window
 
     private void ShowInbox_Click(object sender, RoutedEventArgs e) => ShowInbox();
 
-    private void Exit_Click(object sender, RoutedEventArgs e) => ExitApplication();
+    private async void Exit_Click(object sender, RoutedEventArgs e) => await ExitApplicationAsync();
 
-    private void ShowInbox()
+    public void ShowInbox()
     {
         AppWindow.Show();
         Activate();
     }
 
-    private void ExitApplication()
+    private async Task ExitApplicationAsync()
     {
+        if (_isExiting)
+        {
+            return;
+        }
+
+        _isExiting = true;
         if (RootFrame.Content is MainPage page)
         {
-            page.ViewModel.Dispose();
+            await page.ViewModel.DisposeAsync();
         }
 
         _allowClose = true;

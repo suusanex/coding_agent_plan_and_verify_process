@@ -54,11 +54,30 @@ public sealed class SpoolInboxTests
     }
 
     [TestMethod]
+    public void ParserPreservesSpecificFieldAndJsonDiagnostics()
+    {
+        var parser = new SpoolItemParser();
+        var emptyTitle = parser.Parse(
+            "empty.json",
+            Item("event-empty", "2026-08-02T10:00:00Z")
+                .Replace("\"title\": \"Test notification\"", "\"title\": \"   \"", StringComparison.Ordinal));
+        var numericTitle = parser.Parse(
+            "numeric.json",
+            Item("event-type", "2026-08-02T10:00:00Z")
+                .Replace("\"title\": \"Test notification\"", "\"title\": 42", StringComparison.Ordinal));
+        var malformed = parser.Parse("malformed.json", "{ nope");
+
+        StringAssert.Contains(emptyTitle.ErrorMessage!, "title field must not be empty");
+        StringAssert.Contains(numericTitle.ErrorMessage!, "title field must be a JSON string");
+        StringAssert.Contains(malformed.ErrorMessage!, "malformed JSON");
+    }
+
+    [TestMethod]
     public async Task MonitorPublishesStartupSnapshot()
     {
         File.WriteAllText(Path.Combine(_root, "startup.json"), Item("event-monitor", "2026-08-02T10:00:00Z"));
         IReadOnlyList<CodexLocalInbox.Models.InboxEntry>? published = null;
-        using var monitor = new SpoolMonitor(
+        await using var monitor = new SpoolMonitor(
             new SpoolInboxService(),
             snapshot =>
             {
@@ -72,6 +91,57 @@ public sealed class SpoolInboxTests
 
         Assert.IsNotNull(published);
         Assert.AreEqual("event-monitor", published![0].Item!.SourceEventId);
+    }
+
+    [TestMethod]
+    public async Task MonitorContinuesPollingAfterTransientScanFailure()
+    {
+        var publishedCount = 0;
+        var recovered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var monitor = new SpoolMonitor(
+            new SpoolInboxService(fileSystem: new TransientEnumerationFileSystem()),
+            _ =>
+            {
+                if (Interlocked.Increment(ref publishedCount) >= 2)
+                {
+                    recovered.TrySetResult();
+                }
+
+                return Task.CompletedTask;
+            },
+            debounce: TimeSpan.FromSeconds(10),
+            period: TimeSpan.FromMilliseconds(20));
+
+        await monitor.StartAsync();
+        await recovered.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.IsGreaterThanOrEqualTo(2, publishedCount);
+    }
+
+    [TestMethod]
+    public async Task MonitorWaitsForInFlightScanBeforeDisposing()
+    {
+        var fileSystem = new BlockingReadFileSystem();
+        var path = Path.Combine(_root, "blocking.json");
+        await using var monitor = new SpoolMonitor(
+            new SpoolInboxService(fileSystem: fileSystem),
+            _ => Task.CompletedTask,
+            debounce: TimeSpan.FromSeconds(10),
+            period: TimeSpan.FromMilliseconds(20));
+
+        await monitor.StartAsync();
+        File.WriteAllText(path, Item("event-blocking", "2026-08-02T10:00:00Z"));
+        try
+        {
+            await fileSystem.ReadStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            var stopTask = monitor.StopAsync();
+            Assert.IsFalse(stopTask.IsCompleted);
+        }
+        finally
+        {
+            fileSystem.ReleaseRead();
+            await monitor.StopAsync();
+        }
     }
 
     [TestMethod]
@@ -90,6 +160,30 @@ public sealed class SpoolInboxTests
         Assert.AreEqual("a", entries[1].Item!.SourceEventId);
         Assert.AreEqual("b", entries[2].Item!.SourceEventId);
         Assert.IsTrue(entries[3].IsError);
+    }
+
+    [TestMethod]
+    public void ScanKeepsOneCanonicalEntryAndExposesDuplicateFilesAsErrors()
+    {
+        var canonicalPath = Path.Combine(_root, "a-canonical.json");
+        var duplicatePath = Path.Combine(_root, "z-duplicate.json");
+        File.WriteAllText(canonicalPath, Item("same-event", "2026-08-02T10:00:00Z"));
+        File.WriteAllText(duplicatePath, Item("same-event", "2026-08-03T10:00:00Z"));
+        File.WriteAllText(Path.Combine(_root, "unique.json"), Item("unique-event", "2026-08-04T10:00:00Z"));
+
+        var service = new SpoolInboxService();
+        var entries = service.Scan();
+
+        Assert.AreEqual(3, entries.Count);
+        Assert.AreEqual(2, entries.Count(entry => !entry.IsError));
+        var canonical = entries.Single(entry => entry.Item?.SourceEventId == "same-event");
+        Assert.AreEqual(Path.GetFullPath(canonicalPath), Path.GetFullPath(canonical.FilePath));
+        var duplicate = entries.Single(entry => Path.GetFullPath(entry.FilePath) == Path.GetFullPath(duplicatePath));
+        Assert.IsTrue(duplicate.IsError);
+        StringAssert.Contains(duplicate.ErrorMessage!, "Duplicate source_event_id 'same-event'");
+        StringAssert.Contains(duplicate.ErrorMessage!, Path.GetFullPath(canonicalPath));
+        Assert.IsTrue(service.Delete(duplicate).Succeeded);
+        Assert.IsFalse(File.Exists(duplicatePath));
     }
 
     [TestMethod]
@@ -189,6 +283,50 @@ public sealed class SpoolInboxTests
         public IEnumerable<string> EnumerateJsonFiles(string root) => _inner.EnumerateJsonFiles(root);
         public string ReadAllText(string path) => _inner.ReadAllText(path);
         public void Delete(string path) => throw new IOException("test delete failure");
+        public bool FileExists(string path) => _inner.FileExists(path);
+        public bool DirectoryExists(string path) => _inner.DirectoryExists(path);
+    }
+
+    private sealed class TransientEnumerationFileSystem : ISpoolFileSystem
+    {
+        private readonly PhysicalSpoolFileSystem _inner = new();
+        private int _enumerationCount;
+
+        public IEnumerable<string> EnumerateJsonFiles(string root)
+        {
+            if (Interlocked.Increment(ref _enumerationCount) == 2)
+            {
+                throw new IOException("transient enumeration failure");
+            }
+
+            return _inner.EnumerateJsonFiles(root);
+        }
+
+        public string ReadAllText(string path) => _inner.ReadAllText(path);
+        public void Delete(string path) => _inner.Delete(path);
+        public bool FileExists(string path) => _inner.FileExists(path);
+        public bool DirectoryExists(string path) => _inner.DirectoryExists(path);
+    }
+
+    private sealed class BlockingReadFileSystem : ISpoolFileSystem
+    {
+        private readonly PhysicalSpoolFileSystem _inner = new();
+        private readonly ManualResetEventSlim _release = new(false);
+
+        public TaskCompletionSource ReadStarted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public IEnumerable<string> EnumerateJsonFiles(string root) => _inner.EnumerateJsonFiles(root);
+
+        public string ReadAllText(string path)
+        {
+            ReadStarted.TrySetResult();
+            _release.Wait();
+            return _inner.ReadAllText(path);
+        }
+
+        public void ReleaseRead() => _release.Set();
+        public void Delete(string path) => _inner.Delete(path);
         public bool FileExists(string path) => _inner.FileExists(path);
         public bool DirectoryExists(string path) => _inner.DirectoryExists(path);
     }

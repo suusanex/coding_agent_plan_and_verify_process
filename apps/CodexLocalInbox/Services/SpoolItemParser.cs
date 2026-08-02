@@ -100,6 +100,10 @@ public sealed class SpoolItemParser
         {
             return Error(filePath, "The file is missing a required field.");
         }
+        catch (SpoolFieldException ex)
+        {
+            return Error(filePath, ex.Message);
+        }
         catch (InvalidOperationException)
         {
             return Error(filePath, "A spool field has an invalid JSON type.");
@@ -108,15 +112,26 @@ public sealed class SpoolItemParser
 
     private static string RequiredText(JsonElement root, string name)
     {
-        if (!root.TryGetProperty(name, out var property) ||
-            property.ValueKind != JsonValueKind.String ||
-            string.IsNullOrWhiteSpace(property.GetString()))
+        if (!root.TryGetProperty(name, out var property))
         {
-            throw new InvalidOperationException($"Missing or empty {name}.");
+            throw new SpoolFieldException($"The {name} field is missing.");
         }
 
-        return property.GetString()!;
+        if (property.ValueKind != JsonValueKind.String)
+        {
+            throw new SpoolFieldException($"The {name} field must be a JSON string.");
+        }
+
+        var value = property.GetString();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new SpoolFieldException($"The {name} field must not be empty.");
+        }
+
+        return value;
     }
 
     private static InboxEntry Error(string filePath, string message) => new(filePath, null, message);
+
+    private sealed class SpoolFieldException(string message) : Exception(message);
 }

@@ -1,0 +1,33 @@
+name: Validate Codex Local Inbox
+
+on:
+  pull_request:
+    paths:
+      - 'apps/CodexLocalInbox/**'
+      - 'tests/CodexLocalInbox.Tests/**'
+      - '.github/workflows/validate-codex-local-inbox.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/CodexLocalInbox/**'
+      - 'tests/CodexLocalInbox.Tests/**'
+      - '.github/workflows/validate-codex-local-inbox.yml'
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up .NET 11 preview SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '11.0.x'
+          dotnet-quality: preview
+      - name: Test Codex Local Inbox
+        shell: pwsh
+        run: dotnet test .\tests\CodexLocalInbox.Tests\CodexLocalInbox.Tests.csproj
+      - name: Build Codex Local Inbox
+        shell: pwsh
+        run: dotnet build .\apps\CodexLocalInbox\CodexLocalInbox.csproj

@@ -6,7 +6,7 @@ using CodexLocalInbox.Services;
 
 namespace CodexLocalInbox.ViewModels;
 
-public partial class InboxViewModel : ObservableObject, IDisposable
+public partial class InboxViewModel : ObservableObject, IAsyncDisposable
 {
     private readonly SpoolInboxService _service;
     private readonly SpoolMonitor _monitor;
@@ -178,7 +178,7 @@ public partial class InboxViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsErrorState));
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         if (_disposed)
         {
@@ -186,6 +186,7 @@ public partial class InboxViewModel : ObservableObject, IDisposable
         }
 
         _disposed = true;
-        _monitor.Dispose();
+        await _monitor.DisposeAsync();
+        GC.SuppressFinalize(this);
     }
 }
