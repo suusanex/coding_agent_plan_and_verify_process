@@ -1,267 +1,285 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $runtimeSource = Join-Path $PSScriptRoot 'codex-notification-runtime.cs'
-$providerSource = Join-Path $PSScriptRoot 'windows-app-notification-provider.cs'
+$providerSource = Join-Path $PSScriptRoot 'local-spool-provider.cs'
 $installerSource = Join-Path $PSScriptRoot 'install-codex-notification-runtime-local.cs'
-$fakeCommand = Join-Path $PSScriptRoot 'tests/fake-notification-command.ps1'
-$envelopeSchema = Join-Path $PSScriptRoot 'completion-notification-envelope-v1.schema.json'
+$spoolSchema = Join-Path $PSScriptRoot 'spool-item-v1.schema.json'
 $eventSchema = Join-Path $PSScriptRoot 'completion-notification-event-v1.schema.json'
-$artifactRoot = Join-Path $PSScriptRoot 'artifacts'
-$workflow = Join-Path $root '.github/workflows/validate-codex-notification-runtime.yml'
-
-foreach ($path in @($runtimeSource, $providerSource, $installerSource, $fakeCommand, $envelopeSchema, $eventSchema, $workflow)) {
-    if (-not (Test-Path $path)) { throw "Missing required runtime asset: $path" }
+$fakeProvider = Join-Path $PSScriptRoot 'tests/fake-notification-command.ps1'
+foreach ($path in @($runtimeSource, $providerSource, $installerSource, $spoolSchema, $eventSchema, $fakeProvider)) {
+    if (-not (Test-Path -LiteralPath $path)) { throw "Missing Local Spool asset: $path" }
 }
-if ((Test-Path $artifactRoot) -and @(Get-ChildItem -LiteralPath $artifactRoot -Recurse -File).Count -gt 0) { throw 'Generated notification artifacts must not be tracked or distributed.' }
-if (-not (Get-Content (Join-Path $root '.gitignore') -Raw).Contains('scripts/codex-notification-runtime/artifacts/', [StringComparison]::Ordinal)) { throw 'Notification artifact ignore rule is missing.' }
-if (-not (Get-Content $workflow -Raw).Contains('timeout-minutes: 15', [StringComparison]::Ordinal)) { throw 'Notification workflow timeout is missing.' }
 
 function Invoke-Checked([scriptblock]$Action, [string]$Description) {
     & $Action
     if ($LASTEXITCODE -ne 0) { throw "$Description failed with exit code $LASTEXITCODE" }
 }
-
-function Write-RuntimeConfig([string]$RuntimeDirectory, [string]$PowerShellPath, [int]$TimeoutMs = 5000) {
-    @{
-        target_markers = @()
-        chained_notify = @{ argv = @($PowerShellPath, '-NoProfile', '-File', $fakeCommand, 'chain') }
-        providers = @(@{ name = 'fake'; argv = @($PowerShellPath, '-NoProfile', '-File', $fakeCommand, 'provider'); timeout_ms = $TimeoutMs })
-    } | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $RuntimeDirectory 'runtime-config.json') -Encoding utf8
+function New-Payload([string]$TurnId, [string]$ResultUri = '') {
+    $message = if ($ResultUri) {
+        $envelope = @{ schema_version = 1; primary_process = 'validator'; observed_status = 'COMPLETED'; title = 'validated'; repository = 'owner/repository'; result_uri = $ResultUri } | ConvertTo-Json -Compress
+        [string]::Join("`n", @('```completion-notification', $envelope, '```'))
+    } else { $null }
+    return @{ type = 'agent-turn-complete'; 'thread-id' = 'fixture-thread'; 'turn-id' = $TurnId; cwd = $root; 'last-assistant-message' = $message } | ConvertTo-Json -Compress
 }
-
-function New-Payload([string]$TurnId, [AllowNull()][string]$AssistantMessage, [object]$InputMessages = @('[completion-notification]')) {
-    return @{ type = 'agent-turn-complete'; 'thread-id' = 'fixture-thread'; 'turn-id' = $TurnId; cwd = $root; 'input-messages' = $InputMessages; 'last-assistant-message' = $AssistantMessage } | ConvertTo-Json -Compress
+function New-Event([string]$Id, [AllowNull()][object]$ResultUri = $null) {
+    return [ordered]@{
+        schema_version = 1; source = 'codex.agent-turn-complete'; source_event_id = $Id; primary_process = 'validator'
+        observed_status = 'COMPLETED'; occurred_at = '2026-08-01T00:00:00.0000000Z'; title = 'fixture title'
+        repository = 'owner/repository'; resume_uri = 'codex://threads/fixture-thread'; result_uri = $ResultUri; notification_status = 'PENDING'
+    }
 }
-
-function New-Envelope([string]$Status, [string]$ResultUri = 'https://github.com/suusanex/coding_agent_plan_and_verify_process/pull/57') {
-    $json = @{ schema_version = 1; primary_process = 'fixture'; observed_status = $Status; result_uri = $ResultUri } | ConvertTo-Json -Compress
-    return '```completion-notification' + "`n" + $json + "`n" + '```'
+function New-SpoolItem([string]$Id) {
+    return [ordered]@{
+        schema_version = 1; source = 'codex.agent-turn-complete'; source_event_id = $Id; primary_process = 'validator'
+        observed_status = 'COMPLETED'; occurred_at = '2026-08-01T00:00:00.0000000+00:00'; title = 'collision fixture'
+        repository = 'owner/repository'; resume_uri = 'codex://threads/collision'; result_uri = $null
+    }
 }
-
-function Invoke-Runtime([string]$Executable, [string]$Payload) {
-    & $Executable dispatch $Payload
-    if ($LASTEXITCODE -ne 0) { throw "Runtime callback must fail open, exit=$LASTEXITCODE" }
+function Get-SourceHash([string]$Value) {
+    return [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($Value))).ToLowerInvariant()
 }
-
+function ConvertTo-Projection([string]$Value, [int]$Maximum) {
+    $normalized = $Value.Normalize([Text.NormalizationForm]::FormKC).ToLowerInvariant()
+    $normalized = ([regex]::Replace($normalized, '[^a-z0-9]+', '-')).Trim('-')
+    if (-not $normalized) { $normalized = 'unknown' }
+    return $normalized.Substring(0, [Math]::Min($Maximum, $normalized.Length))
+}
+function Get-CandidateName([Collections.IDictionary]$Event, [int]$HashLength) {
+    $timestamp = ([DateTimeOffset]::Parse($Event.occurred_at)).ToUniversalTime().ToString("yyyyMMdd'T'HHmmss.fffffff'Z'")
+    $hash = Get-SourceHash $Event.source_event_id
+    return "${timestamp}__$(ConvertTo-Projection $Event.observed_status 24)__$(ConvertTo-Projection $Event.repository 48)__$($hash.Substring(0, $HashLength)).json"
+}
+function Invoke-ProviderJson([string]$Json, [string]$SpoolRoot) {
+    $errorPath = Join-Path $validationRoot ('provider-error-' + [guid]::NewGuid().ToString('N') + '.txt')
+    $Json | & $provider --spool-root $SpoolRoot 2>$errorPath
+    $exitCode = $LASTEXITCODE
+    $diagnostic = if (Test-Path -LiteralPath $errorPath) { Get-Content -LiteralPath $errorPath -Raw } else { '' }
+    Remove-Item -LiteralPath $errorPath -Force -ErrorAction SilentlyContinue
+    return [pscustomobject]@{ ExitCode = $exitCode; Diagnostic = $diagnostic }
+}
+function Start-ProviderJson([string]$Json, [string]$SpoolRoot) {
+    $info = [Diagnostics.ProcessStartInfo]::new($provider)
+    $info.UseShellExecute = $false; $info.RedirectStandardInput = $true; $info.RedirectStandardError = $true
+    $info.ArgumentList.Add('--spool-root'); $info.ArgumentList.Add($SpoolRoot)
+    $process = [Diagnostics.Process]::Start($info)
+    $stderr = $process.StandardError.ReadToEndAsync()
+    $activeProviderProcesses.Add($process)
+    $process.StandardInput.Write($Json); $process.StandardInput.Close()
+    return [pscustomobject]@{ Process = $process; Stderr = $stderr }
+}
+function Wait-ProviderGroup([array]$Started) {
+    $results = @()
+    foreach ($entry in $Started) {
+        try {
+            $entry.Process.WaitForExit()
+            $results += [pscustomobject]@{ ExitCode = $entry.Process.ExitCode; Diagnostic = $entry.Stderr.GetAwaiter().GetResult() }
+        }
+        finally {
+            $null = $activeProviderProcesses.Remove($entry.Process)
+            $entry.Process.Dispose()
+        }
+    }
+    return $results
+}
 function Start-Runtime([string]$Executable, [string]$Payload) {
-    $info = [System.Diagnostics.ProcessStartInfo]::new($Executable)
-    $info.UseShellExecute = $false
-    $info.ArgumentList.Add('dispatch')
-    $info.ArgumentList.Add($Payload)
-    return [System.Diagnostics.Process]::Start($info)
+    $info = [Diagnostics.ProcessStartInfo]::new($Executable); $info.UseShellExecute = $false
+    $info.ArgumentList.Add('dispatch'); $info.ArgumentList.Add($Payload)
+    return [Diagnostics.Process]::Start($info)
+}
+function Set-RuntimeConfig([string]$RuntimeConfigRoot, [array]$Providers) {
+    @{ target_markers = @(); chained_notify = @{ argv = @('ignored.exe') }; providers = $Providers } |
+        ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $RuntimeConfigRoot 'runtime-config.json') -Encoding utf8
+}
+function Assert-Item([string]$Path, [string]$ExpectedId, [string]$ExpectedResumeUri, [AllowNull()][object]$ExpectedResultUri) {
+    $raw = Get-Content -LiteralPath $Path -Raw
+    $item = $raw | ConvertFrom-Json
+    $names = @($item.PSObject.Properties.Name)
+    if ($names.Count -ne 10 -or $names -contains 'notification_status') { throw 'Spool item is not the stable 10-field contract.' }
+    if ($item.source_event_id -ne $ExpectedId) { throw "Unexpected source_event_id in $Path" }
+    if ($item.resume_uri -ne $ExpectedResumeUri) { throw "Unexpected resume_uri in $Path" }
+    if ($null -eq $ExpectedResultUri) {
+        if ($null -ne $item.result_uri -or $raw -notmatch '"result_uri"\s*:\s*null') { throw "result_uri was not exact JSON null in $Path" }
+    } elseif ($item.result_uri -ne $ExpectedResultUri) { throw "Unexpected result_uri in $Path" }
+    if (-not ($raw | Test-Json -SchemaFile $spoolSchema)) { throw 'Spool item did not validate against spool-item-v1.' }
+}
+function Assert-NoPublish([string]$SpoolRoot) {
+    if (Test-Path -LiteralPath $SpoolRoot) {
+        if (@(Get-ChildItem -LiteralPath $SpoolRoot -Force -File -ErrorAction SilentlyContinue).Count -ne 0) { throw "Invalid input left output in $SpoolRoot" }
+    }
+}
+function Get-TreeDigest([string]$Path) {
+    return (@(Get-ChildItem -LiteralPath $Path -Recurse -File | Sort-Object FullName | ForEach-Object { "$($_.FullName.Substring($Path.Length)):$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash)" }) -join "`n")
 }
 
-$validationRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('codex-notification-validation-' + [guid]::NewGuid().ToString('N'))
-$buildRoot = Join-Path $validationRoot 'build'
-$runtimeHome = Join-Path $validationRoot 'runtime-home'
-$codexHome = Join-Path $validationRoot 'codex-home'
-$installRoot = Join-Path $validationRoot 'install-root'
-New-Item -ItemType Directory -Path $buildRoot, $runtimeHome, $codexHome | Out-Null
-
+$validationRoot = Join-Path ([IO.Path]::GetTempPath()) ('codex-notification-local-spool-' + [guid]::NewGuid().ToString('N'))
+$activeProviderProcesses = [Collections.Generic.List[Diagnostics.Process]]::new()
 try {
-    Invoke-Checked { dotnet publish $runtimeSource --output (Join-Path $buildRoot 'runtime') --disable-build-servers } 'runtime publish'
-    Invoke-Checked { dotnet publish $providerSource --output (Join-Path $buildRoot 'provider') --disable-build-servers } 'provider publish'
-    Invoke-Checked { dotnet publish $installerSource --output (Join-Path $buildRoot 'installer') --disable-build-servers } 'installer publish'
-
-    $runtime = Join-Path $buildRoot 'runtime/codex-notification-runtime.exe'
-    $provider = Join-Path $buildRoot 'provider/windows-app-notification-provider.exe'
-    $installer = Join-Path $buildRoot 'installer/install-codex-notification-runtime-local.exe'
+    $build = Join-Path $validationRoot 'build'
+    New-Item -ItemType Directory -Path $build | Out-Null
+    Invoke-Checked { dotnet publish $runtimeSource --output (Join-Path $build 'runtime') --disable-build-servers } 'runtime publish'
+    Invoke-Checked { dotnet publish $providerSource --output (Join-Path $build 'provider') --disable-build-servers } 'Local Spool provider publish'
+    Invoke-Checked { dotnet publish $installerSource --output (Join-Path $build 'installer') --disable-build-servers } 'installer publish'
+    $runtime = Join-Path $build 'runtime/codex-notification-runtime.exe'
+    $provider = Join-Path $build 'provider/local-spool-provider.exe'
+    $installer = Join-Path $build 'installer/install-codex-notification-runtime-local.exe'
     Invoke-Checked { & $runtime --self-test } 'runtime self-test'
     Invoke-Checked { & $provider --self-test } 'provider self-test'
     Invoke-Checked { & $installer --self-test } 'installer self-test'
 
-    $env:CODEX_NOTIFICATION_RUNTIME_HOME = $runtimeHome
-    $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT = Join-Path $runtimeHome 'provider.jsonl'
-    $env:CODEX_NOTIFICATION_TEST_CHAIN_OUTPUT = Join-Path $runtimeHome 'chain.jsonl'
-    $pwsh = (Get-Command pwsh -ErrorAction Stop).Source
-    Write-RuntimeConfig $runtimeHome $pwsh
-
-    $blockedPayload = New-Payload 'blocked-duplicate' (New-Envelope 'BLOCKED')
-    Invoke-Runtime $runtime $blockedPayload
-    Invoke-Runtime $runtime $blockedPayload
-    if (@(Get-Content $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT).Count -ne 1) { throw 'Dedup did not suppress the second provider delivery.' }
-    if (@(Get-Content $env:CODEX_NOTIFICATION_TEST_CHAIN_OUTPUT).Count -ne 2) { throw 'Existing notify was not forwarded for duplicate callbacks.' }
-
-    $parallelPayload = New-Payload 'parallel-duplicate' (New-Envelope 'COMPLETED')
-    $parallel = @(
-        Start-Runtime $runtime $parallelPayload
-        Start-Runtime $runtime $parallelPayload
-    )
-    $parallel | ForEach-Object { $_.WaitForExit(); if ($_.ExitCode -ne 0) { throw 'Parallel callback did not fail open.' }; $_.Dispose() }
-    if (@(Get-Content $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT | Where-Object { $_ -like '*codex:fixture-thread:parallel-duplicate*' }).Count -ne 1) { throw 'Parallel dedup delivered more than once.' }
-
-    foreach ($status in @('COMPLETED', 'FAILED', 'HUMAN_DECISION_REQUIRED', 'TIMED_OUT')) {
-        Invoke-Runtime $runtime (New-Payload ('status-' + $status) (New-Envelope $status))
+    # VK-76-001 / TP-002: the provider consumes the exact 11-field event contract and fails closed before creating output.
+    $invalidRoot = Join-Path $validationRoot 'invalid-input'
+    $invalidCases = [Collections.Generic.List[string]]::new()
+    $invalidCases.Add('{')
+    $missingStatus = New-Event 'codex:invalid:missing-status'; $missingStatus.Remove('notification_status'); $invalidCases.Add(($missingStatus | ConvertTo-Json -Compress))
+    $extra = New-Event 'codex:invalid:extra'; $extra.extra = 'not-allowed'; $invalidCases.Add(($extra | ConvertTo-Json -Compress))
+    foreach ($mutation in @(
+        @{ Name = 'schema_version'; Value = 2 }, @{ Name = 'source'; Value = 'other' }, @{ Name = 'source_event_id'; Value = 'codex:' },
+        @{ Name = 'primary_process'; Value = ' ' }, @{ Name = 'observed_status'; Value = '' }, @{ Name = 'occurred_at'; Value = 'not-a-date' },
+        @{ Name = 'title'; Value = '' }, @{ Name = 'repository'; Value = ' ' }, @{ Name = 'resume_uri'; Value = 'https://example.test/thread' },
+        @{ Name = 'result_uri'; Value = 'https://github.com/owner/repository' }, @{ Name = 'notification_status'; Value = 'UNKNOWN' }
+    )) {
+        $event = New-Event "codex:invalid:$($mutation.Name)"; $event[$mutation.Name] = $mutation.Value; $invalidCases.Add(($event | ConvertTo-Json -Compress))
     }
-    $beforeGenericFallback = @(Get-Content $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT).Count
-    Invoke-Runtime $runtime (New-Payload 'marker-only-intermediate' $null)
-    Invoke-Runtime $runtime (New-Payload 'invalid-terminal-envelope' ('```completion-notification' + "`n" + '{invalid}' + "`n" + '```'))
-    if (@(Get-Content $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT).Count -ne ($beforeGenericFallback + 2)) { throw 'Markerless or invalid-envelope callback did not produce generic fallback delivery.' }
-    Invoke-Runtime $runtime (New-Payload 'terminal-after-intermediate' (New-Envelope 'COMPLETED'))
-    Invoke-Runtime $runtime (New-Payload 'null-input' (New-Envelope 'FAILED') $null)
-    Invoke-Runtime $runtime (New-Payload 'coarse-uri' (New-Envelope 'COMPLETED' 'https://github.com/suusanex/coding_agent_plan_and_verify_process'))
-    Invoke-Runtime $runtime (New-Payload 'mixed-valid-uri' (New-Envelope 'COMPLETED' 'HTTPS://Example.com/result/1'))
-    Invoke-Runtime $runtime (New-Payload 'mixed-coarse-uri' (New-Envelope 'COMPLETED' 'https://GitHub.com/suusanex/coding_agent_plan_and_verify_process'))
-    Invoke-Runtime $runtime (New-Payload 'not-targeted' $null @('ordinary turn'))
-
-    $events = @(Get-Content $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT | ForEach-Object { $_ | ConvertFrom-Json })
-    foreach ($status in @('BLOCKED', 'COMPLETED', 'FAILED', 'HUMAN_DECISION_REQUIRED', 'TIMED_OUT')) {
-        if (-not ($events.observed_status -contains $status)) { throw "Status was not preserved: $status" }
+    foreach ($json in $invalidCases) {
+        $result = Invoke-ProviderJson $json $invalidRoot
+        if ($result.ExitCode -ne 2 -or $result.Diagnostic -notmatch 'invalid-stdin') { throw 'Invalid provider stdin was not rejected with exit 2.' }
+        Assert-NoPublish $invalidRoot
     }
-    foreach ($genericId in @('codex:fixture-thread:marker-only-intermediate', 'codex:fixture-thread:invalid-terminal-envelope', 'codex:fixture-thread:not-targeted')) {
-        $genericEvent = @($events | Where-Object source_event_id -eq $genericId)
-        if ($genericEvent.Count -ne 1 -or $genericEvent[0].primary_process -ne 'codex' -or $genericEvent[0].observed_status -ne 'TURN_ENDED' -or $genericEvent[0].resume_uri -ne 'codex://threads/fixture-thread') {
-            throw "Ordinary or invalid-envelope callback did not produce exactly one generic event: $genericId"
+    $validSchemaEvent = New-Event 'codex:schema:valid' 'https://github.com/openai/codex/issues/76'
+    if (-not (($validSchemaEvent | ConvertTo-Json -Compress) | Test-Json -SchemaFile $eventSchema)) { throw 'Valid 11-field provider event did not match its schema.' }
+
+    # VK-76-002 / TP-001: exact URI value and JSON-null projection.
+    $projectionRoot = Join-Path $validationRoot 'projection'
+    $valueEvent = New-Event 'codex:projection:value' 'https://github.com/openai/codex/issues/76'
+    $nullEvent = New-Event 'codex:projection:null' $null
+    foreach ($event in @($valueEvent, $nullEvent)) { $result = Invoke-ProviderJson ($event | ConvertTo-Json -Compress) $projectionRoot; if ($result.ExitCode -ne 0) { throw 'Valid projection failed.' } }
+    $projectionItems = @(Get-ChildItem -LiteralPath $projectionRoot -Filter '*.json')
+    Assert-Item ($projectionItems | Where-Object { (Get-Content $_ -Raw | ConvertFrom-Json).source_event_id -eq $valueEvent.source_event_id }).FullName $valueEvent.source_event_id $valueEvent.resume_uri $valueEvent.result_uri
+    Assert-Item ($projectionItems | Where-Object { (Get-Content $_ -Raw | ConvertFrom-Json).source_event_id -eq $nullEvent.source_event_id }).FullName $nullEvent.source_event_id $nullEvent.resume_uri $null
+
+    # VK-76-003 / TP-004, TP-005: distinct parallel, direct same-ID race, and immutable existing final.
+    $distinctRoot = Join-Path $validationRoot 'distinct-parallel'
+    $distinctEvents = 1..4 | ForEach-Object { New-Event "codex:distinct:$_" }
+    $processes = @($distinctEvents | ForEach-Object { Start-ProviderJson ($_ | ConvertTo-Json -Compress) $distinctRoot })
+    $distinctResults = @(Wait-ProviderGroup $processes)
+    if (@($distinctResults | Where-Object { $_.ExitCode -ne 0 }).Count -ne 0) { throw 'Distinct-ID parallel provider failed.' }
+    $distinctItems = @(Get-ChildItem -LiteralPath $distinctRoot -Filter '*.json')
+    if ($distinctItems.Count -ne 4 -or @($distinctItems | ForEach-Object { (Get-Content $_ -Raw | ConvertFrom-Json).source_event_id } | Sort-Object -Unique).Count -ne 4) { throw 'Distinct-ID parallel events were not independently retained.' }
+    $raceRoot = Join-Path $validationRoot 'same-id-race'; $raceEvent = New-Event 'codex:race:same'
+    $processes = @(1..4 | ForEach-Object { Start-ProviderJson ($raceEvent | ConvertTo-Json -Compress) $raceRoot })
+    $raceResults = @(Wait-ProviderGroup $processes)
+    $raceFailures = @($raceResults | Where-Object { $_.ExitCode -ne 0 })
+    if ($raceFailures.Count -ne 0) { throw "Same-ID provider race failed after all processes exited: $($raceFailures | ConvertTo-Json -Compress)" }
+    $raceItems = @(Get-ChildItem -LiteralPath $raceRoot -Filter '*.json'); if ($raceItems.Count -ne 1) { throw 'Same-ID provider race did not converge to one final.' }
+    $beforeReplay = (Get-FileHash -LiteralPath $raceItems[0].FullName -Algorithm SHA256).Hash
+    $changedReplay = New-Event 'codex:race:same'; $changedReplay.title = 'must not replace existing final'
+    $result = Invoke-ProviderJson ($changedReplay | ConvertTo-Json -Compress) $raceRoot
+    if ($result.ExitCode -ne 0 -or (Get-FileHash -LiteralPath $raceItems[0].FullName -Algorithm SHA256).Hash -ne $beforeReplay) { throw 'Same-ID replay changed the existing final.' }
+
+    # VK-76-004 / TP-006: 16/24/32/64 suffix expansion and terminal collision.
+    $collisionEvent = New-Event 'codex:collision:target'; $collisionHash = Get-SourceHash $collisionEvent.source_event_id
+    foreach ($expectedLength in @(24, 32, 64)) {
+        $collisionRoot = Join-Path $validationRoot "collision-$expectedLength"; New-Item -ItemType Directory -Path $collisionRoot | Out-Null
+        foreach ($length in @(16, 24, 32, 64) | Where-Object { $_ -lt $expectedLength }) {
+            $occupied = New-SpoolItem "codex:occupied:${expectedLength}:$length"
+            ($occupied | ConvertTo-Json -Depth 5) | Set-Content -LiteralPath (Join-Path $collisionRoot (Get-CandidateName $collisionEvent $length)) -Encoding utf8
         }
+        $result = Invoke-ProviderJson ($collisionEvent | ConvertTo-Json -Compress) $collisionRoot
+        if ($result.ExitCode -ne 0 -or $result.Diagnostic -notmatch 'filename-collision-disambiguated' -or -not (Test-Path -LiteralPath (Join-Path $collisionRoot (Get-CandidateName $collisionEvent $expectedLength)))) { throw "Hash suffix did not expand to $expectedLength." }
     }
-    if (@($events | Where-Object source_event_id -eq 'codex:fixture-thread:terminal-after-intermediate').Count -ne 1) { throw 'Terminal envelope after an intermediate callback was not delivered exactly once.' }
-    $coarse = $events | Where-Object source_event_id -eq 'codex:fixture-thread:coarse-uri'
-    if ($null -ne $coarse.result_uri -or $coarse.resume_uri -ne 'codex://threads/fixture-thread') { throw 'Coarse URI did not fall back to resume_uri.' }
-    $mixedValid = $events | Where-Object source_event_id -eq 'codex:fixture-thread:mixed-valid-uri'
-    $mixedCoarse = $events | Where-Object source_event_id -eq 'codex:fixture-thread:mixed-coarse-uri'
-    if ($mixedValid.result_uri -ne 'HTTPS://Example.com/result/1' -or $null -ne $mixedCoarse.result_uri) { throw 'Mixed-case runtime URI contract failed.' }
-
-    $env:CODEX_NOTIFICATION_TEST_CHAIN_EXIT = '17'
-    Invoke-Runtime $runtime (New-Payload 'chain-failure' $null @('ordinary turn'))
-    Remove-Item Env:CODEX_NOTIFICATION_TEST_CHAIN_EXIT -ErrorAction SilentlyContinue
-    if (@(Get-Content $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT | Where-Object { $_ -like '*codex:fixture-thread:chain-failure*' }).Count -ne 1) { throw 'Chained notify failure affected generic provider delivery.' }
-
-    $env:CODEX_NOTIFICATION_TEST_PROVIDER_EXIT = '2'
-    $failurePayload = New-Payload 'provider-retry' (New-Envelope 'FAILED')
-    Invoke-Runtime $runtime $failurePayload
-    $env:CODEX_NOTIFICATION_TEST_PROVIDER_EXIT = '0'
-    Invoke-Runtime $runtime $failurePayload
-    if (@(Get-Content $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT | Where-Object { $_ -like '*codex:fixture-thread:provider-retry*' }).Count -ne 2) { throw 'Provider failure was not retryable.' }
-
-    Write-RuntimeConfig $runtimeHome $pwsh 1000
-    $env:CODEX_NOTIFICATION_TEST_PROVIDER_DELAY_MS = '1500'
-    $timeoutPayload = New-Payload 'provider-timeout' (New-Envelope 'TIMED_OUT')
-    Invoke-Runtime $runtime $timeoutPayload
-    $env:CODEX_NOTIFICATION_TEST_PROVIDER_DELAY_MS = '0'
-    Invoke-Runtime $runtime $timeoutPayload
-    if (@(Get-Content $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT | Where-Object { $_ -like '*codex:fixture-thread:provider-timeout*' }).Count -ne 1) { throw 'Provider timeout was not terminated and retried cleanly.' }
-
-    @{ target_markers = $null; providers = $null; chained_notify = @{ argv = $null } } | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $runtimeHome 'runtime-config.json') -Encoding utf8
-    Invoke-Runtime $runtime (New-Payload 'null-config' (New-Envelope 'FAILED'))
-
-    foreach ($line in Get-Content $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT) {
-        if (-not ($line | Test-Json -SchemaFile $eventSchema -ErrorAction Stop)) { throw 'Provider event does not match event schema.' }
+    $terminalRoot = Join-Path $validationRoot 'collision-terminal'; New-Item -ItemType Directory -Path $terminalRoot | Out-Null
+    foreach ($length in @(16, 24, 32, 64)) {
+        $occupied = New-SpoolItem "codex:occupied:terminal:$length"
+        ($occupied | ConvertTo-Json -Depth 5) | Set-Content -LiteralPath (Join-Path $terminalRoot (Get-CandidateName $collisionEvent $length)) -Encoding utf8
     }
-    $validEnvelope = '{"schema_version":1,"primary_process":"fixture","observed_status":"COMPLETED","result_uri":"https://github.com/suusanex/coding_agent_plan_and_verify_process/pull/57"}'
-    $coarseEnvelope = '{"schema_version":1,"primary_process":"fixture","observed_status":"COMPLETED","result_uri":"https://github.com/suusanex/coding_agent_plan_and_verify_process"}'
-    $userinfoEnvelope = '{"schema_version":1,"primary_process":"fixture","observed_status":"COMPLETED","result_uri":"https://user@example.com/result/1"}'
-    $mixedValidEnvelope = '{"schema_version":1,"primary_process":"fixture","observed_status":"COMPLETED","result_uri":"HTTPS://Example.com/result/1"}'
-    $mixedCoarseEnvelope = '{"schema_version":1,"primary_process":"fixture","observed_status":"COMPLETED","result_uri":"https://GitHub.com/suusanex/coding_agent_plan_and_verify_process"}'
-    if (-not ($validEnvelope | Test-Json -SchemaFile $envelopeSchema) -or -not ($mixedValidEnvelope | Test-Json -SchemaFile $envelopeSchema) -or ($coarseEnvelope | Test-Json -SchemaFile $envelopeSchema -ErrorAction SilentlyContinue) -or ($mixedCoarseEnvelope | Test-Json -SchemaFile $envelopeSchema -ErrorAction SilentlyContinue) -or ($userinfoEnvelope | Test-Json -SchemaFile $envelopeSchema -ErrorAction SilentlyContinue)) { throw 'Envelope URI schema contract failed.' }
-    $log = Get-Content (Join-Path $runtimeHome 'runtime.log.jsonl') -Raw
-    if ($log.Contains('github.com', [StringComparison]::OrdinalIgnoreCase) -or $log.Contains('completion-notification', [StringComparison]::Ordinal)) { throw 'Runtime log contains prohibited message or URI content.' }
-    if ($log -notmatch 'generic-candidate' -or $log -notmatch 'generic-fallback-invalid-envelope' -or $log -match 'awaiting-terminal-envelope|not-targeted') { throw 'Generic candidate diagnostics do not match the always-on contract.' }
+    $terminalBefore = Get-TreeDigest $terminalRoot; $result = Invoke-ProviderJson ($collisionEvent | ConvertTo-Json -Compress) $terminalRoot
+    if ($result.ExitCode -ne 3 -or $result.Diagnostic -notmatch 'identity-collision' -or (Get-TreeDigest $terminalRoot) -ne $terminalBefore) { throw 'Terminal hash collision did not preserve existing finals and exit 3.' }
 
-    $originalConfig = (@('model_provider = "openai"', 'notify = [ "C:\\existing-notifier.exe", "turn-ended" ]', '', '[features]', 'web_search = true') -join "`r`n") + "`r`n"
-    Set-Content (Join-Path $codexHome 'config.toml') -Value $originalConfig -NoNewline -Encoding utf8
-    Invoke-Checked { & $installer install --codex-home $codexHome --install-root $installRoot } 'isolated install'
-    $installedConfig = Get-Content (Join-Path $codexHome 'config.toml') -Raw
-    if ($installedConfig.IndexOf('notify =', [StringComparison]::Ordinal) -gt $installedConfig.IndexOf('[features]', [StringComparison]::Ordinal)) { throw 'Installer placed notify inside a TOML table.' }
-    $installedRuntimeConfig = Get-Content (Join-Path $installRoot 'runtime-config.json') -Raw | ConvertFrom-Json
-    if (@($installedRuntimeConfig.target_markers).Count -ne 0) { throw 'Always-on installer unexpectedly configured required target markers.' }
-    $backup = Join-Path $codexHome 'config.toml.codex-notification-runtime.bak'
-    $backupHash = (Get-FileHash $backup -Algorithm SHA256).Hash
-    $checkOutput = & $installer --check --codex-home $codexHome --install-root $installRoot
-    $checkExit = $LASTEXITCODE
-    $checkOutput | ForEach-Object { Write-Host $_ }
-    if ($checkExit -notin @(0, 3) -or ($checkExit -eq 3 -and ($checkOutput -join "`n") -notmatch 'DEGRADED installer check')) { throw "Isolated installer check returned unexpected exit code $checkExit." }
-    $env:CODEX_NOTIFICATION_TEST_PROVIDER_UNSUPPORTED = '1'
-    $degradedOutput = & $installer --check --codex-home $codexHome --install-root $installRoot
-    $degradedExit = $LASTEXITCODE
-    Remove-Item Env:CODEX_NOTIFICATION_TEST_PROVIDER_UNSUPPORTED -ErrorAction SilentlyContinue
-    $degradedOutput | ForEach-Object { Write-Host $_ }
-    $degradedText = $degradedOutput -join "`n"
-    if ($degradedExit -ne 3 -or $degradedText -notmatch 'provider_support: unsupported' -or $degradedText -notmatch 'DEGRADED installer check') { throw 'Unsupported provider was not reported as degraded.' }
-    $hangPidPath = Join-Path $validationRoot 'hanging-provider.pid'
-    $env:CODEX_NOTIFICATION_TEST_PROVIDER_HANG = '1'
-    $env:CODEX_NOTIFICATION_TEST_PROVIDER_HANG_PID_FILE = $hangPidPath
-    $hangStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-    $hangOutput = & $installer --check --codex-home $codexHome --install-root $installRoot
-    $hangExit = $LASTEXITCODE
-    $hangStopwatch.Stop()
-    Remove-Item Env:CODEX_NOTIFICATION_TEST_PROVIDER_HANG -ErrorAction SilentlyContinue
-    Remove-Item Env:CODEX_NOTIFICATION_TEST_PROVIDER_HANG_PID_FILE -ErrorAction SilentlyContinue
-    $hangOutput | ForEach-Object { Write-Host $_ }
-    $hangText = $hangOutput -join "`n"
-    if ($hangExit -ne 3 -or $hangText -notmatch 'provider_support: check-failed' -or $hangText -notmatch 'DEGRADED installer check') { throw 'Hanging provider was not reported as degraded.' }
-    if ($hangStopwatch.Elapsed -gt [TimeSpan]::FromSeconds(10)) { throw "Hanging provider check exceeded time bound: $($hangStopwatch.Elapsed)." }
-    if (-not (Test-Path $hangPidPath)) { throw 'Hanging provider did not record its process ID.' }
-    $hangPid = [int](Get-Content $hangPidPath -Raw)
-    if (Get-Process -Id $hangPid -ErrorAction SilentlyContinue) { throw "Hanging provider process was not terminated: $hangPid" }
-    Write-Host "PASS hanging provider timeout ($([int]$hangStopwatch.Elapsed.TotalMilliseconds) ms, pid $hangPid terminated)"
-    Invoke-Checked { & $installer install --codex-home $codexHome --install-root $installRoot } 'isolated reinstall'
-    if ((Get-FileHash $backup -Algorithm SHA256).Hash -ne $backupHash) { throw 'Reinstall overwrote the original configuration backup.' }
-
-    $installedRuntimePath = Join-Path $installRoot 'bin/codex-notification-runtime.exe'
-    $wrappedPreviousJson = @($installedRuntimePath, 'dispatch') | ConvertTo-Json -Compress
-    $wrappedPreviousToml = $wrappedPreviousJson.Replace('\', '\\').Replace('"', '\"')
-    $wrapperPath = 'C:\Codex\codex-computer-use.exe'
-    $wrapperToml = $wrapperPath.Replace('\', '\\').Replace('"', '\"')
-    $wrappedConfig = (@(
-        'model_provider = "openai"',
-        "notify = [ `"$wrapperToml`", `"turn-ended`", `"--previous-notify`", `"$wrappedPreviousToml`" ]",
-        '',
-        '[features]',
-        'web_search = true'
-    ) -join "`r`n") + "`r`n"
-    Set-Content (Join-Path $codexHome 'config.toml') -Value $wrappedConfig -NoNewline -Encoding utf8
-    $wrappedCheck = & $installer --check --codex-home $codexHome --install-root $installRoot
-    $wrappedCheckExit = $LASTEXITCODE
-    $wrappedCheck | ForEach-Object { Write-Host $_ }
-    $wrappedCheckText = $wrappedCheck -join "`n"
-    if ($wrappedCheckExit -notin @(0, 3) -or
-        $wrappedCheckText -notmatch 'notify_target: PASS' -or
-        ($wrappedCheckExit -eq 0 -and $wrappedCheckText -notmatch 'PASS installer check') -or
-        ($wrappedCheckExit -eq 3 -and $wrappedCheckText -notmatch 'DEGRADED installer check')) {
-        throw "Codex previous-notify wrapper was not accepted by installer check (exit $wrappedCheckExit)."
+    # VK-76-005 / TP-007: individual write, flush, and move failures.
+    foreach ($stage in @('write', 'flush', 'move')) {
+        $failureRoot = Join-Path $validationRoot "failure-$stage"; New-Item -ItemType Directory -Path $failureRoot | Out-Null
+        $sentinel = New-SpoolItem "codex:sentinel:$stage"; ($sentinel | ConvertTo-Json -Depth 5) | Set-Content -LiteralPath (Join-Path $failureRoot 'sentinel.json') -Encoding utf8
+        $sentinelHash = (Get-FileHash -LiteralPath (Join-Path $failureRoot 'sentinel.json') -Algorithm SHA256).Hash
+        $env:CODEX_NOTIFICATION_TEST_PROVIDER_FAILURE = $stage
+        $result = Invoke-ProviderJson ((New-Event "codex:failure:$stage") | ConvertTo-Json -Compress) $failureRoot
+        Remove-Item Env:CODEX_NOTIFICATION_TEST_PROVIDER_FAILURE -ErrorAction SilentlyContinue
+        if ($result.ExitCode -ne 3 -or $result.Diagnostic -notmatch 'publish-failed') { throw "$stage failure did not surface as exit 3." }
+        if (@(Get-ChildItem -LiteralPath $failureRoot -Filter '*.json').Count -ne 1 -or @(Get-ChildItem -LiteralPath $failureRoot -Force -Filter '*.tmp').Count -ne 0 -or (Get-FileHash -LiteralPath (Join-Path $failureRoot 'sentinel.json') -Algorithm SHA256).Hash -ne $sentinelHash) { throw "$stage failure left output or changed the existing final." }
     }
-    Invoke-Checked { & $installer install --codex-home $codexHome --install-root $installRoot } 'wrapper-aware reinstall'
-    if ((Get-FileHash $backup -Algorithm SHA256).Hash -ne $backupHash) { throw 'Wrapper-aware reinstall overwrote the original configuration backup.' }
-    if ((Get-Content (Join-Path $codexHome 'config.toml') -Raw) -ne $wrappedConfig) { throw 'Wrapper-aware reinstall rewrote the Codex notify wrapper.' }
 
-    $runtimeHash = (Get-FileHash (Join-Path $installRoot 'bin/codex-notification-runtime.exe') -Algorithm SHA256).Hash
-    $env:CODEX_NOTIFICATION_TEST_FAIL_AFTER_BIN_SWAP = '1'
-    & $installer install --codex-home $codexHome --install-root $installRoot 2>$null
-    if ($LASTEXITCODE -eq 0) { throw 'Injected installer failure unexpectedly succeeded.' }
-    Remove-Item Env:CODEX_NOTIFICATION_TEST_FAIL_AFTER_BIN_SWAP -ErrorAction SilentlyContinue
-    if ((Get-FileHash (Join-Path $installRoot 'bin/codex-notification-runtime.exe') -Algorithm SHA256).Hash -ne $runtimeHash) { throw 'Installer did not restore the previous binary after failure.' }
-    if ((Get-FileHash $backup -Algorithm SHA256).Hash -ne $backupHash) { throw 'Failure path changed the original backup.' }
-    $runtimeConfigPath = Join-Path $installRoot 'runtime-config.json'
-    $savedRuntimeConfig = Get-Content $runtimeConfigPath -Raw
-    $selfConfig = $savedRuntimeConfig | ConvertFrom-Json
-    $selfConfig.chained_notify = @{ argv = @((Join-Path $installRoot 'bin/codex-notification-runtime.exe'), 'dispatch') }
-    $selfConfig | ConvertTo-Json -Depth 6 | Set-Content $runtimeConfigPath -Encoding utf8
-    & $installer --dry-run --codex-home $codexHome --install-root $installRoot 2>$null
-    if ($LASTEXITCODE -eq 0) { throw 'Runtime self-wrap was not rejected.' }
-    Set-Content $runtimeConfigPath -Value $savedRuntimeConfig -NoNewline -Encoding utf8
-    Copy-Item $backup (Join-Path $codexHome 'config.toml') -Force
-    if ((Get-Content (Join-Path $codexHome 'config.toml') -Raw) -ne $originalConfig) { throw 'Documented backup rollback did not restore the original config.' }
+    # VK-76-006 / TP-008: production nonzero and fake timeout both fail open, release claims, kill the tree, and retry through the real provider.
+    $nonzeroHome = Join-Path $validationRoot 'runtime-nonzero'; New-Item -ItemType Directory -Path $nonzeroHome | Out-Null
+    Set-RuntimeConfig $nonzeroHome @(@{ name = 'local-spool'; argv = @($provider); timeout_ms = 5000 })
+    $env:CODEX_NOTIFICATION_RUNTIME_HOME = $nonzeroHome; $env:CODEX_NOTIFICATION_TEST_PROVIDER_FAILURE = 'move'
+    $retryPayload = New-Payload 'retry-after-nonzero'; & $runtime dispatch $retryPayload
+    if ($LASTEXITCODE -ne 0 -or @(Get-ChildItem (Join-Path $nonzeroHome 'state') -Filter '*.claim').Count -ne 0 -or (Get-Content (Join-Path $nonzeroHome 'runtime.log.jsonl') -Raw) -notmatch 'provider-exit') { throw 'Production provider nonzero did not fail open and release its claim.' }
+    Remove-Item Env:CODEX_NOTIFICATION_TEST_PROVIDER_FAILURE -ErrorAction SilentlyContinue
+    Invoke-Checked { & $runtime dispatch $retryPayload } 'real provider retry after nonzero'
+    if (@(Get-ChildItem (Join-Path $nonzeroHome 'spool') -Filter '*.json').Count -ne 1) { throw 'Retry after production nonzero did not create exactly one final.' }
 
-    $profileHome = Join-Path $validationRoot 'profile-home'
-    New-Item -ItemType Directory -Path $profileHome | Out-Null
-    Set-Content (Join-Path $profileHome 'team.config.toml') -Value '# profile'
-    & $installer --dry-run --codex-home $profileHome --install-root (Join-Path $validationRoot 'profile-install') 2>$null
-    if ($LASTEXITCODE -eq 0) { throw 'Profile conflict was not rejected.' }
-    $multilineHome = Join-Path $validationRoot 'multiline-home'
-    New-Item -ItemType Directory -Path $multilineHome | Out-Null
-    Set-Content (Join-Path $multilineHome 'config.toml') -Value (@('notify = [', '  "tool.exe"', ']') -join "`n")
-    & $installer --dry-run --codex-home $multilineHome --install-root (Join-Path $validationRoot 'multiline-install') 2>$null
-    if ($LASTEXITCODE -eq 0) { throw 'Multiline notify conflict was not rejected.' }
+    $timeoutHome = Join-Path $validationRoot 'runtime-timeout'; New-Item -ItemType Directory -Path $timeoutHome | Out-Null
+    Set-RuntimeConfig $timeoutHome @(@{ name = 'local-spool'; argv = @((Get-Command pwsh).Source, '-NoProfile', '-File', $fakeProvider, 'provider'); timeout_ms = 1000 })
+    $fakeOutput = Join-Path $timeoutHome 'fake-output.jsonl'; $childOutput = Join-Path $timeoutHome 'child-output.txt'
+    $env:CODEX_NOTIFICATION_RUNTIME_HOME = $timeoutHome; $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT = $fakeOutput; $env:CODEX_NOTIFICATION_TEST_PROVIDER_DELAY_MS = '10000'; $env:CODEX_NOTIFICATION_TEST_PROVIDER_CHILD_OUTPUT = $childOutput
+    $timeoutPayload = New-Payload 'retry-after-timeout'; & $runtime dispatch $timeoutPayload
+    if ($LASTEXITCODE -ne 0 -or @(Get-ChildItem (Join-Path $timeoutHome 'state') -Filter '*.claim').Count -ne 0 -or (Get-Content (Join-Path $timeoutHome 'runtime.log.jsonl') -Raw) -notmatch 'provider-timeout') { throw 'Provider timeout did not fail open and release its claim.' }
+    Start-Sleep -Milliseconds 3000
+    if (Test-Path -LiteralPath $childOutput) { throw 'Timed-out provider child process survived the process-tree kill.' }
+    Remove-Item Env:CODEX_NOTIFICATION_TEST_PROVIDER_DELAY_MS, Env:CODEX_NOTIFICATION_TEST_PROVIDER_CHILD_OUTPUT -ErrorAction SilentlyContinue
+    Set-RuntimeConfig $timeoutHome @(@{ name = 'local-spool'; argv = @($provider); timeout_ms = 5000 })
+    Invoke-Checked { & $runtime dispatch $timeoutPayload } 'real provider retry after timeout'
+    if (@(Get-ChildItem (Join-Path $timeoutHome 'spool') -Filter '*.json').Count -ne 1) { throw 'Retry after timeout did not create exactly one final.' }
 
-    $installerText = Get-Content $installerSource -Raw
-    if (-not $installerText.Contains('StandardOutput.ReadToEndAsync()', [StringComparison]::Ordinal) -or -not $installerText.Contains('StandardError.ReadToEndAsync()', [StringComparison]::Ordinal)) { throw 'Publish output streams are not drained concurrently.' }
+    # VK-76-007 / TP-009: zero and multiple provider configurations never start a provider.
+    $gateHome = Join-Path $validationRoot 'provider-gate'; New-Item -ItemType Directory -Path $gateHome | Out-Null
+    $env:CODEX_NOTIFICATION_RUNTIME_HOME = $gateHome; $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT = Join-Path $gateHome 'must-not-start.jsonl'; $env:CODEX_NOTIFICATION_TEST_PROVIDER_DELAY_MS = '0'
+    $fakeSpec = @{ name = 'local-spool'; argv = @((Get-Command pwsh).Source, '-NoProfile', '-File', $fakeProvider, 'provider'); timeout_ms = 5000 }
+    Set-RuntimeConfig $gateHome @(); Invoke-Checked { & $runtime dispatch (New-Payload 'zero-provider') } 'zero provider fail-open'
+    Set-RuntimeConfig $gateHome @($fakeSpec, $fakeSpec); Invoke-Checked { & $runtime dispatch (New-Payload 'multiple-provider') } 'multiple provider fail-open'
+    if ((Test-Path -LiteralPath $env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT) -or @((Get-Content (Join-Path $gateHome 'runtime.log.jsonl')) | Where-Object { $_ -match 'invalid-provider-count' }).Count -lt 2) { throw 'Zero/multiple provider gate started a provider or omitted diagnostics.' }
+
+    # VK-76-007 / TP-010, TP-011, TP-013: fresh/reinstall/legacy update, rollback matrix, and installed production path.
+    $codexHome = Join-Path $validationRoot 'codex-home'; $installRoot = Join-Path $validationRoot 'install-root'; New-Item -ItemType Directory -Path $codexHome | Out-Null
+    Set-Content -LiteralPath (Join-Path $codexHome 'config.toml') 'model_provider = "openai"' -NoNewline
+    Invoke-Checked { & $installer install --codex-home $codexHome --install-root $installRoot } 'Local Spool fresh install'
+    Invoke-Checked { & $installer --check --codex-home $codexHome --install-root $installRoot } 'Local Spool fresh install check'
+    $backup = Join-Path $codexHome 'config.toml.codex-notification-runtime.bak'; $backupHash = (Get-FileHash -LiteralPath $backup -Algorithm SHA256).Hash
+    Invoke-Checked { & $installer install --codex-home $codexHome --install-root $installRoot } 'Local Spool reinstall'
+    if ((Get-FileHash -LiteralPath $backup -Algorithm SHA256).Hash -ne $backupHash) { throw 'Reinstall overwrote the protected original backup.' }
+    $installed = Get-Content -LiteralPath (Join-Path $installRoot 'runtime-config.json') -Raw | ConvertFrom-Json
+    if (@($installed.providers).Count -ne 1 -or $installed.providers[0].name -ne 'local-spool' -or $installed.providers[0].timeout_ms -ne 5000 -or (Test-Path (Join-Path $installRoot 'bin/windows-app-notification-provider.exe'))) { throw 'Installer did not bind exactly one Local Spool provider.' }
+    $installedRuntime = Join-Path $installRoot 'bin/codex-notification-runtime.exe'; $env:CODEX_NOTIFICATION_RUNTIME_HOME = $installRoot
+    Invoke-Checked { & $installedRuntime dispatch (New-Payload 'installed-production' 'https://github.com/openai/codex/issues/76') } 'installed runtime to provider callback'
+    $installedItems = @(Get-ChildItem -LiteralPath (Join-Path $installRoot 'spool') -Filter '*.json'); if ($installedItems.Count -ne 1) { throw 'Installed production entrypoint did not create exactly one real filesystem final.' }
+    Assert-Item $installedItems[0].FullName 'codex:fixture-thread:installed-production' 'codex://threads/fixture-thread' 'https://github.com/openai/codex/issues/76'
+
+    $legacyCodex = Join-Path $validationRoot 'legacy-codex'; $legacyInstall = Join-Path $validationRoot 'legacy-install'; New-Item -ItemType Directory -Path $legacyCodex, (Join-Path $legacyInstall 'bin') | Out-Null
+    $legacyNotify = Join-Path $legacyInstall 'bin/windows-app-notification-provider.exe'; Set-Content -LiteralPath $legacyNotify 'legacy'
+    Set-Content -LiteralPath (Join-Path $legacyCodex 'config.toml') "notify = [ `"$($legacyNotify.Replace('\','\\'))`" ]" -NoNewline
+    @{ providers = @(@{ name = 'windows-app'; argv = @($legacyNotify); timeout_ms = 5000 }) } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $legacyInstall 'runtime-config.json') -Encoding utf8
+    Invoke-Checked { & $installer install --codex-home $legacyCodex --install-root $legacyInstall } 'legacy Windows provider update'
+    $legacyUpdated = Get-Content -LiteralPath (Join-Path $legacyInstall 'runtime-config.json') -Raw | ConvertFrom-Json
+    if (@($legacyUpdated.providers).Count -ne 1 -or $legacyUpdated.providers[0].name -ne 'local-spool' -or (Test-Path (Join-Path $legacyInstall 'bin/windows-app-notification-provider.exe'))) { throw 'Legacy update did not replace the production provider with Local Spool.' }
+
+    foreach ($failureStage in @('stage', 'self-test', 'bin-swap', 'config-swap')) {
+        $beforeBin = Get-TreeDigest (Join-Path $installRoot 'bin'); $beforeConfig = (Get-FileHash -LiteralPath (Join-Path $installRoot 'runtime-config.json') -Algorithm SHA256).Hash; $beforeUser = (Get-FileHash -LiteralPath (Join-Path $codexHome 'config.toml') -Algorithm SHA256).Hash
+        $env:CODEX_NOTIFICATION_TEST_INSTALL_FAILURE = $failureStage
+        & $installer install --codex-home $codexHome --install-root $installRoot 2>$null
+        if ($LASTEXITCODE -eq 0) { throw "Injected installer $failureStage failure unexpectedly succeeded." }
+        Remove-Item Env:CODEX_NOTIFICATION_TEST_INSTALL_FAILURE -ErrorAction SilentlyContinue
+        if ((Get-TreeDigest (Join-Path $installRoot 'bin')) -ne $beforeBin -or (Get-FileHash -LiteralPath (Join-Path $installRoot 'runtime-config.json') -Algorithm SHA256).Hash -ne $beforeConfig -or (Get-FileHash -LiteralPath (Join-Path $codexHome 'config.toml') -Algorithm SHA256).Hash -ne $beforeUser) { throw "Installer $failureStage failure did not restore bin/config/user state." }
+    }
+
+    Write-Host 'PASS codex notification Local Spool validation (VK-76-001..007, VK-76-009 automated scope)'
 }
 finally {
-    foreach ($name in @('CODEX_NOTIFICATION_RUNTIME_HOME', 'CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT', 'CODEX_NOTIFICATION_TEST_CHAIN_OUTPUT', 'CODEX_NOTIFICATION_TEST_CHAIN_EXIT', 'CODEX_NOTIFICATION_TEST_PROVIDER_EXIT', 'CODEX_NOTIFICATION_TEST_PROVIDER_DELAY_MS', 'CODEX_NOTIFICATION_TEST_FAIL_AFTER_BIN_SWAP', 'CODEX_NOTIFICATION_TEST_PROVIDER_UNSUPPORTED', 'CODEX_NOTIFICATION_TEST_PROVIDER_HANG', 'CODEX_NOTIFICATION_TEST_PROVIDER_HANG_PID_FILE')) {
-        Remove-Item ("Env:" + $name) -ErrorAction SilentlyContinue
+    Remove-Item Env:CODEX_NOTIFICATION_RUNTIME_HOME, Env:CODEX_NOTIFICATION_SPOOL_HOME, Env:CODEX_NOTIFICATION_TEST_PROVIDER_FAILURE, Env:CODEX_NOTIFICATION_TEST_PROVIDER_OUTPUT, Env:CODEX_NOTIFICATION_TEST_PROVIDER_DELAY_MS, Env:CODEX_NOTIFICATION_TEST_PROVIDER_CHILD_OUTPUT, Env:CODEX_NOTIFICATION_TEST_INSTALL_FAILURE, Env:CODEX_NOTIFICATION_TEST_FAIL_AFTER_BIN_SWAP -ErrorAction SilentlyContinue
+    foreach ($process in @($activeProviderProcesses)) {
+        try {
+            if (-not $process.HasExited) { $process.Kill($true); $process.WaitForExit() }
+            $process.Dispose()
+        } catch { }
     }
-    if (Test-Path $validationRoot) { Remove-Item -LiteralPath $validationRoot -Recurse -Force }
+    if (Test-Path -LiteralPath $validationRoot) { Remove-Item -LiteralPath $validationRoot -Recurse -Force }
+    $global:LASTEXITCODE = 0
 }
-
-Write-Host 'PASS codex notification runtime validation'
-$global:LASTEXITCODE = 0

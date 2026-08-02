@@ -26,7 +26,8 @@ var runtimeSourceRoot = FindRuntimeSourceRoot();
 if (runtimeSourceRoot is null) throw new InvalidOperationException("installerと同じdirectory、またはrepositoryのscripts/codex-notification-runtimeにruntime sourceが必要です。");
 var installRoot = parsed.InstallRoot ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexNotificationRuntime");
 var runtimePath = Path.Combine(installRoot, "bin", "codex-notification-runtime.exe");
-var providerPath = Path.Combine(installRoot, "bin", "windows-app-notification-provider.exe");
+var providerPath = Path.Combine(installRoot, "bin", "local-spool-provider.exe");
+var schemaPath = Path.Combine(installRoot, "bin", "spool-item-v1.schema.json");
 
 if (Directory.Exists(codexHome))
 {
@@ -61,23 +62,22 @@ if (parsed.Check)
     var configExists = stored is not null;
     var notifyConfigured = alreadyInstalled;
     var selfWrapAbsent = !IsSelfCommand(stored?.ChainedNotify, runtimePath);
-    var providerSupport = providerExists ? RunCheck(providerPath, "--check-support") : null;
+    var schemaExists = File.Exists(schemaPath);
+    var localSpoolConfigured = stored?.Providers is { Count: 1 } && string.Equals(stored.Providers[0].Name, "local-spool", StringComparison.Ordinal) && stored.Providers[0].Argv.SequenceEqual([providerPath], StringComparer.OrdinalIgnoreCase);
+    var spoolWritable = TryEnsureWritableSpool();
     Console.WriteLine($"runtime_binary: {(runtimeExists ? "PASS" : "FAIL")}");
     Console.WriteLine($"provider_binary: {(providerExists ? "PASS" : "FAIL")}");
+    Console.WriteLine($"spool_schema: {(schemaExists ? "PASS" : "FAIL")}");
     Console.WriteLine($"runtime_config: {(configExists ? "PASS" : "FAIL")}");
     Console.WriteLine($"notify_target: {(notifyConfigured ? "PASS" : "FAIL")}");
     Console.WriteLine($"self_wrap_absent: {(selfWrapAbsent ? "PASS" : "FAIL")}");
-    Console.WriteLine($"provider_support: {(providerSupport == 0 ? "supported" : providerSupport == 3 ? "unsupported" : "check-failed")}");
-    var structurallyValid = runtimeExists && providerExists && configExists && notifyConfigured && selfWrapAbsent;
+    Console.WriteLine($"local_spool_config: {(localSpoolConfigured ? "PASS" : "FAIL")}");
+    Console.WriteLine($"spool_writable: {(spoolWritable ? "PASS" : "FAIL")}");
+    var structurallyValid = runtimeExists && providerExists && schemaExists && configExists && notifyConfigured && selfWrapAbsent && localSpoolConfigured && spoolWritable;
     if (!structurallyValid)
     {
         Console.WriteLine("FAIL installer check");
         Environment.ExitCode = 2;
-    }
-    else if (providerSupport != 0)
-    {
-        Console.WriteLine("DEGRADED installer check: configured provider is unavailable");
-        Environment.ExitCode = 3;
     }
     else
     {
@@ -106,14 +106,17 @@ var runtimeConfigSwapped = false;
 try
 {
     await PublishAsync(Path.Combine(runtimeSourceRoot, "codex-notification-runtime.cs"), stage, "codex-notification-runtime");
-    await PublishAsync(Path.Combine(runtimeSourceRoot, "windows-app-notification-provider.cs"), stage, "windows-app-notification-provider");
+    await PublishAsync(Path.Combine(runtimeSourceRoot, "local-spool-provider.cs"), stage, "local-spool-provider");
+    File.Copy(Path.Combine(runtimeSourceRoot, "spool-item-v1.schema.json"), Path.Combine(stage, "spool-item-v1.schema.json"), overwrite: false);
+    InjectInstallFailure("stage");
     EnsureExitCode(Path.Combine(stage, "codex-notification-runtime.exe"), "--self-test", 0);
-    EnsureExitCode(Path.Combine(stage, "windows-app-notification-provider.exe"), "--self-test", 0);
+    EnsureExitCode(Path.Combine(stage, "local-spool-provider.exe"), "--self-test", 0);
+    InjectInstallFailure("self-test");
     var runtimeConfig = new RuntimeConfig
     {
         TargetMarkers = parsed.TargetMarkers,
         ChainedNotify = chained,
-        Providers = [new ProviderSpec { Name = "windows-app-notification", Argv = [providerPath], TimeoutMs = 5000 }],
+        Providers = [new ProviderSpec { Name = "local-spool", Argv = [providerPath], TimeoutMs = 5000 }],
         OriginalConfigExisted = alreadyInstalled ? stored!.OriginalConfigExisted : File.Exists(configPath)
     };
     var replacement = "notify = [ " + string.Join(", ", targetNotify.Select(TomlString)) + " ]";
@@ -135,9 +138,11 @@ try
     Directory.Move(stage, bin);
     binSwapped = true;
     if (Environment.GetEnvironmentVariable("CODEX_NOTIFICATION_TEST_FAIL_AFTER_BIN_SWAP") == "1") throw new InvalidOperationException("Injected failure after bin swap.");
+    InjectInstallFailure("bin-swap");
     if (File.Exists(runtimeConfigPath)) File.Move(runtimeConfigPath, previousRuntimeConfig);
     WriteAtomic(runtimeConfigPath, JsonSerializer.Serialize(runtimeConfig, runtimeJsonOptions));
     runtimeConfigSwapped = true;
+    InjectInstallFailure("config-swap");
     File.WriteAllText(configPath + ".tmp", output);
     File.Move(configPath + ".tmp", configPath, overwrite: true);
     TryDeleteDirectory(previousBin);
@@ -161,6 +166,12 @@ finally
     TryDelete(previousRuntimeConfig);
 }
 
+static void InjectInstallFailure(string stage)
+{
+    if (string.Equals(Environment.GetEnvironmentVariable("CODEX_NOTIFICATION_TEST_INSTALL_FAILURE"), stage, StringComparison.Ordinal))
+        throw new InvalidOperationException("Injected install failure: " + stage);
+}
+
 static async Task PublishAsync(string source, string output, string name)
 {
     var info = new ProcessStartInfo("dotnet") { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
@@ -179,7 +190,8 @@ static string? FindRuntimeSourceRoot([CallerFilePath] string installerSourcePath
     var adjacent = Path.GetDirectoryName(installerSourcePath);
     if (!string.IsNullOrWhiteSpace(adjacent) &&
         File.Exists(Path.Combine(adjacent, "codex-notification-runtime.cs")) &&
-        File.Exists(Path.Combine(adjacent, "windows-app-notification-provider.cs"))) return adjacent;
+        File.Exists(Path.Combine(adjacent, "local-spool-provider.cs")) &&
+        File.Exists(Path.Combine(adjacent, "spool-item-v1.schema.json"))) return adjacent;
 
     var directory = new DirectoryInfo(Environment.CurrentDirectory);
     while (directory is not null)
@@ -248,6 +260,20 @@ static void EnsureExitCode(string executable, string argument, int expected)
 {
     var actual = RunCheck(executable, argument);
     if (actual != expected) throw new InvalidOperationException($"staged binary check failed: {Path.GetFileName(executable)} exit={actual?.ToString() ?? "timeout"}");
+}
+static bool TryEnsureWritableSpool()
+{
+    try
+    {
+        var home = Environment.GetEnvironmentVariable("CODEX_NOTIFICATION_SPOOL_HOME") ?? Path.Combine(Environment.GetEnvironmentVariable("CODEX_NOTIFICATION_RUNTIME_HOME") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexNotificationRuntime"), "spool");
+        if (!Path.IsPathFullyQualified(home)) return false;
+        Directory.CreateDirectory(home);
+        var probe = Path.Combine(home, ".write-probe-" + Guid.NewGuid().ToString("N"));
+        using (new FileStream(probe, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { }
+        File.Delete(probe);
+        return true;
+    }
+    catch { return false; }
 }
 
 static bool IsSelfCommand(CommandSpec? command, string runtimePath)

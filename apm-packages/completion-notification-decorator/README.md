@@ -1,8 +1,8 @@
 # Completion Notification Decorator
 
-`completion-notification-decorator` distributes the always-on Codex completion notification runtime and provides an optional observational Skill for richer process/result metadata. Once the user-level runtime is installed, every valid `agent-turn-complete` callback produces a generic task-link notification without requiring this Skill, a marker, or an envelope.
+`completion-notification-decorator` distributes the always-on Codex completion Local Spool runtime and provides an optional observational Skill for richer process/result metadata. Once installed, every valid `agent-turn-complete` callback produces one editor-readable JSON spool item without requiring this Skill, a marker, or an envelope.
 
-The package contains no custom agent or generic process runner. It includes checked mirrors of the canonical File-based apps, schemas, and runtime documentation under the installed Skill's `assets/codex-notification-runtime/` directory.
+The package contains no custom agent or generic process runner. It includes checked mirrors of the canonical File-based apps, schemas, and runtime documentation under the installed Skill's `assets/codex-notification-runtime/` directory. The producer/consumer boundary is documented in [local-spool-interface.md](.apm/skills/completion-notification-decorator/assets/codex-notification-runtime/local-spool-interface.md).
 
 ## Install or update
 
@@ -15,11 +15,11 @@ dotnet run --file .\.agents\skills\completion-notification-decorator\assets\code
 dotnet run --file .\.agents\skills\completion-notification-decorator\assets\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --check
 ```
 
-The runtime installer preserves and chains an existing user-level `notify` command. Restart Codex after changing the user-level runtime configuration.
+The runtime installer configures exactly one Local Spool provider. Its default folder is `%LOCALAPPDATA%\CodexNotificationRuntime\spool`; `CODEX_NOTIFICATION_SPOOL_HOME` can supply an absolute override. Restart Codex after changing the user-level runtime configuration.
 
 ## Ordinary notifications
 
-After installation, use Codex normally. A valid callback without notification-specific text or metadata produces a generic `TURN_ENDED` notification. The notification always keeps `codex://threads/<thread-id>` derived from the callback. Missing or invalid enrichment cannot suppress this generic path.
+After installation, use Codex normally. A valid callback without notification-specific text or metadata produces a generic `TURN_ENDED` spool item. The item always keeps `codex://threads/<thread-id>` derived from the callback. Missing or invalid enrichment cannot suppress this path.
 
 ## Optional enrichment
 
@@ -32,15 +32,16 @@ $adaptive-implementation-execution
 このPlanを実装してください。
 ```
 
-The primary process runs under its existing contract. The decorator copies its terminal status into a version 1 envelope at the end of the final response. The callback thread/turn identity remains authoritative. Missing or invalid envelope data falls back to the generic notification, and notification delivery failure does not change the process status.
+The primary process runs under its existing contract. The decorator copies its terminal status into a version 1 envelope at the end of the final response. The callback thread/turn identity remains authoritative. Missing or invalid envelope data falls back to a generic Local Spool item, and persistence failure does not change the process status.
 
-The Windows provider shows `結果を開く` and `このタスクを開く` together when a concrete `result_uri` is present. The latter always uses the callback task ID derived by the runtime. The decorator does not select or start another review or implementation task.
+The Local Spool JSON keeps both `result_uri` and the callback-derived `resume_uri` when available. The decorator does not select or start another review or implementation task. The package does not add a consumer, Inbox, toast, retention, forwarding, or cloud sync.
 
 See [usage guide](docs/usage-guide.md) and [integration validation](docs/examples/integration-validation.md).
 
 ## Validate
 
 ```powershell
+./apm-packages/completion-notification-decorator/scripts/validate-completion-notification-decorator-contract.ps1
 ./apm-packages/completion-notification-decorator/scripts/validate-completion-notification-decorator.ps1
 ./apm-packages/completion-notification-decorator/scripts/test-apm-package-install.ps1
 dotnet publish ./scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs

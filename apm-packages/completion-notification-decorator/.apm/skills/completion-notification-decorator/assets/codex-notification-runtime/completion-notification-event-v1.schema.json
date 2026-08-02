@@ -3,16 +3,16 @@
   "title": "completion-notification-event-v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "source", "primary_process", "observed_status", "occurred_at", "title", "repository", "resume_uri", "source_event_id", "notification_status"],
+  "required": ["schema_version", "source", "primary_process", "observed_status", "occurred_at", "title", "repository", "resume_uri", "result_uri", "source_event_id", "notification_status"],
   "properties": {
     "schema_version": { "const": 1 },
     "source": { "const": "codex.agent-turn-complete" },
-    "primary_process": { "type": "string" },
-    "observed_status": { "type": "string" },
+    "primary_process": { "type": "string", "minLength": 1 },
+    "observed_status": { "type": "string", "minLength": 1 },
     "occurred_at": { "type": "string", "format": "date-time" },
-    "title": { "type": "string" },
-    "repository": { "type": "string" },
-    "resume_uri": { "type": "string", "pattern": "^codex://threads/" },
+    "title": { "type": "string", "minLength": 1 },
+    "repository": { "type": "string", "minLength": 1 },
+    "resume_uri": { "type": "string", "pattern": "^codex://threads/.+" },
     "result_uri": {
       "anyOf": [
         { "type": "null" },
@@ -27,7 +27,7 @@
         }
       ]
     },
-    "source_event_id": { "type": "string", "pattern": "^codex:" },
+    "source_event_id": { "type": "string", "pattern": "^codex:.+" },
     "notification_status": { "enum": ["PENDING", "DELIVERED", "FAILED", "DUPLICATE"] }
   }
 }
