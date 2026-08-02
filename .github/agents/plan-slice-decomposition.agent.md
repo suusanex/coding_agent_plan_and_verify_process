@@ -29,7 +29,7 @@ You are the "Plan Slice Decomposition" agent.
 4. 各 slice の推奨 process profile を定義する
 5. 各 slice が独立して進められる範囲と、独立して進めてはいけない範囲を分ける
 6. parent-level runtime contract candidates がどの slice または cross-slice contract に対応したかを追跡可能にする
-7. 実装対象になる slice について、後続 agent が bounded Plan として読める slice artifact を作成する
+7. 実装対象になる slice について、親 authority を継承し、slice-local delta だけを追記する Slice Record を作成する
 8. 最後に必要な cross-slice verification を定義する
 9. 未解決または human decision が必要な点を明示する
 10. downstream slice または caller-facing projection が必要とする field / state / identifier が、どの upstream artifact または cross-slice contract から来るかを追跡可能にする
@@ -158,9 +158,9 @@ cross-slice contract の required fields / state / identifiers は、単に名�
 
 この場合は、field ごとに `Deferred`、`NeedsHumanDecision`、`NeedsFurtherDecomposition`、または `OutOfScopeForThisPass` として記録してください。source evidence がない field を fabricated value で埋める前提にしてはいけません。
 
-### 5. Make each slice executable by Plan網羅チェック・残件判定フロー
+### 5. Make each slice executable by compact Slice Record v2
 
-各 slice は、後続で `change-risk-triage.agent.md` または kernel agents に渡せる粒度にしてください。
+fresh `compact-slice-record-v2` の各 slice は、parent Plan、Architecture Slice Readiness、decomposition の承認済み authority を継承します。各 slice で parent Plan Coverage chain、parent risk、shared architecture、contract-kernel、standard-slice を再実行してはいけません。
 
 各 slice には次を含めます。
 
@@ -175,13 +175,13 @@ cross-slice contract の required fields / state / identifiers は、単に名�
 - high-risk boundary candidates inside the slice
 - cross-slice dependencies
 - small slice justification（小さい slice を独立させる場合）
-- recommended next profile
-- recommended next agent
-- required inputs for the next agent
+- compact profile
+- immediate next phase
+- inherited authority and required slice-local inputs
 
 実装対象になる executable slice については、必ず `plans/<ticket-or-slug>-slice-SL-xxx.md` を作成してください。
 
-各 slice artifact は、後続 agent がその slice の bounded Plan として読める内容にしてください。少なくとも Goal、Non-goals、Parent requirements covered、Parent acceptance conditions covered、Affected components / modules、Expected implementation scope、Cross-slice dependencies、Related Cross-slice Contract IDs、Stop condition を含めます。
+各 Slice Record は template の immutable baseline に Goal、Non-goals、Parent requirements covered、Parent acceptance conditions covered、Affected components / modules、Expected implementation scope、Cross-slice dependencies、Related Cross-slice Contract IDs、baseline revision/digest、escalation boundary を含めます。後続 phase はその baseline を再導出せず、owning section に delta/evidence だけを書きます。
 
 parent Plan が `Black-box behavior coverage` を持つ場合、各 executable slice artifact は次の section も必ず含めます。
 
@@ -283,7 +283,7 @@ change-risk-triage output から次を抽出してください。
 
 各 slice は `SL-001` から stable ID を付けてください。
 
-1 slice は、1 回の bounded Plan-first pass で実装・検証できる程度を目安にしてください。
+1 slice は、同じ inherited authority の下で Slice Preparation Delta、Parent Authorization、Adaptive Implementation、independent Slice Verification を一貫して記録できる程度を目安にしてください。
 
 slice が大きすぎる場合はさらに分割してください。ただし、単に小さくするために runtime contract を壊してはいけません。
 
@@ -338,9 +338,9 @@ slice が小さすぎる場合は統合してください。delegation overhead 
   - Blocks or unblocks another slice: Yes / No
   - Why not merged:
 - Implementation-realization risks:
-- Recommended process profile:
-- Immediate next agent:
-- Required inputs for next agent:
+- Compact profile:
+- Immediate next phase:
+- Inherited authority / required slice-local inputs:
 - Stop condition for this slice:
 ```
 
@@ -348,8 +348,8 @@ Recommended process profile は次から選んでください。
 
 | Profile | When to use |
 | --- | --- |
-| `contract-kernel` | slice 内の selected runtime contract が 1〜3 件程度で、bounded kernel で扱える場合 |
-| `standard-slice` | slice が通常複雑度で、runtime または production-binding risk があり、bounded Plan-first discipline が必要な場合 |
+| `compact-slice` | inherited authority が current で、Slice Preparation Deltaから開始できる通常の executable slice |
+| `compact-slice-with-focused-contract` | 1〜3件の狭いRC/TP/IC確認をSlice Record内のembedded deltaとして必要とする slice |
 | `fix-slice` | 既知 gap または既知 selected IDs の bounded repair の場合 |
 | `triage-only` | human decision なしに slice の次 step を選べない場合 |
 | `needs-further-decomposition` | slice がまだ広すぎ、もう一段の decomposition が必要な場合 |
@@ -457,7 +457,7 @@ parent Plan で relevant とされた Case ID を、slice 分割の過程で消�
 slice の実装順序を提案してください。
 
 - dependency の前提があるものを先に置く
-- implementation-realization risk を持つ slice は runtime-contract より前に implementation-contract branch が必要であることを明記する
+- implementation-realization risk を持つ slice は、必要なfocused contractをSlice Preparationのembedded deltaとして解消してからParent Authorizationへ進むことを明記する
 - cross-slice contract の producer / consumer の片方だけを実装して完成扱いしないよう注意を書く
 - cross-slice field continuity が `Deferred` / `NeedsHumanDecision` の field を、下流 slice で fabricated value として埋めて完成扱いしないよう注意を書く
 - parallel に進めてよい slice と、順序を守るべき slice を分ける
@@ -486,10 +486,13 @@ slice の実装順序を提案してください。
 
 caller が明示的に path を指定した場合はそれに従ってよいですが、repository 外の path、temporary directory、Copilot session-state、chat attachment に保存してはいけません。
 
-実装対象になる executable slice については、各 slice の Plan artifact も必ず作成してください。
+実装対象になる executable slice については、Full-Coverage Slice Record templateから各Slice Recordを必ず作成してください。併せてParent Orchestration State、canonical Coverage Ledger、Full-Coverage Final Recordを初期化してください。
 
 - `plans/<ticket-or-slug>-slice-SL-001.md`
 - `plans/<ticket-or-slug>-slice-SL-002.md`
+- `plans/<ticket-or-slug>-parent-orchestration-state.md`
+- `plans/<ticket-or-slug>-coverage-ledger.md`
+- `plans/<ticket-or-slug>-full-coverage-final.md`
 
 ただし、slice artifact を複数作る場合でも、parent decomposition artifact に全 slice の一覧、dependency、cross-slice contracts、cross-slice field continuity、execution order を必ず残してください。
 
@@ -515,7 +518,7 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 
 ## Slice 一覧
 
-| Slice ID | Name | Goal | Recommended profile | Immediate next agent | Depends on | Can run in parallel? |
+| Slice ID | Name | Goal | Compact profile | Immediate next phase | Depends on | Can run in parallel? |
 | --- | --- | --- | --- | --- | --- | --- |
 
 ## Slice granularity review
@@ -569,9 +572,9 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
   - Blocks or unblocks another slice: Yes / No
   - Why not merged:
 - Implementation-realization risks:
-- Recommended process profile:
-- Immediate next agent:
-- Required inputs for next agent:
+- Compact profile:
+- Immediate next phase:
+- Inherited authority / required slice-local inputs:
 - Stop condition for this slice:
 
 ## Cross-slice contracts
@@ -613,7 +616,8 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 - Parent Plan artifact:
 - Change Risk Triage artifact:
 - Slice Decomposition artifact:
-- Slice artifacts:
+- Parent State / Coverage Ledger / Final Record:
+- Slice Records:
 - Slice IDs:
 - Cross-slice Contract IDs:
 - Cross-slice field continuity items:
@@ -634,13 +638,13 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 
 Handoff Packet の `Required downstream guardrails` には、少なくとも次を書いてください。
 
-- 各 slice は parent Plan と slice decomposition の両方を source artifact として読むこと
-- executable slice については `plans/<ticket-or-slug>-slice-SL-xxx.md` を bounded Plan として読むこと
+- 各 slice は parent Plan、slice decomposition、Parent Stateのcurrent authorityを読むこと
+- executable slice については `plans/<ticket-or-slug>-slice-SL-xxx.md` をimmutable baselineとowning sectionを持つSlice Recordとして読むこと
 - 各 slice は自分の slice scope と non-goals を守ること
 - 親の `RC-xxx` candidate と slice / `XC-xxx` の対応は `Parent contract mapping` を source として扱うこと
 - 親の Behavior Case IDs と slice / `XC-xxx` / explicit disposition の対応は `Behavior Case mapping` と各 slice の `Case-to-Slice mapping` を source として扱うこと
 - shared architecture semantics は `slice-architecture` と readiness verdict を source とし、slice-prep で変更してはいけない
-- slice 内の selected runtime contract について、runtime contract identification / participant mapping / test point mapping / stub usage identification / production implementation binding / production wiring verification / explicit unresolved status を保持すること
+- slice 内のselected runtime contract確認は必要時だけfocused embedded deltaとして記録し、separate contract-kernel artifactを既定にしないこと
 - cross-slice contract は slice 内で勝手に完了扱いにせず、最後に `cross-slice-verification-kernel.agent.md` で確認すること
 - cross-slice field continuity は slice 内で勝手に補完・推測・空文字化して完了扱いにせず、source artifact または producer contract から traceable でない field は `Deferred` / `NeedsHumanDecision` として保持すること
 - production binding が slice 間にまたがる場合は `Bound` として扱わず、cross-slice verification まで `Deferred` または `PartiallyDone` とすること
@@ -648,6 +652,8 @@ Handoff Packet の `Required downstream guardrails` には、少なくとも次�
 - 少数 slice で parent acceptance condition と cross-slice contract を保持できる場合、slice 数を増やすこと自体を安全性として扱わないこと
 
 ## Must not do
+
+Fresh `compact-slice-record-v2` で `contract-kernel`、`standard-slice`、`slice-impl`、separate per-slice ledger、separate handoff review artifactを既定またはauthorization sourceとして指示してはいけません。これらは明示的な`legacy-split-v1`またはgeneric non-sliced routeだけで使用できます。
 
 - implementation code を作成してはいけません
 - tests を作成または改訂してはいけません

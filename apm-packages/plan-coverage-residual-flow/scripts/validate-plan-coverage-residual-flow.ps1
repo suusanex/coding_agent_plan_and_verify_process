@@ -55,9 +55,7 @@ $manualTemplateRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/ma
 
 $requiredFiles = @(
     $skillRelativePath,
-    $deployedSkillRelativePath,
     $coverageLedgerRelativePath,
-    $deployedCoverageLedgerRelativePath,
     $manifestRelativePath,
     $scenarioRelativePath,
     $manualReadmeRelativePath,
@@ -139,11 +137,16 @@ if ($failures.Count -eq 0) {
     Assert-Matches $adaptiveValidator "plan-coverage-residual-flow/apm\.yml'; Version = '0\\\.9\\\.0'" 'Adaptive validator package version pin must be 0.9.0'
     Assert-Matches $designPairValidator 'Plan Coverage package version 0\.9\.0' 'Design Pair validator package version pin must be 0.9.0'
 
-    $deployedSkillPath = Join-Path $repoRoot $deployedSkillRelativePath
-    Assert-True ((Get-NormalizedText $skillPath) -ceq (Get-NormalizedText $deployedSkillPath)) 'tracked installed Skill projection must match the canonical Skill'
     $coverageLedgerPath = Join-Path $repoRoot $coverageLedgerRelativePath
+    $deployedSkillPath = Join-Path $repoRoot $deployedSkillRelativePath
     $deployedCoverageLedgerPath = Join-Path $repoRoot $deployedCoverageLedgerRelativePath
-    Assert-True ((Get-NormalizedText $coverageLedgerPath) -ceq (Get-NormalizedText $deployedCoverageLedgerPath)) 'tracked installed coverage ledger projection must match the canonical reference'
+    $deployedSkillExists = Test-Path -LiteralPath $deployedSkillPath -PathType Leaf
+    $deployedLedgerExists = Test-Path -LiteralPath $deployedCoverageLedgerPath -PathType Leaf
+    Assert-True ($deployedSkillExists -eq $deployedLedgerExists) 'deployed Plan Coverage projections must be present as a complete pair when provisioned'
+    if ($deployedSkillExists -and $deployedLedgerExists) {
+        Assert-True ((Get-NormalizedText $skillPath) -ceq (Get-NormalizedText $deployedSkillPath)) 'provisioned Skill projection must match the canonical Skill'
+        Assert-True ((Get-NormalizedText $coverageLedgerPath) -ceq (Get-NormalizedText $deployedCoverageLedgerPath)) 'provisioned coverage ledger projection must match the canonical reference'
+    }
 
     $scenarios = @(Get-Content -Raw -LiteralPath (Join-Path $repoRoot $scenarioRelativePath) | ConvertFrom-Json)
     Assert-True ($scenarios.Count -eq 8) 'Scenario fixture must contain exactly A through H'

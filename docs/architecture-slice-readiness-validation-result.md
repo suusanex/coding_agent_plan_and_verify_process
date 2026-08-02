@@ -2,8 +2,8 @@
 
 ## Execution metadata
 
-- Executed at: `2026-08-02T06:57:12+09:00`
-- Executor: Codex, deterministic ASR-001 through ASR-006 fixture revalidation against the repository agent contracts and compact-slice-record-v2 template additions
+- Executed at: `2026-08-02T08:00:00+09:00`
+- Executor: Codex, deterministic ASR-001 through ASR-006 fixture revalidation against the repository agent contracts and PR #80 compact-slice-record-v2 routing/template changes
 - Branch: `main` with PR #79 projection sync merged, plus Issue #74 working tree
 - Reviewed source: Issue #74 invocation authorization changes plus the existing Design Pair waiting-state and full-coverage contracts, captured by the exact contract hashes below
 - Scope: entry authorization, routing, artifact, and existing architecture semantics only; no production code or external system changes
@@ -16,17 +16,17 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | --- | --- |
 | `.github/agents/architecture-slice-readiness.agent.md` | `c2f93ce3004a309d8430bea7e7875e38a2fd983843c95a1abca0324654bf5259` |
 | `.github/agents/architecture-elaboration.agent.md` | `8f53674b988131d847d8c32ca01d850c90820fddb40595a6ca6ff54382948344` |
-| `.github/agents/plan-slice-decomposition.agent.md` | `aa7a4327787f1cfe4ec8acd0aa7b80a21eeae9e8fe53410396ccd33aa92bc5d8` |
+| `.github/agents/plan-slice-decomposition.agent.md` | `b29bf45b5e032b4186b01459a39be37d293dd6d3fe43f1d90d917ca177348208` |
 | `slice-prep.agent.md` | `6581969b6c5e65653357e3e00ae574d3cbebedf109359316f06510d5fe7b77f8` |
 | `slice-impl.agent.md` | `3ba9061879cc5643d7dea7b32501d852cc7926168837a428dc71551c56dff7b5` |
 | `token-aware-full-coverage-3layer/SKILL.md` | `717c91f6b65e3eab4003ba4938f99ec4abb01982f212ecbd2dc254208e9c9c91` |
-| `plan-coverage-residual-flow/SKILL.md` | `311efd4daed8de55a18f288704f156e7702d992d870fcd7190ea542b67916672` |
+| `plan-coverage-residual-flow/SKILL.md` | `8814975edb2cc8ec48dc369c117d6e1cb9ca07ca59c0468151347841d873db3a` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 | `coverage-ledger.md` template | `af6d9252c720ba9298e99f8ac23a975108a841be725ff3fbb0a4d5c4c6866da7` |
 | `plan-coverage-lite.md` template | `e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90` |
-| `full-coverage-parent-orchestration-state.md` template | `24c9b5ceb832304b2599020b9a203124247edeaed9d10146abfe53dc70e1696a` |
-| `full-coverage-slice-record.md` template | `28733d9b7ddc60865a5549e7e6ce9412a41de117742ad6fd935b03557b20ae21` |
-| `full-coverage-final.md` template | `97d36edf32f043c69908e4574d1863146144c94e5a7ab08db1cb6f5210095df6` |
+| `full-coverage-parent-orchestration-state.md` template | `80d422aafd8b13642fdcfa66cbd136e6b5119bc0e3d6672ebbe7ad4c9bba2e4f` |
+| `full-coverage-slice-record.md` template | `e20f93f7401b52b8a34d1f1feb4e774ad4dcb9780c44babcad81d6c9b01dd283` |
+| `full-coverage-final.md` template | `cb61121c3dc556017bb9793800fd89ecc7e5c64c3a7a4f237f633cfa91b664a9` |
 
 ## Durable fixture evidence
 
@@ -149,7 +149,7 @@ Immediate next action: stop until the decision source is recorded
 | Slice Architecture template path | PASS | canonical template exists and all affected manifests reference an existing path |
 | Durable fixture artifacts | PASS | ASR-001〜006 input/output/run files exist and every run reference resolves |
 | Expected / actual comparison | PASS | validator compared every `actual.json` with `expected.json` and checked values against full Markdown outputs |
-| Current contract revision hashes | PASS | all eleven normalized contract hashes above match the files revalidated on 2026-07-31 |
+| Current contract revision hashes | PASS | all normalized contract hashes above match the files revalidated for PR #80 |
 | `git diff --check` | PASS | no whitespace errors; Windows line-ending warnings only |
 
 ## Limitations

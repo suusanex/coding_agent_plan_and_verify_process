@@ -44,6 +44,11 @@ coverage_ledger: plans/<slug>-coverage-ledger.md
 
 ### Direct FixNow Selectors
 
+Each selector must project to exactly one owning Slice Record. The selector is invalid for a compact run unless it records the source Final Record section, selector ID, owning `SL-xxx`, owning Slice Record path, Parent Authorization revision, authorized baseline digest, bounded scope, and required verification rerun. The parent records `READY_FOR_FIX`; the owning Slice Record records the matching `FIX-xxx` pass. Final verification facts remain in this record and are refreshed only after the slice verification rerun.
+
+| Selector ID | Source section / row | Owning Slice ID | Owning Slice Record | Authorization revision | Authorized baseline digest | Bounded scope | Verification rerun required | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+
 ### Human Decisions Required
 
 ### Residual Verdict

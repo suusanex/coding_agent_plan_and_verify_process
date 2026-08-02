@@ -206,6 +206,9 @@ implementation_route_source: default
 ### FIX-xxx
 
 - Selector source:
+- Selector ID / source section-row:
+- Owning Slice Record / Slice ID:
+- Parent Authorization revision / baseline digest:
 - Scope:
 - Files changed:
 - Checks:
