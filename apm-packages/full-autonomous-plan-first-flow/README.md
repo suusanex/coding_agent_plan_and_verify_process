@@ -13,13 +13,13 @@ bounded Planをsource of truthとして残件を明示判断したい場合は�
 
 ## Install
 
-source repositoryのrootから、必要なagent targetへpackageを導入します。
+導入先repositoryのrootから、remote sourceを指定して必要なagent targetへpackageを導入します。
 
 ```powershell
-apm install .\apm-packages\full-autonomous-plan-first-flow --target copilot,codex
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/full-autonomous-plan-first-flow --target copilot,codex
 ```
 
-remote sourceから導入する場合は、local pathを`suusanex/coding_agent_plan_and_verify_process/apm-packages/full-autonomous-plan-first-flow`へ置き換えます。
+このpackageはrepository rootのagentを`git: parent`で参照します。APM 0.26.0ではlocal filesystem pathからpackage全体を導入するとparent repositoryを継承できないため、local package installには対応していません。
 
 ## Start
 
@@ -57,11 +57,13 @@ dependency、API、provider、既存実装との比較が重要な場合は、�
 - [Integration test verification agent contract](../../.github/agents/integration-test-verification-implementation.agent.md)
 - [Coverage gap resolution agent contract](../../.github/agents/coverage-gap-resolution.agent.md)
 
-package構造とdependency解決は、source repositoryのrootからAPMのdry-runで確認します。
+local変更では、source repositoryのrootから静的validatorを実行します。validatorはmanifestの全dependencyが`git: parent`を使うことと、各dependency pathがrepository内に実在することを確認します。
 
 ```powershell
-apm install .\apm-packages\full-autonomous-plan-first-flow --target copilot,codex --dry-run
+./scripts/validate-readme-navigation.ps1
 ```
+
+remote install smokeが必要な場合は、変更をtemporary remote refへpushした後、package sourceをfull commit SHAで固定して`--dry-run`を実行します。local filesystem pathへ置き換えないでください。
 
 ## Selection guide
 
