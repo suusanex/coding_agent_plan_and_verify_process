@@ -57,7 +57,9 @@ apm-packages/completion-notification-decorator/
   .apm/skills/completion-notification-decorator/assets/codex-notification-runtime/
 ```
 
-canonical runtimeのsource、schema、README、decision record、manual verificationを変更した場合はmirrorを同時に更新し、contract validatorとpackage install smokeでhash一致を確認します。mirrorだけを独立して編集しません。
+runtime source、schema、producer / consumer contract、decision record、manual verificationを変更した場合はmirrorを同時に更新し、contract validatorとpackage install smokeでhash一致を確認します。
+
+READMEは利用コンテキストごとに責務を分けます。canonical READMEはsource repository rootからの導入・検証を案内し、asset READMEは導入先repositoryの`.agents/skills/completion-notification-decorator/assets/codex-notification-runtime/`から実行できる手順を案内します。README同士はhash一致の対象にせず、asset READMEがsource repository固有の`scripts/codex-notification-runtime/`を要求しないことをvalidatorで確認します。
 
 ## Validation matrix
 
@@ -111,6 +113,6 @@ git diff --check
 
 READMEやMarkdown linkを変更した場合は、相対linkのtargetが存在することも確認します。local static validatorのPASSは、real model independence、real GitHub mutation、Windows packaged app、Codex callback、remote APM installの実行証拠を意味しません。
 
-## CI path filters
+## CI trigger policy
 
-package READMEやpackage-owned docsは、対応する`apm-packages/<name>/**` filterでvalidatorを起動します。root navigationまたは横断保守文書を検証するworkflowは`README.md`または`docs/**`もfilterへ含めます。documentation ownershipを移した場合は、validatorのassertion targetとworkflow filterを同じ変更で更新します。
+README navigation workflowは、リンク先だけの削除やrenameも検出するためpath filterを設けず、すべてのpull requestと`main`へのpushで実行します。package固有workflowでpath filterを使う場合は、READMEだけでなく、そのREADMEから参照するpackage-owned docs、scripts、schemaも起動対象へ含めます。documentation ownershipを移した場合は、validatorのassertion targetとworkflow triggerを同じ変更で確認します。

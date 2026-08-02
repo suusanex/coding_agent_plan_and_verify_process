@@ -2,25 +2,9 @@ name: Validate README navigation
 
 on:
   pull_request:
-    paths:
-      - 'README.md'
-      - 'docs/installation-and-maintenance.md'
-      - 'apps/CodexLocalInbox/README.md'
-      - 'scripts/codex-notification-runtime/README.md'
-      - 'apm-packages/*/README.md'
-      - 'scripts/validate-readme-navigation.ps1'
-      - '.github/workflows/validate-readme-navigation.yml'
   push:
     branches:
       - main
-    paths:
-      - 'README.md'
-      - 'docs/installation-and-maintenance.md'
-      - 'apps/CodexLocalInbox/README.md'
-      - 'scripts/codex-notification-runtime/README.md'
-      - 'apm-packages/*/README.md'
-      - 'scripts/validate-readme-navigation.ps1'
-      - '.github/workflows/validate-readme-navigation.yml'
 
 permissions:
   contents: read

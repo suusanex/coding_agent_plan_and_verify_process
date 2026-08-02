@@ -11,6 +11,28 @@ bounded Planをsource of truthとして残件を明示判断したい場合は�
 - full runtime evidenceやintegration test designを人間が詳細にreviewしたい
 - bounded passよりも、広い自律実行と網羅性を優先する
 
+## Install
+
+source repositoryのrootから、必要なagent targetへpackageを導入します。
+
+```powershell
+apm install .\apm-packages\full-autonomous-plan-first-flow --target copilot,codex
+```
+
+remote sourceから導入する場合は、local pathを`suusanex/coding_agent_plan_and_verify_process/apm-packages/full-autonomous-plan-first-flow`へ置き換えます。
+
+## Start
+
+導入先repositoryで、最初に詳細Planの作成を依頼します。
+
+```text
+Full Autonomous Plan-first Flowを使って、この変更を進めてください。
+まずplan-generation.agent.mdで詳細Planを作成し、plan-review.agent.mdでreviewしてください。
+実装前に必要なruntime evidenceとintegration test designも作成してください。
+```
+
+短い依頼を自動でcost-aware routeへ振り分けたい場合は、Full Autonomousを直接起動せず[Codex-first AI Development Process](../codex-first-ai-development-process/README.md)を使います。
+
 ## Flow
 
 1. `plan-generation.agent.md`で詳細Planを作る。
@@ -25,6 +47,21 @@ dependency、API、provider、既存実装との比較が重要な場合は、�
 ## Package contents
 
 このpackageの`apm.yml`は、full autonomous flowで使うroot `.github/agents/*.agent.md`を配布します。Plan Coverageのkernel、residual decision、compact slice executionはこのpackageの標準手順ではありません。
+
+## Documentation and validation
+
+- [Plan generation agent contract](../../.github/agents/plan-generation.agent.md)
+- [Plan review agent contract](../../.github/agents/plan-review.agent.md)
+- [Runtime evidence agent contract](../../.github/agents/runtime-evidence.agent.md)
+- [Integration test design agent contract](../../.github/agents/integration-test-design.agent.md)
+- [Integration test verification agent contract](../../.github/agents/integration-test-verification-implementation.agent.md)
+- [Coverage gap resolution agent contract](../../.github/agents/coverage-gap-resolution.agent.md)
+
+package構造とdependency解決は、source repositoryのrootからAPMのdry-runで確認します。
+
+```powershell
+apm install .\apm-packages\full-autonomous-plan-first-flow --target copilot,codex --dry-run
+```
 
 ## Selection guide
 

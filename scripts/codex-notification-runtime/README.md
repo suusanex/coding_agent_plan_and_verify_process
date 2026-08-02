@@ -34,11 +34,11 @@ process、status、title、repository、resultを表示したい場合だけ、p
 
 `result_uri`は具体的な結果を指すuserinfoなしのHTTPS URLだけを受理します。host root、GitHub top、owner top、repository topのような粗いlinkは破棄します。envelope、field、URIが不正な場合はenrichment全体を無視し、generic itemを保存します。runtimeまたはproviderの失敗はprimary Codex turnを失敗にしません。
 
-optional enrichmentを生成するSkillについては`apm-packages/completion-notification-decorator/README.md`を参照してください。
+optional enrichmentを生成するSkillについては[Completion Notification Decorator](../../apm-packages/completion-notification-decorator/README.md)を参照してください。
 
 ## Producer and consumer boundary
 
-producer / consumer I/F、`spool-item-v1` fields、file naming、atomic publication、consumer-owned retentionは[local-spool-interface.md](local-spool-interface.md)で定義します。WinUI consumerの入口は`apps/CodexLocalInbox/README.md`です。
+producer / consumer I/F、`spool-item-v1` fields、file naming、atomic publication、consumer-owned retentionは[local-spool-interface.md](local-spool-interface.md)で定義します。WinUI consumerの入口は[Codex Local Inbox](../../apps/CodexLocalInbox/README.md)です。
 
 rollbackとprovider選択のdecisionは[decision-record.md](decision-record.md)、実機確認済み範囲とManualOnly項目は[manual-verification.md](manual-verification.md)を参照してください。
 
@@ -48,4 +48,4 @@ rollbackとprovider選択のdecisionは[decision-record.md](decision-record.md)�
 ./scripts/codex-notification-runtime/validate-codex-notification-runtime.ps1
 ```
 
-Completion Notification Decorator packageは、このdirectoryのruntime assetsをinstalled Skill内へmirrorします。canonicalとmirrorの同期規則は`docs/installation-and-maintenance.md`を参照してください。
+Completion Notification Decorator packageは、このdirectoryのruntime assetsをinstalled Skill内へmirrorします。canonicalとmirrorの同期規則は[Installation and Maintenance](../../docs/installation-and-maintenance.md#notification-runtime-mirrors)を参照してください。

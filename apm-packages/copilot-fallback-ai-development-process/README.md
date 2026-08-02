@@ -12,11 +12,11 @@ Codexの利用枠が尽きた場合、または環境上Codexを使えない場�
 
 ## Install
 
-既存`.github/`と`AGENTS.md`との衝突を確認するため、先にdry-runします。
+既存`.github/`と`AGENTS.md`との衝突を確認するため、先にdry-runします。次のコマンドは、このsource repositoryのrootから実行します。
 
 ```powershell
-dotnet run --file .\scripts\install-copilot-fallback-local.cs -- <target-repository> --dry-run
-dotnet run --file .\scripts\install-copilot-fallback-local.cs -- <target-repository>
+dotnet run --file .\apm-packages\copilot-fallback-ai-development-process\scripts\install-copilot-fallback-local.cs -- <target-repository> --dry-run
+dotnet run --file .\apm-packages\copilot-fallback-ai-development-process\scripts\install-copilot-fallback-local.cs -- <target-repository>
 ```
 
 同名のmanaged fileを上書きする必要がある場合だけ`--force`を使います。markerのない既存`.github/copilot-instructions.md`はmanual merge blockerとして停止します。
@@ -43,6 +43,10 @@ dotnet run --file .\scripts\install-copilot-fallback-local.cs -- <target-reposit
 | `COPILOT_CHEAP_MODEL` | read-heavy scan、docs consistency、trivial local fix |
 
 READY前に実装せず、`ManualVerificationRequired`、`NeedsHumanDecision`、`NeedsHigherModelReview`が未決のままcloseしません。fake、stub、mock-only successをproduction successとして扱いません。
+
+## Compatibility limitations
+
+Codex-firstのstate、stop vocabulary、READY / close policyを共有していても、実装機能が同等という意味ではありません。Codex-firstにあるlite / standard documentation level、core / audit artifact分離、profile TOML互換更新はCopilot fallbackへ未移植です。これらは後続issueで扱うため、fallbackのtemplateやinstallerが対応済みであるとは判断しないでください。
 
 ## Documentation
 

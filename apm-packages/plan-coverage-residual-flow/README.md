@@ -56,8 +56,9 @@ Guardrail Focus candidates、Plan readiness、次gateへのhandoffを記録し�
 4. `full-coverage`の場合は`architecture-slice-readiness`を通す。必要なら`architecture-elaboration`後に再判定し、許可された場合だけ`plan-slice-decomposition`へ進む。
 5. 必要なimplementation contract、runtime contract、test design、implementation handoff reviewを作る。
 6. 非自明な実装は`high-implementation-starter`から開始し、valid handoff後だけ`standard-implementation-completer`へ直列委譲する。
-7. `verification-kernel`がparent Plan coverageとproduction bindingを検証する。full-coverageでは`cross-slice-verification-kernel`も実行する。
-8. 未解決項目を`coverage-gap-triage`と`residual-decision-gate`へ渡す。explicit FixNow selectorだけを`coverage-gap-resolution-slice`で修正する。
+7. human reviewの重点を整理する場合は、任意で`code-review-focus-kernel`を実行する。
+8. `verification-kernel`がparent Plan coverageとproduction bindingを検証する。full-coverageでは`cross-slice-verification-kernel`も実行する。
+9. 未解決項目を`coverage-gap-triage`と`residual-decision-gate`へ渡す。explicit FixNow selectorだけを`coverage-gap-resolution-slice`で修正する。
 
 各agentは1回のbounded passで停止し、未解決項目をartifactへ残します。
 
@@ -107,6 +108,16 @@ verification-kernel.agent.md を実行し、Parent Plan Coverage Ledgerを更新
 Guardrail Focus RC / TPはproduction implementation、wiring、entrypoint、
 contract representationを深く確認し、focus外のparent Plan itemも分類してください。
 修正は行わず、parent Plan verdictと未解決項目を出してください。
+```
+
+human reviewの重点を整理する場合:
+
+```text
+code-review-focus-kernel.agent.mdを使い、bounded Plan、change-risk-triage、
+implementation contract、runtime contract、実装差分を対応付けてください。
+human reviewerが確認する順序、重点surface、parent Plan item、Guardrail Focus、
+未解決riskをplans/<slug>-code-review-focus-kernel.mdへ記録してください。
+実装の承認、修正、書き換えは行わないでください。
 ```
 
 residual decisionを行う場合:
@@ -181,6 +192,7 @@ fresh post-decomposition workでは[full-coverage 3層運用](../token-aware-ful
 | `plans/<slug>-coverage-ledger.md` | canonical Parent Plan / Behavior Case / Residual ledgers |
 | `plans/<slug>-implementation-handoff-review.md` | implementation authorization |
 | `plans/<slug>-implementation-execution.md` | implementation evidence、checks、remaining work |
+| `plans/<slug>-code-review-focus-kernel.md` | 任意のhuman review重点、確認順序、未解決risk |
 | `plans/<slug>-verification-kernel.md` | parent Plan verification result |
 | `plans/<slug>-coverage-gap-triage.md` | unresolved gap classification |
 | `plans/<slug>-residual-decision-gate.md` | residual decisionsとnext verdict |

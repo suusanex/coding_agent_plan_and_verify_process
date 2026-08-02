@@ -3,7 +3,25 @@ $packageRoot = Split-Path -Parent $PSScriptRoot
 $repositoryRoot = (Resolve-Path (Join-Path $packageRoot '..\..')).Path
 $canonicalRoot = Join-Path $repositoryRoot 'scripts/codex-notification-runtime'
 $assetRoot = Join-Path $packageRoot '.apm/skills/completion-notification-decorator/assets/codex-notification-runtime'
-$files = @('README.md', 'local-spool-interface.md', 'codex-notification-runtime.cs', 'local-spool-provider.cs', 'install-codex-notification-runtime-local.cs', 'spool-item-v1.schema.json', 'completion-notification-envelope-v1.schema.json', 'completion-notification-event-v1.schema.json', 'decision-record.md', 'manual-verification.md', 'windows-app-notification-provider.cs')
+$canonicalReadme = Join-Path $canonicalRoot 'README.md'
+$assetReadme = Join-Path $assetRoot 'README.md'
+if (-not (Test-Path -LiteralPath $canonicalReadme -PathType Leaf) -or -not (Test-Path -LiteralPath $assetReadme -PathType Leaf)) {
+    throw 'Missing canonical or installed-asset runtime README.'
+}
+
+$canonicalReadmeText = Get-Content -LiteralPath $canonicalReadme -Raw
+$assetReadmeText = Get-Content -LiteralPath $assetReadme -Raw
+if (-not $canonicalReadmeText.Contains('.\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs', [StringComparison]::Ordinal)) {
+    throw 'Canonical runtime README must retain repository-root installation commands.'
+}
+if (-not $assetReadmeText.Contains('.\.agents\skills\completion-notification-decorator\assets\codex-notification-runtime', [StringComparison]::Ordinal)) {
+    throw 'Installed-asset runtime README must use its installed Skill asset path.'
+}
+if ($assetReadmeText.Contains('.\scripts\codex-notification-runtime', [StringComparison]::Ordinal)) {
+    throw 'Installed-asset runtime README must not require the source repository scripts path.'
+}
+
+$files = @('local-spool-interface.md', 'codex-notification-runtime.cs', 'local-spool-provider.cs', 'install-codex-notification-runtime-local.cs', 'spool-item-v1.schema.json', 'completion-notification-envelope-v1.schema.json', 'completion-notification-event-v1.schema.json', 'decision-record.md', 'manual-verification.md', 'windows-app-notification-provider.cs')
 foreach ($file in $files) {
     $canonical = Join-Path $canonicalRoot $file; $asset = Join-Path $assetRoot $file
     if (-not (Test-Path $canonical) -or -not (Test-Path $asset)) { throw "Missing canonical or checked asset: $file" }

@@ -35,12 +35,12 @@ $codex-first-cost-router を使って、この issue を進めてください。
 
 ## Install
 
-標準bootstrapはFile-based appで対象repositoryへ適用します。
+標準bootstrapはFile-based appで対象repositoryへ適用します。次のコマンドは、このsource repositoryのrootから実行します。
 
 ```powershell
-dotnet run --file .\scripts\apply-codex-first-local.cs -- <target-repository> --dry-run
-dotnet run --file .\scripts\apply-codex-first-local.cs -- <target-repository>
-dotnet run --file .\scripts\apply-codex-first-local.cs -- <target-repository> --check
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs -- <target-repository> --dry-run
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs -- <target-repository>
+dotnet run --file .\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs -- <target-repository> --check
 ```
 
 `--dry-run`と`--check`はfileやdirectoryを作成しません。`--check`はcanonical agent contracts、Adaptive skillの完全な`refs/handoff.md`、Design Pair referencesが対象repositoryに存在してpackage sourceと一致することも検証します。既存APM向けの`scripts/provision-work-repo-agents.cs`はCodex-first bootstrapには使いません。
