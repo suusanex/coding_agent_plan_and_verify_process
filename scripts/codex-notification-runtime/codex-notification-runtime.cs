@@ -256,8 +256,9 @@ static async Task<bool> InvokeProviderAsync(ProviderSpec provider, CompletionEve
         catch
         {
             TryKill(process);
-            try { await stderr; } catch { }
-            try { await process.WaitForExitAsync(); } catch { }
+            using var cleanupTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+            try { await process.WaitForExitAsync(cleanupTimeout.Token); } catch { }
+            try { await stderr.WaitAsync(cleanupTimeout.Token); } catch { }
             WriteLog(runtimeHome, "provider-timeout", eventHash, null);
             return false;
         }
