@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "CodexLocalInbox (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "CodexLocalInbox (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

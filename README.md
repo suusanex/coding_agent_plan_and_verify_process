@@ -1,5 +1,10 @@
 # coding_agent_plan_and_verify_process
 
+## Codex Local Inbox
+
+The packaged WinUI consumer for the Local Spool notification contract is
+documented in [apps/CodexLocalInbox/README.md](apps/CodexLocalInbox/README.md).
+
 GitHub Copilot / Codex で Plan-first 開発をするための agent（`.github/agents/`）、APM package、運用ドキュメントを管理する repository です。
 
 ## Codex completion notification runtime
