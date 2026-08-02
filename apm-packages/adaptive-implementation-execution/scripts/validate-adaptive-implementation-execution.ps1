@@ -195,8 +195,8 @@ if (Test-Path -LiteralPath $manifestPath) {
 }
 
 $integratedManifests = @(
-    @{ Path = 'apm-packages/plan-coverage-residual-flow/apm.yml'; Version = '0\.8\.1' },
-    @{ Path = 'apm-packages/token-aware-full-coverage-3layer/apm.yml'; Version = '0\.5\.0' },
+    @{ Path = 'apm-packages/plan-coverage-residual-flow/apm.yml'; Version = '0\.9\.0' },
+    @{ Path = 'apm-packages/token-aware-full-coverage-3layer/apm.yml'; Version = '0\.6\.0' },
     @{ Path = 'apm-packages/codex-first-ai-development-process/apm.yml'; Version = '0\.6\.0' },
     @{ Path = 'apm-packages/copilot-fallback-ai-development-process/apm.yml'; Version = '0\.3\.0' }
 )
@@ -279,7 +279,7 @@ Assert-Contains $fullCoverageSkill 'NEEDS_HIGH_MODEL_REENTRY.*high-implementatio
 Assert-Contains $fullCoverageSkill 'HIGH and STANDARD write owners did not overlap' 'per-slice serial ownership audit'
 Assert-Contains $fullCoverageSkill '`slice-impl`.*legacy compatibility' 'legacy slice implementation notice'
 Assert-Contains $fullCoverageSkill 'BlockedByMissingAdaptiveImplementationDelegation' 'missing adaptive delegation blocker'
-Assert-Contains $fullCoverageSkill 'plans/<ticket-or-slug>-implementation-execution\.md' 'full-coverage durable implementation result artifact'
+Assert-Contains $fullCoverageSkill 'same Slice Record Implementation section' 'full-coverage durable implementation result record'
 Assert-Contains $fullCoverageSkill 'Completion Handoff.*inline' 'full-coverage inline completion handoff default'
 $fullCoverageInstruction = 'apm-packages/token-aware-full-coverage-3layer/.apm/instructions/token-aware-full-coverage-3layer.instructions.md'
 Assert-Contains $fullCoverageInstruction 'high-implementation-starter' 'full-coverage instruction HIGH start'

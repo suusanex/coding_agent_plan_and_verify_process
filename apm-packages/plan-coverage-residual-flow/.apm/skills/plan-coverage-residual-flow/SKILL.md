@@ -291,3 +291,11 @@ Use existing agent verdict vocabulary. Do not invent replacement verdicts in thi
 Keep routing language tool-neutral. Codex may consume this as a repository-local skill, while GitHub Copilot can translate the same sequence into custom agents, prompt files, or custom instructions.
 
 Always spell out agent file names, artifact names, Plan readiness values, and close blockers so the flow can be moved between Codex and GitHub Copilot without changing the process meaning.
+
+## Full-coverage compact post-decomposition route
+
+After current Architecture Slice Readiness and decomposition, a fresh full-coverage execution uses `compact-slice-record-v2`, not a bounded parent Plan pass per slice. Each executable slice inherits the approved parent authority and enters: Slice Preparation Delta → Parent Authorization → Adaptive Implementation → independent Slice Verification → optional bounded fix. Parent readiness, parent risk, and shared architecture are not re-derived per slice.
+
+The standard artifacts are the Parent Plan and pre-slice authority, canonical coverage ledger, Parent Orchestration State, one Slice Record per executable slice, and Full-Coverage Final Record. Parent Authorization plus a passing same-digest Inline Slice Ready Gate is the v2 pre-implementation equivalent. Final cross-slice verification writes Final Verification Snapshot and residual authority writes Residual / Close Decision in the Final Record. Generic non-sliced behavior remains unchanged.
+
+Fresh records identify `full_coverage_artifact_layout: compact-slice-record-v2` and source `default-new-flow`. Existing split work identifies `legacy-split-v1` and `legacy-resume`; do not migrate or mix layouts. Separate artifacts require the compact Separate Artifact Creation Gate and Parent State Exception Register entry. Design Pair remains an explicit tracked-handoff exception. No route may recursively invoke a parent triage for an executable v2 slice.

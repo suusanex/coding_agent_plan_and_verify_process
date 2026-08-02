@@ -71,8 +71,8 @@ try {
         }
 
         $block = $lockBlock.Groups['block'].Value
-        if ($block -cnotmatch '(?m)^  version:\s*0\.8\.1\s*$') {
-            throw 'Fresh APM lock does not contain Plan Coverage package version 0.8.1.'
+        if ($block -cnotmatch '(?m)^  version:\s*0\.9\.0\s*$') {
+            throw 'Fresh APM lock does not contain Plan Coverage package version 0.9.0.'
         }
 
         $installedHash = Get-NormalizedTextSha256 $installedSkillPath

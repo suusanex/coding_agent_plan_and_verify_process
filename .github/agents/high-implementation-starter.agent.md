@@ -242,3 +242,7 @@ Parent Plan Coverage、Behavior Case、slice、runtime-contract、test-point、i
 - Implementation Completion Handoff when delegating
 - route identity repair evidence（invalid-artifact `BLOCKED`の場合）
 - final review status: `Not performed by this agent`
+
+## Compact full-coverage slice input
+
+When `artifact_layout: compact-slice-record-v2` is supplied, require `slice_record_path`, `parent_state_path`, `authorization_revision`, and `authorized_baseline_digest`. Fail closed on a layout, digest, revision, or Parent Authorization mismatch. Read immutable baseline, Slice Preparation, Parent Authorization, and Design Pair sections through the record authority index; do not re-read or copy parent artifacts wholesale. Record implementation evidence, self-map, checks, remaining work, and any tracked HIGH-to-STANDARD handoff in the same Slice Record Implementation section. Do not create `plans/<slug>-implementation-execution.md` for v2; any independent handoff file needs Parent State exception registration.

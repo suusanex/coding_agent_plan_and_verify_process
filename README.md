@@ -792,7 +792,8 @@ full-coverage
         -> architecture-elaboration.agent.md
         -> architecture-slice-readiness.agent.md (rerun)
      -> NeedsHumanDecision (stop)
-  -> per-slice bounded parent Plan pass
+  -> inherited-authority compact slice execution
+     -> Slice Preparation Delta -> Parent Authorization -> Adaptive Implementation -> independent Slice Verification
   -> cross-slice-verification-kernel.agent.md
   -> residual-decision-gate.agent.md
 ```
@@ -1189,3 +1190,7 @@ Plan網羅チェック・残件判定フローでは、通常は次の成果物�
 - fake / stub だけを production の完成と扱わない
 - 1 回の bounded な実行で停止し、残件は成果物に残す
 - final done は parent Plan coverage と residual decision の両方で判定する
+
+### Full-coverage compact slice records
+
+Fresh full-coverage work keeps the parent readiness and architecture gates, then uses `compact-slice-record-v2`: one Parent Orchestration State, one canonical coverage ledger, one living Slice Record per executable slice, and one Final Record. A slice inherits approved parent authority; it does not re-enter the parent process. Its route is preparation delta, parent authorization, Adaptive Implementation, independent verification, and an optional bounded fix. Legacy split artifacts remain supported for explicit compatibility and resumes; historical plans are not migrated. Model assignments are unchanged.

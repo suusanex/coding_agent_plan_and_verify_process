@@ -62,3 +62,5 @@ full-coverage 3層運用は標準ルートではない。
 - 初心者やチーム導入では、この `codex-first-ai-development-process` を使う。
 - 既存運用に慣れていて、明示的に flow を選べる場合は `plan-coverage-residual-flow` または `full-autonomous-plan-first-flow` を直接選択できる。
 - この package は既存 package の source を複製せず、同じ agent 群を参照して応用運用だけを追加する。
+
+- full-coverage decomposition 後の fresh routeは`compact-slice-record-v2`である。Parent authorityをsliceで再導出せず、Slice Preparation Delta、Parent Authorization、Adaptive Implementation、independent Slice Verification、Final Recordの順で進める。legacy splitを自動migrationしない。

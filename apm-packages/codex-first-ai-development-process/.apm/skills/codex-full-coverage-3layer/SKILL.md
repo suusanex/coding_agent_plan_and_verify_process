@@ -53,3 +53,7 @@ Return:
 - model tier assignment summary
 - residual decision summary
 - manual or higher-model review needs
+
+## Compact full-coverage route
+
+After approved decomposition, use `compact-slice-record-v2`: Parent State and one Slice Record per executable slice replace separate execution/review artifacts. Each slice inherits authority, records only preparation deltas, receives Parent Authorization, uses Adaptive Implementation, then independent verification. The Final Record owns cross-slice verification and residual close decisions. Preserve legacy split compatibility and existing model assignments.

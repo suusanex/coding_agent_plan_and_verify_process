@@ -691,3 +691,9 @@ readiness gate が decomposition を許可した場合だけ `plans/<ticket-or-s
 | `Bound` | test substitute に対して、production interface・production implementation・production wiring / entrypoint に加え、post-wiring behavior が required postcondition を満たすことが確認済みである |
 
 この agent は原則として `Bound` を使ってはいけません。production binding は slice verification または cross-slice verification で確認します。
+
+## Compact Slice Record v2 output
+
+Fresh executable full-coverage slices use `full_coverage_artifact_layout: compact-slice-record-v2` and `full_coverage_artifact_layout_source: default-new-flow`. Create `plans/<slug>-slice-SL-xxx.md` from the Full-Coverage Slice Record template with unique immutable baseline markers, baseline revision/digest, inherited parent authorities, allowed slice-local decision surface, and escalation boundaries. Separate inherited authority from unresolved local work. Baseline changes make preparation and authorization stale.
+
+Use `compact-slice`, `compact-slice-with-focused-contract`, `fix-slice`, `triage-only`, or `needs-further-decomposition` as the recommended profile. Do not default an executable v2 slice to `contract-kernel` or `standard-slice`. Preserve few-slice/coalescing rules, CASE/XC/field continuity, parent mapping, and final cross-slice obligations. Fresh decomposition also initializes Parent State, canonical Coverage Ledger, and Full-Coverage Final Record references; it does not start per-slice implementation.

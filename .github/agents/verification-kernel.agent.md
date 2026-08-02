@@ -484,3 +484,7 @@ Requirement-elaboration gap（`UnexpandedRequirement`、`SourceRequirementNotMap
 `Bound` は、production interface + concrete implementation + wiring/entrypoint + post-wiring behavior against required postcondition が確認できた場合にのみ付けてください。いずれか一つでも未確認の場合は `PartiallyDone` または `NotImplementedOrMismatch` を使い、残件を `Remaining work` に明記してください。
 
 `Test Point ID`、`Contract ID`、`Production evidence` などの table 列には status ではなく具体的な情報を書いてください。status は `Status` 列と `Remaining work` での記録に使います。
+
+## Full-coverage slice v2
+
+With `verification_context: full-coverage-slice-v2`, accept Parent Plan, canonical Coverage Ledger, Parent State, Slice Record, current diff, production files/tests/wiring, and optional prior verification subsection. Missing separate contracts are not a blocker. Write the Slice Verification section in the same record; use `SLICE_VERIFIED`, `SLICE_VERIFIED_WITH_PARENT_RESIDUALS`, `SLICE_PARTIAL_WITH_FIX_CANDIDATES`, or an applicable blocker. Verify local assigned obligations and producer/consumer evidence, leave XC close and parent completion for Final Record, never repair a gap, and emit Direct FixNow selectors in the same record only for simple bounded gaps.

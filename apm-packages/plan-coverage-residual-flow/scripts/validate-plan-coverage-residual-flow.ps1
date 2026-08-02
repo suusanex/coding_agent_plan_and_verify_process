@@ -46,6 +46,8 @@ function Test-AffirmativeDirectRouteSelection([string]$Message) {
 
 $skillRelativePath = 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md'
 $deployedSkillRelativePath = '.agents/skills/plan-coverage-residual-flow/SKILL.md'
+$coverageLedgerRelativePath = 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md'
+$deployedCoverageLedgerRelativePath = '.agents/skills/plan-coverage-residual-flow/references/coverage-ledger.md'
 $manifestRelativePath = 'apm-packages/plan-coverage-residual-flow/apm.yml'
 $scenarioRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/invocation-authorization-scenarios.json'
 $manualReadmeRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/manual-model-smoke/README.md'
@@ -54,6 +56,8 @@ $manualTemplateRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/ma
 $requiredFiles = @(
     $skillRelativePath,
     $deployedSkillRelativePath,
+    $coverageLedgerRelativePath,
+    $deployedCoverageLedgerRelativePath,
     $manifestRelativePath,
     $scenarioRelativePath,
     $manualReadmeRelativePath,
@@ -128,15 +132,18 @@ if ($failures.Count -eq 0) {
 
     $manifest = Get-NormalizedText (Join-Path $repoRoot $manifestRelativePath)
     Assert-Matches $manifest '(?m)^name:\s*plan-coverage-residual-flow\s*$' 'package name must remain stable'
-    Assert-Matches $manifest '(?m)^version:\s*0\.8\.1\s*$' 'package version must be 0.8.1'
+    Assert-Matches $manifest '(?m)^version:\s*0\.9\.0\s*$' 'package version must be 0.9.0'
 
     $adaptiveValidator = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1')
     $designPairValidator = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1')
-    Assert-Matches $adaptiveValidator "plan-coverage-residual-flow/apm\.yml'; Version = '0\\\.8\\\.1'" 'Adaptive validator package version pin must be 0.8.1'
-    Assert-Matches $designPairValidator 'Plan Coverage package version 0\.8\.1' 'Design Pair validator package version pin must be 0.8.1'
+    Assert-Matches $adaptiveValidator "plan-coverage-residual-flow/apm\.yml'; Version = '0\\\.9\\\.0'" 'Adaptive validator package version pin must be 0.9.0'
+    Assert-Matches $designPairValidator 'Plan Coverage package version 0\.9\.0' 'Design Pair validator package version pin must be 0.9.0'
 
     $deployedSkillPath = Join-Path $repoRoot $deployedSkillRelativePath
     Assert-True ((Get-NormalizedText $skillPath) -ceq (Get-NormalizedText $deployedSkillPath)) 'tracked installed Skill projection must match the canonical Skill'
+    $coverageLedgerPath = Join-Path $repoRoot $coverageLedgerRelativePath
+    $deployedCoverageLedgerPath = Join-Path $repoRoot $deployedCoverageLedgerRelativePath
+    Assert-True ((Get-NormalizedText $coverageLedgerPath) -ceq (Get-NormalizedText $deployedCoverageLedgerPath)) 'tracked installed coverage ledger projection must match the canonical reference'
 
     $scenarios = @(Get-Content -Raw -LiteralPath (Join-Path $repoRoot $scenarioRelativePath) | ConvertFrom-Json)
     Assert-True ($scenarios.Count -eq 8) 'Scenario fixture must contain exactly A through H'

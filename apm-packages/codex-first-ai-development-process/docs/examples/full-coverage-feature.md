@@ -54,3 +54,7 @@ In `DELEGATED_IMPLEMENTATION` mode, non-trivial READY slices require observed `h
 | Missing retry dashboard | Deferred | Not required for MVP acceptance |
 | Real payment sandbox validation | ManualVerificationRequired | Requires external credential and sandbox access |
 | Compensation idempotency mismatch | FixNow | Blocks parent acceptance condition |
+
+## Compact record layout
+
+Even with four slices, use one Parent State, four Slice Records, one canonical Coverage Ledger, and one Final Record. A record moves through immutable baseline, preparation delta, Parent Authorization, Adaptive Implementation, independent verification, and any bounded fix; cross-slice evidence belongs in the Final Record.

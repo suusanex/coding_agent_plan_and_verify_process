@@ -101,3 +101,5 @@ Codex-first を導入した直後は、このサンプルで state artifact、au
 
 Lite / standard の検証には `docs/examples/lite-standard-validation.md` を使う。
 この validation suite は、`documentation_level`、Lite artifact、Inline Ready Gate、canonical coverage ledger、direct FixNow、unified implementation contract、artifact count / sections read、negative scan を確認するための maintainer 向け artifact である。
+
+Full-coverage の fresh route は `compact-slice-record-v2` である。slice は parent authority を継承し、Parent Authorization後に Adaptive Implementation と独立 verification を同じ Slice Recordへ記録する。cross-slice verification と residual close は Final Recordで行う。
