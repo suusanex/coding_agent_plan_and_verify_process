@@ -3,7 +3,7 @@ $packageRoot = Split-Path -Parent $PSScriptRoot
 $repositoryRoot = (Resolve-Path (Join-Path $packageRoot '..\..')).Path
 $canonicalRoot = Join-Path $repositoryRoot 'scripts/codex-notification-runtime'
 $assetRoot = Join-Path $packageRoot '.apm/skills/completion-notification-decorator/assets/codex-notification-runtime'
-$files = @('codex-notification-runtime.cs', 'local-spool-provider.cs', 'install-codex-notification-runtime-local.cs', 'spool-item-v1.schema.json', 'completion-notification-envelope-v1.schema.json', 'completion-notification-event-v1.schema.json', 'decision-record.md', 'manual-verification.md', 'windows-app-notification-provider.cs')
+$files = @('README.md', 'codex-notification-runtime.cs', 'local-spool-provider.cs', 'install-codex-notification-runtime-local.cs', 'spool-item-v1.schema.json', 'completion-notification-envelope-v1.schema.json', 'completion-notification-event-v1.schema.json', 'decision-record.md', 'manual-verification.md', 'windows-app-notification-provider.cs')
 foreach ($file in $files) {
     $canonical = Join-Path $canonicalRoot $file; $asset = Join-Path $assetRoot $file
     if (-not (Test-Path $canonical) -or -not (Test-Path $asset)) { throw "Missing canonical or checked asset: $file" }
@@ -22,6 +22,10 @@ try {
     $invalidPayload = $payload | ConvertFrom-Json; $invalidPayload.PSObject.Properties.Remove('notification_status'); $env:CODEX_NOTIFICATION_SPOOL_HOME = $invalidSpool
     ($invalidPayload | ConvertTo-Json -Compress) | & (Join-Path $output 'local-spool-provider.exe') 2>$null
     if ($LASTEXITCODE -ne 2 -or @(Get-ChildItem -LiteralPath $invalidSpool -Force -File).Count -ne 0) { throw 'Installed package provider did not reject an incomplete 11-field event without publishing output.' }
+    $wrongTypeSpool = Join-Path $validationRoot 'wrong-type-spool'; New-Item -ItemType Directory -Path $wrongTypeSpool | Out-Null
+    $wrongTypePayload = $payload | ConvertFrom-Json; $wrongTypePayload.schema_version = '1'; $env:CODEX_NOTIFICATION_SPOOL_HOME = $wrongTypeSpool
+    ($wrongTypePayload | ConvertTo-Json -Compress) | & (Join-Path $output 'local-spool-provider.exe') 2>$null
+    if ($LASTEXITCODE -ne 2 -or @(Get-ChildItem -LiteralPath $wrongTypeSpool -Force -File).Count -ne 0) { throw 'Installed package provider did not normalize wrong JSON types to invalid-stdin.' }
     Write-Output 'Completion Notification Decorator validation: PASS (checked Local Spool mirror and installed provider contract)'
 }
-finally { Remove-Item Env:CODEX_NOTIFICATION_SPOOL_HOME -ErrorAction SilentlyContinue; if (Test-Path $validationRoot) { Remove-Item -LiteralPath $validationRoot -Recurse -Force } }
+finally { Remove-Item Env:CODEX_NOTIFICATION_SPOOL_HOME -ErrorAction SilentlyContinue; if (Test-Path $validationRoot) { Remove-Item -LiteralPath $validationRoot -Recurse -Force }; $global:LASTEXITCODE = 0 }

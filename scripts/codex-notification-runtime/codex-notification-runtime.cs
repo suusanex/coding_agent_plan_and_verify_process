@@ -239,25 +239,6 @@ static void CleanupState(string directory)
 }
 static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
 
-static async Task ForwardExistingNotifyAsync(CommandSpec? command, string payload)
-{
-    if (command?.Argv is not { Count: > 0 }) return;
-    try
-    {
-        var info = new ProcessStartInfo(command.Argv[0]) { UseShellExecute = false, CreateNoWindow = true };
-        foreach (var argument in command.Argv.Skip(1)) info.ArgumentList.Add(argument);
-        info.ArgumentList.Add(payload);
-        using var process = Process.Start(info);
-        if (process is not null)
-        {
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-            try { await process.WaitForExitAsync(timeout.Token); }
-            catch { TryKill(process); }
-        }
-    }
-    catch { }
-}
-
 static async Task<bool> InvokeProviderAsync(ProviderSpec provider, CompletionEvent completionEvent, JsonSerializerOptions options, string runtimeHome, string eventHash)
 {
     if (provider.Argv is not { Count: > 0 }) return false;
@@ -272,7 +253,14 @@ static async Task<bool> InvokeProviderAsync(ProviderSpec provider, CompletionEve
         process.StandardInput.Close();
         using var timeout = new CancellationTokenSource(TimeSpan.FromMilliseconds(Math.Clamp(provider.TimeoutMs, 1000, 30000)));
         try { await process.WaitForExitAsync(timeout.Token); }
-        catch { TryKill(process); WriteLog(runtimeHome, "provider-timeout", eventHash, null); return false; }
+        catch
+        {
+            TryKill(process);
+            try { await stderr; } catch { }
+            try { await process.WaitForExitAsync(); } catch { }
+            WriteLog(runtimeHome, "provider-timeout", eventHash, null);
+            return false;
+        }
         var diagnostic = (await stderr).Trim();
         if (process.ExitCode != 0)
         {

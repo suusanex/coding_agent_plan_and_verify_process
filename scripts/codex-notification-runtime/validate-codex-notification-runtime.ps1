@@ -281,4 +281,5 @@ finally {
         } catch { }
     }
     if (Test-Path -LiteralPath $validationRoot) { Remove-Item -LiteralPath $validationRoot -Recurse -Force }
+    $global:LASTEXITCODE = 0
 }

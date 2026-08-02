@@ -14,6 +14,6 @@
     "title": { "type": "string", "minLength": 1 },
     "repository": { "type": "string", "minLength": 1 },
     "resume_uri": { "type": "string", "minLength": 1 },
-    "result_uri": { "type": ["string", "null"] }
+    "result_uri": { "type": ["string", "null"], "minLength": 1 }
   }
 }

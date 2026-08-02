@@ -32,7 +32,7 @@ $adaptive-implementation-execution
 このPlanを実装してください。
 ```
 
-The primary process runs under its existing contract. The decorator copies its terminal status into a version 1 envelope at the end of the final response. The callback thread/turn identity remains authoritative. Missing or invalid envelope data falls back to the generic notification, and notification delivery failure does not change the process status.
+The primary process runs under its existing contract. The decorator copies its terminal status into a version 1 envelope at the end of the final response. The callback thread/turn identity remains authoritative. Missing or invalid envelope data falls back to a generic Local Spool item, and persistence failure does not change the process status.
 
 The Local Spool JSON keeps both `result_uri` and the callback-derived `resume_uri` when available. The decorator does not select or start another review or implementation task. The package does not add a consumer, Inbox, toast, retention, forwarding, or cloud sync.
 
@@ -41,6 +41,7 @@ See [usage guide](docs/usage-guide.md) and [integration validation](docs/example
 ## Validate
 
 ```powershell
+./apm-packages/completion-notification-decorator/scripts/validate-completion-notification-decorator-contract.ps1
 ./apm-packages/completion-notification-decorator/scripts/validate-completion-notification-decorator.ps1
 ./apm-packages/completion-notification-decorator/scripts/test-apm-package-install.ps1
 dotnet publish ./scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs

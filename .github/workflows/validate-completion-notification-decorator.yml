@@ -28,7 +28,10 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Validate decorator and integration fixtures
+      - name: Validate existing decorator contract
+        shell: pwsh
+        run: ./apm-packages/completion-notification-decorator/scripts/validate-completion-notification-decorator-contract.ps1
+      - name: Validate Local Spool integration
         shell: pwsh
         run: ./apm-packages/completion-notification-decorator/scripts/validate-completion-notification-decorator.ps1
 

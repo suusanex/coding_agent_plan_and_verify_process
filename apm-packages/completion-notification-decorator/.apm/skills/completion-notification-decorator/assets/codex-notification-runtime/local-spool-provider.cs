@@ -139,6 +139,14 @@ static ProviderInput ParseAndValidate(string input, JsonSerializerOptions option
     {
         throw new ArgumentException("invalid-stdin");
     }
+    catch (InvalidOperationException)
+    {
+        throw new ArgumentException("invalid-stdin");
+    }
+    catch (FormatException)
+    {
+        throw new ArgumentException("invalid-stdin");
+    }
 }
 static string GetRequiredString(JsonElement root, string name)
 {

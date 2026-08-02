@@ -19,10 +19,10 @@ Append exactly one fenced JSON object after the unchanged primary-process respon
 | `repository` | Optional `owner/name` identifier. Omit when not reliable. |
 | `result_uri` | Optional specific HTTPS result URL without userinfo. GitHub owner or repository root URLs are too coarse. |
 
-The runtime generates `resume_uri` from the callback thread ID. Do not author it in the envelope. On Windows, a valid `result_uri` yields both a result action and a current-task action; it does not replace `resume_uri`.
+The runtime generates `resume_uri` from the callback thread ID. Do not author it in the envelope. The Local Spool item preserves both `result_uri` and `resume_uri`; presenting links or consuming items is outside this producer contract.
 
 ## Failure behavior
 
-- Missing envelope: the runtime emits a generic `TURN_ENDED` notification with the callback-derived current-task link.
-- Invalid envelope, including an invalid or coarse `result_uri`: the runtime ignores all enrichment fields and emits the generic notification. It never loses the current-task link.
+- Missing envelope: the runtime persists a generic `TURN_ENDED` Local Spool item with the callback-derived `resume_uri`.
+- Invalid envelope, including an invalid or coarse `result_uri`: the runtime ignores all enrichment fields and persists the generic spool item. It never loses the callback identity.
 - Provider or runtime failure: the primary process response and terminal status remain authoritative. Notification delivery status is separate observational state.

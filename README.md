@@ -14,7 +14,7 @@ dotnet run --file .\scripts\codex-notification-runtime\install-codex-notificatio
 
 一時環境でinstall/update/checkを検証するときは、`--codex-home <path> --install-root <path>`を併用します。`--install-root`を省略した通常導入では`%LOCALAPPDATA%\CodexNotificationRuntime`を使用します。
 
-既定のSpool folderは`%LOCALAPPDATA%\CodexNotificationRuntime\spool`である。`CODEX_NOTIFICATION_RUNTIME_HOME`または`CODEX_NOTIFICATION_SPOOL_HOME`で移植可能な絶対pathへ変更できる。各JSONは通常のeditorで読め、consumer、Inbox、toast、retention、forwardingはこのruntimeに含めない。
+既定のSpool folderは`%LOCALAPPDATA%\CodexNotificationRuntime\spool`である。`CODEX_NOTIFICATION_SPOOL_HOME`だけでSpool folderを絶対pathへ変更できる。各JSONは通常のeditorで読め、consumer、Inbox、toast、retention、forwardingはこのruntimeに含めない。
 
 配布・導入のsource of truthは3本の`.cs` File-based appsです。installerが導入時にsourceから一時領域へpublishするため、`scripts/codex-notification-runtime/artifacts/`の生成物は追跡・配布しません。
 
@@ -28,7 +28,7 @@ dotnet run --file .\scripts\codex-notification-runtime\install-codex-notificatio
 
 `result_uri`は具体的な結果を指すuserinfoなしのHTTPS URLだけを受理します。hostのroot URL、およびGitHubのトップ・ownerトップ・repositoryトップは粗いリンクとして破棄します。envelopeがない、またはfieldやURIが不正な場合はenrichment全体を無視し、generic `TURN_ENDED` itemを保存する。runtimeまたはproviderの失敗はCodex turnを失敗にしない。
 
-詳細とrollbackは [decision-record.md](scripts/codex-notification-runtime/decision-record.md)、実機確認状況とManualOnly項目は [manual-verification.md](scripts/codex-notification-runtime/manual-verification.md) を参照してください。real Windows通知のbutton操作、real Codex callback、parent/subagent通知件数は実機確認が必要であり、公開callbackにないhierarchyを推測するfilterは実装しません。
+詳細とrollbackは [decision-record.md](scripts/codex-notification-runtime/decision-record.md)、実機確認状況とManualOnly項目は [manual-verification.md](scripts/codex-notification-runtime/manual-verification.md) を参照してください。今回のproducer scopeはreal Codex callbackからSpool folderへの保存と通常editorでの閲覧までで、toast・button・consumer・Inboxは後続実装です。
 
 ## Completion Notification Decorator
 
