@@ -209,3 +209,5 @@ full-coverage 3層運用は advanced route である。
 - full-coverage は documentation level ではなく advanced route として説明されている。
 - Codex-first profile TOML が `.github/instructions/plan-coverage-shared.instructions.md` を直接参照していない。
 - 既存 `plan-coverage-residual-flow` と `full-autonomous-plan-first-flow` を壊していない。
+
+- fresh full-coverage の `compact-slice-record-v2` を、legacy split / non-sliced pathを壊さずに同期している。

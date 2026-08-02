@@ -431,3 +431,7 @@ selected contracts、residual work、handoff items を記録する際は、`.git
 `Risk trigger scan` では `Present`、`Absent`、`Unclear` だけを使ってください。`Unclear` は risk scan value であり、completion status ではありません。
 
 `Bound` は triage agent では原則として使いません。既存 artifact に明確な証拠がすでにある場合に限って使用し、それ以外は `Deferred`、`NeedsHumanDecision`、または `NotImplementedOrMismatch` を使ってください。
+
+## Compact full-coverage slice boundary
+
+An executable `compact-slice-record-v2` normally does not invoke this agent. `slice-prep` owns slice-local delta classification. If asked to run full triage for a v2 slice, recommend `NeedsFurtherDecomposition` or an explicit legacy compatibility route instead of recursively starting the standard chain.

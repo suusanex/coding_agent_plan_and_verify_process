@@ -157,7 +157,7 @@ The immediate next step is `architecture-slice-readiness.agent.md`, not decompos
 For `ArchitectureNotRequired`, the readiness artifact itself is the lightweight baseline authority. Slice preparation and parent review return `Match` only when no new shared semantics are introduced; `Drift` or `Unclear` blocks implementation.
 Readiness and architecture artifacts record a source repository commit, tracked source content hashes / explicit revisions, watch paths, explicit artifact revision, and evaluation time. Freshness compares tracked sources and the source-commit-to-current diff on watch paths; HEAD changes containing only generated gate artifacts do not self-invalidate the baseline. A semantic baseline change is `stale`, even when paths are unchanged.
 The pre-elaboration readiness R1 is retained in Slice Architecture as an immutable `elaboration_trigger` audit snapshot with `freshness_dependency: false`. Replacing the standard readiness path with post-elaboration R2 does not stale the architecture; R2 instead tracks the Slice Architecture external content hash.
-Only an approved readiness verdict may proceed to `plan-slice-decomposition.agent.md`. Each resulting slice then re-enters the Plan網羅チェック・残件判定フロー as a bounded parent Plan pass. After slice verification, the parent flow runs `cross-slice-verification-kernel.agent.md` and then `residual-decision-gate.agent.md`.
+Only an approved readiness verdict may proceed to `plan-slice-decomposition.agent.md`. Each resulting slice inherits the approved parent authority and enters compact Slice Preparation Delta, Parent Authorization, Adaptive Implementation, and independent Slice Verification. After local verification, the parent flow runs `cross-slice-verification-kernel.agent.md` and then `residual-decision-gate.agent.md` through the Final Record.
 
 `full-coverage` does not require many executable slices. If a small number of slices, including 2 slices, preserves parent acceptance conditions, cross-slice contracts, field continuity, and Behavior Case mapping, that is a valid decomposition. `plan-slice-decomposition.agent.md` must include a `Slice granularity review` before output and must coalesce candidates when delegation overhead would outweigh implementation value.
 
@@ -1423,3 +1423,7 @@ After `plan-kernel.agent.md` is created, update `README.md` to describe the corr
 - full Plan-first flow remains available for broad autonomous work
 
 The README should make clear that the lightweight flow narrows the Guardrail Focus coverage, but does not remove Plan creation or the guardrail chain for Guardrail Focus contracts.
+
+## Full-coverage compact post-decomposition ownership
+
+Fresh full-coverage decomposition uses `compact-slice-record-v2`. Parent Plan, behavior, triage, and architecture remain authoritative. Slice preparation records only local delta; Parent Authorization and its Inline Slice Ready Gate authorize Adaptive Implementation; an independent verifier writes the same Slice Record; cross-slice verification and residual close decisions share the Final Record. The canonical Coverage Ledger owns the full table. Legacy split and non-sliced artifacts retain their existing paths.

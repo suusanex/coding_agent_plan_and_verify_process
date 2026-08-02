@@ -554,3 +554,7 @@ Handoff Packet の `Remaining work`、`ブロッキング問題`、`非ブロッ
   - Check 7: Plan ambiguity や source-of-truth の断絶が deterministic に直せない場合は、human review または上流の要求整理へ戻す
   - Check 8: human decision を行ってから該当 artifact を更新
   - Check 9: `implementation-contract-kernel.agent.md` または `implementation-contract-review-kernel.agent.md` を実行してから再レビュー
+
+## Compact full-coverage v2 exception
+
+For `artifact_layout: compact-slice-record-v2`, do not create a separate review artifact. The equivalent gate is a PASS Inline Slice Ready Gate plus an authorized Parent Authorization section for the same preparation revision and baseline digest, with no human or architecture blocker. On explicit review-only fallback, return a delta for `Slice Record / Parent Authorization Review`; do not change generic non-sliced behavior.

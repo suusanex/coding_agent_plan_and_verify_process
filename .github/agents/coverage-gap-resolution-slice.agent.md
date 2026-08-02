@@ -421,3 +421,7 @@ selected ID は、次の条件を満たす場合に test 未実行でも `Done` 
 - tests が通るまで fix ループを続ける
 - Plan document、Runtime Contract Kernel、Test Design Kernel、coverage gap triage 出力を変更する
 - triage 出力を Plan より優先して implementation behavior を決定する
+
+## Full-coverage slice v2
+
+With `artifact_layout: compact-slice-record-v2`, `slice_record_path`, and `selector_source_section: Slice Verification / Direct FixNow Selectors`, repair only the selected bounded gap and record it in Bounded Fix Passes. Focused realization analysis may be inline. Do not create a separate result artifact, broaden scope, or declare formal verification; always return to verification.

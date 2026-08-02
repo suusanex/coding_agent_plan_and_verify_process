@@ -130,3 +130,5 @@ full-coverage 3層運用は advanced route である。
 - `design-pair-implementation-execution`: 利用者が明示的に選んだ場合だけ Adaptive implementation の直前に入る対話型 design pre-stage。Locked Decisions だけを拘束力のある入力として Adaptive HIGH owner へ渡す。
 
 この package は既存資産を複製せず、初心者向けの入口、state、model tier routing、stop vocabulary を上に重ねる。
+
+Fresh full-coverage decomposition uses the inherited-authority `compact-slice-record-v2` route: delta preparation, Parent Authorization, Adaptive Implementation, independent verification, and Final Record closure. It does not recursively restart parent triage per slice.

@@ -443,3 +443,5 @@ CLI non-interactive / codex exec path:
 - Skill上で PREP_ONLY / DELEGATED_IMPLEMENTATION / PARENT_DIRECT_IMPLEMENTATION が区別されている
 - Agent Usage Ledgerで `configured_model` / `hook_model` / `effective_model` を混同しない
 - 未解決事項が明示されている
+
+> Status note (2026-08): This document describes history before `compact-slice-record-v2`. Current behavior is defined by the full-coverage package skill, instructions, and references. The old per-slice artifact chain is legacy compatibility only.

@@ -1,95 +1,146 @@
-# Full-Coverage Parent Orchestration State
-
+---
+artifact_type: full-coverage-parent-orchestration-state
+schema_version: 2
+full_coverage_artifact_layout: compact-slice-record-v2
+full_coverage_artifact_layout_source: default-new-flow
+parent_plan: plans/<slug>.md
+coverage_ledger: plans/<slug>-coverage-ledger.md
 implementation_route: adaptive / design-pair
 implementation_route_source: default / explicit-user-selection
-design_pair_handoff: N/A / plans/<ticket-or-slug>-design-pair-implementation-handoff.md / per-slice paths
-design_pair_interaction_stage: N/A / not-started / target-selection / disposition-confirmation / upstream-decision / complete / artifact-repair
-design_pair_user_evidence: N/A / Pending / <Target Map presentation and post-map user response references>
+design_pair_handoff: N/A / plans/<slug>-design-pair-implementation-handoff.md
+design_pair_interaction_stage: N/A / target-selection / disposition-confirmation / complete
+design_pair_user_evidence: N/A / user-facing turn reference
+execution_mode: PREP_ONLY / DELEGATED_IMPLEMENTATION
+---
 
-Design Pair は explicit-user-selection の場合だけ使用する。difficulty、risk、size、architecture から自動選択、推奨、提案しない。
-Design Pair が `target-selection` または `disposition-confirmation` で待機中の slice は、Adaptive、slice verification、cross-slice verificationへ進めない。resumeでinteraction stateまたはuser evidenceが欠ける場合は補完せずartifact repairで停止する。
+# Full-Coverage Parent Orchestration State
 
-This artifact is the single resume entrypoint for full-coverage parent orchestration.
-Keep it compact. Do not paste full source artifacts, full subagent outputs, or long reasoning traces.
-Prefer path + status + next action.
-Do not paste source excerpts except for a short pointer when needed.
-If this file grows too large, compact old completed slice rows into a short summary and keep details in the original slice artifacts.
+This is the compact resume entrypoint for a fresh full-coverage run. Parent orchestration is the canonical writer. Keep paths, status, and next actions here; retain detailed phase evidence in the Slice Records and Final Record.
 
-## Resume header
+## Resume Header
 
 - Process: token-aware-full-coverage-3layer
-- ExecutionMode: PREP_ONLY / DELEGATED_IMPLEMENTATION / PARENT_DIRECT_IMPLEMENTATION
-- Last updated:
-- Parent tool: Codex / GitHub Copilot / other
-- Repo / branch:
-- Work item / ticket:
-- Current phase:
-- Last completed checkpoint:
+- ExecutionMode: `PREP_ONLY` / `DELEGATED_IMPLEMENTATION`
+- Current parent state: `<one state from Parent State Transition Contract>`
+- Parent source revision / watch-path freshness:
 - Next required action:
-- Stop reason: none / token-limit / tool-failure / manual-stop / model-switch / planned-handoff / unknown
-- Resume safety: Safe / NeedsReview / NeedsHumanDecision / Blocked
-- Repository ref:
-- Source repository commit:
-- Tracked source revisions verified at:
-- Watch path diff verified through commit:
-- Architecture readiness evaluated at:
+- Stop reason:
 
-## Artifact index
+## Parent State Transition Contract
 
-| Kind | Path | Status | Notes |
+| State | Allowed next states | Recovery / terminal semantics |
+| --- | --- | --- |
+| `DECOMPOSED` | `PREPARING`, `BLOCKED`, `RETURN_TO_ARCHITECTURE` | Start preparation; return to architecture when decomposition contradicts the baseline. |
+| `PREPARING` | `PREPARED`, `PARTIALLY_PREPARED`, `BLOCKED`, `NEEDS_HUMAN_DECISION`, `RETURN_TO_ARCHITECTURE` | Resume only from current Slice Records; escalate shared drift. |
+| `PREPARED` | `AUTHORIZING`, `BLOCKED`, `RETURN_TO_ARCHITECTURE` | Authorize only same-digest preparation. |
+| `PARTIALLY_PREPARED` | `PREPARING`, `AUTHORIZING`, `BLOCKED`, `NEEDS_HUMAN_DECISION`, `RETURN_TO_ARCHITECTURE` | Prepare remaining slices or authorize only the explicitly complete subset. |
+| `AUTHORIZING` | `AUTHORIZED`, `PARTIALLY_AUTHORIZED`, `BLOCKED`, `NEEDS_HUMAN_DECISION`, `RETURN_TO_ARCHITECTURE` | Correct authorization evidence or return shared drift. |
+| `AUTHORIZED` | `IMPLEMENTING`, `BLOCKED`, `RETURN_TO_ARCHITECTURE` | Begin only the authorized Slice Record set. |
+| `PARTIALLY_AUTHORIZED` | `IMPLEMENTING`, `AUTHORIZING`, `NEEDS_HUMAN_DECISION`, `BLOCKED`, `RETURN_TO_ARCHITECTURE` | Implement the authorized subset; recover by authorization or decision. |
+| `IMPLEMENTING` | `SLICE_VERIFYING`, `BLOCKED`, `NEEDS_HUMAN_DECISION`, `REPLAN_REQUIRED`, `RETURN_TO_ARCHITECTURE` | Resume through the owning Slice Record; replan or return architecture if local work changes shared authority. |
+| `SLICE_VERIFYING` | `READY_FOR_FINAL_VERIFICATION`, `FIXING`, `BLOCKED`, `NEEDS_HUMAN_DECISION`, `RETURN_TO_ARCHITECTURE` | Rerun verification after a bounded repair; do not close cross-slice facts here. |
+| `FIXING` | `SLICE_VERIFYING`, `BLOCKED`, `NEEDS_HUMAN_DECISION`, `REPLAN_REQUIRED`, `RETURN_TO_ARCHITECTURE` | Repair only from a compatible selector and rerun formal verification. |
+| `READY_FOR_FINAL_VERIFICATION` | `CROSS_SLICE_VERIFYING`, `BLOCKED` | Resume Final Record verification. |
+| `CROSS_SLICE_VERIFYING` | `RESIDUAL_DECISION`, `FIXING`, `BLOCKED`, `NEEDS_HUMAN_DECISION`, `RETURN_TO_ARCHITECTURE` | Route a local owning-slice fix through the Slice Record; otherwise return architecture. |
+| `RESIDUAL_DECISION` | `CLOSE_READY`, `WAITING_FOR_HUMAN`, `READY_FOR_FIX`, `REPLAN_REQUIRED`, `ABORT_RECOMMENDED`, `BLOCKED` | Classify every residual before close. |
+| `WAITING_FOR_HUMAN` | `RESIDUAL_DECISION`, `FIXING`, `REPLAN_REQUIRED`, `ABORT_RECOMMENDED` | Resume only after the recorded human decision. |
+| `READY_FOR_FIX` | `FIXING`, `BLOCKED`, `REPLAN_REQUIRED`, `ABORT_RECOMMENDED` | Project each selected selector to one owning Slice Record, then repair and reverify. |
+| `NEEDS_HUMAN_DECISION` | `PREPARING`, `AUTHORIZING`, `IMPLEMENTING`, `SLICE_VERIFYING`, `FIXING`, `RESIDUAL_DECISION`, `REPLAN_REQUIRED`, `ABORT_RECOMMENDED` | Record the decision and return to the blocked phase; no implicit fallback. |
+| `RETURN_TO_ARCHITECTURE` | `DECOMPOSED`, `REPLAN_REQUIRED`, `ABORT_RECOMMENDED` | Rerun Architecture Slice Readiness, then replace the stale decomposition before resuming. |
+| `BLOCKED` | `PREPARING`, `AUTHORIZING`, `IMPLEMENTING`, `SLICE_VERIFYING`, `FIXING`, `READY_FOR_FINAL_VERIFICATION`, `CROSS_SLICE_VERIFYING`, `RESIDUAL_DECISION`, `NEEDS_HUMAN_DECISION`, `RETURN_TO_ARCHITECTURE`, `REPLAN_REQUIRED`, `ABORT_RECOMMENDED` | Preserve the stop reason; resume only at the recorded phase after its blocker is resolved. |
+| `REPLAN_REQUIRED` | `DECOMPOSED`, `ABORT_RECOMMENDED` | Replace or explicitly abandon the parent Plan; never reuse stale authorization. |
+| `ABORT_RECOMMENDED` | terminal after an explicit human decision | Preserve artifacts and reason; a new run requires new authority. |
+| `CLOSE_READY` | terminal | Terminal only after Final Record and ledger prove close readiness. |
+
+## Per-Slice State Transition Contract
+
+| State | Allowed next states | Recovery / terminal semantics |
+| --- | --- | --- |
+| `BASELINED` | `PREP_IN_PROGRESS` | Begin delta-only preparation. |
+| `PREP_IN_PROGRESS` | `PREP_READY`, `BLOCKED`, `NEEDS_FURTHER_DECOMPOSITION`, `NEEDS_HUMAN_DECISION` | Resume local preparation or escalate. |
+| `PREP_READY` | `AUTHORIZED`, `BLOCKED` | Await same-digest parent authorization. |
+| `AUTHORIZED` | `DESIGN_PAIR_WAITING`, `IMPL_RUNNING` | Start only the authorized route. |
+| `DESIGN_PAIR_WAITING` | `IMPL_RUNNING`, `BLOCKED`, `NEEDS_HUMAN_DECISION` | Resume only after valid explicit Design Pair evidence. |
+| `IMPL_RUNNING` | `IMPL_DONE`, `BLOCKED`, `REPLAN_REQUIRED`, `NEEDS_HUMAN_DECISION` | Preserve implementation handoff; return shared changes to parent. |
+| `IMPL_DONE` | `VERIFYING` | Continue to independent verification. |
+| `VERIFYING` | `VERIFIED`, `PARTIAL_WITH_FIX`, `MANUAL_RESIDUAL`, `BLOCKED`, `NEEDS_HUMAN_DECISION` | A repair requires a selector and later rerun. |
+| `PARTIAL_WITH_FIX` | `FIX_RUNNING`, `MANUAL_RESIDUAL` | Parent chooses selected repair or residual route. |
+| `FIX_RUNNING` | `VERIFYING`, `BLOCKED`, `NEEDS_HUMAN_DECISION`, `REPLAN_REQUIRED` | Rerun formal verification before a verified state. |
+| `VERIFIED` | terminal for slice-local flow | Final Record owns parent close. |
+| `MANUAL_RESIDUAL` | terminal for slice-local flow; parent final gate | Parent residual decision owns recovery. |
+| `BLOCKED` | `PREP_IN_PROGRESS`, `AUTHORIZED`, `IMPL_RUNNING`, `VERIFYING`, `FIX_RUNNING`, `NEEDS_HUMAN_DECISION`, `REPLAN_REQUIRED` | Resume at the recorded phase only after the parent resolves its blocker. |
+| `NEEDS_FURTHER_DECOMPOSITION` | decomposition | Return to the parent architecture/decomposition route. |
+| `NEEDS_HUMAN_DECISION` | `PREP_IN_PROGRESS`, `AUTHORIZED`, `IMPL_RUNNING`, `VERIFYING`, `FIX_RUNNING`, `REPLAN_REQUIRED` | Resume only with recorded human evidence. |
+| `REPLAN_REQUIRED` | decomposition | Supersede the stale slice baseline. |
+
+## Artifact Index
+
+| Kind | Path | Status | Next action |
 | --- | --- | --- | --- |
 | Parent Plan | | current / stale / missing / contradicted | |
-| Behavior Spec | | n/a / current / stale / missing / contradicted | |
+| Behavior Spec / inline sketch | | current / n/a / stale / missing / contradicted | |
 | Parent triage | | current / stale / missing / contradicted | |
-| Architecture readiness | | current / stale / missing / contradicted | |
-| Slice architecture | | n/a / current / stale / missing / contradicted | |
+| Architecture readiness / baseline | | current / n/a / stale / missing / contradicted | |
 | Slice decomposition | | current / stale / missing / contradicted | |
-| Agent Usage Ledger | | current / stale / missing / contradicted | |
-| Slice execution table | | current / stale / missing / contradicted | |
-| Parent review gate | | n/a / current / stale / missing / contradicted | |
-| Cross-slice verification | | n/a / current / stale / missing / contradicted | |
-| Residual decision gate | | n/a / current / stale / missing / contradicted | |
+| Canonical Coverage Ledger | | current / stale / missing / contradicted | |
+| Full-Coverage Final Record | | pending / current / stale / missing | |
 
-`contradicted` means this artifact conflicts with the current branch, work item, slice queue, or newer listed artifact and must be reviewed before continuing.
+## Slice Execution and Authorization
 
-`stale` means a tracked source revision/content hash changed, a diff after Source repository commit touched a declared watch path / inspected production evidence address, a human decision source changed, or an explicit architecture artifact revision changed. HEAD changes containing only generated readiness/architecture artifacts do not self-invalidate the baseline. HEAD equality and path equality are not freshness tests. If tracked source or watch path comparison cannot be completed, use `stale` and rerun Architecture Slice Readiness.
+| Slice | Record | Baseline digest | Prep state | Authorization | Impl state | Verification state | Parallel group | Active owner | Next action |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
-## Slice queue
+## Parent Authorization Decisions
 
-| Slice ID | State | Evidence artifact | Next action |
-| --- | --- | --- | --- |
-| SL-xxx | pending-prep / prep-ready / blocked / ready-for-impl / impl-running / impl-done / verification-done / stale | | |
+| Slice | Preparation revision | Baseline digest | Verdict | Parallel group | Blocking reason | Slice record updated? |
+| --- | --- | --- | --- | --- | --- | --- |
 
-## Cross-slice blockers
+## Delegation Audit
+
+| Run ID | Phase | Slice | Agent type | Configured model | Hook model | Edit owner | Outcome | Evidence |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+
+## Delegation Compliance
+
+| Rule | Status | Evidence |
+| --- | --- | --- |
+| Every executable slice has prep evidence | |
+| Every authorized non-trivial slice started with HIGH | |
+| STANDARD ran only after valid handoff | |
+| Re-entry returned to HIGH | |
+| Parent did not edit production code/tests | |
+| Cross-slice verification completed | |
+
+## Cross-Slice Blockers
 
 | ID | Kind | Status | Next check |
 | --- | --- | --- | --- |
-| XC-xxx | contract / field-continuity / production-wiring / behavior-case | open / blocked / verified / stale | |
 
-Architecture drift is also a cross-slice blocker. If slice-prep or slice-impl changes shared state ownership, precedence, identity, sequence, retry / release, capacity, schema, invariant, or production wiring, record it here and return to Architecture Slice Readiness before implementation continues.
-
-## Pending parent decisions
+## Pending Parent Decisions
 
 | Decision | Required evidence | Owner | Blocking? |
 | --- | --- | --- | --- |
 
-## Parent decisions made
+## Parent Decisions Made
 
-| Decision | Applies to | Evidence artifact | Status |
+| Decision | Applies to | Evidence | Status |
 | --- | --- | --- | --- |
 
-## Recent checkpoint delta
+## Artifact Exception Register
+
+| Artifact | Why separate file is required | Canonical owner | Lifecycle | Merge-back / close rule |
+| --- | --- | --- | --- | --- |
+
+Only independent human, tool, confidentiality, concurrent-ownership, or resume-safety lifecycles may use this register. Generic phase output paths are not an exception.
+
+## Final Gate Status
+
+- Cross-slice verification:
+- Residual decision:
+- Close readiness:
+
+## Recent Checkpoint Delta
 
 - Last state change:
-- Files/artifacts updated:
-- Delegation started/completed:
-- Important caution for next agent:
-
-## Emergency checkpoint
-
-Use this section only when interruption is likely before a full state update.
-
-- Minimal next action:
-- Avoid repeating:
-- Must read before continuing:
-- Known blocker:
+- Files / records updated:
+- Important caution for next owner:

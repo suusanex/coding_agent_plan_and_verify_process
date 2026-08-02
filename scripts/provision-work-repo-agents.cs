@@ -17,18 +17,16 @@ internal static class RepoAgentSetup
     private const string AdaptiveImplementationSandboxMode = "workspace-write";
     private const string FrontmatterPhrase = "top-level frontmatter";
     private const string FrontmatterReplacement = "top-level TOML fields";
-    private static readonly string ParentStateTemplateSourceRelative = Path.Combine(
-        "apm-packages",
-        "token-aware-full-coverage-3layer",
-        ".apm",
-        "skills",
-        "token-aware-full-coverage-3layer",
-        "references",
-        "full-coverage-parent-orchestration-state.md");
-    private static readonly string ParentStateTemplateTargetRelative = Path.Combine(
-        "plans",
-        "_templates",
-        "full-coverage-parent-orchestration-state.md");
+    private static readonly string[] FullCoverageTemplateFileNames =
+    [
+        "full-coverage-parent-orchestration-state.md",
+        "full-coverage-slice-record.md",
+        "full-coverage-final.md"
+    ];
+    private static readonly string FullCoverageTemplateSourceDirectoryRelative = Path.Combine(
+        "apm-packages", "token-aware-full-coverage-3layer", ".apm", "skills",
+        "token-aware-full-coverage-3layer", "references");
+    private static readonly string FullCoverageTemplateTargetDirectoryRelative = Path.Combine("plans", "_templates");
 
     private static readonly string[] SlicePrepOrder =
     [
@@ -198,7 +196,11 @@ internal static class RepoAgentSetup
                 options.Verbose,
                 noWrite)
         };
-        var templateReport = await ProcessTemplateAsync(options.TargetRoot, options.Verbose, noWrite);
+        var templateReports = new List<TemplateReport>();
+        foreach (var templateFileName in FullCoverageTemplateFileNames)
+        {
+            templateReports.Add(await ProcessTemplateAsync(options.TargetRoot, templateFileName, options.Verbose, noWrite));
+        }
 
         var hasFailure = false;
         var hasChanges = false;
@@ -209,9 +211,12 @@ internal static class RepoAgentSetup
             hasFailure |= report.ShouldFailCheck;
         }
 
-        PrintTemplateReport(templateReport);
-        hasChanges |= templateReport.Changed;
-        hasFailure |= templateReport.ShouldFailCheck;
+        foreach (var templateReport in templateReports)
+        {
+            PrintTemplateReport(templateReport);
+            hasChanges |= templateReport.Changed;
+            hasFailure |= templateReport.ShouldFailCheck;
+        }
 
         Console.WriteLine();
         if (options.Check)
@@ -623,16 +628,17 @@ internal static class RepoAgentSetup
 
     private static async Task<TemplateReport> ProcessTemplateAsync(
         string targetRoot,
+        string templateFileName,
         bool verbose,
         bool noWrite)
     {
-        var sourcePath = ResolveSourceTemplatePath();
-        var targetPath = Path.Combine(targetRoot, ParentStateTemplateTargetRelative);
+        var sourcePath = ResolveSourceTemplatePath(templateFileName);
+        var targetPath = Path.Combine(targetRoot, FullCoverageTemplateTargetDirectoryRelative, templateFileName);
 
         if (sourcePath is null || !File.Exists(sourcePath))
         {
             return new TemplateReport(
-                sourcePath ?? ParentStateTemplateSourceRelative,
+                sourcePath ?? Path.Combine(FullCoverageTemplateSourceDirectoryRelative, templateFileName),
                 targetPath,
                 false,
                 File.Exists(targetPath),
@@ -684,12 +690,12 @@ internal static class RepoAgentSetup
             targetExists ? "updated" : "copied");
     }
 
-    private static string? ResolveSourceTemplatePath()
+    private static string? ResolveSourceTemplatePath(string templateFileName)
     {
         var current = new DirectoryInfo(Directory.GetCurrentDirectory());
         while (current is not null)
         {
-            var candidate = Path.Combine(current.FullName, ParentStateTemplateSourceRelative);
+            var candidate = Path.Combine(current.FullName, FullCoverageTemplateSourceDirectoryRelative, templateFileName);
             if (File.Exists(candidate))
             {
                 return candidate;

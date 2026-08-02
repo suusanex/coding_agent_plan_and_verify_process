@@ -85,3 +85,7 @@ codex-first-cost-router
 
 Parent acceptance conditions are not complete until cross-slice evidence exists.
 `ManualVerificationRequired`, `NeedsHumanDecision`, and `NeedsHigherModelReview` prevent normal close.
+
+## Compact slice records
+
+The current fresh route is `compact-slice-record-v2`: parent authority is inherited, not repeated per slice. A Parent State coordinates preparation and authorization, each slice keeps implementation and independent verification evidence in one record, and a Final Record holds cross-slice verification plus residual and close decisions. `legacy-split-v1` is preserved for existing work only.

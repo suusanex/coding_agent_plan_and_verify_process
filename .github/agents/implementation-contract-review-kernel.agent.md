@@ -175,3 +175,7 @@ single verdict、blocking/non-blocking findings、handoff を記録したら停�
 ## Relationship to full-flow review
 
 この agent は bounded token-aware run 用の compatibility shim です。広範囲の implementation contract review が必要な場合は既存の `implementation-contract-review.agent.md` を使ってください。
+
+## Compact full-coverage embedded output
+
+With `artifact_layout: compact-slice-record-v2`, require `embedded_output_target` and `embedded_output_section`; return review-only slice-local delta to that record, create no separate artifact, and escalate shared authority change to parent architecture handling.

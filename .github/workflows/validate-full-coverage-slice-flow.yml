@@ -1,0 +1,50 @@
+name: Validate full-coverage slice flow
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Validate compact slice flow
+        shell: pwsh
+        run: ./scripts/validate-full-coverage-slice-flow.ps1
+      - name: Validate Architecture Slice Readiness contracts
+        shell: pwsh
+        run: ./scripts/validate-architecture-slice-readiness.ps1
+      - name: Validate Plan Coverage package contract
+        shell: pwsh
+        run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1
+      - name: Validate Adaptive Implementation package contract
+        shell: pwsh
+        run: ./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1
+      - name: Validate Design Pair package contract
+        shell: pwsh
+        run: ./apm-packages/design-pair-implementation-execution/scripts/validate.ps1
+
+  validate-provisioning:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up .NET 10 SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Set up pinned APM CLI
+        uses: microsoft/apm-action@v1
+        with:
+          setup-only: 'true'
+          apm-version: '0.26.0'
+      - name: Validate provisioning templates
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP 'full-coverage-provision-check'
+          New-Item -ItemType Directory -Path $target -Force | Out-Null
+          dotnet run --file scripts/provision-work-repo-agents.cs -- $target
+          dotnet run --file scripts/provision-work-repo-agents.cs -- $target --check

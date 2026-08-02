@@ -124,3 +124,7 @@ SliceLocalBoundedParentPlanPass / GlobalParentPlan
 - Verification verdict:
 - Outcome:
 ```
+
+## Compact v2 explicit invocation
+
+This remains a legacy compatibility agent. If explicitly invoked with `artifact_layout: compact-slice-record-v2`, write its result only to the provided Slice Record Implementation section and do not restore the legacy route as the default. Non-trivial v2 work still normally starts with `high-implementation-starter`.

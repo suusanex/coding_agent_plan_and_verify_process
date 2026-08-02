@@ -310,3 +310,7 @@ This improvement succeeds when:
 - agents stop with useful residual work instead of looping toward perfect completion
 - full mode remains available for genuinely complex work
 - downstream agents can consume prior artifacts without rediscovering the same context
+
+## Compact full-coverage continuation
+
+Post-decomposition full-coverage work inherits parent authority through `compact-slice-record-v2`; it reduces repeated analysis and artifact breadth without reducing authorization, production binding, independent verification, cross-slice checks, or explicit residual decisions.

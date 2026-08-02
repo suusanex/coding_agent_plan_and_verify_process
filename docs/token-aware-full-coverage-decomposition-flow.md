@@ -19,7 +19,7 @@
 - Candidate slices that share owner, module, production wiring, verification route, and parent acceptance condition should be coalesced unless there is a documented reason to keep them separate.
 - Small independent slices require `Small slice justification`; otherwise they should be recorded as `merge-candidate`, `too-small-to-delegate`, or `coalesce-with-SL-xxx` and not sent to `slice-prep`.
 - The broad autonomous flow remains available only as an explicit, separate process choice; it is not the default interpretation of `full-coverage` inside Plan網羅チェック triage.
-- Each resulting slice re-enters the Plan網羅チェック・残件判定フロー as a bounded parent Plan pass.
+- Each resulting slice inherits approved parent authority and enters compact slice execution: Slice Preparation Delta, Parent Authorization, Adaptive Implementation, independent Slice Verification, and an optional bounded fix in the same Slice Record.
 - If Design Pair was explicitly selected, each slice preserves `design_pair_handoff`, `design_pair_interaction_stage`, and post-map user evidence in Parent Orchestration State. Its first Design Pair turn stops at `target-selection`; unresolved final disposition stops at `disposition-confirmation`. No Adaptive or verification step starts while either stage is waiting.
 - Cross-slice contracts must remain explicit and must be verified after slice implementations.
 - Cross-slice verification must confirm runtime postconditions after production wiring, not only structural wiring. Production interface / implementation / wiring, source-structure tests, and CI green are not enough unless they prove the parent acceptance condition postcondition.
@@ -46,6 +46,10 @@ Parent Plan Kernel
 → Residual Decision Gate
 → FixNow repair only when explicit selector exists
 ```
+
+## Compact slice execution (current route)
+
+Each resulting slice inherits the approved parent authority and enters the compact slice execution flow. Parent readiness, parent risk, and shared architecture are not re-derived per slice. Slice preparation records only slice-local deltas, then Parent Authorization, Adaptive Implementation, independent Slice Verification, and optional bounded repair update the same Slice Record. Final XC verification and residual decisions use the Final Record. `legacy-split-v1` remains resume-only compatibility.
 
 ## Synthetic self-check fixture
 
