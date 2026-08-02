@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "spool-item-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source", "source_event_id", "primary_process", "observed_status", "occurred_at", "title", "repository", "resume_uri", "result_uri"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "source": { "type": "string", "minLength": 1 },
+    "source_event_id": { "type": "string", "minLength": 1 },
+    "primary_process": { "type": "string", "minLength": 1 },
+    "observed_status": { "type": "string", "minLength": 1 },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "title": { "type": "string", "minLength": 1 },
+    "repository": { "type": "string", "minLength": 1 },
+    "resume_uri": { "type": "string", "minLength": 1 },
+    "result_uri": { "type": ["string", "null"] }
+  }
+}

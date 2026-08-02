@@ -36,9 +36,11 @@ try {
         'assets/codex-notification-runtime/README.md',
         'assets/codex-notification-runtime/codex-notification-runtime.cs',
         'assets/codex-notification-runtime/windows-app-notification-provider.cs',
+        'assets/codex-notification-runtime/local-spool-provider.cs',
         'assets/codex-notification-runtime/install-codex-notification-runtime-local.cs',
         'assets/codex-notification-runtime/completion-notification-envelope-v1.schema.json',
         'assets/codex-notification-runtime/completion-notification-event-v1.schema.json',
+        'assets/codex-notification-runtime/spool-item-v1.schema.json',
         'assets/codex-notification-runtime/decision-record.md',
         'assets/codex-notification-runtime/manual-verification.md'
     )

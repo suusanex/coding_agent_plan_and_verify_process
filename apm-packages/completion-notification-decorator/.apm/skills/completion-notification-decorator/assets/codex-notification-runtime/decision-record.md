@@ -2,11 +2,11 @@
 
 ## Decision
 
-Windows 11上の初期providerは、Windows App SDKの`AppNotificationManager`を使う独立processとする。core runtimeはprovider commandへevent JSONをstdin送信するため、ntfy、Slack、Web UIを追加してもCodex callback解析と重複抑止は変更しない。
+production providerはLocal Spoolの独立processとする。core runtimeはnormalized event JSONをstdin送信し、providerはstable 10-field `spool-item-v1` JSONを同一directory temp、disk flush、atomic moveで公開する。
 
-Codexのuser-level `notify`は一つのargvしか設定できないため、installerはruntimeを設定し、設定済みcommandを`runtime-config.json`の`chained_notify`として保持する。runtimeはすべてのcallbackで既存commandへ元JSONを最後の引数として転送する。
+installerはruntimeを設定し、callback deliveryにはLocal Spoolだけを設定する。既存notify metadataはrollback参照として保持するがcallbackから転送しない。
 
-配布のsource of truthは3本の`.cs` File-based appsとする。installerは導入時にsourceからstaging directoryへpublishし、repository内の`artifacts/`生成物は配布契約に含めない。
+配布のsource of truthはruntime、installer、Local Spool providerの3本の`.cs` File-based appsと`spool-item-v1.schema.json`とする。installerは導入時にsourceからstaging directoryへpublishし、repository内の`artifacts/`生成物は配布契約に含めない。
 
 Windows providerは副作用なしのself-testでWindows App SDKを初期化しない。support probeと通知配送時だけ明示的にbootstrapし、installerはprobeが5秒で終了しない場合にprocess treeを終了してstdout・stderrのEOFを回収する。CI jobにも15分の上限を設け、headless環境の停止がrunnerを無期限に占有しないようにする。
 

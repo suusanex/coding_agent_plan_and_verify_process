@@ -28,7 +28,6 @@ try
 {
     Directory.CreateDirectory(runtimeHome);
     var config = LoadConfig(Path.Combine(runtimeHome, "runtime-config.json"));
-    await ForwardExistingNotifyAsync(config.ChainedNotify, rawPayload);
     var payload = JsonSerializer.Deserialize<CodexPayload>(rawPayload, options);
     if (payload?.Type != "agent-turn-complete" || string.IsNullOrWhiteSpace(payload.ThreadId) || string.IsNullOrWhiteSpace(payload.TurnId))
     {
@@ -54,15 +53,13 @@ try
 
     try
     {
-        var delivered = false;
-        foreach (var provider in config.Providers)
+        if (config.Providers.Count != 1 || !string.Equals(config.Providers[0].Name, "local-spool", StringComparison.Ordinal))
         {
-            if (await InvokeProviderAsync(provider, candidate, options))
-            {
-                delivered = true;
-                break;
-            }
+            TryDelete(claimPath);
+            WriteLog(runtimeHome, "invalid-provider-count", eventHash, null);
+            return;
         }
+        var delivered = await InvokeProviderAsync(config.Providers[0], candidate, options, runtimeHome, eventHash);
 
         candidate.NotificationStatus = delivered ? "DELIVERED" : "FAILED";
         if (delivered)
@@ -261,20 +258,28 @@ static async Task ForwardExistingNotifyAsync(CommandSpec? command, string payloa
     catch { }
 }
 
-static async Task<bool> InvokeProviderAsync(ProviderSpec provider, CompletionEvent completionEvent, JsonSerializerOptions options)
+static async Task<bool> InvokeProviderAsync(ProviderSpec provider, CompletionEvent completionEvent, JsonSerializerOptions options, string runtimeHome, string eventHash)
 {
     if (provider.Argv is not { Count: > 0 }) return false;
     try
     {
-        var info = new ProcessStartInfo(provider.Argv[0]) { RedirectStandardInput = true, UseShellExecute = false, CreateNoWindow = true };
+        var info = new ProcessStartInfo(provider.Argv[0]) { RedirectStandardInput = true, RedirectStandardError = true, UseShellExecute = false, CreateNoWindow = true };
         foreach (var argument in provider.Argv.Skip(1)) info.ArgumentList.Add(argument);
         using var process = Process.Start(info);
         if (process is null) return false;
+        var stderr = process.StandardError.ReadToEndAsync();
         await process.StandardInput.WriteAsync(JsonSerializer.Serialize(completionEvent, options));
         process.StandardInput.Close();
         using var timeout = new CancellationTokenSource(TimeSpan.FromMilliseconds(Math.Clamp(provider.TimeoutMs, 1000, 30000)));
         try { await process.WaitForExitAsync(timeout.Token); }
-        catch { TryKill(process); return false; }
+        catch { TryKill(process); WriteLog(runtimeHome, "provider-timeout", eventHash, null); return false; }
+        var diagnostic = (await stderr).Trim();
+        if (process.ExitCode != 0)
+        {
+            string? code = null;
+            try { code = JsonDocument.Parse(diagnostic).RootElement.TryGetProperty("code", out var element) ? element.GetString() : null; } catch { }
+            WriteLog(runtimeHome, "provider-exit", eventHash, code);
+        }
         return process.ExitCode == 0;
     }
     catch { return false; }

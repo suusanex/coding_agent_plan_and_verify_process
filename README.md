@@ -4,7 +4,7 @@ GitHub Copilot / Codex で Plan-first 開発をするための agent（`.github/
 
 ## Codex completion notification runtime
 
-WindowsでCodex turnの終了を通知する共通runtimeは、[scripts/codex-notification-runtime](scripts/codex-notification-runtime) にあります。user-level `notify`へ一度導入すると、marker、Decorator、envelopeを含まない通常のvalid `agent-turn-complete` callbackもgeneric通知に変換します。既存の`notify` commandは捨てずにchainし、Codex自身の`codex-computer-use --previous-notify` wrapper内にruntimeがある場合も接続済みとして更新します。導入前には必ずdry-runを実行してください。
+WindowsでCodex turnの終了を保存する共通runtimeは、[scripts/codex-notification-runtime](scripts/codex-notification-runtime) にあります。user-level `notify`へ一度導入すると、valid `agent-turn-complete` callbackをLocal Spoolへ1 event 1 JSONとしてappend-only保存します。installerはcallbackの唯一のproduction providerとしてLocal Spoolを設定し、旧Windows通知providerはrollback参照にだけ残します。導入前には必ずdry-runを実行してください。
 
 ```powershell
 dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --dry-run
@@ -14,7 +14,7 @@ dotnet run --file .\scripts\codex-notification-runtime\install-codex-notificatio
 
 一時環境でinstall/update/checkを検証するときは、`--codex-home <path> --install-root <path>`を併用します。`--install-root`を省略した通常導入では`%LOCALAPPDATA%\CodexNotificationRuntime`を使用します。
 
-`--check`のWindows provider support probeは5秒で打ち切り、process treeを終了して`DEGRADED`を返します。repositoryの専用GitHub Actions jobにも15分の上限を設けています。
+既定のSpool folderは`%LOCALAPPDATA%\CodexNotificationRuntime\spool`である。`CODEX_NOTIFICATION_RUNTIME_HOME`または`CODEX_NOTIFICATION_SPOOL_HOME`で移植可能な絶対pathへ変更できる。各JSONは通常のeditorで読め、consumer、Inbox、toast、retention、forwardingはこのruntimeに含めない。
 
 配布・導入のsource of truthは3本の`.cs` File-based appsです。installerが導入時にsourceから一時領域へpublishするため、`scripts/codex-notification-runtime/artifacts/`の生成物は追跡・配布しません。
 
@@ -26,7 +26,7 @@ dotnet run --file .\scripts\codex-notification-runtime\install-codex-notificatio
 ```
 ````
 
-`result_uri`は具体的な結果を指すuserinfoなしのHTTPS URLだけを受理します。hostのroot URL、およびGitHubのトップ・ownerトップ・repositoryトップは粗いリンクとして破棄します。valid envelopeでは「結果を開く」と「このタスクを開く」の両ボタンを表示します。envelopeがない、またはfieldやURIが不正な場合はenrichment全体を無視し、generic `TURN_ENDED`通知とtask復帰ボタンを維持します。runtime、provider、既存notify chainの失敗はCodex turnを失敗にしません。
+`result_uri`は具体的な結果を指すuserinfoなしのHTTPS URLだけを受理します。hostのroot URL、およびGitHubのトップ・ownerトップ・repositoryトップは粗いリンクとして破棄します。envelopeがない、またはfieldやURIが不正な場合はenrichment全体を無視し、generic `TURN_ENDED` itemを保存する。runtimeまたはproviderの失敗はCodex turnを失敗にしない。
 
 詳細とrollbackは [decision-record.md](scripts/codex-notification-runtime/decision-record.md)、実機確認状況とManualOnly項目は [manual-verification.md](scripts/codex-notification-runtime/manual-verification.md) を参照してください。real Windows通知のbutton操作、real Codex callback、parent/subagent通知件数は実機確認が必要であり、公開callbackにないhierarchyを推測するfilterは実装しません。
 
@@ -137,7 +137,7 @@ Source requirement
 
 | Script | Use when | Installs / fixes |
 | --- | --- | --- |
-| `scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs` | always-on callback runtimeをuser-level Codex設定へ安全に導入・更新・検証したい | canonical runtimeとWindows providerをsourceからpublishし、既存`notify`を自己再帰なしでchainして、すべてのvalid callbackをgeneric通知対象に設定 |
+| `scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs` | always-on callback runtimeをuser-level Codex設定へ安全に導入・更新・検証したい | canonical runtimeとLocal Spool providerをsourceからpublishし、user-level `notify`を単一Local Spool deliveryへ設定して、valid callbackを1 event 1 JSONとしてappend-only保存 |
 | `apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs` | PR Review Remediation導入後にread-only review agentの具体的Codex profileを同期したい。基礎版Phase 2を使う場合だけoptional Adaptive add-onも検査したい | `.codex/agents/local-reviewer.toml`、`.codex/agents/purpose-reviewer.toml`、`.codex/agents/review-planner.toml`。`--check-adaptive`は別途導入済みのAdaptiveだけを追加検査し、`AGENTS.md`と`.codex/config.toml`は操作しない |
 | `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM 導入後に Adaptive Implementation の必須 concrete Codex profile を repository-local に同期・検証したい | `.codex/agents/high-implementation-starter.toml`、`.codex/agents/standard-implementation-completer.toml`。`AGENTS.md` は操作しない |
 | `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-first を repository-local に導入したい | `AGENTS.md` の Codex-first managed section、`.codex/config.toml`、`.codex/agents/*.toml`、Codex-first / Adaptive / Design Pair skills、canonical implementation agent contracts、`templates/*.md` |
