@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../../tests/CodexLocalInbox.Tests/CodexLocalInbox.Tests.csproj" />
+  <Project Path="CodexLocalInbox.csproj" />
+</Solution>
