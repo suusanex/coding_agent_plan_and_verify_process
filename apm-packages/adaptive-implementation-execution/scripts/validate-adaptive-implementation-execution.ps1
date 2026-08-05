@@ -236,8 +236,8 @@ Assert-Contains $planCoverageSkill 'orchestrator is the single aggregation owner
 Assert-Contains '.github/agents/change-risk-triage.agent.md' 'implementation-internal.*implementation phase' 'risk triage shape boundary'
 
 $handoffReviewAgent = '.github/agents/implementation-handoff-review.agent.md'
-Assert-Contains $handoffReviewAgent 'fresh intakeだけ`implementation_route: adaptive` / `implementation_route_source: default`を初期化' 'handoff review fresh-only Adaptive default'
-Assert-Contains $handoffReviewAgent 'resumeではupstream durable artifactの両route fieldを必須.*Adaptiveへ補完せず`BLOCKED_BY_ARTIFACT_MISMATCH`' 'handoff review resume route fail-closed rule'
+Assert-Contains $handoffReviewAgent 'Plan網羅チェック・残件判定フロー.*mandatory pre-implementation review gate' 'handoff review Plan Coverage placement'
+Assert-Contains $handoffReviewAgent 'standalone Adaptive.*呼び出さず' 'handoff review standalone Adaptive exclusion'
 
 $fullCoverageSkill = 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md'
 Assert-Contains $fullCoverageSkill 'non-trivial READY slice.*high-implementation-starter' 'per-slice HIGH_MODEL start'
@@ -570,8 +570,8 @@ Assert-Contains $validation '大きな class からの責務分離' 'responsibil
 Assert-Contains $validation 'async \+ retry \+ cancellation' 'async retry cancellation integration scenario'
 Assert-Contains $validation '既存 pattern が明確な早期 STANDARD 委譲' 'early STANDARD delegation integration scenario'
 Assert-Contains $validation 'STANDARD 中の構造判断再発と HIGH re-entry' 'HIGH re-entry integration scenario'
-Assert-Contains $validation '実モデル比較.*NOT RUN' 'manual runtime comparison status'
-Assert-Contains $validation 'VAL-013: GitHub Copilot VS Code adapter' 'Copilot adapter validation scenario'
+Assert-Contains $validation '実モデル run.*NOT RUN' 'manual runtime run status'
+Assert-Contains $validation 'VAL-013: GitHub Copilot VS Code package configuration' 'Copilot package configuration validation scenario'
 Assert-Contains $validation 'Copilot CLI real-model orchestration.*PASS' 'Copilot CLI real-model validation status'
 Assert-Contains $validation 'omits `tools` so Copilot uses its default tool set' 'Copilot default tool-set contract'
 

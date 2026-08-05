@@ -187,4 +187,4 @@ Codexの抽象tierと具体的modelの対応は`codex-agents/*.toml`で変更し
 - `model_reasoning_effort`: role に必要な reasoning
 - `sandbox_mode`: implementation agent では `workspace-write`
 
-Copilotのconcrete modelはcanonical root `.github/agents/*.agent.md`のfrontmatterで指定します。local package installerも同じroot filesを直接配布し、同名templateを別管理しません。skill選択後の実行契約は`SKILL.md`とcanonical agentsをsource of truthとします。
+Copilotのconcrete modelはroot `.github/agents/*.agent.md`のfrontmatterで指定します。local package installer は package の `codex-agents/*.toml` を source として target の `.codex/agents/*.toml` だけを同期し、root agent files や Skill を配布しません。Skill と root portable agents の導入は APM の責務であり、skill選択後の実行契約は`SKILL.md`とroot agentsをsource of truthとします。

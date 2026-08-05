@@ -23,8 +23,9 @@ You are the "Implementation Handoff Review" agent.
 
 ## Process intent
 
-この agent は、Plan網羅チェック・残件判定フロー では `test-design-kernel.agent.md` の直後、Adaptive の canonical Codex / Copilot adapter route では risk / contract gate の後、実装の直前に置く **mandatory pre-implementation review gate** です。
+この agent は、Plan網羅チェック・残件判定フロー で `test-design-kernel.agent.md` の直後、実装の直前に置く **mandatory pre-implementation review gate** です。
 Plan網羅チェック・残件判定フロー では省略してはいけません。省略が許されるのは、caller が明示的に別の human-led process を選び、Parent Plan Coverage Ledger と readiness scope を別の gate で確実に作成する場合だけです。
+standalone Adaptive はこの agent を呼び出さず、Plan Coverage / parent Plan process 外の pre-implementation gate として扱ってはいけません。
 
 ```text
 plan-kernel
@@ -544,7 +545,7 @@ Handoff Packet の `Remaining work`、`ブロッキング問題`、`非ブロッ
 ## Relationship to other agents
 
 - **通常の直前の agent**: Guardrail Focus がある場合は `test-design-kernel.agent.md`、Guardrail Focus がない標準 route では risk / contract gate — この agent の入力を生成する
-- **直後の agent**: explicit Design Pair route では `design-pair-implementation-execution`、通常 route では `high-implementation-starter.agent.md`、または人間の実装者 — この agent の `引き継ぎ必須 inputs` と `Handoff Packet` を受け取る
+- **直後の agent**: explicit Design Pair route では `design-pair-implementation-execution`、通常 route では `high-implementation-starter.agent.md`、または人間の実装者 — この agent の `引き継ぎ必須 inputs` と `Handoff Packet` を受け取る。standalone Adaptive はこの agent を invoke しない
 - **任意の実装後 gate**: `code-review-focus-kernel.agent.md` — human code review 用の読み順と重点箇所を整理する
 - **この agent は代替しない**: `plan-review.agent.md`（full Plan review）、`verification-kernel.agent.md`（実装後の production binding 検証）
 - **BLOCKED 時の修正先**:
