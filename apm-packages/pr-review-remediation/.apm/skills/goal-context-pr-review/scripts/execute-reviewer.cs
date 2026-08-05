@@ -35,26 +35,12 @@ catch (Exception ex) when (
         options.ExecutionApp ?? "unknown",
         options.Model ?? "unknown",
         options.ReviewerRole ?? "unknown",
-        ClassifyFailure(ex),
+        ReviewerExecutor.ClassifyFailure(ex),
         ex.Message,
         limitations: ["Deterministic executor failed before final raw artifact publication."]);
     WriteOutput(failed, options.Format);
     return 2;
 }
-
-static string ClassifyFailure(Exception ex) => ex switch
-{
-    TimeoutException => "timeout",
-    Win32Exception => "process_start_failure",
-    ContractException ce when ce.Message.Contains("auth", StringComparison.OrdinalIgnoreCase) => "auth_failure",
-    ContractException ce when ce.Message.Contains("Unsupported", StringComparison.OrdinalIgnoreCase) => "unsupported",
-    ContractException ce when ce.Message.Contains("empty", StringComparison.OrdinalIgnoreCase) => "empty_output",
-    ContractException ce when ce.Message.Contains("malformed", StringComparison.OrdinalIgnoreCase) => "malformed_output",
-    ContractException ce when ce.Message.Contains("Could not start", StringComparison.OrdinalIgnoreCase) => "process_start_failure",
-    ContractException ce when ce.Message.Contains("process start", StringComparison.OrdinalIgnoreCase) => "process_start_failure",
-    ContractException ce when ce.Message.Contains("write detected", StringComparison.OrdinalIgnoreCase) => "write_detected",
-    _ => "failed"
-};
 
 static void ShowUsage()
 {
@@ -231,24 +217,53 @@ static class ReviewerExecutor
                 return failed;
             }
 
-            var body = FinalResponseExtractor.Extract(invocation, role);
-            var result = new ExecutionResult
+            // Post-adapter steps: extract response, build result, publish pair.
+            // If any of these fail (e.g., malformed output, missing markers, publish failure),
+            // we must still write .failed.json so that evidence is deterministic.
+            try
             {
-                ExecutionApp = app,
-                RequestedModel = requestedModel,
-                ObservedModel = invocation.ObservedModel,
-                ReviewerRole = role,
-                StartedAt = startedAt,
-                CompletedAt = completedAt,
-                ExitStatus = "succeeded",
-                RawOutputPath = Relative(runRoot, finalRawPath),
-                MetadataPath = Relative(runRoot, metadataPath),
-                Error = null,
-                Limitations = MergeLimitations(adapter.Limitations, invocation.Limitations),
-                CommandShape = Redact(invocation.CommandShape)
-            };
-            PublishPair(finalRawPath, body, metadataPath, result);
-            return result;
+                var body = FinalResponseExtractor.Extract(invocation, role);
+                var result = new ExecutionResult
+                {
+                    ExecutionApp = app,
+                    RequestedModel = requestedModel,
+                    ObservedModel = invocation.ObservedModel,
+                    ReviewerRole = role,
+                    StartedAt = startedAt,
+                    CompletedAt = completedAt,
+                    ExitStatus = "succeeded",
+                    RawOutputPath = Relative(runRoot, finalRawPath),
+                    MetadataPath = Relative(runRoot, metadataPath),
+                    Error = null,
+                    Limitations = MergeLimitations(adapter.Limitations, invocation.Limitations),
+                    CommandShape = Redact(invocation.CommandShape)
+                };
+                PublishPair(finalRawPath, body, metadataPath, result);
+                return result;
+            }
+            catch (Exception ex) when (ex is ContractException or IOException)
+            {
+                // Adapter reported success, but post-processing failed.
+                // Clean up any partial raw artifact that may have been created.
+                TryDelete(finalRawPath);
+                var failedPost = new ExecutionResult
+                {
+                    ExecutionApp = app,
+                    RequestedModel = requestedModel,
+                    ObservedModel = invocation.ObservedModel,
+                    ReviewerRole = role,
+                    StartedAt = startedAt,
+                    CompletedAt = DateTimeOffset.UtcNow,
+                    ExitStatus = ClassifyFailure(ex),
+                    RawOutputPath = null,
+                    MetadataPath = Relative(runRoot, metadataPath + ".failed.json"),
+                    Error = ex.Message,
+                    Limitations = MergeLimitations(adapter.Limitations, invocation.Limitations),
+                    CommandShape = Redact(invocation.CommandShape)
+                };
+                AtomicWriteJson(metadataPath + ".failed.json", failedPost);
+                return failedPost;
+            }
         }
         finally
         {
@@ -425,6 +440,20 @@ static class ReviewerExecutor
     private static string ResolveExistingDirectory(string path) { var full = Path.GetFullPath(path); if (!Directory.Exists(full)) throw new ContractException($"Directory does not exist: {path}"); return full; }
     private static string Relative(string root, string path) => Path.GetRelativePath(root, path).Replace('\\', '/');
     private static void Require(bool condition, string message) { if (!condition) throw new ContractException(message); }
+
+    public static string ClassifyFailure(Exception ex) => ex switch
+    {
+        TimeoutException => "timeout",
+        Win32Exception => "process_start_failure",
+        ContractException ce when ce.Message.Contains("auth", StringComparison.OrdinalIgnoreCase) => "auth_failure",
+        ContractException ce when ce.Message.Contains("Unsupported", StringComparison.OrdinalIgnoreCase) => "unsupported",
+        ContractException ce when ce.Message.Contains("empty", StringComparison.OrdinalIgnoreCase) => "empty_output",
+        ContractException ce when ce.Message.Contains("malformed", StringComparison.OrdinalIgnoreCase) => "malformed_output",
+        ContractException ce when ce.Message.Contains("Could not start", StringComparison.OrdinalIgnoreCase) => "process_start_failure",
+        ContractException ce when ce.Message.Contains("process start", StringComparison.OrdinalIgnoreCase) => "process_start_failure",
+        ContractException ce when ce.Message.Contains("write detected", StringComparison.OrdinalIgnoreCase) => "write_detected",
+        _ => "failed"
+    };
 }
 
 static class WorktreeSnapshot
@@ -780,8 +809,6 @@ sealed class CodexExecAdapter(string executable) : IReviewerAdapter
     public AdapterResult Invoke(AdapterRequest request)
     {
         var outputPath = Path.Combine(request.WorkDirectory, "codex-final.md");
-        var promptPath = Path.Combine(request.WorkDirectory, "prompt.md");
-        File.WriteAllText(promptPath, request.Input.Prompt, new UTF8Encoding(false));
 
         const string developerInstructions =
             "Use the reviewer assignment delivered on stdin. Return only the final review markdown. Always include: Production code changed: No. Do not edit files or GitHub state.";
@@ -1114,19 +1141,40 @@ static class ProcessRunner
 
         using (process)
         {
-            if (stdin is not null)
-            {
-                process.StandardInput.Write(stdin);
-                process.StandardInput.Close();
-            }
-
+            // Start stdout/stderr async reads immediately so pipe buffers drain
+            // even while stdin is being written or the child is not consuming.
             var stdoutTask = process.StandardOutput.ReadToEndAsync();
             var stderrTask = process.StandardError.ReadToEndAsync();
+
+            // Write stdin asynchronously to avoid blocking the parent when
+            // the child pipe buffer is full. Stdin, stdout/stderr, and exit
+            // all share the same timeout boundary below.
+            Task? stdinTask = null;
+            if (stdin is not null)
+            {
+                stdinTask = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await process.StandardInput.WriteAsync(stdin).ConfigureAwait(false);
+                        process.StandardInput.Close();
+                    }
+                    catch
+                    {
+                        try { process.StandardInput.Close(); } catch { }
+                    }
+                });
+            }
+
             var exited = process.WaitForExit(timeoutSeconds * 1000);
             if (!exited)
             {
+                // Close stdin first to unblock any pending async writer, then kill the tree.
+                if (stdin is not null) { try { process.StandardInput.Close(); } catch { } }
                 try { process.Kill(entireProcessTree: true); } catch { }
                 try { process.WaitForExit(5000); } catch { }
+                // Drain stdout/stderr with a short grace period.
+                try { Task.WaitAll(new[] { stdoutTask, stderrTask }, 5000); } catch { }
                 return new ProcessRunResult(-1,
                     stdoutTask.Status == TaskStatus.RanToCompletion ? stdoutTask.Result : "",
                     stderrTask.Status == TaskStatus.RanToCompletion ? stderrTask.Result : "",

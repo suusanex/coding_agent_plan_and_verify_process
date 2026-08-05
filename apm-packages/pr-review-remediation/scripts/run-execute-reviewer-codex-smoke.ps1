@@ -164,7 +164,13 @@ $($item.output)
 ``````
 "@
         if ($rawExists) {
-            $record += "`n- raw_artifact:`n``````markdown`n$(Get-Content -Raw -LiteralPath $item.rawPath)`n``````n"
+            $rawContent = Get-Content -Raw -LiteralPath $item.rawPath
+            $record += @"
+- raw_artifact:
+``````markdown
+$rawContent
+``````
+"@
         }
     }
 

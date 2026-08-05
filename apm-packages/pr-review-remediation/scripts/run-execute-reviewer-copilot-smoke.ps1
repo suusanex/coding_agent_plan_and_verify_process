@@ -6,7 +6,9 @@ param(
     [string]$Model = 'gpt-5.4',
     [int]$TimeoutSeconds = 600,
     [switch]$DescribePayload,
-    [switch]$ConfirmExternalModelPayload
+    [switch]$ConfirmExternalModelPayload,
+    [switch]$IncludeFailureScenario,
+    [switch]$IncludeConcurrentScenario
 )
 
 $ErrorActionPreference = 'Stop'
@@ -46,7 +48,8 @@ $stamp = Get-Date -Format 'yyyyMMddTHHmmssZ'
 $recordPath = Join-Path $EvidenceRoot "copilot-smoke-$stamp.md"
 
 function New-SmokeRun {
-    $root = Join-Path ([IO.Path]::GetTempPath()) ("execute-reviewer-copilot-smoke-" + [guid]::NewGuid().ToString('N'))
+    param([string]$Suffix = '')
+    $root = Join-Path ([IO.Path]::GetTempPath()) ("execute-reviewer-copilot-smoke-" + [guid]::NewGuid().ToString('N') + $Suffix)
     $repo = Join-Path $root 'repo'
     New-Item -ItemType Directory -Path (Join-Path $repo '.github\agents') -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $repo 'docs') -Force | Out-Null
@@ -94,6 +97,8 @@ Real GitHub Copilot CLI smoke for execute-reviewer.cs
 - secrets: none on argv (full assignment is a workdir file, not argv)
 - VS Code UI: not required
 - Codex TOML profiles: not required for Copilot-only path
+- failure scenario: also records a deliberate short timeout attempt when -IncludeFailureScenario is set
+- concurrent scenario: also records parallel local+purpose invocations when -IncludeConcurrentScenario is set
 "@
 
 if ($DescribePayload) {
@@ -106,23 +111,45 @@ if (-not $ConfirmExternalModelPayload) {
 }
 
 $copilotVersion = (& $CopilotCommand --version 2>&1 | Out-String).Trim()
-$fixture = New-SmokeRun
-try {
+
+function Invoke-ReviewerRole {
+    param(
+        [string]$Role,
+        [string]$RunRoot,
+        [string]$RepoRoot,
+        [int]$TimeoutSec
+    )
     $out = & dotnet run --file $executor -- @(
         '--execution-app', 'copilot-cli',
         '--model', $Model,
-        '--reviewer-role', 'local-reviewer',
-        '--run-root', $fixture.Run,
+        '--reviewer-role', $Role,
+        '--run-root', $RunRoot,
         '--round', '1',
-        '--timeout-seconds', "$TimeoutSeconds",
-        '--repository-root', $fixture.Repo,
+        '--timeout-seconds', "$TimeoutSec",
+        '--repository-root', $RepoRoot,
         '--skill-root', $skillRoot,
         '--copilot-executable', $CopilotCommand,
         '--format', 'json'
     ) 2>&1 | Out-String
     $exitCode = $LASTEXITCODE
-    $rawPath = Join-Path $fixture.Run 'round-001\local-reviewer.raw.md'
-    $metaPath = Join-Path $fixture.Run 'round-001\local-reviewer.execution.json'
+    $rawPath = Join-Path $RunRoot "round-001\$Role.raw.md"
+    $metaPath = Join-Path $RunRoot "round-001\$Role.execution.json"
+    return [pscustomobject]@{
+        role = $Role
+        exitCode = $exitCode
+        output = $out
+        rawPath = $rawPath
+        metaPath = $metaPath
+        rawExists = (Test-Path -LiteralPath $rawPath)
+        metaExists = (Test-Path -LiteralPath $metaPath)
+    }
+}
+
+$fixture = New-SmokeRun
+$fixturesToClean = @($fixture)
+try {
+    # Primary success scenario
+    $localResult = Invoke-ReviewerRole -Role 'local-reviewer' -RunRoot $fixture.Run -RepoRoot $fixture.Repo -TimeoutSec $TimeoutSeconds
 
     $record = @"
 # execute-reviewer GitHub Copilot CLI smoke
@@ -135,33 +162,165 @@ try {
 - execution_app: copilot-cli
 - command_shape_without_secrets: copilot -p <short-prompt-ref> --model $Model -C <repo> -s --output-format text --no-ask-user --no-custom-instructions --disable-builtin-mcps --available-tools <read-only> --deny-tool write/shell/task/memory ...
 - input_summary: disposable repo with review-context.json, pr-diff.patch, goal-context-selection.json, role contracts (no Codex TOML)
-- concurrent_invocation_identity: single local-reviewer invocation in this record
 - worktree_write_check: executor pre/post snapshot must remain clean for success
 - limitations: observed model may remain unknown; tool allowlist + MCP disable + worktree check; not OS sandbox proof; no VS Code UI
 
-## Result
-- exit_code: $exitCode
-- raw_exists: $(Test-Path -LiteralPath $rawPath)
-- metadata_exists: $(Test-Path -LiteralPath $metaPath)
+## local-reviewer result
+- exit_code: $($localResult.exitCode)
+- raw_exists: $($localResult.rawExists)
+- metadata_exists: $($localResult.metaExists)
 - output:
 ``````
-$out
+$($localResult.output)
 ``````
 "@
-    if (Test-Path -LiteralPath $rawPath) {
-        $record += "`n- raw_artifact:`n``````markdown`n$(Get-Content -Raw -LiteralPath $rawPath)`n``````n"
+    if ($localResult.rawExists) {
+        $rawContent = Get-Content -Raw -LiteralPath $localResult.rawPath
+        $record += @"
+
+- raw_artifact:
+``````markdown
+$rawContent
+``````
+"@
     }
-    if (Test-Path -LiteralPath $metaPath) {
-        $record += "`n- metadata:`n``````json`n$(Get-Content -Raw -LiteralPath $metaPath)`n``````n"
+    if ($localResult.metaExists) {
+        $metaContent = Get-Content -Raw -LiteralPath $localResult.metaPath
+        $record += @"
+
+- metadata:
+``````json
+$metaContent
+``````
+"@
+    }
+
+    # Failure/timeout scenario
+    if ($IncludeFailureScenario) {
+        $failFixture = New-SmokeRun -Suffix '-fail'
+        $fixturesToClean += $failFixture
+        $failResult = Invoke-ReviewerRole -Role 'local-reviewer' -RunRoot $failFixture.Run -RepoRoot $failFixture.Repo -TimeoutSec 1
+        $record += @"
+
+## failure-scenario (timeout)
+- exit_code: $($failResult.exitCode)
+- raw_exists: $($failResult.rawExists)
+- metadata_exists: $($failResult.metaExists)
+- note: expected non-zero (timeout or fail-closed); must not be interpreted as no findings
+- output:
+``````
+$($failResult.output)
+``````
+"@
+        if ($failResult.metaExists) {
+            $failMetaPath = $failResult.metaPath -replace '\.execution\.json$', '.execution.json.failed.json'
+            if (Test-Path -LiteralPath $failMetaPath) {
+                $failMeta = Get-Content -Raw -LiteralPath $failMetaPath
+                $record += @"
+
+- failed_metadata:
+``````json
+$failMeta
+``````
+"@
+            }
+        }
+    }
+
+    # Concurrent invocation scenario
+    if ($IncludeConcurrentScenario) {
+        $concFixture = New-SmokeRun -Suffix '-conc'
+        $fixturesToClean += $concFixture
+
+        $startTime = Get-Date
+        $localJob = Start-Job -ScriptBlock {
+            param($ex, $mod, $role, $run, $repo, $sk, $cp, $to)
+            & dotnet run --file $ex -- @(
+                '--execution-app', 'copilot-cli',
+                '--model', $mod,
+                '--reviewer-role', $role,
+                '--run-root', $run,
+                '--round', '1',
+                '--timeout-seconds', "$to",
+                '--repository-root', $repo,
+                '--skill-root', $sk,
+                '--copilot-executable', $cp,
+                '--format', 'json'
+            ) 2>&1 | Out-String
+            return [pscustomobject]@{
+                role = $role
+                exitCode = $LASTEXITCODE
+                output = $result
+            }
+        } -ArgumentList $executor, $Model, 'local-reviewer', $concFixture.Run, $concFixture.Repo, $skillRoot, $CopilotCommand, $TimeoutSeconds
+
+        $purposeJob = Start-Job -ScriptBlock {
+            param($ex, $mod, $role, $run, $repo, $sk, $cp, $to)
+            & dotnet run --file $ex -- @(
+                '--execution-app', 'copilot-cli',
+                '--model', $mod,
+                '--reviewer-role', $role,
+                '--run-root', $run,
+                '--round', '1',
+                '--timeout-seconds', "$to",
+                '--repository-root', $repo,
+                '--skill-root', $sk,
+                '--copilot-executable', $cp,
+                '--format', 'json'
+            ) 2>&1 | Out-String
+            return [pscustomobject]@{
+                role = $role
+                exitCode = $LASTEXITCODE
+                output = $result
+            }
+        } -ArgumentList $executor, $Model, 'purpose-reviewer', $concFixture.Run, $concFixture.Repo, $skillRoot, $CopilotCommand, $TimeoutSeconds
+
+        $jobs = @($localJob, $purposeJob)
+        $jobs | Wait-Job | Out-Null
+        $endTime = Get-Date
+        $elapsed = ($endTime - $startTime).TotalSeconds
+
+        $concResults = $jobs | ForEach-Object {
+            $r = Receive-Job -Job $_
+            Remove-Job -Job $_
+            $rp = Join-Path $concFixture.Run "round-001\$($r.role).raw.md"
+            $mp = Join-Path $concFixture.Run "round-001\$($r.role).execution.json"
+            [pscustomobject]@{
+                role = $r.role
+                exitCode = $r.exitCode
+                output = $r.output
+                rawExists = (Test-Path -LiteralPath $rp)
+                metaExists = (Test-Path -LiteralPath $mp)
+            }
+        }
+
+        $record += @"
+
+## concurrent-invocation-identity (parallel local-reviewer + purpose-reviewer)
+- elapsed_seconds: $([math]::Round($elapsed, 1))
+- note: both roles launched in parallel to prove independent session identity
+- local-reviewer: exit_code=$($concResults[0].exitCode), raw=$($concResults[0].rawExists), meta=$($concResults[0].metaExists)
+- purpose-reviewer: exit_code=$($concResults[1].exitCode), raw=$($concResults[1].rawExists), meta=$($concResults[1].metaExists)
+- output_local:
+``````
+$($concResults[0].output)
+``````
+- output_purpose:
+``````
+$($concResults[1].output)
+``````
+"@
     }
 
     Set-Content -LiteralPath $recordPath -Value $record -Encoding utf8
     Write-Host "Wrote smoke record: $recordPath"
-    if ($exitCode -ne 0) { exit 2 }
+    if ($localResult.exitCode -ne 0) { exit 2 }
     exit 0
 }
 finally {
-    if (Test-Path -LiteralPath $fixture.Root) {
-        Remove-Item -LiteralPath $fixture.Root -Recurse -Force -ErrorAction SilentlyContinue
+    foreach ($f in $fixturesToClean) {
+        if (Test-Path -LiteralPath $f.Root) {
+            Remove-Item -LiteralPath $f.Root -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 }
