@@ -1,6 +1,6 @@
 # Codex-first routing branching
 
-> **Historical / non-current installation note (Issue #85):** This document records the retired Codex-first aggregate routing design. It is retained for historical and audit context only; it is not current source-of-truth, installation guidance, or runtime routing. The current implementation route is `implementation_route: adaptive` with `implementation_route_source: default`; Design Pair handoff is N/A. Do not restore or install the retired aggregate concepts.
+> **Historical / non-current installation note (Issue #85):** This document records the retired Codex-first aggregate routing design. It is retained for historical and audit context only; it is not current source-of-truth, installation guidance, or runtime routing. Refer to the current canonical package documentation for active implementation routes. Standalone Adaptive fresh intake uses `implementation_route: adaptive` with `implementation_route_source: default` and an N/A Design Pair handoff; explicitly selected Design Pair work uses `implementation_route: design-pair`, `implementation_route_source: explicit-user-selection`, and a tracked handoff. Do not restore or install the retired aggregate concepts.
 
 Codex-first cost-aware routing は、「軽い作業はシンプルに処理し、重い作業は Plan網羅チェック・残件判定フローへ送る」という二択ではありません。
 

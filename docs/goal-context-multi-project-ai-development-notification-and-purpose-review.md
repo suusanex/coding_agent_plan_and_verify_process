@@ -9,7 +9,7 @@ source_repositories:
 scope: multi-project AI development, goal-context portability, PR review, completion notification, and actionable links
 ---
 
-> **Historical / non-current installation note (Issue #85):** `status: conversation-final` records a historical goal-context conversation. This document is retained for historical and audit context only; it is not current source-of-truth or installation guidance. The current canonical route is Adaptive (`implementation_route: adaptive`, `implementation_route_source: default`); Design Pair handoff is N/A. Do not treat retired aggregate package references here as active.
+> **Historical / non-current installation note (Issue #85):** `status: conversation-final` records a historical goal-context conversation. This document is retained for historical and audit context only; it is not current source-of-truth or installation guidance. Refer to the current canonical package documentation for active implementation routes. Standalone Adaptive fresh intake uses `implementation_route: adaptive` with `implementation_route_source: default` and an N/A Design Pair handoff; explicitly selected Design Pair work uses `implementation_route: design-pair`, `implementation_route_source: explicit-user-selection`, and a tracked handoff. Do not treat retired aggregate package references here as active.
 
 # 複数プロジェクトAI開発の通知・目的レビュー連携
 
