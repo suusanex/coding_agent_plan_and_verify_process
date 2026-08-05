@@ -6,7 +6,8 @@ param(
     [string]$Model = 'gpt-5.6-terra',
     [int]$TimeoutSeconds = 600,
     [switch]$DescribePayload,
-    [switch]$ConfirmExternalModelPayload
+    [switch]$ConfirmExternalModelPayload,
+    [switch]$IncludeFailureScenario
 )
 
 $ErrorActionPreference = 'Stop'
@@ -77,8 +78,9 @@ Real Codex exec smoke for execute-reviewer.cs
 - roles: local-reviewer, purpose-reviewer
 - timeout-seconds: $TimeoutSeconds
 - repository revision: $((git -C $RepositoryRoot rev-parse HEAD 2>$null))
-- command shape: codex exec --json --strict-config --ignore-user-config -C <scratch> -m $Model -s read-only -c ... -o <temp> <prompt>
-- secrets: none on argv
+- command shape: codex exec --json --strict-config --ignore-user-config -C <scratch> -m $Model -s read-only -c ... -o <temp> with prompt on stdin
+- secrets: none on argv (prompt is not an argv payload)
+- failure scenario: also records a deliberate short timeout attempt when -IncludeFailureScenario is set
 "@
 
 if ($DescribePayload) {
@@ -124,8 +126,9 @@ try {
 - repository_revision: $((git -C $RepositoryRoot rev-parse HEAD 2>$null))
 - requested_model: $Model
 - execution_app: codex-exec
-- command_shape_without_secrets: codex exec --json --strict-config --ignore-user-config -C <repo> -m $Model -s read-only -c model_reasoning_effort=... -c developer_instructions=<redacted> -o <temp> <prompt>
+- command_shape_without_secrets: codex exec --json --strict-config --ignore-user-config -C <repo> -m $Model -s read-only -c model_reasoning_effort=... -c developer_instructions=<redacted> -o <temp> <stdin:prompt>
 - input_summary: disposable repo with review-context.json, pr-diff.patch, goal-context-selection.json, role contracts
+- worktree_write_check: executor pre/post snapshot must remain clean for success
 - limitations: top-level codex exec (not native subagent); read-only requested but OS write impossibility not proven
 
 ## Results
@@ -148,6 +151,31 @@ $($item.output)
         if ($rawExists) {
             $record += "`n- raw_artifact:`n``````markdown`n$(Get-Content -Raw -LiteralPath $item.rawPath)`n``````n"
         }
+    }
+
+    if ($IncludeFailureScenario) {
+        $failOut = & dotnet run --file $executor -- @(
+            '--execution-app', 'codex-exec',
+            '--model', $Model,
+            '--reviewer-role', 'local-reviewer',
+            '--run-root', $fixture.Run,
+            '--round', '1',
+            '--timeout-seconds', '1',
+            '--repository-root', $fixture.Repo,
+            '--skill-root', $skillRoot,
+            '--codex-executable', $CodexCommand,
+            '--format', 'json'
+        ) 2>&1 | Out-String
+        $record += @"
+
+### failure-scenario (timeout or overwrite/fail-closed)
+- exit_code: $LASTEXITCODE
+- note: expected non-zero; must not be interpreted as no findings
+- output:
+``````
+$failOut
+``````
+"@
     }
 
     Set-Content -LiteralPath $recordPath -Value $record -Encoding utf8

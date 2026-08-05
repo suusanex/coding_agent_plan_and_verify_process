@@ -24,15 +24,26 @@ function Publish-Fake([string]$SourceCs, [string]$OutDir) {
 }
 
 function New-FixtureRepo {
+    param([switch]$IncludeCodexProfiles = $true, [switch]$ApmAgentsOnly)
     $root = Join-Path $tempRoot ("repo-" + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $root | Out-Null
-    New-Item -ItemType Directory -Path (Join-Path $root '.github\agents') | Out-Null
-    New-Item -ItemType Directory -Path (Join-Path $root 'apm-packages\pr-review-remediation\codex-agents') | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $root 'docs') | Out-Null
-    Copy-Item -LiteralPath (Join-Path $repoRoot '.github\agents\local-reviewer.agent.md') -Destination (Join-Path $root '.github\agents\local-reviewer.agent.md')
-    Copy-Item -LiteralPath (Join-Path $repoRoot '.github\agents\purpose-reviewer.agent.md') -Destination (Join-Path $root '.github\agents\purpose-reviewer.agent.md')
-    Copy-Item -LiteralPath (Join-Path $packageRoot 'codex-agents\local-reviewer.toml') -Destination (Join-Path $root 'apm-packages\pr-review-remediation\codex-agents\local-reviewer.toml')
-    Copy-Item -LiteralPath (Join-Path $packageRoot 'codex-agents\purpose-reviewer.toml') -Destination (Join-Path $root 'apm-packages\pr-review-remediation\codex-agents\purpose-reviewer.toml')
+    if ($ApmAgentsOnly) {
+        $agentDir = Join-Path $root 'apm_modules\owner\repo\.apm\agents'
+        New-Item -ItemType Directory -Path $agentDir -Force | Out-Null
+        Copy-Item -LiteralPath (Join-Path $repoRoot '.github\agents\local-reviewer.agent.md') -Destination (Join-Path $agentDir 'local-reviewer.agent.md')
+        Copy-Item -LiteralPath (Join-Path $repoRoot '.github\agents\purpose-reviewer.agent.md') -Destination (Join-Path $agentDir 'purpose-reviewer.agent.md')
+    }
+    else {
+        New-Item -ItemType Directory -Path (Join-Path $root '.github\agents') | Out-Null
+        Copy-Item -LiteralPath (Join-Path $repoRoot '.github\agents\local-reviewer.agent.md') -Destination (Join-Path $root '.github\agents\local-reviewer.agent.md')
+        Copy-Item -LiteralPath (Join-Path $repoRoot '.github\agents\purpose-reviewer.agent.md') -Destination (Join-Path $root '.github\agents\purpose-reviewer.agent.md')
+    }
+    if ($IncludeCodexProfiles) {
+        New-Item -ItemType Directory -Path (Join-Path $root 'apm-packages\pr-review-remediation\codex-agents') | Out-Null
+        Copy-Item -LiteralPath (Join-Path $packageRoot 'codex-agents\local-reviewer.toml') -Destination (Join-Path $root 'apm-packages\pr-review-remediation\codex-agents\local-reviewer.toml')
+        Copy-Item -LiteralPath (Join-Path $packageRoot 'codex-agents\purpose-reviewer.toml') -Destination (Join-Path $root 'apm-packages\pr-review-remediation\codex-agents\purpose-reviewer.toml')
+    }
     Set-Content -LiteralPath (Join-Path $root 'docs\goal-context-fixture.md') -Value "Goal: keep reviewer execution deterministic.`n"
     return $root
 }
@@ -165,6 +176,9 @@ try {
             Add-Failure 'fake-codex did not receive expected argv shape'
         }
         if ($argLine -match '(?i)(api[_-]?key|password|secret)=') { Add-Failure 'argv contained secret-like assignment' }
+        if ($argLine -match 'review-context\.json' -or $argLine -match 'pr-diff\.patch') {
+            Add-Failure 'codex argv must not contain full reviewer prompt payload'
+        }
     }
 
     # overwrite protection
@@ -311,7 +325,10 @@ try {
     if (Test-Path -LiteralPath $copilotLog) {
         $cArgs = Get-Content -Raw -LiteralPath $copilotLog
         if ($cArgs -notmatch '-p' -or $cArgs -notmatch '--model') { Add-Failure 'copilot argv missing -p/--model' }
+        if ($cArgs -notmatch 'available-tools') { Add-Failure 'copilot argv missing available-tools allowlist' }
+        if ($cArgs -notmatch 'disable-builtin-mcps') { Add-Failure 'copilot argv missing disable-builtin-mcps' }
         if ($cArgs -notmatch 'deny-tool') { Add-Failure 'copilot argv missing deny-tool write boundary' }
+        if ($cArgs -match 'review-context\.json') { Add-Failure 'copilot argv must not embed full reviewer prompt' }
     }
 
     # copilot empty
@@ -331,6 +348,97 @@ try {
     if ($copilotEmpty.ExitCode -eq 0) { Add-Failure 'copilot empty must fail' }
     if (Test-Path -LiteralPath (Join-Path $runCE 'round-001\local-reviewer.raw.md')) {
         Add-Failure 'copilot empty must not publish final raw'
+    }
+
+    # copilot without Codex profiles must still run
+    $repoNoCodex = New-FixtureRepo -IncludeCodexProfiles:$false
+    $runNoCodex = New-RunRoot $repoNoCodex 1 'full'
+    $copilotNoCodex = Invoke-Executor @(
+        '--execution-app', 'copilot-cli',
+        '--model', 'gpt-5.4',
+        '--reviewer-role', 'local-reviewer',
+        '--run-root', $runNoCodex,
+        '--round', '1',
+        '--repository-root', $repoNoCodex,
+        '--skill-root', $skillRoot,
+        '--copilot-executable', $copilotPath,
+        '--format', 'json'
+    ) @{ FAKE_COPILOT_SCENARIO = 'success' }
+    if ($copilotNoCodex.ExitCode -ne 0) { Add-Failure "copilot without Codex profile failed: $($copilotNoCodex.Output)" }
+
+    # APM agents path resolution
+    $repoApm = New-FixtureRepo -ApmAgentsOnly -IncludeCodexProfiles
+    $runApm = New-RunRoot $repoApm 1 'full'
+    $apmOk = Invoke-Executor @(
+        '--execution-app', 'codex-exec',
+        '--model', 'gpt-5.6-terra',
+        '--reviewer-role', 'local-reviewer',
+        '--run-root', $runApm,
+        '--round', '1',
+        '--repository-root', $repoApm,
+        '--skill-root', $skillRoot,
+        '--codex-executable', $codexPath,
+        '--format', 'json'
+    ) @{ FAKE_CODEX_SCENARIO = 'success' }
+    if ($apmOk.ExitCode -ne 0) { Add-Failure "APM agent path resolution failed: $($apmOk.Output)" }
+
+    # missing marker fails and does not publish raw
+    $repoMM = New-FixtureRepo
+    $runMM = New-RunRoot $repoMM 1 'full'
+    $missingMarker = Invoke-Executor @(
+        '--execution-app', 'codex-exec',
+        '--model', 'gpt-5.6-terra',
+        '--reviewer-role', 'local-reviewer',
+        '--run-root', $runMM,
+        '--round', '1',
+        '--repository-root', $repoMM,
+        '--skill-root', $skillRoot,
+        '--codex-executable', $codexPath,
+        '--format', 'json'
+    ) @{ FAKE_CODEX_SCENARIO = 'missing_marker' }
+    if ($missingMarker.ExitCode -eq 0) { Add-Failure 'missing Production code changed marker must fail' }
+    if (Test-Path -LiteralPath (Join-Path $runMM 'round-001\local-reviewer.raw.md')) {
+        Add-Failure 'missing marker must not publish final raw'
+    }
+
+    # write detection
+    $repoW = New-FixtureRepo
+    $runW = New-RunRoot $repoW 1 'full'
+    $write = Invoke-Executor @(
+        '--execution-app', 'codex-exec',
+        '--model', 'gpt-5.6-terra',
+        '--reviewer-role', 'local-reviewer',
+        '--run-root', $runW,
+        '--round', '1',
+        '--repository-root', $repoW,
+        '--skill-root', $skillRoot,
+        '--codex-executable', $codexPath,
+        '--format', 'json'
+    ) @{ FAKE_CODEX_SCENARIO = 'write' }
+    if ($write.ExitCode -eq 0 -or $write.Output -notmatch 'write_detected|write detected') {
+        Add-Failure "write detection must fail closed: $($write.Output)"
+    }
+    if (Test-Path -LiteralPath (Join-Path $runW 'round-001\local-reviewer.raw.md')) {
+        Add-Failure 'write detection must not publish final raw'
+    }
+
+    # missing executable -> process_start_failure
+    $repoPS = New-FixtureRepo
+    $runPS = New-RunRoot $repoPS 1 'full'
+    $missingExe = Join-Path $tempRoot 'does-not-exist-codex.exe'
+    $psFail = Invoke-Executor @(
+        '--execution-app', 'codex-exec',
+        '--model', 'gpt-5.6-terra',
+        '--reviewer-role', 'local-reviewer',
+        '--run-root', $runPS,
+        '--round', '1',
+        '--repository-root', $repoPS,
+        '--skill-root', $skillRoot,
+        '--codex-executable', $missingExe,
+        '--format', 'json'
+    )
+    if ($psFail.ExitCode -eq 0 -or $psFail.Output -notmatch 'process_start_failure') {
+        Add-Failure "missing executable must classify process_start_failure: $($psFail.Output)"
     }
 }
 catch {

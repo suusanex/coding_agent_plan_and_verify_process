@@ -48,26 +48,39 @@ On failure, final `*.raw.md` is not published. Failure statuses include `timeout
 
 ### Codex exec
 
-Invokes non-interactive:
+Invokes non-interactive with prompt on **stdin** (not argv):
 
 ```text
-codex exec --json --strict-config --ignore-user-config -C <repo> -m <model> -s read-only -c ... -o <temp> <prompt>
+codex exec --json --strict-config --ignore-user-config -C <repo> -m <model> -s read-only -c ... -o <temp>
+# stdin: full reviewer assignment
 ```
 
 Limitations (recorded, not disguised):
 
 - top-level `codex exec`, not native `spawn_agent`
 - no parent session inheritance / child thread UI / project custom-agent UI selection
+- sandbox is requested as read-only; OS write impossibility is not proven (worktree mutation still fails closed)
 
 ### GitHub Copilot CLI
 
-Invokes non-interactive:
+Invokes non-interactive with a **short** `-p` that references a prompt file under `--add-dir` (full assignment is never placed on argv):
 
 ```text
-copilot -p <prompt> --model <model> -C <repo> -s --output-format text --no-ask-user --allow-all-tools --deny-tool write ...
+copilot -p <short-prompt-ref> --model <model> -C <repo> -s --output-format text \
+  --no-ask-user --no-custom-instructions --disable-builtin-mcps \
+  --available-tools view,grep,glob,read_file,list_dir,search_codebase \
+  --deny-tool write --deny-tool shell --deny-tool task --deny-tool memory ...
 ```
 
-VS Code UI is not required. Observed model may remain `unknown`.
+VS Code UI is not required. Observed model may remain `unknown`. Copilot-only installs do not require Codex TOML profiles; role contracts resolve from `.github/agents` or `apm_modules/**/.apm/agents`.
+
+## Safety contracts
+
+- raw `*.raw.md` and `*.execution.json` are published as one pair; metadata failure rolls back raw
+- timeout / auth / non-zero / empty / malformed / process-start / write-detected never mean “no findings”
+- final body must include `Production code changed: No` and role-compatible markers
+- full `pr-diff.patch` is referenced by path and must be read completely (no silent truncation success)
+- pre/post worktree snapshot rejects repository mutations
 
 ## Parent responsibilities after execution
 

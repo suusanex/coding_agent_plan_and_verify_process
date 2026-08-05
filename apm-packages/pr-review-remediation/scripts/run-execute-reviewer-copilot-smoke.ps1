@@ -34,12 +34,10 @@ function New-SmokeRun {
     $root = Join-Path ([IO.Path]::GetTempPath()) ("execute-reviewer-copilot-smoke-" + [guid]::NewGuid().ToString('N'))
     $repo = Join-Path $root 'repo'
     New-Item -ItemType Directory -Path (Join-Path $repo '.github\agents') -Force | Out-Null
-    New-Item -ItemType Directory -Path (Join-Path $repo 'apm-packages\pr-review-remediation\codex-agents') -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $repo 'docs') -Force | Out-Null
     Copy-Item (Join-Path $RepositoryRoot '.github\agents\local-reviewer.agent.md') (Join-Path $repo '.github\agents\local-reviewer.agent.md')
     Copy-Item (Join-Path $RepositoryRoot '.github\agents\purpose-reviewer.agent.md') (Join-Path $repo '.github\agents\purpose-reviewer.agent.md')
-    Copy-Item (Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\codex-agents\local-reviewer.toml') (Join-Path $repo 'apm-packages\pr-review-remediation\codex-agents\local-reviewer.toml')
-    Copy-Item (Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\codex-agents\purpose-reviewer.toml') (Join-Path $repo 'apm-packages\pr-review-remediation\codex-agents\purpose-reviewer.toml')
+    # Intentionally omit Codex TOML profiles so Copilot-only installs are exercised.
     Set-Content (Join-Path $repo 'docs\goal-context-smoke.md') -Value "Goal: verify Copilot CLI reviewer adapter captures raw review text.`n"
     Push-Location $repo
     try {
@@ -77,9 +75,10 @@ Real GitHub Copilot CLI smoke for execute-reviewer.cs
 - role: local-reviewer
 - timeout-seconds: $TimeoutSeconds
 - repository revision: $((git -C $RepositoryRoot rev-parse HEAD 2>$null))
-- command shape: copilot -p <prompt> --model $Model -C <scratch> -s --output-format text --no-ask-user --allow-all-tools --deny-tool write ...
-- secrets: none on argv
+- command shape: copilot -p <short-prompt-ref> --model $Model -C <scratch> -s --output-format text --no-ask-user --no-custom-instructions --disable-builtin-mcps --available-tools <read-only> --deny-tool write/shell/...
+- secrets: none on argv (full assignment is a workdir file, not argv)
 - VS Code UI: not required
+- Codex TOML profiles: not required for Copilot-only path
 "@
 
 if ($DescribePayload) {
@@ -119,10 +118,11 @@ try {
 - requested_model: $Model
 - observed_model: unknown unless metadata reports otherwise
 - execution_app: copilot-cli
-- command_shape_without_secrets: copilot -p <prompt> --model $Model -C <repo> -s --output-format text --no-ask-user --allow-all-tools --deny-tool write ...
-- input_summary: disposable repo with review-context.json, pr-diff.patch, goal-context-selection.json, role contracts
+- command_shape_without_secrets: copilot -p <short-prompt-ref> --model $Model -C <repo> -s --output-format text --no-ask-user --no-custom-instructions --disable-builtin-mcps --available-tools <read-only> --deny-tool write/shell/task/memory ...
+- input_summary: disposable repo with review-context.json, pr-diff.patch, goal-context-selection.json, role contracts (no Codex TOML)
 - concurrent_invocation_identity: single local-reviewer invocation in this record
-- limitations: observed model may remain unknown; write deny is best-effort; not OS sandbox proof; no VS Code UI
+- worktree_write_check: executor pre/post snapshot must remain clean for success
+- limitations: observed model may remain unknown; tool allowlist + MCP disable + worktree check; not OS sandbox proof; no VS Code UI
 
 ## Result
 - exit_code: $exitCode

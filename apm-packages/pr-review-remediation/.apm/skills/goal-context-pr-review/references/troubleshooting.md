@@ -16,7 +16,7 @@ Round 1のCopilot、local、purposeはいずれもmandatoryです。collectorが
 
 ## Executor launch / capture failure
 
-`execute-reviewer.cs`のtimeout、auth failure、non-zero exit、empty/malformed output、process start failureはreview成功ではありません。final `*.raw.md`が無い、または`*.execution.json`の`exitStatus`が`succeeded`以外の場合はassessmentへ進まず`Blocked`にします。「findingsなし」へ読み替えません。任意の`--command`文字列、unsupported app/model/roleはtyped設定エラーです。詳細は`execute-reviewer.md`を参照します。
+`execute-reviewer.cs`のtimeout、auth failure、non-zero exit、empty/malformed output、process start failure、worktree write detectionはreview成功ではありません。final `*.raw.md`が無い、または`*.execution.json`の`exitStatus`が`succeeded`以外の場合はassessmentへ進まず`Blocked`にします。「findingsなし」へ読み替えません。rawとmetadataは対で公開され、片側だけのfinal公開はしません。任意の`--command`文字列、unsupported app/model/roleはtyped設定エラーです。詳細は`execute-reviewer.md`を参照します。
 
 ## Reviewer reports a write
 

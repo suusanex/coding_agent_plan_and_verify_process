@@ -1,11 +1,14 @@
 #:property TargetFramework=net10.0
 #:property PublishAot=false
 
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+
+// Win32Exception is System.ComponentModel.Win32Exception
 
 var options = Options.Parse(args);
 if (options.Help)
@@ -20,7 +23,13 @@ try
     WriteOutput(result, options.Format);
     return result.ExitStatus == "succeeded" ? 0 : 2;
 }
-catch (Exception ex) when (ex is ContractException or IOException or JsonException or InvalidOperationException or TimeoutException)
+catch (Exception ex) when (
+    ex is ContractException
+        or IOException
+        or JsonException
+        or InvalidOperationException
+        or TimeoutException
+        or Win32Exception)
 {
     var failed = ExecutionResult.Failed(
         options.ExecutionApp ?? "unknown",
@@ -36,11 +45,14 @@ catch (Exception ex) when (ex is ContractException or IOException or JsonExcepti
 static string ClassifyFailure(Exception ex) => ex switch
 {
     TimeoutException => "timeout",
+    Win32Exception => "process_start_failure",
     ContractException ce when ce.Message.Contains("auth", StringComparison.OrdinalIgnoreCase) => "auth_failure",
     ContractException ce when ce.Message.Contains("Unsupported", StringComparison.OrdinalIgnoreCase) => "unsupported",
     ContractException ce when ce.Message.Contains("empty", StringComparison.OrdinalIgnoreCase) => "empty_output",
     ContractException ce when ce.Message.Contains("malformed", StringComparison.OrdinalIgnoreCase) => "malformed_output",
     ContractException ce when ce.Message.Contains("Could not start", StringComparison.OrdinalIgnoreCase) => "process_start_failure",
+    ContractException ce when ce.Message.Contains("process start", StringComparison.OrdinalIgnoreCase) => "process_start_failure",
+    ContractException ce when ce.Message.Contains("write detected", StringComparison.OrdinalIgnoreCase) => "write_detected",
     _ => "failed"
 };
 
@@ -66,11 +78,12 @@ Deterministic reviewer executor:
   Builds reviewer-role input from existing same-parent round artifacts, invokes a typed
   execution-app adapter (Codex exec or GitHub Copilot CLI), waits with timeout, extracts
   the final review body, and atomically publishes round-NNN/{role}.raw.md plus
-  {role}.execution.json metadata. Does not assess findings or transition run state.
+  {role}.execution.json metadata together. Does not assess findings or transition run state.
 
 Rejected:
   arbitrary raw command strings, unknown apps/roles/options, unsupported models,
-  local-reviewer on purpose-only rounds, empty/malformed success publication.
+  local-reviewer on purpose-only rounds, empty/malformed success publication,
+  repository writes observed during reviewer execution.
 
 Exit codes: 0 succeeded, 2 fail-closed execution or contract failure.
 """);
@@ -144,6 +157,8 @@ static class ReviewerExecutor
         var metadataPath = Path.Combine(roundRoot, $"{role}.execution.json");
         if (File.Exists(finalRawPath))
             throw new ContractException($"Final raw artifact already exists and will not be overwritten: {Relative(runRoot, finalRawPath)}");
+        if (File.Exists(metadataPath))
+            throw new ContractException($"Execution metadata already exists and will not be overwritten: {Relative(runRoot, metadataPath)}");
 
         var startedAt = DateTimeOffset.UtcNow;
         var input = ReviewerInputBuilder.Build(
@@ -153,25 +168,50 @@ static class ReviewerExecutor
             roundRoot,
             role,
             options.Round,
+            app,
             options.AdditionalContextPath);
 
         var workDir = Path.Combine(roundRoot, $".executor-{role}-{Guid.NewGuid():N}");
         Directory.CreateDirectory(workDir);
         try
         {
+            var before = WorktreeSnapshot.Capture(repositoryRoot);
             var adapter = CreateAdapter(app, options);
-            var invocation = adapter.Invoke(new AdapterRequest(
-                repositoryRoot,
-                workDir,
-                requestedModel,
-                role,
-                input,
-                options.TimeoutSeconds));
+            AdapterResult invocation;
+            try
+            {
+                invocation = adapter.Invoke(new AdapterRequest(
+                    repositoryRoot,
+                    workDir,
+                    requestedModel,
+                    role,
+                    input,
+                    options.TimeoutSeconds));
+            }
+            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or IOException)
+            {
+                invocation = AdapterResult.Fail(
+                    "process_start_failure",
+                    "unknown",
+                    executableLabel(app, options),
+                    $"Could not start reviewer process: {ex.Message}",
+                    ["Process start failure is not interpreted as no findings."]);
+            }
 
+            var after = WorktreeSnapshot.Capture(repositoryRoot);
             var completedAt = DateTimeOffset.UtcNow;
+            if (!before.Equals(after))
+            {
+                invocation = AdapterResult.Fail(
+                    "write_detected",
+                    invocation.ObservedModel,
+                    invocation.CommandShape,
+                    $"Reviewer write detected in repository worktree or index. before={before.Describe()} after={after.Describe()}",
+                    ["Observed repository mutation fails closed and is not interpreted as no findings."]);
+            }
+
             if (!string.Equals(invocation.ExitStatus, "succeeded", StringComparison.Ordinal))
             {
-                var failedMetaRelative = Relative(runRoot, metadataPath + ".failed.json");
                 var failed = new ExecutionResult
                 {
                     ExecutionApp = app,
@@ -182,7 +222,7 @@ static class ReviewerExecutor
                     CompletedAt = completedAt,
                     ExitStatus = invocation.ExitStatus,
                     RawOutputPath = null,
-                    MetadataPath = failedMetaRelative,
+                    MetadataPath = Relative(runRoot, metadataPath + ".failed.json"),
                     Error = invocation.Error,
                     Limitations = MergeLimitations(adapter.Limitations, invocation.Limitations),
                     CommandShape = Redact(invocation.CommandShape)
@@ -191,8 +231,7 @@ static class ReviewerExecutor
                 return failed;
             }
 
-            var body = FinalResponseExtractor.Extract(invocation);
-            AtomicWriteText(finalRawPath, body);
+            var body = FinalResponseExtractor.Extract(invocation, role);
             var result = new ExecutionResult
             {
                 ExecutionApp = app,
@@ -208,7 +247,7 @@ static class ReviewerExecutor
                 Limitations = MergeLimitations(adapter.Limitations, invocation.Limitations),
                 CommandShape = Redact(invocation.CommandShape)
             };
-            AtomicWriteJson(metadataPath, result);
+            PublishPair(finalRawPath, body, metadataPath, result);
             return result;
         }
         finally
@@ -216,6 +255,13 @@ static class ReviewerExecutor
             try { if (Directory.Exists(workDir)) Directory.Delete(workDir, recursive: true); } catch { /* best effort */ }
         }
     }
+
+    private static string executableLabel(string app, Options options) => app.ToLowerInvariant() switch
+    {
+        "codex-exec" => options.CodexExecutable ?? "codex",
+        "copilot-cli" => options.CopilotExecutable ?? "copilot",
+        _ => app
+    };
 
     private static void ValidateOptions(Options options)
     {
@@ -332,14 +378,36 @@ static class ReviewerExecutor
         return Regex.Replace(commandShape, "(?i)(token|password|secret|authorization)=\\S+", "$1=***");
     }
 
-    private static void AtomicWriteText(string path, string content)
+    private static void PublishPair(string rawPath, string rawBody, string metadataPath, ExecutionResult result)
     {
-        var directory = Path.GetDirectoryName(path) ?? throw new ContractException($"Invalid path: {path}");
+        var directory = Path.GetDirectoryName(rawPath) ?? throw new ContractException($"Invalid path: {rawPath}");
         Directory.CreateDirectory(directory);
-        var temp = path + ".partial-" + Guid.NewGuid().ToString("N");
-        File.WriteAllText(temp, NormalizeLineEndings(content).TrimEnd() + "\n", new UTF8Encoding(false));
-        if (new FileInfo(temp).Length == 0) { TryDelete(temp); throw new ContractException("Refusing to publish empty final raw artifact."); }
-        File.Move(temp, path, overwrite: false);
+        var token = Guid.NewGuid().ToString("N");
+        var rawTemp = rawPath + ".partial-" + token;
+        var metaTemp = metadataPath + ".partial-" + token;
+        try
+        {
+            var normalized = NormalizeLineEndings(rawBody).TrimEnd() + "\n";
+            File.WriteAllText(rawTemp, normalized, new UTF8Encoding(false));
+            if (new FileInfo(rawTemp).Length == 0) throw new ContractException("Refusing to publish empty final raw artifact.");
+            var json = JsonSerializer.Serialize(result, JsonOptions.Default) + "\n";
+            File.WriteAllText(metaTemp, json, new UTF8Encoding(false));
+            File.Move(rawTemp, rawPath, overwrite: false);
+            try
+            {
+                File.Move(metaTemp, metadataPath, overwrite: false);
+            }
+            catch
+            {
+                TryDelete(rawPath);
+                throw;
+            }
+        }
+        finally
+        {
+            TryDelete(rawTemp);
+            TryDelete(metaTemp);
+        }
     }
 
     private static void AtomicWriteJson(string path, ExecutionResult result)
@@ -352,11 +420,64 @@ static class ReviewerExecutor
         File.Move(temp, path, overwrite: true);
     }
 
-    private static void TryDelete(string path) { try { File.Delete(path); } catch { } }
+    private static void TryDelete(string path) { try { if (File.Exists(path)) File.Delete(path); } catch { } }
     private static string NormalizeLineEndings(string value) => value.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
     private static string ResolveExistingDirectory(string path) { var full = Path.GetFullPath(path); if (!Directory.Exists(full)) throw new ContractException($"Directory does not exist: {path}"); return full; }
     private static string Relative(string root, string path) => Path.GetRelativePath(root, path).Replace('\\', '/');
     private static void Require(bool condition, string message) { if (!condition) throw new ContractException(message); }
+}
+
+static class WorktreeSnapshot
+{
+    public static WorktreeState Capture(string repositoryRoot)
+    {
+        try
+        {
+            var status = ProcessRunner.RunCapture("git", ["status", "--porcelain"], repositoryRoot, 30);
+            var head = ProcessRunner.RunCapture("git", ["rev-parse", "HEAD"], repositoryRoot, 30).Trim();
+            var tree = ProcessRunner.RunCapture("git", ["write-tree"], repositoryRoot, 30).Trim();
+            return new WorktreeState(head, tree, Normalize(status));
+        }
+        catch
+        {
+            // Non-git fixtures still get a best-effort directory fingerprint.
+            return new WorktreeState("nogit", DirectoryFingerprint(repositoryRoot), "");
+        }
+    }
+
+    private static string Normalize(string value) => value.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').Trim();
+
+    private static string DirectoryFingerprint(string root)
+    {
+        var sb = new StringBuilder();
+        foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+                     .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}.executor-", StringComparison.Ordinal)
+                                    && !path.Contains($"{Path.DirectorySeparatorChar}.review{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+                     .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                     .Take(5000))
+        {
+            var info = new FileInfo(file);
+            sb.Append(Path.GetRelativePath(root, file).Replace('\\', '/'));
+            sb.Append('\t');
+            sb.Append(info.Length);
+            sb.Append('\t');
+            sb.Append(info.LastWriteTimeUtc.Ticks);
+            sb.Append('\n');
+        }
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(sb.ToString()))).ToLowerInvariant();
+    }
+}
+
+readonly record struct WorktreeState(string Head, string Tree, string Status)
+{
+    public bool Equals(WorktreeState other) =>
+        string.Equals(Head, other.Head, StringComparison.Ordinal) &&
+        string.Equals(Tree, other.Tree, StringComparison.Ordinal) &&
+        string.Equals(Status, other.Status, StringComparison.Ordinal);
+
+    public override int GetHashCode() => HashCode.Combine(Head, Tree, Status);
+
+    public string Describe() => $"head={Head};tree={Tree};status={(string.IsNullOrEmpty(Status) ? "<clean>" : Status.Replace('\n', '|'))}";
 }
 
 static class ReviewerInputBuilder
@@ -368,40 +489,63 @@ static class ReviewerInputBuilder
         string roundRoot,
         string role,
         int round,
+        string executionApp,
         string? additionalContextPath)
     {
         var contractPath = ResolveRoleContract(repositoryRoot, role);
-        var profilePath = ResolveRoleProfile(repositoryRoot, role);
         var contract = File.ReadAllText(contractPath);
-        var profileInstructions = ReadTomlMultiline(profilePath, "developer_instructions");
-        var reasoningEffort = ReadTomlString(profilePath, "model_reasoning_effort") ?? "high";
-        var sandboxMode = ReadTomlString(profilePath, "sandbox_mode") ?? "read-only";
+        string? profilePath = null;
+        var profileInstructions = "";
+        var reasoningEffort = "high";
+        var sandboxMode = "read-only";
+        if (executionApp.Equals("codex-exec", StringComparison.OrdinalIgnoreCase))
+        {
+            profilePath = ResolveRoleProfile(repositoryRoot, role);
+            profileInstructions = ReadTomlMultiline(profilePath, "developer_instructions") ?? "";
+            reasoningEffort = ReadTomlString(profilePath, "model_reasoning_effort") ?? "high";
+            sandboxMode = ReadTomlString(profilePath, "sandbox_mode") ?? "read-only";
+        }
+        else
+        {
+            // Copilot path may optionally use a Codex profile when present, but must not require it.
+            profilePath = TryResolveRoleProfile(repositoryRoot, role);
+            if (profilePath is not null)
+            {
+                profileInstructions = ReadTomlMultiline(profilePath, "developer_instructions") ?? "";
+                reasoningEffort = ReadTomlString(profilePath, "model_reasoning_effort") ?? "high";
+            }
+        }
 
         var contextPath = Path.Combine(roundRoot, "review-context.json");
         var patchPath = Path.Combine(roundRoot, "pr-diff.patch");
         var contextJson = File.ReadAllText(contextPath);
-        var patch = File.ReadAllText(patchPath);
-        if (patch.Length > 400_000) patch = patch[..400_000] + "\n\n[truncated: pr-diff.patch exceeded executor inline limit]\n";
+        if (string.IsNullOrWhiteSpace(File.ReadAllText(patchPath)))
+            throw new ContractException("round pr-diff.patch is empty.");
 
         var sb = new StringBuilder();
         sb.AppendLine($"You are executing the read-only reviewer role `{role}` through a deterministic process executor.");
         sb.AppendLine("Do not edit production code, tests, review artifacts, GitHub state, commits, or branches.");
-        sb.AppendLine("Return only the final review markdown body. Always include the line: Production code changed: No");
+        sb.AppendLine("Return only the final review markdown body. Always include the exact line: Production code changed: No");
+        sb.AppendLine("Read every referenced artifact file in full. Do not skip unread sections.");
         sb.AppendLine();
         sb.AppendLine("## Role contract");
         sb.AppendLine(contract.Trim());
         sb.AppendLine();
-        sb.AppendLine("## Profile developer instructions");
-        sb.AppendLine(string.IsNullOrWhiteSpace(profileInstructions) ? "(none)" : profileInstructions.Trim());
-        sb.AppendLine();
+        if (!string.IsNullOrWhiteSpace(profileInstructions))
+        {
+            sb.AppendLine("## Profile developer instructions");
+            sb.AppendLine(profileInstructions.Trim());
+            sb.AppendLine();
+        }
         sb.AppendLine("## Round identity");
         sb.AppendLine($"- round: {round}");
         sb.AppendLine($"- reviewer_role: {role}");
+        sb.AppendLine($"- execution_app: {executionApp}");
         sb.AppendLine($"- repository_root: {repositoryRoot}");
         sb.AppendLine($"- run_root: {runRoot}");
         sb.AppendLine($"- round_root: {roundRoot}");
-        sb.AppendLine($"- review_context: {contextPath}");
-        sb.AppendLine($"- pr_diff_patch: {patchPath}");
+        sb.AppendLine($"- review_context_path: {contextPath}");
+        sb.AppendLine($"- pr_diff_patch_path: {patchPath}");
         sb.AppendLine();
         sb.AppendLine("## review-context.json");
         sb.AppendLine("```json");
@@ -409,9 +553,8 @@ static class ReviewerInputBuilder
         sb.AppendLine("```");
         sb.AppendLine();
         sb.AppendLine("## pr-diff.patch");
-        sb.AppendLine("```diff");
-        sb.AppendLine(patch.TrimEnd());
-        sb.AppendLine("```");
+        sb.AppendLine($"Read the complete patch from file path: {patchPath}");
+        sb.AppendLine("The full remote PR diff is authoritative. Do not invent unread hunks.");
 
         if (role.Equals("purpose-reviewer", StringComparison.OrdinalIgnoreCase))
         {
@@ -433,7 +576,7 @@ static class ReviewerInputBuilder
                 {
                     sb.AppendLine();
                     sb.AppendLine("## Selected Goal Context");
-                    sb.AppendLine($"path: {selectedPath}");
+                    sb.AppendLine($"path: {goalPath}");
                     sb.AppendLine("```markdown");
                     sb.AppendLine(File.ReadAllText(goalPath).TrimEnd());
                     sb.AppendLine("```");
@@ -458,6 +601,7 @@ static class ReviewerInputBuilder
                 {
                     sb.AppendLine();
                     sb.AppendLine($"## Prior purpose-reviewer raw (round {priorRound:000})");
+                    sb.AppendLine($"path: {priorRaw}");
                     sb.AppendLine(File.ReadAllText(priorRaw).TrimEnd());
                 }
             }
@@ -483,16 +627,17 @@ static class ReviewerInputBuilder
             sb.AppendLine(File.ReadAllText(templatePath).TrimEnd());
         }
 
-        return new ReviewerInput(sb.ToString(), reasoningEffort, sandboxMode, contractPath, profilePath);
+        return new ReviewerInput(sb.ToString(), reasoningEffort, sandboxMode, contractPath, profilePath, patchPath, contextPath);
     }
 
     private static string ResolveRoleContract(string repositoryRoot, string role)
     {
-        var candidates = new[]
+        var candidates = new List<string>
         {
             Path.Combine(repositoryRoot, ".github", "agents", $"{role}.agent.md"),
             Path.Combine(repositoryRoot, "apm-packages", "pr-review-remediation", "..", "..", ".github", "agents", $"{role}.agent.md")
         };
+        candidates.AddRange(FindApmCanonicalAgents(repositoryRoot, $"{role}.agent.md"));
         foreach (var candidate in candidates)
         {
             var full = Path.GetFullPath(candidate);
@@ -502,6 +647,10 @@ static class ReviewerInputBuilder
     }
 
     private static string ResolveRoleProfile(string repositoryRoot, string role)
+        => TryResolveRoleProfile(repositoryRoot, role)
+           ?? throw new ContractException($"Role profile not found for {role}.");
+
+    private static string? TryResolveRoleProfile(string repositoryRoot, string role)
     {
         var candidates = new[]
         {
@@ -513,7 +662,20 @@ static class ReviewerInputBuilder
             var full = Path.GetFullPath(candidate);
             if (File.Exists(full)) return full;
         }
-        throw new ContractException($"Role profile not found for {role}.");
+        return null;
+    }
+
+    private static IEnumerable<string> FindApmCanonicalAgents(string repositoryRoot, string fileName)
+    {
+        var modulesRoot = Path.Combine(repositoryRoot, "apm_modules");
+        if (!Directory.Exists(modulesRoot)) yield break;
+        foreach (var path in Directory.EnumerateFiles(modulesRoot, fileName, SearchOption.AllDirectories))
+        {
+            var agentsDir = new DirectoryInfo(Path.GetDirectoryName(path)!);
+            if (!string.Equals(agentsDir.Name, "agents", StringComparison.OrdinalIgnoreCase)) continue;
+            if (agentsDir.Parent is null || !string.Equals(agentsDir.Parent.Name, ".apm", StringComparison.OrdinalIgnoreCase)) continue;
+            yield return path;
+        }
     }
 
     private static string? TryReadSelectedPath(string selectionJson)
@@ -564,14 +726,38 @@ static class ReviewerInputBuilder
 
 static class FinalResponseExtractor
 {
-    public static string Extract(AdapterResult invocation)
+    private static readonly Regex ProductionNoWrite = new("(?im)^-?\\s*Production code changed:\\s*No\\s*$", RegexOptions.CultureInvariant);
+
+    public static string Extract(AdapterResult invocation, string role)
     {
         var body = invocation.FinalText?.Trim();
         if (string.IsNullOrWhiteSpace(body))
             throw new ContractException("Final answer extraction produced empty output.");
-        if (body.Length < 20)
+        if (body.Length < 40)
             throw new ContractException("Final answer extraction produced malformed output that is too short to be a review body.");
+        if (!ProductionNoWrite.IsMatch(body))
+            throw new ContractException("malformed final review body: missing required marker 'Production code changed: No'.");
+        if (LooksLikeCliNoise(body))
+            throw new ContractException("malformed final review body: output looks like CLI banner/error noise rather than a review.");
+        if (role.Equals("local-reviewer", StringComparison.OrdinalIgnoreCase) &&
+            !Regex.IsMatch(body, "(?i)local|LR-|No findings|REVIEWED|BLOCKED"))
+        {
+            throw new ContractException("malformed final review body: local-reviewer contract markers were not found.");
+        }
+        if (role.Equals("purpose-reviewer", StringComparison.OrdinalIgnoreCase) &&
+            !Regex.IsMatch(body, "(?i)purpose|PUR-|No findings|PURPOSE_REVIEWED|HUMAN_DECISION_REQUIRED|BLOCKED"))
+        {
+            throw new ContractException("malformed final review body: purpose-reviewer contract markers were not found.");
+        }
         return body;
+    }
+
+    private static bool LooksLikeCliNoise(string body)
+    {
+        var first = body.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? "";
+        return first.StartsWith("Usage:", StringComparison.OrdinalIgnoreCase)
+               || first.StartsWith("Error:", StringComparison.OrdinalIgnoreCase)
+               || first.Contains("unknown option", StringComparison.OrdinalIgnoreCase);
     }
 }
 
@@ -587,14 +773,18 @@ sealed class CodexExecAdapter(string executable) : IReviewerAdapter
     [
         "Uses top-level codex exec rather than native subagent spawn_agent.",
         "Does not inherit parent session settings, child thread UI, or project-scoped custom agent profile selection UI.",
-        "Sandbox is requested as read-only; OS-level write impossibility is not proven."
+        "Sandbox is requested as read-only; OS-level write impossibility is not proven.",
+        "Reviewer prompt is delivered on stdin, not argv."
     ];
 
     public AdapterResult Invoke(AdapterRequest request)
     {
         var outputPath = Path.Combine(request.WorkDirectory, "codex-final.md");
-        var promptPath = Path.Combine(request.WorkDirectory, "prompt.txt");
+        var promptPath = Path.Combine(request.WorkDirectory, "prompt.md");
         File.WriteAllText(promptPath, request.Input.Prompt, new UTF8Encoding(false));
+
+        const string developerInstructions =
+            "Use the reviewer assignment delivered on stdin. Return only the final review markdown. Always include: Production code changed: No. Do not edit files or GitHub state.";
 
         var arguments = new List<string>
         {
@@ -606,15 +796,30 @@ sealed class CodexExecAdapter(string executable) : IReviewerAdapter
             "-m", request.Model,
             "-s", request.Input.SandboxMode,
             "-c", $"model_reasoning_effort=\"{request.Input.ReasoningEffort}\"",
-            "-c", "developer_instructions=" + CollapseForConfig(request.Input.Prompt.Length > 8000
-                ? "Use the provided reviewer role contract and round artifacts. Return only the final review markdown. Always include: Production code changed: No"
-                : request.Input.Prompt),
-            "-o", outputPath,
-            request.Input.Prompt
+            "-c", "developer_instructions=" + CollapseForConfig(developerInstructions),
+            "-o", outputPath
+            // Prompt intentionally omitted from argv; delivered via stdin.
         };
 
-        var commandShape = BuildCommandShape(executable, arguments);
-        var processResult = ProcessRunner.Run(executable, arguments, request.RepositoryRoot, request.TimeoutSeconds, "codex exec");
+        var commandShape = BuildCommandShape(executable, arguments) + " <stdin:prompt>";
+        ProcessRunResult processResult;
+        try
+        {
+            processResult = ProcessRunner.Run(
+                executable,
+                arguments,
+                request.RepositoryRoot,
+                request.TimeoutSeconds,
+                "codex exec",
+                stdin: request.Input.Prompt);
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+        {
+            return AdapterResult.Fail("process_start_failure", "unknown", commandShape,
+                $"Could not start codex exec: {ex.Message}",
+                ["Process start failure is not interpreted as no findings."]);
+        }
+
         if (processResult.TimedOut)
         {
             return AdapterResult.Fail("timeout", "unknown", commandShape, "codex exec timed out.",
@@ -743,10 +948,8 @@ sealed class CodexExecAdapter(string executable) : IReviewerAdapter
     private static string BuildCommandShape(string executable, IReadOnlyList<string> arguments)
     {
         var parts = new List<string> { executable };
-        for (var i = 0; i < arguments.Count; i++)
+        foreach (var arg in arguments)
         {
-            var arg = arguments[i];
-            if (i == arguments.Count - 1 && arg.Length > 80) { parts.Add("<prompt>"); continue; }
             if (arg.StartsWith("developer_instructions=", StringComparison.Ordinal)) { parts.Add("developer_instructions=<redacted>"); continue; }
             parts.Add(arg.Contains(' ', StringComparison.Ordinal) ? $"\"{arg}\"" : arg);
         }
@@ -758,22 +961,33 @@ sealed class CodexExecAdapter(string executable) : IReviewerAdapter
 
 sealed class CopilotCliAdapter(string executable) : IReviewerAdapter
 {
+    // Keep the available tool set intentionally narrow and read-oriented.
+    private static readonly string[] ReadOnlyTools =
+    [
+        "view",
+        "grep",
+        "glob",
+        "read_file",
+        "list_dir",
+        "search_codebase"
+    ];
+
     public IReadOnlyList<string> Limitations { get; } =
     [
         "Uses GitHub Copilot CLI non-interactive -p/--prompt mode rather than VS Code UI.",
-        "Read-only intent is requested via denied write tools; OS-level write impossibility is not proven.",
+        "Read-only intent is requested via --available-tools allowlist, denied write/shell/git mutations, disabled built-in MCPs, and pre/post worktree comparison.",
+        "OS-level write impossibility is not proven; observed writes fail closed.",
         "Observed model may remain unknown when the CLI does not echo the selected model.",
+        "Reviewer prompt is delivered via short -p plus prompt file under --add-dir, not full argv payload.",
         "Does not share Codex native subagent identity or parent conversation history isolation guarantees."
     ];
 
     public AdapterResult Invoke(AdapterRequest request)
     {
-        // Prefer prompt via stdin-less -p; large prompts are written to a temp file referenced in prompt text.
         var promptPath = Path.Combine(request.WorkDirectory, "prompt.md");
         File.WriteAllText(promptPath, request.Input.Prompt, new UTF8Encoding(false));
-        var promptArg = request.Input.Prompt.Length <= 12000
-            ? request.Input.Prompt
-            : $"Read the reviewer assignment at '{promptPath}' and produce only the final review markdown body. Always include: Production code changed: No";
+        var promptArg =
+            $"Read the reviewer assignment at '{promptPath}' and the referenced artifact files (especially the full pr-diff.patch). Produce only the final review markdown body. Always include: Production code changed: No. Do not edit files or GitHub state.";
 
         var arguments = new List<string>
         {
@@ -783,15 +997,31 @@ sealed class CopilotCliAdapter(string executable) : IReviewerAdapter
             "-s",
             "--output-format", "text",
             "--no-ask-user",
-            "--allow-all-tools",
+            "--no-custom-instructions",
+            "--disable-builtin-mcps",
+            "--add-dir", request.WorkDirectory,
+            "--available-tools", string.Join(',', ReadOnlyTools),
             "--deny-tool", "write",
-            "--deny-tool", "shell(git commit)",
-            "--deny-tool", "shell(git push)",
-            "--add-dir", request.WorkDirectory
+            "--deny-tool", "shell",
+            "--deny-tool", "task",
+            "--deny-tool", "memory",
+            "--deny-tool", "shell(git)",
+            "--deny-url", "*"
         };
 
         var commandShape = BuildCommandShape(executable, arguments);
-        var processResult = ProcessRunner.Run(executable, arguments, request.RepositoryRoot, request.TimeoutSeconds, "copilot cli");
+        ProcessRunResult processResult;
+        try
+        {
+            processResult = ProcessRunner.Run(executable, arguments, request.RepositoryRoot, request.TimeoutSeconds, "copilot cli");
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+        {
+            return AdapterResult.Fail("process_start_failure", "unknown", commandShape,
+                $"Could not start GitHub Copilot CLI: {ex.Message}",
+                ["Process start failure is not interpreted as no findings."]);
+        }
+
         if (processResult.TimedOut)
         {
             return AdapterResult.Fail("timeout", "unknown", commandShape, "GitHub Copilot CLI timed out.",
@@ -830,7 +1060,7 @@ sealed class CopilotCliAdapter(string executable) : IReviewerAdapter
             if (arg is "-p" or "--prompt")
             {
                 parts.Add(arg);
-                if (i + 1 < arguments.Count) { parts.Add("<prompt>"); i++; }
+                if (i + 1 < arguments.Count) { parts.Add("<short-prompt-ref>"); i++; }
                 continue;
             }
             parts.Add(arg.Contains(' ', StringComparison.Ordinal) ? $"\"{arg}\"" : arg);
@@ -843,12 +1073,21 @@ sealed class CopilotCliAdapter(string executable) : IReviewerAdapter
 
 static class ProcessRunner
 {
+    public static string RunCapture(string executable, IReadOnlyList<string> arguments, string workingDirectory, int timeoutSeconds)
+    {
+        var result = Run(executable, arguments, workingDirectory, timeoutSeconds, executable);
+        if (result.TimedOut) throw new TimeoutException($"{executable} timed out.");
+        if (result.ExitCode != 0) throw new ContractException($"{executable} failed: {result.StdErr}");
+        return result.StdOut;
+    }
+
     public static ProcessRunResult Run(
         string executable,
         IReadOnlyList<string> arguments,
         string workingDirectory,
         int timeoutSeconds,
-        string description)
+        string description,
+        string? stdin = null)
     {
         var start = new ProcessStartInfo(executable)
         {
@@ -856,25 +1095,47 @@ static class ProcessRunner
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            RedirectStandardInput = stdin is not null,
             StandardOutputEncoding = Encoding.UTF8,
             StandardErrorEncoding = Encoding.UTF8,
             CreateNoWindow = true
         };
         foreach (var argument in arguments) start.ArgumentList.Add(argument);
 
-        using var process = Process.Start(start) ?? throw new ContractException($"Could not start {description}.");
-        var stdoutTask = process.StandardOutput.ReadToEndAsync();
-        var stderrTask = process.StandardError.ReadToEndAsync();
-        var exited = process.WaitForExit(timeoutSeconds * 1000);
-        if (!exited)
+        Process process;
+        try
         {
-            try { process.Kill(entireProcessTree: true); } catch { }
-            try { process.WaitForExit(5000); } catch { }
-            return new ProcessRunResult(-1, stdoutTask.Status == TaskStatus.RanToCompletion ? stdoutTask.Result : "", stderrTask.Status == TaskStatus.RanToCompletion ? stderrTask.Result : "", TimedOut: true);
+            process = Process.Start(start) ?? throw new ContractException($"Could not start {description}.");
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+        {
+            throw new ContractException($"Could not start {description}: {ex.Message}");
         }
 
-        Task.WaitAll(stdoutTask, stderrTask);
-        return new ProcessRunResult(process.ExitCode, stdoutTask.Result, stderrTask.Result, TimedOut: false);
+        using (process)
+        {
+            if (stdin is not null)
+            {
+                process.StandardInput.Write(stdin);
+                process.StandardInput.Close();
+            }
+
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+            var exited = process.WaitForExit(timeoutSeconds * 1000);
+            if (!exited)
+            {
+                try { process.Kill(entireProcessTree: true); } catch { }
+                try { process.WaitForExit(5000); } catch { }
+                return new ProcessRunResult(-1,
+                    stdoutTask.Status == TaskStatus.RanToCompletion ? stdoutTask.Result : "",
+                    stderrTask.Status == TaskStatus.RanToCompletion ? stderrTask.Result : "",
+                    TimedOut: true);
+            }
+
+            Task.WaitAll(stdoutTask, stderrTask);
+            return new ProcessRunResult(process.ExitCode, stdoutTask.Result, stderrTask.Result, TimedOut: false);
+        }
     }
 }
 
@@ -966,7 +1227,14 @@ static class JsonOptions
     };
 }
 
-sealed record ReviewerInput(string Prompt, string ReasoningEffort, string SandboxMode, string ContractPath, string ProfilePath);
+sealed record ReviewerInput(
+    string Prompt,
+    string ReasoningEffort,
+    string SandboxMode,
+    string ContractPath,
+    string? ProfilePath,
+    string PatchPath,
+    string ContextPath);
 sealed record AdapterRequest(string RepositoryRoot, string WorkDirectory, string Model, string Role, ReviewerInput Input, int TimeoutSeconds);
 sealed record ProcessRunResult(int ExitCode, string StdOut, string StdErr, bool TimedOut);
 
