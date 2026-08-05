@@ -3,7 +3,7 @@
 - Date: 2026-08-05 (Asia/Tokyo)
 - Copilot CLI: `1.0.78`
 - APM: `0.26.0`
-- Remote source: `suusanex/coding_agent_plan_and_verify_process#8d7527cbf5c0172148346463fd6c61f25fb33e24`
+- Remote source: `suusanex/coding_agent_plan_and_verify_process#f306a927d944d522a9ef3210d002f5d1e97a9f9b`
 - Remote package version: `0.6.1`
 - Install mode: `remote-package`
 - Installed Skill SHA-256: `717c91f6b65e3eab4003ba4938f99ec4abb01982f212ecbd2dc254208e9c9c91`
@@ -16,8 +16,7 @@ The package-owned check executed:
 .\apm-packages\plan-coverage-residual-flow\scripts\validate-copilot-full-package-install.ps1 `
   -PackageName token-aware-full-coverage-3layer `
   -Repository suusanex/coding_agent_plan_and_verify_process `
-  -Ref 8d7527cbf5c0172148346463fd6c61f25fb33e24 `
-  -KeepWorkspace
+  -Ref f306a927d944d522a9ef3210d002f5d1e97a9f9b
 ```
 
 | Observation | Status | Evidence |
