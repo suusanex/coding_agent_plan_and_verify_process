@@ -1,47 +1,41 @@
-# GitHub Copilot CLI qualification result
+# GitHub Copilot CLI final-head package boundary result
 
 - Date: 2026-08-05 (Asia/Tokyo)
 - Copilot CLI: `1.0.78`
 - APM: `0.26.0`
-- Remote boundary source: `suusanex/coding_agent_plan_and_verify_process#3e427582051facda51f38997b1ce4a05921bd5f2`
-- Remote package version: `0.9.0`
-- Final working-tree manifest version: `0.9.1`
-- Working-tree source: `3e427582051facda51f38997b1ce4a05921bd5f2-dirty`
-- Working-tree mode: `local-skill-only`
+- Remote source: `suusanex/coding_agent_plan_and_verify_process#8d7527cbf5c0172148346463fd6c61f25fb33e24`
+- Remote package version: `0.9.1`
+- Install mode: `remote-package`
+- Installed Skill SHA-256: `8814975edb2cc8ec48dc369c117d6e1cb9ca07ca59c0468151347841d873db3a`
 
-## Observed install boundary
+## Final-head installation check
+
+The package-owned check executed:
+
+```powershell
+.\apm-packages\plan-coverage-residual-flow\scripts\validate-copilot-full-package-install.ps1 `
+  -PackageName plan-coverage-residual-flow `
+  -Repository suusanex/coding_agent_plan_and_verify_process `
+  -Ref 8d7527cbf5c0172148346463fd6c61f25fb33e24 `
+  -KeepWorkspace
+```
 
 | Observation | Status | Evidence |
 | --- | --- | --- |
-| Remote APM package install with `--target copilot,agent-skills --https` | PASS | Pinned remote install completed in a disposable repository |
-| Copilot Skill discovery | PASS | `copilot skill list` listed `plan-coverage-residual-flow` |
-| Installed Skill path | PASS | `.agents/skills/plan-coverage-residual-flow/SKILL.md` |
-| Shared instruction path | PASS | `.github/instructions/plan-coverage-shared.instructions.md` |
-| Portable agent path | PASS | `.github/agents/*.agent.md` |
-| Working-tree Skill discovery | PASS | Local Skill-only install listed `plan-coverage-residual-flow` |
-| Per-agent model locking | ManualOnly | Requested and observed models require separate CLI evidence |
+| Remote APM install with `--target copilot,agent-skills --https` | `PASS` | Exit code 0 from the exact full SHA |
+| Package version | `PASS` | Lockfile version `0.9.1` |
+| Lock source/ref | `PASS` | Source repository and `resolved_commit`/`resolved_ref` equal the full SHA |
+| `.agents/skills` | `PASS` | Skill and referenced files deployed |
+| `.github/instructions` | `PASS` | Shared Plan Coverage instruction deployed |
+| `.github/agents` | `PASS` | Portable agents deployed |
+| Lock content/deployed-file hashes | `PASS` | Lock content hash and installed Skill SHA-256 verified |
+| Unmanaged custom-agent collision | `PASS` | Sentinel preserved without `--force`; collision install exited 0 |
+| Copilot Skill discovery | `PASS` | `copilot skill list` listed `plan-coverage-residual-flow` |
+| Local package-directory install | `FAIL (expected limitation)` | APM 0.26.0 reported `git: parent cannot inherit from a local`; the generated `apm.yml` was removed |
 
-Installed Skill hashes:
-
-- Remote boundary: `8814975edb2cc8ec48dc369c117d6e1cb9ca07ca59c0468151347841d873db3a`
-- Working tree: `3e055494361a233c13b0e404d0630e919f9a3915c134d22e6fa6890a39f4c754`
-
-## Scenario status
-
-| Scenario | Status | Evidence |
-| --- | --- | --- |
-| Install and Skill discovery | PASS | Remote package and working-tree Skill probes |
-| Explicit `lite` / `standard` | NOT RUN | Requires a real model run |
-| Unauthorized generic / question / comparison / negation | NOT RUN | Requires a real model run |
-| Durable authorization and new-session resume | NOT RUN | Requires a real model run |
-| Adaptive and HIGH → STANDARD → HIGH scenarios | NOT RUN | Requires a real model run |
-| Architecture, compact v2, verification, and residual scenarios | NOT RUN | Requires a real model run |
-| Design Pair E2E | BLOCKED | Issue #69 canonical Copilot support is not merged |
-
-The local package-directory full install limitation is recorded by the harness:
-APM 0.26.0 rejects a root manifest that uses `git: parent`; a local Skill-only
-probe is not presented as full dependency-graph evidence.
-
-The remote boundary record uses the last published `main` revision. The
-working-tree Skill discovery covers the final local Skill content; rerun the
-remote package scenario after publishing the final commit SHA.
+The local package-directory `git: parent` limitation applies only to local
+package-directory mode and was not used as package evidence. Local Skill-only
+discovery is explicitly non-qualification evidence.
+Real model results are recorded separately in
+`20260805-real-cli-qualification.md` and remain
+`REAL_SCENARIO_INCOMPLETE`.

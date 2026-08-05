@@ -1,0 +1,172 @@
+[*] Created apm.yml
+[i] Targets set: agent-skills, copilot (persisted to apm.yml)
+[*] Validating 1 package...
+[+] 
+suusanex/coding_agent_plan_and_verify_process/apm-packages/token-aware-full-cov
+erage-3layer#8d7527cbf5c0172148346463fd6c61f25fb33e24
+[*] Updated apm.yml with 1 new package(s)
+[>] Installing 1 new package...
+[>] Resolving 
+coding_agent_plan_and_verify_process-token-aware-full-coverage-3layer...
+[>] Resolving coding_agent_plan_and_verify_process-plan-coverage-shared...
+[>] Resolving coding_agent_plan_and_verify_process-plan-kernel...
+[>] Resolving 
+coding_agent_plan_and_verify_process-black-box-behavior-spec-kernel...
+[>] Resolving coding_agent_plan_and_verify_process-change-risk-triage...
+[>] Resolving 
+coding_agent_plan_and_verify_process-architecture-slice-readiness...
+[>] Resolving coding_agent_plan_and_verify_process-architecture-elaboration...
+[>] Resolving 
+coding_agent_plan_and_verify_process-plan-coverage-residual-flow...
+[>] Resolving coding_agent_plan_and_verify_process-plan-slice-decomposition...
+[>] Resolving coding_agent_plan_and_verify_process-runtime-contract-kernel...
+[>] Resolving coding_agent_plan_and_verify_process-test-design-kernel...
+[>] Resolving 
+coding_agent_plan_and_verify_process-implementation-handoff-review...
+[>] Resolving coding_agent_plan_and_verify_process-verification-kernel...
+[>] Resolving 
+coding_agent_plan_and_verify_process-cross-slice-verification-kernel...
+[>] Resolving coding_agent_plan_and_verify_process-coverage-gap-triage...
+[>] Resolving coding_agent_plan_and_verify_process-residual-decision-gate...
+[>] Resolving 
+coding_agent_plan_and_verify_process-coverage-gap-resolution-slice...
+[>] Resolving 
+coding_agent_plan_and_verify_process-implementation-contract-kernel...
+[>] Resolving 
+coding_agent_plan_and_verify_process-implementation-contract-review-kernel...
+[>] Resolving coding_agent_plan_and_verify_process-code-review-focus-kernel...
+[>] Resolving coding_agent_plan_and_verify_process-implementation-execution...
+[>] Resolving 
+coding_agent_plan_and_verify_process-adaptive-implementation-execution...
+[>] Resolving 
+coding_agent_plan_and_verify_process-high-implementation-starter...
+[>] Resolving 
+coding_agent_plan_and_verify_process-standard-implementation-completer...
+WARNING apm_cli.policy.discovery Policy repo suusanex/.github-private not found (or [REDACTED] private-repo read scope). If your org publishes policy in .github-private, ensure the token has Contents:read permission on that repo.
+[i] Targets: agent-skills, copilot  (source: --target flag)
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/apm-packages/token-awa
+re-full-coverage-3layer#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 2 agents integrated -> .github/agents/
+  |-- 1 instruction(s) integrated -> .github/instructions/
+  |-- 1 skill(s) integrated -> .agents/skills/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/archite
+cture-elaboration.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/archite
+cture-slice-readiness.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/black-b
+ox-behavior-spec-kernel.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/change-
+risk-triage.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/code-re
+view-focus-kernel.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/coverag
+e-gap-resolution-slice.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/coverag
+e-gap-triage.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/cross-s
+lice-verification-kernel.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/high-im
+plementation-starter.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/impleme
+ntation-contract-kernel.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/impleme
+ntation-contract-review-kernel.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e2
+4 #8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/impleme
+ntation-execution.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/impleme
+ntation-handoff-review.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/plan-ke
+rnel.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/plan-sl
+ice-decomposition.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/residua
+l-decision-gate.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/runtime
+-contract-kernel.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/standar
+d-implementation-completer.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/test-de
+sign-kernel.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/agents/verific
+ation-kernel.agent.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 agents integrated -> .github/agents/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/.github/instructions/p
+lan-coverage-shared.instructions.md#8d7527cbf5c0172148346463fd6c61f25fb33e24 
+#8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- 1 instruction(s) integrated -> .github/instructions/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-
+implementation-execution/.apm/skills/adaptive-implementation-execution#8d7527cb
+f5c0172148346463fd6c61f25fb33e24 #8d7527cbf5c0172148346463fd6c61f25fb33e24 
+@8d7527cb
+  |-- Skill integrated -> .agents/skills/
+  [+] 
+github.com/suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-cove
+rage-residual-flow/.apm/skills/plan-coverage-residual-flow#8d7527cbf5c017214834
+6463fd6c61f25fb33e24 #8d7527cbf5c0172148346463fd6c61f25fb33e24 @8d7527cb
+  |-- Skill integrated -> .agents/skills/
+[i] Added apm_modules/ to .gitignore
+
+[*] Installed 24 APM dependencies in 9.4s.

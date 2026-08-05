@@ -90,6 +90,16 @@ Troubleshooting: Skillが表示されない場合は`.agents/skills`と
 `apm install --frozen`と`apm audit --ci`を再実行します。同名agentのcollisionは
 ownershipを確認するまで`--force`で上書きしません。
 
+Final-head package installation is checked independently from the canonical
+Full Coverage validator:
+
+```powershell
+./apm-packages/plan-coverage-residual-flow/scripts/validate-copilot-full-package-install.ps1 `
+  -PackageName token-aware-full-coverage-3layer `
+  -Repository suusanex/coding_agent_plan_and_verify_process `
+  -Ref <full-commit-sha>
+```
+
 ## Documentation and validation
 
 - [Full-coverage decomposition policy](../../docs/token-aware-full-coverage-decomposition-flow.md)

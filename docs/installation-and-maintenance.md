@@ -99,8 +99,10 @@ repository rootから、変更したownership surfaceに対応するcheckを実�
 ```powershell
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-copilot.ps1
+./apm-packages/plan-coverage-residual-flow/scripts/validate-copilot-full-package-install.ps1 -PackageName plan-coverage-residual-flow -Repository suusanex/coding_agent_plan_and_verify_process -Ref <full-commit-sha>
 ./scripts/validate-full-coverage-slice-flow.ps1
 ./apm-packages/token-aware-full-coverage-3layer/scripts/validate-token-aware-full-coverage-3layer-copilot.ps1
+./apm-packages/plan-coverage-residual-flow/scripts/validate-copilot-full-package-install.ps1 -PackageName token-aware-full-coverage-3layer -Repository suusanex/coding_agent_plan_and_verify_process -Ref <full-commit-sha>
 ./scripts/validate-architecture-slice-readiness.ps1
 ```
 

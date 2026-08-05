@@ -4,8 +4,10 @@ on:
   pull_request:
     paths:
       - '.github/workflows/validate-plan-coverage-residual-flow.yml'
+      - 'docs/installation-and-maintenance.md'
       - '.agents/skills/plan-coverage-residual-flow/**'
       - 'apm-packages/plan-coverage-residual-flow/**'
+      - 'apm-packages/token-aware-full-coverage-3layer/scripts/validate-token-aware-full-coverage-3layer-copilot.ps1'
       - 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1'
       - 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1'
   push:
@@ -13,8 +15,10 @@ on:
       - main
     paths:
       - '.github/workflows/validate-plan-coverage-residual-flow.yml'
+      - 'docs/installation-and-maintenance.md'
       - '.agents/skills/plan-coverage-residual-flow/**'
       - 'apm-packages/plan-coverage-residual-flow/**'
+      - 'apm-packages/token-aware-full-coverage-3layer/scripts/validate-token-aware-full-coverage-3layer-copilot.ps1'
       - 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1'
       - 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1'
 
@@ -71,5 +75,29 @@ jobs:
           GITHUB_APM_PAT: ${{ github.token }}
         run: |
           ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1 `
+            -Repository $env:PACKAGE_REPOSITORY `
+            -Ref $env:PACKAGE_REF
+
+  validate-copilot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pinned APM CLI
+        uses: microsoft/apm-action@v1
+        with:
+          setup-only: 'true'
+          apm-version: '0.26.0'
+      - name: Validate Plan Coverage Copilot qualification contract
+        shell: pwsh
+        run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-copilot.ps1
+      - name: Validate current-head Copilot full-package installation
+        shell: pwsh
+        env:
+          PACKAGE_REPOSITORY: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+          PACKAGE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          GITHUB_APM_PAT: ${{ github.token }}
+        run: |
+          ./apm-packages/plan-coverage-residual-flow/scripts/validate-copilot-full-package-install.ps1 `
+            -PackageName plan-coverage-residual-flow `
             -Repository $env:PACKAGE_REPOSITORY `
             -Ref $env:PACKAGE_REF

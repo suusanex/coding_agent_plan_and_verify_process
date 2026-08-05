@@ -48,3 +48,27 @@ jobs:
           New-Item -ItemType Directory -Path $target -Force | Out-Null
           dotnet run --file scripts/provision-work-repo-agents.cs -- $target
           dotnet run --file scripts/provision-work-repo-agents.cs -- $target --check
+
+  validate-copilot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pinned APM CLI
+        uses: microsoft/apm-action@v1
+        with:
+          setup-only: 'true'
+          apm-version: '0.26.0'
+      - name: Validate Full Coverage Copilot qualification contract
+        shell: pwsh
+        run: ./apm-packages/token-aware-full-coverage-3layer/scripts/validate-token-aware-full-coverage-3layer-copilot.ps1
+      - name: Validate current-head Full Coverage Copilot full-package installation
+        shell: pwsh
+        env:
+          PACKAGE_REPOSITORY: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+          PACKAGE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          GITHUB_APM_PAT: ${{ github.token }}
+        run: |
+          ./apm-packages/plan-coverage-residual-flow/scripts/validate-copilot-full-package-install.ps1 `
+            -PackageName token-aware-full-coverage-3layer `
+            -Repository $env:PACKAGE_REPOSITORY `
+            -Ref $env:PACKAGE_REF

@@ -145,11 +145,45 @@ read-only prompt:
   -Ref <full-commit-sha>
 ```
 
+The full-package check is independent from the canonical contract validator.
+It installs the exact remote head with both Copilot targets and verifies the
+package version, deployed `.agents/skills`, `.github/instructions`,
+`.github/agents`, lockfile source/ref/content hash/deployed-file hash, and
+unmanaged custom-agent collision protection:
+
+```powershell
+.\apm-packages\plan-coverage-residual-flow\scripts\validate-copilot-full-package-install.ps1 `
+  -PackageName plan-coverage-residual-flow `
+  -Repository suusanex/coding_agent_plan_and_verify_process `
+  -Ref <full-commit-sha>
+```
+
+Use `-PackageName token-aware-full-coverage-3layer` for the Full Coverage
+package. APM 0.26.0 may reject a package-directory install whose root
+dependencies use `git: parent`; that limitation applies to local package
+directory mode only and does not weaken the remote full-SHA check.
+
 For a working-tree Skill-only probe, add
 `-LocalSkillPath .\apm-packages\plan-coverage-residual-flow\.apm\skills\plan-coverage-residual-flow`.
 This mode is labeled as local Skill-only evidence. It is not a substitute for
 the pinned remote package install.
 
-Use `result-template.md` for model scenarios. `NOT RUN` and `UNOBSERVABLE` are
-not passing evidence. The Design Pair scenario is recorded as `BLOCKED` until
-#69 is available.
+Use `result-template.md` for model scenarios. A completed result JSON can be
+fed back to the harness with `-ScenarioResultsPath`; every non-blocked fixture
+scenario must be `PASS` before the harness may emit `QUALIFICATION_PASS`.
+`NOT RUN`, `UNOBSERVABLE`, and `FAIL` produce `REAL_SCENARIO_INCOMPLETE`, while
+local Skill-only execution produces `LOCAL_SKILL_ONLY` and is never
+qualification evidence. The Design Pair scenario is recorded as `BLOCKED`
+until #69 is available.
+
+To record an intentionally incomplete real-model run without converting it
+into a pass, add `-AllowIncomplete`:
+
+```powershell
+.\apm-packages\plan-coverage-residual-flow\scripts\run-copilot-cli-qualification.ps1 `
+  -PackageName plan-coverage-residual-flow `
+  -Repository suusanex/coding_agent_plan_and_verify_process `
+  -Ref <full-commit-sha> `
+  -ScenarioResultsPath .\apm-packages\plan-coverage-residual-flow\tests\copilot-cli\results\20260805-real-cli-qualification.json `
+  -AllowIncomplete
+```

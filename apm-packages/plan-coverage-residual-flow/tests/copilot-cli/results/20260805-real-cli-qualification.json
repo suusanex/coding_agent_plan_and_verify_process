@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "package": "plan-coverage-residual-flow",
+  "execution_kind": "real-cli",
+  "executed_at": "2026-08-05T22:43:06+09:00",
+  "copilot_version": "1.0.78",
+  "apm_version": "0.26.0",
+  "source_repository": "suusanex/coding_agent_plan_and_verify_process",
+  "source_ref": "8d7527cbf5c0172148346463fd6c61f25fb33e24",
+  "install_mode": "remote-package",
+  "package_version": "0.9.1",
+  "installed_skill_sha256": "8814975edb2cc8ec48dc369c117d6e1cb9ca07ca59c0468151347841d873db3a",
+  "full_package_install": {
+    "status": "PASS",
+    "targets": "copilot,agent-skills",
+    "lock_source": "suusanex/coding_agent_plan_and_verify_process",
+    "lock_ref": "8d7527cbf5c0172148346463fd6c61f25fb33e24",
+    "lock_version": "0.9.1",
+    "deployed_assets": "PASS",
+    "unmanaged_collision": "PASS"
+  },
+  "local_package_directory": {
+    "status": "FAIL_EXPECTED",
+    "reason": "APM 0.26.0 reported git: parent cannot inherit from a local."
+  },
+  "route_metadata": {
+    "implementation_route": "adaptive",
+    "implementation_route_source": "default",
+    "design_pair_handoff": "N/A",
+    "reentry_count": 0,
+    "previous_reentry_trigger": "N/A",
+    "delegation_surface_reduced": "N/A"
+  },
+  "qualification_status": "REAL_SCENARIO_INCOMPLETE",
+  "scenarios": [
+    {
+      "id": "install-and-skill-discovery",
+      "status": "PASS",
+      "evidence": "Remote full-SHA install with --target copilot,agent-skills --https exited 0; deployed Skill and copilot skill list were observed.",
+      "validation": "validate-copilot-full-package-install.ps1; session 2026-08-05"
+    },
+    {
+      "id": "explicit-lite",
+      "status": "PASS",
+      "evidence": "Real Copilot JSONL assistant.message reported plan-coverage-residual-flow, explicit authorization, documentation_level lite, and adaptive/default metadata; exit 0; no files changed.",
+      "validation": "session bfb9052d-4b77-4bb5-a0a4-14018080a460; observed model gpt-5.6-luna"
+    },
+    {
+      "id": "explicit-standard",
+      "status": "PASS",
+      "evidence": "Real Copilot JSONL assistant.message reported plan-coverage-residual-flow, explicit authorization, documentation_level standard, and adaptive/default metadata; exit 0; no files changed.",
+      "validation": "session e46dd15f-3171-470b-bbb1-5a21468ee1e5; observed model gpt-5.6-luna"
+    },
+    {
+      "id": "unauthorized-generic",
+      "status": "PASS",
+      "evidence": "Generic implementation prompt returned no activation of plan-coverage-residual-flow or custom agents; exit 0; no files changed.",
+      "validation": "session 78f2e696-94fa-40a3-bc32-a7d49449e8ff; observed model gpt-5.6-luna"
+    },
+    {
+      "id": "unauthorized-question-comparison-negation",
+      "status": "PASS",
+      "evidence": "Question, comparison, and negation prompt returned no Skill or custom-agent activation; exit 0; no files changed.",
+      "validation": "session 3f2ad865-dabc-40c2-8329-62d9ec2c4f72; observed model gpt-5.6-luna"
+    },
+    {
+      "id": "durable-authorized-resume",
+      "status": "PASS",
+      "evidence": "Copilot read a complete durable process_route/process_route_source/user_selection_evidence tuple and accepted artifact resume with adaptive/default metadata; exit 0.",
+      "validation": "session 325c9c28-61a4-45a4-8369-3fccf55fe652; no phase completion claimed"
+    },
+    {
+      "id": "default-adaptive-route",
+      "status": "PASS",
+      "evidence": "Fresh-intake prompt returned adaptive/default, Design Pair handoff N/A, reentry_count 0, previous trigger N/A; exit 0; no files changed.",
+      "validation": "session b4fc1784-d99f-4a71-b26d-bbacd971799f; observed model gpt-5.6-luna"
+    },
+    {
+      "id": "high-to-standard-completion",
+      "status": "UNOBSERVABLE",
+      "evidence": "Requested gpt-5.6-terra and observed gpt-5.6-terra, but Copilot rejected the supplied incomplete handoff and did not expose an actual HIGH-to-STANDARD phase transition.",
+      "validation": "session 25e023a4-1ab4-4d45-a6a0-31bb55922697; no files changed"
+    },
+    {
+      "id": "high-reentry",
+      "status": "UNOBSERVABLE",
+      "evidence": "Real prompt recognized NEEDS_HIGH_MODEL_REENTRY and reported requested gpt-5.6-luna/observed gpt-5.6-luna, but no actual STANDARD-to-HIGH phase transition was exposed.",
+      "validation": "session 1335e1cb-c56c-4d0e-b970-273218af85a6; no files changed"
+    },
+    {
+      "id": "blocked-human-decision-replan",
+      "status": "PASS",
+      "evidence": "Real Copilot returned HUMAN_DECISION_REQUIRED for a BLOCKED_BY_HUMAN_DECISION artifact and stopped without implementation or verification.",
+      "validation": "session 93031f62-5eb7-4317-b8c5-bddf79fe0c37; observed model gpt-5.6-luna"
+    },
+    {
+      "id": "architecture-slice-readiness",
+      "status": "UNOBSERVABLE",
+      "evidence": "Copilot stopped at missing upstream Plan/risk authority with NeedsHumanDecision; architecture-slice-readiness agent selection and readiness execution were not observable.",
+      "validation": "session d9cd0b1c-5e06-4aee-890c-10d10799c1f7; no files changed"
+    },
+    {
+      "id": "two-slice-v2",
+      "status": "UNOBSERVABLE",
+      "evidence": "Copilot returned BlockedByArtifactLayoutMismatch because Parent State, Coverage Ledger, Slice Records, and same-digest authorization were absent; no two-slice execution occurred.",
+      "validation": "session 01ac7bc4-2236-4180-ad31-666f0ebfccc6; no files changed"
+    },
+    {
+      "id": "independent-verification",
+      "status": "UNOBSERVABLE",
+      "evidence": "Copilot returned BLOCKED_BY_UNMAPPED_PARENT_ACCEPTANCE because Plan, contracts, ledger, and production-binding evidence were absent; verification-kernel execution was not observable.",
+      "validation": "session 06ea905c-8086-4e37-945d-58307c349bac; no files changed"
+    },
+    {
+      "id": "final-record-residual-decision",
+      "status": "UNOBSERVABLE",
+      "evidence": "Copilot found no Final Record, Parent State, Slice Records, or Coverage Ledger and stopped; cross-slice verification and residual decision phases were not observable.",
+      "validation": "session 31ad0566-0b12-4faf-afe3-7b680a04423f; no files changed"
+    },
+    {
+      "id": "new-session-resume",
+      "status": "PASS",
+      "evidence": "A separate Copilot process using --resume=325c9c28-61a4-45a4-8369-3fccf55fe652 read the durable tuple and accepted artifact resume with adaptive/default metadata; conversation phase state remained unobservable.",
+      "validation": "session 325c9c28-61a4-45a4-8369-3fccf55fe652; exit 0; no files changed"
+    },
+    {
+      "id": "stale-incomplete-artifact-failure",
+      "status": "PASS",
+      "evidence": "Real Copilot returned BLOCKED_BY_ARTIFACT_MISMATCH for missing/incomplete freshness and artifact metadata and did not continue to implementation.",
+      "validation": "session aed962e2-93b9-446a-9e55-dbeee70bbee9; observed model gpt-5.6-luna"
+    },
+    {
+      "id": "design-pair-e2e",
+      "status": "BLOCKED",
+      "blocker": "Issue #69 canonical Copilot support is not merged.",
+      "evidence": "No local Design Pair implementation or Adaptive fallback was attempted."
+    }
+  ]
+}

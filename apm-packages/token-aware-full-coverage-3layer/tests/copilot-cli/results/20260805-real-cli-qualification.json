@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "package": "token-aware-full-coverage-3layer",
+  "execution_kind": "real-cli",
+  "executed_at": "2026-08-05T22:43:06+09:00",
+  "copilot_version": "1.0.78",
+  "apm_version": "0.26.0",
+  "source_repository": "suusanex/coding_agent_plan_and_verify_process",
+  "source_ref": "8d7527cbf5c0172148346463fd6c61f25fb33e24",
+  "install_mode": "remote-package",
+  "package_version": "0.6.1",
+  "installed_skill_sha256": "717c91f6b65e3eab4003ba4938f99ec4abb01982f212ecbd2dc254208e9c9c91",
+  "full_package_install": {
+    "status": "PASS",
+    "targets": "copilot,agent-skills",
+    "lock_source": "suusanex/coding_agent_plan_and_verify_process",
+    "lock_ref": "8d7527cbf5c0172148346463fd6c61f25fb33e24",
+    "lock_version": "0.6.1",
+    "deployed_assets": "PASS",
+    "unmanaged_collision": "PASS"
+  },
+  "local_package_directory": {
+    "status": "FAIL_EXPECTED",
+    "reason": "APM 0.26.0 reported git: parent cannot inherit from a local."
+  },
+  "route_metadata": {
+    "implementation_route": "adaptive",
+    "implementation_route_source": "default",
+    "design_pair_handoff": "N/A",
+    "reentry_count": 0,
+    "previous_reentry_trigger": "N/A",
+    "delegation_surface_reduced": "N/A"
+  },
+  "qualification_status": "REAL_SCENARIO_INCOMPLETE",
+  "scenarios": [
+    {
+      "id": "compact-v2-two-slice",
+      "status": "UNOBSERVABLE",
+      "evidence": "Real Copilot returned BlockedByArtifactLayoutMismatch because Parent State, Coverage Ledger, Slice Records, and same-digest authorization were absent; no two-slice execution occurred.",
+      "validation": "session 9c2e7a49-563d-4a57-9f19-a76b963d1cd8; observed model gpt-5.6-luna"
+    },
+    {
+      "id": "parent-authorization-and-independent-verification",
+      "status": "UNOBSERVABLE",
+      "evidence": "Copilot described the required observation points but reported that executable Parent State and Slice Record artifacts were absent; actual authorization, Adaptive delegation, and independent verification were not observed.",
+      "validation": "session bd5c5973-ec8f-4f7d-b6b4-40cf88da6355; no files changed"
+    },
+    {
+      "id": "final-record-through-residual-decision",
+      "status": "UNOBSERVABLE",
+      "evidence": "Copilot found no executable Parent State, Coverage Ledger, Slice Records, or Final Record; cross-slice verification, residual decision, and close decision were not observable.",
+      "validation": "session 940dc751-fec1-488c-b96e-ba7210673dcf; no files changed"
+    },
+    {
+      "id": "new-session-parent-state-resume",
+      "status": "UNOBSERVABLE",
+      "evidence": "Copilot reported resume unavailable because no durable Parent Orchestration State or route/layout metadata existed; conversation resume cannot substitute for Parent State resume.",
+      "validation": "session 3b83102d-336c-41bf-8bcc-3dfabb138852; no files changed"
+    },
+    {
+      "id": "stale-or-incomplete-layout-failure",
+      "status": "PASS",
+      "evidence": "Real Copilot returned BlockedByArtifactLayoutMismatch for missing, mixed, contradictory, or stale layout metadata and stopped before authorization or implementation.",
+      "validation": "session 669dc742-0b1b-4648-93f2-1076206a2cc1; observed model gpt-5.6-luna"
+    },
+    {
+      "id": "design-pair-e2e",
+      "status": "BLOCKED",
+      "blocker": "Issue #69 canonical Copilot support is not merged.",
+      "evidence": "No local Design Pair implementation or Adaptive fallback was attempted."
+    }
+  ]
+}

@@ -98,9 +98,35 @@ Run the shared real CLI harness from the repository root:
   -Ref <full-commit-sha>
 ```
 
+Run the independent full-package installation check as well:
+
+```powershell
+.\apm-packages\plan-coverage-residual-flow\scripts\validate-copilot-full-package-install.ps1 `
+  -PackageName token-aware-full-coverage-3layer `
+  -Repository suusanex/coding_agent_plan_and_verify_process `
+  -Ref <full-commit-sha>
+```
+
+It verifies the package version, `.agents/skills`, `.github/instructions`,
+`.github/agents`, lockfile source/ref/content hash/deployed-file hash, and
+unmanaged custom-agent collision preservation. APM 0.26.0's `git: parent`
+limitation is only a local package-directory limitation; it does not replace
+the remote full-SHA check.
+
 Use the shared [qualification result template](../../../plan-coverage-residual-flow/tests/copilot-cli/result-template.md)
 for the model scenario matrix. Keep full-coverage-specific fixture bindings in
 `qualification-scenarios.json` in this directory.
+
+Pass the committed result JSON to the shared harness with
+`-ScenarioResultsPath ... -AllowIncomplete` when recording unresolved
+real-model evidence. This records `REAL_SCENARIO_INCOMPLETE`; it cannot emit
+`QUALIFICATION_PASS` until every non-blocked scenario is `PASS`.
+
+The harness top-level statuses are `INSTALL_BOUNDARY`, `SKILL_DISCOVERY`,
+`LOCAL_SKILL_ONLY`, `REAL_SCENARIOS`, and `QUALIFICATION_PASS`. A
+`NOT RUN`, `UNOBSERVABLE`, or `FAIL` required scenario produces
+`REAL_SCENARIO_INCOMPLETE`; static fixtures and Skill discovery cannot produce
+`QUALIFICATION_PASS`.
 
 The Design Pair scenario remains `BLOCKED` until Issue #69 merges its
 canonical Copilot support. Do not implement a local Design Pair adapter or

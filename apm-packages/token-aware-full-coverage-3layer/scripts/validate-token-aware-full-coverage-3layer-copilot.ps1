@@ -44,12 +44,23 @@ $manifest = Read-Text 'apm-packages/token-aware-full-coverage-3layer/apm.yml'
 $readme = Read-Text 'apm-packages/token-aware-full-coverage-3layer/README.md'
 $runbook = Read-Text 'apm-packages/token-aware-full-coverage-3layer/tests/copilot-cli/README.md'
 $skill = Read-Text 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md'
+$realResultText = Read-Text 'apm-packages/token-aware-full-coverage-3layer/tests/copilot-cli/results/20260805-real-cli-qualification.json'
+$realResult = $null
+try {
+    $realResult = $realResultText | ConvertFrom-Json
+}
+catch {
+    Fail "Invalid committed real CLI result JSON: $($_.Exception.Message)"
+}
 
 foreach ($relative in @(
     $fixtureRelative,
     'apm-packages/token-aware-full-coverage-3layer/tests/copilot-cli/README.md',
     'apm-packages/token-aware-full-coverage-3layer/README.md',
-    'apm-packages/plan-coverage-residual-flow/scripts/run-copilot-cli-qualification.ps1'
+    'apm-packages/plan-coverage-residual-flow/scripts/run-copilot-cli-qualification.ps1',
+    'apm-packages/plan-coverage-residual-flow/scripts/validate-copilot-full-package-install.ps1',
+    'apm-packages/token-aware-full-coverage-3layer/tests/copilot-cli/results/20260805-real-cli-qualification.json',
+    'apm-packages/token-aware-full-coverage-3layer/tests/copilot-cli/results/20260805-real-cli-qualification.md'
 )) {
     if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $relative) -PathType Leaf)) {
         Fail "Missing Full Coverage Copilot qualification file: $relative"
@@ -76,6 +87,8 @@ Require $runbook 'Parent Orchestration State' 'durable Parent State resume'
 Require $runbook 'compact-slice-record-v2' 'compact v2 layout'
 Require $runbook 'legacy-split-v1' 'legacy resume boundary'
 Require $runbook 'Issue #69' 'Design Pair blocker'
+Require $runbook 'validate-copilot-full-package-install.ps1' 'full-package installation check'
+Require $runbook 'REAL_SCENARIO_INCOMPLETE' 'incomplete top-level qualification status'
 Require $skill 'full_coverage_artifact_layout: compact-slice-record-v2' 'canonical v2 layout'
 Require $skill 'Parent State is the mandatory resume entrypoint' 'canonical resume contract'
 Require $skill 'Design Pair' 'canonical Design Pair boundary'
@@ -141,10 +154,15 @@ if ($null -ne $fixture) {
             Fail "Missing Architecture Slice Readiness fixture: $fixtureId"
         }
     }
-    foreach ($freshnessToken in @($fixture.architecture_readiness_binding.required_freshness_evidence)) {
-        $freshnessText = Get-ChildItem -LiteralPath (Join-Path $repoRoot 'tests/architecture-slice-readiness') -Recurse -File |
+    $freshnessText = if (Test-Path -LiteralPath (Join-Path $repoRoot 'tests/architecture-slice-readiness') -PathType Container) {
+        Get-ChildItem -LiteralPath (Join-Path $repoRoot 'tests/architecture-slice-readiness') -Recurse -File |
             ForEach-Object { [System.IO.File]::ReadAllText($_.FullName) } |
             Out-String
+    }
+    else {
+        ''
+    }
+    foreach ($freshnessToken in @($fixture.architecture_readiness_binding.required_freshness_evidence)) {
         if ($freshnessText -notmatch [regex]::Escape([string]$freshnessToken)) {
             Fail "Architecture readiness evidence is missing: $freshnessToken"
         }
@@ -170,6 +188,36 @@ if ($null -ne $fixture) {
     $designPairScenario = $fixture.real_cli_scenarios | Where-Object { $_.id -ceq 'design-pair-e2e' }
     if ($null -eq $designPairScenario -or $designPairScenario.default_status -cne 'BLOCKED' -or $designPairScenario.blocker -notmatch 'Issue #69') {
         Fail 'Design Pair scenario must remain explicitly blocked by Issue #69'
+    }
+}
+
+if ($null -ne $realResult) {
+    if ([string]$realResult.package -cne 'token-aware-full-coverage-3layer') {
+        Fail 'Committed real CLI result package mismatch'
+    }
+    if ([string]$realResult.source_ref -cne '8d7527cbf5c0172148346463fd6c61f25fb33e24') {
+        Fail 'Committed real CLI result must identify the reviewed PR head'
+    }
+    if ([string]$realResult.qualification_status -cne 'REAL_SCENARIO_INCOMPLETE') {
+        Fail 'Committed real CLI result must not claim qualification while scenarios are unresolved'
+    }
+    if ([string]$realResult.full_package_install.status -cne 'PASS' -or
+        [string]$realResult.full_package_install.lock_ref -cne [string]$realResult.source_ref) {
+        Fail 'Committed real CLI result is missing final-head installation evidence'
+    }
+    if ([string]$realResult.local_package_directory.status -cne 'FAIL_EXPECTED' -or
+        [string]$realResult.local_package_directory.reason -notmatch 'git:\s*parent') {
+        Fail 'Committed real CLI result must keep the APM local package-directory limitation honest'
+    }
+    $realIds = @($realResult.scenarios | ForEach-Object { [string]$_.id })
+    foreach ($requiredId in @('compact-v2-two-slice', 'parent-authorization-and-independent-verification', 'final-record-through-residual-decision', 'new-session-parent-state-resume', 'stale-or-incomplete-layout-failure', 'design-pair-e2e')) {
+        if ($realIds -notcontains $requiredId) {
+            Fail "Committed real CLI result is missing scenario: $requiredId"
+        }
+    }
+    $realDesignPair = $realResult.scenarios | Where-Object { $_.id -ceq 'design-pair-e2e' }
+    if ($null -eq $realDesignPair -or [string]$realDesignPair.status -cne 'BLOCKED') {
+        Fail 'Committed real CLI result must keep Design Pair BLOCKED'
     }
 }
 

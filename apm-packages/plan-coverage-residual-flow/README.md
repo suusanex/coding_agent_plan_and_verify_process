@@ -281,6 +281,21 @@ Troubleshooting: Skillが表示されない場合は`.agents/skills`と
 `.github/agents`の導入先、`apm install --frozen`、`apm audit --ci`を確認します。
 同名agentのcollisionはownershipを確認するまで`--force`で上書きしません。
 
+Final-head installation evidence is checked separately from the canonical
+contract validator:
+
+```powershell
+./apm-packages/plan-coverage-residual-flow/scripts/validate-copilot-full-package-install.ps1 `
+  -PackageName plan-coverage-residual-flow `
+  -Repository suusanex/coding_agent_plan_and_verify_process `
+  -Ref <full-commit-sha>
+```
+
+The check requires the remote full-SHA package, both Copilot targets, deployed
+Skill/instruction/agent assets, lockfile source/ref/hash identity, and
+unmanaged collision preservation. Local Skill-only discovery remains
+non-qualification evidence.
+
 ## Documentation and validation
 
 - [Purpose and policy](../../docs/plan-coverage-purpose.md)

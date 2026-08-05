@@ -11,13 +11,17 @@ param(
 
     [string]$LocalSkillPath,
 
-    [string]$OutputRoot = (Join-Path (Get-Location) 'tests\copilot-cli\runs'),
+    [string]$OutputRoot,
 
     [switch]$RunModel,
 
     [string]$Prompt,
 
     [string]$ModelScenarioId = 'explicit-lite',
+
+    [string]$ScenarioResultsPath,
+
+    [switch]$AllowIncomplete,
 
     [switch]$KeepWorkspace
 )
@@ -32,11 +36,13 @@ if ($RunModel -and [string]::IsNullOrWhiteSpace($Prompt)) {
     throw 'Prompt is required when -RunModel is specified.'
 }
 
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
-$packageRelative = "apm-packages\$PackageName"
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot (Join-Path '..' (Join-Path '..' '..')))).Path
+$packageRelative = Join-Path 'apm-packages' $PackageName
 $packageRoot = Join-Path $repoRoot $packageRelative
-$scenarioPath = Join-Path $packageRoot 'tests\copilot-cli\qualification-scenarios.json'
+$scenarioPath = Join-Path $packageRoot (Join-Path 'tests' (Join-Path 'copilot-cli' 'qualification-scenarios.json'))
+$defaultOutputRoot = Join-Path $packageRoot (Join-Path 'tests' (Join-Path 'copilot-cli' 'runs'))
 $localSkillCandidate = $null
+
 if (-not [string]::IsNullOrWhiteSpace($LocalSkillPath)) {
     $localSkillCandidate = if ([System.IO.Path]::IsPathRooted($LocalSkillPath)) {
         $LocalSkillPath
@@ -53,7 +59,8 @@ if (-not (Test-Path -LiteralPath $scenarioPath -PathType Leaf)) {
     throw "Qualification fixture does not exist: $scenarioPath"
 }
 
-$resolvedOutputRoot = [System.IO.Path]::GetFullPath($OutputRoot)
+$rawOutputRoot = if ([string]::IsNullOrWhiteSpace($OutputRoot)) { $defaultOutputRoot } else { $OutputRoot }
+$resolvedOutputRoot = [System.IO.Path]::GetFullPath($rawOutputRoot)
 New-Item -ItemType Directory -Path $resolvedOutputRoot -Force | Out-Null
 $runName = "$PackageName-$(Get-Date -Format yyyyMMdd-HHmmss)-$([Guid]::NewGuid().ToString('N').Substring(0, 8))"
 $runRoot = Join-Path $resolvedOutputRoot $runName
@@ -110,15 +117,141 @@ function Get-InstalledPackageVersion([string]$LockPath, [string]$Name) {
     return 'UNOBSERVABLE'
 }
 
+function Get-ScenarioEvidence([object]$Scenario) {
+    if ($null -ne $Scenario.evidence -and -not [string]::IsNullOrWhiteSpace([string]$Scenario.evidence)) {
+        return [string]$Scenario.evidence
+    }
+    if ($Scenario.status -eq 'BLOCKED') {
+        return [string]$Scenario.blocker
+    }
+    return 'No real CLI evidence was supplied for this scenario.'
+}
+
+function Import-ScenarioResults([string]$Path, [object[]]$FixtureScenarios) {
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return @{}
+    }
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "Scenario result file does not exist: $Path"
+    }
+
+    $document = Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json
+    if ([string]$document.package -cne $PackageName) {
+        throw "Scenario result package does not match $PackageName."
+    }
+
+    $fixtureIds = @($FixtureScenarios | ForEach-Object { [string]$_.id })
+    $resultMap = @{}
+    foreach ($result in @($document.scenarios)) {
+        $id = [string]$result.id
+        if ($fixtureIds -notcontains $id) {
+            throw "Scenario result contains an unknown scenario: $id"
+        }
+        if ($resultMap.ContainsKey($id)) {
+            throw "Scenario result contains a duplicate scenario: $id"
+        }
+
+        $status = ([string]$result.status).ToUpperInvariant()
+        if ($status -notin @('PASS', 'FAIL', 'NOT RUN', 'UNOBSERVABLE', 'BLOCKED')) {
+            throw "Scenario $id has an unsupported status: $status"
+        }
+        $fixtureScenario = $FixtureScenarios | Where-Object { [string]$_.id -ceq $id }
+        if ([string]$fixtureScenario.kind -ceq 'blocked' -and $status -ne 'BLOCKED') {
+            throw "Blocked scenario $id must remain BLOCKED."
+        }
+        if ([string]$fixtureScenario.kind -ne 'blocked' -and $status -eq 'BLOCKED') {
+            throw "Non-blocked scenario $id cannot be BLOCKED."
+        }
+
+        $resultMap[$id] = [pscustomobject]@{
+            Status = $status
+            Evidence = Get-ScenarioEvidence $result
+            Validation = if ($null -eq $result.validation) { 'not supplied' } else { [string]$result.validation }
+            RequestedModel = if ($null -eq $result.requested_model) { 'not supplied' } else { [string]$result.requested_model }
+            ObservedModel = if ($null -eq $result.observed_model) { 'not supplied' } else { [string]$result.observed_model }
+        }
+    }
+    return $resultMap
+}
+
+function Get-RequiredAssets([string]$Package, [string]$Workspace) {
+    $skillRelative = Join-Path '.agents' (Join-Path 'skills' (Join-Path $Package 'SKILL.md'))
+    $sharedInstructionRelative = Join-Path '.github' (Join-Path 'instructions' 'plan-coverage-shared.instructions.md')
+    $skillPath = Join-Path $Workspace $skillRelative
+    $sharedInstructionPath = Join-Path $Workspace $sharedInstructionRelative
+    $agentPath = Join-Path $Workspace (Join-Path '.github' 'agents')
+    $instructionPath = if ($Package -eq 'token-aware-full-coverage-3layer') {
+        Join-Path $Workspace (Join-Path '.github' (Join-Path 'instructions' 'token-aware-full-coverage-3layer.instructions.md'))
+    }
+    else {
+        $null
+    }
+
+    $assets = [ordered]@{
+        Skill = $skillPath
+        SharedInstruction = $sharedInstructionPath
+        PackageInstruction = $instructionPath
+        Agents = $agentPath
+    }
+    $missing = [System.Collections.Generic.List[string]]::new()
+    foreach ($entry in $assets.GetEnumerator()) {
+        if ([string]::IsNullOrWhiteSpace([string]$entry.Value)) {
+            continue
+        }
+        $pathType = if ($entry.Key -eq 'Agents') { 'Container' } else { 'Leaf' }
+        if (-not (Test-Path -LiteralPath $entry.Value -PathType $pathType)) {
+            [void]$missing.Add($entry.Key)
+        }
+    }
+    if ((Test-Path -LiteralPath $agentPath -PathType Container) -and
+        @(Get-ChildItem -LiteralPath $agentPath -Filter '*.agent.md' -File).Count -eq 0) {
+        [void]$missing.Add('Agents/*.agent.md')
+    }
+
+    return [pscustomobject]@{
+        Paths = $assets
+        Missing = @($missing)
+        Complete = $missing.Count -eq 0
+    }
+}
+
 $scenarioData = Get-Content -Raw -LiteralPath $scenarioPath | ConvertFrom-Json
-$copilotVersion = Get-CommandVersion 'copilot' @('--version')
-$apmVersion = Get-CommandVersion 'apm' @('--version')
-$sourceRevision = Get-GitState
+$fixtureScenarios = @($scenarioData.real_cli_scenarios)
+$scenarioResults = Import-ScenarioResults $ScenarioResultsPath $fixtureScenarios
+$copilotVersion = 'UNOBSERVABLE'
+$apmVersion = 'UNOBSERVABLE'
+$sourceRevision = 'UNOBSERVABLE'
+$startupFailure = $null
+try {
+    $copilotVersion = Get-CommandVersion 'copilot' @('--version')
+    $apmVersion = Get-CommandVersion 'apm' @('--version')
+    $sourceRevision = Get-GitState
+}
+catch {
+    $startupFailure = $_.Exception.Message
+}
 $installMode = 'remote-package'
 $installResult = $null
 $localSkillResolved = $null
+$skillList = $null
+$modelResult = $null
+$modelStatus = 'NOT RUN'
+$modelExit = 'N/A'
+$installBoundaryStatus = 'NOT RUN'
+$skillDiscoveryStatus = 'NOT RUN'
+$localOnlyStatus = 'NOT APPLICABLE'
+$realScenarioStatus = 'INCOMPLETE'
+$qualificationStatus = 'INSTALL_BOUNDARY_FAILURE'
+$requiredAssets = $null
+$lockPackageVersion = 'UNOBSERVABLE'
+$skillHash = 'UNOBSERVABLE'
+$failureReason = $null
 
 try {
+    if (-not [string]::IsNullOrWhiteSpace($startupFailure)) {
+        throw $startupFailure
+    }
     Push-Location $workspace
     try {
         if (-not [string]::IsNullOrWhiteSpace($Repository)) {
@@ -129,125 +262,196 @@ try {
             if ([string]::IsNullOrWhiteSpace($LocalSkillPath)) {
                 throw 'Supply Repository and Ref for a full package install, or LocalSkillPath for a local Skill-only probe.'
             }
-            $localSkillResolved = (Resolve-Path $localSkillCandidate).Path
+            $localSkillResolved = (Resolve-Path -LiteralPath $localSkillCandidate).Path
             $installMode = 'local-skill-only'
             $installResult = Invoke-Captured 'apm' @('install', $localSkillResolved, '--target', 'agent-skills', '--no-audit') (Join-Path $runRoot 'apm-install.txt')
         }
 
         if ($installResult.ExitCode -ne 0) {
-            throw "APM install failed with exit code $($installResult.ExitCode)."
-        }
-
-        $skillRelative = ".agents\skills\$PackageName\SKILL.md"
-        $skillPath = Join-Path $workspace $skillRelative
-        if (-not (Test-Path -LiteralPath $skillPath -PathType Leaf)) {
-            throw "APM install did not deploy $skillRelative."
-        }
-
-        $skillList = Invoke-Captured 'copilot' @('skill', 'list') (Join-Path $runRoot 'copilot-skill-list.txt')
-        if ($skillList.ExitCode -ne 0) {
-            throw "Copilot skill list failed with exit code $($skillList.ExitCode)."
-        }
-
-        $skillHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $skillPath).Hash.ToLowerInvariant()
-        $lockPath = Join-Path $workspace 'apm.lock.yaml'
-        if (Test-Path -LiteralPath $lockPath -PathType Leaf) {
-            Copy-Item -LiteralPath $lockPath -Destination (Join-Path $runRoot 'apm.lock.yaml') -Force
-        }
-
-        $modelStatus = 'NOT RUN'
-        $modelExit = 'N/A'
-        if ($RunModel) {
-            $modelResult = Invoke-Captured 'copilot' @(
-                '--no-auto-update',
-                '-p',
-                $Prompt,
-                '--allow-all-tools',
-                '--allow-all-paths',
-                '--no-ask-user',
-                '--output-format',
-                'json',
-                '--silent',
-                '--log-level',
-                'debug',
-                '--log-dir',
-                $logRoot
-            ) (Join-Path $runRoot 'copilot-model-output.jsonl')
-            $modelExit = [string]$modelResult.ExitCode
-            $modelStatus = if ($modelResult.ExitCode -eq 0) { 'UNOBSERVABLE' } else { 'FAIL' }
-        }
-
-        $lockPackageVersion = Get-InstalledPackageVersion (Join-Path $workspace 'apm.lock.yaml') $PackageName
-        $skillListText = ($skillList.Output -join "`n")
-        $skillDiscovered = $skillListText -match [regex]::Escape($PackageName)
-        $agentPath = Join-Path $workspace '.github\agents'
-        $instructionPath = if ($PackageName -eq 'token-aware-full-coverage-3layer') {
-            Join-Path $workspace '.github\instructions\token-aware-full-coverage-3layer.instructions.md'
+            $failureReason = "APM install failed with exit code $($installResult.ExitCode)."
         }
         else {
-            Join-Path $workspace '.github\instructions\plan-coverage-shared.instructions.md'
-        }
-        $agentStatus = if (Test-Path -LiteralPath $agentPath -PathType Container) { 'observed' } else { 'not deployed by local Skill-only mode' }
-        $instructionStatus = if (Test-Path -LiteralPath $instructionPath -PathType Leaf) { 'observed' } else { 'not deployed by local Skill-only mode' }
-        $overallStatus = if ($skillDiscovered) { 'PASS' } else { 'UNOBSERVABLE' }
-
-        $recordLines = [System.Collections.Generic.List[string]]::new()
-        [void]$recordLines.Add("# GitHub Copilot CLI qualification result")
-        [void]$recordLines.Add('')
-        [void]$recordLines.Add("- Date: $(Get-Date -Format o)")
-        [void]$recordLines.Add("- Operator: automated repository-local harness")
-        [void]$recordLines.Add("- Copilot CLI version: $copilotVersion")
-        [void]$recordLines.Add("- APM version: $apmVersion")
-        [void]$recordLines.Add("- Package: $PackageName")
-        [void]$recordLines.Add("- Package version in lock: $lockPackageVersion")
-        [void]$recordLines.Add("- Package source and full commit: $(if ($Repository) { "$Repository#$Ref" } else { $localSkillResolved })")
-        [void]$recordLines.Add("- Source repository revision: $sourceRevision")
-        [void]$recordLines.Add("- Install mode: $installMode")
-        [void]$recordLines.Add("- Working repository: $workspace")
-        [void]$recordLines.Add("- Installed Skill path: $skillRelative")
-        [void]$recordLines.Add("- Installed Skill SHA-256: $skillHash")
-        [void]$recordLines.Add("- Installed agent path: $agentStatus")
-        [void]$recordLines.Add("- Installed instruction path: $instructionStatus")
-        [void]$recordLines.Add("- Model capability observation: requested and observed model values require separate evidence; this harness does not infer per-agent model locking.")
-        [void]$recordLines.Add('')
-        [void]$recordLines.Add('| Scenario | Status | Observable evidence | Validation |')
-        [void]$recordLines.Add('| --- | --- | --- | --- |')
-
-        foreach ($scenario in @($scenarioData.real_cli_scenarios)) {
-            $status = switch ([string]$scenario.id) {
-                'install-and-skill-discovery' { $overallStatus; break }
-                'design-pair-e2e' { 'BLOCKED'; break }
-                default { 'NOT RUN'; break }
+            $requiredAssets = Get-RequiredAssets $PackageName $workspace
+            $skillPath = [string]$requiredAssets.Paths.Skill
+            if (Test-Path -LiteralPath $skillPath -PathType Leaf) {
+                $skillHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $skillPath).Hash.ToLowerInvariant()
             }
-            $evidence = switch ($status) {
-                'PASS' { "APM install output and copilot skill list contain ``$PackageName``." ; break }
-                'BLOCKED' { 'Issue #69 canonical Copilot support is not merged.'; break }
-                default { 'Not executed by this harness invocation.'; break }
+
+            $skillList = Invoke-Captured 'copilot' @('skill', 'list') (Join-Path $runRoot 'copilot-skill-list.txt')
+            $skillListText = ($skillList.Output -join "`n")
+            $skillDiscovered = $skillList.ExitCode -eq 0 -and $skillListText -match [regex]::Escape($PackageName)
+            $skillDiscoveryStatus = if ($skillDiscovered) { 'PASS' } elseif ($skillList.ExitCode -ne 0) { 'FAIL' } else { 'UNOBSERVABLE' }
+
+            $lockPath = Join-Path $workspace 'apm.lock.yaml'
+            if (Test-Path -LiteralPath $lockPath -PathType Leaf) {
+                Copy-Item -LiteralPath $lockPath -Destination (Join-Path $runRoot 'apm.lock.yaml') -Force
             }
-            $validation = if ($status -eq 'PASS') { "exit 0; SHA-256 $skillHash" } else { 'manual or later real-model run required' }
-            [void]$recordLines.Add("| $($scenario.id) | $status | $evidence | $validation |")
-        }
+            $lockPackageVersion = Get-InstalledPackageVersion $lockPath $PackageName
 
-        if ($RunModel) {
-            [void]$recordLines.Add("| $ModelScenarioId model prompt | $modelStatus | Copilot CLI exit code $modelExit; route/agent selection remains separately observable evidence. | inspect copilot-model-output.jsonl and debug log |")
-        }
-        [void]$recordLines.Add('')
-        [void]$recordLines.Add('## Notes and limitations')
-        [void]$recordLines.Add('')
-        [void]$recordLines.Add("- `local-skill-only` proves CLI Skill discovery for the working-tree Skill but does not prove the full `git: parent` dependency graph.")
-        [void]$recordLines.Add("- Static validators and Skill discovery do not prove real model routing, production mutation, or durable process completion.")
-        [void]$recordLines.Add("- Design Pair E2E remains blocked by Issue #69.")
+            if ($installMode -eq 'local-skill-only') {
+                $localOnlyStatus = 'LOCAL_SKILL_ONLY_NON_QUALIFYING'
+                $installBoundaryStatus = 'LOCAL_SKILL_ONLY'
+            }
+            elseif (-not $requiredAssets.Complete -or -not (Test-Path -LiteralPath $lockPath -PathType Leaf)) {
+                $installBoundaryStatus = 'FAIL'
+                $failureReason = "Required full-package assets or lockfile are missing: $($requiredAssets.Missing -join ', ')."
+            }
+            else {
+                $installBoundaryStatus = 'PASS'
+            }
 
-        Write-Utf8File (Join-Path $runRoot 'result.md') $recordLines
-        Write-Host "GitHub Copilot CLI qualification: $overallStatus"
-        Write-Host "Result: $(Join-Path $runRoot 'result.md')"
+            if ($RunModel) {
+                $modelResult = Invoke-Captured 'copilot' @(
+                    '--no-auto-update',
+                    '-p',
+                    $Prompt,
+                    '--allow-all-tools',
+                    '--allow-all-paths',
+                    '--no-ask-user',
+                    '--output-format',
+                    'json',
+                    '--silent',
+                    '--log-level',
+                    'debug',
+                    '--log-dir',
+                    $logRoot
+                ) (Join-Path $runRoot 'copilot-model-output.jsonl')
+                $modelExit = [string]$modelResult.ExitCode
+                $modelStatus = if ($modelResult.ExitCode -eq 0) { 'UNOBSERVABLE' } else { 'FAIL' }
+                $scenarioResults[$ModelScenarioId] = [pscustomobject]@{
+                    Status = $modelStatus
+                    Evidence = "Harness executed the prompt; exit code $modelExit. Route, agent, and phase evidence require inspection of copilot-model-output.jsonl and debug logs."
+                    Validation = "exit code $modelExit"
+                    RequestedModel = 'CLI default'
+                    ObservedModel = 'not extracted by harness'
+                }
+            }
+        }
     }
     finally {
         Pop-Location
     }
 }
+catch {
+    $failureReason = $_.Exception.Message
+}
 finally {
+    $requiredScenarioIds = @($fixtureScenarios | Where-Object { [string]$_.kind -ne 'blocked' } | ForEach-Object { [string]$_.id })
+    $missingScenarioIds = @($requiredScenarioIds | Where-Object { -not $scenarioResults.ContainsKey($_) })
+    $unresolvedScenarioIds = @($requiredScenarioIds | Where-Object {
+            -not $scenarioResults.ContainsKey($_) -or
+            $scenarioResults[$_].Status -in @('NOT RUN', 'UNOBSERVABLE', 'FAIL')
+        })
+
+    if ($missingScenarioIds.Count -gt 0 -or $unresolvedScenarioIds.Count -gt 0) {
+        $realScenarioStatus = 'INCOMPLETE'
+    }
+    else {
+        $realScenarioStatus = 'PASS'
+    }
+
+    if ($installMode -eq 'local-skill-only') {
+        $qualificationStatus = 'LOCAL_SKILL_ONLY'
+    }
+    elseif ($installBoundaryStatus -ne 'PASS') {
+        $qualificationStatus = 'INSTALL_BOUNDARY_FAILURE'
+    }
+    elseif ($skillDiscoveryStatus -ne 'PASS') {
+        $qualificationStatus = 'SKILL_DISCOVERY_FAILURE'
+    }
+    elseif ($realScenarioStatus -ne 'PASS') {
+        $qualificationStatus = 'REAL_SCENARIO_INCOMPLETE'
+    }
+    else {
+        $qualificationStatus = 'QUALIFICATION_PASS'
+    }
+
+    $recordLines = [System.Collections.Generic.List[string]]::new()
+    [void]$recordLines.Add("# GitHub Copilot CLI qualification result")
+    [void]$recordLines.Add('')
+    [void]$recordLines.Add("- Date: $(Get-Date -Format o)")
+    [void]$recordLines.Add("- Operator: automated repository-local harness")
+    [void]$recordLines.Add("- Copilot CLI version: $copilotVersion")
+    [void]$recordLines.Add("- APM version: $apmVersion")
+    [void]$recordLines.Add("- Package: $PackageName")
+    [void]$recordLines.Add("- Package version in lock: $lockPackageVersion")
+    [void]$recordLines.Add("- Package source and full commit: $(if ($Repository) { "$Repository#$Ref" } else { $localSkillResolved })")
+    [void]$recordLines.Add("- Source repository revision: $sourceRevision")
+    [void]$recordLines.Add("- Install mode: $installMode")
+    [void]$recordLines.Add("- Working repository: $workspace")
+    [void]$recordLines.Add("- Installed Skill path: $([string]$requiredAssets.Paths.Skill)")
+    [void]$recordLines.Add("- Installed Skill SHA-256: $skillHash")
+    [void]$recordLines.Add("- Required full-package assets: $(if ($null -eq $requiredAssets) { 'not observed' } elseif ($requiredAssets.Complete) { 'PASS' } else { "MISSING: $($requiredAssets.Missing -join ', ')" })")
+    [void]$recordLines.Add("- Install boundary status: $installBoundaryStatus")
+    [void]$recordLines.Add("- Skill discovery status: $skillDiscoveryStatus")
+    [void]$recordLines.Add("- Local-only status: $localOnlyStatus")
+    [void]$recordLines.Add("- Real-scenario status: $realScenarioStatus")
+    [void]$recordLines.Add("- Qualification status: $qualificationStatus")
+    [void]$recordLines.Add("- Model capability observation: requested and observed model values require separate evidence; this harness does not infer per-agent model locking.")
+    if (-not [string]::IsNullOrWhiteSpace($failureReason)) {
+        [void]$recordLines.Add("- Failure or limitation: $failureReason")
+    }
+    [void]$recordLines.Add('')
+    [void]$recordLines.Add('| Scenario | Status | Observable evidence | Validation | Requested model | Observed model |')
+    [void]$recordLines.Add('| --- | --- | --- | --- | --- | --- |')
+
+    foreach ($scenario in $fixtureScenarios) {
+        $id = [string]$scenario.id
+        if ($scenarioResults.ContainsKey($id)) {
+            $result = $scenarioResults[$id]
+            $status = $result.Status
+            $evidence = $result.Evidence
+            $validation = $result.Validation
+            $requestedModel = $result.RequestedModel
+            $observedModel = $result.ObservedModel
+        }
+        else {
+            $status = if ([string]$scenario.kind -eq 'blocked') { 'BLOCKED' } else { 'NOT RUN' }
+            $evidence = if ($status -eq 'BLOCKED') { [string]$scenario.blocker } else { 'No result was supplied.' }
+            $validation = 'required scenario result missing'
+            $requestedModel = 'not run'
+            $observedModel = 'not observed'
+        }
+        [void]$recordLines.Add("| $id | $status | $($evidence -replace '\|', '\|') | $validation | $requestedModel | $observedModel |")
+    }
+
+    [void]$recordLines.Add('')
+    [void]$recordLines.Add('## Notes and limitations')
+    [void]$recordLines.Add('')
+    [void]$recordLines.Add("- `local-skill-only` proves CLI Skill discovery for the working-tree Skill but is never qualification evidence.")
+    [void]$recordLines.Add("- Static validators and Skill discovery do not prove real model routing, production mutation, durable process completion, or per-agent model locking.")
+    [void]$recordLines.Add("- A qualification pass requires every non-blocked fixture scenario to be PASS and every required full-package asset and lock identity to be observed.")
+    [void]$recordLines.Add("- Design Pair E2E remains blocked by Issue #69.")
+
+    $resultPath = Join-Path $runRoot 'result.md'
+    Write-Utf8File $resultPath $recordLines
+    Write-Host "INSTALL_BOUNDARY: $installBoundaryStatus"
+    Write-Host "SKILL_DISCOVERY: $skillDiscoveryStatus"
+    Write-Host "LOCAL_SKILL_ONLY: $localOnlyStatus"
+    Write-Host "REAL_SCENARIOS: $realScenarioStatus"
+    if ($qualificationStatus -eq 'QUALIFICATION_PASS') {
+        Write-Host 'QUALIFICATION_PASS'
+    }
+    else {
+        Write-Host "QUALIFICATION_STATUS: $qualificationStatus"
+    }
+    Write-Host "Result: $resultPath"
+
+    $shouldFail = $false
+    $failureMessage = $null
+    if ($qualificationStatus -eq 'REAL_SCENARIO_INCOMPLETE' -and -not $AllowIncomplete) {
+        $shouldFail = $true
+        $failureMessage = "Qualification is incomplete; required scenarios are missing, NOT RUN, UNOBSERVABLE, or FAIL: $($unresolvedScenarioIds -join ', ')."
+    }
+    if ($qualificationStatus -in @('INSTALL_BOUNDARY_FAILURE', 'SKILL_DISCOVERY_FAILURE')) {
+        $shouldFail = $true
+        $failureMessage = "Qualification boundary failed: $qualificationStatus. $failureReason"
+    }
+
     if (-not $KeepWorkspace -and (Test-Path -LiteralPath $workspace)) {
         Remove-Item -LiteralPath $workspace -Recurse -Force
+    }
+    if ($shouldFail) {
+        throw $failureMessage
     }
 }

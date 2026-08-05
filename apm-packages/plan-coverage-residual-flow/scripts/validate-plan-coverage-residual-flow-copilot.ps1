@@ -43,7 +43,10 @@ $requiredFiles = @(
     $fixtureRelative,
     'apm-packages/plan-coverage-residual-flow/tests/copilot-cli/README.md',
     'apm-packages/plan-coverage-residual-flow/tests/copilot-cli/result-template.md',
-    'apm-packages/plan-coverage-residual-flow/scripts/run-copilot-cli-qualification.ps1'
+    'apm-packages/plan-coverage-residual-flow/scripts/run-copilot-cli-qualification.ps1',
+    'apm-packages/plan-coverage-residual-flow/scripts/validate-copilot-full-package-install.ps1',
+    'apm-packages/plan-coverage-residual-flow/tests/copilot-cli/results/20260805-real-cli-qualification.json',
+    'apm-packages/plan-coverage-residual-flow/tests/copilot-cli/results/20260805-real-cli-qualification.md'
 )
 foreach ($relative in $requiredFiles) {
     if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $relative) -PathType Leaf)) {
@@ -56,6 +59,14 @@ $readme = Read-Text 'apm-packages/plan-coverage-residual-flow/README.md'
 $runbook = Read-Text 'apm-packages/plan-coverage-residual-flow/tests/copilot-cli/README.md'
 $template = Read-Text 'apm-packages/plan-coverage-residual-flow/tests/copilot-cli/result-template.md'
 $harness = Read-Text 'apm-packages/plan-coverage-residual-flow/scripts/run-copilot-cli-qualification.ps1'
+$realResultText = Read-Text 'apm-packages/plan-coverage-residual-flow/tests/copilot-cli/results/20260805-real-cli-qualification.json'
+$realResult = $null
+try {
+    $realResult = $realResultText | ConvertFrom-Json
+}
+catch {
+    Fail "Invalid committed real CLI result JSON: $($_.Exception.Message)"
+}
 
 Require $manifest '(?m)^targets:\s*\r?\n(?:\s+- .*\r?\n)*\s+- copilot\s*$' 'Copilot target'
 Require $manifest '(?m)^targets:\s*\r?\n(?:\s+- .*\r?\n)*\s+- agent-skills\s*$' 'agent-skills target'
@@ -81,10 +92,20 @@ Require $runbook 'Issue #69' 'Design Pair blocker'
 Require $runbook 'model-lock claim unsupported or manual' 'capability honesty'
 Require $template 'UNOBSERVABLE' 'real evidence uncertainty status'
 Require $template 'BLOCKED' 'Design Pair blocker status'
+Require $template 'REAL_SCENARIO_INCOMPLETE' 'incomplete top-level qualification status'
+Require $template 'implementation_route' 'route metadata'
+Require $template 'delegation_surface_reduced' 'adaptive route metadata'
 Require $harness '--target.*copilot,agent-skills' 'harness Copilot targets'
 Require $harness 'copilot.*skill.*list' 'harness Skill discovery'
 Require $harness 'local-skill-only' 'local development limitation'
-Forbid $harness 'GetTempPath|\\btemp\\b' 'system temporary-directory dependency'
+Require $harness 'ScenarioResultsPath' 'recorded scenario result input'
+Require $harness 'INSTALL_BOUNDARY' 'install boundary status'
+Require $harness 'SKILL_DISCOVERY' 'Skill discovery status'
+Require $harness 'REAL_SCENARIOS' 'real-scenario status'
+Require $harness 'QUALIFICATION_PASS' 'qualification pass guard'
+Require $harness 'full-package assets' 'full package asset guard'
+Require $readme 'validate-copilot-full-package-install.ps1' 'full-package installation check'
+Forbid $harness '(?i)GetTempPath|\btemp\b' 'system temporary-directory dependency'
 
 if ($null -ne $fixture) {
     if ($fixture.schema_version -ne 1) { Fail 'Qualification fixture schema_version must be 1' }
@@ -202,6 +223,36 @@ if ($null -ne $fixture) {
     $designPairScenario = $fixture.real_cli_scenarios | Where-Object { $_.id -ceq 'design-pair-e2e' }
     if ($null -eq $designPairScenario -or $designPairScenario.default_status -cne 'BLOCKED' -or $designPairScenario.blocker -notmatch 'Issue #69') {
         Fail 'Design Pair scenario must remain explicitly blocked by Issue #69'
+    }
+}
+
+if ($null -ne $realResult) {
+    if ([string]$realResult.package -cne 'plan-coverage-residual-flow') {
+        Fail 'Committed real CLI result package mismatch'
+    }
+    if ([string]$realResult.source_ref -cne '8d7527cbf5c0172148346463fd6c61f25fb33e24') {
+        Fail 'Committed real CLI result must identify the reviewed PR head'
+    }
+    if ([string]$realResult.qualification_status -cne 'REAL_SCENARIO_INCOMPLETE') {
+        Fail 'Committed real CLI result must not claim qualification while scenarios are unresolved'
+    }
+    if ([string]$realResult.full_package_install.status -cne 'PASS' -or
+        [string]$realResult.full_package_install.lock_ref -cne [string]$realResult.source_ref) {
+        Fail 'Committed real CLI result is missing final-head installation evidence'
+    }
+    if ([string]$realResult.local_package_directory.status -cne 'FAIL_EXPECTED' -or
+        [string]$realResult.local_package_directory.reason -notmatch 'git:\s*parent') {
+        Fail 'Committed real CLI result must keep the APM local package-directory limitation honest'
+    }
+    $realIds = @($realResult.scenarios | ForEach-Object { [string]$_.id })
+    foreach ($requiredId in @('explicit-lite', 'explicit-standard', 'unauthorized-generic', 'unauthorized-question-comparison-negation', 'durable-authorized-resume', 'default-adaptive-route', 'high-to-standard-completion', 'high-reentry', 'blocked-human-decision-replan', 'architecture-slice-readiness', 'two-slice-v2', 'independent-verification', 'final-record-residual-decision', 'new-session-resume', 'stale-incomplete-artifact-failure', 'design-pair-e2e')) {
+        if ($realIds -notcontains $requiredId) {
+            Fail "Committed real CLI result is missing scenario: $requiredId"
+        }
+    }
+    $realDesignPair = $realResult.scenarios | Where-Object { $_.id -ceq 'design-pair-e2e' }
+    if ($null -eq $realDesignPair -or [string]$realDesignPair.status -cne 'BLOCKED') {
+        Fail 'Committed real CLI result must keep Design Pair BLOCKED'
     }
 }
 

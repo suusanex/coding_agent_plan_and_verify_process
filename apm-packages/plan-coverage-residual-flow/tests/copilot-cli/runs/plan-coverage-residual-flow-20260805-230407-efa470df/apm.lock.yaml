@@ -1,0 +1,653 @@
+lockfile_version: '1'
+generated_at: '2026-08-05T14:04:19.501883+00:00'
+apm_version: 0.26.0
+dependencies:
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: plan-coverage-residual-flow
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 0.9.1
+  virtual_path: apm-packages/plan-coverage-residual-flow
+  is_virtual: true
+  package_type: apm_package
+  deployed_files:
+  - .agents/skills/plan-coverage-residual-flow
+  - .agents/skills/plan-coverage-residual-flow/SKILL.md
+  - .agents/skills/plan-coverage-residual-flow/references/coverage-ledger.md
+  - .agents/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md
+  - .agents/skills/plan-coverage-residual-flow/references/slice-architecture.md
+  deployed_file_hashes:
+    .agents/skills/plan-coverage-residual-flow/SKILL.md: sha256:8814975edb2cc8ec48dc369c117d6e1cb9ca07ca59c0468151347841d873db3a
+    .agents/skills/plan-coverage-residual-flow/references/coverage-ledger.md: sha256:af6d9252c720ba9298e99f8ac23a975108a841be725ff3fbb0a4d5c4c6866da7
+    .agents/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md: sha256:e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90
+    .agents/skills/plan-coverage-residual-flow/references/slice-architecture.md: sha256:fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb
+  content_hash: sha256:022bf238c3c1ff87f5b68d18f109625dd7677ff1a32eb343bb0df676cb2948b6
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-architecture-elaboration
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/architecture-elaboration.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/architecture-elaboration.agent.md
+  deployed_file_hashes:
+    .github/agents/architecture-elaboration.agent.md: sha256:8f53674b988131d847d8c32ca01d850c90820fddb40595a6ca6ff54382948344
+  content_hash: sha256:f947975e06dfad576753b393b45f703e189beb9dc283e3a6748ed635ffa03484
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-architecture-slice-readiness
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/architecture-slice-readiness.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/architecture-slice-readiness.agent.md
+  deployed_file_hashes:
+    .github/agents/architecture-slice-readiness.agent.md: sha256:c2f93ce3004a309d8430bea7e7875e38a2fd983843c95a1abca0324654bf5259
+  content_hash: sha256:59da792634ef589e773fa0af9169d7179ab1dcf628f9628493dde33331aba11c
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-black-box-behavior-spec-kernel
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/black-box-behavior-spec-kernel.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/black-box-behavior-spec-kernel.agent.md
+  deployed_file_hashes:
+    .github/agents/black-box-behavior-spec-kernel.agent.md: sha256:e5770b96b6c6eadae46720f034cad9cb1547f83df6ccef985459a58b573d7cf9
+  content_hash: sha256:0128e30c73110151d63147dbb5be685c23b332a0a9a4d0e25be81f2c92f99988
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-change-risk-triage
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/change-risk-triage.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/change-risk-triage.agent.md
+  deployed_file_hashes:
+    .github/agents/change-risk-triage.agent.md: sha256:10e612df57b7f4d0ba88cfa6c269701422c3b14dccd6b4be5d052a20b90eb98a
+  content_hash: sha256:1a7652c21072d8ef06ab8942f91bbad9e360ffd38dbe2d3f6116431b301d08e3
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-code-review-focus-kernel
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/code-review-focus-kernel.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/code-review-focus-kernel.agent.md
+  deployed_file_hashes:
+    .github/agents/code-review-focus-kernel.agent.md: sha256:5d99adbbb6e41dd0a88cf087c650e9b7e4a43f4483e9a37edc5705a5cdb25a98
+  content_hash: sha256:454dc94b77e39f1c20feb2d764ac3da9859d5472fd978b17a97201388d687801
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-coverage-gap-resolution-slice
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/coverage-gap-resolution-slice.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/coverage-gap-resolution-slice.agent.md
+  deployed_file_hashes:
+    .github/agents/coverage-gap-resolution-slice.agent.md: sha256:73c378a592a623dbf75aa7337831f399d80468805e62b0e0c32e44746740f6dc
+  content_hash: sha256:9a2050b7ad291b7105f73e1156afd8a25a6d08b171ba51a88bc776e938284ca1
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-coverage-gap-triage
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/coverage-gap-triage.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/coverage-gap-triage.agent.md
+  deployed_file_hashes:
+    .github/agents/coverage-gap-triage.agent.md: sha256:f6fedebb101220ed2e08729166930ad404df73fd57bebe58a049f568f298e931
+  content_hash: sha256:01066fccef218b587f84a0dc6e8e89dbd9936ce44b08bf43015081c3e479ed00
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-cross-slice-verification-kernel
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/cross-slice-verification-kernel.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/cross-slice-verification-kernel.agent.md
+  deployed_file_hashes:
+    .github/agents/cross-slice-verification-kernel.agent.md: sha256:1373d830032364b1876346362c2abb1f0664c890e9f1da1e007d23bf8acd25df
+  content_hash: sha256:b7cf70b0b5d1e06759dc3e06b7076c068ff60c1a8060c035ca13618413a93b34
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-high-implementation-starter
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/high-implementation-starter.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/high-implementation-starter.agent.md
+  deployed_file_hashes:
+    .github/agents/high-implementation-starter.agent.md: sha256:4ff3ba97cbea0f87a20f8fc28118a414f8a4e33daece1541d557b7b27fae3e5a
+  content_hash: sha256:c15d7c16ce862e19b6131bd394faaef852df53f62993310c9cb57bcd1b8eb06e
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-implementation-contract-kernel
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/implementation-contract-kernel.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/implementation-contract-kernel.agent.md
+  deployed_file_hashes:
+    .github/agents/implementation-contract-kernel.agent.md: sha256:7d00e4e98e92b6870883cadb747aa4a1a8ea9d8762d5c4c50fba26b925787454
+  content_hash: sha256:84bac11b63b506679915d22aeb5112354c9bc751c803990be6b24b2b5607b91b
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-implementation-contract-review-kernel
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/implementation-contract-review-kernel.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/implementation-contract-review-kernel.agent.md
+  deployed_file_hashes:
+    .github/agents/implementation-contract-review-kernel.agent.md: sha256:424df46119d407e2760263543f3708f570996841445a8472842f0f40b4181f00
+  content_hash: sha256:08256247ba01bde44cc4f163609552d6060c7444b8e1030a4c20ff8975264a05
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-implementation-execution
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/implementation-execution.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/implementation-execution.agent.md
+  deployed_file_hashes:
+    .github/agents/implementation-execution.agent.md: sha256:4d72619087b3a8041bf798823ece438e86d9884819947e5128c29da47d09d04f
+  content_hash: sha256:be66e981cdb4d6167cd680255f992bd574ff754f0cd530b675bb757aa7ad5377
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-implementation-handoff-review
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/implementation-handoff-review.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/implementation-handoff-review.agent.md
+  deployed_file_hashes:
+    .github/agents/implementation-handoff-review.agent.md: sha256:5c5e347589c2012689cb1af73d4f1a506919a5c7fd165a9ce652457dc09e38d3
+  content_hash: sha256:cb44ced2ad9bf8a3ca0ae6391ab16e223123135a43beff218f1c0026a588eb8b
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-plan-kernel
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/plan-kernel.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/plan-kernel.agent.md
+  deployed_file_hashes:
+    .github/agents/plan-kernel.agent.md: sha256:70d2f56c809aba48ea09db1e051a4beca256857e6f189e33c8bf464469b8bd7c
+  content_hash: sha256:99f7bf62fdbd7c56c1f3feb002bdc3b5ab81a9b9fe71050f45fd2f6933c2984b
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-plan-slice-decomposition
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/plan-slice-decomposition.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/plan-slice-decomposition.agent.md
+  deployed_file_hashes:
+    .github/agents/plan-slice-decomposition.agent.md: sha256:b29bf45b5e032b4186b01459a39be37d293dd6d3fe43f1d90d917ca177348208
+  content_hash: sha256:a0678125b6c51d3b2ef4a1b1d82e123434d9bd8e6812981d7c6c8ac23259ba8b
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-residual-decision-gate
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/residual-decision-gate.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/residual-decision-gate.agent.md
+  deployed_file_hashes:
+    .github/agents/residual-decision-gate.agent.md: sha256:aea8ed9c0bc7e2b66438927956c227cec84169e7388318c35de133083de3e619
+  content_hash: sha256:0c47542b94b685a313f2654082ff932128a4b0af1c2a765c326bb26d17b690e4
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-runtime-contract-kernel
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/runtime-contract-kernel.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/runtime-contract-kernel.agent.md
+  deployed_file_hashes:
+    .github/agents/runtime-contract-kernel.agent.md: sha256:cbd9624f748a067fbde74acf57a9b2fd080388d89e606e92c39349fd05bd229b
+  content_hash: sha256:8da39f26755f9f20077147095994e52e2bcc836472cacabbfa5aa16345143013
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-standard-implementation-completer
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/standard-implementation-completer.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/standard-implementation-completer.agent.md
+  deployed_file_hashes:
+    .github/agents/standard-implementation-completer.agent.md: sha256:7265f4a072b443b9f7454dc9e2d42f4752bd2a92d735a12e4fc97ac2745436fc
+  content_hash: sha256:54987bd1889bb7bc99977bc454a97926d9aa7ba576e6ee1c4d98ecf4d3a27089
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-test-design-kernel
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/test-design-kernel.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/test-design-kernel.agent.md
+  deployed_file_hashes:
+    .github/agents/test-design-kernel.agent.md: sha256:bb3fd6fc89c69118faec59dafd559928ee52c3411d3a2dc268b9e2e10613fa50
+  content_hash: sha256:0e9708dfdaad2597164caabfac71732a304ace7b7900970a4b68baad6c8da074
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-verification-kernel
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/agents/verification-kernel.agent.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/agents/verification-kernel.agent.md
+  deployed_file_hashes:
+    .github/agents/verification-kernel.agent.md: sha256:88d691aade2bc6f0361c1e278463eb8594ce0e62181d7e772c309d9efb8d557f
+  content_hash: sha256:463488ae39344b7b94636c73396b64d92a34a223e45219ce134aa145591d1fa9
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: coding_agent_plan_and_verify_process-plan-coverage-shared
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: 1.0.0
+  virtual_path: .github/instructions/plan-coverage-shared.instructions.md
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: apm_package
+  deployed_files:
+  - .github/instructions/plan-coverage-shared.instructions.md
+  deployed_file_hashes:
+    .github/instructions/plan-coverage-shared.instructions.md: sha256:5c58dd2d41cbea4c8aae2e16d428b281c9d614659cff045d193dc71001c04288
+  content_hash: sha256:431f878298fc7dce7adcae0e46afe1e67982c04bb53a02250bf54f4c1e36c966
+- repo_url: suusanex/coding_agent_plan_and_verify_process
+  name: adaptive-implementation-execution
+  host: github.com
+  resolved_commit: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  resolved_ref: 8d7527cbf5c0172148346463fd6c61f25fb33e24
+  version: unknown
+  virtual_path: apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
+  is_virtual: true
+  depth: 2
+  resolved_by: suusanex/coding_agent_plan_and_verify_process
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/adaptive-implementation-execution
+  - .agents/skills/adaptive-implementation-execution/SKILL.md
+  - .agents/skills/adaptive-implementation-execution/refs/handoff.md
+  - .agents/skills/adaptive-implementation-execution/refs/intent.md
+  deployed_file_hashes:
+    .agents/skills/adaptive-implementation-execution/SKILL.md: sha256:aea63f529cbdeadd218dc1713ff394285f13a89c346e53ddd45e468a130ae689
+    .agents/skills/adaptive-implementation-execution/refs/handoff.md: sha256:6ba6fa1e3e29847d42682fbebb5e1159c745aaeb4ae9b37e914c4792eefde236
+    .agents/skills/adaptive-implementation-execution/refs/intent.md: sha256:4f38d5fe12569fe20c1782438b4528f5ac99fa20cd4be682bab25732c0244da5
+  content_hash: sha256:89d2a2da4a17a23bf702f519122c4d871fcb67f22b0f5b797a32ec7012febde8
+deployments:
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/adaptive-implementation-execution
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
+  active_owner: suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/adaptive-implementation-execution/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
+  active_owner: suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
+  content_hash: sha256:aea63f529cbdeadd218dc1713ff394285f13a89c346e53ddd45e468a130ae689
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/adaptive-implementation-execution/refs/handoff.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
+  active_owner: suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
+  content_hash: sha256:6ba6fa1e3e29847d42682fbebb5e1159c745aaeb4ae9b37e914c4792eefde236
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/adaptive-implementation-execution/refs/intent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
+  active_owner: suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
+  content_hash: sha256:4f38d5fe12569fe20c1782438b4528f5ac99fa20cd4be682bab25732c0244da5
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/plan-coverage-residual-flow
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
+  active_owner: suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/plan-coverage-residual-flow/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
+  active_owner: suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
+  content_hash: sha256:8814975edb2cc8ec48dc369c117d6e1cb9ca07ca59c0468151347841d873db3a
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/plan-coverage-residual-flow/references/coverage-ledger.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
+  active_owner: suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
+  content_hash: sha256:af6d9252c720ba9298e99f8ac23a975108a841be725ff3fbb0a4d5c4c6866da7
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
+  active_owner: suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
+  content_hash: sha256:e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/plan-coverage-residual-flow/references/slice-architecture.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
+  active_owner: suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
+  content_hash: sha256:fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb
+- kind: project-relative
+  target: copilot
+  value: .github/agents/architecture-elaboration.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/architecture-elaboration.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/architecture-elaboration.agent.md
+  content_hash: sha256:8f53674b988131d847d8c32ca01d850c90820fddb40595a6ca6ff54382948344
+- kind: project-relative
+  target: copilot
+  value: .github/agents/architecture-slice-readiness.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/architecture-slice-readiness.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/architecture-slice-readiness.agent.md
+  content_hash: sha256:c2f93ce3004a309d8430bea7e7875e38a2fd983843c95a1abca0324654bf5259
+- kind: project-relative
+  target: copilot
+  value: .github/agents/black-box-behavior-spec-kernel.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/black-box-behavior-spec-kernel.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/black-box-behavior-spec-kernel.agent.md
+  content_hash: sha256:e5770b96b6c6eadae46720f034cad9cb1547f83df6ccef985459a58b573d7cf9
+- kind: project-relative
+  target: copilot
+  value: .github/agents/change-risk-triage.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/change-risk-triage.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/change-risk-triage.agent.md
+  content_hash: sha256:10e612df57b7f4d0ba88cfa6c269701422c3b14dccd6b4be5d052a20b90eb98a
+- kind: project-relative
+  target: copilot
+  value: .github/agents/code-review-focus-kernel.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/code-review-focus-kernel.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/code-review-focus-kernel.agent.md
+  content_hash: sha256:5d99adbbb6e41dd0a88cf087c650e9b7e4a43f4483e9a37edc5705a5cdb25a98
+- kind: project-relative
+  target: copilot
+  value: .github/agents/coverage-gap-resolution-slice.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/coverage-gap-resolution-slice.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/coverage-gap-resolution-slice.agent.md
+  content_hash: sha256:73c378a592a623dbf75aa7337831f399d80468805e62b0e0c32e44746740f6dc
+- kind: project-relative
+  target: copilot
+  value: .github/agents/coverage-gap-triage.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/coverage-gap-triage.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/coverage-gap-triage.agent.md
+  content_hash: sha256:f6fedebb101220ed2e08729166930ad404df73fd57bebe58a049f568f298e931
+- kind: project-relative
+  target: copilot
+  value: .github/agents/cross-slice-verification-kernel.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/cross-slice-verification-kernel.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/cross-slice-verification-kernel.agent.md
+  content_hash: sha256:1373d830032364b1876346362c2abb1f0664c890e9f1da1e007d23bf8acd25df
+- kind: project-relative
+  target: copilot
+  value: .github/agents/high-implementation-starter.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/high-implementation-starter.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/high-implementation-starter.agent.md
+  content_hash: sha256:4ff3ba97cbea0f87a20f8fc28118a414f8a4e33daece1541d557b7b27fae3e5a
+- kind: project-relative
+  target: copilot
+  value: .github/agents/implementation-contract-kernel.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/implementation-contract-kernel.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/implementation-contract-kernel.agent.md
+  content_hash: sha256:7d00e4e98e92b6870883cadb747aa4a1a8ea9d8762d5c4c50fba26b925787454
+- kind: project-relative
+  target: copilot
+  value: .github/agents/implementation-contract-review-kernel.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/implementation-contract-review-kernel.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/implementation-contract-review-kernel.agent.md
+  content_hash: sha256:424df46119d407e2760263543f3708f570996841445a8472842f0f40b4181f00
+- kind: project-relative
+  target: copilot
+  value: .github/agents/implementation-execution.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/implementation-execution.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/implementation-execution.agent.md
+  content_hash: sha256:4d72619087b3a8041bf798823ece438e86d9884819947e5128c29da47d09d04f
+- kind: project-relative
+  target: copilot
+  value: .github/agents/implementation-handoff-review.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/implementation-handoff-review.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/implementation-handoff-review.agent.md
+  content_hash: sha256:5c5e347589c2012689cb1af73d4f1a506919a5c7fd165a9ce652457dc09e38d3
+- kind: project-relative
+  target: copilot
+  value: .github/agents/plan-kernel.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/plan-kernel.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/plan-kernel.agent.md
+  content_hash: sha256:70d2f56c809aba48ea09db1e051a4beca256857e6f189e33c8bf464469b8bd7c
+- kind: project-relative
+  target: copilot
+  value: .github/agents/plan-slice-decomposition.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/plan-slice-decomposition.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/plan-slice-decomposition.agent.md
+  content_hash: sha256:b29bf45b5e032b4186b01459a39be37d293dd6d3fe43f1d90d917ca177348208
+- kind: project-relative
+  target: copilot
+  value: .github/agents/residual-decision-gate.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/residual-decision-gate.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/residual-decision-gate.agent.md
+  content_hash: sha256:aea8ed9c0bc7e2b66438927956c227cec84169e7388318c35de133083de3e619
+- kind: project-relative
+  target: copilot
+  value: .github/agents/runtime-contract-kernel.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/runtime-contract-kernel.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/runtime-contract-kernel.agent.md
+  content_hash: sha256:cbd9624f748a067fbde74acf57a9b2fd080388d89e606e92c39349fd05bd229b
+- kind: project-relative
+  target: copilot
+  value: .github/agents/standard-implementation-completer.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/standard-implementation-completer.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/standard-implementation-completer.agent.md
+  content_hash: sha256:7265f4a072b443b9f7454dc9e2d42f4752bd2a92d735a12e4fc97ac2745436fc
+- kind: project-relative
+  target: copilot
+  value: .github/agents/test-design-kernel.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/test-design-kernel.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/test-design-kernel.agent.md
+  content_hash: sha256:bb3fd6fc89c69118faec59dafd559928ee52c3411d3a2dc268b9e2e10613fa50
+- kind: project-relative
+  target: copilot
+  value: .github/agents/verification-kernel.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/agents/verification-kernel.agent.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/agents/verification-kernel.agent.md
+  content_hash: sha256:88d691aade2bc6f0361c1e278463eb8594ce0e62181d7e772c309d9efb8d557f
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/plan-coverage-shared.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - suusanex/coding_agent_plan_and_verify_process/.github/instructions/plan-coverage-shared.instructions.md
+  active_owner: suusanex/coding_agent_plan_and_verify_process/.github/instructions/plan-coverage-shared.instructions.md
+  content_hash: sha256:5c58dd2d41cbea4c8aae2e16d428b281c9d614659cff045d193dc71001c04288
