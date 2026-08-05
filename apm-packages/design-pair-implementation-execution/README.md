@@ -87,7 +87,7 @@ Plan Coverage Flow で使う場合は、この package と Plan Coverage package
 ```powershell
 ./apm-packages/design-pair-implementation-execution/scripts/validate.ps1
 ./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1
-dotnet publish ./apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs
+dotnet publish ./apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs
 git diff --check
 ```
 

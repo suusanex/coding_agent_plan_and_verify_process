@@ -84,10 +84,6 @@ $requiredFiles = @(
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md',
     'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md',
     'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/references/full-coverage-parent-orchestration-state.md',
-    'apm-packages/codex-first-ai-development-process/.apm/skills/codex-first-cost-router/SKILL.md',
-    'apm-packages/codex-first-ai-development-process/templates/codex-first-state.md',
-    'apm-packages/codex-first-ai-development-process/scripts/codex-first-start.ps1',
-    'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs',
     'README.md'
 )
 
@@ -112,7 +108,6 @@ Assert-Contains $manifest '\.github/agents/standard-implementation-completer\.ag
 Assert-NotContains $manifest 'implementation-execution\.agent\.md' 'legacy implementation orchestration dependency'
 Assert-Contains 'apm-packages/plan-coverage-residual-flow/apm.yml' '(?m)^version:\s*0\.9\.0\s*$' 'Plan Coverage package version 0.9.0'
 Assert-Contains 'apm-packages/token-aware-full-coverage-3layer/apm.yml' '(?m)^version:\s*0\.6\.0\s*$' 'full-coverage package version 0.6.0'
-Assert-Contains 'apm-packages/codex-first-ai-development-process/apm.yml' '(?m)^version:\s*0\.6\.0\s*$' 'Codex-first package version 0.6.0'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/apm.yml' '(?m)^version:\s*0\.4\.0\s*$' 'Adaptive package version 0.4.0'
 
 $maxWindowsPackagePathLength = 112
@@ -344,9 +339,7 @@ Assert-NotContains $standardAgent '(?m)^すべてのverdictでincoming route ide
 
 $adaptiveHighToml = 'apm-packages/adaptive-implementation-execution/codex-agents/high-implementation-starter.toml'
 $adaptiveStandardToml = 'apm-packages/adaptive-implementation-execution/codex-agents/standard-implementation-completer.toml'
-$codexHighToml = 'apm-packages/codex-first-ai-development-process/profiles/codex-first/agents/high-implementation-starter.toml'
-$codexStandardToml = 'apm-packages/codex-first-ai-development-process/profiles/codex-first/agents/standard-implementation-completer.toml'
-foreach ($toml in @($adaptiveHighToml, $codexHighToml)) {
+foreach ($toml in @($adaptiveHighToml)) {
     Assert-Contains $toml 'Accept only implementation_route: adaptive with implementation_route_source: default and an explicit N/A path, or implementation_route: design-pair with implementation_route_source: explicit-user-selection and the current tracked path' 'portable HIGH exact route identity tuples'
     Assert-Contains $toml 'Stop before editing and return BLOCKED with Stop reason: BlockedByInvalidCompletionHandoff when any route identity field is missing.*raw observed field value or <missing> plus repair evidence; never infer or fabricate' 'portable HIGH invalid route classification and raw output'
     Assert-Contains $toml 'Normally return unchanged implementation_route, implementation_route_source, and the Design Pair Implementation Handoff path or N/A.*only exception is BLOCKED with Stop reason: BlockedByInvalidCompletionHandoff.*raw observed values or <missing>.*Other BLOCKED results still require the complete unchanged identity' 'portable HIGH conditional route output'
@@ -360,7 +353,7 @@ foreach ($toml in @($adaptiveHighToml, $codexHighToml)) {
     Assert-Contains $toml "Require Target Map presentation evidence to reference a user-facing turn that presented every Target's concrete file and symbol, current invariant, internal design decision candidate, and relevant evidence" 'portable HIGH concrete Target Map presentation gate'
     Assert-Contains $toml 'An artifact link, Target ID, or topic summary alone is invalid presentation evidence' 'portable HIGH abstract Target Map rejection'
 }
-foreach ($toml in @($adaptiveStandardToml, $codexStandardToml)) {
+foreach ($toml in @($adaptiveStandardToml)) {
     Assert-Contains $toml 'accept only implementation_route: adaptive with implementation_route_source: default, or implementation_route: design-pair with implementation_route_source: explicit-user-selection' 'portable STANDARD exact route pairs'
     Assert-Contains $toml 'Reject a missing, contradictory, or evidence-inconsistent current-schema route identity before editing.*raw observed field value or <missing> plus repair evidence.*explicit N/A Design Pair Implementation Handoff path for implementation_route: adaptive.*current tracked path' 'portable STANDARD route identity fail-closed rule'
     Assert-Contains $toml 'High-model Re-entry Handoff.*unchanged implementation_route and implementation_route_source.*unchanged Design Pair Implementation Handoff path or N/A' 'portable STANDARD re-entry route identity propagation'
@@ -387,8 +380,7 @@ Assert-Contains $planCoverageSkill 'While Design Pair is waiting.*Do not treat w
 foreach ($statePath in @(
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md',
-    'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/references/full-coverage-parent-orchestration-state.md',
-    'apm-packages/codex-first-ai-development-process/templates/codex-first-state.md'
+    'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/references/full-coverage-parent-orchestration-state.md'
 )) {
     Assert-Contains $statePath 'implementation_route' 'implementation route state field'
     Assert-Contains $statePath 'implementation_route_source' 'implementation route source state field'
@@ -403,27 +395,6 @@ Assert-Contains '.github/agents/implementation-handoff-review.agent.md' '新規 
 Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'resume.*BLOCKED_BY_ARTIFACT_MISMATCH' 'handoff review resume fail-closed rule'
 Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'design_pair_interaction_stage' 'handoff review interaction stage propagation'
 Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'waiting中はAdaptiveやverificationを次stepにしない' 'handoff review waiting downstream block'
-
-$codexManifest = 'apm-packages/codex-first-ai-development-process/apm.yml'
-Assert-Contains $codexManifest 'design-pair-implementation-execution/\.apm/skills/design-pair-implementation-execution' 'Codex-first Design Pair skill dependency'
-Assert-Contains 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs' 'sourceDesignPairSkill' 'Codex-first Design Pair skill bootstrap source'
-Assert-Contains 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs' 'design-pair-implementation-execution' 'Codex-first Design Pair skill bootstrap target'
-Assert-Contains 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs' 'Path\.Combine\(sourceDesignPairSkill, "map\.md"\)' 'Codex-first Design Pair map installer input'
-Assert-Contains 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs' 'Path\.Combine\(sourceDesignPairSkill, "handoff\.md"\)' 'Codex-first Design Pair handoff installer input'
-
-$launcher = 'apm-packages/codex-first-ai-development-process/scripts/codex-first-start.ps1'
-Assert-Contains $launcher 'adaptiveSkillSource' 'one-off launcher Adaptive skill source'
-Assert-Contains $launcher 'designPairSkillSource' 'one-off launcher Design Pair skill source'
-Assert-Contains $launcher 'skills\\adaptive-implementation-execution' 'one-off launcher Adaptive skill target'
-Assert-Contains $launcher 'skills\\design-pair-implementation-execution' 'one-off launcher Design Pair skill target'
-Assert-Contains $launcher 'Copy-Item.*adaptiveSkillSource\.Path' 'one-off launcher Adaptive payload copy'
-Assert-Contains $launcher 'Copy-Item.*designPairSkillSource\.Path' 'one-off launcher Design Pair payload copy'
-
-$codexRouter = 'apm-packages/codex-first-ai-development-process/.apm/skills/codex-first-cost-router/SKILL.md'
-Assert-Contains $codexRouter 'fresh intake.*no durable route artifact' 'Codex-first fresh-intake default boundary'
-Assert-Contains $codexRouter 'On resume.*missing or contradictory metadata must stop' 'Codex-first resume fail-closed rule'
-Assert-Contains $codexRouter '(?s)first turn must present.*AWAITING_USER_INPUT / target-selection.*stop.*AWAITING_USER_INPUT / disposition-confirmation.*stop again' 'Codex-first mandatory Design Pair turn boundaries'
-Assert-Contains $codexRouter 'design_pair_interaction_stage' 'Codex-first interaction stage state'
 
 $fullCoverageSkill = 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md'
 Assert-Contains $fullCoverageSkill 'resumeではParent Orchestration State.*必須' 'full-coverage resume route requirement'
@@ -472,7 +443,6 @@ Assert-Contains $rebasedRuntimeResult '(?s)DP-T01 / `Locked` / user turn 3.*DP-T
 Assert-Contains $rebasedRuntimeResult '(?s)Every Locked / Discussed-Unlocked / Adaptive-Owned Target has matching post-map disposition evidence: PASS.*Explicit multi-Target delegation has one disposition evidence row per Target: PASS.*Adaptive started only after READY: PASS' 'rebased run disposition and Adaptive timing validation'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/fixture/plans/retry-after-plan.md' 'upstream user input for discussion, not a confirmed Design Pair Locked Decision' 'manual fixture pre-map proposal boundary'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' '(?s)DP-VAL-032.*Undelegated Target cannot become Adaptive-Owned.*DP-VAL-033.*Discussed-Unlocked requires final user disposition.*DP-VAL-034.*Explicit multi-Target delegation.*DP-VAL-035.*Explicit all-Adaptive delegation has complete evidence' 'Target disposition evidence validation scenarios'
-Assert-Contains 'apm-packages/codex-first-ai-development-process/docs/team-profile-launcher.md' 'Adaptive skill and refs, and Design Pair skill and refs' 'documented one-off launcher payload'
 Assert-Contains 'README.md' 'apm-packages/design-pair-implementation-execution' 'root Design Pair package link'
 
 if ($failures.Count -gt 0) {

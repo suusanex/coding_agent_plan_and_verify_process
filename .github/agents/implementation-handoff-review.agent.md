@@ -23,7 +23,7 @@ You are the "Implementation Handoff Review" agent.
 
 ## Process intent
 
-この agent は、Plan網羅チェック・残件判定フロー では `test-design-kernel.agent.md` の直後、Codex-first / Copilot fallback の標準 route では risk / contract gate の後、実装の直前に置く **mandatory pre-implementation review gate** です。
+この agent は、Plan網羅チェック・残件判定フロー では `test-design-kernel.agent.md` の直後、Adaptive の canonical Codex / Copilot adapter route では risk / contract gate の後、実装の直前に置く **mandatory pre-implementation review gate** です。
 Plan網羅チェック・残件判定フロー では省略してはいけません。省略が許されるのは、caller が明示的に別の human-led process を選び、Parent Plan Coverage Ledger と readiness scope を別の gate で確実に作成する場合だけです。
 
 ```text

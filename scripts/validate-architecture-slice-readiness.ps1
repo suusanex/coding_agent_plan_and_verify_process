@@ -48,8 +48,7 @@ function Assert-FileNotContains([string]$RelativePath, [string]$Pattern, [string
 
 $manifests = @(
     'apm-packages/plan-coverage-residual-flow/apm.yml',
-    'apm-packages/token-aware-full-coverage-3layer/apm.yml',
-    'apm-packages/codex-first-ai-development-process/apm.yml'
+    'apm-packages/token-aware-full-coverage-3layer/apm.yml'
 )
 
 foreach ($manifest in $manifests) {

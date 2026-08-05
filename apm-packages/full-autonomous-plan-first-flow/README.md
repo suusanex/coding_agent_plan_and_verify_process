@@ -31,7 +31,7 @@ Full Autonomous Plan-first Flowを使って、この変更を進めてくださ�
 実装前に必要なruntime evidenceとintegration test designも作成してください。
 ```
 
-短い依頼を自動でcost-aware routeへ振り分けたい場合は、Full Autonomousを直接起動せず[Codex-first AI Development Process](../codex-first-ai-development-process/README.md)を使います。
+短い依頼から既存Planの実装を進める場合は、[Adaptive Implementation Execution](../adaptive-implementation-execution/README.md)を使います。
 
 ## Flow
 

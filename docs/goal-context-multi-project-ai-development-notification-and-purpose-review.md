@@ -9,6 +9,8 @@ source_repositories:
 scope: multi-project AI development, goal-context portability, PR review, completion notification, and actionable links
 ---
 
+> **Historical / non-current installation note (Issue #85):** `status: conversation-final` records a historical goal-context conversation. This document is retained for historical and audit context only; it is not current source-of-truth or installation guidance. The current canonical route is Adaptive (`implementation_route: adaptive`, `implementation_route_source: default`); Design Pair handoff is N/A. Do not treat retired aggregate package references here as active.
+
 # 複数プロジェクトAI開発の通知・目的レビュー連携
 
 ## 1. この文書の目的

@@ -9,12 +9,9 @@
 | `scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs` | always-on Codex callback runtimeをuser-level設定へ導入する | canonical runtime、Local Spool provider、user-level `notify` |
 | `apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs` | PR Review Remediation導入後にconcrete Codex reviewer profilesを同期する | `.codex/agents/local-reviewer.toml`、`purpose-reviewer.toml`、`review-planner.toml` |
 | `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM導入後にAdaptive Implementationのconcrete Codex profilesを補完する | `.codex/agents/high-implementation-starter.toml`、`standard-implementation-completer.toml` |
-| `apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs` | Codex-firstをrepository-localにbootstrapする | managed `AGENTS.md` section、Codex config、agents、skills、templates |
 | `scripts/provision-work-repo-agents.cs` | 既存のPlan Coverage / full-coverage packageをAPM経由で導入し、Codex向け配置を補正する | `apm install`、agent TOML補正、full-coverage templates |
 | Goal Context validators | Goal Context authoring packageやfree-form文書を確認する | readability、package structure、APM install smoke |
 | `scripts/validate-architecture-slice-readiness.ps1` | architecture readinessのagents、manifest、templates、routingを確認する | ASR contractとfixture evidence |
-
-Codex-firstの入口は`apply-codex-first-local.cs`です。`provision-work-repo-agents.cs`は既存APM package向けであり、Codex-first bootstrapには使いません。
 
 ## Safe local installation pattern
 
@@ -30,7 +27,7 @@ dotnet run --file <installer.cs> -- <target> --check
 
 ## Existing APM provisioning helper
 
-`scripts/provision-work-repo-agents.cs`は、Plan Coverageやfull-coverage packagesを対象repositoryへ導入し、APM変換後のCodex TOMLとtemplate配置を補正します。
+`scripts/provision-work-repo-agents.cs`は、Plan Coverageやfull-coverage packagesを対象repositoryへ導入し、APM変換後のCodex TOMLとtemplate配置を補正します。Adaptive Implementationは専用packageのinstallerを使い、Design PairとPR Review Remediationは各packageのREADMEにある導入・同期手順を使います。
 
 ```powershell
 dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target --dry-run

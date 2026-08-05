@@ -155,7 +155,7 @@ apm prune
 
 旧sectionが残っている場合は、`<!-- adaptive-implementation-execution:start -->` から対応するend markerまでのpackage-owned sectionだけを人手で削除してください。marker外のrepository固有ルールは保持します。
 
-人手での作業が必要: 旧installerを利用したrepositoryでは、上記markerの有無を確認し、存在する場合だけmanaged sectionを削除します。
+人手での作業が必要: 従来のmanaged-section導入経路を利用したrepositoryでは、上記markerの有無を確認し、存在する場合だけmanaged sectionを削除します。
 
 ## Skill selection
 
