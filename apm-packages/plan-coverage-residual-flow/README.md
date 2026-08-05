@@ -277,10 +277,11 @@ coverage ledger、handoff、Parent State、Slice Record、Final Recordの
 観測できない場合はrequested / observed modelを分けて`ManualOnly`または
 unsupportedとして記録します。
 
-Artifact-authoritativeなnew-session resumeは現在
-`UNOBSERVABLE`です。必要な人手テスト、fail-closed確認、証跡bundleの
-必須項目は[Copilot CLI qualification runbook](tests/copilot-cli/README.md)
-のmanual acceptanceに記載し、会話resumeだけでは`PASS`にしません。
+Artifact-authoritativeなnew-session resumeは、fresh `copilot -p` sessionと
+negative fail-closed runを含むtracked evidence bundleにより
+`PROVEN`です。bundleの`hashes.sha256`は自身のhash行を含まない安定manifestで、
+`evidence_bundle_sha256`はそのmanifestのSHA-256です。正式なqualificationは
+他の未解決scenarioが残るため`REAL_SCENARIO_INCOMPLETE`のままです。
 
 Troubleshooting: Skillが表示されない場合は`.agents/skills`と
 `.github/agents`の導入先、`apm install --frozen`、`apm audit --ci`を確認します。

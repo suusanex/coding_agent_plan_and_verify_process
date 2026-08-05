@@ -80,9 +80,10 @@ they are not migrated.
 
 ## Manual acceptance: Full Coverage artifact-authoritative new-session resume
 
-This human acceptance is **not currently passed**. The committed
-`new-session-parent-state-resume` result must remain `UNOBSERVABLE`; the
-artifact-authoritative resume was not proven.
+This human acceptance is now **PROVEN** for the committed
+`new-session-parent-state-resume` result. A fresh plain `copilot -p` session
+reloaded the tracked compact-slice-record-v2 Parent State and related artifacts,
+and a negative fresh session failed closed when `slice-2.md` was absent.
 
 In a disposable repository, prepare a valid tracked
 `compact-slice-record-v2` Parent Orchestration State, Plan Coverage ledger,
@@ -98,9 +99,14 @@ Retain a tracked evidence bundle containing the exact prompt and command,
 CLI/APM/package versions and source revision, raw output/log paths and
 SHA-256 hashes, every artifact path and before/after SHA-256, changed files
 (including no-change evidence), the ordered verdict sequence, observed route
-metadata, and the negative fail-closed run. Only that real bundle may declare
-`artifact_authoritative_resume: PROVEN`; this package currently records
-`NOT_PROVEN` and `REAL_SCENARIO_INCOMPLETE`.
+metadata, and the negative fail-closed run. The committed bundle is
+`apm-packages/token-aware-full-coverage-3layer/tests/copilot-cli/evidence/20260806-new-session-parent-state-resume`.
+Its `hashes.sha256` file is a stable manifest that intentionally excludes its
+own hash line; `evidence_bundle_sha256` is the SHA-256 of that manifest.
+`artifacts.txt` references the tracked `artifact-snapshots/full-coverage/`
+paths. The negative run demonstrates that `artifact-authoritative resume was not proven`
+when a required artifact was missing. Formal qualification remains
+`REAL_SCENARIO_INCOMPLETE` because other required scenarios are unresolved.
 
 ## Qualification and evidence
 

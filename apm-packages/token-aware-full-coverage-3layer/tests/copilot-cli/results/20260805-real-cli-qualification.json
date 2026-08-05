@@ -2,11 +2,11 @@
   "schema_version": 1,
   "package": "token-aware-full-coverage-3layer",
   "execution_kind": "real-cli",
-  "executed_at": "2026-08-05T22:43:06+09:00",
+  "executed_at": "2026-08-06T07:39:54.175+09:00",
   "copilot_version": "1.0.78",
   "apm_version": "0.26.0",
   "source_repository": "suusanex/coding_agent_plan_and_verify_process",
-  "source_ref": "8d7527cbf5c0172148346463fd6c61f25fb33e24",
+  "source_ref": "65286363e74b139188f8362e56edc969eef2946b",
   "install_mode": "remote-package",
   "package_version": "0.6.1",
   "installed_skill_sha256": "717c91f6b65e3eab4003ba4938f99ec4abb01982f212ecbd2dc254208e9c9c91",
@@ -14,7 +14,7 @@
     "status": "PASS",
     "targets": "copilot,agent-skills",
     "lock_source": "suusanex/coding_agent_plan_and_verify_process",
-    "lock_ref": "8d7527cbf5c0172148346463fd6c61f25fb33e24",
+    "lock_ref": "65286363e74b139188f8362e56edc969eef2946b",
     "lock_version": "0.6.1",
     "deployed_assets": "PASS",
     "unmanaged_collision": "PASS"
@@ -34,14 +34,15 @@
   "qualification_status": "REAL_SCENARIO_INCOMPLETE",
   "evidence_requirements": {
     "resume_scenario_id": "new-session-parent-state-resume",
-    "current_status": "UNOBSERVABLE",
-    "artifact_authoritative_resume": "NOT_PROVEN",
+    "current_status": "PASS",
+    "artifact_authoritative_resume": "PROVEN",
     "pass_requires": [
       "real CLI evidence source",
       "tracked evidence bundle path and SHA-256",
       "prompt, command, output, and artifact references",
       "artifact paths with SHA-256, changed files, and verdict sequence"
-    ]
+    ],
+    "manifest_definition": "evidence_bundle_sha256 is the SHA-256 of the tracked hashes.sha256 manifest; hashes.sha256 excludes its own hash line."
   },
   "scenarios": [
     {
@@ -64,21 +65,70 @@
     },
     {
       "id": "new-session-parent-state-resume",
-      "status": "UNOBSERVABLE",
-      "evidence": "Copilot reported resume unavailable because no durable Parent Orchestration State or route/layout metadata existed; artifact-authoritative resume was not proven, and conversation resume cannot substitute for Parent State resume.",
-      "validation": "session 3b83102d-336c-41bf-8bcc-3dfabb138852; no files changed",
+      "status": "PASS",
+      "evidence": "A fresh plain copilot -p session restored the tracked compact-slice-record-v2 Parent State, Coverage Ledger, two Slice Records, Final Record, matching baseline/layout, adaptive/default route, authorization, last verdict, and state nonce, then created only the authorized resume-output.md. The negative fresh session with slice-2.md absent stopped fail-closed and created or modified no output file.",
+      "validation": "positive session e155cba9-7448-480b-bf6b-7e2cdf652a0b; negative session 2021bcad-29ca-4f10-9722-18f8a37e62ae; Copilot CLI 1.0.78; package source 65286363e74b139188f8362e56edc969eef2946b",
       "evidence_declaration": {
         "evidence_source": "real-cli",
         "conversation_resume": "NOT_USED_AS_AUTHORITY",
-        "artifact_authoritative_resume": "NOT_PROVEN",
-        "evidence_bundle_path": null,
-        "evidence_bundle_sha256": null,
-        "prompt_reference": "session 3b83102d-336c-41bf-8bcc-3dfabb138852; prompt not retained in a committed evidence bundle",
-        "command_reference": "fresh Copilot CLI session without conversation history",
-        "output_reference": null,
-        "artifact_references": [],
-        "changed_files": [],
-        "verdict_sequence": []
+        "artifact_authoritative_resume": "PROVEN",
+        "fresh_session": true,
+        "evidence_bundle_path": "apm-packages/token-aware-full-coverage-3layer/tests/copilot-cli/evidence/20260806-new-session-parent-state-resume",
+        "evidence_bundle_sha256": "a3e3682b945f9dbd757e755d3c263776c00f1872e988834b0af091b234106a85",
+        "prompt_reference": "prompt.txt [sha256=d7819b66d142ab661530b481b42054780e7bbff4ef1b73498f1aecf3db40893a]",
+        "command_reference": "command.txt [sha256=60ed4743caf7f6d14f554beb9a78aa03155ab4b49e82100564d1e499784ad7da]",
+        "output_reference": "output.jsonl [sha256=789583f9a4649f27aedefd2b3d41ab146d0a16e3660a33920ec7c134cc9bbd49]; copilot-session.md [sha256=9be66c4fdee5b7b1b994cf12a530da760b198a4b2f0a43515258a7c99cbdc3c6]; negative-missing-slice/output.jsonl [sha256=621f32e0197ae62cfb70b28522969cc430deb15a5644aecdee065326680338b8]; negative-missing-slice/copilot-session.md [sha256=8c875f362124a439978d1878b3d3629fbddb2b3b7f47fea9622b77e3ea15739b]",
+        "artifact_references": [
+          {
+            "path": "artifact-snapshots/full-coverage/parent-state.md",
+            "sha256": "1b605842f484fbdc43f5dcf514b039191d4ec9319424a7c64db7493ecf02abc3"
+          },
+          {
+            "path": "artifact-snapshots/full-coverage/coverage-ledger.md",
+            "sha256": "05033bf1497b76c7843e1e3175168149a04b774a9a2e5bf348aba7844e2a27df"
+          },
+          {
+            "path": "artifact-snapshots/full-coverage/slice-1.md",
+            "sha256": "d0bff392c17e0716f02e1100ecf3985b945840a735f1c2de4a59e8217044b0a2"
+          },
+          {
+            "path": "artifact-snapshots/full-coverage/slice-2.md",
+            "sha256": "f0b4aa2305b0417388f707f7dca3af7a4cd420e04faf18becbdb71d354d5b7fc"
+          },
+          {
+            "path": "artifact-snapshots/full-coverage/final-record.md",
+            "sha256": "f8bf886d4cc7f7d048cddc99613ae0865db25d23b8f34829fc15dc7ce8060aeb"
+          },
+          {
+            "path": "artifact-snapshots/full-coverage/last-verdict.md",
+            "sha256": "d0e6b833ffda673f4377f01fbbf9b9d1d80947ed2c253ffc89020683e92affd2"
+          },
+          {
+            "path": "artifact-snapshots/full-coverage/next-action.md",
+            "sha256": "a3cc669fa4b502f325c4dc55e2f9f2fa1ab04cbf00c513a9d32204389c3de8db"
+          },
+          {
+            "path": "artifact-snapshots/full-coverage/resume-output.md",
+            "sha256": "a42f04354f959a2425be7553316bbf22cd39b573fb501d415407cdb31845d27d"
+          }
+        ],
+        "changed_files": [
+          "positive: qualification-state/full-coverage/resume-output.md (created only)",
+          "negative-missing-slice-2: no output file created or modified"
+        ],
+        "verdict_sequence": [
+          "READY_FOR_AUTHORIZED_RESUME",
+          "PASS (positive fresh-session artifact-authoritative resume)",
+          "BLOCKED / fail-closed (negative missing-slice-2)"
+        ],
+        "positive_session_id": "e155cba9-7448-480b-bf6b-7e2cdf652a0b",
+        "negative_session_id": "2021bcad-29ca-4f10-9722-18f8a37e62ae",
+        "restored_layout": "compact-slice-record-v2",
+        "baseline_id": "FC-BASELINE-20260806-0733",
+        "implementation_route": "adaptive",
+        "implementation_route_source": "default",
+        "authorization": "authorized",
+        "state_nonce": "FC-RESUME-NONCE-94C2"
       }
     },
     {

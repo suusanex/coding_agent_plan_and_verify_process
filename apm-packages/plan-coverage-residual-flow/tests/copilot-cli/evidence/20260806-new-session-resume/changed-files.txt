@@ -1,0 +1,2 @@
+Positive run: qualification-state/plan-coverage/resume-output.md created only.
+Negative run: no output file created or modified while ledger.md was absent.

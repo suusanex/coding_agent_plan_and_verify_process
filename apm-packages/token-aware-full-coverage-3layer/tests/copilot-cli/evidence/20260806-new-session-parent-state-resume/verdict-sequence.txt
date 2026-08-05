@@ -1,0 +1,8 @@
+READY_FOR_AUTHORIZED_PARENT_STATE_RESUME
+-> fresh session read tracked Parent State, Coverage Ledger, two Slice Records, Final Record, and metadata
+-> restored compact-slice-record-v2, baseline, adaptive/default route, authorization, nonce, and last verdict
+-> created only the authorized resume-output.md
+Negative:
+-> slice-2.md temporarily absent
+-> BLOCKED / fail-closed
+-> no output file created or modified

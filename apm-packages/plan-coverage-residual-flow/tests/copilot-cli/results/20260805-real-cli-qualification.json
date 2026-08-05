@@ -2,11 +2,11 @@
   "schema_version": 1,
   "package": "plan-coverage-residual-flow",
   "execution_kind": "real-cli",
-  "executed_at": "2026-08-05T22:43:06+09:00",
+  "executed_at": "2026-08-06T07:39:54.175+09:00",
   "copilot_version": "1.0.78",
   "apm_version": "0.26.0",
   "source_repository": "suusanex/coding_agent_plan_and_verify_process",
-  "source_ref": "8d7527cbf5c0172148346463fd6c61f25fb33e24",
+  "source_ref": "65286363e74b139188f8362e56edc969eef2946b",
   "install_mode": "remote-package",
   "package_version": "0.9.1",
   "installed_skill_sha256": "8814975edb2cc8ec48dc369c117d6e1cb9ca07ca59c0468151347841d873db3a",
@@ -14,7 +14,7 @@
     "status": "PASS",
     "targets": "copilot,agent-skills",
     "lock_source": "suusanex/coding_agent_plan_and_verify_process",
-    "lock_ref": "8d7527cbf5c0172148346463fd6c61f25fb33e24",
+    "lock_ref": "65286363e74b139188f8362e56edc969eef2946b",
     "lock_version": "0.9.1",
     "deployed_assets": "PASS",
     "unmanaged_collision": "PASS"
@@ -34,14 +34,15 @@
   "qualification_status": "REAL_SCENARIO_INCOMPLETE",
   "evidence_requirements": {
     "resume_scenario_id": "new-session-resume",
-    "current_status": "UNOBSERVABLE",
-    "artifact_authoritative_resume": "NOT_PROVEN",
+    "current_status": "PASS",
+    "artifact_authoritative_resume": "PROVEN",
     "pass_requires": [
       "real CLI evidence source",
       "tracked evidence bundle path and SHA-256",
       "prompt, command, output, and artifact references",
       "artifact paths with SHA-256, changed files, and verdict sequence"
-    ]
+    ],
+    "manifest_definition": "evidence_bundle_sha256 is the SHA-256 of the tracked hashes.sha256 manifest; hashes.sha256 excludes its own hash line."
   },
   "scenarios": [
     {
@@ -130,21 +131,57 @@
     },
     {
       "id": "new-session-resume",
-      "status": "UNOBSERVABLE",
-      "evidence": "A separate Copilot process using --resume=325c9c28-61a4-45a4-8369-3fccf55fe652 observed conversation resume only; artifact-authoritative process resume was not proven.",
-      "validation": "session 325c9c28-61a4-45a4-8369-3fccf55fe652; exit 0; no files changed",
+      "status": "PASS",
+      "evidence": "A fresh plain copilot -p session restored the tracked Plan Coverage Parent State, ledger, route adaptive/default, authorization, last verdict, and state nonce, then created only the authorized resume-output.md. The negative fresh session with ledger.md absent stopped fail-closed and created or modified no output file.",
+      "validation": "positive session cb89e627-8a47-48e8-aa88-71bb2cbfc7a0; negative session c43c96ac-67e5-4382-b9bd-65ce5f943d10; Copilot CLI 1.0.78; package source 65286363e74b139188f8362e56edc969eef2946b",
       "evidence_declaration": {
         "evidence_source": "real-cli",
-        "conversation_resume": "OBSERVED_ONLY",
-        "artifact_authoritative_resume": "NOT_PROVEN",
-        "evidence_bundle_path": null,
-        "evidence_bundle_sha256": null,
-        "prompt_reference": "session 325c9c28-61a4-45a4-8369-3fccf55fe652; prompt not retained in a committed evidence bundle",
-        "command_reference": "copilot --resume=325c9c28-61a4-45a4-8369-3fccf55fe652 (conversation resume only)",
-        "output_reference": null,
-        "artifact_references": [],
-        "changed_files": [],
-        "verdict_sequence": []
+        "conversation_resume": "NOT_USED_AS_AUTHORITY",
+        "artifact_authoritative_resume": "PROVEN",
+        "fresh_session": true,
+        "evidence_bundle_path": "apm-packages/plan-coverage-residual-flow/tests/copilot-cli/evidence/20260806-new-session-resume",
+        "evidence_bundle_sha256": "39fc27c4b658b4021cfcc7fe8095b2ee56826d440861c0136c599d23d332401c",
+        "prompt_reference": "prompt.txt [sha256=fb216723f74ddc6e41619e087f66ffbfe872d822cbdd01448794f492af42172b]",
+        "command_reference": "command.txt [sha256=1f61801a63ce63bf3990b41c9baaebfcb0be08a142206cf8475d01bfdcd70fa9]",
+        "output_reference": "output.jsonl [sha256=3b79b87c211f2622f64cb981181872231b9de559d2b25c9c8e6339f4ab2b587f]; copilot-session.md [sha256=5dd129ec339e46becd222600a08bc3219a579f6a3c7cdc3f3fe37192e74b35f0]; negative-missing-ledger/output.jsonl [sha256=e9bdfb95033841c0e5e24b8e2c6f12584c5a1c3ebc2a4de7e3235002fbd34a20]; negative-missing-ledger/copilot-session.md [sha256=43b27e768720b04dd7a4a67f9defc7e449af4ae9e13e261c13db8f564d5a1b5a]",
+        "artifact_references": [
+          {
+            "path": "artifact-snapshots/plan-coverage/parent-state.md",
+            "sha256": "2c4aa8bae4a19e1d7c413eeff60c7a989ddb0b8ba0cf9b60a34b1f7ff1f871fa"
+          },
+          {
+            "path": "artifact-snapshots/plan-coverage/ledger.md",
+            "sha256": "c0358c694018c00e16f2bb9f6335ce8831f79ca7fd22200c2fb322bfe0b1150d"
+          },
+          {
+            "path": "artifact-snapshots/plan-coverage/last-verdict.md",
+            "sha256": "5d17f59fcfee33ab35b45e5121273d98501187ba616b9f3346039d19037ddc73"
+          },
+          {
+            "path": "artifact-snapshots/plan-coverage/next-action.md",
+            "sha256": "4490bbb9eee84bf5327d37e07017cb6aff9a8f51128b25e1dce7e08e9e928fae"
+          },
+          {
+            "path": "artifact-snapshots/plan-coverage/resume-output.md",
+            "sha256": "89a200824122ebdbc37bc88da2f2a50a7834548bb6b97544d6030f9257432291"
+          }
+        ],
+        "changed_files": [
+          "positive: qualification-state/plan-coverage/resume-output.md (created only)",
+          "negative-missing-ledger: no output file created or modified"
+        ],
+        "verdict_sequence": [
+          "READY_FOR_AUTHORIZED_RESUME",
+          "PASS (positive fresh-session artifact-authoritative resume)",
+          "BLOCKED / fail-closed (negative missing-ledger)"
+        ],
+        "positive_session_id": "cb89e627-8a47-48e8-aa88-71bb2cbfc7a0",
+        "negative_session_id": "c43c96ac-67e5-4382-b9bd-65ce5f943d10",
+        "restored_phase": "Plan Coverage durable resume",
+        "implementation_route": "adaptive",
+        "implementation_route_source": "default",
+        "authorization": "authorized",
+        "state_nonce": "PC-RESUME-NONCE-7A41"
       }
     },
     {

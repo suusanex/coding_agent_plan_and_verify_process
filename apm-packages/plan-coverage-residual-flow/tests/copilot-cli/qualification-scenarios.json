@@ -181,6 +181,8 @@
     "pass_requires": [
       "evidence_source=real-cli",
       "evidence_declaration.artifact_authoritative_resume=PROVEN",
+      "evidence_requirements.current_status matches resume scenario status",
+      "evidence_requirements.artifact_authoritative_resume matches resume scenario status",
       "evidence_declaration.evidence_bundle_path",
       "evidence_declaration.evidence_bundle_sha256",
       "evidence_declaration.prompt_reference",

@@ -1,0 +1,25 @@
+{
+  "scenario_id": "new-session-resume",
+  "status": "PASS",
+  "evidence_source": "real-cli",
+  "artifact_authoritative_resume": "PROVEN",
+  "fresh_session": true,
+  "conversation_resume_used": false,
+  "evidence_bundle_path": "evidence/plan-coverage/new-session-resume",
+  "positive_session_id": "cb89e627-8a47-48e8-aa88-71bb2cbfc7a0",
+  "negative_session_id": "c43c96ac-67e5-4382-b9bd-65ce5f943d10",
+  "restored_phase": "Plan Coverage durable resume",
+  "implementation_route": "adaptive",
+  "implementation_route_source": "default",
+  "authorization": "authorized",
+  "state_nonce": "PC-RESUME-NONCE-7A41",
+  "positive_changed_files": [
+    "qualification-state/plan-coverage/resume-output.md"
+  ],
+  "negative_case": {
+    "name": "missing-ledger",
+    "status": "PASS",
+    "expected_verdict": "fail-closed",
+    "observed": "Required artifact qualification-state/plan-coverage/ledger.md was missing; no output file was created or modified."
+  }
+}

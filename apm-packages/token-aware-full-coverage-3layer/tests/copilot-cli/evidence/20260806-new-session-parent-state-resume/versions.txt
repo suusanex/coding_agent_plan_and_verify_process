@@ -1,0 +1,5 @@
+Copilot CLI: 1.0.78
+APM: 0.26.0
+Package source revision: 65286363e74b139188f8362e56edc969eef2946b
+Package: token-aware-full-coverage-3layer 0.6.1
+Qualification repository baseline: 1b9c3a6137f7f65c1d677a2cc6a8b773d42e4f7e

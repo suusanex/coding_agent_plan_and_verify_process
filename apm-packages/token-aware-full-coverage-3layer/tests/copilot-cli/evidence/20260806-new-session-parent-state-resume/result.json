@@ -1,0 +1,26 @@
+{
+  "scenario_id": "new-session-parent-state-resume",
+  "status": "PASS",
+  "evidence_source": "real-cli",
+  "artifact_authoritative_resume": "PROVEN",
+  "fresh_session": true,
+  "conversation_resume_used": false,
+  "evidence_bundle_path": "evidence/full-coverage/new-session-parent-state-resume",
+  "positive_session_id": "e155cba9-7448-480b-bf6b-7e2cdf652a0b",
+  "negative_session_id": "2021bcad-29ca-4f10-9722-18f8a37e62ae",
+  "restored_layout": "compact-slice-record-v2",
+  "baseline_id": "FC-BASELINE-20260806-0733",
+  "implementation_route": "adaptive",
+  "implementation_route_source": "default",
+  "authorization": "authorized",
+  "state_nonce": "FC-RESUME-NONCE-94C2",
+  "positive_changed_files": [
+    "qualification-state/full-coverage/resume-output.md"
+  ],
+  "negative_case": {
+    "name": "missing-slice-2",
+    "status": "PASS",
+    "expected_verdict": "fail-closed",
+    "observed": "Tracked artifact qualification-state/full-coverage/slice-2.md was missing; no output file was created or modified."
+  }
+}

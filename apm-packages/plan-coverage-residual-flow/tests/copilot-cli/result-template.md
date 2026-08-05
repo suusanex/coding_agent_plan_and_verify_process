@@ -56,6 +56,10 @@
   `artifact_authoritative_resume: PROVEN`, a tracked evidence bundle path and
   SHA-256, prompt/command/output references, artifact paths with SHA-256,
   changed files, and the observed verdict sequence.
+- `evidence_bundle_sha256` identifies the SHA-256 of the tracked
+  `hashes.sha256` manifest. The manifest must exclude its own hash line to
+  avoid self-referential ambiguity, and `artifacts.txt` must use tracked
+  artifact-snapshot paths.
 - If only `copilot --resume=<session-id>` or `copilot --continue` was observed,
   record `artifact_authoritative_resume: NOT_PROVEN` and use `UNOBSERVABLE`;
   conversation history is not artifact-authoritative process state.

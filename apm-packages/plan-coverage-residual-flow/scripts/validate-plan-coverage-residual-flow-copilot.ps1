@@ -30,6 +30,135 @@ function Forbid([string]$Text, [string]$Pattern, [string]$Label) {
     }
 }
 
+function Validate-EvidenceReference(
+    [string]$Reference,
+    [string]$BundlePath,
+    [string]$ScenarioId,
+    [string]$Label
+) {
+    $matches = [regex]::Matches(
+        $Reference,
+        '(?<path>[^\s;\[\]]+)\s+\[sha256=(?<hash>[0-9a-fA-F]{64})\]'
+    )
+    if ($matches.Count -eq 0) {
+        Fail "Resume scenario $ScenarioId requires a path and SHA-256 for $Label"
+        return
+    }
+
+    foreach ($match in $matches) {
+        $relativePath = $match.Groups['path'].Value.Replace('/', '\')
+        $path = Join-Path $BundlePath $relativePath
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            Fail "Resume scenario $ScenarioId references missing $Label path: $($match.Groups['path'].Value)"
+            continue
+        }
+        $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant()
+        if ($actualHash -cne $match.Groups['hash'].Value.ToLowerInvariant()) {
+            Fail "Resume scenario $ScenarioId has an incorrect SHA-256 for $Label path: $($match.Groups['path'].Value)"
+        }
+    }
+}
+
+function Validate-EvidenceBundle(
+    [string]$BundleRelativePath,
+    [string]$DeclaredHash,
+    [object]$Declaration,
+    [string]$ScenarioId
+) {
+    $bundlePath = Join-Path $repoRoot ($BundleRelativePath.Replace('/', '\'))
+    if (-not (Test-Path -LiteralPath $bundlePath -PathType Container)) {
+        Fail "Resume scenario $ScenarioId references a missing evidence bundle: $BundleRelativePath"
+        return
+    }
+
+    $manifestPath = Join-Path $bundlePath 'hashes.sha256'
+    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+        Fail "Resume scenario $ScenarioId evidence bundle is missing hashes.sha256"
+        return
+    }
+
+    $manifestHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $manifestPath).Hash.ToLowerInvariant()
+    if ($manifestHash -cne $DeclaredHash.ToLowerInvariant()) {
+        Fail "Resume scenario $ScenarioId evidence_bundle_sha256 does not match hashes.sha256"
+    }
+
+    $listed = @{}
+    foreach ($line in Get-Content -LiteralPath $manifestPath) {
+        if ([string]::IsNullOrWhiteSpace($line)) {
+            continue
+        }
+        if ($line -notmatch '^([0-9a-fA-F]{64})\s+(.+)$') {
+            Fail "Resume scenario $ScenarioId has an invalid hashes.sha256 line: $line"
+            continue
+        }
+        $expectedHash = $Matches[1].ToLowerInvariant()
+        $relativePath = $Matches[2].Replace('/', '\')
+        if ($relativePath -eq 'hashes.sha256' -or $relativePath.Contains('..')) {
+            Fail "Resume scenario $ScenarioId hashes.sha256 must exclude self and parent paths"
+            continue
+        }
+        if ($listed.ContainsKey($relativePath)) {
+            Fail "Resume scenario $ScenarioId hashes.sha256 contains a duplicate path: $relativePath"
+            continue
+        }
+        $listed[$relativePath] = $true
+        $path = Join-Path $bundlePath $relativePath
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            Fail "Resume scenario $ScenarioId hashes.sha256 references missing path: $relativePath"
+            continue
+        }
+        $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant()
+        if ($actualHash -cne $expectedHash) {
+            Fail "Resume scenario $ScenarioId hashes.sha256 has an incorrect hash: $relativePath"
+        }
+    }
+
+    $actualFiles = @(
+        Get-ChildItem -LiteralPath $bundlePath -Recurse -File |
+            Where-Object { $_.FullName -ne $manifestPath } |
+            ForEach-Object { $_.FullName.Substring($bundlePath.Length + 1) }
+    )
+    foreach ($relativePath in $actualFiles) {
+        if (-not $listed.ContainsKey($relativePath)) {
+            Fail "Resume scenario $ScenarioId evidence bundle file is absent from hashes.sha256: $relativePath"
+        }
+    }
+
+    $artifactsPath = Join-Path $bundlePath 'artifacts.txt'
+    if (-not (Test-Path -LiteralPath $artifactsPath -PathType Leaf)) {
+        Fail "Resume scenario $ScenarioId evidence bundle is missing artifacts.txt"
+    }
+    else {
+        $artifactsText = [System.IO.File]::ReadAllText($artifactsPath)
+        foreach ($artifact in @($Declaration.artifact_references)) {
+            if ($artifactsText -notmatch [regex]::Escape([string]$artifact.path)) {
+                Fail "Resume scenario $ScenarioId artifacts.txt does not reference $($artifact.path)"
+            }
+        }
+    }
+
+    foreach ($referenceField in @('prompt_reference', 'command_reference', 'output_reference')) {
+        Validate-EvidenceReference `
+            ([string]$Declaration.$referenceField) `
+            $bundlePath `
+            $ScenarioId `
+            $referenceField
+    }
+
+    foreach ($artifact in @($Declaration.artifact_references)) {
+        $relativePath = ([string]$artifact.path).Replace('/', '\')
+        $path = Join-Path $bundlePath $relativePath
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            Fail "Resume scenario $ScenarioId references missing artifact path: $($artifact.path)"
+            continue
+        }
+        $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant()
+        if ($actualHash -cne ([string]$artifact.sha256).ToLowerInvariant()) {
+            Fail "Resume scenario $ScenarioId has an incorrect artifact SHA-256: $($artifact.path)"
+        }
+    }
+}
+
 function Validate-ResumeEvidence([object]$Scenario, [string]$ScenarioId) {
     if ($null -eq $Scenario) {
         Fail "Committed real CLI result is missing resume scenario: $ScenarioId"
@@ -78,6 +207,18 @@ function Validate-ResumeEvidence([object]$Scenario, [string]$ScenarioId) {
         if (@($declaration.verdict_sequence).Count -eq 0) {
             Fail "Resume scenario $ScenarioId PASS requires verdict_sequence evidence"
         }
+        if (@($declaration.changed_files | Where-Object { [string]$_ -match '(?i)no[- ]change|no output file created or modified' }).Count -eq 0) {
+            Fail "Resume scenario $ScenarioId PASS requires negative no-change evidence"
+        }
+        if (@($declaration.verdict_sequence | Where-Object { [string]$_ -match '(?i)PASS' }).Count -eq 0 -or
+            @($declaration.verdict_sequence | Where-Object { [string]$_ -match '(?i)BLOCKED|fail-closed' }).Count -eq 0) {
+            Fail "Resume scenario $ScenarioId PASS requires positive and negative verdict sequence evidence"
+        }
+        Validate-EvidenceBundle `
+            ([string]$declaration.evidence_bundle_path) `
+            ([string]$declaration.evidence_bundle_sha256) `
+            $declaration `
+            $ScenarioId
     }
     elseif ($status -eq 'UNOBSERVABLE') {
         if ([string]$declaration.artifact_authoritative_resume -cne 'NOT_PROVEN') {
@@ -89,6 +230,9 @@ function Validate-ResumeEvidence([object]$Scenario, [string]$ScenarioId) {
         if ([string]$Scenario.evidence -notmatch '(?i)artifact-authoritative.*not proven') {
             Fail "Resume scenario $ScenarioId must state that artifact-authoritative process resume was not proven"
         }
+    }
+    else {
+        Fail "Resume scenario $ScenarioId has unsupported status: $status"
     }
 }
 
@@ -291,6 +435,8 @@ if ($null -ne $fixture) {
     foreach ($requirement in @(
         'evidence_source=real-cli',
         'evidence_declaration.artifact_authoritative_resume=PROVEN',
+        'evidence_requirements.current_status matches resume scenario status',
+        'evidence_requirements.artifact_authoritative_resume matches resume scenario status',
         'evidence_declaration.evidence_bundle_path',
         'evidence_declaration.evidence_bundle_sha256',
         'evidence_declaration.prompt_reference',
@@ -329,19 +475,14 @@ if ($null -ne $realResult) {
     if ([string]$realResult.package -cne 'plan-coverage-residual-flow') {
         Fail 'Committed real CLI result package mismatch'
     }
-    if ([string]$realResult.source_ref -cne '8d7527cbf5c0172148346463fd6c61f25fb33e24') {
-        Fail 'Committed real CLI result must identify the reviewed PR head'
+    if ([string]$realResult.source_ref -cne '65286363e74b139188f8362e56edc969eef2946b') {
+        Fail 'Committed real CLI result must identify the package source revision used by the evidence'
     }
     if ([string]$realResult.qualification_status -cne 'REAL_SCENARIO_INCOMPLETE') {
         Fail 'Committed real CLI result must not claim qualification while scenarios are unresolved'
     }
     if ([string]$realResult.execution_kind -cne 'real-cli') {
         Fail 'Committed real CLI result must identify execution_kind real-cli'
-    }
-    if ([string]$realResult.evidence_requirements.resume_scenario_id -cne 'new-session-resume' -or
-        [string]$realResult.evidence_requirements.current_status -cne 'UNOBSERVABLE' -or
-        [string]$realResult.evidence_requirements.artifact_authoritative_resume -cne 'NOT_PROVEN') {
-        Fail 'Committed Plan Coverage resume evidence requirements must remain explicitly UNOBSERVABLE and NOT_PROVEN'
     }
     if ([string]$realResult.full_package_install.status -cne 'PASS' -or
         [string]$realResult.full_package_install.lock_ref -cne [string]$realResult.source_ref) {
@@ -358,10 +499,39 @@ if ($null -ne $realResult) {
         }
     }
     $realResume = $realResult.scenarios | Where-Object { $_.id -ceq 'new-session-resume' }
-    if ($null -eq $realResume -or [string]$realResume.status -cne 'UNOBSERVABLE') {
-        Fail 'Committed Plan Coverage new-session-resume must remain UNOBSERVABLE'
+    if ($null -eq $realResume) {
+        Fail 'Committed Plan Coverage new-session-resume scenario is missing'
+    }
+    else {
+        $resumeStatus = ([string]$realResume.status).ToUpperInvariant()
+        if ([string]$realResult.evidence_requirements.resume_scenario_id -cne 'new-session-resume' -or
+            [string]$realResult.evidence_requirements.current_status -cne $resumeStatus) {
+            Fail 'Committed Plan Coverage resume evidence requirements must match the actual resume scenario status'
+        }
+        $expectedAuthority = switch ($resumeStatus) {
+            'PASS' { 'PROVEN' }
+            'UNOBSERVABLE' { 'NOT_PROVEN' }
+            default { $null }
+        }
+        if ($null -eq $expectedAuthority -or
+            [string]$realResult.evidence_requirements.artifact_authoritative_resume -cne $expectedAuthority) {
+            Fail 'Committed Plan Coverage resume evidence authority must match the actual resume scenario status'
+        }
     }
     Validate-ResumeEvidence $realResume 'new-session-resume'
+    $requiredScenarioIds = @($fixture.real_cli_scenarios | Where-Object { [string]$_.kind -ne 'blocked' } | ForEach-Object { [string]$_.id })
+    $unresolvedScenarioIds = @($requiredScenarioIds | Where-Object {
+        $scenarioId = $_
+        $scenario = $realResult.scenarios | Where-Object { [string]$_.id -ceq $scenarioId }
+        $null -eq $scenario -or [string]$scenario.status -ne 'PASS'
+    })
+    if ($unresolvedScenarioIds.Count -eq 0 -or
+        @($unresolvedScenarioIds | Where-Object { $_ -ne 'new-session-resume' }).Count -eq 0) {
+        Fail 'Committed Plan Coverage qualification must remain incomplete because other required scenarios are unresolved'
+    }
+    if ([string]$realResult.qualification_status -cne 'REAL_SCENARIO_INCOMPLETE') {
+        Fail 'Committed Plan Coverage qualification status must remain REAL_SCENARIO_INCOMPLETE'
+    }
     $realDesignPair = $realResult.scenarios | Where-Object { $_.id -ceq 'design-pair-e2e' }
     if ($null -eq $realDesignPair -or [string]$realDesignPair.status -cne 'BLOCKED') {
         Fail 'Committed real CLI result must keep Design Pair BLOCKED'

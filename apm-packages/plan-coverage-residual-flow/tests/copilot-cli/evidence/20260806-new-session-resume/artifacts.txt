@@ -1,0 +1,5 @@
+artifact-snapshots/plan-coverage/parent-state.md
+artifact-snapshots/plan-coverage/ledger.md
+artifact-snapshots/plan-coverage/last-verdict.md
+artifact-snapshots/plan-coverage/next-action.md
+artifact-snapshots/plan-coverage/resume-output.md

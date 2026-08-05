@@ -1,10 +1,10 @@
 # Copilot CLI real-scenario qualification record
 
-- Date: 2026-08-05 (Asia/Tokyo)
+- Date: 2026-08-06 (Asia/Tokyo)
 - Copilot CLI: `1.0.78`
 - APM: `0.26.0`
 - Package: `plan-coverage-residual-flow` `0.9.1`
-- Remote source: `suusanex/coding_agent_plan_and_verify_process#8d7527cbf5c0172148346463fd6c61f25fb33e24`
+- Remote source: `suusanex/coding_agent_plan_and_verify_process#65286363e74b139188f8362e56edc969eef2946b`
 - Install mode: `remote-package`
 - Installed Skill SHA-256: `8814975edb2cc8ec48dc369c117d6e1cb9ca07ca59c0468151347841d873db3a`
 - Full-package install: `PASS`
@@ -30,9 +30,9 @@ delegation_surface_reduced: N/A
 
 The probes used real Copilot CLI JSONL sessions from a remote full-SHA
 installation. No scenario was marked `PASS` from static fixtures or Skill
-discovery alone. The CLI exposed natural-language route and negative
-activation evidence, but did not expose all agent phase transitions or
-production artifact completion.
+discovery alone. The new-session resume scenario is now proven from a fresh
+session that reloaded tracked artifacts; other required scenarios remain
+unresolved, so formal qualification is still incomplete.
 
 | Scenario | Status | Real evidence |
 | --- | --- | --- |
@@ -43,27 +43,29 @@ production artifact completion.
 | Question/comparison/negation no activation | `PASS` | Session `3f2ad865-dabc-40c2-8329-62d9ec2c4f72`; no Skill or custom agent activated. |
 | Durable authorization resume | `PASS` | Session `325c9c28-61a4-45a4-8369-3fccf55fe652`; complete durable tuple accepted and adaptive/default metadata reported. |
 | Default Adaptive | `PASS` | Session `b4fc1784-d99f-4a71-b26d-bbacd971799f`; fresh intake reported adaptive/default and `reentry_count: 0`. |
-| HIGH to STANDARD completion | `UNOBSERVABLE` | Session `25e023a4-1ab4-4d45-a6a0-31bb55922697`; requested/observed Terra, but incomplete handoff prevented an actual transition. |
-| STANDARD to HIGH re-entry | `UNOBSERVABLE` | Session `1335e1cb-c56c-4d0e-b970-273218af85a6`; re-entry was described, but no actual phase transition was exposed. |
+| HIGH to STANDARD completion | `UNOBSERVABLE` | Session `25e023a4-1ab4-4d45-a6a0-31bb55922697`; incomplete handoff prevented an actual transition. |
+| STANDARD to HIGH re-entry | `UNOBSERVABLE` | Session `1335e1cb-c56c-4d0e-b970-273218af85a6`; no actual phase transition was exposed. |
 | Blocked / human decision / replan | `PASS` | Session `93031f62-5eb7-4317-b8c5-bddf79fe0c37`; `HUMAN_DECISION_REQUIRED` stopped implementation. |
-| Architecture Slice Readiness | `UNOBSERVABLE` | Session `d9cd0b1c-5e06-4aee-890c-10d10799c1f7`; missing upstream authority stopped before readiness execution. |
+| Architecture Slice Readiness | `UNOBSERVABLE` | Session `d9cd0b1c-5e06-4aee-890c-10d10799c1f7`; missing upstream authority stopped execution. |
 | Compact Slice Record v2 two-slice | `UNOBSERVABLE` | Session `01ac7bc4-2236-4180-ad31-666f0ebfccc6`; missing v2 artifacts returned `BlockedByArtifactLayoutMismatch`. |
 | Independent verification | `UNOBSERVABLE` | Session `06ea905c-8086-4e37-945d-58307c349bac`; missing Plan/ledger/binding evidence returned a blocked verdict. |
 | Final Record through residual decision | `UNOBSERVABLE` | Session `31ad0566-0b12-4faf-afe3-7b680a04423f`; Final Record and upstream artifacts were absent. |
-| New-session resume | `UNOBSERVABLE` | A separate process used `copilot --resume=325c9c28-61a4-45a4-8369-3fccf55fe652`; conversation resume was observed only, and artifact-authoritative process resume was not proven. |
+| New-session resume | `PASS` | Fresh session `cb89e627-8a47-48e8-aa88-71bb2cbfc7a0` restored Plan Coverage state and created only the authorized output; negative session `c43c96ac-67e5-4382-b9bd-65ce5f943d10` failed closed when `ledger.md` was absent. |
 | Stale/incomplete artifact failure | `PASS` | Session `aed962e2-93b9-446a-9e55-dbeee70bbee9`; `BLOCKED_BY_ARTIFACT_MISMATCH` stopped continuation. |
 | Design Pair E2E | `BLOCKED` | Issue #69 canonical Copilot support is not merged. |
 
 ### New-session resume evidence declaration
 
-- `copilot --resume=<session-id>`: `OBSERVED_ONLY` conversation resume
-- Artifact-authoritative process resume: `NOT_PROVEN`
-- Evidence bundle path and SHA-256: not committed
-- Human acceptance must use a fresh session without conversation history and
-  record prompt, command, output, artifact paths/hashes, changed files, and
-  verdict sequence.
+- Artifact-authoritative process resume: `PROVEN`
+- Positive session: `cb89e627-8a47-48e8-aa88-71bb2cbfc7a0`
+- Negative session: `c43c96ac-67e5-4382-b9bd-65ce5f943d10`
+- Evidence bundle: `apm-packages/plan-coverage-residual-flow/tests/copilot-cli/evidence/20260806-new-session-resume`
+- `evidence_bundle_sha256`: `39fc27c4b658b4021cfcc7fe8095b2ee56826d440861c0136c599d23d332401c`
+- Stable manifest definition: `hashes.sha256` is tracked and excludes its own hash line; the declared bundle hash is the SHA-256 of that manifest.
+- Artifact snapshots are under `artifact-snapshots/plan-coverage/` and are referenced by `artifacts.txt`.
+- The negative run remains required evidence: missing `ledger.md` returned `BLOCKED / fail-closed` with no output file created or modified.
 
-Remaining work is real execution evidence for the unobservable HIGH/STANDARD
-phase transitions, Architecture Slice Readiness positive path, compact v2
-positive path, independent verification, and Final Record/residual close path.
-Design Pair remains blocked by #69 and was not implemented locally.
+Remaining work is real execution evidence for the HIGH/STANDARD phase
+transitions, Architecture Slice Readiness positive path, compact v2 positive
+path, independent verification, and Final Record/residual close path. Design
+Pair remains blocked by #69 and was not implemented locally.

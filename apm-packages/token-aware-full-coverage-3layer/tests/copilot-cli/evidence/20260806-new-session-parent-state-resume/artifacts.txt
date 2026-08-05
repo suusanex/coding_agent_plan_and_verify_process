@@ -1,0 +1,8 @@
+artifact-snapshots/full-coverage/parent-state.md
+artifact-snapshots/full-coverage/coverage-ledger.md
+artifact-snapshots/full-coverage/slice-1.md
+artifact-snapshots/full-coverage/slice-2.md
+artifact-snapshots/full-coverage/final-record.md
+artifact-snapshots/full-coverage/last-verdict.md
+artifact-snapshots/full-coverage/next-action.md
+artifact-snapshots/full-coverage/resume-output.md

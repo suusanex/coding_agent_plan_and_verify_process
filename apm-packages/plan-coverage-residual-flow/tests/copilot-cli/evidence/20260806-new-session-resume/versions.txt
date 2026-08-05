@@ -1,0 +1,5 @@
+Copilot CLI: 1.0.78
+APM: 0.26.0
+Package source revision: 65286363e74b139188f8362e56edc969eef2946b
+Package: plan-coverage-residual-flow 0.9.1
+Qualification repository baseline: 875000915424ed6e7861c41bf1f403e9c2c88838

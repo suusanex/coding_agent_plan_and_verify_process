@@ -1,0 +1,8 @@
+READY_FOR_AUTHORIZED_RESUME
+-> fresh session read tracked Parent State and referenced artifacts
+-> restored adaptive/default route, authorization, phase, nonce, and last verdict
+-> created only the authorized resume-output.md
+Negative:
+-> ledger.md temporarily absent
+-> BLOCKED / fail-closed
+-> no output file created or modified

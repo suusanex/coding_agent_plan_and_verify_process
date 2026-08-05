@@ -1,0 +1,1 @@
+copilot -p "<prompt.txt contents>" --allow-all-tools --allow-all-paths --no-remote --no-remote-export --no-auto-update --output-format json --stream off --log-level debug --log-dir evidence/plan-coverage/new-session-resume --share evidence/plan-coverage/new-session-resume/copilot-session.md

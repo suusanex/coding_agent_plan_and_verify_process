@@ -85,10 +85,11 @@ stale baseline、mixed layout、欠落route metadataは推測・migrationせず
 fail closedにします。per-agent model lockがCLIで観測できない場合は
 requested / observed modelを分け、unsupportedまたは`ManualOnly`として記録します。
 
-Parent Stateのartifact-authoritativeなnew-session resumeは現在
-`UNOBSERVABLE`です。人手での正の再開と負のfail-closed確認に必要な
-証跡bundle項目は[Copilot CLI qualification runbook](tests/copilot-cli/README.md)
-にまとめ、会話resumeやSkill discoveryだけでは`PASS`にしません。
+Parent Stateのartifact-authoritativeなnew-session resumeは、fresh
+`copilot -p` sessionとnegative fail-closed runを含むtracked evidence bundle
+により`PROVEN`です。bundleの`hashes.sha256`は自身のhash行を含まない安定
+manifestで、`evidence_bundle_sha256`はそのmanifestのSHA-256です。正式な
+qualificationは他の未解決scenarioが残るため`REAL_SCENARIO_INCOMPLETE`のままです。
 
 Troubleshooting: Skillが表示されない場合は`.agents/skills`と
 `.github/instructions`、`.github/agents`、lockfileの整合を確認し、

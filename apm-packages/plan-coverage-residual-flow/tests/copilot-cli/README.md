@@ -116,10 +116,11 @@ closed rather than defaulting to Adaptive.
 
 ## Manual acceptance: artifact-authoritative new-session resume
 
-This is a human-required acceptance and is **not currently passed**. The
-committed `new-session-resume` result remains `UNOBSERVABLE`. Do not promote it
-to `PASS` from `copilot --resume`, `copilot --continue`, static fixtures, or
-Skill discovery.
+This human-required acceptance is now **PROVEN** for the committed
+`new-session-resume` result. The evidence is a fresh plain `copilot -p` session
+that reloaded tracked artifacts, plus a negative fresh session that failed
+closed when `ledger.md` was absent. Conversation resume, static fixtures, and
+Skill discovery remain insufficient on their own.
 
 In a disposable repository, first create and commit a valid, internally
 consistent set of tracked artifacts:
@@ -154,10 +155,17 @@ path and record all of the following:
 7. a negative fresh-session run showing the expected fail-closed verdict for
    missing or contradictory artifacts.
 
-Only this real, artifact-authoritative process resume evidence can justify
-`artifact_authoritative_resume: PROVEN`; until then record
-`artifact_authoritative_resume: NOT_PROVEN` and
-`REAL_SCENARIO_INCOMPLETE`.
+The tracked bundle is
+`apm-packages/plan-coverage-residual-flow/tests/copilot-cli/evidence/20260806-new-session-resume`.
+Its `hashes.sha256` file is a stable manifest that intentionally excludes its
+own hash line; `evidence_bundle_sha256` is the SHA-256 of that manifest.
+`artifacts.txt` references the tracked `artifact-snapshots/plan-coverage/`
+paths. The negative fail-closed run remains part of the acceptance evidence.
+Only artifact-authoritative process resume evidence can justify
+`artifact_authoritative_resume: PROVEN`; conversation resume alone remains
+`NOT_PROVEN`.
+Formal qualification remains `REAL_SCENARIO_INCOMPLETE` because other required
+scenarios are unresolved.
 
 ## Capability honesty
 
