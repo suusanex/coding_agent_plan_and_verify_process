@@ -54,7 +54,9 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pa
 - `.github/agents/high-implementation-starter.agent.md`
 - `.github/agents/standard-implementation-completer.agent.md`
 
-GitHub Copilot CLI では Design Pair skill を明示指定して multi-turn 対話を行い、tracked handoff が `READY_FOR_ADAPTIVE_IMPLEMENTATION` になった後だけ `--agent high-implementation-starter` で Adaptive を開始します。会話履歴ではなく tracked handoff を durable authority とします。別 session から再開する場合も handoff path を渡し、欠落・矛盾時は fail closed します。手順と実 multi-turn 証拠は `tests/manual-model-smoke/` を参照してください。正式 acceptance は GitHub Copilot CLI であり、VS Code UI 操作は必須ではありません。
+GitHub Copilot CLI では Design Pair skill を明示指定して multi-turn 対話を行い、tracked handoff が `READY_FOR_ADAPTIVE_IMPLEMENTATION` になった後だけ **新しい CLI 起動で** `--agent high-implementation-starter` を付けて Adaptive を開始します。Design Pair session の継続だけでは canonical HIGH agent 選択の証拠になりません。会話履歴ではなく tracked handoff を durable authority とします。waiting 中の別 session 再開でも handoff path を渡し、欠落・矛盾時は fail closed します。手順と実 multi-turn 証拠は `tests/manual-model-smoke/` を参照してください。正式 acceptance は GitHub Copilot CLI であり、VS Code UI 操作は必須ではありません。
+
+**Issue #69 / #86 境界:** ordinary Plan + explicit Design Pair + Adaptive handoff は本 package の Copilot formal support です。Plan Coverage parent からの Design Pair runtime E2E は #86 の資格認定範囲です。
 
 ### Codex
 

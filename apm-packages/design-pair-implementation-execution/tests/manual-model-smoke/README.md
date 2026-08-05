@@ -104,7 +104,7 @@ After reviewing the Turn 2 trade-offs, send a final disposition that names the T
 - only then does the existing Adaptive Implementation route start;
 - the final record distinguishes Design Pair readiness, Adaptive result, validation, and final review status.
 
-On GitHub Copilot CLI, after READY, start Adaptive with an explicit agent selection such as `--agent high-implementation-starter`. Do not claim VS Code handoff-button routing. Record requested and observed models when available from CLI debug output.
+On GitHub Copilot CLI, after READY, start Adaptive in a **new CLI process** with explicit `--agent high-implementation-starter`. Do not treat same-session skill continuation as the canonical Adaptive entry evidence. Do not claim VS Code handoff-button routing. Record requested and observed models when available from CLI output or debug logs.
 
 To exercise the no-discussion shortcut in a separate run, respond after Turn 1 with an explicit all-Target Adaptive delegation. The handoff may become READY without Locked Decisions if every other readiness check passes and every Target has a matching `Adaptive-Owned` disposition evidence row.
 
@@ -113,11 +113,26 @@ To exercise the no-discussion shortcut in a separate run, respond after Turn 1 w
 Before Turn 2 or Turn 3, a separate run may close and resume while the handoff is waiting.
 
 - Without a new valid user response, resume must remain waiting and must not reconstruct confirmation from the Plan or repository documents.
-- On GitHub Copilot CLI, a new process/session must treat the tracked handoff path as authority. Conversation history alone is insufficient. Missing or contradictory handoff fields fail closed.
+- On GitHub Copilot CLI, a **new process with no conversation history** must treat the tracked handoff path as authority while still in `target-selection` or `disposition-confirmation`, accept the next human response, and advance only from that evidence. Conversation `--resume` alone is insufficient as the sole durable-resume proof. Missing or contradictory handoff fields fail closed.
+
+## Additional Design Pair Copilot scenarios
+
+Record separate runs or additional turns for:
+
+1. **Explicit all-Adaptive** after Target Map (no Locked Decisions; every Target Adaptive-Owned with disposition evidence).
+2. **Design Pair not selected** — ordinary Adaptive / default route; Design Pair must not auto-start.
+3. **Locked Decision conflict** — Adaptive HIGH with `--agent high-implementation-starter` stops without silently changing the Locked Decision.
+4. **Waiting-state new-session resume** — new process reads `AWAITING_USER_INPUT` handoff and continues after a fresh human response.
+
+STANDARD delegation and HIGH re-entry after a valid Design Pair READY handoff may cite the Adaptive package Copilot CLI E2E when that package already proves HIGH→STANDARD→re-entry on the same agents; record the citation and any Design Pair-origin gap as `NOT RUN` only when not re-executed here.
 
 ## Plan Coverage boundary (static / ordinary route)
 
-This smoke proves ordinary Plan + explicit Design Pair on the chosen CLI surface. Explicit Plan Coverage parent orchestration with Design Pair waiting-state propagation is covered by package static contracts; full Plan Coverage + Design Pair Copilot CLI E2E is deferred to the Plan Coverage qualification issue when required. Record ordinary Plan route evidence here. Mark Plan Coverage runtime E2E `NOT RUN` unless separately executed.
+This smoke proves ordinary Plan + explicit Design Pair on the chosen CLI surface. Explicit Plan Coverage parent orchestration with Design Pair waiting-state propagation is covered by package static contracts; full Plan Coverage + Design Pair Copilot CLI E2E is **Issue #86**, not Design Pair package acceptance. Record ordinary Plan route evidence here. Mark Plan Coverage runtime E2E `NOT RUN` / deferred to #86.
+
+## Evidence artifacts
+
+Commit sanitized raw CLI outputs, handoff snapshots, and `git diff` proofs under the run result directory (or record SHA-256 plus retrieval path). The result Markdown must not be the only evidence. Do not store secrets or hidden chain-of-thought.
 
 ## Evidence rules
 

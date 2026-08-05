@@ -1,0 +1,139 @@
+笳・skill(design-pair-implementation-execution)
+
+I窶冤l validate the upstream plan and repository state, then map the bounded change surface before any implementation.
+
+笳・Read map.md
+  笏・.agents\skills\design-pair-implementation-execution\map.md
+  笏・35 lines read
+
+笳・Read handoff.md
+  笏・.agents\skills\design-pair-implementation-execution\handoff.md
+  笏・165 lines read
+
+/ Search (glob)
+  笏・"plans/**"
+  笏・1 file found
+
+/ Search (glob)
+  笏・"**/AGENTS.md"
+  笏・No matches found
+
+/ Search (glob)
+  笏・"**/README*"
+  笏・No matches found
+
+笳・Check repository status (shell)
+  笏・git status --short --branch
+  笏・3 lines窶ｦ
+
+笳・Read retry-after-plan.md
+  笏・plans\retry-after-plan.md
+  笏・22 lines read
+
+笳・Inspect repository layout (shell)
+  笏・Get-ChildItem -Force | Select-Object Mode,Length,LastWriteTime,Name; Get-ChildItem -Recurse
+  笏・-File -Path . -Exclude .git -ErrorAction SilentlyContinue | Select-Object -First 200 FullName
+  笏・23 lines窶ｦ
+
+笳・Read RetryingClient.cs
+  笏・src\RetryingClient.cs
+  笏・9 lines read
+
+笳・Read RetryPolicy.cs
+  笏・src\RetryPolicy.cs
+  笏・13 lines read
+
+笳・Read RetryPolicyTests.cs
+  笏・tests\RetryPolicyTests.cs
+  笏・14 lines read
+
+/ Search (glob)
+  笏・"src/**"
+  笏・2 files found
+
+/ Search (glob)
+  笏・"tests/**"
+  笏・1 file found
+
+/ Search (glob)
+  笏・"**/*.{csproj,sln,props,targets,json,yml,yaml}"
+  笏・No matches found
+
+/ Search (grep)
+  笏・"RetryPolicy|RetryingClient|GetDelay|WaitBeforeRetryAsync|Task.Delay" in *.cs
+  笏・37 lines found
+
+/ Search (glob)
+  笏・".github/**"
+  笏・2 files found
+
+/ Search (glob)
+  笏・"smoke-logs/**"
+  笏・1 file found
+
+笳・Inspect tracked files and recent history (shell)
+  笏・git ls-files; git --no-pager log -5 --oneline --decorate
+  笏・15 lines窶ｦ
+
+笳・Read intent.md
+  笏・.agents\skills\adaptive-implementation-execution\refs\intent.md
+  笏・23 lines read
+
+笳・Read high-implementation-starter.agent.md
+  笏・.github\agents\high-implementation-starter.agent.md
+  笏・1 line read
+
+笳・Read handoff.md
+  笏・.agents\skills\adaptive-implementation-execution\refs\handoff.md
+  笏・101 lines read
+
+笳・Read wait-turn1.txt
+  笏・smoke-logs\wait-turn1.txt
+  笏・76 lines read
+
+笳・Read standard-implementation-completer.agent.md
+  笏・.github\agents\standard-implementation-completer.agent.md
+  笏・218 lines read
+
+The plan is implementation-ready, but the current code exposes a key API decision: `RetryPolicy` has no server-delay input and `RetryingClient` has no retry-response seam. I窶冦 recording that bounded map and waiting for your target selections rather than locking a design myself.
+
+笳・Edit
+  笏・Create plans\retry-after-plan-design-pair-implementation-handoff.md
+
+## Design Pair Target Map
+
+Implementation is paused at the required Design Pair boundary. No production code or tests were edited.
+
+| Target ID | File / Symbol | Current responsibility / invariant | Relation to change / internal decision | Expected modification or verification | Relevant evidence | Open question |
+| --- | --- | --- | --- | --- | --- | --- |
+| DP-T01 | `src/RetryPolicy.cs:3-12`, `RetryPolicy.GetDelay()` | Returns the configured fallback delay for every retry. | Must select valid non-negative Retry-After input while preserving fallback behavior. Decide whether parsing raw header text belongs here. | Add/verify parsing and validation for valid, missing, invalid, and negative values. | `RetryPolicy.cs:5-12`; plan acceptance criteria 1-2; no existing response/header type. | How should Retry-After reach the policy: raw text or typed delta? |
+| DP-T02 | `src/RetryingClient.cs:3-8`, `WaitBeforeRetryAsync()` | Applies the policy delay using `Task.Delay(..., cancellationToken)`. | Must pass server delay input without losing cancellation propagation. | Update/verify the call seam and cancellation-aware delay. | `RetryingClient.cs:5-7`; only production caller of `GetDelay()`. | What response/header representation is available at this seam? |
+| DP-T03 | `tests/RetryPolicyTests.cs:3-14`, `RetryPolicyTests` | Manually verifies configured fallback behavior. | Must cover server delay and all fallback cases, plus cancellation if the API changes. | Add focused assertions using the selected API seam. | Existing fallback test at lines 5-13; no `.csproj`, `.sln`, or test runner metadata. | Which smoke/test command should validate the chosen test seam? |
+
+### Coverage evidence
+
+- **Production symbols and direct callers:** `RetryPolicy.GetDelay()` is called only by `RetryingClient.WaitBeforeRetryAsync()`.
+- **Tests / fixtures / test seam:** `tests/RetryPolicyTests.cs` is the only test file; no fixtures or test project exist.
+- **DI / factory / startup / production wiring:** No such files exist; `RetryingClient` receives `RetryPolicy` through its primary constructor.
+- **Config / serialized shape / public API:** No config or serialization surface; the public retry methods are directly implicated.
+- **Lifecycle / cancellation / state ownership:** The only lifecycle is awaited `Task.Delay` with the caller-owned `CancellationToken`; no retry loop or response state exists.
+
+### Selection request
+
+- **Target IDs to discuss:** Provide one or more of `DP-T01`, `DP-T02`, `DP-T03`.
+- **Initial positions or concerns (optional):** The plan proposes keeping parsing inside `RetryPolicy`; this is not locked.
+- **Delegation for unselected Targets:** Explicitly delegate unselected Targets to Adaptive, or classify them otherwise.
+- **All-Adaptive option:** Explicitly state that all Targets should be delegated to Adaptive.
+
+Tracked handoff: `plans\retry-after-plan-design-pair-implementation-handoff.md`
+
+Current verdict: `AWAITING_USER_INPUT`  
+Interaction stage: `target-selection`
+
+
+
+Changes    +152 -0
+AI Credits 2.24 (1m 8s)
+Tokens     竊・242.6k (200.3k cached, 42.3k written) 窶｢ 竊・6.5k (1.5k reasoning)
+Resume     copilot --resume=4c833c65-aeaa-4892-9a2c-93bf927b12d8
+

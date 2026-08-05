@@ -41,7 +41,7 @@ goal、scope、acceptance が不足する場合は production code / tests を�
 6. tracked Design Pair handoff が `interaction_stage: complete` かつ `READY_FOR_ADAPTIVE_IMPLEMENTATION` になった後だけ、Adaptive Implementation を HIGH_MODEL から開始する。
 7. verification-kernel、coverage gap handling、residual-decision-gate へ戻る。
 
-Design Pair package の正式 target は `copilot`、`codex`、`agent-skills` です。Plan Coverage 経由でも Design Pair route は両 package を同じ target へ導入し、利用者が Design Pair を明示選択した場合だけ使います。GitHub Copilot CLI では tracked handoff を durable authority とし、READY 後だけ Adaptive agents を開始します。
+Design Pair package の正式 target は `copilot`、`codex`、`agent-skills` です。Plan Coverage 経由でも Design Pair route は両 package を同じ target へ導入し、利用者が Design Pair を明示選択した場合だけ使います。GitHub Copilot CLI では tracked handoff を durable authority とし、READY 後は `--agent high-implementation-starter` で Adaptive を開始します。Plan Coverage parent と Design Pair を組み合わせた runtime qualification は Plan Coverage 側の Copilot CLI 認定 issue で実施します。
 
 ## Resume
 

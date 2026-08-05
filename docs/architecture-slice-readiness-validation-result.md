@@ -2,10 +2,10 @@
 
 ## Execution metadata
 
-- Executed at: `2026-08-05T22:50:00+09:00`
-- Executor: issue-69 CI fix; deterministic ASR-001 through ASR-006 fixture comparison reused after Plan Coverage Design Pair Copilot support wording update
+- Executed at: `2026-08-05T23:45:00+09:00`
+- Executor: issue-69 review remediation; deterministic ASR-001 through ASR-006 fixture comparison reused after Plan Coverage Design Pair Copilot wording and #86 deferral note update
 - Branch: `issue-69` (Design Pair GitHub Copilot CLI formal support)
-- Reviewed source: Plan Coverage skill note that Design Pair formal targets include `copilot`, `codex`, and `agent-skills`; architecture entry/routing/artifact semantics unchanged from prior validated set
+- Reviewed source: Plan Coverage skill notes Design Pair formal targets and that parent runtime qualification of Design Pair -> Adaptive on Copilot CLI is not claimed by Design Pair package support alone; architecture entry/routing/artifact semantics unchanged from prior validated set
 - Scope: entry authorization, routing, artifact, and existing architecture semantics only; no production code or external system changes
 
 ### Contract revisions evaluated
@@ -20,7 +20,7 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | `slice-prep.agent.md` | `6581969b6c5e65653357e3e00ae574d3cbebedf109359316f06510d5fe7b77f8` |
 | `slice-impl.agent.md` | `3ba9061879cc5643d7dea7b32501d852cc7926168837a428dc71551c56dff7b5` |
 | `token-aware-full-coverage-3layer/SKILL.md` | `717c91f6b65e3eab4003ba4938f99ec4abb01982f212ecbd2dc254208e9c9c91` |
-| `plan-coverage-residual-flow/SKILL.md` | `a0f83f7f273a1c40390881e7469b657aacc200b22fd1e42241536ab092ff579e` |
+| `plan-coverage-residual-flow/SKILL.md` | `53c3fe59591016913ec48adb6c9a14a5bab28f4ee91772f7c594f30a4581678a` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 | `coverage-ledger.md` template | `af6d9252c720ba9298e99f8ac23a975108a841be725ff3fbb0a4d5c4c6866da7` |
 | `plan-coverage-lite.md` template | `e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90` |

@@ -1,0 +1,95 @@
+笳・skill(adaptive-implementation-execution)
+
+The handoff now has all required post-map dispositions: DP-T01 locked, DP-T02/DP-T03 Adaptive-owned, and no pending human-owned targets. I窶冦 finalizing the tracked readiness record before starting the mandated HIGH_MODEL implementation phase.
+
+笳・Edit
+  笏・Edit plans\retry-after-plan-design-pair-implementation-handoff.md
+
+笳・Read high-implementation-starter.agent.md
+  笏・.github\agents\high-implementation-starter.agent.md
+  笏・1 line read
+
+笳・Read handoff.md
+  笏・.agents\skills\adaptive-implementation-execution\refs\handoff.md
+  笏・101 lines read
+
+笳・Read retry-after-plan-design-pair-implementation-handoff.md
+  笏・plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・L1:90 (90 lines read)
+
+笳・Read retry-after-plan-design-pair-implementation-handoff.md
+  笏・plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・L115:155 (40 lines read)
+
+笳・Read standard-implementation-completer.agent.md
+  笏・.github\agents\standard-implementation-completer.agent.md
+  笏・218 lines read
+
+笳・Read retry-after-plan-design-pair-implementation-handoff.md
+  笏・plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・L82:116 (35 lines read)
+
+笳・Edit
+  笏・Edit plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・Edit .agents\skills\design-pair-implementation-execution\map.md
+
+Verdict: **COMPLETED_BY_HIGH_MODEL**
+
+Route unchanged: `design-pair` / `explicit-user-selection`; handoff: `plans\retry-after-plan-design-pair-implementation-handoff.md`.
+
+Changed: `src\RetryPolicy.cs`, `src\RetryingClient.cs`, `tests\RetryPolicyTests.cs`, tracked handoff result.
+
+Validation: focused temporary `dotnet run` compilation/execution passed all tests; `git diff --check` passed. No repository project/test runner exists.
+
+Acceptance complete:
+- Valid non-negative server delay selected.
+- Null (missing/invalid boundary result) and negative values use fallback.
+- Cancellation token remains passed to `Task.Delay`.
+- Focused delay/fallback/cancellation tests added.
+
+DP-D01: compliant窶覗RetryPolicy.GetDelay(TimeSpan?)` receives typed data only; no raw-string parsing. No conflict.
+
+Remaining work: none. Final review status: not performed by this flow.笳・General-purpose(gpt-5.6-terra) Implement Retry-After support
+  笏・Edit
+  笏・  笏・Edit plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・Finalize diff and worktree validation (shell)
+      笏・git diff --check; git --no-pager diff --stat; git --no-pager status --short
+      笏・12 lines窶ｦ
+
+HIGH_MODEL completed the implementation without changing DP-D01. I窶冦 reviewing the diff and tracked completion evidence now, then I窶冤l finalize the Design Pair adaptive result.
+
+笳・Read RetryPolicy.cs
+  笏・src\RetryPolicy.cs
+  笏・16 lines read
+
+笳・Read RetryingClient.cs
+  笏・src\RetryingClient.cs
+  笏・11 lines read
+
+笳・Read RetryPolicyTests.cs
+  笏・tests\RetryPolicyTests.cs
+  笏・53 lines read
+
+笳・Read retry-after-plan-design-pair-implementation-handoff.md
+  笏・plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・L140:220 (17 lines read)
+
+笳・Review implementation diff and worktree (shell)
+  笏・git --no-pager diff -- src\RetryPolicy.cs src\RetryingClient.cs tests\RetryPolicyTests.cs
+  笏・plans\retry-after-plan-design-pair-implementation-handoff.md; git status --short
+  笏・98 lines窶ｦ
+
+螳溯｣・′螳御ｺ・＠縺ｾ縺励◆縲・IGH_MODEL縺ｧ螳御ｺ・愛螳壹→縺ｪ繧翫ヾTANDARD_MODEL縺ｸ縺ｮ蟋碑ｭｲ縺ｯ荳崎ｦ√〒縺励◆縲・
+- `RetryPolicy.GetDelay(TimeSpan?)`繧定ｿｽ蜉縺励・撼雋蛟､縺ｮ縺ｿ謗｡逕ｨ
+- null繝ｻ雋蛟､縺ｯ繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ驕・ｻｶ繧剃ｽｿ逕ｨ
+- `RetryingClient`縺ｧ蝙倶ｻ倥″驕・ｻｶ繧貞女縺第ｸ｡縺励√く繝｣繝ｳ繧ｻ繝ｫ莨晄眺繧堤ｶｭ謖・- 譛牙柑蛟､繝ｻ繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ繝ｻ雋蛟､繝ｻ繧ｭ繝｣繝ｳ繧ｻ繝ｫ縺ｮ繝・せ繝医ｒ霑ｽ蜉
+- DP-D01貅匁侠縲∫ｫｶ蜷医↑縺・- 讀懆ｨｼ: 荳譎・NET繧ｳ繝ｳ繝代う繝ｫ・上ユ繧ｹ繝亥ｮ溯｡後～git diff --check` 謌仙粥
+- 譛邨ゅΞ繝薙Η繝ｼ: 縺薙・繝輔Ο繝ｼ縺ｧ縺ｯ譛ｪ螳滓命
+
+
+
+Changes    +282 -79
+AI Credits 29.9 (6m 43s)
+Tokens     竊・1.5m (1.3m cached, 140.6k written) 窶｢ 竊・26.1k (8.9k reasoning)
+Resume     copilot --resume=18f5be66-ac8d-44d5-a804-6f56ffe0f951
+

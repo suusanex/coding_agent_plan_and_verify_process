@@ -1,0 +1,96 @@
+笳・skill(design-pair-implementation-execution)
+
+I窶冦 mapping the bounded change surface first, then I窶冤l pause for your Target selection before any production or test edits.
+
+笳・Read retry-after-plan.md
+  笏・plans\retry-after-plan.md
+  笏・22 lines read
+
+笳・Read map.md
+  笏・.agents\skills\design-pair-implementation-execution\map.md
+  笏・35 lines read
+
+笳・Read handoff.md
+  笏・.agents\skills\design-pair-implementation-execution\handoff.md
+  笏・165 lines read
+
+/ Search (glob)
+  笏・"*"
+  笏・13 files found
+
+/ Search (grep)
+  笏・"retry|Retry|backoff|After"
+  笏・6 files found
+
+笳・Read RetryPolicyTests.cs
+  笏・tests\RetryPolicyTests.cs
+  笏・14 lines read
+
+笳・Read RetryPolicy.cs
+  笏・src\RetryPolicy.cs
+  笏・13 lines read
+
+笳・Read RetryingClient.cs
+  笏・src\RetryingClient.cs
+  笏・9 lines read
+
+笳・Read turn1.txt
+  笏・smoke-logs\turn1.txt
+  笏・23 lines read
+
+笳・Inspect repository status and root files (shell)
+  笏・Get-ChildItem -Force; git status --short --branch; git log -1 --oneline
+  笏・15 lines窶ｦ
+
+/ Search (grep)
+  笏・"RetryPolicy|RetryingClient|GetDelay|WaitBeforeRetryAsync|CancellationToken"
+  笏・23 lines found
+
+笳・List tracked files and repository files (shell)
+  笏・git ls-files; Get-ChildItem -Force -Recurse -File | Select-Object -ExpandProperty FullName
+  笏・75 lines窶ｦ
+
+The plan is implementation-ready and the repository is intentionally minimal: two production symbols plus one focused test seam, with no separate DI/startup or configuration surface. I窶冦 recording that map and the required waiting state now.
+
+笳・Edit
+  笏・Create plans\retry-after-plan-design-pair-implementation-handoff.md
+
+## Design Pair Target Map
+
+| Target ID | File / Symbol | Current responsibility / invariant | Relation to change / internal decision | Expected modification or verification | Relevant evidence | Open question |
+| --- | --- | --- | --- | --- | --- | --- |
+| DP-T01 | `src/RetryPolicy.cs:3-12`, `RetryPolicy.GetDelay()` | Stores and returns the configured fallback delay. | Select a valid non-negative Retry-After delta; otherwise retain fallback. Decide whether policy parses raw input. | Update policy contract and verify valid, missing, invalid, and negative values. | Only `fallbackDelay` and parameterless `GetDelay()` exist; plan proposes policy-owned parsing. | What input shape should Retry-After use? |
+| DP-T02 | `src/RetryingClient.cs:3-9`, `WaitBeforeRetryAsync()` | Awaits the policy delay with the caller窶冱 cancellation token. | Pass server delay into policy while preserving cancellation-aware async waiting. | Wire selected delay and verify cancellation propagation. | This is the only production caller of `GetDelay()`; method currently accepts only `CancellationToken`. | Should the client receive a raw header, parsed delta, or response abstraction? |
+| DP-T03 | `tests/RetryPolicyTests.cs:3-14` | Directly verifies configured fallback behavior. | Add server-delay and fallback coverage, plus client wiring/cancellation coverage if needed. | Extend deterministic focused tests without timing flakiness. | Only test file/seam; no test project or fixtures exist. | What minimal seam should verify client wiring? |
+
+### Coverage evidence
+
+- **Production symbols and direct callers:** `RetryPolicy.GetDelay()` is called by `RetryingClient.WaitBeforeRetryAsync()`; no other callers found.
+- **Tests / fixtures / test seam:** `tests/RetryPolicyTests.cs` is the only test surface; no fixtures found.
+- **DI / factory / startup / production wiring:** N/A; no composition root, factory, startup, or entrypoint exists.
+- **Config / serialized shape / public API:** Public surface is limited to the constructors and methods above; no config or serialized contracts exist.
+- **Lifecycle / cancellation / state ownership:** `RetryingClient` owns async waiting and cancellation propagation; `RetryPolicy` owns fallback-delay state.
+
+The upstream proposal to keep parsing in `RetryPolicy` is recorded as an **initial position only**, not a locked decision.
+
+**Status:** `AWAITING_USER_INPUT` ﾂｷ `target-selection`  
+**Route:** `design-pair` / `explicit-user-selection`  
+**Handoff:** `plans/retry-after-plan-design-pair-implementation-handoff.md`  
+**Production code/tests edited:** No
+
+### Selection request
+
+- **Target IDs to discuss:** Select any of `DP-T01`, `DP-T02`, `DP-T03`.
+- **Initial positions or concerns:** Optional; state your preferred API, parsing ownership, or test seam.
+- **Unselected Targets:** Explicitly delegate them to Adaptive, or provide another disposition.
+- You may explicitly delegate **all Targets to Adaptive**.
+
+Implementation will resume only after your post-map response.
+
+
+
+Changes    +150 -0
+AI Credits 1.87 (56s)
+Tokens     竊・174.3k (136.7k cached, 37.7k written) 窶｢ 竊・5.5k (1.3k reasoning)
+Resume     copilot --resume=18f5be66-ac8d-44d5-a804-6f56ffe0f951
+

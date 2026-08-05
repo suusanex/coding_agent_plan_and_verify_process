@@ -97,10 +97,12 @@ Expected:
 
 - package target は `copilot`、`codex`、`agent-skills`
 - manifest に formal target 名 `copilot` がある（`github-copilot` や bare `vscode` ではない）
-- docs は GitHub Copilot CLI からの Design Pair 明示起動、mandatory post-map stop、durable handoff resume、READY 後の Adaptive 開始を対応済みと宣言する
+- docs は GitHub Copilot CLI からの Design Pair 明示起動、mandatory post-map stop、durable handoff resume、READY 後の **new process** `--agent high-implementation-starter` を対応済みと宣言する
 - formal acceptance は GitHub Copilot CLI の real multi-turn evidence であり、VS Code UI 操作を必須にしない
 - process contract を Copilot 用に複製せず、canonical Design Pair skill と Adaptive agents を直接利用する
-- real multi-turn smoke record が Target Map stop、Target Disposition Evidence、5集合整合、READY 後 Adaptive 開始を残す
+- real multi-turn smoke record が Target Map stop、Target Disposition Evidence、5集合整合、READY 後 Adaptive 開始、waiting 中 new-session resume、all-Adaptive、Design Pair 未指定 default、Locked Decision conflict stop を残す
+- Plan Coverage parent runtime E2E は Design Pair package 完了条件に含めず #86 へ defer する
+- sanitized CLI log / handoff / diff artifact と SHA-256 index を commit する
 
 ## DP-VAL-009: Resume route metadata fails closed
 
