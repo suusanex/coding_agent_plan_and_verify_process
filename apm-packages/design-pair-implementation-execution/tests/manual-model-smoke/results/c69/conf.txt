@@ -1,0 +1,75 @@
+笳・skill(adaptive-implementation-execution)
+
+handoff 縺ｨ險育判縲√♀繧医・迴ｾ蝨ｨ縺ｮ菴懈･ｭ繝・Μ繝ｼ繧堤・蜷医＠縺ｦ縲´ocked Decision conflict 繧呈ｹ諡莉倥″縺ｧ蛛懈ｭ｢縺励∪縺吶・
+笳・Read intent.md
+  笏・.agents\skills\adaptive-implementation-execution\refs\intent.md
+  笏・23 lines read
+
+笳・Read handoff.md
+  笏・.agents\skills\adaptive-implementation-execution\refs\handoff.md
+  笏・101 lines read
+
+笳・Read retry-after-plan-design-pair-implementation-handoff.md
+  笏・plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・87 lines read
+
+/ Search (glob)
+  笏・"{AGENTS.md,CONTRIBUTING.md,README.md,plans\*.md}"
+  笏・2 files found
+
+笳・Inspect worktree and repository root (shell)
+  笏・git status --short; git --no-pager log -1 --oneline; Get-ChildItem -Force | Select-Object
+  笏・Name,Mode
+  笏・13 lines窶ｦ
+
+笳・Read RetryPolicy.cs
+  笏・src\RetryPolicy.cs
+  笏・13 lines read
+
+笳・Read RetryingClient.cs
+  笏・src\RetryingClient.cs
+  笏・9 lines read
+
+笳・Read RetryPolicyTests.cs
+  笏・tests\RetryPolicyTests.cs
+  笏・14 lines read
+
+笳・Read retry-after-plan.md
+  笏・plans\retry-after-plan.md
+  笏・22 lines read
+
+/ Search (glob)
+  笏・"**/*.{csproj,sln,props,targets}"
+  笏・No matches found
+
+笳・Inspect existing changes and smoke logs (shell)
+  笏・git --no-pager diff --no-ext-diff; Get-ChildItem -Recurse -File smoke-logs | Select-Object
+  笏・FullName,Length
+  笏・4 lines窶ｦ
+
+**Verdict: HUMAN_DECISION_REQUIRED** 窶・`DP-D01` 縺ｨ `UP-01` 縺ｯ荳｡遶九＠縺ｾ縺帙ｓ縲Ｑroduction code 縺ｯ螟画峩縺励※縺・∪縺帙ｓ縲・
+- **Plan reference:** `plans\retry-after-plan.md`
+- **implementation_route:** `design-pair`
+- **implementation_route_source:** `explicit-user-selection`
+- **Design Pair handoff:** `plans\retry-after-plan-design-pair-implementation-handoff.md`
+- **Affected Locked Decision:** `DP-D01`
+
+`UP-01` 縺ｯ譛牙柑縺ｪ server `Retry-After` 繧呈ｬ｡蝗・retry 縺ｫ菴ｿ逕ｨ縺吶ｋ縺薙→繧定ｦ∵ｱゅ＠縺ｾ縺吶ゆｸ譁ｹ `DP-D01` 縺ｯ `RetryPolicy.GetDelay()` 繧呈￡荵・噪縺ｫ蠑墓焚縺ｪ縺励・constructor fallback 縺ｮ縺ｿ縺ｨ縺励《erver delay 繧貞女逅・・菴ｿ逕ｨ縺励↑縺・ｈ縺・ｦ∵ｱゅ＠縺ｾ縺吶ょｮ溘さ繝ｼ繝峨ｂ `RetryPolicy.GetDelay()` 縺・fallback 縺ｮ縺ｿ繧定ｿ斐＠縲～RetryingClient.WaitBeforeRetryAsync()` 縺後◎縺ｮ蛟､縺縺代ｒ `Task.Delay` 縺ｫ貂｡縺励※縺・∪縺吶・P-D01 繧堤ｶｭ謖√＠縺溘∪縺ｾ UP-01 縺ｮ acceptance 繧呈ｺ縺溘☆螳溯｣・・縺ｧ縺阪∪縺帙ｓ縲・
+| Acceptance item | Status | Evidence |
+| --- | --- | --- |
+| Valid server Retry-After is used | Blocked | `UP-01` 縺ｨ `DP-D01` 縺檎峩謗･遏帷崟 |
+| Invalid/missing input uses fallback | Incomplete | conflict 隗｣豸亥ｾ後↓ server input path 繧定ｨｭ險医・讀懆ｨｼ縺吶ｋ蠢・ｦ√≠繧・|
+| Caller remains cancellation-aware | Complete (existing) | `RetryingClient.cs:7` 縺・`CancellationToken` 繧・`Task.Delay` 縺ｫ貂｡縺・|
+| Focused server/fallback tests | Incomplete | server delay 繧定ｨｱ蜿ｯ縺吶ｋ險ｭ險亥愛譁ｭ縺梧悴遒ｺ螳・|
+
+**Files changed:** 縺ｪ縺励・*Tests changed:** 縺ｪ縺励・*Checks performed:** handoff縲｝lan縲～RetryPolicy.cs`縲～RetryingClient.cs`縲∵里蟄倥ユ繧ｹ繝医『orktree diff 繧堤｢ｺ隱阪Ｘorktree 縺ｫ縺ｯ譌｢蟄倥・ untracked `smoke-logs\` 縺ｮ縺ｿ縺後≠繧翫∪縺吶・
+蛻ｩ逕ｨ閠・・縲～DP-D01` 繧呈彫蝗槭∪縺溘・菫ｮ豁｣縺励※ server-provided delay 繧定ｨｱ蜿ｯ縺吶ｋ縺九√∪縺溘・ `UP-01` 縺ｨ Retry-After support 縺ｮ acceptance 繧定ｨ育判縺九ｉ髯､螟悶☆繧九°繧呈ｱｺ螳壹＠縺ｦ縺上□縺輔＞縲Ｂutomatic Design Pair re-entry 縺ｯ螳溯｡後＠縺ｾ縺帙ｓ縲・
+**Implementation Self-Map Delta:** N/A 窶・Plan Coverage binding artifact 縺ｯ謠蝉ｾ帙＆繧後※縺翫ｉ縺壹∝ｮ溯｣・､画峩繧ゅ≠繧翫∪縺帙ｓ縲・
+**Final review status:** Not performed by this agent.
+
+
+
+Changes    +0 -0
+AI Credits 12.2 (27s)
+Tokens     竊・116.2k (83.0k cached, 33.1k written) 窶｢ 竊・1.9k (687 reasoning)
+Resume     copilot --resume=b241516a-3c3b-47a8-9580-1c1b4230816c

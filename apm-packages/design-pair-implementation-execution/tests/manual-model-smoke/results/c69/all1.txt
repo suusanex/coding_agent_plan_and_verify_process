@@ -1,0 +1,106 @@
+笳・skill(design-pair-implementation-execution)
+
+I窶冦 validating the upstream plan, repository state, and Design Pair handoff requirements before building the bounded target map.
+
+笳・Read handoff.md
+  笏・.agents\skills\design-pair-implementation-execution\handoff.md
+  笏・165 lines read
+
+笳・Read map.md
+  笏・.agents\skills\design-pair-implementation-execution\map.md
+  笏・35 lines read
+
+笳・Read retry-after-plan.md
+  笏・plans\retry-after-plan.md
+  笏・22 lines read
+
+/ Search (glob)
+  笏・"**/{AGENTS.md,CONTRIBUTING.md,README.md,*.sln,*.csproj,*.props,*.targets}"
+  笏・No matches found
+
+笳・Inspect worktree and latest commit (shell)
+  笏・git status --short --branch; git --no-pager log -1 --oneline
+  笏・4 lines窶ｦ
+
+/ Search (glob)
+  笏・"**/*" in src
+  笏・2 files found
+
+/ Search (glob)
+  笏・"**/*" in tests
+  笏・1 file found
+
+/ Search (glob)
+  笏・"*"
+  笏・13 files found
+
+/ Search (grep)
+  笏・"RetryPolicy|RetryingClient|Retry-After|retry" in *.cs
+  笏・32 lines found
+
+笳・Read RetryPolicy.cs
+  笏・src\RetryPolicy.cs
+  笏・13 lines read
+
+笳・Read RetryingClient.cs
+  笏・src\RetryingClient.cs
+  笏・9 lines read
+
+笳・Read RetryPolicyTests.cs
+  笏・tests\RetryPolicyTests.cs
+  笏・14 lines read
+
+笳・Read allad-turn1.txt
+  笏・smoke-logs\allad-turn1.txt
+  笏・39 lines read
+
+笳・List tracked files and repository root (shell)
+  笏・git ls-files --stage; Get-ChildItem -Force | Select-Object Name,Mode
+  笏・23 lines窶ｦ
+
+The plan is implementation-ready and the bounded surface is limited to the retry policy, its cancellation-aware client seam, and focused tests. I窶冦 recording the first-turn handoff in the required waiting state without touching production code or tests.
+
+笳・Edit
+  笏・Create plans\retry-after-design-pair-implementation-handoff.md
+
+笳・Read retry-after-design-pair-implementation-handoff.md
+  笏・plans\retry-after-design-pair-implementation-handoff.md
+  笏・L1:45 (45 lines read)
+
+笳・Verify handoff artifact status (shell)
+  笏・git status --short
+  笏・3 lines窶ｦ
+
+## Design Pair Target Map
+
+| Target ID | File / Symbol | Current responsibility / invariant | Relation to change / internal decision | Expected modification or verification | Relevant evidence | Open question |
+| --- | --- | --- | --- | --- | --- | --- |
+| DP-T01 | `src/RetryPolicy.cs`: `RetryPolicy.GetDelay()` | Returns the configured fallback delay; policy is synchronous and stateless. | Planned parsing boundary for valid `Retry-After` values and fallback handling. Decide raw text vs typed delay and API shape. | Verify valid non-negative, zero, missing, invalid, and negative inputs. | `src/RetryPolicy.cs:3-12`; plan acceptance criteria 1-2. | Should parsing accept raw header text or a typed optional delay? |
+| DP-T02 | `src/RetryingClient.cs`: `WaitBeforeRetryAsync(CancellationToken)` | Applies the policy delay and passes cancellation directly to `Task.Delay`. | Must carry server delay without weakening cancellation. Decide how the value crosses the client-policy boundary. | Verify selected delay reaches the wait and cancellation remains observable. | `src/RetryingClient.cs:3-8`; policy is constructor-injected; no other in-repository callers found. | Should the method receive raw text, parsed delay, or an optional typed value? |
+| DP-T03 | `tests/RetryPolicyTests.cs`: `RetryPolicyTests` | Manual focused test currently covers only configured fallback delay. | Needs server-delay, fallback, boundary, invalid-input, and relevant cancellation coverage. Decide deterministic async test seam. | Extend focused tests without real-time sleeps where possible. | `tests/RetryPolicyTests.cs:3-14`; no project, solution, or test runner configuration found. | How should header input and cancellation be represented in tests? |
+
+### Coverage evidence
+
+- Production symbols and direct callers: `RetryPolicy` and `RetryingClient` inspected; no additional in-repository callers found.
+- Tests / fixtures / test seam: `tests/RetryPolicyTests.cs` inspected; no existing client seam.
+- DI / factory / startup / production wiring: `RetryingClient(RetryPolicy)` is the only wiring; no factory, startup, entrypoint, project, or solution files found.
+- Lifecycle / cancellation / state ownership: `RetryPolicy` is stateless; `WaitBeforeRetryAsync` owns the delay and forwards its `CancellationToken`.
+- Config / serialized shape / public API: no related config or serialized models found; affected public methods are identified above.
+
+### Selection request
+
+- Target IDs to discuss: select one or more of `DP-T01`, `DP-T02`, `DP-T03`.
+- Initial positions or concerns (optional): the plan proposes keeping parsing inside `RetryPolicy`; this remains unconfirmed.
+- Delegation for unselected Targets: explicitly delegate them to Adaptive, or classify them otherwise.
+- You may explicitly delegate **all Targets to Adaptive**.
+
+Tracked handoff: `plans/retry-after-design-pair-implementation-handoff.md`
+
+**Status:** `AWAITING_USER_INPUT` / `target-selection`. Production code and tests edited during Design Pair: **No**.
+
+
+
+Changes    +152 -0
+AI Credits 1.95 (1m 10s)
+Tokens     竊・206.9k (169.5k cached, 37.4k written) 窶｢ 竊・5.6k (1.2k reasoning)
+Resume     copilot --resume=927193b2-b31b-4d7a-a624-8ff963f742d8

@@ -1,0 +1,90 @@
+笳・skill(design-pair-implementation-execution)
+
+I窶冤l verify the tracked handoff and repository state, then present the required DP-T01 discussion surface without changing production code or tests.
+
+笳・Read map.md
+  笏・.agents\skills\design-pair-implementation-execution\map.md
+  笏・35 lines read
+
+笳・Read handoff.md
+  笏・.agents\skills\design-pair-implementation-execution\handoff.md
+  笏・165 lines read
+
+笳・Read retry-after-plan-design-pair-implementation-handoff.md
+  笏・plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・151 lines read
+
+笳・Check repository worktree status (shell)
+  笏・git --no-pager status --short
+  笏・3 lines窶ｦ
+
+笳・Read retry-after-plan.md
+  笏・plans\retry-after-plan.md
+  笏・22 lines read
+
+笳・Read RetryPolicy.cs
+  笏・src\RetryPolicy.cs
+  笏・13 lines read
+
+笳・Read RetryingClient.cs
+  笏・src\RetryingClient.cs
+  笏・9 lines read
+
+笳・Read RetryPolicyTests.cs
+  笏・tests\RetryPolicyTests.cs
+  笏・14 lines read
+
+笳・Confirm production and test files are unchanged (shell)
+  笏・git --no-pager diff -- src tests; git --no-pager status --short
+  笏・3 lines窶ｦ
+
+DP-T01 is selected, so I窶冦 recording the post-map response and discussion evidence in the tracked handoff, while leaving its final disposition and the other Targets pending.
+
+笨・Edit
+  笏・Edit plans\retry-after-plan-design-pair-implementation-handoff.md
+
+笳・Read retry-after-plan-design-pair-implementation-handoff.md
+  笏・plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・L1:40 (39 lines read)
+
+笳・Read retry-after-plan-design-pair-implementation-handoff.md
+  笏・plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・L60:125 (66 lines read)
+
+笳・Edit
+  笏・Edit plans\retry-after-plan-design-pair-implementation-handoff.md
+
+笳・Read retry-after-plan-design-pair-implementation-handoff.md
+  笏・plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・L1:40 (39 lines read)
+
+笳・Read retry-after-plan-design-pair-implementation-handoff.md
+  笏・plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・L64:135 (72 lines read)
+
+笳・Verify only the Design Pair handoff changed (shell)
+  笏・git --no-pager diff -- src tests; git --no-pager status --short
+  笏・3 lines窶ｦ
+
+笳・Edit
+  笏・Edit plans\retry-after-plan-design-pair-implementation-handoff.md
+
+## DP-T01 Internal design discussion
+
+- **Code location:** `src/RetryPolicy.cs:3-12`, `RetryPolicy.GetDelay()`
+- **Current responsibility / invariant:** Owns `fallbackDelay`; `GetDelay()` always returns it. No server value is currently parsed or validated.
+- **Callers / wiring / lifecycle / state / test seam:** Only caller is `RetryingClient.WaitBeforeRetryAsync()` (`src/RetryingClient.cs:5-8`). No response/header abstraction, retry loop, DI wiring, or separate lifecycle exists. Fallback coverage is in `tests/RetryPolicyTests.cs:5-13`.
+- **Internal design decision needed:** Choose whether Retry-After reaches the policy as raw header text or a pre-parsed nullable `TimeSpan`, and whether parsing belongs inside `RetryPolicy`.
+- **Alternatives and trade-offs:** Raw text centralizes parsing and fallback handling but couples the policy to HTTP representation. A nullable `TimeSpan` keeps the policy typed but moves parsing and invalid-input semantics to the caller. A separate parser/helper separates concerns but adds another surface to the small current scope.
+- **Non-binding AI proposal:** Prefer raw input only if this policy is intentionally the HTTP-header boundary; otherwise prefer a nullable typed delta and parse outside the policy. Existing code cannot establish the correct boundary because no response/header type exists.
+- **Validation expectations:** Preserve the three-second fallback assertion; cover valid non-negative, missing, invalid, and negative server values; ensure the selected API preserves cancellation-aware `Task.Delay`.
+- **Open questions:** What concrete server-value representation should be used? Should `RetryPolicy` own raw-header parsing? How should invalid fallback configuration be handled?
+
+**Design Pair state:** `AWAITING_USER_INPUT / disposition-confirmation`. No production code or tests were edited. DP-T01窶冱 final disposition is still pending; DP-T02 and DP-T03 also need final classification or explicit delegation to Adaptive.
+
+
+
+Changes    +14 -13
+AI Credits 2.19 (1m 10s)
+Tokens     竊・299.7k (257.8k cached, 41.8k written) 窶｢ 竊・5.3k (1.3k reasoning)
+Resume     copilot --resume=44270799-73f7-492e-9bb2-aacaf90f3669

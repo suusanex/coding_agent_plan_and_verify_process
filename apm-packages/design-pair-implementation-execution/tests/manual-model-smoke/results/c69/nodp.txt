@@ -1,0 +1,122 @@
+笳・skill(adaptive-implementation-execution)
+
+Adaptive route縺ｨ縺励※縲￣lan縺ｨ繝ｪ繝昴ず繝医Μ隕冗ｴ・ｒ隱ｭ縺ｿ縲？IGH_MODEL螳溯｣・ｒ髢句ｧ九＠縺ｾ縺吶・
+笳・Read retry-after-plan.md
+  笏・plans\retry-after-plan.md
+  笏・22 lines read
+
+笳・Read handoff.md
+  笏・.agents\skills\adaptive-implementation-execution\refs\handoff.md
+  笏・101 lines read
+
+笳・Read intent.md
+  笏・.agents\skills\adaptive-implementation-execution\refs\intent.md
+  笏・23 lines read
+
+笳・Inspect worktree and instructions (shell)
+  笏・git --no-pager status --short; Get-ChildItem -Force -Name | Select-Object -First 100;
+  笏・Get-ChildItem -Recurse -Force -File -Filter AGENTS.md | ForEach-Object { $_.FullName };
+  笏・Get-ChildItem -Recurse -Force -File -Filter README.md | ForEach-Object { $_.FullName }
+  笏・9 lines窶ｦ
+
+/ Search (glob)
+  笏・"**/*.csproj"
+  笏・No matches found
+
+/ Search (glob)
+  笏・"**/*" in src
+  笏・2 files found
+
+/ Search (glob)
+  笏・"**/*" in tests
+  笏・1 file found
+
+/ Search (glob)
+  笏・"*.sln"
+  笏・No matches found
+
+/ Search (grep)
+  笏・"RetryPolicy|RetryingClient|Retry-After" in *.cs
+  笏・5 lines found
+
+/ Search (grep)
+  笏・"Design Pair|design-pair|Implementation Completion Handoff|implementation_route" in *.md
+  笏・28 lines found
+
+笳・Read RetryPolicy.cs
+  笏・src\RetryPolicy.cs
+  笏・13 lines read
+
+笳・Read RetryingClient.cs
+  笏・src\RetryingClient.cs
+  笏・9 lines read
+
+笳・Read RetryPolicyTests.cs
+  笏・tests\RetryPolicyTests.cs
+  笏・14 lines read
+
+笳・Read high-implementation-starter.agent.md
+  笏・.github\agents\high-implementation-starter.agent.md
+  笏・1 line read
+
+笳・List repository files (shell)
+  笏・Get-ChildItem -Recurse -Force -File | Where-Object { $_.FullName -notmatch
+  笏・'\\(\.git|smoke-logs)\\' } | Select-Object -ExpandProperty FullName; git --no-pager log -1
+  笏・--oneline; git --no-pager status --short
+  笏・15 lines窶ｦ
+
+螳溯｣・擇縺ｧ縺ｯ縲～RetryPolicy`縺ｫHTTP縺ｮdelta-seconds隗｣譫舌ｒ髮・ｴ・＠縲∵里蟄伜他縺ｳ蜃ｺ縺励ｒ螢翫＆縺ｪ縺・verload縺ｧ`RetryingClient`縺ｸ貂｡縺呎婿驥昴↓遒ｺ螳壹＠縺ｾ縺励◆縲・
+笳・Edit
+  笏・Edit src\RetryPolicy.cs
+  笏・Edit src\RetryingClient.cs
+  笏・Edit tests\RetryPolicyTests.cs
+
+笳・Inspect implementation diff (shell)
+  笏・git --no-pager diff --check; git --no-pager diff -- src\RetryPolicy.cs src\RetryingClient.cs
+  笏・tests\RetryPolicyTests.cs; git --no-pager status --short
+  笏・82 lines窶ｦ
+
+笳・Find validation tools and smoke evidence (shell)
+  笏・Get-Command dotnet,csc -ErrorAction SilentlyContinue | Select-Object Name,Source; Get-ChildItem
+  笏・smoke-logs -Force -File | Select-Object Name,Length,LastWriteTime; Get-ChildItem smoke-logs
+  笏・-Force -File | ForEach-Object { "--- $($_.Name) ---"; Get-Content $_.FullName -TotalCount 80 }
+  笏・78 lines窶ｦ
+
+笳・Edit
+  笏・Edit tests\RetryPolicyTests.cs
+
+笳・Build and run focused retry tests (shell)
+  笏・$temp = Join-Path $env:TEMP "retry-after-validation-$PID"; New-Item -ItemType Directory -Path
+  笏・$temp | Out-Null; try { dotnet new console --framework net8.0 --no-restore --output $temp |
+  笏・Out-Null; @'
+  笏・<Project Sdk="Microsoft.NET.Sdk">
+  笏・<PropertyGroup>窶ｦ
+  笏・34 lines窶ｦ
+
+笳・Verify final retry-after changes (shell)
+  笏・git --no-pager diff --check; git --no-pager status --short; git --no-pager diff --stat; git
+  笏・--no-pager diff -- src\RetryPolicy.cs src\RetryingClient.cs tests\RetryPolicyTests.cs
+  笏・102 lines窶ｦ
+
+**螳溯｣・ｮ御ｺ・* 窶・`Retry-After` 縺ｮdelta-seconds繧蛋RetryPolicy`縺ｧ隗｣譫舌＠縲∵怏蜉ｹ蛟､繧呈ｬ｡蝗槫ｾ・ｩ溘↓菴ｿ逕ｨ縺励∪縺吶よｬ關ｽ繝ｻ荳肴ｭ｣繝ｻ雋蛟､繝ｻ遽・峇螟悶・險ｭ螳壽ｸ医∩fallback縺ｸ謌ｻ縺励～RetryingClient`縺ｮ譁ｰoverload縺ｧ繧ＡCancellationToken`繧堤ｶｭ謖√＠縺ｾ縺励◆縲・
+| Acceptance | Status | Evidence |
+| --- | --- | --- |
+| 譛牙柑縺ｪ髱櫁ｲdelay繧剃ｽｿ逕ｨ | Complete | `GetDelay(string?)` 縺ｨserver-delay test |
+| 荳肴ｭ｣蛟､縺ｯfallback | Complete | null/遨ｺ/雋蛟､/譁・ｭ怜・/遽・峇螟悶・test |
+| cancellation-aware | Complete | `RetryingClient` cancellation test |
+| focused tests | Complete | `dotnet run` 縺ｫ繧医ｋ蜈ｨRetryPolicy test謌仙粥 |
+
+- **Files changed:** `src\RetryPolicy.cs`, `src\RetryingClient.cs`, `tests\RetryPolicyTests.cs`
+- **Verdict:** `COMPLETED_BY_HIGH_MODEL`
+- **implementation_route:** `adaptive`
+- **implementation_route_source:** `default`
+- **design_pair_handoff:** `N/A`
+- **Design Pair started:** No
+- **Implementation Self-Map Delta:** N/A・・lan Coverage artifact譛ｪ謠蝉ｾ幢ｼ・- **Final review status:** Not performed by this agent
+
+
+
+Changes    +63 -1
+AI Credits 24.4 (1m 40s)
+Tokens     竊・343.5k (301.8k cached, 41.7k written) 窶｢ 竊・6.6k (3.7k reasoning)
+Resume     copilot --resume=41858d02-ab9a-4515-9856-a0f5a63856cb

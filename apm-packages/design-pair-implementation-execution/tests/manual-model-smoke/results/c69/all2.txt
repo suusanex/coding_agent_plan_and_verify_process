@@ -1,0 +1,169 @@
+笳・skill(adaptive-implementation-execution)
+
+The post-map response explicitly delegates all three Targets to Adaptive and creates no Locked Decisions. I窶冦 promoting the tracked handoff to `READY_FOR_ADAPTIVE_IMPLEMENTATION`, then starting the required HIGH_MODEL implementation phase.
+
+笳・Edit
+  笏・Edit plans\retry-after-design-pair-implementation-handoff.md
+
+笳・Read high-implementation-starter.agent.md
+  笏・.github\agents\high-implementation-starter.agent.md
+  笏・1 line read
+
+笳・Read retry-after-design-pair-implementation-handoff.md
+  笏・plans\retry-after-design-pair-implementation-handoff.md
+  笏・L1:30 (29 lines read)
+
+笳・Verify ready handoff and worktree (shell)
+  笏・git status --short
+  笏・3 lines窶ｦ
+
+/ Search (grep)
+  笏・"Verdict|Implementation Completion Handoff|Do not|You are|validation|route"
+  笏・(.github\agents\high-implementation-starter.agent.md)
+  笏・28 lines found
+
+/ Search (grep)
+  笏・"No-Change Target IDs|Upstream-Decision-Required Target IDs|Selected Target discussion
+  笏・evidence|Readiness Check" (plans\retry-after-design-pair-implementation-handoff.md)
+  笏・11 lines found
+
+笳・Edit
+  笏・Edit plans\retry-after-design-pair-implementation-handoff.md
+
+**Verdict: BLOCKED** 窶・not eligible to start HIGH_MODEL implementation.
+
+- Route identity: `design-pair` / `explicit-user-selection`
+- Design Pair handoff: `plans/retry-after-design-pair-implementation-handoff.md`
+- Conflict: its readiness check says no post-map response and remaining work requires selection, contradicting its stated completion/delegation evidence.
+- Files changed/tests run: none (fail-closed before edits).
+- Acceptance: blocked pending corrected Design Pair artifact; do not reconstruct user evidence.
+- Completion handoff: not created.
+- Final review status: Not performed by this flow.笳・General-purpose(gpt-5.6-terra) Run high implementation phase
+  笏・List repository files and handoff diff (shell)
+  笏・  笏・Get-ChildItem -Recurse -File -Force | Where-Object { $_.FullName -notmatch '\\.git\\' } |
+  笏・  笏・Select-Object -ExpandProperty FullName; git diff --
+  笏・  笏・plans/retry-after-design-pair-implementation-handoff.md
+  笏・  笏・16 lines窶ｦ
+  笏・Read high-implementation-starter.agent.md
+      笏・.github\agents\high-implementation-starter.agent.md
+      笏・L208:280 (41 lines read)
+
+HIGH_MODEL correctly failed closed because the handoff still contains stale readiness entries that contradict the new all-Adaptive evidence. I窶冦 repairing those durable fields from the actual post-map user response, then I窶冤l rerun HIGH_MODEL without changing production code during this repair.
+
+笳・Read retry-after-design-pair-implementation-handoff.md
+  笏・plans\retry-after-design-pair-implementation-handoff.md
+  笏・L110:165 (45 lines read)
+
+/ Search (grep)
+  笏・"Pending|FAIL|N/A|PASS|Target Disposition Evidence|Adaptive-Owned|Locked"
+  笏・(plans\retry-after-design-pair-implementation-handoff.md)
+  笏・67 lines found
+
+笳・Edit
+  笏・Edit plans\retry-after-design-pair-implementation-handoff.md
+
+**COMPLETED_BY_HIGH_MODEL**
+
+- Route: `design-pair` / `explicit-user-selection`; handoff: `plans/retry-after-design-pair-implementation-handoff.md`; Locked Decisions: none.
+- Changed: `RetryPolicy`, `RetryingClient`, focused tests.
+- Evidence: numeric nonnegative delay (including `0`) is used; null/malformed/negative values fall back; cancellation remains passed to `Task.Delay`.
+- Validation: temporary .NET 10 compile-and-run harness passed all focused checks. No repository-native project/test runner exists.
+- Remaining uncertainty: supports delta-seconds Retry-After values only.
+- Final review status: Not performed by this flow.笳・General-purpose(gpt-5.6-terra) Implement retry-after support
+  笏・Verify clean validation artifacts and final diff (shell)
+  笏・  笏・git diff --check; git status --short; if (Test-Path .validation-retry-after) { throw
+  笏・  'Validation
+  笏・  笏・directory was not cleaned up.' }; git --no-pager diff --stat; git --no-pager diff --
+  笏・  笏・src\RetryPolicy.cs src\RetryingClient.cs tests\RetryPolicyTests.cs
+  笏・  笏・105 lines窶ｦ
+  笏・Search (grep)
+      笏・"WaitBeforeRetryAsync|GetDelay\(" in *.cs
+      笏・13 lines found
+
+笳・Read RetryPolicyTests.cs
+  笏・tests\RetryPolicyTests.cs
+  笏・58 lines read
+
+笳・Read RetryPolicy.cs
+  笏・src\RetryPolicy.cs
+  笏・28 lines read
+
+笳・Read RetryingClient.cs
+  笏・src\RetryingClient.cs
+  笏・12 lines read
+
+笳・Inspect implementation diff and worktree (shell)
+  笏・git --no-pager diff -- src/RetryPolicy.cs src/RetryingClient.cs tests/RetryPolicyTests.cs
+  笏・plans/retry-after-design-pair-implementation-handoff.md; git status --short
+  笏・101 lines窶ｦ
+
+The implementation exposed a correctness gap: the new parser checks the upper bound but not `delaySeconds >= 0`, so the claimed negative-input fallback would fail despite the added test. I窶冦 sending this concrete evidence back through HIGH_MODEL re-entry rather than patching production code in the parent.
+
+COMPLETED_BY_HIGH_MODEL
+
+- Route: `design-pair` / `explicit-user-selection`; `design_pair_handoff=plans/retry-after-design-pair-implementation-handoff.md`; Locked Decisions: none.
+- Changed: `src/RetryPolicy.cs` now rejects negative delta-seconds.
+- Existing retry implementation changes remain in `src/RetryingClient.cs` and `tests/RetryPolicyTests.cs`.
+- Checks: `git diff --check`; temporary .NET 10 compile-and-run harness passed all retry tests, including negative fallback and cancellation.
+- Acceptance: complete.
+- Remaining uncertainty: only delta-seconds `Retry-After` syntax is supported.
+- Final review status: Not performed by this flow.笳・General-purpose(gpt-5.6-terra) Fix negative retry delay
+  笏・Compile and run all retry policy tests (shell)
+  笏・  笏・$validationDir = Join-Path (Get-Location) '.validation-retry-after'; Remove-Item -Recurse
+  笏・  笏・-Force $validationDir -ErrorAction SilentlyContinue; New-Item -ItemType Directory -Path
+  笏・  笏・$validationDir | Out-Null; @'
+  笏・  笏・<Project Sdk="Microsoft.NET.Sdk">
+  笏・  笏・<PropertyGroup>窶ｦ
+  笏・  笏・25 lines窶ｦ
+  笏・Verify diff integrity and cleanup (shell)
+      笏・git diff --check; if (Test-Path .validation-retry-after) { throw 'Validation directory was
+      not
+      笏・cleaned up.' }; git status --short; git --no-pager diff -- src\RetryPolicy.cs; git
+      --no-pager
+      笏・diff --numstat
+      笏・34 lines窶ｦ
+
+笳・Read RetryingClient.cs
+  笏・src\RetryingClient.cs
+  笏・12 lines read
+
+笳・Read RetryPolicyTests.cs
+  笏・tests\RetryPolicyTests.cs
+  笏・58 lines read
+
+笳・Read RetryPolicy.cs
+  笏・src\RetryPolicy.cs
+  笏・29 lines read
+
+笳・Verify final implementation state (shell)
+  笏・git --no-pager diff --check; git status --short; git --no-pager diff --stat
+  笏・10 lines窶ｦ
+
+The re-entry fixed the negative-value guard and validated the full focused retry path, including cancellation. I窶冦 now recording the completed Adaptive result and verdict sequence in the tracked Design Pair handoff.
+
+笳・Edit
+  笏・Edit plans\retry-after-design-pair-implementation-handoff.md
+
+/ Search (grep)
+  笏・"Status: Completed|Adaptive Implementation verdict sequence|Validation performed|Remaining work"
+  笏・(plans\retry-after-design-pair-implementation-handoff.md)
+  笏・4 lines found
+
+笳・Confirm clean diff formatting and changed files (shell)
+  笏・git --no-pager diff --check; git status --short
+  笏・6 lines窶ｦ
+
+螳溯｣・ｮ御ｺ・＠縺ｾ縺励◆縲・
+- `Retry-After` 縺ｮ譛牙柑縺ｪ髱櫁ｲ遘呈焚繧剃ｽｿ逕ｨ
+- 谺關ｽ繝ｻ荳肴ｭ｣繝ｻ雋謨ｰ縺ｯ繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ驕・ｻｶ繧剃ｽｿ逕ｨ
+- 繧ｭ繝｣繝ｳ繧ｻ繝ｫ莨晄眺繧堤ｶｭ謖・- 蟇ｾ雎｡繝・せ繝医ｒ霑ｽ蜉繝ｻ譖ｴ譁ｰ
+- Adaptive verdict: `COMPLETED_BY_HIGH_MODEL`
+- Locked Decision: 縺ｪ縺・- Handoff: `plans/retry-after-design-pair-implementation-handoff.md`
+
+蟇ｾ蠢懷ｽ｢蠑上・ delta-seconds 縺ｮ縺ｿ縺ｧ縺吶よ怙邨ゅΞ繝薙Η繝ｼ縺ｯ縺薙・繝輔Ο繝ｼ縺ｧ縺ｯ譛ｪ螳滓命縺ｧ縺吶・
+
+
+Changes    +257 -39
+AI Credits 57.1 (6m 12s)
+Tokens     竊・1.8m (1.6m cached, 170.7k written) 窶｢ 竊・25.6k (10.2k reasoning)
+Resume     copilot --resume=927193b2-b31b-4d7a-a624-8ff963f742d8

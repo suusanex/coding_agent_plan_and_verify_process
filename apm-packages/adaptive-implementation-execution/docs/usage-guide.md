@@ -54,7 +54,7 @@ $design-pair-implementation-execution で作成した plans/issue-123-design-pai
 Locked Decisions だけを binding とし、その他の実装判断は actual code と verification evidence から行ってください。
 ```
 
-Design Pair route は利用者が明示選択した場合だけ使います。Design Pair handoff の Target Map や `Affected files / symbols` は allowed edit surface ではありません。Copilot経路でもvalidなtracked handoffをAdaptive inputとして保持しますが、Design Pair package自体のCopilotでの対話・handoff生成は正式E2E対応済みとは扱いません。
+Design Pair route は利用者が明示選択した場合だけ使います。Design Pair handoff の Target Map や `Affected files / symbols` は allowed edit surface ではありません。GitHub Copilot CLI でも Design Pair package が post-map 対話と tracked handoff を生成し、valid な `READY_FOR_ADAPTIVE_IMPLEMENTATION` handoff だけを Adaptive input として受け取ります。
 
 Adaptive は production code / tests を編集する前に、Design Pair handoff が `READY_FOR_ADAPTIVE_IMPLEMENTATION` かつ `Interaction stage: complete` であること、Target Map の提示・選択要求、提示後の actual user response、一件以上の selected Target または explicit all-Adaptive delegation、pending human-owned Target なし、各 Locked Decision の post-map confirmation を検証します。`AWAITING_USER_INPUT`、空集合を暗黙に all-Adaptive とした handoff、上流 Plan や AI summary から user response を再構成した handoffは `BLOCKED / BlockedByInvalidCompletionHandoff` で停止します。
 

@@ -10,11 +10,14 @@
 - Fixture baseline revision:
 - Disposable repository root:
 - Plan reference: plans/retry-after-plan.md
-- Execution surface: Codex App / Codex IDE / other
+- Execution surface: Codex CLI / GitHub Copilot CLI / other
+- CLI version:
 - Configured model:
 - Configured reasoning effort:
 - Effective model: Unknown unless independently verified
+- Agent selection flags:
 - Tracked handoff path:
+- Unsupported capability notes:
 
 ## Turn sequence
 
@@ -67,6 +70,9 @@ NOT RUN
 - Explicit multi-Target delegation has one disposition evidence row per Target: NOT RUN
 - Adaptive started only after READY: NOT RUN
 - Resume waiting behavior, if exercised: NOT RUN
+- New CLI session resume used tracked handoff as authority, if exercised: NOT RUN
+- Ordinary Plan route exercised: NOT RUN
+- Explicit Plan Coverage route exercised: NOT RUN
 
 ## Final result
 

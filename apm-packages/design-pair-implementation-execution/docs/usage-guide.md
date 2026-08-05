@@ -19,7 +19,7 @@ implementation_route_source: explicit-user-selection
 
 agent / router は difficulty、risk、task size、architecture 特性から Design Pair を選択、推奨、提案しません。
 
-fresh Codex installではAdaptive packageとDesign Pair packageをco-installし、APMがmodel-less agent TOMLを生成する環境では`install-adaptive-implementation-local.cs`のwriteと`--check`まで実行します。Design Pair skillが存在するだけでは、後段のHIGH / STANDARD model mappingが完成したとは扱いません。
+fresh installではAdaptive packageとDesign Pair packageをco-installします。GitHub Copilot CLIでは`--target copilot,agent-skills`、Codexでは`--target codex,agent-skills`を使います。CodexでAPMがmodel-less agent TOMLを生成する環境では`install-adaptive-implementation-local.cs`のwriteと`--check`まで実行します。Design Pair skillが存在するだけでは、後段のHIGH / STANDARD model mappingが完成したとは扱いません。
 
 ## Ordinary Plan Mode
 
@@ -41,7 +41,7 @@ goal、scope、acceptance が不足する場合は production code / tests を�
 6. tracked Design Pair handoff が `interaction_stage: complete` かつ `READY_FOR_ADAPTIVE_IMPLEMENTATION` になった後だけ、Adaptive Implementation を HIGH_MODEL から開始する。
 7. verification-kernel、coverage gap handling、residual-decision-gate へ戻る。
 
-Design Pair package は Copilot target を宣言しません。Plan Coverage package が Copilot target を持っていても、Design Pair route は Codex / agent-skills で両 package を導入した場合だけ利用します。
+Design Pair package の正式 target は `copilot`、`codex`、`agent-skills` です。Plan Coverage 経由でも Design Pair route は両 package を同じ target へ導入し、利用者が Design Pair を明示選択した場合だけ使います。GitHub Copilot CLI では tracked handoff を durable authority とし、READY 後は `--agent high-implementation-starter` で Adaptive を開始します。Plan Coverage parent と Design Pair を組み合わせた runtime qualification は Plan Coverage 側の Copilot CLI 認定 issue で実施します。
 
 ## Resume
 

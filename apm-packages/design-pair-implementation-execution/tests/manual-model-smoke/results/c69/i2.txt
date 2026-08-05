@@ -1,0 +1,66 @@
+I窶冦 reviewing the recorded handoff state, then I窶冤l provide the full DP-T01 design discussion and pause for your final disposition.
+
+笳・Read RetryingClient.cs
+  笏・src\RetryingClient.cs
+  笏・9 lines read
+
+笳・Read RetryPolicy.cs
+  笏・src\RetryPolicy.cs
+  笏・13 lines read
+
+笳・Read retry-after-plan-design-pair-implementation-handoff.md
+  笏・plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・L1:90 (90 lines read)
+
+笳・Read RetryPolicyTests.cs
+  笏・tests\RetryPolicyTests.cs
+  笏・14 lines read
+
+笳・Edit
+  笏・Edit plans\retry-after-plan-design-pair-implementation-handoff.md
+
+笳・Read map.md
+  笏・.agents\skills\design-pair-implementation-execution\map.md
+  笏・35 lines read
+
+笳・Read retry-after-plan-design-pair-implementation-handoff.md
+  笏・plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・L115:160 (36 lines read)
+
+笳・Edit
+  笏・Edit plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・Edit .agents\skills\design-pair-implementation-execution\map.md
+
+The DP-T01 discussion is recorded as post-map evidence, with no binding decision inferred. I窶冦 verifying the waiting-state fields before returning the disposition request.
+
+笳・Verify handoff discussion and waiting state (shell)
+  笏・git diff --check; Select-String -Path
+  笏・'plans\retry-after-plan-design-pair-implementation-handoff.md' -Pattern 'Interaction stage:
+  笏・disposition-confirmation|User response occurred after Target Map presentation: Yes|DP-T01 \|
+  笏・Assistant turn 3|Selected Targets have concrete user-facing discussion evidence \| PASS'
+  笏・24 lines窶ｦ
+
+## DP-T01 Internal design discussion
+
+- **Code location:** `src/RetryPolicy.cs:3-12`, especially `fallbackDelay` and `GetDelay()`.
+- **Current responsibility / invariant:** Stores the configured fallback delay and currently returns it unchanged for every retry. Missing, invalid, or negative server input must still use that fallback.
+- **Callers / wiring / lifecycle / state / test seam:** `RetryingClient.WaitBeforeRetryAsync` (`src/RetryingClient.cs:5-7`) is the only caller and currently supplies no server value. The client owns async waiting and cancellation; the policy owns fallback state. Direct test seam: `tests/RetryPolicyTests.cs:5-12`. No DI/startup wiring exists.
+- **Internal design decision needed:** Decide whether the policy parses raw Retry-After text, receives a pre-parsed nullable duration, or uses a typed parser/value abstraction.
+- **Alternatives and trade-offs:**
+  1. Raw text parsed by `RetryPolicy`: centralizes fallback rules and follows the upstream proposal, but couples policy to wire format.
+  2. `TimeSpan?` supplied by the caller: keeps policy domain-focused and easy to test, but moves malformed-input handling to the boundary.
+  3. Dedicated typed parser/value: clean separation, but adds abstraction to this minimal repository.
+- **Non-binding AI proposal:** Keep parsing in `RetryPolicy` when the input is raw Retry-After text, consistent with the upstream proposal. If the caller already has a typed delta, prefer a nullable validated duration rather than reparsing.
+- **Validation expectations:** Test valid non-negative, missing, invalid, and negative inputs deterministically; preserve fallback behavior and cancellation propagation.
+- **Open questions:** What exact input representation and syntax should be accepted窶播elta-seconds only or a broader Retry-After format?
+
+**Status:** `AWAITING_USER_INPUT` ﾂｷ `disposition-confirmation`
+
+Please provide DP-T01窶冱 final disposition: `Locked`, `Discussed-Unlocked`, or `Adaptive-Owned` (with your chosen API/parsing direction if locking it). Also classify unselected `DP-T02` and `DP-T03`, or explicitly delegate both to Adaptive.
+
+
+
+Changes    +185 -32
+AI Credits 3.61 (3m 0s)
+Tokens     竊・428.4k (362.6k cached, 65.8k written) 窶｢ 竊・10.3k (2.5k reasoning)
+Resume     copilot --resume=18f5be66-ac8d-44d5-a804-6f56ffe0f951

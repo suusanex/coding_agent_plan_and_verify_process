@@ -1,0 +1,89 @@
+diff --git a/src/RetryPolicy.cs b/src/RetryPolicy.cs
+index e99ca40..7db4f1f 100644
+--- a/src/RetryPolicy.cs
++++ b/src/RetryPolicy.cs
+@@ -9,5 +9,12 @@ public sealed class RetryPolicy
+         this.fallbackDelay = fallbackDelay;
+     }
+
+-    public TimeSpan GetDelay() => fallbackDelay;
++    public TimeSpan GetDelay(TimeSpan? retryAfter)
++    {
++        return retryAfter is { } delay && delay >= TimeSpan.Zero
++            ? delay
++            : fallbackDelay;
++    }
++
++    public TimeSpan GetDelay() => GetDelay(null);
+ }
+diff --git a/src/RetryingClient.cs b/src/RetryingClient.cs
+index 3e3dc69..8fe2371 100644
+--- a/src/RetryingClient.cs
++++ b/src/RetryingClient.cs
+@@ -2,8 +2,11 @@ namespace ManualSmoke;
+
+ public sealed class RetryingClient(RetryPolicy retryPolicy)
+ {
+-    public async Task WaitBeforeRetryAsync(CancellationToken cancellationToken)
++    public Task WaitBeforeRetryAsync(TimeSpan? retryAfter, CancellationToken cancellationToken)
+     {
+-        await Task.Delay(retryPolicy.GetDelay(), cancellationToken);
++        return Task.Delay(retryPolicy.GetDelay(retryAfter), cancellationToken);
+     }
++
++    public Task WaitBeforeRetryAsync(CancellationToken cancellationToken) =>
++        WaitBeforeRetryAsync(null, cancellationToken);
+ }
+diff --git a/tests/RetryPolicyTests.cs b/tests/RetryPolicyTests.cs
+index 4cfb223..eb1e903 100644
+--- a/tests/RetryPolicyTests.cs
++++ b/tests/RetryPolicyTests.cs
+@@ -11,4 +11,48 @@ public sealed class RetryPolicyTests
+             throw new InvalidOperationException("Expected the configured fallback delay.");
+         }
+     }
++
++    public void UsesServerRetryAfterDelay()
++    {
++        var policy = new RetryPolicy(TimeSpan.FromSeconds(3));
++        var retryAfter = TimeSpan.FromSeconds(1);
++
++        if (policy.GetDelay(retryAfter) != retryAfter)
++        {
++            throw new InvalidOperationException("Expected the server Retry-After delay.");
++        }
++    }
++
++    public void UsesFallbackForMissingOrInvalidRetryAfter()
++    {
++        var policy = new RetryPolicy(TimeSpan.FromSeconds(3));
++
++        if (policy.GetDelay(null) != TimeSpan.FromSeconds(3))
++        {
++            throw new InvalidOperationException("Expected the fallback delay for missing or invalid input.");
++        }
++
++        if (policy.GetDelay(TimeSpan.FromSeconds(-1)) != TimeSpan.FromSeconds(3))
++        {
++            throw new InvalidOperationException("Expected the fallback delay for a negative Retry-After value.");
++        }
++    }
++
++    public async Task PreservesCancellationDuringRetryWaitAsync()
++    {
++        var client = new RetryingClient(new RetryPolicy(TimeSpan.FromSeconds(3)));
++        using var cancellationSource = new CancellationTokenSource();
++        cancellationSource.Cancel();
++
++        try
++        {
++            await client.WaitBeforeRetryAsync(TimeSpan.Zero, cancellationSource.Token);
++        }
++        catch (OperationCanceledException)
++        {
++            return;
++        }
++
++        throw new InvalidOperationException("Expected cancellation to interrupt the retry wait.");
++    }
+ }

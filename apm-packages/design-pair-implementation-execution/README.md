@@ -36,9 +36,29 @@ Plan Coverage Flow では `implementation-handoff-review` または同等の Inl
 
 Adaptive Implementation の HIGH / STANDARD orchestration と portable agent 定義は、この package へ複製しません。manifest dependency で既存 `adaptive-implementation-execution` skill と canonical agents を導入します。
 
-## Fresh Codex install
+## Fresh install
 
-Design Pair は Adaptive Implementation の前段です。fresh Codex target では両 package を導入します。
+Design Pair は Adaptive Implementation の前段です。正式 target は `copilot`、`codex`、`agent-skills` です。Design Pair package単体のinstallだけでは、後段のHIGH / STANDARD concrete model mappingが完成した証拠になりません。
+
+### GitHub Copilot CLI
+
+```powershell
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target copilot,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target copilot,agent-skills
+```
+
+配置後の確認:
+
+- `.agents/skills/design-pair-implementation-execution/SKILL.md`
+- `.agents/skills/adaptive-implementation-execution/SKILL.md`
+- `.github/agents/high-implementation-starter.agent.md`
+- `.github/agents/standard-implementation-completer.agent.md`
+
+GitHub Copilot CLI では Design Pair skill を明示指定して multi-turn 対話を行い、tracked handoff が `READY_FOR_ADAPTIVE_IMPLEMENTATION` になった後だけ **新しい CLI 起動で** `--agent high-implementation-starter` を付けて Adaptive を開始します。Design Pair session の継続だけでは canonical HIGH agent 選択の証拠になりません。会話履歴ではなく tracked handoff を durable authority とします。waiting 中の別 session 再開でも handoff path を渡し、欠落・矛盾時は fail closed します。手順と実 multi-turn 証拠は `tests/manual-model-smoke/` を参照してください。正式 acceptance は GitHub Copilot CLI であり、VS Code UI 操作は必須ではありません。
+
+**Issue #69 / #86 境界:** ordinary Plan + explicit Design Pair + Adaptive handoff は本 package の Copilot formal support です。Plan Coverage parent からの Design Pair runtime E2E は #86 の資格認定範囲です。
+
+### Codex
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
@@ -54,8 +74,6 @@ dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\a
 ```
 
 `--check` は HIGH / STANDARD が別agent・別model mappingを持ち、reasoning と `workspace-write` sandbox が設定済みであることを確認します。APM が同等のconcrete設定を直接生成した場合、write stepは不要ですが `--check` は実行します。詳細は Adaptive package の `docs/install-guide.md` を参照してください。
-
-現行の正式 target は `codex` と `agent-skills` です。Design Pair package単体のinstallだけでは、CodexのHIGH / STANDARD concrete model mappingが完成した証拠になりません。GitHub Copilot の Design Pair -> Adaptive end-to-end route は未検証であり、対応済みとは扱いません。
 
 通常 Plan Mode 後の起動例:
 
@@ -80,7 +98,7 @@ READY前にはTarget Mapとhandoff summaryを集合照合します。summaryの�
 
 `Locked`、`Discussed-Unlocked`、`Adaptive-Owned`の各Targetには、Target Map提示後のactual user turnと確認内容を記録する`Target Disposition Evidence`が一件必要です。複数Target委任とall-Adaptiveは同じturn referenceを各Target rowで再利用できますが、AIの推奨やsummaryから人間のDispositionを補完できません。
 
-Plan Coverage Flow で使う場合は、この package と Plan Coverage package の両方を Codex / agent-skills target へ導入し、flow 開始時に Design Pair を明示選択します。
+Plan Coverage Flow で使う場合は、この package と Plan Coverage package の両方を `copilot` / `codex` / `agent-skills` target へ導入し、flow 開始時に Design Pair を明示選択します。`plan-coverage-residual-flow` 選択と Design Pair implementation route 選択は別々の explicit evidence として保持します。
 
 ## Validation
 

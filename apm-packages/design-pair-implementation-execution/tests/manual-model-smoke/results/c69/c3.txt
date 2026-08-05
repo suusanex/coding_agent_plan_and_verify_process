@@ -1,0 +1,111 @@
+笨・Edit
+  笏・Edit plans\retry-after-plan-design-pair-implementation-handoff.md
+
+笳・Edit
+  笏・Edit plans\retry-after-plan-design-pair-implementation-handoff.md
+
+笳・Edit
+  笏・Edit plans\retry-after-plan-design-pair-implementation-handoff.md
+
+笳・Edit
+  笏・Edit plans\retry-after-plan-design-pair-implementation-handoff.md
+
+笳・Edit
+  笏・Edit plans\retry-after-plan-design-pair-implementation-handoff.md
+
+笳・Read retry-after-plan-design-pair-implementation-handoff.md
+  笏・plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・L118:165 (41 lines read)
+
+笳・Read retry-after-plan-design-pair-implementation-handoff.md
+  笏・plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・L1:75 (75 lines read)
+
+笳・Verify handoff readiness and untouched implementation files (shell)
+  笏・git --no-pager diff -- src\RetryPolicy.cs src\RetryingClient.cs tests\RetryPolicyTests.cs; git
+  笏・--no-pager status --short
+  笏・3 lines窶ｦ
+
+笳・Edit
+  笏・Edit plans\retry-after-plan-design-pair-implementation-handoff.md
+
+笳・Edit
+  笏・Edit plans\retry-after-plan-design-pair-implementation-handoff.md
+
+笳・skill(adaptive-implementation-execution)
+
+HIGH_MODEL verdict: **COMPLETED_BY_HIGH_MODEL** 窶・no STANDARD_MODEL delegation needed.
+
+Implemented:
+- Typed `TimeSpan?` RetryPolicy delay selection with fallback for null/negative values.
+- External Retry-After delta-seconds parsing in `RetryingClient`; malformed, negative, and overflow values normalize to fallback.
+- Preserved cancellation-token propagation.
+- Added focused delay, fallback, parser, and cancellation tests.
+- Updated Design Pair handoff and created `plans/retry-after-plan-implementation-completion-handoff.md`.
+
+Validation: temporary .NET 8 harness passed all focused tests; `git diff --check` passed. Final review not performed by this flow.笳・General-purpose(gpt-5.6-luna) Implement retry-after support
+  笏・Run final focused retry validation (shell)
+  笏・  笏・New-Item -ItemType Directory -Force validation | Out-Null; @'
+  笏・  笏・<Project Sdk="Microsoft.NET.Sdk">
+  笏・  笏・<PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><Implici
+  笏・  笏・  笏・  tUsings>enable</ImplicitUsings><Nullable>enable</Nullable><EnableDefaultCompileItems>false</En
+  笏・  笏・ableDefaultCompileItems></PropertyGroup>窶ｦ
+  笏・  笏・16 lines窶ｦ
+  笏・Perform final worktree check (shell)
+      笏・git --no-pager diff --check; if (Test-Path validation) { Remove-Item -Recurse -Force
+      validation
+      笏・}; git status --short
+      笏・7 lines窶ｦ
+
+HIGH_MODEL completed the implementation and produced the tracked completion handoff; I窶冦 validating the locked decision, acceptance evidence, and resulting worktree before reporting completion.
+
+笳・Read RetryPolicy.cs
+  笏・src\RetryPolicy.cs
+  笏・20 lines read
+
+笳・Read RetryPolicyTests.cs
+  笏・tests\RetryPolicyTests.cs
+  笏・63 lines read
+
+笳・Read RetryingClient.cs
+  笏・src\RetryingClient.cs
+  笏・55 lines read
+
+笳・Read retry-after-plan-design-pair-implementation-handoff.md
+  笏・plans\retry-after-plan-design-pair-implementation-handoff.md
+  笏・L144:180 (15 lines read)
+
+笳・Read retry-after-plan-implementation-completion-handoff.md
+  笏・plans\retry-after-plan-implementation-completion-handoff.md
+  笏・117 lines read
+
+笳・Validate implementation diff and whitespace (shell)
+  笏・git --no-pager status --short; git --no-pager diff --stat; git --no-pager diff --check
+  笏・11 lines窶ｦ
+
+笳・Edit
+  笏・Edit plans\retry-after-plan-design-pair-implementation-handoff.md
+
+/ Search (grep)
+  笏・"RetryPolicy\([^\n]*string|GetDelay\([^\n]*string|ParseDeltaSeconds|GetDelay\(TimeSpan\?" in
+  笏・*.cs
+  笏・10 lines found
+
+笳・Confirm final files and clean diff formatting (shell)
+  笏・Get-ChildItem -Force -Name; git --no-pager diff --check; git --no-pager status --short
+  笏・14 lines窶ｦ
+
+螳溯｣・ｮ御ｺ・＠縺ｾ縺励◆縲ＡDP-D01`・・TimeSpan?`縲∵枚蟄怜・繝代・繧ｹ縺ｯ螟夜Κ蠅・阜縺ｮ縺ｿ・峨ｒ驕ｵ螳医＠縲～DP-T02`/`DP-T03`繧ょｮ溯｣・・讀懆ｨｼ貂医∩縺ｧ縺吶・
+- **螟画峩:** `RetryPolicy`縲～RetryingClient`縲～RetryPolicyTests`
+- **蟇ｾ蠢・** 譛牙柑縺ｪ驕・ｻｶ縲∵ｬ關ｽ繝ｻ荳肴ｭ｣繝ｻ雋蛟､縺ｮ繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ縲√く繝｣繝ｳ繧ｻ繝ｫ莨晄眺
+- **讀懆ｨｼ:** focused tests 蜷域ｼ縲～git diff --check` 蜷域ｼ
+- **繝ｫ繝ｼ繝・** `design-pair -> adaptive-implementation-execution`
+- **HIGH_MODEL:** `COMPLETED_BY_HIGH_MODEL`; STANDARD_MODEL 縺ｯ譛ｪ襍ｷ蜍・- **Handoff:** `plans/retry-after-plan-design-pair-implementation-handoff.md`縲～plans/retry-after-plan-implementation-completion-handoff.md`
+- **譛邨ゅΞ繝薙Η繝ｼ:** 縺薙・繝輔Ο繝ｼ縺ｧ縺ｯ譛ｪ螳滓命
+
+
+
+Changes    +442 -63
+AI Credits 12.6 (7m 22s)
+Tokens     竊・2.4m (2.2m cached, 165.1k written) 窶｢ 竊・33.4k (10.0k reasoning)
+Resume     copilot --resume=2aa32497-835f-4847-9e85-2da1bca7f7cc

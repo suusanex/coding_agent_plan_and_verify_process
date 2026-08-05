@@ -1,0 +1,27 @@
+# c69 evidence files
+
+Sanitized CLI logs, handoff snapshots, and diffs for Design Pair Copilot CLI smoke.
+
+- `aa.txt`: `637570356a0c735ba4c8f509edbaf715cd0e2b4e01f112b79f355d37b4d2fc2b` (6816 bytes)
+- `all1.txt`: `19f5d04dba908d318cba5fe21665c883c900cb8ddccc346fe811448f313dc590` (5342 bytes)
+- `all2.txt`: `76820092f54c024450629455ea1a8747c18eea57b2730b13acd6db41c7413f79` (8596 bytes)
+- `c1.txt`: `a677d9425a59ec3bf53147c6991c3dca685047a8c68675d3e4aae42647c9730e` (5934 bytes)
+- `c2.txt`: `d1022abdfb391436a3bd4745d36df65a1fe86e23d70bf71c25e4f3c170f15885` (3999 bytes)
+- `c3.txt`: `972d49443ee955300ac435e11bc8cfa9dc52ea89ef1cb862c3fd08e1914c551b` (5223 bytes)
+- `conf.txt`: `aa73df4f8bc643bd3b4b6de4267914020df68863374c06b06d0cec6709cf9e27` (4509 bytes)
+- `d-aa.patch`: `5d46f823b5b6194c28bf065158b2fbc47cdec79c0e15d42b05abfff3af620b28` (3087 bytes)
+- `d-conf.patch`: `d58ae59789ce196050b7713de75795a82846bccee18a84b58bf06b56d84f41cc` (60 bytes)
+- `d-nodp.patch`: `1881400df2e968df00f0f859f4b484ce5cc8096fefc9ecb78e9682071ef6a91f` (2999 bytes)
+- `d-wait.txt`: `12cf8f03479184120887d80699677fdf39acd34c626716cbe53e21e93510b96a` (21 bytes)
+- `h-all.md`: `de9a9d76dec59a5f3a5007b497adb1ec2dbbaf98100a268d5dfe27d75610a86f` (14135 bytes)
+- `h-conf.md`: `c580b27b0d6991ad4f556d3e8b4db48a1f4ed4bc33bbb1693b2190897dd8a9af` (6229 bytes)
+- `h-ready.md`: `c808e692cd4bfecfa241b7e6e1e82001b210ef9b96cb259dbeeba9d04be7a6e2` (15399 bytes)
+- `h-wait.md`: `73994c02ec55d5bee50b11170c5b07bf0fb79ed5031595d29cafba429af11b25` (15727 bytes)
+- `i1.txt`: `8e1bc6e6f78efa977e4cc4cfcddee1e2874d7951a09f8528bce541828dd4ee3d` (4949 bytes)
+- `i2.txt`: `2297c13ea5e462d4fb204df635566f396a6e4edd063407a20ed540f13361f043` (4012 bytes)
+- `i3.txt`: `4b0edc119b14d07f5c70e7d7024e9a86573ddc17280c376f5932ea473f79e3d7` (1801 bytes)
+- `i4.txt`: `8ea04fde56626460e0c5a0807e3edcf59f531fd72801da70f8d398a32600c69e` (4621 bytes)
+- `ires.txt`: `f58cdd530a2570482be7c17374aacfe4c49ac2a4552e7c6d4ba32d9d47e7259d` (741 bytes)
+- `nodp.txt`: `07a2032a03273c9e25afd171a41e25349c2c690296111eb20fe2457c8b5d901d` (5206 bytes)
+- `w1.txt`: `b3d8c55c4e35fa7a7bfdefbed001c28ce1e102bec17685bc7f2adb545a3b3023` (6054 bytes)
+- `w2.txt`: `4883aff572be5f1436d3c541a60bb4f8135ee850c98d55c48c06b8068455787e` (4633 bytes)
