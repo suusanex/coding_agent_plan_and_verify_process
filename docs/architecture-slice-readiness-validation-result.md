@@ -2,10 +2,10 @@
 
 ## Execution metadata
 
-- Executed at: `2026-08-02T08:00:00+09:00`
-- Executor: Codex, deterministic ASR-001 through ASR-006 fixture revalidation against the repository agent contracts and PR #80 compact-slice-record-v2 routing/template changes
-- Branch: `main` with PR #79 projection sync merged, plus Issue #74 working tree
-- Reviewed source: Issue #74 invocation authorization changes plus the existing Design Pair waiting-state and full-coverage contracts, captured by the exact contract hashes below
+- Executed at: `2026-08-05T22:50:00+09:00`
+- Executor: issue-69 CI fix; deterministic ASR-001 through ASR-006 fixture comparison reused after Plan Coverage Design Pair Copilot support wording update
+- Branch: `issue-69` (Design Pair GitHub Copilot CLI formal support)
+- Reviewed source: Plan Coverage skill note that Design Pair formal targets include `copilot`, `codex`, and `agent-skills`; architecture entry/routing/artifact semantics unchanged from prior validated set
 - Scope: entry authorization, routing, artifact, and existing architecture semantics only; no production code or external system changes
 
 ### Contract revisions evaluated
@@ -20,7 +20,7 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | `slice-prep.agent.md` | `6581969b6c5e65653357e3e00ae574d3cbebedf109359316f06510d5fe7b77f8` |
 | `slice-impl.agent.md` | `3ba9061879cc5643d7dea7b32501d852cc7926168837a428dc71551c56dff7b5` |
 | `token-aware-full-coverage-3layer/SKILL.md` | `717c91f6b65e3eab4003ba4938f99ec4abb01982f212ecbd2dc254208e9c9c91` |
-| `plan-coverage-residual-flow/SKILL.md` | `8814975edb2cc8ec48dc369c117d6e1cb9ca07ca59c0468151347841d873db3a` |
+| `plan-coverage-residual-flow/SKILL.md` | `a0f83f7f273a1c40390881e7469b657aacc200b22fd1e42241536ab092ff579e` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 | `coverage-ledger.md` template | `af6d9252c720ba9298e99f8ac23a975108a841be725ff3fbb0a4d5c4c6866da7` |
 | `plan-coverage-lite.md` template | `e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90` |
@@ -32,7 +32,7 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 
 Complete input, actual output, expected JSON, machine-readable actual JSON, and run metadata are stored under `tests/architecture-slice-readiness/ASR-001` through `ASR-006`.
 
-ASR-001 through ASR-006 fixture output and run IDs are reused from the prior Issue #65 deterministic scenario set. This Issue #74 revalidation reruns the unchanged fixture comparison and updates the validated contract hash and evidence metadata; it does not relabel or reconstruct the prior run IDs.
+ASR-001 through ASR-006 fixture output and run IDs are reused from the prior Issue #65 deterministic scenario set. This Issue #69 revalidation reruns the unchanged fixture comparison and updates the validated Plan Coverage skill contract hash and evidence metadata; it does not relabel or reconstruct the prior run IDs.
 
 | Fixture | Run ID | Complete evidence root |
 | --- | --- | --- |
