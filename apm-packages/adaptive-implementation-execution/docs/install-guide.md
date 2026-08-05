@@ -58,7 +58,7 @@ HIGHからSTANDARDへのhandoff buttonはvalidな`READY_FOR_STANDARD_COMPLETION`
 
 modelがpickerにない、organization policyで禁止される、またはobserved modelがrequested modelと異なる場合は実行済みとして扱いません。HIGHをLunaで黙って代替せず、管理者への確認または明示的なadapter mapping変更を行い、requested / observed modelをmanual smoke evidenceへ記録します。
 
-Design Pair Implementation HandoffはAdaptiveへのvalid inputとして保持されますが、`design-pair-implementation-execution` package自体のCopilot起動・対話・handoff生成はこの変更の正式E2E supportではありません。
+Design Pair Implementation HandoffはAdaptiveへのvalid inputとして保持されます。`design-pair-implementation-execution` packageも`copilot` targetを宣言し、GitHub Copilot CLI上の明示選択・post-map対話・durable handoff・READY後のAdaptive開始はDesign Pair packageのformal supportです。導入時はAdaptiveとDesign Pairを`--target copilot,agent-skills`でco-installします。
 
 ## Complete missing Codex custom agent settings
 

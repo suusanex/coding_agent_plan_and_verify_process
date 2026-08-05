@@ -95,9 +95,12 @@ Expected:
 
 Expected:
 
-- package target は `codex` と `agent-skills` だけ
-- manifest に `copilot` target がない
-- docs は GitHub Copilot Design Pair route を対応済みと宣言しない
+- package target は `copilot`、`codex`、`agent-skills`
+- manifest に formal target 名 `copilot` がある（`github-copilot` や bare `vscode` ではない）
+- docs は GitHub Copilot CLI からの Design Pair 明示起動、mandatory post-map stop、durable handoff resume、READY 後の Adaptive 開始を対応済みと宣言する
+- formal acceptance は GitHub Copilot CLI の real multi-turn evidence であり、VS Code UI 操作を必須にしない
+- process contract を Copilot 用に複製せず、canonical Design Pair skill と Adaptive agents を直接利用する
+- real multi-turn smoke record が Target Map stop、Target Disposition Evidence、5集合整合、READY 後 Adaptive 開始を残す
 
 ## DP-VAL-009: Resume route metadata fails closed
 
@@ -399,4 +402,4 @@ git diff --check
 
 Static validation は package layout、routing contract、handoff schema、Target集合不変条件、Adaptive propagation、Plan Coverage / full-coverage integration、canonical Codex adapter、Copilot support boundary を検証します。実モデルを使う対話、HIGH -> STANDARD -> HIGH runtime orchestration、品質比較はrun-specific recordがない限り `NOT RUN` です。
 
-人手での作業が必要: `../../tests/manual-model-smoke/README.md`のdisposable fixtureでDP-VAL-013、015、017、019、021相当のmulti-turn behaviorを実モデルで実行し、result templateへmodel、reasoning、revision、Plan、turn sequence、artifact path、verdict sequenceを記録してください。static PASSをruntime PASSとして転記してはいけません。
+GitHub Copilot CLI の Design Pair multi-turn evidence は `../../tests/manual-model-smoke/results/20260805-copilot-issue69.md` に記録されています。Codex multi-turn evidence は同ディレクトリの既存 PASS record を維持します。追加 run では disposable fixture で DP-VAL-013、015、017、019、021 相当を実行し、result template へ CLI version、model、revision、Plan、turn sequence、artifact path、verdict sequence を記録してください。static PASS を runtime PASS として転記してはいけません。

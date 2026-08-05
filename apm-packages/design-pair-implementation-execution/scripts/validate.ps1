@@ -98,10 +98,12 @@ if ($packageAgentsFiles.Count -gt 0) {
 
 $manifest = 'apm-packages/design-pair-implementation-execution/apm.yml'
 Assert-Contains $manifest '(?m)^name:\s*design-pair-implementation-execution\s*$' 'package name'
-Assert-Contains $manifest '(?m)^version:\s*0\.2\.0\s*$' 'package version 0.2.0'
+Assert-Contains $manifest '(?m)^version:\s*0\.3\.0\s*$' 'package version 0.3.0'
+Assert-Contains $manifest '(?m)^\s*-\s+copilot\s*$' 'copilot target'
 Assert-Contains $manifest '(?m)^\s*-\s+codex\s*$' 'codex target'
 Assert-Contains $manifest '(?m)^\s*-\s+agent-skills\s*$' 'agent-skills target'
-Assert-NotContains $manifest '(?m)^\s*-\s+copilot\s*$' 'unverified Copilot target'
+Assert-NotContains $manifest '(?m)^\s*-\s+github-copilot\s*$' 'invalid github-copilot target alias'
+Assert-NotContains $manifest '(?m)^\s*-\s+vscode\s*$' 'invalid bare vscode target alias'
 Assert-Contains $manifest 'adaptive-implementation-execution/\.apm/skills/adaptive-implementation-execution' 'Adaptive skill dependency'
 Assert-Contains $manifest '\.github/agents/high-implementation-starter\.agent\.md' 'canonical HIGH agent dependency'
 Assert-Contains $manifest '\.github/agents/standard-implementation-completer\.agent\.md' 'canonical STANDARD agent dependency'
@@ -407,14 +409,26 @@ foreach ($id in 1..31) {
     Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' $scenarioId "validation scenario $scenarioId"
 }
 
-Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'GitHub Copilot.*未検証' 'unverified Copilot support statement'
-Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'adaptive-implementation-execution --target codex,agent-skills' 'fresh install Adaptive co-install command'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' '正式 target は `copilot`、`codex`、`agent-skills`' 'formal Copilot target support statement'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'adaptive-implementation-execution --target copilot,agent-skills' 'fresh install Adaptive Copilot co-install command'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'design-pair-implementation-execution --target copilot,agent-skills' 'fresh install Design Pair Copilot co-install command'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'adaptive-implementation-execution --target codex,agent-skills' 'fresh install Adaptive Codex co-install command'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'install-adaptive-implementation-local\.cs.*--check' 'fresh install Adaptive profile check'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'package単体のinstallだけでは.*model mapping' 'incomplete single-package install warning'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'AWAITING_USER_INPUT / target-selection.*その turn を終了' 'README mandatory initial stop'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' '--agent high-implementation-starter' 'README Copilot Adaptive agent entry after READY'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' '正式 acceptance は GitHub Copilot CLI' 'README CLI acceptance surface'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/usage-guide.md' 'AWAITING_USER_INPUT / disposition-confirmation.*再停止' 'usage guide multi-turn stop'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/usage-guide.md' '正式 target は `copilot`、`codex`、`agent-skills`' 'usage guide formal Copilot target'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' '(?s)DP-VAL-008: Copilot support boundary.*formal target 名 `copilot`.*GitHub Copilot CLI.*real multi-turn evidence' 'DP-VAL-008 Copilot formal support'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' 'design-pair-implementation-execution` packageも`copilot` targetを宣言' 'Adaptive install guide Design Pair Copilot support'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' 'Design Pair package が post-map 対話と tracked handoff を生成' 'Adaptive usage guide Design Pair Copilot support'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'formal targets `copilot`, `codex`, and `agent-skills`' 'Plan Coverage Design Pair Copilot co-install boundary'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'without adding a stop instruction' 'manual smoke verifies skill-owned stop'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'Human action required' 'manual smoke human participation boundary'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'GitHub Copilot CLI' 'manual smoke Copilot CLI surface'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' '--agent high-implementation-starter' 'manual smoke Copilot Adaptive agent selection'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'tracked handoff remains the durable authority' 'manual smoke Copilot durable resume authority'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' '(?s)Forward the human response verbatim.*must not ask a separate harness question.*Target-only selection must be accepted.*without repeating the same selection or requiring an initial position.*move to `AWAITING_USER_INPUT / disposition-confirmation`.*return to `target-selection` for a valid Target ID.*`FAIL`' 'manual smoke verbatim Target-only selection behavior'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' "every Target's concrete file and symbol, current responsibility and invariant, relation to the change, expected modification or verification, relevant evidence, and open question" 'manual smoke concrete initial Target Map evidence'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'required seven-column `Design Pair Target Map`, Coverage evidence, and Selection request structure' 'manual smoke initial response structure'
@@ -422,7 +436,7 @@ Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' '(?s)Before every initial or resumed turn.*git rev-parse --show-toplevel.*disposable repository.*codex exec resume.*no `-C` option' 'manual smoke execution root precondition'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' '(?s)resumed process observes a different worktree.*mark the run `FAIL`.*neither repository was changed.*Do not move or copy the handoff' 'manual smoke wrong-worktree failure rule'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md' '(?m)^- Status: NOT RUN\r?$' 'manual runtime result starts unexecuted'
-foreach ($field in @('Configured model', 'Configured reasoning effort', 'Process repository revision', 'Design Pair package version', 'Adaptive package version', 'Plan reference', 'Turn sequence', 'Disposable repository root', 'Observed repository root', 'Tracked handoff path', 'Verdict sequence', 'No-Change Target IDs', 'Upstream-Decision-Required Target IDs', 'Target Map / summary set reconciliation evidence', 'Selected Target Discussion Evidence', 'Target Disposition Evidence')) {
+foreach ($field in @('Configured model', 'Configured reasoning effort', 'Process repository revision', 'Design Pair package version', 'Adaptive package version', 'Plan reference', 'Turn sequence', 'Disposable repository root', 'Observed repository root', 'Tracked handoff path', 'Verdict sequence', 'No-Change Target IDs', 'Upstream-Decision-Required Target IDs', 'Target Map / summary set reconciliation evidence', 'Selected Target Discussion Evidence', 'Target Disposition Evidence', 'CLI version', 'Execution surface', 'Agent selection flags', 'Unsupported capability notes', 'New CLI session resume used tracked handoff as authority', 'Ordinary Plan route exercised')) {
     Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md' ([regex]::Escape($field)) "manual runtime evidence field $field"
 }
 $runtimeResult = 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/results/20260731-333c8e1.md'
@@ -443,6 +457,19 @@ Assert-Contains $rebasedRuntimeResult '(?s)DP-T01 / `Locked` / user turn 3.*DP-T
 Assert-Contains $rebasedRuntimeResult '(?s)Every Locked / Discussed-Unlocked / Adaptive-Owned Target has matching post-map disposition evidence: PASS.*Explicit multi-Target delegation has one disposition evidence row per Target: PASS.*Adaptive started only after READY: PASS' 'rebased run disposition and Adaptive timing validation'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/fixture/plans/retry-after-plan.md' 'upstream user input for discussion, not a confirmed Design Pair Locked Decision' 'manual fixture pre-map proposal boundary'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' '(?s)DP-VAL-032.*Undelegated Target cannot become Adaptive-Owned.*DP-VAL-033.*Discussed-Unlocked requires final user disposition.*DP-VAL-034.*Explicit multi-Target delegation.*DP-VAL-035.*Explicit all-Adaptive delegation has complete evidence' 'Target disposition evidence validation scenarios'
+$copilotRuntimeResult = 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/results/20260805-copilot-issue69.md'
+Assert-FileExists $copilotRuntimeResult
+Assert-Contains $copilotRuntimeResult '(?m)^- Status: PASS\r?$' 'Copilot CLI real-model smoke PASS'
+Assert-Contains $copilotRuntimeResult 'Execution surface: GitHub Copilot CLI' 'Copilot CLI execution surface evidence'
+Assert-Contains $copilotRuntimeResult 'CLI version: `1\.0\.78`' 'Copilot CLI version evidence'
+Assert-Contains $copilotRuntimeResult '(?s)Design Pair package version: `0\.3\.0`.*Adaptive package version: `0\.4\.0`' 'Copilot run package version evidence'
+Assert-Contains $copilotRuntimeResult '(?s)AWAITING_USER_INPUT / target-selection.*AWAITING_USER_INPUT / disposition-confirmation.*ambiguous DP-T02/DP-T03 delegation rejected.*READY_FOR_ADAPTIVE_IMPLEMENTATION / complete.*COMPLETED_BY_HIGH_MODEL' 'Copilot run verdict sequence'
+Assert-Contains $copilotRuntimeResult '(?s)DP-T01 / `Locked`.*DP-T02 / `Adaptive-Owned`.*DP-T03 / `Adaptive-Owned`' 'Copilot run Target disposition evidence'
+Assert-Contains $copilotRuntimeResult '(?s)Every Locked / Discussed-Unlocked / Adaptive-Owned Target has matching post-map disposition evidence: PASS.*Explicit multi-Target delegation has one disposition evidence row per Target: PASS.*Ambiguous unselected-Target delegation remained fail-closed: PASS.*Adaptive started only after READY: PASS' 'Copilot run disposition and Adaptive timing validation'
+Assert-Contains $copilotRuntimeResult 'New CLI session resume used tracked handoff as authority, if exercised: PASS' 'Copilot durable new-session resume evidence'
+Assert-Contains $copilotRuntimeResult 'Ordinary Plan route exercised: PASS' 'Copilot ordinary Plan route evidence'
+Assert-Contains $copilotRuntimeResult 'Upstream proposal not converted to Locked Decision: PASS' 'Copilot upstream proposal boundary'
+Assert-NotContains $copilotRuntimeResult 'codex-first-ai-development-process|copilot-fallback-ai-development-process' 'Copilot smoke must not depend on removed aggregate processes'
 Assert-Contains 'README.md' 'apm-packages/design-pair-implementation-execution' 'root Design Pair package link'
 
 if ($failures.Count -gt 0) {
