@@ -108,7 +108,7 @@ Target Map persisted at `plans/retry-after-plan-design-pair-implementation-hando
 - **Delegation for unselected Targets:** State whether unselected Targets should be delegated to Adaptive Implementation.
 - You may explicitly delegate **all Targets** to Adaptive Implementation.
 
-**Verdict:** `AWAITING_USER_INPUT`  
+**Verdict:** `AWAITING_USER_INPUT`
 **Interaction stage:** `target-selection`
 
 
@@ -117,4 +117,3 @@ Changes    +159 -0
 AI Credits 2.1 (1m 8s)
 Tokens     竊・242.0k (203.0k cached, 39.0k written) 窶｢ 竊・6.0k (1.5k reasoning)
 Resume     copilot --resume=2aa32497-835f-4847-9e85-2da1bca7f7cc
-

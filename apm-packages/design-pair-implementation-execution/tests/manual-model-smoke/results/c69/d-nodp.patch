@@ -6,11 +6,11 @@ index e99ca40..a6060b2 100644
 +using System.Globalization;
 +
  namespace ManualSmoke;
- 
+
  public sealed class RetryPolicy
 @@ -10,4 +12,20 @@ public sealed class RetryPolicy
      }
- 
+
      public TimeSpan GetDelay() => fallbackDelay;
 +
 +    public TimeSpan GetDelay(string? retryAfter)

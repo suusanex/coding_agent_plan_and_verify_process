@@ -104,4 +104,3 @@ Changes    +152 -0
 AI Credits 1.95 (1m 10s)
 Tokens     竊・206.9k (169.5k cached, 37.4k written) 窶｢ 竊・5.6k (1.2k reasoning)
 Resume     copilot --resume=927193b2-b31b-4d7a-a624-8ff963f742d8
-

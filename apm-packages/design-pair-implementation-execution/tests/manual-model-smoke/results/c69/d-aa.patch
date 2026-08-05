@@ -5,7 +5,7 @@ index e99ca40..7db4f1f 100644
 @@ -9,5 +9,12 @@ public sealed class RetryPolicy
          this.fallbackDelay = fallbackDelay;
      }
- 
+
 -    public TimeSpan GetDelay() => fallbackDelay;
 +    public TimeSpan GetDelay(TimeSpan? retryAfter)
 +    {
@@ -21,7 +21,7 @@ index 3e3dc69..8fe2371 100644
 --- a/src/RetryingClient.cs
 +++ b/src/RetryingClient.cs
 @@ -2,8 +2,11 @@ namespace ManualSmoke;
- 
+
  public sealed class RetryingClient(RetryPolicy retryPolicy)
  {
 -    public async Task WaitBeforeRetryAsync(CancellationToken cancellationToken)

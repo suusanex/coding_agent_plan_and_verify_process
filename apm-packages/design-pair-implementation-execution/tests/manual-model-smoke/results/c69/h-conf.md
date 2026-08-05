@@ -85,4 +85,3 @@
 | Summary classifications match every Target Map row Disposition | PASS | matching |
 | Locked Decision Target IDs are selected and their Target Map rows are Locked | PASS | DP-D01/DP-T01 |
 | Explicit all-Adaptive delegation has None selected/pending, no Locked Decisions, and every Target is Adaptive-Owned | N/A | mixed |
-

@@ -127,7 +127,7 @@ Implementation is paused at the required Design Pair boundary. No production cod
 
 Tracked handoff: `plans\retry-after-plan-design-pair-implementation-handoff.md`
 
-Current verdict: `AWAITING_USER_INPUT`  
+Current verdict: `AWAITING_USER_INPUT`
 Interaction stage: `target-selection`
 
 
@@ -136,4 +136,3 @@ Changes    +152 -0
 AI Credits 2.24 (1m 8s)
 Tokens     竊・242.6k (200.3k cached, 42.3k written) 窶｢ 竊・6.5k (1.5k reasoning)
 Resume     copilot --resume=4c833c65-aeaa-4892-9a2c-93bf927b12d8
-
