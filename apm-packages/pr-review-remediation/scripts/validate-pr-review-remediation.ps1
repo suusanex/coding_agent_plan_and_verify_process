@@ -76,7 +76,15 @@ foreach ($path in @(
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/SKILL.md',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/select-goal-context.cs',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs',
+    'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/execute-reviewer.cs',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/manage-review-cycle.cs',
+    'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/execute-reviewer.md',
+    'apm-packages/pr-review-remediation/scripts/validate-execute-reviewer.ps1',
+    'apm-packages/pr-review-remediation/scripts/run-execute-reviewer-codex-smoke.ps1',
+    'apm-packages/pr-review-remediation/scripts/run-execute-reviewer-copilot-smoke.ps1',
+    'apm-packages/pr-review-remediation/tests/fixtures/fake-codex.cs',
+    'apm-packages/pr-review-remediation/tests/fixtures/fake-copilot.cs',
+    'tests/pr-review-remediation/execute-reviewer-smoke/README.md',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/purpose-review-findings.md',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/round-assessment.example.json',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/templates/review-result.example.json',
@@ -154,9 +162,13 @@ $goalSkill = 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-rev
 Assert-Contains $goalSkill 'name:\s*goal-context-pr-review' 'Goal Context Skill name'
 Assert-Contains $goalSkill 'scripts/select-goal-context\.cs' 'Goal Context selector asset'
 Assert-Contains $goalSkill 'scripts/manage-same-parent-review\.cs' 'canonical same-parent manager asset'
+Assert-Contains $goalSkill 'scripts/execute-reviewer\.cs' 'deterministic reviewer executor asset'
 Assert-Contains $goalSkill 'Complete.*HumanDecisionRequired.*Blocked' 'canonical terminal verdict vocabulary'
 Assert-Contains $goalSkill 'purpose-reviewer' 'independent purpose reviewer'
-Assert-Contains $goalSkill 'Round 1.*GitHub Copilot sources.*local reviewer.*purpose reviewer' 'full first-round mode'
+Assert-Contains $goalSkill 'execute-reviewer\.cs' 'executor invocation in Skill flow'
+Assert-Contains $goalSkill '--execution-app' 'typed execution app selection'
+Assert-Contains $goalSkill 'codex-exec|copilot-cli' 'supported execution apps'
+Assert-Contains $goalSkill 'Round 1: independent mandatory sources' 'full first-round mode'
 Assert-Contains $goalSkill 'Rounds 2 and 3: purpose-only' 'purpose-only later-round mode'
 Assert-Contains $goalSkill '唯一のwrite ownerは、このSkillを開始した元の親agent' 'original parent write ownership'
 Assert-Contains $goalSkill '別top-level Review / Implementation task、thread ID、artifact path、hash、JSON、result reference' 'no manual messenger normal path'
@@ -188,6 +200,19 @@ Assert-Contains $sameParentManager 'The current PR head has not changed after re
 Assert-Contains $sameParentManager 'Terminal projection must contain only schema/process/status/title/current PR URI' 'XC-001 safe projection validation'
 Assert-Contains $sameParentManager 'Terminal projection must not contain callback identity' 'XC-001 identity exclusion'
 Assert-NotContains $sameParentManager 'review-thread-id|implementation-thread-id|adaptive-result-reference|override-maximum-rounds' 'fixed task and round 4 inputs in canonical manager'
+Assert-NotContains $sameParentManager 'codex exec|spawn_agent|execute-reviewer' 'manager must not own reviewer process launch'
+$executor = 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/execute-reviewer.cs'
+Assert-Contains $executor '(?m)^#:property TargetFramework=net10\.0\s*$' 'executor File-based App target framework'
+Assert-Contains $executor 'Arbitrary raw command configuration is not allowed' 'executor rejects raw command strings'
+Assert-Contains $executor 'codex-exec' 'Codex exec adapter selection'
+Assert-Contains $executor 'copilot-cli' 'GitHub Copilot CLI adapter selection'
+Assert-Contains $executor 'AtomicWriteText' 'atomic raw artifact publication'
+Assert-Contains $executor 'empty_output|malformed_output|timeout|auth_failure' 'distinct execution failure statuses'
+Assert-Contains $executor 'Partial raw|partial-' 'partial artifact naming'
+Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/design.md' 'execute-reviewer\.cs' 'design documents executor boundary'
+Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/execute-reviewer.md' 'Arbitrary raw command strings' 'executor usage docs'
+Assert-NotContains $executor 'codex-first|copilot-fallback' 'executor independent of retired aggregates'
+Assert-NotContains $goalSkill 'codex-first|copilot-fallback' 'Skill independent of retired aggregates'
 $cycleManager = 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/manage-review-cycle.cs'
 Assert-Contains $cycleManager '(?m)^#:property TargetFramework=net10\.0\s*$' 'multi-round File-based App target framework'
 Assert-Contains $cycleManager 'DefaultMaximumRounds = 3' 'default maximum of three rounds'
@@ -390,6 +415,14 @@ $prr003Validator = Join-Path $packageRoot 'scripts\validate-prr-003-contract.ps1
 Invoke-Native 'pwsh' @('-NoProfile', '-File', $prr003Validator) 'PRR-003 deterministic multi-round replay' | Out-Null
 $sameParentValidator = Join-Path $packageRoot 'scripts\validate-same-parent-review.ps1'
 Invoke-Native 'pwsh' @('-NoProfile', '-File', $sameParentValidator) 'canonical same-parent deterministic replay' | Out-Null
+$executeReviewerValidator = Join-Path $packageRoot 'scripts\validate-execute-reviewer.ps1'
+Invoke-Native 'pwsh' @('-NoProfile', '-File', $executeReviewerValidator) 'deterministic reviewer executor' | Out-Null
+$codexSmokeRunner = Join-Path $packageRoot 'scripts\run-execute-reviewer-codex-smoke.ps1'
+$codexSmokeDescribe = Invoke-Native 'pwsh' @('-NoProfile', '-File', $codexSmokeRunner, '-RepositoryRoot', $repoRoot, '-DescribePayload') 'execute-reviewer codex smoke payload description'
+if ($codexSmokeDescribe.Output -notmatch 'codex-exec') { Add-Failure 'execute-reviewer codex smoke payload description missing codex-exec' }
+$copilotSmokeRunner = Join-Path $packageRoot 'scripts\run-execute-reviewer-copilot-smoke.ps1'
+$copilotSmokeDescribe = Invoke-Native 'pwsh' @('-NoProfile', '-File', $copilotSmokeRunner, '-RepositoryRoot', $repoRoot, '-DescribePayload') 'execute-reviewer copilot smoke payload description'
+if ($copilotSmokeDescribe.Output -notmatch 'copilot-cli') { Add-Failure 'execute-reviewer copilot smoke payload description missing copilot-cli' }
 
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("pr-review-remediation-validation-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tempRoot | Out-Null
@@ -399,6 +432,7 @@ try {
     $syncOut = Join-Path $tempRoot 'sync'
     $selectorOut = Join-Path $tempRoot 'selector'
     $sameParentOut = Join-Path $tempRoot 'same-parent-manager'
+    $executorOut = Join-Path $tempRoot 'execute-reviewer'
     $replayValidatorOut = Join-Path $tempRoot 'prr-002-replay-validator'
     $adaptiveSyncOut = Join-Path $tempRoot 'adaptive-sync'
     $collectorPath = Join-Path $repoRoot $collector
@@ -406,6 +440,7 @@ try {
     $syncPath = Join-Path $packageRoot 'scripts\sync-pr-review-remediation-local.cs'
     $selectorPath = Join-Path $packageRoot '.apm\skills\goal-context-pr-review\scripts\select-goal-context.cs'
     $sameParentPath = Join-Path $packageRoot '.apm\skills\goal-context-pr-review\scripts\manage-same-parent-review.cs'
+    $executorPath = Join-Path $packageRoot '.apm\skills\goal-context-pr-review\scripts\execute-reviewer.cs'
     $replayValidatorPath = Join-Path $packageRoot 'scripts\validate-prr-002-contract.cs'
     $adaptiveSyncPath = Join-Path $repoRoot 'apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs'
 
@@ -414,6 +449,7 @@ try {
     Invoke-Native 'dotnet' @('publish', $syncPath, '--output', $syncOut, '--disable-build-servers') 'profile sync helper publish' | Out-Null
     Invoke-Native 'dotnet' @('publish', $selectorPath, '--output', $selectorOut, '--disable-build-servers') 'Goal Context selector publish' | Out-Null
     Invoke-Native 'dotnet' @('publish', $sameParentPath, '--output', $sameParentOut, '--disable-build-servers') 'same-parent manager publish' | Out-Null
+    Invoke-Native 'dotnet' @('publish', $executorPath, '--output', $executorOut, '--disable-build-servers') 'reviewer executor publish' | Out-Null
     Invoke-Native 'dotnet' @('publish', $replayValidatorPath, '--output', $replayValidatorOut, '--disable-build-servers') 'PRR-002 replay validator publish' | Out-Null
     Invoke-Native 'dotnet' @('publish', $adaptiveSyncPath, '--output', $adaptiveSyncOut, '--disable-build-servers', '-p:PublishAot=false') 'Adaptive profile helper publish' | Out-Null
 
@@ -422,9 +458,10 @@ try {
     $syncExe = Join-Path $syncOut 'sync-pr-review-remediation-local.exe'
     $selectorExe = Join-Path $selectorOut 'select-goal-context.exe'
     $sameParentExe = Join-Path $sameParentOut 'manage-same-parent-review.exe'
+    $executorExe = Join-Path $executorOut 'execute-reviewer.exe'
     $replayValidatorExe = Join-Path $replayValidatorOut 'validate-prr-002-contract.exe'
     $adaptiveSyncExe = Join-Path $adaptiveSyncOut 'install-adaptive-implementation-local.exe'
-    foreach ($exe in @($collectorExe, $fakeExe, $syncExe, $selectorExe, $sameParentExe, $replayValidatorExe, $adaptiveSyncExe)) {
+    foreach ($exe in @($collectorExe, $fakeExe, $syncExe, $selectorExe, $sameParentExe, $executorExe, $replayValidatorExe, $adaptiveSyncExe)) {
         if (-not (Test-Path -LiteralPath $exe)) {
             Add-Failure "Missing published executable: $exe"
         }
@@ -434,6 +471,7 @@ try {
     Invoke-Native $syncExe @('--help') 'profile sync helper help' | Out-Null
     Invoke-Native $selectorExe @('--help') 'Goal Context selector help' | Out-Null
     Invoke-Native $sameParentExe @('--help') 'same-parent manager help' | Out-Null
+    Invoke-Native $executorExe @('--help') 'reviewer executor help' | Out-Null
     Invoke-Native $replayValidatorExe @('--help') 'PRR-002 replay validator help' | Out-Null
     Invoke-Native $collectorExe @('--unknown-option') 'collector invalid argument' $false | Out-Null
     Invoke-Native $syncExe @('--unknown-option') 'profile sync helper invalid argument' $false | Out-Null

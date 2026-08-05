@@ -22,7 +22,7 @@ $goal-context-pr-review
 ## Ownership and non-goals
 
 - production source、tests、docsの唯一のwrite ownerは、このSkillを開始した元の親agentです。
-- `local-reviewer`と`purpose-reviewer`は毎回新しいread-only subagentとして実行し、raw outputだけを返します。
+- `local-reviewer`と`purpose-reviewer`は決定的C# executor（`execute-reviewer.cs`）がtyped設定で起動し、最終review本文だけを既存raw artifactへ保存します。
 - reviewerはcommit、push、PR更新、review artifact編集を行いません。
 - same-parent managerが行うGitHub mutationは、round 1開始時のGitHub Copilot review要求だけです。
 - round 1だけがGitHub Copilot sources + local reviewer + purpose reviewerです。
@@ -51,15 +51,21 @@ Ready PRが0件、current branchにも一意fallbackにも決められない、D
 
 ## Round 1: independent mandatory sources
 
-親agentは生成済み`round-001/review-context.json`、`pr-diff.patch`、Goal Context selection、対象repository規約を直接読み、次の二つを独立したread-only subagentとして起動します。
+親agentは生成済みround artifactsを入力に、決定的executorで次の二つを独立に起動します。subagent spawnや実行アプリごとの手作業転記はnormal pathへ要求しません。
+
+```powershell
+dotnet run --file .agents/skills/goal-context-pr-review/scripts/execute-reviewer.cs -- --execution-app codex-exec --model gpt-5.6-terra --reviewer-role local-reviewer --run-root <auto-created-run-root> --round 1 --format json
+dotnet run --file .agents/skills/goal-context-pr-review/scripts/execute-reviewer.cs -- --execution-app codex-exec --model gpt-5.6-terra --reviewer-role purpose-reviewer --run-root <auto-created-run-root> --round 1 --format json
+```
 
 - `local-reviewer`: code/test/operation findingsを`LR-*`で返す。
 - `purpose-reviewer`: Goal Context outcome findingsを`PUR-*`で返す。
+- `--execution-app`は`codex-exec`または`copilot-cli`。任意の生command文字列は設定できない。
+- executorがatomicに保存する:
+  - `round-001/local-reviewer.raw.md` / `round-001/purpose-reviewer.raw.md`
+  - `round-001/{role}.execution.json`（execution metadata）
 
-返却内容を改変せず、それぞれ次へ保存します。
-
-- `round-001/local-reviewer.raw.md`
-- `round-001/purpose-reviewer.raw.md`
+timeout、auth failure、non-zero exit、empty/malformed outputは成功扱いにせず、partial rawをfinalとして公開しません。これらを「findingsなし」と解釈しません。
 
 collectorのGitHub Copilot sourcesが三つ目のmandatory sourceです。親agentの自己review、片方のreviewer、空artifactで代替しません。raw evidenceは常に`run-summary.md`より上位です。
 
@@ -88,17 +94,20 @@ dotnet run --file .agents/skills/goal-context-pr-review/scripts/manage-same-pare
 
 ## Rounds 2 and 3: purpose-only
 
-`next-round`はcollectorを`--no-wait-for-copilot`で実行し、current identity/patchを監査証跡として保持します。親agentは`local-reviewer`を起動せず、新しいread-only `purpose-reviewer`だけを起動します。
+`next-round`はcollectorを`--no-wait-for-copilot`で実行し、current identity/patchを監査証跡として保持します。親agentは`local-reviewer`を起動せず、executorで新しい`purpose-reviewer`だけを起動します。
 
-purpose reviewerへ次を渡します。
+```powershell
+dotnet run --file .agents/skills/goal-context-pr-review/scripts/execute-reviewer.cs -- --execution-app codex-exec --model gpt-5.6-terra --reviewer-role purpose-reviewer --run-root <auto-created-run-root> --round <n> --format json
+```
+
+executorがround artifactsから次を組み立てます。親remediation事実が必要な場合は`--additional-context-path`で渡せます。
 
 - current roundのcollector-declared identityとremote patch
 - selected Goal Contextとselection artifact
 - `run-state.json`のactive `TRK-*`
-- 直前roundのraw purpose evidenceとexplicit prior assessment
-- 親が実施した変更とvalidationの事実
+- 直前roundのraw purpose evidence
 
-raw outputを`round-NNN/purpose-reviewer.raw.md`へ保存します。全active `TRK-*`に対し、current `PUR-*` evidenceで`persistent | resolved`を明示します。新規/reopened findingもcurrent `PUR-*`だけを根拠にします。remote review/comment/checkはaudit-onlyであり、新しいactionable findingに変換しません。
+raw outputは`round-NNN/purpose-reviewer.raw.md`へatomic保存されます。親は全active `TRK-*`に対し、current `PUR-*` evidenceで`persistent | resolved`をassessmentへ明示します。新規/reopened findingもcurrent `PUR-*`だけを根拠にします。remote review/comment/checkはaudit-onlyであり、新しいactionable findingに変換しません。
 
 purpose-only `round-assessment.json`のmandatory sourceは`purpose-reviewer`だけです。`assess`はlocal artifact、Copilot mandatory source、prior assessment欠落、non-`PUR-*` actionable evidenceを拒否します。
 
@@ -135,6 +144,7 @@ real same-parent smokeではreviewer roles/countを`run-summary.md`から記録�
 ## Assets
 
 - `scripts/manage-same-parent-review.cs`: canonical same-parent orchestration/state address
+- `scripts/execute-reviewer.cs`: deterministic reviewer launch/wait/result capture (Codex exec / Copilot CLI)
 - `scripts/select-goal-context.cs`: canonical Goal Context selection integration
 - `scripts/manage-review-cycle.cs`: historical fixed two-task compatibility only
 - `templates/purpose-review-findings.md`
@@ -142,4 +152,5 @@ real same-parent smokeではreviewer roles/countを`run-summary.md`から記録�
 - `references/design.md`
 - `references/usage.md`
 - `references/troubleshooting.md`
+- `references/execute-reviewer.md`
 - shared collector: `../pr-review-remediation/scripts/collect-pr-review-context.cs`

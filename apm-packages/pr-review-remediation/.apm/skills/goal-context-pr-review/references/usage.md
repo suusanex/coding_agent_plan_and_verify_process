@@ -12,9 +12,14 @@ $goal-context-pr-review
 
 Goal Context候補が複数ある場合は、開始promptへexact repository-relative pathを一つ添えます。Goal Contextはfree-form textであり、特定の文書構造や作成経路は不要です。PRはcurrent branchのReady PRを優先し、fallbackも曖昧な場合だけ番号またはURLを短く指定します。thread ID、artifact path、hash、JSON、result referenceは入力しません。
 
-親agentはSkillの`start` commandを実行し、自動生成されたrun rootを内部で使用します。`start`はGitHub Copilot reviewを明示要求してからcollectorで待機します。collector-completeな`reviewOnly`と`reviewAndInline`をどちらも正常系として受理します。round 1のread-only reviewersを独立に起動し、raw outputsを保存してassessmentを記録します。findingがあれば親自身が修正・検証・current PR head更新を行い、`next-round`でpurpose-only reviewへ進みます。
+親agentはSkillの`start` commandを実行し、自動生成されたrun rootを内部で使用します。`start`はGitHub Copilot reviewを明示要求してからcollectorで待機します。collector-completeな`reviewOnly`と`reviewAndInline`をどちらも正常系として受理します。round 1のread-only reviewersは`execute-reviewer.cs`で独立に起動し、executorがraw outputsとexecution metadataを保存します。親はraw evidenceをassessmentへ投影して`assess`します。findingがあれば親自身が修正・検証・current PR head更新を行い、`next-round`後にpurpose-only reviewerを同じexecutorで起動します。
 
-installed Skillのcommand pathはrepository rootから`.agents/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs`です。source checkoutの`apm-packages/...` pathはpackage開発時だけ使います。
+installed Skillのcommand pathはrepository rootから次です。
+
+- `.agents/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs`
+- `.agents/skills/goal-context-pr-review/scripts/execute-reviewer.cs`
+
+source checkoutの`apm-packages/...` pathはpackage開発時だけ使います。詳細は`execute-reviewer.md`を参照します。
 
 ## Stop behavior
 
@@ -30,8 +35,11 @@ Blocked理由を解消できる場合も同じ親taskへ戻ります。別top-le
 
 ```powershell
 dotnet publish apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs -o <temporary-output>
+dotnet publish apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/execute-reviewer.cs -o <temporary-output>
 pwsh -NoProfile -File apm-packages/pr-review-remediation/scripts/validate-same-parent-review.ps1
+pwsh -NoProfile -File apm-packages/pr-review-remediation/scripts/validate-execute-reviewer.ps1
 dotnet run --file apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs -- --help
+dotnet run --file apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/execute-reviewer.cs -- --help
 ```
 
 ## Historical fixed two-task artifacts

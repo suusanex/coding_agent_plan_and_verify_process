@@ -14,6 +14,10 @@ Issue本文で代替しません。Goal Contextが存在しない場合は用意
 
 Round 1のCopilot、local、purposeはいずれもmandatoryです。collectorがcompleteとしたterminal `reviewOnly`はinline指摘0件の正常系として受理します。timeout、read-only reviewer failure、raw output欠落をno findingsへ変換せず`Blocked`にします。raw evidenceを親agentの自己評価で置き換えません。
 
+## Executor launch / capture failure
+
+`execute-reviewer.cs`のtimeout、auth failure、non-zero exit、empty/malformed output、process start failureはreview成功ではありません。final `*.raw.md`が無い、または`*.execution.json`の`exitStatus`が`succeeded`以外の場合はassessmentへ進まず`Blocked`にします。「findingsなし」へ読み替えません。任意の`--command`文字列、unsupported app/model/roleはtyped設定エラーです。詳細は`execute-reviewer.md`を参照します。
+
 ## Reviewer reports a write
 
 raw outputが`Production code changed: No`を満たさない場合、roundを受理しません。worktree diffを確認し、reviewerがproduction/tests/docsへwriteした可能性を解消してから新しいread-only reviewを実行します。
