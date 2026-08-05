@@ -19,6 +19,21 @@ if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) {
     $RepositoryRoot = [IO.Path]::GetFullPath($RepositoryRoot)
 }
 
+# Resolve the concrete executable so the executor's Process.Start (UseShellExecute=false)
+# can launch it. Prefer an .exe/.cmd (Application) over .ps1 ExternalScript shims.
+$resolvedCodex = $CodexCommand
+if (-not (Test-Path -LiteralPath $CodexCommand)) {
+    $all = @(Get-Command $CodexCommand -All -ErrorAction SilentlyContinue)
+    $app = $all | Where-Object { $_.CommandType -eq 'Application' } | Select-Object -First 1
+    if ($app) {
+        $resolvedCodex = $app.Source
+    } else {
+        $where = (& where.exe $CodexCommand 2>$null | Select-Object -First 1)
+        if ($where) { $resolvedCodex = $where }
+    }
+}
+$CodexCommand = $resolvedCodex
+
 $executor = Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\.apm\skills\goal-context-pr-review\scripts\execute-reviewer.cs'
 $skillRoot = Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\.apm\skills\goal-context-pr-review'
 if ([string]::IsNullOrWhiteSpace($EvidenceRoot)) {

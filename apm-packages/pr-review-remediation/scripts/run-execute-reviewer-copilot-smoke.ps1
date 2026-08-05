@@ -18,6 +18,21 @@ if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) {
     $RepositoryRoot = [IO.Path]::GetFullPath($RepositoryRoot)
 }
 
+# Resolve the concrete executable so the executor's Process.Start (UseShellExecute=false)
+# can launch it. Prefer an .exe/.cmd (Application) over .ps1 ExternalScript shims.
+$resolvedCopilot = $CopilotCommand
+if (-not (Test-Path -LiteralPath $CopilotCommand)) {
+    $all = @(Get-Command $CopilotCommand -All -ErrorAction SilentlyContinue)
+    $app = $all | Where-Object { $_.CommandType -eq 'Application' } | Select-Object -First 1
+    if ($app) {
+        $resolvedCopilot = $app.Source
+    } else {
+        $where = (& where.exe $CopilotCommand 2>$null | Select-Object -First 1)
+        if ($where) { $resolvedCopilot = $where }
+    }
+}
+$CopilotCommand = $resolvedCopilot
+
 $executor = Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\.apm\skills\goal-context-pr-review\scripts\execute-reviewer.cs'
 $skillRoot = Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\.apm\skills\goal-context-pr-review'
 if ([string]::IsNullOrWhiteSpace($EvidenceRoot)) {
@@ -42,7 +57,7 @@ function New-SmokeRun {
     Push-Location $repo
     try {
         git init -q | Out-Null
-        git -c user.email=smoke@example.com -c user.name=smoke add docs .github apm-packages | Out-Null
+        git -c user.email=smoke@example.com -c user.name=smoke add docs .github | Out-Null
         git -c user.email=smoke@example.com -c user.name=smoke commit -qm 'smoke fixture' | Out-Null
     } finally { Pop-Location }
 
