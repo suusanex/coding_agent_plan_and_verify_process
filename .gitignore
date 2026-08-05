@@ -2,6 +2,10 @@
 # APM dependencies
 apm_modules/
 
+# Copilot CLI qualification run output
+apm-packages/plan-coverage-residual-flow/tests/copilot-cli/runs/
+apm-packages/token-aware-full-coverage-3layer/tests/copilot-cli/runs/
+
 # File-based app publish output
 apm-packages/adaptive-implementation-execution/scripts/artifacts/
 scripts/codex-notification-runtime/artifacts/
