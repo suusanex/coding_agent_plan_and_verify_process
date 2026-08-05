@@ -32,6 +32,17 @@
     "delegation_surface_reduced": "N/A"
   },
   "qualification_status": "REAL_SCENARIO_INCOMPLETE",
+  "evidence_requirements": {
+    "resume_scenario_id": "new-session-resume",
+    "current_status": "UNOBSERVABLE",
+    "artifact_authoritative_resume": "NOT_PROVEN",
+    "pass_requires": [
+      "real CLI evidence source",
+      "tracked evidence bundle path and SHA-256",
+      "prompt, command, output, and artifact references",
+      "artifact paths with SHA-256, changed files, and verdict sequence"
+    ]
+  },
   "scenarios": [
     {
       "id": "install-and-skill-discovery",
@@ -119,9 +130,22 @@
     },
     {
       "id": "new-session-resume",
-      "status": "PASS",
-      "evidence": "A separate Copilot process using --resume=325c9c28-61a4-45a4-8369-3fccf55fe652 read the durable tuple and accepted artifact resume with adaptive/default metadata; conversation phase state remained unobservable.",
-      "validation": "session 325c9c28-61a4-45a4-8369-3fccf55fe652; exit 0; no files changed"
+      "status": "UNOBSERVABLE",
+      "evidence": "A separate Copilot process using --resume=325c9c28-61a4-45a4-8369-3fccf55fe652 observed conversation resume only; artifact-authoritative process resume was not proven.",
+      "validation": "session 325c9c28-61a4-45a4-8369-3fccf55fe652; exit 0; no files changed",
+      "evidence_declaration": {
+        "evidence_source": "real-cli",
+        "conversation_resume": "OBSERVED_ONLY",
+        "artifact_authoritative_resume": "NOT_PROVEN",
+        "evidence_bundle_path": null,
+        "evidence_bundle_sha256": null,
+        "prompt_reference": "session 325c9c28-61a4-45a4-8369-3fccf55fe652; prompt not retained in a committed evidence bundle",
+        "command_reference": "copilot --resume=325c9c28-61a4-45a4-8369-3fccf55fe652 (conversation resume only)",
+        "output_reference": null,
+        "artifact_references": [],
+        "changed_files": [],
+        "verdict_sequence": []
+      }
     },
     {
       "id": "stale-incomplete-artifact-failure",

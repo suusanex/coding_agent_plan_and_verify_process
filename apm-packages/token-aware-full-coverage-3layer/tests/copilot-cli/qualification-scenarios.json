@@ -117,6 +117,25 @@
       "implementation_route_source"
     ]
   },
+  "evidence_requirements": {
+    "resume_scenario_id": "new-session-parent-state-resume",
+    "pass_requires": [
+      "evidence_source=real-cli",
+      "evidence_declaration.artifact_authoritative_resume=PROVEN",
+      "evidence_declaration.evidence_bundle_path",
+      "evidence_declaration.evidence_bundle_sha256",
+      "evidence_declaration.prompt_reference",
+      "evidence_declaration.command_reference",
+      "evidence_declaration.output_reference",
+      "evidence_declaration.artifact_references with path and sha256",
+      "evidence_declaration.changed_files",
+      "evidence_declaration.verdict_sequence"
+    ],
+    "unobservable_requires": [
+      "evidence_declaration.artifact_authoritative_resume=NOT_PROVEN",
+      "evidence text states artifact-authoritative resume was not proven"
+    ]
+  },
   "real_cli_scenarios": [
     {
       "id": "compact-v2-two-slice",

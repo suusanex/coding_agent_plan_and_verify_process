@@ -127,6 +127,61 @@ function Get-ScenarioEvidence([object]$Scenario) {
     return 'No real CLI evidence was supplied for this scenario.'
 }
 
+function Validate-ResumeResult([object]$Result, [string]$ScenarioId) {
+    $status = ([string]$Result.status).ToUpperInvariant()
+    $declaration = $Result.evidence_declaration
+    if ($null -eq $declaration) {
+        throw "Resume scenario $ScenarioId requires evidence_declaration; static fixture or Skill discovery evidence is insufficient."
+    }
+
+    if ($status -eq 'PASS') {
+        if ([string]$declaration.evidence_source -cne 'real-cli') {
+            throw "Resume scenario $ScenarioId PASS requires evidence_source real-cli."
+        }
+        if ([string]$declaration.artifact_authoritative_resume -cne 'PROVEN') {
+            throw "Resume scenario $ScenarioId PASS requires explicit artifact-authoritative evidence."
+        }
+        if ([string]::IsNullOrWhiteSpace([string]$declaration.evidence_bundle_path) -or
+            [string]$declaration.evidence_bundle_path -ceq 'N/A') {
+            throw "Resume scenario $ScenarioId PASS requires an evidence bundle path."
+        }
+        if ([string]$declaration.evidence_bundle_sha256 -notmatch '^[0-9a-fA-F]{64}$') {
+            throw "Resume scenario $ScenarioId PASS requires a SHA-256 evidence bundle hash."
+        }
+        foreach ($referenceField in @('prompt_reference', 'command_reference', 'output_reference')) {
+            if ([string]::IsNullOrWhiteSpace([string]$declaration.$referenceField) -or
+                [string]$declaration.$referenceField -ceq 'N/A') {
+                throw "Resume scenario $ScenarioId PASS requires $referenceField."
+            }
+        }
+        if (@($declaration.artifact_references).Count -eq 0) {
+            throw "Resume scenario $ScenarioId PASS requires artifact references."
+        }
+        foreach ($artifact in @($declaration.artifact_references)) {
+            if ([string]::IsNullOrWhiteSpace([string]$artifact.path) -or
+                [string]$artifact.sha256 -notmatch '^[0-9a-fA-F]{64}$') {
+                throw "Resume scenario $ScenarioId PASS requires artifact paths with SHA-256."
+            }
+        }
+        if (@($declaration.changed_files).Count -eq 0 -or
+            @($declaration.verdict_sequence).Count -eq 0) {
+            throw "Resume scenario $ScenarioId PASS requires changed_files and verdict_sequence evidence."
+        }
+    }
+    elseif ($status -eq 'UNOBSERVABLE') {
+        if ([string]$declaration.artifact_authoritative_resume -cne 'NOT_PROVEN') {
+            throw "Resume scenario $ScenarioId UNOBSERVABLE must declare artifact-authoritative resume NOT_PROVEN."
+        }
+        if ($ScenarioId -eq 'new-session-resume' -and
+            [string]$Result.evidence -notmatch '(?i)conversation\s+resume') {
+            throw "Plan Coverage new-session-resume must identify conversation resume as observation only."
+        }
+        if ([string]$Result.evidence -notmatch '(?i)artifact-authoritative.*not proven') {
+            throw "Resume scenario $ScenarioId must state that artifact-authoritative resume was not proven."
+        }
+    }
+}
+
 function Import-ScenarioResults([string]$Path, [object[]]$FixtureScenarios) {
     if ([string]::IsNullOrWhiteSpace($Path)) {
         return @{}
@@ -140,8 +195,17 @@ function Import-ScenarioResults([string]$Path, [object[]]$FixtureScenarios) {
     if ([string]$document.package -cne $PackageName) {
         throw "Scenario result package does not match $PackageName."
     }
+    if ([string]$document.execution_kind -cne 'real-cli') {
+        throw 'Scenario result must identify execution_kind real-cli; static fixture or Skill discovery evidence is insufficient.'
+    }
 
     $fixtureIds = @($FixtureScenarios | ForEach-Object { [string]$_.id })
+    $resumeScenarioId = if ($PackageName -eq 'plan-coverage-residual-flow') {
+        'new-session-resume'
+    }
+    else {
+        'new-session-parent-state-resume'
+    }
     $resultMap = @{}
     foreach ($result in @($document.scenarios)) {
         $id = [string]$result.id
@@ -163,6 +227,9 @@ function Import-ScenarioResults([string]$Path, [object[]]$FixtureScenarios) {
         if ([string]$fixtureScenario.kind -ne 'blocked' -and $status -eq 'BLOCKED') {
             throw "Non-blocked scenario $id cannot be BLOCKED."
         }
+        if ($id -eq $resumeScenarioId) {
+            Validate-ResumeResult $result $resumeScenarioId
+        }
 
         $resultMap[$id] = [pscustomobject]@{
             Status = $status
@@ -170,6 +237,7 @@ function Import-ScenarioResults([string]$Path, [object[]]$FixtureScenarios) {
             Validation = if ($null -eq $result.validation) { 'not supplied' } else { [string]$result.validation }
             RequestedModel = if ($null -eq $result.requested_model) { 'not supplied' } else { [string]$result.requested_model }
             ObservedModel = if ($null -eq $result.observed_model) { 'not supplied' } else { [string]$result.observed_model }
+            EvidenceDeclaration = $result.evidence_declaration
         }
     }
     return $resultMap

@@ -30,6 +30,68 @@ function Forbid([string]$Text, [string]$Pattern, [string]$Label) {
     }
 }
 
+function Validate-ResumeEvidence([object]$Scenario, [string]$ScenarioId) {
+    if ($null -eq $Scenario) {
+        Fail "Committed real CLI result is missing resume scenario: $ScenarioId"
+        return
+    }
+
+    $status = [string]$Scenario.status
+    $declaration = $Scenario.evidence_declaration
+    if ($null -eq $declaration) {
+        Fail "Resume scenario $ScenarioId is missing evidence_declaration"
+        return
+    }
+
+    if ($status -eq 'PASS') {
+        if ([string]$declaration.evidence_source -cne 'real-cli') {
+            Fail "Resume scenario $ScenarioId PASS requires real-cli evidence_source"
+        }
+        if ([string]$declaration.artifact_authoritative_resume -cne 'PROVEN') {
+            Fail "Resume scenario $ScenarioId PASS requires explicit artifact-authoritative evidence"
+        }
+        if ([string]::IsNullOrWhiteSpace([string]$declaration.evidence_bundle_path) -or
+            [string]$declaration.evidence_bundle_path -ceq 'N/A') {
+            Fail "Resume scenario $ScenarioId PASS requires an evidence bundle path"
+        }
+        if ([string]$declaration.evidence_bundle_sha256 -notmatch '^[0-9a-fA-F]{64}$') {
+            Fail "Resume scenario $ScenarioId PASS requires a SHA-256 evidence bundle hash"
+        }
+        foreach ($referenceField in @('prompt_reference', 'command_reference', 'output_reference')) {
+            if ([string]::IsNullOrWhiteSpace([string]$declaration.$referenceField) -or
+                [string]$declaration.$referenceField -ceq 'N/A') {
+                Fail "Resume scenario $ScenarioId PASS requires $referenceField"
+            }
+        }
+        if (@($declaration.artifact_references).Count -eq 0) {
+            Fail "Resume scenario $ScenarioId PASS requires artifact references"
+        }
+        foreach ($artifact in @($declaration.artifact_references)) {
+            if ([string]::IsNullOrWhiteSpace([string]$artifact.path) -or
+                [string]$artifact.sha256 -notmatch '^[0-9a-fA-F]{64}$') {
+                Fail "Resume scenario $ScenarioId PASS requires artifact paths with SHA-256"
+            }
+        }
+        if (@($declaration.changed_files).Count -eq 0) {
+            Fail "Resume scenario $ScenarioId PASS requires changed_files evidence"
+        }
+        if (@($declaration.verdict_sequence).Count -eq 0) {
+            Fail "Resume scenario $ScenarioId PASS requires verdict_sequence evidence"
+        }
+    }
+    elseif ($status -eq 'UNOBSERVABLE') {
+        if ([string]$declaration.artifact_authoritative_resume -cne 'NOT_PROVEN') {
+            Fail "Resume scenario $ScenarioId UNOBSERVABLE must declare artifact-authoritative resume NOT_PROVEN"
+        }
+        if ([string]$Scenario.evidence -notmatch '(?i)conversation\s+resume') {
+            Fail "Resume scenario $ScenarioId must identify conversation resume as the observed boundary"
+        }
+        if ([string]$Scenario.evidence -notmatch '(?i)artifact-authoritative.*not proven') {
+            Fail "Resume scenario $ScenarioId must state that artifact-authoritative process resume was not proven"
+        }
+    }
+}
+
 $fixtureRelative = 'apm-packages/plan-coverage-residual-flow/tests/copilot-cli/qualification-scenarios.json'
 $fixture = $null
 try {
@@ -86,6 +148,8 @@ Require $runbook 'apm audit --ci' 'Copilot audit command'
 Require $runbook 'apm uninstall .*--dry-run' 'Copilot uninstall command'
 Require $runbook 'copilot skill list' 'Copilot Skill discovery command'
 Require $runbook 'copilot --resume' 'Copilot conversation resume command'
+Require $runbook 'artifact-authoritative process resume' 'artifact-authoritative resume boundary'
+Require $runbook 'Manual acceptance: artifact-authoritative new-session resume' 'manual resume acceptance section'
 Require $runbook 'implementation_route: adaptive' 'fresh Adaptive route metadata'
 Require $runbook 'implementation_route_source: default' 'fresh Adaptive route source'
 Require $runbook 'Issue #69' 'Design Pair blocker'
@@ -95,10 +159,15 @@ Require $template 'BLOCKED' 'Design Pair blocker status'
 Require $template 'REAL_SCENARIO_INCOMPLETE' 'incomplete top-level qualification status'
 Require $template 'implementation_route' 'route metadata'
 Require $template 'delegation_surface_reduced' 'adaptive route metadata'
+Require $template 'evidence_bundle_path' 'evidence bundle path'
+Require $template 'evidence_bundle_sha256' 'evidence bundle SHA-256'
+Require $template 'artifact_references' 'artifact references'
 Require $harness '--target.*copilot,agent-skills' 'harness Copilot targets'
 Require $harness 'copilot.*skill.*list' 'harness Skill discovery'
 Require $harness 'local-skill-only' 'local development limitation'
 Require $harness 'ScenarioResultsPath' 'recorded scenario result input'
+Require $harness 'artifact_authoritative_resume' 'resume evidence declaration'
+Require $harness 'evidence_bundle_sha256' 'resume evidence hash validation'
 Require $harness 'INSTALL_BOUNDARY' 'install boundary status'
 Require $harness 'SKILL_DISCOVERY' 'Skill discovery status'
 Require $harness 'REAL_SCENARIOS' 'real-scenario status'
@@ -214,6 +283,36 @@ if ($null -ne $fixture) {
         Fail 'Adaptive handoff fixture does not require bidirectional acceptance mapping and blocked-item rejection'
     }
 
+    $evidenceRequirements = $fixture.evidence_requirements
+    if ($null -eq $evidenceRequirements -or
+        [string]$evidenceRequirements.resume_scenario_id -cne 'new-session-resume') {
+        Fail 'Fixture is missing new-session resume evidence requirements'
+    }
+    foreach ($requirement in @(
+        'evidence_source=real-cli',
+        'evidence_declaration.artifact_authoritative_resume=PROVEN',
+        'evidence_declaration.evidence_bundle_path',
+        'evidence_declaration.evidence_bundle_sha256',
+        'evidence_declaration.prompt_reference',
+        'evidence_declaration.command_reference',
+        'evidence_declaration.output_reference',
+        'evidence_declaration.artifact_references with path and sha256',
+        'evidence_declaration.changed_files',
+        'evidence_declaration.verdict_sequence'
+    )) {
+        if ($null -eq $evidenceRequirements -or @($evidenceRequirements.pass_requires) -notcontains $requirement) {
+            Fail "Resume evidence requirement is missing: $requirement"
+        }
+    }
+    foreach ($requirement in @(
+        'evidence_declaration.artifact_authoritative_resume=NOT_PROVEN',
+        'evidence text states conversation resume only and artifact-authoritative process resume was not proven'
+    )) {
+        if ($null -eq $evidenceRequirements -or @($evidenceRequirements.unobservable_requires) -notcontains $requirement) {
+            Fail "UNOBSERVABLE resume evidence requirement is missing: $requirement"
+        }
+    }
+
     $scenarioIds = @($fixture.real_cli_scenarios | ForEach-Object { [string]$_.id })
     foreach ($requiredId in @('install-and-skill-discovery', 'explicit-lite', 'explicit-standard', 'unauthorized-generic', 'unauthorized-question-comparison-negation', 'durable-authorized-resume', 'default-adaptive-route', 'high-to-standard-completion', 'high-reentry', 'blocked-human-decision-replan', 'architecture-slice-readiness', 'two-slice-v2', 'independent-verification', 'final-record-residual-decision', 'new-session-resume', 'stale-incomplete-artifact-failure', 'design-pair-e2e')) {
         if ($scenarioIds -notcontains $requiredId) {
@@ -236,6 +335,14 @@ if ($null -ne $realResult) {
     if ([string]$realResult.qualification_status -cne 'REAL_SCENARIO_INCOMPLETE') {
         Fail 'Committed real CLI result must not claim qualification while scenarios are unresolved'
     }
+    if ([string]$realResult.execution_kind -cne 'real-cli') {
+        Fail 'Committed real CLI result must identify execution_kind real-cli'
+    }
+    if ([string]$realResult.evidence_requirements.resume_scenario_id -cne 'new-session-resume' -or
+        [string]$realResult.evidence_requirements.current_status -cne 'UNOBSERVABLE' -or
+        [string]$realResult.evidence_requirements.artifact_authoritative_resume -cne 'NOT_PROVEN') {
+        Fail 'Committed Plan Coverage resume evidence requirements must remain explicitly UNOBSERVABLE and NOT_PROVEN'
+    }
     if ([string]$realResult.full_package_install.status -cne 'PASS' -or
         [string]$realResult.full_package_install.lock_ref -cne [string]$realResult.source_ref) {
         Fail 'Committed real CLI result is missing final-head installation evidence'
@@ -250,6 +357,11 @@ if ($null -ne $realResult) {
             Fail "Committed real CLI result is missing scenario: $requiredId"
         }
     }
+    $realResume = $realResult.scenarios | Where-Object { $_.id -ceq 'new-session-resume' }
+    if ($null -eq $realResume -or [string]$realResume.status -cne 'UNOBSERVABLE') {
+        Fail 'Committed Plan Coverage new-session-resume must remain UNOBSERVABLE'
+    }
+    Validate-ResumeEvidence $realResume 'new-session-resume'
     $realDesignPair = $realResult.scenarios | Where-Object { $_.id -ceq 'design-pair-e2e' }
     if ($null -eq $realDesignPair -or [string]$realDesignPair.status -cne 'BLOCKED') {
         Fail 'Committed real CLI result must keep Design Pair BLOCKED'

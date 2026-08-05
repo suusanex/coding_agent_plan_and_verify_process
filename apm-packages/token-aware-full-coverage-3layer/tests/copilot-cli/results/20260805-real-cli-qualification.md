@@ -38,9 +38,17 @@ as completed.
 | Compact Slice Record v2 two-slice | `UNOBSERVABLE` | Session `9c2e7a49-563d-4a57-9f19-a76b963d1cd8`; missing Parent State, ledger, Slice Records, and authorization returned `BlockedByArtifactLayoutMismatch`. |
 | Parent authorization and independent verification | `UNOBSERVABLE` | Session `bd5c5973-ec8f-4f7d-b6b4-40cf88da6355`; required artifacts were absent, so authorization/delegation/verification were not observed. |
 | Final Record through residual decision | `UNOBSERVABLE` | Session `940dc751-fec1-488c-b96e-ba7210673dcf`; Final Record and upstream artifacts were absent. |
-| New-session Parent State resume | `UNOBSERVABLE` | Session `3b83102d-336c-41bf-8bcc-3dfabb138852`; no durable Parent State or route/layout metadata existed. |
+| New-session Parent State resume | `UNOBSERVABLE` | Session `3b83102d-336c-41bf-8bcc-3dfabb138852`; no durable Parent State or route/layout metadata existed, and artifact-authoritative resume was not proven. |
 | Stale or incomplete layout failure | `PASS` | Session `669dc742-0b1b-4648-93f2-1076206a2cc1`; missing, mixed, contradictory, or stale layout returned `BlockedByArtifactLayoutMismatch` and stopped. |
 | Design Pair E2E | `BLOCKED` | Issue #69 canonical Copilot support is not merged. |
+
+### New-session Parent State resume evidence declaration
+
+- Artifact-authoritative process resume: `NOT_PROVEN`
+- Evidence bundle path and SHA-256: not committed
+- Human acceptance must use a fresh session without conversation history and
+  record prompt, command, output, artifact paths/hashes, changed files, and
+  verdict sequence, including a negative fail-closed run.
 
 Remaining work is a real positive-path two-slice execution with durable Parent
 State, independent verification, Final Record, cross-slice verification, and

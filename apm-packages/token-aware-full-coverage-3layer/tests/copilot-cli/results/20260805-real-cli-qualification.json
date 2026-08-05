@@ -32,6 +32,17 @@
     "delegation_surface_reduced": "N/A"
   },
   "qualification_status": "REAL_SCENARIO_INCOMPLETE",
+  "evidence_requirements": {
+    "resume_scenario_id": "new-session-parent-state-resume",
+    "current_status": "UNOBSERVABLE",
+    "artifact_authoritative_resume": "NOT_PROVEN",
+    "pass_requires": [
+      "real CLI evidence source",
+      "tracked evidence bundle path and SHA-256",
+      "prompt, command, output, and artifact references",
+      "artifact paths with SHA-256, changed files, and verdict sequence"
+    ]
+  },
   "scenarios": [
     {
       "id": "compact-v2-two-slice",
@@ -54,8 +65,21 @@
     {
       "id": "new-session-parent-state-resume",
       "status": "UNOBSERVABLE",
-      "evidence": "Copilot reported resume unavailable because no durable Parent Orchestration State or route/layout metadata existed; conversation resume cannot substitute for Parent State resume.",
-      "validation": "session 3b83102d-336c-41bf-8bcc-3dfabb138852; no files changed"
+      "evidence": "Copilot reported resume unavailable because no durable Parent Orchestration State or route/layout metadata existed; artifact-authoritative resume was not proven, and conversation resume cannot substitute for Parent State resume.",
+      "validation": "session 3b83102d-336c-41bf-8bcc-3dfabb138852; no files changed",
+      "evidence_declaration": {
+        "evidence_source": "real-cli",
+        "conversation_resume": "NOT_USED_AS_AUTHORITY",
+        "artifact_authoritative_resume": "NOT_PROVEN",
+        "evidence_bundle_path": null,
+        "evidence_bundle_sha256": null,
+        "prompt_reference": "session 3b83102d-336c-41bf-8bcc-3dfabb138852; prompt not retained in a committed evidence bundle",
+        "command_reference": "fresh Copilot CLI session without conversation history",
+        "output_reference": null,
+        "artifact_references": [],
+        "changed_files": [],
+        "verdict_sequence": []
+      }
     },
     {
       "id": "stale-or-incomplete-layout-failure",

@@ -78,6 +78,30 @@ freshness metadata returns `BlockedByArtifactLayoutMismatch` or the applicable
 fail-closed verdict. Existing `legacy-split-v1` runs remain legacy-resume only;
 they are not migrated.
 
+## Manual acceptance: Full Coverage artifact-authoritative new-session resume
+
+This human acceptance is **not currently passed**. The committed
+`new-session-parent-state-resume` result must remain `UNOBSERVABLE`; the
+artifact-authoritative resume was not proven.
+
+In a disposable repository, prepare a valid tracked
+`compact-slice-record-v2` Parent Orchestration State, Plan Coverage ledger,
+route authorization, last verdict, and exact next action. The Parent State must
+also point to the current Coverage Ledger, Slice Records, and Final Record
+with matching baseline/layout metadata. Start a fresh Copilot CLI session
+without conversation history as authority (plain `copilot`, not
+`--continue`/`--resume`) and verify that it reloads those tracked artifacts,
+preserves route metadata, and fails closed for a missing, stale, mixed, or
+contradictory artifact.
+
+Retain a tracked evidence bundle containing the exact prompt and command,
+CLI/APM/package versions and source revision, raw output/log paths and
+SHA-256 hashes, every artifact path and before/after SHA-256, changed files
+(including no-change evidence), the ordered verdict sequence, observed route
+metadata, and the negative fail-closed run. Only that real bundle may declare
+`artifact_authoritative_resume: PROVEN`; this package currently records
+`NOT_PROVEN` and `REAL_SCENARIO_INCOMPLETE`.
+
 ## Qualification and evidence
 
 The package-owned deterministic fixture binds Architecture Slice Readiness,

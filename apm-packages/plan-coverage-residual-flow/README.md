@@ -277,6 +277,11 @@ coverage ledger、handoff、Parent State、Slice Record、Final Recordの
 観測できない場合はrequested / observed modelを分けて`ManualOnly`または
 unsupportedとして記録します。
 
+Artifact-authoritativeなnew-session resumeは現在
+`UNOBSERVABLE`です。必要な人手テスト、fail-closed確認、証跡bundleの
+必須項目は[Copilot CLI qualification runbook](tests/copilot-cli/README.md)
+のmanual acceptanceに記載し、会話resumeだけでは`PASS`にしません。
+
 Troubleshooting: Skillが表示されない場合は`.agents/skills`と
 `.github/agents`の導入先、`apm install --frozen`、`apm audit --ci`を確認します。
 同名agentのcollisionはownershipを確認するまで`--force`で上書きしません。

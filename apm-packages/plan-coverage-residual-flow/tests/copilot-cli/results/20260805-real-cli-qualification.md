@@ -50,9 +50,18 @@ production artifact completion.
 | Compact Slice Record v2 two-slice | `UNOBSERVABLE` | Session `01ac7bc4-2236-4180-ad31-666f0ebfccc6`; missing v2 artifacts returned `BlockedByArtifactLayoutMismatch`. |
 | Independent verification | `UNOBSERVABLE` | Session `06ea905c-8086-4e37-945d-58307c349bac`; missing Plan/ledger/binding evidence returned a blocked verdict. |
 | Final Record through residual decision | `UNOBSERVABLE` | Session `31ad0566-0b12-4faf-afe3-7b680a04423f`; Final Record and upstream artifacts were absent. |
-| New-session resume | `PASS` | A separate process used `copilot --resume=325c9c28-61a4-45a4-8369-3fccf55fe652`; artifact resume was accepted, conversation phase state remained unobservable. |
+| New-session resume | `UNOBSERVABLE` | A separate process used `copilot --resume=325c9c28-61a4-45a4-8369-3fccf55fe652`; conversation resume was observed only, and artifact-authoritative process resume was not proven. |
 | Stale/incomplete artifact failure | `PASS` | Session `aed962e2-93b9-446a-9e55-dbeee70bbee9`; `BLOCKED_BY_ARTIFACT_MISMATCH` stopped continuation. |
 | Design Pair E2E | `BLOCKED` | Issue #69 canonical Copilot support is not merged. |
+
+### New-session resume evidence declaration
+
+- `copilot --resume=<session-id>`: `OBSERVED_ONLY` conversation resume
+- Artifact-authoritative process resume: `NOT_PROVEN`
+- Evidence bundle path and SHA-256: not committed
+- Human acceptance must use a fresh session without conversation history and
+  record prompt, command, output, artifact paths/hashes, changed files, and
+  verdict sequence.
 
 Remaining work is real execution evidence for the unobservable HIGH/STANDARD
 phase transitions, Architecture Slice Readiness positive path, compact v2

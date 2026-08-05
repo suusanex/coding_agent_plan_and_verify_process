@@ -176,6 +176,25 @@
     },
     "capability_statement": "Record requested and observed model values; do not claim per-agent model locking when the CLI cannot expose or enforce it."
   },
+  "evidence_requirements": {
+    "resume_scenario_id": "new-session-resume",
+    "pass_requires": [
+      "evidence_source=real-cli",
+      "evidence_declaration.artifact_authoritative_resume=PROVEN",
+      "evidence_declaration.evidence_bundle_path",
+      "evidence_declaration.evidence_bundle_sha256",
+      "evidence_declaration.prompt_reference",
+      "evidence_declaration.command_reference",
+      "evidence_declaration.output_reference",
+      "evidence_declaration.artifact_references with path and sha256",
+      "evidence_declaration.changed_files",
+      "evidence_declaration.verdict_sequence"
+    ],
+    "unobservable_requires": [
+      "evidence_declaration.artifact_authoritative_resume=NOT_PROVEN",
+      "evidence text states conversation resume only and artifact-authoritative process resume was not proven"
+    ]
+  },
   "real_cli_scenarios": [
     {
       "id": "install-and-skill-discovery",

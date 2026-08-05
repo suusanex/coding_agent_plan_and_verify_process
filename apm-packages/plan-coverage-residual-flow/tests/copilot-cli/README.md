@@ -114,6 +114,51 @@ evidence, coverage ledger, Parent State, Slice Records, or Final Record required
 by the current phase. Missing or contradictory route or layout metadata fails
 closed rather than defaulting to Adaptive.
 
+## Manual acceptance: artifact-authoritative new-session resume
+
+This is a human-required acceptance and is **not currently passed**. The
+committed `new-session-resume` result remains `UNOBSERVABLE`. Do not promote it
+to `PASS` from `copilot --resume`, `copilot --continue`, static fixtures, or
+Skill discovery.
+
+In a disposable repository, first create and commit a valid, internally
+consistent set of tracked artifacts:
+
+- Parent Orchestration State pointing to the Plan Coverage ledger and the
+  current phase;
+- Plan Coverage ledger with the authorized requirement rows and route
+  authorization;
+- `implementation_route: adaptive` and
+  `implementation_route_source: default` (or an explicitly user-selected
+  route with its evidence);
+- the last verdict and its validation evidence; and
+- the exact next action, owner, and fail-closed conditions.
+
+Start a **fresh Copilot CLI session with no conversation history as authority**
+using plain `copilot` (do not use `--continue` or `--resume` to establish
+process state). Ask it to reload the tracked artifacts and continue only from
+the recorded next action. Verify that it reloads the committed artifacts,
+preserves route metadata, and stops fail-closed when an artifact is missing,
+stale, or contradictory.
+
+The human evidence bundle must be committed or otherwise retained at a tracked
+path and record all of the following:
+
+1. exact prompt text and the fresh-session command;
+2. Copilot CLI/APM/package version and source revision;
+3. raw CLI output and debug-log paths plus SHA-256 hashes;
+4. every Parent State, ledger, authorization, verdict, and next-action path
+   with its before/after SHA-256;
+5. changed-file manifest (including an explicit no-change result);
+6. the ordered verdict sequence and observed route metadata; and
+7. a negative fresh-session run showing the expected fail-closed verdict for
+   missing or contradictory artifacts.
+
+Only this real, artifact-authoritative process resume evidence can justify
+`artifact_authoritative_resume: PROVEN`; until then record
+`artifact_authoritative_resume: NOT_PROVEN` and
+`REAL_SCENARIO_INCOMPLETE`.
+
 ## Capability honesty
 
 `copilot --model <model>` selects a session model, but the CLI does not provide a

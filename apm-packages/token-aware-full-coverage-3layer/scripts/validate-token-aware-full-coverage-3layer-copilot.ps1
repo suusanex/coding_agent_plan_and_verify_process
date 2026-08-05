@@ -31,6 +31,65 @@ function Forbid([string]$Text, [string]$Pattern, [string]$Label) {
     }
 }
 
+function Validate-ResumeEvidence([object]$Scenario, [string]$ScenarioId) {
+    if ($null -eq $Scenario) {
+        Fail "Committed real CLI result is missing resume scenario: $ScenarioId"
+        return
+    }
+
+    $status = [string]$Scenario.status
+    $declaration = $Scenario.evidence_declaration
+    if ($null -eq $declaration) {
+        Fail "Resume scenario $ScenarioId is missing evidence_declaration"
+        return
+    }
+
+    if ($status -eq 'PASS') {
+        if ([string]$declaration.evidence_source -cne 'real-cli') {
+            Fail "Resume scenario $ScenarioId PASS requires real-cli evidence_source"
+        }
+        if ([string]$declaration.artifact_authoritative_resume -cne 'PROVEN') {
+            Fail "Resume scenario $ScenarioId PASS requires explicit artifact-authoritative evidence"
+        }
+        if ([string]::IsNullOrWhiteSpace([string]$declaration.evidence_bundle_path) -or
+            [string]$declaration.evidence_bundle_path -ceq 'N/A') {
+            Fail "Resume scenario $ScenarioId PASS requires an evidence bundle path"
+        }
+        if ([string]$declaration.evidence_bundle_sha256 -notmatch '^[0-9a-fA-F]{64}$') {
+            Fail "Resume scenario $ScenarioId PASS requires a SHA-256 evidence bundle hash"
+        }
+        foreach ($referenceField in @('prompt_reference', 'command_reference', 'output_reference')) {
+            if ([string]::IsNullOrWhiteSpace([string]$declaration.$referenceField) -or
+                [string]$declaration.$referenceField -ceq 'N/A') {
+                Fail "Resume scenario $ScenarioId PASS requires $referenceField"
+            }
+        }
+        if (@($declaration.artifact_references).Count -eq 0) {
+            Fail "Resume scenario $ScenarioId PASS requires artifact references"
+        }
+        foreach ($artifact in @($declaration.artifact_references)) {
+            if ([string]::IsNullOrWhiteSpace([string]$artifact.path) -or
+                [string]$artifact.sha256 -notmatch '^[0-9a-fA-F]{64}$') {
+                Fail "Resume scenario $ScenarioId PASS requires artifact paths with SHA-256"
+            }
+        }
+        if (@($declaration.changed_files).Count -eq 0) {
+            Fail "Resume scenario $ScenarioId PASS requires changed_files evidence"
+        }
+        if (@($declaration.verdict_sequence).Count -eq 0) {
+            Fail "Resume scenario $ScenarioId PASS requires verdict_sequence evidence"
+        }
+    }
+    elseif ($status -eq 'UNOBSERVABLE') {
+        if ([string]$declaration.artifact_authoritative_resume -cne 'NOT_PROVEN') {
+            Fail "Resume scenario $ScenarioId UNOBSERVABLE must declare artifact-authoritative resume NOT_PROVEN"
+        }
+        if ([string]$Scenario.evidence -notmatch '(?i)artifact-authoritative.*not proven') {
+            Fail "Resume scenario $ScenarioId must state that artifact-authoritative resume was not proven"
+        }
+    }
+}
+
 $fixtureRelative = 'apm-packages/token-aware-full-coverage-3layer/tests/copilot-cli/qualification-scenarios.json'
 $fixture = $null
 try {
@@ -85,6 +144,8 @@ Require $runbook 'apm uninstall .*--dry-run' 'Copilot uninstall command'
 Require $runbook 'copilot skill list' 'Copilot Skill discovery command'
 Require $runbook 'Parent Orchestration State' 'durable Parent State resume'
 Require $runbook 'compact-slice-record-v2' 'compact v2 layout'
+Require $runbook 'Manual acceptance: Full Coverage artifact-authoritative new-session resume' 'manual resume acceptance section'
+Require $runbook 'artifact-authoritative resume was not proven' 'artifact-authoritative resume limitation'
 Require $runbook 'legacy-split-v1' 'legacy resume boundary'
 Require $runbook 'Issue #69' 'Design Pair blocker'
 Require $runbook 'validate-copilot-full-package-install.ps1' 'full-package installation check'
@@ -92,6 +153,7 @@ Require $runbook 'REAL_SCENARIO_INCOMPLETE' 'incomplete top-level qualification 
 Require $skill 'full_coverage_artifact_layout: compact-slice-record-v2' 'canonical v2 layout'
 Require $skill 'Parent State is the mandatory resume entrypoint' 'canonical resume contract'
 Require $skill 'Design Pair' 'canonical Design Pair boundary'
+Require $readme 'artifact-authoritative' 'package README resume evidence boundary'
 
 if ($null -ne $fixture) {
     if ($fixture.schema_version -ne 1) { Fail 'Qualification fixture schema_version must be 1' }
@@ -179,6 +241,36 @@ if ($null -ne $fixture) {
         }
     }
 
+    $evidenceRequirements = $fixture.evidence_requirements
+    if ($null -eq $evidenceRequirements -or
+        [string]$evidenceRequirements.resume_scenario_id -cne 'new-session-parent-state-resume') {
+        Fail 'Fixture is missing Full Coverage resume evidence requirements'
+    }
+    foreach ($requirement in @(
+        'evidence_source=real-cli',
+        'evidence_declaration.artifact_authoritative_resume=PROVEN',
+        'evidence_declaration.evidence_bundle_path',
+        'evidence_declaration.evidence_bundle_sha256',
+        'evidence_declaration.prompt_reference',
+        'evidence_declaration.command_reference',
+        'evidence_declaration.output_reference',
+        'evidence_declaration.artifact_references with path and sha256',
+        'evidence_declaration.changed_files',
+        'evidence_declaration.verdict_sequence'
+    )) {
+        if ($null -eq $evidenceRequirements -or @($evidenceRequirements.pass_requires) -notcontains $requirement) {
+            Fail "Resume evidence requirement is missing: $requirement"
+        }
+    }
+    foreach ($requirement in @(
+        'evidence_declaration.artifact_authoritative_resume=NOT_PROVEN',
+        'evidence text states artifact-authoritative resume was not proven'
+    )) {
+        if ($null -eq $evidenceRequirements -or @($evidenceRequirements.unobservable_requires) -notcontains $requirement) {
+            Fail "UNOBSERVABLE resume evidence requirement is missing: $requirement"
+        }
+    }
+
     $scenarioIds = @($fixture.real_cli_scenarios | ForEach-Object { [string]$_.id })
     foreach ($requiredId in @('compact-v2-two-slice', 'parent-authorization-and-independent-verification', 'final-record-through-residual-decision', 'new-session-parent-state-resume', 'stale-or-incomplete-layout-failure', 'design-pair-e2e')) {
         if ($scenarioIds -notcontains $requiredId) {
@@ -201,6 +293,14 @@ if ($null -ne $realResult) {
     if ([string]$realResult.qualification_status -cne 'REAL_SCENARIO_INCOMPLETE') {
         Fail 'Committed real CLI result must not claim qualification while scenarios are unresolved'
     }
+    if ([string]$realResult.execution_kind -cne 'real-cli') {
+        Fail 'Committed real CLI result must identify execution_kind real-cli'
+    }
+    if ([string]$realResult.evidence_requirements.resume_scenario_id -cne 'new-session-parent-state-resume' -or
+        [string]$realResult.evidence_requirements.current_status -cne 'UNOBSERVABLE' -or
+        [string]$realResult.evidence_requirements.artifact_authoritative_resume -cne 'NOT_PROVEN') {
+        Fail 'Committed Full Coverage resume evidence requirements must remain explicitly UNOBSERVABLE and NOT_PROVEN'
+    }
     if ([string]$realResult.full_package_install.status -cne 'PASS' -or
         [string]$realResult.full_package_install.lock_ref -cne [string]$realResult.source_ref) {
         Fail 'Committed real CLI result is missing final-head installation evidence'
@@ -215,6 +315,11 @@ if ($null -ne $realResult) {
             Fail "Committed real CLI result is missing scenario: $requiredId"
         }
     }
+    $realResume = $realResult.scenarios | Where-Object { $_.id -ceq 'new-session-parent-state-resume' }
+    if ($null -eq $realResume -or [string]$realResume.status -cne 'UNOBSERVABLE') {
+        Fail 'Committed Full Coverage new-session-parent-state-resume must remain UNOBSERVABLE'
+    }
+    Validate-ResumeEvidence $realResume 'new-session-parent-state-resume'
     $realDesignPair = $realResult.scenarios | Where-Object { $_.id -ceq 'design-pair-e2e' }
     if ($null -eq $realDesignPair -or [string]$realDesignPair.status -cne 'BLOCKED') {
         Fail 'Committed real CLI result must keep Design Pair BLOCKED'

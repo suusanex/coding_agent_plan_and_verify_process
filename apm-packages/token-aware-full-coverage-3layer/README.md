@@ -85,6 +85,11 @@ stale baseline、mixed layout、欠落route metadataは推測・migrationせず
 fail closedにします。per-agent model lockがCLIで観測できない場合は
 requested / observed modelを分け、unsupportedまたは`ManualOnly`として記録します。
 
+Parent Stateのartifact-authoritativeなnew-session resumeは現在
+`UNOBSERVABLE`です。人手での正の再開と負のfail-closed確認に必要な
+証跡bundle項目は[Copilot CLI qualification runbook](tests/copilot-cli/README.md)
+にまとめ、会話resumeやSkill discoveryだけでは`PASS`にしません。
+
 Troubleshooting: Skillが表示されない場合は`.agents/skills`と
 `.github/instructions`、`.github/agents`、lockfileの整合を確認し、
 `apm install --frozen`と`apm audit --ci`を再実行します。同名agentのcollisionは
