@@ -194,7 +194,7 @@ When full-coverage decomposition is selected, the documentation level remains `s
 Lite may use Inline Ready Gate as an implementation authorization source only when the gate is explicitly equivalent to implementation handoff review and complete.
 Otherwise, the flow must use `standard` or stop before implementation.
 
-Maintainers should validate this split with `apm-packages/codex-first-ai-development-process/docs/examples/lite-standard-validation.md`, including artifact count / sections read comparison and the negative scans listed there.
+Maintainers should run `apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1` for its implemented package-layout, explicit invocation-authorization, fixture, and manual-smoke-template checks. Use the package-owned `tests/invocation-authorization-scenarios.json` scenarios and `tests/manual-model-smoke/` for authorization behavior and manual smoke evidence; this validator does not perform artifact-count / sections-read comparisons or broad negative scans.
 
 ## Recommended process flows
 

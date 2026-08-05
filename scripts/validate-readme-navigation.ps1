@@ -26,9 +26,7 @@ $documentationFiles = @(
     'scripts/codex-notification-runtime/README.md',
     'apm-packages/completion-notification-decorator/.apm/skills/completion-notification-decorator/assets/codex-notification-runtime/README.md',
     'apm-packages/adaptive-implementation-execution/README.md',
-    'apm-packages/codex-first-ai-development-process/README.md',
     'apm-packages/completion-notification-decorator/README.md',
-    'apm-packages/copilot-fallback-ai-development-process/README.md',
     'apm-packages/design-pair-implementation-execution/README.md',
     'apm-packages/full-autonomous-plan-first-flow/README.md',
     'apm-packages/goal-context-authoring/README.md',
@@ -53,8 +51,6 @@ foreach ($target in @(
     'apm-packages/plan-coverage-residual-flow/README.md',
     'apm-packages/adaptive-implementation-execution/README.md',
     'apm-packages/design-pair-implementation-execution/README.md',
-    'apm-packages/codex-first-ai-development-process/README.md',
-    'apm-packages/copilot-fallback-ai-development-process/README.md',
     'apm-packages/full-autonomous-plan-first-flow/README.md',
     'apm-packages/token-aware-full-coverage-3layer/README.md',
     'apm-packages/pr-review-remediation/README.md',
@@ -81,21 +77,6 @@ if (($rootReadme -split "`n").Count -gt 120) {
 
 if ($rootReadme -match '(?im)^[ \t]*```[ \t]*(?:powershell|pwsh|ps1)[ \t]*$') {
     Add-Failure 'Root README must not contain detailed PowerShell, pwsh, or ps1 procedures.'
-}
-
-$codexFirstReadme = Read-Text 'apm-packages/codex-first-ai-development-process/README.md'
-if (-not $codexFirstReadme.Contains('.\apm-packages\codex-first-ai-development-process\scripts\apply-codex-first-local.cs', [StringComparison]::Ordinal)) {
-    Add-Failure 'Codex-first README must provide a repository-root-relative installer path.'
-}
-
-$fallbackReadme = Read-Text 'apm-packages/copilot-fallback-ai-development-process/README.md'
-if (-not $fallbackReadme.Contains('.\apm-packages\copilot-fallback-ai-development-process\scripts\install-copilot-fallback-local.cs', [StringComparison]::Ordinal)) {
-    Add-Failure 'Copilot fallback README must provide a repository-root-relative installer path.'
-}
-foreach ($limitation in @('lite / standard documentation level', 'core / audit artifact分離', 'profile TOML互換更新', '未移植')) {
-    if (-not $fallbackReadme.Contains($limitation, [StringComparison]::Ordinal)) {
-        Add-Failure "Copilot fallback README is missing compatibility limitation: $limitation"
-    }
 }
 
 $fullAutonomousReadme = Read-Text 'apm-packages/full-autonomous-plan-first-flow/README.md'

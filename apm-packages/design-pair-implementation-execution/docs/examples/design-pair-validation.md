@@ -117,16 +117,15 @@ Expected:
 - STANDARD_MODELのHigh-model Re-entry Handoffは両route fieldとDesign Pair handoff pathを変更せず保持し、parentは元completion handoffとともにHIGH_MODELへ再投入する
 - partial current-schema handoffにはlegacy normalizationを適用しない
 
-## DP-VAL-010: One-off Codex-first launcher payload
+## DP-VAL-010: Independent canonical package installation
 
-Input: `codex-first-start.ps1`から一時`CODEX_HOME`を作成する。
+Input: Design PairとAdaptive Implementationをcanonical packageの導入手順だけで導入する。
 
 Expected:
 
-- Codex-first router skillをコピーする
-- Adaptive skillと`refs/intent.md` / `refs/handoff.md`をコピーする
-- Design Pair skillと`map.md` / `handoff.md`をコピーする
-- explicit Design Pair routeがmissing skillで停止しない
+- Design Pairは自身のAPM manifestとAdaptive package dependencyだけを使う
+- Adaptive profile補完は`install-adaptive-implementation-local.cs`で行う
+- 独立したpackage manifest、canonical Adaptive installer、tracked handoff artifactだけで導入が成立し、追加のaggregate routing surfaceを要求しない
 
 ## DP-VAL-011: Fresh Codex install
 
@@ -395,10 +394,9 @@ Expected:
 ./apm-packages/design-pair-implementation-execution/scripts/validate.ps1
 ./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1
 dotnet publish ./apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs
-dotnet publish ./apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs
 git diff --check
 ```
 
-Static validation は package layout、routing contract、handoff schema、Target集合不変条件、Adaptive propagation、Plan Coverage / full-coverage / Codex-first state integration、Copilot support boundary を検証します。実モデルを使う対話、HIGH -> STANDARD -> HIGH runtime orchestration、品質比較はrun-specific recordがない限り `NOT RUN` です。
+Static validation は package layout、routing contract、handoff schema、Target集合不変条件、Adaptive propagation、Plan Coverage / full-coverage integration、canonical Codex adapter、Copilot support boundary を検証します。実モデルを使う対話、HIGH -> STANDARD -> HIGH runtime orchestration、品質比較はrun-specific recordがない限り `NOT RUN` です。
 
 人手での作業が必要: `../../tests/manual-model-smoke/README.md`のdisposable fixtureでDP-VAL-013、015、017、019、021相当のmulti-turn behaviorを実モデルで実行し、result templateへmodel、reasoning、revision、Plan、turn sequence、artifact path、verdict sequenceを記録してください。static PASSをruntime PASSとして転記してはいけません。

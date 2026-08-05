@@ -1,5 +1,7 @@
 # GitHub Copilot Fallback AI Development Process Goal Document
 
+> Historical record only. The fallback aggregate package described here was removed; use the canonical packages linked from the root README for current installation guidance.
+
 作成日: 2026-06-07  
 対象: `suusanex/coding_agent_plan_and_verify_process` の次作業  
 想定成果物: GitHub Copilot Chat（VS Code）利用者が、Codex枠が尽きた場合でも、同じ思想の cost-aware / Plan-first / gate-driven process を repo-local に導入して使える状態にする。

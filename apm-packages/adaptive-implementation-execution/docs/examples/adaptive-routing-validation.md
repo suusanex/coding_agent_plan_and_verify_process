@@ -137,7 +137,7 @@ Expected:
 
 Manifest check:
 
-- package has no dependency on `plan-coverage-residual-flow`, `token-aware-full-coverage-3layer`, or `codex-first-ai-development-process`
+- package has no dependency on Plan Coverage, full-coverage, or other process packages
 
 ## VAL-007: No write-heavy parallelism
 
@@ -174,6 +174,8 @@ Expected:
 - installed skill refs are available under `.agents/skills/adaptive-implementation-execution/refs`
 - concrete agent TOMLs contain model, reasoning effort, and workspace-write sandbox fields
 - HIGH_MODEL and STANDARD_MODEL use different custom agent names and different model mappings
+- the local installer sources only the two package `codex-agents/*.toml` files and writes only target `.codex/agents/*.toml` files
+- the local installer does not copy or update root `.github/agents/*.agent.md` files or the Skill
 - the installer does not create, read, update, or remove `AGENTS.md`
 - APM-generated model-less stubs with matching package metadata are completed without `--force`
 - other same-name TOML collisions fail closed unless `--force` is explicit
@@ -238,7 +240,7 @@ Expected:
 
 Input:
 
-- a launcher or APM target uses the packaged HIGH and STANDARD TOMLs without repository-local `.github/agents`
+- Codex CLI or an APM target uses the packaged HIGH and STANDARD TOMLs without repository-local `.github/agents`
 
 Expected:
 
@@ -250,7 +252,7 @@ Expected:
 - invalid-artifact `BLOCKED` returns raw observed values or `<missing>` plus repair evidence instead of fabricating a complete identity
 - STANDARD_MODEL reserves `NEEDS_HIGH_MODEL_REENTRY` for structural decisions found after a valid handoff passes authorization
 
-## VAL-013: GitHub Copilot VS Code adapter
+## VAL-013: GitHub Copilot VS Code package configuration
 
 Input:
 
@@ -265,60 +267,56 @@ Expected:
 - STANDARD direct start is rejected without a valid tracked `READY_FOR_STANDARD_COMPLETION`
 - `COMPLETED_BY_HIGH_MODEL` and stop verdicts do not route to another agent
 - Copilot model / agent transitions use tracked completion and re-entry artifacts containing original Implementation Intent, unchanged route identity, Locked Decisions, Design Pair Decision IDs when present, and current worktree state
-- fallback local installer copies the canonical root Adaptive agents directly and does not keep same-name mirrors
+- the local installer sources the two package `codex-agents/*.toml` files and writes only target `.codex/agents/*.toml` files; APM installs the Skill and root `.github/agents` files
 - executable scenarios A-G in `tests/routing-scenarios.json` are interpreted by `tests/validate-routing-scenarios.ps1`; negative mutations reject direct STANDARD start, incomplete handoff acceptance, incomplete re-entry state, repeated delegation without surface reduction, implicit route defaulting, and locked Design Pair decision changes
 - GitHub Copilot CLI real-model execution is `PASS` for Terra direct completion, Terra-to-Luna bounded completion, Luna-to-Terra structural re-entry, invalid handoff rejection, selected agent / model evidence, files, checks, terminal verdicts, and absence of unexpected automatic transitions; see `copilot-cli-real-model-e2e-2026-07-31.md`
 - VS Code-specific `target` filtering and handoff-button behavior remain `NOT RUN` and use the manual smoke template
 
-## Issue #44 integration validation matrix
+## Standalone Adaptive integration validation matrix
 
-次のシナリオは standalone Adaptive package だけでなく、Plan Coverage、full-coverage slice、Codex-first、Copilot fallback の routing surface を同じ contract で検証します。`trivial-local` は対象外です。
+次のシナリオは standalone Adaptive package の implementation-only routing surface を検証します。`trivial-local` は対象外です。final verification は caller の別工程であり、この matrix の owner または expected sequence に含めません。
 
 | ID | Scenario | Expected verdict sequence | Expected implementation owner sequence | Required state / audit evidence |
 | --- | --- | --- | --- | --- |
-| `INT-001` | 新規 service + DI + tests | `READY_FOR_STANDARD_COMPLETION -> COMPLETED -> verification` | HIGH が service responsibility、DI、代表 test seam を固定し、STANDARD が Work-ID-mapped remainder だけを完了 | HIGH start、valid handoff、serial owner、production wiring evidence |
-| `INT-002` | 大きな class からの責務分離 | `COMPLETED_BY_HIGH_MODEL -> verification` | `high-implementation-starter` が責務境界と移動を完了 | `shape_handoff_status = NotRequired`、STANDARD run は N/A、抽出後の behavior evidence |
-| `INT-003` | async + retry + cancellation | `COMPLETED_BY_HIGH_MODEL -> verification` | HIGH が state ownership、retry、cancellation、error semantics を完了 | HIGH owner、runtime postcondition、forbidden-state evidence、STANDARD run は N/A |
-| `INT-004` | 既存 pattern が明確な早期 STANDARD 委譲 | `READY_FOR_STANDARD_COMPLETION -> COMPLETED -> verification` | HIGH が representative production case と focused check を実行後、STANDARD が同型 remainder を完了 | `Pending -> Ready -> Consumed`、complete handoff、no write-owner overlap |
-| `INT-005` | STANDARD 中の構造判断再発と HIGH re-entry | `READY_FOR_STANDARD_COMPLETION -> NEEDS_HIGH_MODEL_REENTRY -> COMPLETED_BY_HIGH_MODEL -> verification` | HIGH -> STANDARD -> HIGH | `Ready -> Invalidated -> NotRequired`、`shape_reentry_reason`、incremented re-entry count、HIGH return evidence |
+| `INT-001` | 新規 service + DI + tests | `READY_FOR_STANDARD_COMPLETION -> COMPLETED` | HIGH が service responsibility、DI、代表 test seam を固定し、STANDARD が Work-ID-mapped remainder を Completion Handoff に従って完了 | HIGH start、valid handoff、serial owner、production wiring evidence |
+| `INT-002` | 大きな class からの責務分離 | `COMPLETED_BY_HIGH_MODEL` | `high-implementation-starter` が責務境界と移動を完了 | `shape_handoff_status = NotRequired`、STANDARD run は N/A、抽出後の behavior evidence |
+| `INT-003` | async + retry + cancellation | `COMPLETED_BY_HIGH_MODEL` | HIGH が state ownership、retry、cancellation、error semantics を完了 | HIGH owner、runtime postcondition、forbidden-state evidence、STANDARD run は N/A |
+| `INT-004` | 既存 pattern が明確な早期 STANDARD 委譲 | `READY_FOR_STANDARD_COMPLETION -> COMPLETED` | HIGH が representative production case と focused check を実行後、STANDARD が同型 remainder を Completion Handoff に従って完了 | `Pending -> Ready -> Consumed`、complete handoff、no write-owner overlap |
+| `INT-005` | STANDARD 中の構造判断再発と HIGH re-entry | `READY_FOR_STANDARD_COMPLETION -> NEEDS_HIGH_MODEL_REENTRY -> COMPLETED_BY_HIGH_MODEL` | HIGH -> STANDARD -> HIGH | `Ready -> Invalidated -> NotRequired`、`shape_reentry_reason`、incremented re-entry count、HIGH return evidence |
 
 ### Surface expectations
 
-| Surface | Start / completion / verification owner | Result and state evidence |
+| Surface | Start / completion owner | Result and state evidence |
 | --- | --- | --- |
-| Plan Coverage | `high-implementation-starter` -> conditional `standard-implementation-completer` -> `verification-kernel` | `plans/<slug>-implementation-execution.md` に phase owner、verdict、Implementation Self-Map、checks、acceptance evidence、Remaining Work。Completion Handoff は通常 inline |
-| full-coverage | 各非自明な READY slice ごとに HIGH -> conditional STANDARD -> HIGH re-entry、slice-local verification | slice 間は既存の非重複条件でのみ並列化し、各 slice 内 owner は直列。parent audit に HIGH-first、valid handoff、re-entry、owner non-overlap |
-| Codex-first | `high-implementation-starter` -> conditional `standard-implementation-completer` -> `standard-verifier` | state の `current_status`、`selected_agent_name`、`recommended_model_tier`、`edit_owner` と4つの Adaptive fields、audit の observed-run evidence |
-| Copilot fallback | `high-implementation-starter` -> conditional `standard-implementation-completer` -> `copilot-standard-verifier` | Codex-first 互換 state、Copilot frontmatter model/handoff、HIGH -> STANDARD -> HIGH discovery と serial ownership evidence |
+| Standalone Adaptive | `high-implementation-starter` -> conditional `standard-implementation-completer` -> optional HIGH re-entry | route identity、Completion / Re-entry Handoff、serial owner、production wiring evidence。completion後のfinal review / independent verification は caller が別工程で扱う |
 
 ### State transition oracle
 
-| Phase | shape_handoff_status | selected_agent_name | recommended_model_tier | edit_owner | stop_reason |
-| --- | --- | --- | --- | --- | --- |
-| Authorized start | `NotStarted` / `Pending` | `high-implementation-starter` | `HIGH_MODEL` | `high-implementation-starter` | `ReadyForHighImplementationStart` |
-| Valid bounded handoff | `Ready` | `standard-implementation-completer` | `STANDARD_MODEL` | `standard-implementation-completer` | `ReadyForStandardCompletion` |
-| Handoff consumed | `Consumed` | `standard-implementation-completer` or verifier after completion | `STANDARD_MODEL` | current serial owner | next verification gate |
-| Structural re-entry | `Invalidated` | `high-implementation-starter` | `HIGH_MODEL` | `high-implementation-starter` | `NeedsHighModelReentry` |
-| Invalid handoff | `Blocked` | none / parent router | N/A | none | `BlockedByInvalidCompletionHandoff` |
+| Phase | canonical route identity | handoff / verdict evidence | serial owner | stop_reason |
+| --- | --- | --- | --- | --- |
+| Authorized start | incoming `implementation_route` / `implementation_route_source` / Design Pair handoff path unchanged | Parent Authorization and Implementation Intent | `high-implementation-starter` | `ReadyForHighImplementationStart` |
+| Valid bounded handoff | unchanged incoming identity | `READY_FOR_STANDARD_COMPLETION` with tracked Completion Handoff | `standard-implementation-completer` | `ReadyForStandardCompletion` |
+| Handoff consumed | unchanged incoming identity | consumed Completion Handoff and implementation result returned to the caller | current serial owner | ImplementationCompleted |
+| Structural re-entry | unchanged incoming identity | `NEEDS_HIGH_MODEL_REENTRY` with tracked Re-entry Handoff | `high-implementation-starter` | `NeedsHighModelReentry` |
+| Invalid handoff | raw observed identity or `<missing>` | `BLOCKED` with artifact repair evidence | parent router | `BlockedByInvalidCompletionHandoff` |
 
-`current_status` には各 phase の実 verdict をそのまま記録します。HIGH start と STANDARD completion はともに `DelegationRequired = Yes` です。`ParentDirectExecutionException` は明示承認付き互換例外として残しますが、cost-saving delegation 成功には数えません。
+各 phase の verdict と route identity は Completion / Re-entry Handoff にそのまま記録します。HIGH start、STANDARD completion、re-entry は同じ Adaptive route identity を保持し、owner は常に serial に進みます。implementation completion 後は caller に戻り、この flow は final verification を所有しません。
 
 ### 実モデル比較 runbook
 
 1. 同じ source Plan、repository revision、acceptance criteria、検証環境を固定する。
-2. 旧 single-pass route と Adaptive route で `INT-001` から `INT-005` を個別に実行する。
+2. standalone Adaptive route で `INT-001` から `INT-005` を個別に実行する。
 3. agent ごとの configured / observed model、input / output token、wall time、handoff verdict、re-entry count、changed files、checks を記録する。
 4. 同じ human reviewer が、acceptance miss、production wiring miss、unnecessary structural change、review finding count を記録する。
-5. 品質差、token cost、re-entry 回数、人間レビュー指摘数をシナリオ別と合計で比較する。静的 contract 合格だけから品質改善を推論しない。
+5. 品質、token cost、re-entry 回数、人間レビュー指摘数を記録する。静的 contract 合格だけから品質改善を推論しない。
 
 | Run | Quality / acceptance | Token cost | Re-entry count | Human review findings | Status |
 | --- | --- | --- | --- | --- | --- |
-| Legacy single-pass baseline | 未計測 | 未計測 | 未計測 | 未計測 | `NOT RUN` |
-| Adaptive HIGH -> STANDARD -> HIGH | 未計測 | 未計測 | 未計測 | 未計測 | `NOT RUN` |
+| Standalone Adaptive HIGH -> STANDARD -> HIGH | 未計測 | 未計測 | 未計測 | 未計測 | `NOT RUN` |
 
-実モデル比較は `NOT RUN` です。CI と static validation は routing contract を検証しますが、実証済みの品質改善や token cost 削減を宣言しません。
+実モデル run は `NOT RUN` です。CI と static validation は routing contract を検証しますが、実証済みの品質改善や token cost 削減を宣言しません。
 
-人手での作業が必要: 同一の Plan、revision、環境を固定して legacy / Adaptive の両 route を実モデルで実行し、同じ reviewer が品質、token cost、re-entry、review finding を記録してください。この実モデル比較は repository static contract の merge gate ではなく、品質改善を実証済みと宣言する前の運用 evidence gate です。
+人手での作業が必要: 同一の Plan、revision、環境を固定して standalone Adaptive route を実モデルで実行し、同じ reviewer が品質、token cost、re-entry、review finding を記録してください。この実モデル run は repository static contract の merge gate ではなく、品質改善を実証済みと宣言する前の運用 evidence gate です。
 
 ## Repository static validation
 
@@ -328,11 +326,11 @@ dotnet publish ./scripts/install-adaptive-implementation-local.cs
 git diff --check
 ```
 
-The static validator checks the package layout and Windows path budget, standalone dependency avoidance, Plan Coverage independence, verdict contracts, custom agent fields and APM stub compatibility, absence of package-owned repository-wide `AGENTS.md` guidance, integrated package versions and dependencies, Codex-first profile synchronization, state and audit transitions, Copilot handoffs, legacy compatibility notices, workflow path filters, root README entry, and presence of VAL-001 through VAL-008 and INT-001 through INT-005.
+The static validator checks the package layout and Windows path budget, standalone dependency avoidance, Plan Coverage independence, verdict contracts, custom agent fields and APM stub compatibility, absence of package-owned repository-wide `AGENTS.md` guidance, integrated package versions and dependencies, portable Codex configuration synchronization, route identity and handoff transitions, Copilot configuration and handoffs, legacy compatibility notices, workflow path filters, root README entry, and presence of VAL-001 through VAL-008 and INT-001 through INT-005.
 
 ## Local validation result
 
-The historical Codex checks below were first recorded with APM 0.18.0. The Copilot adapter work targets APM 0.26.0; current results must be recorded from the commands in this document rather than inferred from the historical rows.
+The historical Codex checks below were first recorded with APM 0.18.0. The Copilot package configuration work targets APM 0.26.0; current results must be recorded from the commands in this document rather than inferred from the historical rows.
 
 | Check | Result | Evidence |
 | --- | --- | --- |
@@ -349,12 +347,12 @@ The historical Codex checks below were first recorded with APM 0.18.0. The Copil
 | Remote branch package install | PASS | APM resolved the virtual package and both `git: parent` portable agents from `#codex/issue-45` at `66e1234b`, then deployed the skill, references, and both Codex agents |
 | Remote rollback | PASS | `apm uninstall` removed the direct package and skill, custom agent removal deleted package-owned TOMLs, and `apm prune` removed both orphaned portable agent packages; no integrated skill, agent, or package files remained |
 | Agent discovery contract | PASS | remote install created both named `.codex/agents` entries and the static validator confirmed that the skill routes to those names |
-| Copilot frontmatter and executable scenarios | PASS | the validator checks canonical agents and the fallback single-source installer, then executes the A-G state machine and negative mutations |
-| APM 0.26.0 local adapter-equivalent install | PASS | a temporary dependency composed from the canonical root agents and packaged Skill deployed Copilot agents, Codex stubs, and the shared Skill; frozen reinstall preserved hashes, the Codex helper completed and checked both model mappings, and an unmanaged same-name Copilot agent was preserved without `--force` |
+| Copilot frontmatter and executable scenarios | PASS | the validator checks canonical agents and the package local installer, then executes the A-G state machine and negative mutations |
+| APM 0.26.0 local package-configuration install | PASS | a temporary dependency composed from the root agents and packaged Skill deployed Copilot agents, Codex stubs, and the shared Skill; frozen reinstall preserved hashes, the Codex helper completed and checked both model mappings, and an unmanaged same-name Copilot agent was preserved without `--force` |
 | APM 0.26.0 pinned remote install smoke | PASS | the disposable Copilot CLI E2E installed the package from full commit `816268eea12ae4e61a40f045de9448d180ef4a2c`; CI also runs `validate-adaptive-implementation-apm-smoke.ps1` |
 | GitHub Copilot CLI real-model orchestration | PASS | `copilot-cli-real-model-e2e-2026-07-31.md` records Terra direct completion, Terra-to-Luna bounded completion, Luna-to-Terra structural re-entry, negative routing, and validations |
 | GitHub Copilot Chat in VS Code UI smoke | NOT RUN | follow `copilot-manual-smoke.md` only for VS Code-specific agent picker, `target` filter, and handoff-button coverage; real-model routing itself is covered by the CLI E2E |
 | Runtime multi-agent orchestration | PASS | Copilot CLI executed both implementation agents with the shared Skill and tracked handoffs; model resolution and terminal verdict evidence are recorded in `copilot-cli-real-model-e2e-2026-07-31.md` |
 | Full package local-path install | NOT APPLICABLE | APM 0.26.0 cannot inherit `git: parent` from a local path dependency; the supported remote repository route is validated separately above |
 
-The local adapter-equivalent smoke validates current transformation and collision behavior but does not replace the pinned remote smoke for the real `git: parent` dependency graph. The full-package local-path limitation does not change the package manifest. The remote branch validation confirms that the `git: parent` convention resolves the root portable agents when APM installs the repository subdirectory package.
+The local package-configuration smoke validates current transformation and collision behavior but does not replace the pinned remote smoke for the real `git: parent` dependency graph. The full-package local-path limitation does not change the package manifest. The remote branch validation confirms that the `git: parent` convention resolves the root portable agents when APM installs the repository subdirectory package.

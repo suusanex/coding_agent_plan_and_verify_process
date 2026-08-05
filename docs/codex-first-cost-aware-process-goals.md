@@ -1,5 +1,7 @@
 # Codex-first Cost-aware Development Process Goal Document
 
+> Historical record only. The aggregate package described here was removed; this document is not current installation or routing guidance.
+
 作成日: 2026-06-06  
 対象: `suusanex/coding_agent_plan_and_verify_process` の `apm-packages/codex-first-ai-development-process`  
 位置づけ: 後続の Plan / 実装が満たすべきゴール定義。詳細な実装手順ではなく、目的・境界・完成条件を漏れなく定義する。

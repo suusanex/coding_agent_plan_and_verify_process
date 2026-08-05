@@ -46,7 +46,7 @@ APM packageはprocess instructions、Skill、`slice-prep`、canonical Adaptive a
 
 workspace側には`.codex/config.toml`などの実行境界が残ります。このrepositoryでは並列度と再帰深さを制限し、packageが定義する作業手順を安全に実行するために使います。APM packageとworkspace configは代替関係ではありません。
 
-既存repositoryへAPM packageとCodex agent profilesを導入する場合は、repository rootの`scripts/provision-work-repo-agents.cs`を使います。Codex-firstのbootstrapにはこのhelperを使いません。
+既存repositoryへAPM packageとCodex agent profilesを導入する場合は、repository rootの`scripts/provision-work-repo-agents.cs`を使います。Full-coverage packageのprovisioningはこのcanonical helperから開始します。
 
 ## Records and closure
 

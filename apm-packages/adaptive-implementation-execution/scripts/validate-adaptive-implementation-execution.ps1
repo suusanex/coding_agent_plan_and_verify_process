@@ -134,15 +134,6 @@ $requiredFiles = @(
     'apm-packages/token-aware-full-coverage-3layer/apm.yml',
     'apm-packages/token-aware-full-coverage-3layer/.apm/instructions/token-aware-full-coverage-3layer.instructions.md',
     'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md',
-    'apm-packages/codex-first-ai-development-process/apm.yml',
-    'apm-packages/codex-first-ai-development-process/templates/codex-first-state.md',
-    'apm-packages/codex-first-ai-development-process/templates/codex-first-audit.md',
-    'apm-packages/codex-first-ai-development-process/scripts/codex-first-start.ps1',
-    'apm-packages/codex-first-ai-development-process/profiles/codex-first/agents/high-implementation-starter.toml',
-    'apm-packages/codex-first-ai-development-process/profiles/codex-first/agents/standard-implementation-completer.toml',
-    'apm-packages/copilot-fallback-ai-development-process/apm.yml',
-    'apm-packages/copilot-fallback-ai-development-process/templates/codex-first-state.md',
-    'apm-packages/copilot-fallback-ai-development-process/scripts/install-copilot-fallback-local.cs',
     'scripts/provision-work-repo-agents.cs'
 )
 
@@ -162,7 +153,7 @@ Assert-Contains $manifest '(?m)^\s*-\s+copilot\s*$' 'Copilot target'
 Assert-Contains $manifest '(?m)^\s*-\s+codex\s*$' 'codex target'
 Assert-Contains $manifest '(?m)^\s*-\s+agent-skills\s*$' 'agent-skills target'
 Assert-NotContains $manifest '(?m)^\s*-\s+(?:github-copilot|vscode)\s*$' 'non-canonical Copilot target alias'
-Assert-NotContains $manifest 'token-aware|codex-first|plan-coverage' 'Plan Coverage or Codex-first dependency'
+Assert-NotContains $manifest 'token-aware|codex-first|copilot-fallback|plan-coverage' 'aggregate process dependency'
 Assert-NotContains $manifest 'path:\s+.*(?:implementation-intent|implementation-completion-handoff)\.md' 'standalone template dependency'
 
 # APM remote install materializes the complete package below a deep Git cache prefix on Windows.
@@ -196,9 +187,7 @@ if (Test-Path -LiteralPath $manifestPath) {
 
 $integratedManifests = @(
     @{ Path = 'apm-packages/plan-coverage-residual-flow/apm.yml'; Version = '0\.9\.0' },
-    @{ Path = 'apm-packages/token-aware-full-coverage-3layer/apm.yml'; Version = '0\.6\.0' },
-    @{ Path = 'apm-packages/codex-first-ai-development-process/apm.yml'; Version = '0\.6\.0' },
-    @{ Path = 'apm-packages/copilot-fallback-ai-development-process/apm.yml'; Version = '0\.3\.0' }
+    @{ Path = 'apm-packages/token-aware-full-coverage-3layer/apm.yml'; Version = '0\.6\.0' }
 )
 
 foreach ($integratedManifest in $integratedManifests) {
@@ -222,9 +211,7 @@ foreach ($integratedManifest in $integratedManifests) {
 
 foreach ($integratedManifestPath in @(
     'apm-packages/plan-coverage-residual-flow/apm.yml',
-    'apm-packages/token-aware-full-coverage-3layer/apm.yml',
-    'apm-packages/codex-first-ai-development-process/apm.yml',
-    'apm-packages/copilot-fallback-ai-development-process/apm.yml'
+    'apm-packages/token-aware-full-coverage-3layer/apm.yml'
 )) {
     Assert-Contains $integratedManifestPath 'apm-packages/adaptive-implementation-execution/\.apm/skills/adaptive-implementation-execution' 'Adaptive Implementation skill dependency'
     Assert-Contains $integratedManifestPath '\.github/agents/high-implementation-starter\.agent\.md' 'canonical HIGH agent dependency'
@@ -248,29 +235,9 @@ Assert-Contains $planCoverageSkill 'Related Plan item.*Related Behavior Case IDs
 Assert-Contains $planCoverageSkill 'orchestrator is the single aggregation owner' 'Self-Map aggregation ownership'
 Assert-Contains '.github/agents/change-risk-triage.agent.md' 'implementation-internal.*implementation phase' 'risk triage shape boundary'
 
-$codexRouter = 'apm-packages/codex-first-ai-development-process/.apm/skills/codex-first-cost-router/SKILL.md'
-Assert-Contains $codexRouter 'let `high-implementation-starter` resolve implementation-internal design uncertainty' 'HIGH_MODEL implementation-internal uncertainty ownership'
-Assert-Contains $codexRouter 'stop only when the Plan, authorized scope, or acceptance criteria must change' 'HIGH_MODEL stop boundary'
-Assert-Contains $codexRouter '`STANDARD_MODEL`: bounded implementation completion after a valid handoff' 'STANDARD_MODEL bounded completion summary'
-Assert-NotContains $codexRouter '`STANDARD_MODEL`: normal implementation' 'legacy STANDARD_MODEL normal implementation summary'
-Assert-NotContains $codexRouter 'stop if new design uncertainty appears' 'reversed design-uncertainty stop condition'
-
-$codexInstruction = 'apm-packages/codex-first-ai-development-process/.apm/instructions/codex-first-ai-development-process.instructions.md'
-Assert-Contains $codexInstruction 'initialize `implementation_route: adaptive`.*only at fresh intake' 'Codex-first instruction fresh-only Adaptive default'
-Assert-Contains $codexInstruction 'On resume, require both route fields.*stop on missing or contradictory metadata instead of defaulting to Adaptive' 'Codex-first instruction resume route fail-closed rule'
-Assert-Contains $codexInstruction 'Legacy Adaptive handoff normalization' 'Codex-first instruction legacy route exception'
-
-$codexPackageAgents = 'apm-packages/codex-first-ai-development-process/AGENTS.md'
-Assert-Contains $codexPackageAgents 'fresh intakeだけ`adaptive / default`で初期化' 'Codex-first package AGENTS fresh-only Adaptive default'
-Assert-Contains $codexPackageAgents 'resumeでは両route field.*欠落または矛盾.*Adaptiveへ補完せず停止' 'Codex-first package AGENTS resume route fail-closed rule'
-
-$codexProfileAgents = 'apm-packages/codex-first-ai-development-process/profiles/codex-first/AGENTS.md'
-Assert-Contains $codexProfileAgents 'only at fresh intake' 'Codex-first profile AGENTS fresh-only Adaptive default'
-Assert-Contains $codexProfileAgents 'on resume require both durable route fields.*stop on missing or contradictory metadata instead of defaulting to Adaptive' 'Codex-first profile AGENTS resume route fail-closed rule'
-
 $handoffReviewAgent = '.github/agents/implementation-handoff-review.agent.md'
-Assert-Contains $handoffReviewAgent 'fresh intakeだけ`implementation_route: adaptive` / `implementation_route_source: default`を初期化' 'handoff review fresh-only Adaptive default'
-Assert-Contains $handoffReviewAgent 'resumeではupstream durable artifactの両route fieldを必須.*Adaptiveへ補完せず`BLOCKED_BY_ARTIFACT_MISMATCH`' 'handoff review resume route fail-closed rule'
+Assert-Contains $handoffReviewAgent 'Plan網羅チェック・残件判定フロー.*mandatory pre-implementation review gate' 'handoff review Plan Coverage placement'
+Assert-Contains $handoffReviewAgent 'standalone Adaptive.*呼び出さず' 'handoff review standalone Adaptive exclusion'
 
 $fullCoverageSkill = 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md'
 Assert-Contains $fullCoverageSkill 'non-trivial READY slice.*high-implementation-starter' 'per-slice HIGH_MODEL start'
@@ -292,8 +259,6 @@ Assert-NotContains $fullCoverageInstruction 'BlockedByMissingSliceImplDelegation
 
 Assert-Contains '.github/agents/implementation-execution.agent.md' 'Compatibility status: legacy' 'legacy Plan Coverage implementation notice'
 Assert-Contains 'apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-impl.agent.md' 'Compatibility status: legacy' 'legacy slice implementation notice'
-Assert-Contains 'apm-packages/codex-first-ai-development-process/profiles/codex-first/agents/standard-implementer.toml' 'Compatibility status: legacy' 'legacy Codex-first implementation notice'
-Assert-Contains 'apm-packages/copilot-fallback-ai-development-process/templates/github/agents/copilot-standard-implementer.agent.md' 'Compatibility status: legacy' 'legacy Copilot implementation notice'
 
 $skill = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md'
 Assert-Contains $skill 'high-implementation-starter' 'HIGH_MODEL start route'
@@ -508,9 +473,7 @@ if ($standardConfigDescription -ne $standardPortableDescription) {
     Add-Failure 'STANDARD_MODEL TOML and portable agent descriptions must match for APM stub recognition'
 }
 
-$codexHighToml = 'apm-packages/codex-first-ai-development-process/profiles/codex-first/agents/high-implementation-starter.toml'
-$codexStandardToml = 'apm-packages/codex-first-ai-development-process/profiles/codex-first/agents/standard-implementation-completer.toml'
-foreach ($toml in @($highToml, $codexHighToml)) {
+foreach ($toml in @($highToml)) {
     Assert-Contains $toml 'complete Implementation Completion Handoff that preserves implementation_route and implementation_route_source' 'portable HIGH handoff route propagation'
     Assert-Contains $toml 'Accept only implementation_route: adaptive with implementation_route_source: default and an explicit N/A path, or implementation_route: design-pair with implementation_route_source: explicit-user-selection and the current tracked path' 'portable HIGH exact route identity tuples'
     Assert-Contains $toml 'Stop before editing and return BLOCKED with Stop reason: BlockedByInvalidCompletionHandoff when any route identity field is missing.*raw observed field value or <missing> plus repair evidence; never infer or fabricate' 'portable HIGH invalid route classification and raw output'
@@ -527,7 +490,7 @@ foreach ($toml in @($highToml, $codexHighToml)) {
     Assert-Contains $toml 'An artifact link, Target ID, or topic summary alone is invalid presentation evidence' 'portable HIGH abstract Target Map rejection'
     Assert-Contains $toml 'keep the original Plan and Upstream Binding Constraints as separate binding inputs without Design Pair Decision IDs' 'portable HIGH upstream binding separation'
 }
-foreach ($toml in @($standardToml, $codexStandardToml)) {
+foreach ($toml in @($standardToml)) {
     Assert-Contains $toml 'including implementation_route and implementation_route_source, before editing' 'portable STANDARD route authorization'
     Assert-Contains $toml 'accept only implementation_route: adaptive with implementation_route_source: default, or implementation_route: design-pair with implementation_route_source: explicit-user-selection' 'portable STANDARD exact route pairs'
     Assert-Contains $toml 'Reject a missing, contradictory, or evidence-inconsistent current-schema route identity before editing.*raw observed field value or <missing> plus repair evidence.*explicit N/A Design Pair Implementation Handoff path for implementation_route: adaptive.*current tracked path' 'portable STANDARD route identity fail-closed rule'
@@ -542,19 +505,6 @@ Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/ad
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'missing, contradictory, or evidence-inconsistent current-schema handoff returns `BLOCKED` with `BlockedByInvalidCompletionHandoff` and does not emit `NEEDS_HIGH_MODEL_REENTRY`' 'invalid handoff validation scenario'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'fresh `adaptive / default` intake initializes `design_pair_handoff: N/A`' 'fresh default N/A validation scenario'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'invalid-artifact `BLOCKED` returns raw observed values or `<missing>` for each identity field plus repair evidence; parent accepts this stop result without requiring a complete pair' 'invalid-artifact BLOCKED output exception scenario'
-foreach ($mapping in @(
-    @{ Adaptive = $highToml; CodexFirst = $codexHighToml },
-    @{ Adaptive = $standardToml; CodexFirst = $codexStandardToml }
-)) {
-    foreach ($key in @('name', 'model', 'model_reasoning_effort', 'sandbox_mode')) {
-        $adaptiveValue = Get-TomlString $mapping.Adaptive $key
-        $codexFirstValue = Get-TomlString $mapping.CodexFirst $key
-        if ($adaptiveValue -ne $codexFirstValue) {
-            Add-Failure "$($mapping.CodexFirst) $key must match $($mapping.Adaptive): expected '$adaptiveValue', got '$codexFirstValue'"
-        }
-    }
-}
-
 $provisioner = 'scripts/provision-work-repo-agents.cs'
 $highReasoningEffort = Get-TomlString $highToml 'model_reasoning_effort'
 $standardReasoningEffort = Get-TomlString $standardToml 'model_reasoning_effort'
@@ -582,40 +532,6 @@ Assert-Contains $provisioner '(?s)HighImplementationStarterFileName,\s*SliceImpl
 Assert-Contains $provisioner '(?s)StandardImplementationCompleterFileName,\s*SliceImplOrder,\s*StandardImplementationCompleterDefaults,\s*options\.Force,\s*true,' 'canonical STANDARD expected-value enforcement'
 Assert-Contains $provisioner 'mismatch; use --force to overwrite' 'canonical mapping mismatch guidance'
 
-foreach ($stateTemplate in @(
-    'apm-packages/codex-first-ai-development-process/templates/codex-first-state.md',
-    'apm-packages/copilot-fallback-ai-development-process/templates/codex-first-state.md'
-)) {
-    Assert-Contains $stateTemplate 'shape_handoff_status: NotStarted / Pending / Ready / Consumed / Invalidated / NotRequired / Blocked / Unknown' 'shape handoff status enum'
-    Assert-Contains $stateTemplate 'remaining_design_uncertainty: None / Unknown / <evidence-backed summary>' 'remaining design uncertainty field'
-    Assert-Contains $stateTemplate 'completion_scope: N/A / Unknown / <Work IDs and allowed edit surface>' 'completion scope field'
-    Assert-Contains $stateTemplate 'shape_reentry_reason: N/A / Unknown / <trigger and invalidating evidence>' 'shape re-entry reason field'
-    Assert-Contains $stateTemplate '`shape_\*` fields are stable state vocabulary only' 'shape field compatibility rationale'
-    foreach ($stopReason in @('ReadyForHighImplementationStart', 'ReadyForStandardCompletion', 'NeedsHighModelReentry', 'BlockedByInvalidCompletionHandoff', 'ReadyForDelegatedImplementation')) {
-        Assert-Contains $stateTemplate $stopReason "stop reason $stopReason"
-    }
-    Assert-Contains $stateTemplate 'high-implementation-starter' 'HIGH implementation owner'
-    Assert-Contains $stateTemplate 'standard-implementation-completer' 'STANDARD completion owner'
-    Assert-Contains $stateTemplate 'standard-verifier|copilot-standard-verifier' 'verification owner'
-    Assert-Contains $stateTemplate 'delegation_required.*(?:Yes|true).*HIGH implementation start/re-entry.*STANDARD completion|DelegationRequired = Yes.*HIGH implementation start/re-entry.*STANDARD completion' 'delegation required rule for both implementation owners'
-}
-
-$auditTemplate = 'apm-packages/codex-first-ai-development-process/templates/codex-first-audit.md'
-Assert-Contains $auditTemplate 'HIGH implementation started before any standard completion' 'HIGH start audit row'
-Assert-Contains $auditTemplate 'STANDARD completion delegated only after valid handoff' 'valid STANDARD handoff audit row'
-Assert-Contains $auditTemplate 'NEEDS_HIGH_MODEL_REENTRY returned to HIGH implementation' 'HIGH re-entry audit row'
-Assert-Contains $auditTemplate 'HIGH and STANDARD write ownership did not overlap' 'serial write ownership audit row'
-
-$copilotFallbackInstaller = 'apm-packages/copilot-fallback-ai-development-process/scripts/install-copilot-fallback-local.cs'
-$copilotFallbackManifest = 'apm-packages/copilot-fallback-ai-development-process/apm.yml'
-Assert-Contains $copilotFallbackManifest '(?m)^\s*-\s+copilot\s*$' 'fallback canonical Copilot target'
-Assert-NotContains $copilotFallbackManifest '(?m)^\s*-\s+(?:github-copilot|vscode)\s*$' 'fallback non-canonical Copilot target alias'
-Assert-Contains $copilotFallbackInstaller 'CopyCanonicalAdaptiveAgents' 'fallback canonical agent copy path'
-Assert-Contains $copilotFallbackInstaller 'Path\.Combine\(repositoryRoot, "\.github", "agents", fileName\)' 'fallback repository-root canonical source'
-Assert-Contains $copilotFallbackInstaller '--repository-root' 'fallback explicit canonical repository option'
-Assert-FileNotExists 'apm-packages/copilot-fallback-ai-development-process/templates/github/agents/high-implementation-starter.agent.md'
-Assert-FileNotExists 'apm-packages/copilot-fallback-ai-development-process/templates/github/agents/standard-implementation-completer.agent.md'
-
 foreach ($sharedMarker in @(
     'READY_FOR_STANDARD_COMPLETION',
     'Original Implementation Intent',
@@ -641,25 +557,6 @@ foreach ($sharedMarker in @(
 )) {
     Assert-Contains $standardAgent ([regex]::Escape($sharedMarker)) "canonical STANDARD shared marker $sharedMarker"
 }
-Assert-Contains 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs' 'shape_handoff_status.*remaining_design_uncertainty.*completion_scope.*shape_reentry_reason' 'managed AGENTS Adaptive state guidance'
-
-$codexInstaller = 'apm-packages/codex-first-ai-development-process/scripts/apply-codex-first-local.cs'
-Assert-Contains $codexInstaller 'sourceAdaptiveSkill' 'Adaptive skill bootstrap source'
-Assert-Contains $codexInstaller 'sourceDesignPairSkill' 'Design Pair skill bootstrap source'
-Assert-Contains $codexInstaller 'refs.*handoff\.md' 'complete handoff reference bootstrap check'
-Assert-Contains $codexInstaller 'CopyCanonicalAgentFiles' 'canonical root agent bootstrap'
-Assert-Contains $codexInstaller 'high-implementation-starter\.agent\.md' 'canonical HIGH agent bootstrap path'
-Assert-Contains $codexInstaller 'standard-implementation-completer\.agent\.md' 'canonical STANDARD agent bootstrap path'
-Assert-Contains 'apm-packages/codex-first-ai-development-process/README.md' '--check`.*canonical agent contracts.*`refs/handoff\.md`.*対象repository' 'post-bootstrap file validation documentation'
-
-$codexLauncher = 'apm-packages/codex-first-ai-development-process/scripts/codex-first-start.ps1'
-Assert-Contains $codexLauncher 'adaptiveSkillSource' 'one-off launcher Adaptive skill source'
-Assert-Contains $codexLauncher 'designPairSkillSource' 'one-off launcher Design Pair skill source'
-Assert-Contains $codexLauncher 'skills\\adaptive-implementation-execution' 'one-off launcher Adaptive skill target'
-Assert-Contains $codexLauncher 'skills\\design-pair-implementation-execution' 'one-off launcher Design Pair skill target'
-Assert-Contains $codexLauncher 'Copy-Item.*adaptiveSkillSource\.Path' 'one-off launcher Adaptive payload copy'
-Assert-Contains $codexLauncher 'Copy-Item.*designPairSkillSource\.Path' 'one-off launcher Design Pair payload copy'
-
 $validation = 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md'
 foreach ($id in 1..10) {
     $scenarioId = 'VAL-{0:D3}' -f $id
@@ -673,8 +570,8 @@ Assert-Contains $validation '大きな class からの責務分離' 'responsibil
 Assert-Contains $validation 'async \+ retry \+ cancellation' 'async retry cancellation integration scenario'
 Assert-Contains $validation '既存 pattern が明確な早期 STANDARD 委譲' 'early STANDARD delegation integration scenario'
 Assert-Contains $validation 'STANDARD 中の構造判断再発と HIGH re-entry' 'HIGH re-entry integration scenario'
-Assert-Contains $validation '実モデル比較.*NOT RUN' 'manual runtime comparison status'
-Assert-Contains $validation 'VAL-013: GitHub Copilot VS Code adapter' 'Copilot adapter validation scenario'
+Assert-Contains $validation '実モデル run.*NOT RUN' 'manual runtime run status'
+Assert-Contains $validation 'VAL-013: GitHub Copilot VS Code package configuration' 'Copilot package configuration validation scenario'
 Assert-Contains $validation 'Copilot CLI real-model orchestration.*PASS' 'Copilot CLI real-model validation status'
 Assert-Contains $validation 'omits `tools` so Copilot uses its default tool set' 'Copilot default tool-set contract'
 
@@ -761,8 +658,6 @@ foreach ($pathFilter in @(
     'apm-packages/design-pair-implementation-execution/\*\*',
     'apm-packages/plan-coverage-residual-flow/\*\*',
     'apm-packages/token-aware-full-coverage-3layer/\*\*',
-    'apm-packages/codex-first-ai-development-process/\*\*',
-    'apm-packages/copilot-fallback-ai-development-process/\*\*',
     'scripts/provision-work-repo-agents\.cs',
     'docs/\*\*'
 )) {
