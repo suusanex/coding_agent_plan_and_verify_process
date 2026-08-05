@@ -98,7 +98,9 @@ repository rootから、変更したownership surfaceに対応するcheckを実�
 
 ```powershell
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1
+./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-copilot.ps1
 ./scripts/validate-full-coverage-slice-flow.ps1
+./apm-packages/token-aware-full-coverage-3layer/scripts/validate-token-aware-full-coverage-3layer-copilot.ps1
 ./scripts/validate-architecture-slice-readiness.ps1
 ```
 

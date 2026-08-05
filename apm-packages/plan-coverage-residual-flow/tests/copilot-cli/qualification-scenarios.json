@@ -1,0 +1,267 @@
+{
+  "schema_version": 1,
+  "package": "plan-coverage-residual-flow",
+  "canonical_sources": [
+    "apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md",
+    "apm-packages/plan-coverage-residual-flow/tests/invocation-authorization-scenarios.json",
+    "apm-packages/plan-coverage-residual-flow/tests/manual-model-smoke/result-template.md"
+  ],
+  "installation": {
+    "targets": [
+      "copilot",
+      "agent-skills"
+    ],
+    "deployed_skill": ".agents/skills/plan-coverage-residual-flow/SKILL.md",
+    "deployed_instruction": ".github/instructions/plan-coverage-shared.instructions.md",
+    "deployed_agent_directory": ".github/agents",
+    "commands": {
+      "install": "apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow#<full-commit-sha> --target copilot,agent-skills --https",
+      "check": "apm install --frozen",
+      "update_preview": "apm update suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow --dry-run",
+      "rollback": "apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow#<known-good-commit-sha> --target copilot,agent-skills --https",
+      "cli_discovery": "copilot skill list"
+    }
+  },
+  "authorization_source": {
+    "path": "apm-packages/plan-coverage-residual-flow/tests/invocation-authorization-scenarios.json",
+    "positive_ids": [
+      "D",
+      "F"
+    ],
+    "negative_ids": [
+      "A",
+      "B",
+      "C",
+      "E",
+      "G",
+      "H"
+    ]
+  },
+  "authorization_extensions": [
+    {
+      "id": "I",
+      "kind": "quotation",
+      "prompt": "Quote `plan-coverage-residual-flow` without selecting it.",
+      "expected_authorized": false
+    },
+    {
+      "id": "J",
+      "kind": "comparison",
+      "prompt": "Compare plan-coverage-residual-flow with another process.",
+      "expected_authorized": false
+    },
+    {
+      "id": "K",
+      "kind": "informational",
+      "prompt": "Explain when plan-coverage-residual-flow would be useful.",
+      "expected_authorized": false
+    }
+  ],
+  "durable_authorization": [
+    {
+      "id": "complete-tuple",
+      "process_route": "plan-coverage-residual-flow",
+      "process_route_source": "explicit-user-selection",
+      "user_selection_evidence": "user-turn:42",
+      "expected": "accepted"
+    },
+    {
+      "id": "missing-source",
+      "process_route": "plan-coverage-residual-flow",
+      "process_route_source": null,
+      "user_selection_evidence": "user-turn:42",
+      "expected": "blocked"
+    },
+    {
+      "id": "missing-user-evidence",
+      "process_route": "plan-coverage-residual-flow",
+      "process_route_source": "explicit-user-selection",
+      "user_selection_evidence": null,
+      "expected": "blocked"
+    },
+    {
+      "id": "contradictory-route",
+      "process_route": "another-process",
+      "process_route_source": "explicit-user-selection",
+      "user_selection_evidence": "user-turn:42",
+      "expected": "blocked"
+    }
+  ],
+  "documentation_levels": [
+    {
+      "id": "lite",
+      "value": "lite",
+      "expected": "allowed"
+    },
+    {
+      "id": "standard",
+      "value": "standard",
+      "expected": "allowed"
+    },
+    {
+      "id": "strict",
+      "value": "strict",
+      "expected": "forbidden"
+    },
+    {
+      "id": "full-coverage",
+      "value": "full-coverage",
+      "expected": "process-profile-not-documentation-level"
+    }
+  ],
+  "route_metadata": [
+    {
+      "id": "fresh-adaptive-default",
+      "implementation_route": "adaptive",
+      "implementation_route_source": "default",
+      "design_pair_handoff": "N/A",
+      "expected": "accepted"
+    },
+    {
+      "id": "explicit-design-pair",
+      "implementation_route": "design-pair",
+      "implementation_route_source": "explicit-user-selection",
+      "design_pair_handoff": "plans/example-design-pair-implementation-handoff.md",
+      "expected": "accepted"
+    },
+    {
+      "id": "resume-missing-source",
+      "implementation_route": "adaptive",
+      "implementation_route_source": null,
+      "design_pair_handoff": "N/A",
+      "expected": "blocked"
+    },
+    {
+      "id": "resume-contradictory-pair",
+      "implementation_route": "design-pair",
+      "implementation_route_source": "default",
+      "design_pair_handoff": "plans/example-design-pair-implementation-handoff.md",
+      "expected": "blocked"
+    },
+    {
+      "id": "legacy-adaptive-with-design-pair-evidence",
+      "implementation_route": "adaptive",
+      "implementation_route_source": "default",
+      "design_pair_handoff": "N/A",
+      "design_pair_evidence": true,
+      "expected": "blocked"
+    }
+  ],
+  "adaptive_handoff": {
+    "required_fields": [
+      "Verdict",
+      "implementation_route",
+      "implementation_route_source",
+      "Design Pair handoff",
+      "Acceptance status",
+      "Remaining work",
+      "Allowed edit surface",
+      "Validation commands",
+      "High-model re-entry triggers",
+      "reentry_count",
+      "previous_reentry_trigger",
+      "delegation_surface_reduced"
+    ],
+    "required_verdict_sequence": [
+      "READY_FOR_STANDARD_COMPLETION",
+      "COMPLETED",
+      "NEEDS_HIGH_MODEL_REENTRY",
+      "COMPLETED_BY_HIGH_MODEL"
+    ],
+    "mapping_rules": {
+      "complete_requires_evidence": true,
+      "incomplete_requires_remaining_work_id": true,
+      "remaining_work_requires_incomplete_acceptance": true,
+      "blocked_acceptance_forbids_standard_handoff": true
+    },
+    "capability_statement": "Record requested and observed model values; do not claim per-agent model locking when the CLI cannot expose or enforce it."
+  },
+  "real_cli_scenarios": [
+    {
+      "id": "install-and-skill-discovery",
+      "kind": "harness",
+      "default_status": "PASS"
+    },
+    {
+      "id": "explicit-lite",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "explicit-standard",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "unauthorized-generic",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "unauthorized-question-comparison-negation",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "durable-authorized-resume",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "default-adaptive-route",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "high-to-standard-completion",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "high-reentry",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "blocked-human-decision-replan",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "architecture-slice-readiness",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "two-slice-v2",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "independent-verification",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "final-record-residual-decision",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "new-session-resume",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "stale-incomplete-artifact-failure",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "design-pair-e2e",
+      "kind": "blocked",
+      "default_status": "BLOCKED",
+      "blocker": "Issue #69 canonical Copilot support is not merged."
+    }
+  ]
+}

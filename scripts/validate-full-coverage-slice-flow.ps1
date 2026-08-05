@@ -79,8 +79,8 @@ Require '.github/agents/plan-slice-decomposition.agent.md' 'Compact Slice Record
 Require '.github/agents/verification-kernel.agent.md' 'full-coverage-slice-v2' 'v2 verification context'
 Require '.github/agents/cross-slice-verification-kernel.agent.md' 'Full-coverage final record v2' 'v2 final verification output'
 Require '.github/agents/residual-decision-gate.agent.md' 'Full-coverage final record v2' 'v2 residual output'
-Require 'apm-packages/token-aware-full-coverage-3layer/apm.yml' 'version: 0.6.0' 'full-coverage package version'
-Require 'apm-packages/plan-coverage-residual-flow/apm.yml' 'version: 0.9.0' 'plan-coverage package version'
+Require 'apm-packages/token-aware-full-coverage-3layer/apm.yml' 'version: 0.6.1' 'full-coverage package version'
+Require 'apm-packages/plan-coverage-residual-flow/apm.yml' 'version: 0.9.1' 'plan-coverage package version'
 Require 'apm-packages/token-aware-full-coverage-3layer/apm.yml' '^includes: auto\r?$' 'full-coverage automatic reference distribution'
 Require 'apm-packages/token-aware-full-coverage-3layer/apm.yml' 'focused embedded checks or legacy compatibility' 'non-mandatory generic dependency semantics'
 foreach ($dependency in @('.github/agents/plan-slice-decomposition.agent.md','.github/agents/verification-kernel.agent.md','.github/agents/cross-slice-verification-kernel.agent.md','.github/agents/residual-decision-gate.agent.md','apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution')) { $dependencyPattern = [regex]::Escape($dependency); Require 'apm-packages/token-aware-full-coverage-3layer/apm.yml' $dependencyPattern "required manifest dependency $dependency" }

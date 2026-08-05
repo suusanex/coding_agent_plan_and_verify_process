@@ -56,6 +56,40 @@ workspace側には`.codex/config.toml`などの実行境界が残ります。こ
 - source-structure test、interfaceの存在、CI greenだけで`CROSS_SLICE_VERIFIED`にしません。
 - stateful contractではproducer stateとconsumer gateの両方を検証します。
 
+## GitHub Copilot CLI
+
+APM 0.26.0の`copilot,agent-skills` targetで、Skill、shared instruction、
+`slice-prep`、canonical agentsをGitHub Copilot CLIが読むrepository-local
+pathsへ導入できます。実測された導入先、install / update / rollback /
+check / use / resume、model capabilityの制約、real CLI evidenceは
+[Copilot CLI qualification](tests/copilot-cli/README.md)を参照してください。
+
+fresh runの`compact-slice-record-v2`、Parent State resume、独立verification、
+Final Record、residual decisionの意味はこのpackageのcanonical Skillと
+referencesが所有します。Copilot向け文書は同じ契約を複製しません。
+
+```powershell
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/token-aware-full-coverage-3layer#<full-commit-sha> --target copilot,agent-skills --https
+apm update suusanex/coding_agent_plan_and_verify_process/apm-packages/token-aware-full-coverage-3layer --dry-run
+apm install --frozen
+apm audit --ci
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/token-aware-full-coverage-3layer#<known-good-commit-sha> --target copilot,agent-skills --https
+apm uninstall suusanex/coding_agent_plan_and_verify_process/apm-packages/token-aware-full-coverage-3layer --dry-run
+```
+
+`copilot skill list`で導入を確認し、fresh workでは`compact-slice-record-v2`
+と`implementation_route: adaptive` / `implementation_route_source: default`
+を使います。新sessionは`copilot --resume=<session-id>`で会話を続けられますが、
+必ずParent Orchestration Stateを再開入口として読みます。legacy split、
+stale baseline、mixed layout、欠落route metadataは推測・migrationせず
+fail closedにします。per-agent model lockがCLIで観測できない場合は
+requested / observed modelを分け、unsupportedまたは`ManualOnly`として記録します。
+
+Troubleshooting: Skillが表示されない場合は`.agents/skills`と
+`.github/instructions`、`.github/agents`、lockfileの整合を確認し、
+`apm install --frozen`と`apm audit --ci`を再実行します。同名agentのcollisionは
+ownershipを確認するまで`--force`で上書きしません。
+
 ## Documentation and validation
 
 - [Full-coverage decomposition policy](../../docs/token-aware-full-coverage-decomposition-flow.md)

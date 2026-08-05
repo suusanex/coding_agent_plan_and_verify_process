@@ -130,12 +130,12 @@ if ($failures.Count -eq 0) {
 
     $manifest = Get-NormalizedText (Join-Path $repoRoot $manifestRelativePath)
     Assert-Matches $manifest '(?m)^name:\s*plan-coverage-residual-flow\s*$' 'package name must remain stable'
-    Assert-Matches $manifest '(?m)^version:\s*0\.9\.0\s*$' 'package version must be 0.9.0'
+    Assert-Matches $manifest '(?m)^version:\s*0\.9\.1\s*$' 'package version must be 0.9.1'
 
     $adaptiveValidator = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1')
     $designPairValidator = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1')
-    Assert-Matches $adaptiveValidator "plan-coverage-residual-flow/apm\.yml'; Version = '0\\\.9\\\.0'" 'Adaptive validator package version pin must be 0.9.0'
-    Assert-Matches $designPairValidator 'Plan Coverage package version 0\.9\.0' 'Design Pair validator package version pin must be 0.9.0'
+    Assert-Matches $adaptiveValidator "plan-coverage-residual-flow/apm\.yml'; Version = '0\\\.9\\\.1'" 'Adaptive validator package version pin must be 0.9.1'
+    Assert-Matches $designPairValidator 'Plan Coverage package version 0\.9\.1' 'Design Pair validator package version pin must be 0.9.1'
 
     $coverageLedgerPath = Join-Path $repoRoot $coverageLedgerRelativePath
     $deployedSkillPath = Join-Path $repoRoot $deployedSkillRelativePath

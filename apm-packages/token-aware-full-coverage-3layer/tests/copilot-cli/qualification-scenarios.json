@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "package": "token-aware-full-coverage-3layer",
+  "canonical_sources": [
+    "apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md",
+    "apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/references/full-coverage-parent-orchestration-state.md",
+    "apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/references/full-coverage-slice-record.md",
+    "apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/references/full-coverage-final.md"
+  ],
+  "installation": {
+    "targets": [
+      "copilot",
+      "agent-skills"
+    ],
+    "deployed_skill": ".agents/skills/token-aware-full-coverage-3layer/SKILL.md",
+    "deployed_instruction": ".github/instructions/token-aware-full-coverage-3layer.instructions.md",
+    "deployed_agent_directory": ".github/agents",
+    "commands": {
+      "install": "apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/token-aware-full-coverage-3layer#<full-commit-sha> --target copilot,agent-skills --https",
+      "check": "apm install --frozen",
+      "update_preview": "apm update suusanex/coding_agent_plan_and_verify_process/apm-packages/token-aware-full-coverage-3layer --dry-run",
+      "rollback": "apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/token-aware-full-coverage-3layer#<known-good-commit-sha> --target copilot,agent-skills --https",
+      "cli_discovery": "copilot skill list"
+    }
+  },
+  "required_layout": {
+    "fresh": "compact-slice-record-v2",
+    "legacy_resume": "legacy-split-v1",
+    "mixed_or_missing": "BlockedByArtifactLayoutMismatch"
+  },
+  "fixture_bindings": [
+    {
+      "id": "FCV-001",
+      "source": "tests/full-coverage-slice-flow/FCV-001-happy-two-slice",
+      "expected": "CLOSE_READY",
+      "evidence": [
+        "PREP_READY",
+        "AUTHORIZED_FOR_IMPLEMENTATION",
+        "SLICE_VERIFIED",
+        "CROSS_SLICE_VERIFIED",
+        "CLOSE_READY"
+      ]
+    },
+    {
+      "id": "FCV-003",
+      "source": "tests/full-coverage-slice-flow/FCV-003-shared-semantics-drift",
+      "expected": "BLOCKED_BY_ARCHITECTURE_DRIFT",
+      "evidence": [
+        "Architecture Slice Readiness rerun",
+        "Implementation started: No"
+      ]
+    },
+    {
+      "id": "FCV-004",
+      "source": "tests/full-coverage-slice-flow/FCV-004-direct-fixnow",
+      "expected": "SLICE_VERIFIED",
+      "evidence": [
+        "Direct FixNow selector",
+        "Verification rerun: PASS"
+      ]
+    },
+    {
+      "id": "FCV-005",
+      "source": "tests/full-coverage-slice-flow/FCV-005-human-residual",
+      "expected": "NEEDS_HUMAN_RESIDUAL_DECISION",
+      "evidence": [
+        "Close readiness: No",
+        "explicit human decision: missing"
+      ]
+    },
+    {
+      "id": "FCV-006",
+      "source": "tests/full-coverage-slice-flow/FCV-006-legacy-resume",
+      "expected": "legacy-resume",
+      "evidence": [
+        "legacy-split-v1",
+        "auto merge: No",
+        "legacy artifacts remain canonical"
+      ]
+    },
+    {
+      "id": "FCV-007",
+      "source": "tests/full-coverage-slice-flow/FCV-007-parallel-ownership",
+      "expected": "AUTHORIZED_SERIAL_ONLY",
+      "evidence": [
+        "Parallel group: A",
+        "Parallel group: serialized-config"
+      ]
+    }
+  ],
+  "architecture_readiness_binding": {
+    "source_root": "tests/architecture-slice-readiness",
+    "required_fixture_ids": [
+      "ASR-001",
+      "ASR-002",
+      "ASR-003",
+      "ASR-004",
+      "ASR-005",
+      "ASR-006"
+    ],
+    "required_freshness_evidence": [
+      "A1 current after readiness rerun: `Yes`",
+      "A1 stale: `Yes`",
+      "R2 stale: `Yes`",
+      "Architecture drift result: `Drift`",
+      "Recomputed revision: `fixture-plan-v2`"
+    ]
+  },
+  "ownership_and_verification": {
+    "parent_authorization": "Parent Orchestration State",
+    "implementation_owner": "high-implementation-starter",
+    "bounded_completion_owner": "standard-implementation-completer",
+    "independent_verifier": "verification-kernel",
+    "final_record_owner": "cross-slice-verification-kernel and residual-decision-gate",
+    "required_route_identity": [
+      "implementation_route",
+      "implementation_route_source"
+    ]
+  },
+  "real_cli_scenarios": [
+    {
+      "id": "compact-v2-two-slice",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "parent-authorization-and-independent-verification",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "final-record-through-residual-decision",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "new-session-parent-state-resume",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "stale-or-incomplete-layout-failure",
+      "kind": "model",
+      "default_status": "NOT RUN"
+    },
+    {
+      "id": "design-pair-e2e",
+      "kind": "blocked",
+      "default_status": "BLOCKED",
+      "blocker": "Issue #69 canonical Copilot support is not merged."
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 name: token-aware-full-coverage-3layer
-version: 0.6.0
+version: 0.6.1
 description: 3-layer full-coverage workflow with compact Slice Records, parent authorization, Adaptive Implementation, independent verification, Final Record, and legacy compatibility
 type: hybrid
 targets:

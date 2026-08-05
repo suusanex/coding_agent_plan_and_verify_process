@@ -245,6 +245,42 @@ residual decisionのclose verdictは次を含みます。
 - canonical Coverage LedgerとResidual Decision Ledgerを維持する
 - explicit decisionなしにresidualをaccepted扱いしない
 
+## GitHub Copilot CLI
+
+APM 0.26.0の`copilot,agent-skills` targetで、canonical Skill、shared
+instruction、portable agentsをGitHub Copilot CLIが読むrepository-local
+pathsへ導入できます。CLI固有のinstall、update、rollback、integrity
+check、explicit invocation、durable resume、capability limits、troubleshooting
+は[Copilot CLI qualification](tests/copilot-cli/README.md)を参照してください。
+
+このpackageにCopilot専用のprocess adapterは追加しません。APMが実際に
+配置するSkillとagentをそのまま使い、route metadata、`lite` / `standard`、
+Adaptive / Design Pair、residual decisionのcanonical contractは
+`.apm/skills/plan-coverage-residual-flow`とshared instructionに残します。
+Issue #69に依存するDesign Pair E2Eは明示的に`BLOCKED`として記録し、
+Adaptiveへの自動fallbackは行いません。
+
+```powershell
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow#<full-commit-sha> --target copilot,agent-skills --https
+apm update suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow --dry-run
+apm install --frozen
+apm audit --ci
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow#<known-good-commit-sha> --target copilot,agent-skills --https
+apm uninstall suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow --dry-run
+```
+
+`copilot skill list`でSkill discoveryを確認し、利用時はroute名を明示的に
+選択します。会話の`copilot --resume=<session-id>`はdurable Plan、
+coverage ledger、handoff、Parent State、Slice Record、Final Recordの
+代替ではありません。新sessionでもartifactのroute identityとauthorization
+を読み、欠落・矛盾はfail closedにします。CLIがper-agent model lockを
+観測できない場合はrequested / observed modelを分けて`ManualOnly`または
+unsupportedとして記録します。
+
+Troubleshooting: Skillが表示されない場合は`.agents/skills`と
+`.github/agents`の導入先、`apm install --frozen`、`apm audit --ci`を確認します。
+同名agentのcollisionはownershipを確認するまで`--force`で上書きしません。
+
 ## Documentation and validation
 
 - [Purpose and policy](../../docs/plan-coverage-purpose.md)
