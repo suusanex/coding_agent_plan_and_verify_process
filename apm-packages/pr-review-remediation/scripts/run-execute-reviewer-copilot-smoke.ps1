@@ -200,31 +200,37 @@ $metaContent
         $failFixture = New-SmokeRun -Suffix '-fail'
         $fixturesToClean += $failFixture
         $failResult = Invoke-ReviewerRole -Role 'local-reviewer' -RunRoot $failFixture.Run -RepoRoot $failFixture.Repo -TimeoutSec 1
+
+        # Assertions: must be non-zero, must be timeout, must not have raw, must have failed metadata
+        if ($failResult.exitCode -eq 0) { throw 'Failure scenario must exit non-zero' }
+        if ($failResult.output -notmatch '"exitStatus"\s*:\s*"timeout"') {
+            throw "Failure scenario must be timeout, got: $($failResult.output)"
+        }
+        if ($failResult.rawExists) {
+            throw 'Failure scenario must not publish raw artifact'
+        }
+        $failedMetaPath = Join-Path $failFixture.Run 'round-001\local-reviewer.execution.json.failed.json'
+        if (-not (Test-Path -LiteralPath $failedMetaPath)) {
+            throw 'Failure scenario must produce .failed.json metadata'
+        }
+
+        $failedMeta = Get-Content -Raw -LiteralPath $failedMetaPath
         $record += @"
 
 ## failure-scenario (timeout)
 - exit_code: $($failResult.exitCode)
 - raw_exists: $($failResult.rawExists)
-- metadata_exists: $($failResult.metaExists)
-- note: expected non-zero (timeout or fail-closed); must not be interpreted as no findings
+- failed_metadata_exists: True
+- note: timeout verified; exitStatus=timeout; no raw artifact; .failed.json preserved
 - output:
 ``````
 $($failResult.output)
 ``````
-"@
-        if ($failResult.metaExists) {
-            $failMetaPath = $failResult.metaPath -replace '\.execution\.json$', '.execution.json.failed.json'
-            if (Test-Path -LiteralPath $failMetaPath) {
-                $failMeta = Get-Content -Raw -LiteralPath $failMetaPath
-                $record += @"
-
 - failed_metadata:
 ``````json
-$failMeta
+$failedMeta
 ``````
 "@
-            }
-        }
     }
 
     # Concurrent invocation scenario
@@ -235,7 +241,7 @@ $failMeta
         $startTime = Get-Date
         $localJob = Start-Job -ScriptBlock {
             param($ex, $mod, $role, $run, $repo, $sk, $cp, $to)
-            & dotnet run --file $ex -- @(
+            $out = & dotnet run --file $ex -- @(
                 '--execution-app', 'copilot-cli',
                 '--model', $mod,
                 '--reviewer-role', $role,
@@ -250,13 +256,13 @@ $failMeta
             return [pscustomobject]@{
                 role = $role
                 exitCode = $LASTEXITCODE
-                output = $result
+                output = $out
             }
         } -ArgumentList $executor, $Model, 'local-reviewer', $concFixture.Run, $concFixture.Repo, $skillRoot, $CopilotCommand, $TimeoutSeconds
 
         $purposeJob = Start-Job -ScriptBlock {
             param($ex, $mod, $role, $run, $repo, $sk, $cp, $to)
-            & dotnet run --file $ex -- @(
+            $out = & dotnet run --file $ex -- @(
                 '--execution-app', 'copilot-cli',
                 '--model', $mod,
                 '--reviewer-role', $role,
@@ -271,7 +277,7 @@ $failMeta
             return [pscustomobject]@{
                 role = $role
                 exitCode = $LASTEXITCODE
-                output = $result
+                output = $out
             }
         } -ArgumentList $executor, $Model, 'purpose-reviewer', $concFixture.Run, $concFixture.Repo, $skillRoot, $CopilotCommand, $TimeoutSeconds
 
@@ -294,11 +300,18 @@ $failMeta
             }
         }
 
+        # Assertions: both roles must succeed, both must have raw and metadata
+        foreach ($cr in $concResults) {
+            if ($cr.exitCode -ne 0) { throw "Concurrent $($cr.role) must exit 0, got $($cr.exitCode)" }
+            if (-not $cr.rawExists) { throw "Concurrent $($cr.role) must produce raw artifact" }
+            if (-not $cr.metaExists) { throw "Concurrent $($cr.role) must produce metadata" }
+        }
+
         $record += @"
 
 ## concurrent-invocation-identity (parallel local-reviewer + purpose-reviewer)
 - elapsed_seconds: $([math]::Round($elapsed, 1))
-- note: both roles launched in parallel to prove independent session identity
+- note: both roles launched in parallel; independent session identity verified; both succeeded
 - local-reviewer: exit_code=$($concResults[0].exitCode), raw=$($concResults[0].rawExists), meta=$($concResults[0].metaExists)
 - purpose-reviewer: exit_code=$($concResults[1].exitCode), raw=$($concResults[1].rawExists), meta=$($concResults[1].metaExists)
 - output_local:

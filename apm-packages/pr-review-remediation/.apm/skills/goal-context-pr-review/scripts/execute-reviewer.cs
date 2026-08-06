@@ -244,8 +244,9 @@ static class ReviewerExecutor
             catch (Exception ex) when (ex is ContractException or IOException)
             {
                 // Adapter reported success, but post-processing failed.
-                // Clean up any partial raw artifact that may have been created.
-                TryDelete(finalRawPath);
+                // Do NOT delete finalRawPath here - PublishPair already handles its own rollback
+                // if metadata write fails. Deleting here could remove a raw published by another
+                // concurrent executor for the same role.
                 var failedPost = new ExecutionResult
                 {
                     ExecutionApp = app,
@@ -863,6 +864,14 @@ sealed class CodexExecAdapter(string executable) : IReviewerAdapter
                 ["Non-zero exit is not interpreted as no findings."]);
         }
 
+        // Verify stdin was fully delivered. If the child closed stdin early, the prompt may be incomplete.
+        if (!processResult.StdinCompleted)
+        {
+            return AdapterResult.Fail("input_delivery_failure", "unknown", commandShape,
+                "codex exec completed but stdin prompt was not fully delivered.",
+                ["Partial input delivery is not interpreted as a successful review."]);
+        }
+
         var observed = TryObserveCodexModel(processResult.StdOut) ?? "unknown";
         if (!CodexJsonlLooksClean(processResult.StdOut))
         {
@@ -1150,19 +1159,13 @@ static class ProcessRunner
             // the child pipe buffer is full. Stdin, stdout/stderr, and exit
             // all share the same timeout boundary below.
             Task? stdinTask = null;
+            bool stdinCompleted = true;
             if (stdin is not null)
             {
                 stdinTask = Task.Run(async () =>
                 {
-                    try
-                    {
-                        await process.StandardInput.WriteAsync(stdin).ConfigureAwait(false);
-                        process.StandardInput.Close();
-                    }
-                    catch
-                    {
-                        try { process.StandardInput.Close(); } catch { }
-                    }
+                    await process.StandardInput.WriteAsync(stdin).ConfigureAwait(false);
+                    process.StandardInput.Close();
                 });
             }
 
@@ -1175,14 +1178,30 @@ static class ProcessRunner
                 try { process.WaitForExit(5000); } catch { }
                 // Drain stdout/stderr with a short grace period.
                 try { Task.WaitAll(new[] { stdoutTask, stderrTask }, 5000); } catch { }
+                // stdin failure is expected on timeout; mark as not completed.
+                stdinCompleted = stdinTask is null || stdinTask.Status == TaskStatus.RanToCompletion;
                 return new ProcessRunResult(-1,
                     stdoutTask.Status == TaskStatus.RanToCompletion ? stdoutTask.Result : "",
                     stderrTask.Status == TaskStatus.RanToCompletion ? stderrTask.Result : "",
-                    TimedOut: true);
+                    TimedOut: true,
+                    StdinCompleted: stdinCompleted);
             }
 
             Task.WaitAll(stdoutTask, stderrTask);
-            return new ProcessRunResult(process.ExitCode, stdoutTask.Result, stderrTask.Result, TimedOut: false);
+            // On success, verify stdin was fully delivered.
+            if (stdinTask is not null)
+            {
+                try
+                {
+                    stdinTask.Wait();
+                    stdinCompleted = stdinTask.Status == TaskStatus.RanToCompletion;
+                }
+                catch
+                {
+                    stdinCompleted = false;
+                }
+            }
+            return new ProcessRunResult(process.ExitCode, stdoutTask.Result, stderrTask.Result, TimedOut: false, StdinCompleted: stdinCompleted);
         }
     }
 }
@@ -1284,7 +1303,7 @@ sealed record ReviewerInput(
     string PatchPath,
     string ContextPath);
 sealed record AdapterRequest(string RepositoryRoot, string WorkDirectory, string Model, string Role, ReviewerInput Input, int TimeoutSeconds);
-sealed record ProcessRunResult(int ExitCode, string StdOut, string StdErr, bool TimedOut);
+sealed record ProcessRunResult(int ExitCode, string StdOut, string StdErr, bool TimedOut, bool StdinCompleted = true);
 
 sealed class AdapterResult
 {

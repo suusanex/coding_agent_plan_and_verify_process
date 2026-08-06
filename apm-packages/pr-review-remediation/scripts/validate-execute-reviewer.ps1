@@ -440,6 +440,65 @@ try {
     if ($psFail.ExitCode -eq 0 -or $psFail.Output -notmatch 'process_start_failure') {
         Add-Failure "missing executable must classify process_start_failure: $($psFail.Output)"
     }
+
+    # stdin closed early -> input_delivery_failure
+    $repoStdin = New-FixtureRepo
+    $runStdin = New-RunRoot $repoStdin 1 'full'
+    $stdinFail = Invoke-Executor @(
+        '--execution-app', 'codex-exec',
+        '--model', 'gpt-5.6-terra',
+        '--reviewer-role', 'local-reviewer',
+        '--run-root', $runStdin,
+        '--round', '1',
+        '--repository-root', $repoStdin,
+        '--skill-root', $skillRoot,
+        '--codex-executable', $codexPath,
+        '--format', 'json'
+    ) @{ FAKE_CODEX_SCENARIO = 'stdin_closed_early' }
+    if ($stdinFail.ExitCode -eq 0 -or $stdinFail.Output -notmatch 'input_delivery_failure') {
+        Add-Failure "stdin early close must classify input_delivery_failure: $($stdinFail.Output)"
+    }
+    if (Test-Path -LiteralPath (Join-Path $runStdin 'round-001\local-reviewer.raw.md')) {
+        Add-Failure 'stdin failure must not publish final raw'
+    }
+
+    # concurrent duplicate safety: second executor must not delete first's raw
+    $repoDup = New-FixtureRepo
+    $runDup = New-RunRoot $repoDup 1 'full'
+    $dup1 = Invoke-Executor @(
+        '--execution-app', 'codex-exec',
+        '--model', 'gpt-5.6-terra',
+        '--reviewer-role', 'local-reviewer',
+        '--run-root', $runDup,
+        '--round', '1',
+        '--repository-root', $repoDup,
+        '--skill-root', $skillRoot,
+        '--codex-executable', $codexPath,
+        '--format', 'json'
+    ) @{ FAKE_CODEX_SCENARIO = 'success' }
+    if ($dup1.ExitCode -ne 0) { Add-Failure "first concurrent executor failed: $($dup1.Output)" }
+    $rawPath = Join-Path $runDup 'round-001\local-reviewer.raw.md'
+    if (-not (Test-Path -LiteralPath $rawPath)) { Add-Failure 'first concurrent executor must publish raw' }
+    $rawContent = Get-Content -Raw -LiteralPath $rawPath
+
+    # second executor tries same role -> overwrite protection rejects it
+    $dup2 = Invoke-Executor @(
+        '--execution-app', 'codex-exec',
+        '--model', 'gpt-5.6-terra',
+        '--reviewer-role', 'local-reviewer',
+        '--run-root', $runDup,
+        '--round', '1',
+        '--repository-root', $repoDup,
+        '--skill-root', $skillRoot,
+        '--codex-executable', $codexPath,
+        '--format', 'json'
+    ) @{ FAKE_CODEX_SCENARIO = 'success' }
+    if ($dup2.ExitCode -eq 0) { Add-Failure 'second concurrent executor must fail (overwrite protection)' }
+    # Verify first executor's raw is still intact
+    $rawContentAfter = Get-Content -Raw -LiteralPath $rawPath
+    if ($rawContent -ne $rawContentAfter) {
+        Add-Failure 'second concurrent executor must not modify first executor raw artifact'
+    }
 }
 catch {
     Add-Failure $_.Exception.Message

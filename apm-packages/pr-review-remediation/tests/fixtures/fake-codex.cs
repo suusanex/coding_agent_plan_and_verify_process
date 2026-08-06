@@ -11,20 +11,37 @@ if (!string.IsNullOrWhiteSpace(statePath))
 }
 
 // Drain stdin when present so callers can deliver prompts off-argv.
-try
+// Exception: "stdin_closed_early" scenario closes stdin immediately to test delivery failure.
+if (scenario == "stdin_closed_early")
 {
-    if (!Console.IsInputRedirected)
+    try
     {
-        // no-op
+        if (Console.IsInputRedirected)
+        {
+            // Close stdin immediately without reading to force parent write failure.
+            Console.In.Close();
+        }
     }
-    else
-    {
-        _ = Console.In.ReadToEnd();
-    }
+    catch { }
+    // Continue to write success output and exit with code 0.
 }
-catch
+else
 {
-    // ignore
+    try
+    {
+        if (!Console.IsInputRedirected)
+        {
+            // no-op
+        }
+        else
+        {
+            _ = Console.In.ReadToEnd();
+        }
+    }
+    catch
+    {
+        // ignore
+    }
 }
 
 if (args.Length == 0 || args[0] != "exec")
