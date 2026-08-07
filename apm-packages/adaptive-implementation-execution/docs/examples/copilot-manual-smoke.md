@@ -33,9 +33,10 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-
 ## Scenario 0: Plain implementation request does not auto-select Adaptive skill
 
 1. agent pickerでAdaptive専用agentを選ばず、通常のCopilot Chat / default agentのまま開始する。
-2. Adaptive skill名や「Adaptive Implementation」を含めず、単に「このPlanを実装して」または「実装して」と依頼する。
+2. Adaptive skill slash commandを使わず、単に「このPlanを実装して」または「実装して」と依頼する。
 3. `adaptive-implementation-execution` skill が暗黙選択・自動ロードされないことを確認する。
-4. 続けて `$adaptive-implementation-execution を使って、この Plan を実装してください` と明示起動し、skill を利用者起動できることを確認する。
+4. 続けて自然文で「Adaptive Implementationを使ってこのPlanを実装して」と依頼し、これも model 判断による自動ロードにならないことを確認する。
+5. 最後に `/adaptive-implementation-execution この Plan を実装してください` と slash 明示起動し、skill を利用者起動できることを確認する。
 
 この項目はUI依存のため自動テスト不能です。観測結果だけを記録し、未実行なら `NOT RUN` のままにします。
 
@@ -81,7 +82,8 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-
 ## Completion decision
 
 - plain implementation request did not auto-select Adaptive skill: NOT RUN
-- explicit `$adaptive-implementation-execution` invocation still works: NOT RUN
+- natural-language "Adaptive Implementationを使って" did not auto-select Adaptive skill: NOT RUN
+- explicit `/adaptive-implementation-execution` slash invocation still works: NOT RUN
 - HIGH-first observed: NOT RUN
 - valid handoff only before Luna: NOT RUN
 - structural trigger returned to Terra: NOT RUN

@@ -18,7 +18,7 @@
 
 ## Start after ordinary Plan Mode
 
-APM install で skill と portable custom agents を導入します。この skill は、利用者が Adaptive Implementation Execution を明示指定した場合だけ選択します。通常の「実装して」「このPlanを実装して」だけでは選択しません。導入されているだけで repository 内の実装作業へ自動適用しません。skill frontmatter は `disable-model-invocation: true` と `user-invocable: true` とし、model 判断による暗黙起動を禁止したまま利用者の明示起動を維持します。
+APM install で skill と portable custom agents を導入します。この skill は、利用者が `/adaptive-implementation-execution` で slash 起動した場合だけ選択します。通常の「実装して」「このPlanを実装して」、および「Adaptive Implementationを使って」などの自然文での名前言及だけでは選択しません。導入されているだけで repository 内の実装作業へ自動適用しません。skill frontmatter は `disable-model-invocation: true` と `user-invocable: true` とし、model 判断による暗黙起動を禁止したまま利用者の slash 明示起動を維持します。
 
 現行 APM が model 未設定の custom agent TOML を生成した場合は、補助スクリプトで concrete model 設定を補完し、`--check` で確認します。この補完は runtime configuration の互換処理であり、skill の選択や使用を強制しません。
 
@@ -37,20 +37,20 @@ model mappingはHIGH start / re-entryが`GPT-5.6 Terra (copilot)`、bounded STAN
 Copilot plan、organization policy、extension version、model pickerによりrequested modelを利用できない場合は、別tierへ黙って実行しません。mapping変更を明示的に決めるかpolicy管理者へ確認し、requested / observed modelと差異をmanual evidenceへ記録します。
 
 ```text
-$adaptive-implementation-execution を使って、直前の Plan を実装してください。
+/adaptive-implementation-execution 直前の Plan を実装してください。
 Plan の scope / non-goals / acceptance を維持し、final review は別工程として残してください。
 ```
 
 repository-tracked Plan の例:
 
 ```text
-$adaptive-implementation-execution を使って plans/issue-123.md を実装してください。
+/adaptive-implementation-execution plans/issue-123.md を実装してください。
 ```
 
 Design Pair route の例:
 
 ```text
-$design-pair-implementation-execution で作成した plans/issue-123-design-pair-implementation-handoff.md を追加 input として、$adaptive-implementation-execution を開始してください。
+/adaptive-implementation-execution plans/issue-123-design-pair-implementation-handoff.md を追加 input として開始してください。
 Locked Decisions だけを binding とし、その他の実装判断は actual code と verification evidence から行ってください。
 ```
 
@@ -73,7 +73,7 @@ durable routeやresume evidenceがない通常Adaptiveのfresh intakeは、`impl
 短い caller intent の例:
 
 ```text
-$adaptive-implementation-execution を使って進めてください。
+/adaptive-implementation-execution
 Goal: CSV import の空行を無視する。
 Scope: ImportService と既存 tests。
 Non-goals: parser library の交換、public API 変更。

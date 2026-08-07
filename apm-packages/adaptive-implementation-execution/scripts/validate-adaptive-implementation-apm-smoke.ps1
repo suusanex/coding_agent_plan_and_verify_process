@@ -120,7 +120,10 @@ try {
     Assert-Contains $deployedSkill '(?m)^disable-model-invocation:\s*true\s*$' 'deployed skill explicit-only model invocation'
     Assert-Contains $deployedSkill '(?m)^user-invocable:\s*true\s*$' 'deployed skill remains user-invocable'
     Assert-Contains $deployedSkill 'Do not select for ordinary implement-this-plan requests' 'deployed skill rejects plain implementation requests'
+    Assert-Contains $deployedSkill 'do not select from natural-language mentions' 'deployed skill rejects natural-language name mentions'
+    Assert-Contains $deployedSkill '/adaptive-implementation-execution' 'deployed skill documents slash invocation'
     Assert-NotContains $deployedSkill 'or when the task clearly requires' 'deployed skill has no task-requires auto-selection description'
+    Assert-NotContains $deployedSkill '\$adaptive-implementation-execution' 'deployed skill has no dollar-prefix invocation example'
 
     $copilotHigh = Join-Path $scratch '.github/agents/high-implementation-starter.agent.md'
     $copilotStandard = Join-Path $scratch '.github/agents/standard-implementation-completer.agent.md'
