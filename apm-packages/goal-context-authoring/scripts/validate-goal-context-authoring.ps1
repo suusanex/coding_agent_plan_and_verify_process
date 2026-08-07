@@ -66,15 +66,31 @@ try {
         '.apm/skills/goal-context-authoring/references/human-review-checklist.md',
         $validatorRelativePath,
         'docs/usage-and-install-guide.md',
+        'docs/examples/source-conversation-fixture.md',
+        'docs/examples/goal-context-resumable-local-batch-export.md',
         'scripts/test-apm-package-install.ps1'
     )) { Assert-File $file }
 
     Assert-Contains 'apm.yml' '(?m)^name:\s*goal-context-authoring\s*$' 'package identity'
     Assert-Contains '.apm/skills/goal-context-authoring/SKILL.md' 'no required filename, extension, frontmatter, headings' 'free-form interoperability boundary'
+    Assert-Contains '.apm/skills/goal-context-authoring/references/generation-prompt.md' 'Preserve both downstream uses with equal importance' 'equal preservation of purpose and settled planning context'
+    Assert-Contains '.apm/skills/goal-context-authoring/references/generation-prompt.md' '(?s)implementation\s+capabilities already established in the source.*capability itself was explicitly stated, clearly accepted, or directly\s+established by the accepted discussion' 'source-confirmed settled capability boundary'
+    Assert-Contains '.apm/skills/goal-context-authoring/references/generation-prompt.md' '(?s)Before finalizing, check the accepted concrete use cases.*using only the Goal Context.*settled capability or constraint was omitted' 'accepted-use-case completeness check'
+    Assert-Contains '.apm/skills/goal-context-authoring/references/generation-prompt.md' '(?s)Use this check only to recover decisions already present in the\s+source, not to create new requirements, invent an MVP, or fill unresolved\s+design gaps' 'source-bounded completeness guardrail'
+    Assert-Contains '.apm/skills/goal-context-authoring/references/generation-prompt.md' 'Do not let implementation-relevant settled decisions disappear\s+into broad goal prose' 'explicit settled capability visibility'
+    Assert-Contains '.apm/skills/goal-context-authoring/references/generation-prompt.md' '(?s)Do not invent missing decisions.*assistant proposal,\s+general best practice, likely implementation, or user silence' 'no invention or promotion guardrail'
+    Assert-Contains '.apm/skills/goal-context-authoring/references/generation-prompt.md' 'Do not turn the output into an exhaustive specification' 'non-exhaustive generation boundary'
     Assert-Contains '.apm/skills/goal-context-authoring/references/generation-prompt.md' 'The output is free-form' 'free-form generation instruction'
     Assert-Contains '.apm/skills/goal-context-authoring/references/goal-context-contract.md' 'No consumer may require' 'consumer non-requirement contract'
     Assert-Contains '.apm/skills/goal-context-authoring/references/goal-context-template.md' 'not a schema' 'optional template boundary'
     Assert-Contains '.apm/skills/goal-context-authoring/references/human-review-checklist.md' 'Human review is optional' 'optional human review boundary'
+    Assert-Contains '.apm/skills/goal-context-authoring/references/human-review-checklist.md' 'every accepted concrete use case without a source-confirmed capability having disappeared' 'accepted-use-case capability completeness review'
+    Assert-Contains '.apm/skills/goal-context-authoring/references/human-review-checklist.md' 'settled implementation capabilities explicit enough to remain fixed' 'settled capability visibility review'
+    Assert-Contains '.apm/skills/goal-context-authoring/references/human-review-checklist.md' 'avoid inferring a capability from usefulness or promoting a proposal, assumption, or user silence' 'no inference or promotion review'
+    Assert-Contains 'docs/examples/source-conversation-fixture.md' '(?s)LC-AC-001.*external-call count for records already confirmed as exported does not increase' 'source fixture pre-call skip acceptance'
+    Assert-Contains 'docs/examples/goal-context-resumable-local-batch-export.md' '(?s)LC-AC-001.*external-call counts.*does not increase' 'expected Goal Context pre-call skip acceptance'
+    Assert-Contains 'docs/examples/source-conversation-fixture.md' '(?s)LC-WRONG-001.*after calling the external system again is still wrong.*skip the external call' 'source fixture post-call deduplication rejection'
+    Assert-Contains 'docs/examples/goal-context-resumable-local-batch-export.md' '(?s)LC-WRONG-001.*calls the external system again.*deduplicates or discards' 'expected Goal Context post-call deduplication rejection'
 
     $publishPath = Join-Path $resolvedScratch 'publish'
     $publish = Invoke-NativeCapture 'dotnet' @('publish', $validatorSourcePath, '--output', $publishPath, '--disable-build-servers')

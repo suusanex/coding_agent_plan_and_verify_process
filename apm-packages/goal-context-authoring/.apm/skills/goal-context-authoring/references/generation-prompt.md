@@ -20,6 +20,10 @@ The Goal Context has two downstream uses:
    premises, and unresolved matters already established in this
    conversation so later planning does not silently reopen or contradict them.
 
+Preserve both downstream uses with equal importance. Do not let either the
+purpose or the settled planning context disappear merely because the other
+can be summarized more broadly.
+
 Keep the original problem and desired outcome semantically dominant.
 Lower-level technical decisions must not redefine the higher-level purpose.
 
@@ -33,11 +37,32 @@ omission could reasonably cause later planning to:
 Preserve enough reason and scope for each decision to prevent it from
 being applied more broadly than intended.
 
+When identifying settled decisions and constraints, include implementation
+capabilities already established in the source as necessary to carry out an
+accepted concrete use case. Treat a capability as settled only when the
+capability itself was explicitly stated, clearly accepted, or directly
+established by the accepted discussion. Do not infer additional capabilities
+merely because they seem useful or would be good design.
+
 Clearly distinguish, in natural language:
 - decisions and constraints explicitly stated or clearly accepted by the user;
 - premises or working assumptions that may need revalidation;
 - proposals that were discussed but not accepted;
 - unresolved matters intentionally left for later planning.
+
+Before finalizing, check the accepted concrete use cases in the source
+material. Ask whether a later planner, using only the Goal Context, could
+satisfy the high-level goal but be unable to carry out an already-accepted
+use case because a settled capability or constraint was omitted. If so,
+include the missing item only when it is already source-confirmed under the
+rules above. Use this check only to recover decisions already present in the
+source, not to create new requirements, invent an MVP, or fill unresolved
+design gaps.
+
+Keep settled decisions sufficiently explicit that a later designer can
+identify what must remain fixed independently from the general purpose
+narrative. Do not let implementation-relevant settled decisions disappear
+into broad goal prose merely because they are lower-level than the goal.
 
 Do not invent missing decisions or silently convert an assistant proposal,
 general best practice, likely implementation, or user silence into an
