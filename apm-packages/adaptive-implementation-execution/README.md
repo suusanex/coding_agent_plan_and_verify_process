@@ -91,7 +91,7 @@ installer は File-based app であり、`.csproj` は不要です。APM が生�
 
 補助スクリプトがアクセスする導入先ファイルは2つの `.codex/agents/*.toml` だけです。`AGENTS.md` を作成・変更・削除せず、実行しても skill の使用や自動選択を意味しません。`--check` は model / reasoning / workspace-write 設定、role ごとの agent 名、HIGH_MODEL と STANDARD_MODEL の異なる model mapping を検証します。APM が必要な設定を直接生成できるようになれば、この互換処理は不要になる可能性があります。
 
-skill の選択条件と、選択後の実行順序、handoff、re-entry、verification boundary の source of truth は `.apm/skills/adaptive-implementation-execution/SKILL.md` です。この package は repository 内のすべての Plan や実装作業へ skill を強制しません。
+skill の選択条件と、選択後の実行順序、handoff、re-entry、verification boundary の source of truth は `.apm/skills/adaptive-implementation-execution/SKILL.md` です。この package は repository 内のすべての Plan や実装作業へ skill を強制しません。skill は利用者が `/adaptive-implementation-execution` で slash 起動した場合だけ起動し、通常の「実装して」や自然文での名前言及だけでは自動選択しません。frontmatter は `disable-model-invocation: true` と `user-invocable: true` です。
 
 通常Adaptiveのfresh intakeは`implementation_route: adaptive`、`implementation_route_source: default`、`design_pair_handoff: N/A`を初期化し、3項目をHIGH_MODELへ明示的に渡します。invalid-artifact `BLOCKED`だけは欠落identityを捏造せず、raw observed valueまたは`<missing>`とrepair evidenceを返します。
 
@@ -102,7 +102,7 @@ Design Pair導入前のtracked Adaptive handoffは、旧必須fieldがすべて�
 起動例:
 
 ```text
-$adaptive-implementation-execution を使って、この Plan を実装してください。
+/adaptive-implementation-execution この Plan を実装してください。
 ```
 
 ## Documentation

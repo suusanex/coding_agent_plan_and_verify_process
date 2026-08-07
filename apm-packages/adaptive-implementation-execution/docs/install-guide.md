@@ -159,4 +159,4 @@ apm prune
 
 ## Skill selection
 
-補助スクリプトの実行はskillの使用を強制しません。skillは通常のskill選択規則に従い、利用者が明示指定した場合、またはtaskがこのpackageの直列workflowを明確に必要とする場合に選択されます。選択後の実行順序、HIGH_MODELとSTANDARD_MODELの役割、handoff、re-entry、verification boundaryは `SKILL.md` がsource of truthです。
+補助スクリプトの実行はskillの使用を強制しません。skillは利用者が `/adaptive-implementation-execution` で slash 起動した場合だけ選択され、通常の「実装して」「このPlanを実装して」、および「Adaptive Implementationを使って」などの自然文での名前言及だけでは選択されません。frontmatter の `disable-model-invocation: true` により model 判断での暗黙起動を禁止し、`user-invocable: true` により利用者の slash 明示起動は維持します。選択後の実行順序、HIGH_MODELとSTANDARD_MODELの役割、handoff、re-entry、verification boundaryは `SKILL.md` がsource of truthです。
