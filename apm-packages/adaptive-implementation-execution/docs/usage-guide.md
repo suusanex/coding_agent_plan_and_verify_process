@@ -18,7 +18,7 @@
 
 ## Start after ordinary Plan Mode
 
-APM install で skill と portable custom agents を導入します。この skill は、利用者が明示指定した場合、または現在の task がこの package の HIGH_MODEL → STANDARD_MODEL 直列 workflow を明確に必要とする場合に選択します。導入されているだけで repository 内の実装作業へ自動適用しません。
+APM install で skill と portable custom agents を導入します。この skill は、利用者が Adaptive Implementation Execution を明示指定した場合だけ選択します。通常の「実装して」「このPlanを実装して」だけでは選択しません。導入されているだけで repository 内の実装作業へ自動適用しません。skill frontmatter は `disable-model-invocation: true` と `user-invocable: true` とし、model 判断による暗黙起動を禁止したまま利用者の明示起動を維持します。
 
 現行 APM が model 未設定の custom agent TOML を生成した場合は、補助スクリプトで concrete model 設定を補完し、`--check` で確認します。この補完は runtime configuration の互換処理であり、skill の選択や使用を強制しません。
 

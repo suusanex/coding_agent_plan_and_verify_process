@@ -1,6 +1,8 @@
 ---
 name: adaptive-implementation-execution
-description: Use when the user explicitly requests adaptive implementation execution, or when the task clearly requires this package's serial high-model-to-standard-model implementation workflow with high-model re-entry for new structural decisions.
+description: Use only when the user explicitly requests Adaptive Implementation Execution by name (for example $adaptive-implementation-execution or "Adaptive Implementation"). Do not select for ordinary implement-this-plan requests such as "実装して" or "このPlanを実装して".
+user-invocable: true
+disable-model-invocation: true
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
@@ -9,7 +11,9 @@ description: Use when the user explicitly requests adaptive implementation execu
 
 # Adaptive Implementation Execution
 
-この skill が選択された後、通常の Plan Mode output、手書き Plan、repository-tracked Plan、Issue 内の実装計画、または明示選択された Design Pair Implementation Handoff を入力に、実装中の evidence に基づいて HIGH_MODEL と STANDARD_MODEL を直列に切り替える implementation-only flow です。package が導入されているだけで、repository 内の実装作業へ自動適用しません。
+この skill は、利用者が Adaptive Implementation Execution を明示的に要求した場合だけ使用する。通常の「実装して」「このPlanを実装して」などの実装依頼だけでは選択しない。package が導入されているだけで、repository 内の実装作業へ自動適用しない。
+
+この skill が明示選択された後、通常の Plan Mode output、手書き Plan、repository-tracked Plan、Issue 内の実装計画、または明示選択された Design Pair Implementation Handoff を入力に、実装中の evidence に基づいて HIGH_MODEL と STANDARD_MODEL を直列に切り替える implementation-only flow です。
 
 Plan Coverage Lite / Standard / Full Coverage の縮小版ではありません。Plan Coverage artifacts、change-risk-triage、runtime contract、test design、coverage ledger、residual decision は必須入力にしません。
 
