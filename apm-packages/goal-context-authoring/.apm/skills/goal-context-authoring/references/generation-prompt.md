@@ -6,6 +6,12 @@ The following prompt is an optional way to create free-form Goal Context from av
 Create self-contained natural-language Goal Context from the material
 available in this conversation or the files I supplied.
 
+Output language
+- Use the primary language of the user's substantive design and decision messages.
+- Follow an explicit user request for a different output language.
+- If the primary language cannot be determined, use Japanese.
+- Preserve code, CLI commands, file paths, schema keys, identifiers, product names, and established technical terms in their original form where appropriate.
+
 The Goal Context has two downstream uses:
 
 1. Help a later implementation or purpose reviewer understand why the
