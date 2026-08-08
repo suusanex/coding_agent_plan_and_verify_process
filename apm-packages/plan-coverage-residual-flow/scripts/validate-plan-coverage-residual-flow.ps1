@@ -59,6 +59,11 @@ $decompositionRelativePath = '.github/agents/plan-slice-decomposition.agent.md'
 $scenarioRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/invocation-authorization-scenarios.json'
 $manualReadmeRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/manual-model-smoke/README.md'
 $manualTemplateRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/manual-model-smoke/result-template.md'
+$standaloneE2ERelativePath = 'apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1'
+$standaloneFixtureReadmeRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/full-coverage-standalone/PCF-001/README.md'
+$standaloneFixtureExpectedRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/full-coverage-standalone/PCF-001/expected.json'
+$apmSmokeRelativePath = 'apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1'
+$workflowRelativePath = '.github/workflows/validate-plan-coverage-residual-flow.yml'
 
 $requiredFiles = @(
     $skillRelativePath,
@@ -73,7 +78,12 @@ $requiredFiles = @(
     $decompositionRelativePath,
     $scenarioRelativePath,
     $manualReadmeRelativePath,
-    $manualTemplateRelativePath
+    $manualTemplateRelativePath,
+    $standaloneE2ERelativePath,
+    $standaloneFixtureReadmeRelativePath,
+    $standaloneFixtureExpectedRelativePath,
+    $apmSmokeRelativePath,
+    $workflowRelativePath
 )
 
 foreach ($relativePath in $requiredFiles) {
@@ -280,6 +290,25 @@ if ($failures.Count -eq 0) {
     foreach ($scenarioId in 'A'..'H') {
         Assert-Matches $manualTemplate "(?m)^\| $scenarioId \| NOT RUN \|" "manual result template must include Scenario $scenarioId"
     }
+
+    $standaloneE2E = Get-NormalizedText (Join-Path $repoRoot $standaloneE2ERelativePath)
+    $standaloneFixtureReadme = Get-NormalizedText (Join-Path $repoRoot $standaloneFixtureReadmeRelativePath)
+    $standaloneFixtureExpected = Get-NormalizedText (Join-Path $repoRoot $standaloneFixtureExpectedRelativePath)
+    $apmSmoke = Get-NormalizedText (Join-Path $repoRoot $apmSmokeRelativePath)
+    $workflow = Get-NormalizedText (Join-Path $repoRoot $workflowRelativePath)
+    Assert-Matches $packageReadme 'Standalone full-coverage E2E fixture' 'package README must link the standalone full-coverage E2E fixture'
+    Assert-Matches $packageReadme 'validate-plan-coverage-full-coverage-e2e\.ps1' 'package README must document the standalone E2E command'
+    Assert-Matches $packageReadme '外部modelは実行しない.*自律実行した証拠ではありません' 'package README must separate deterministic evidence from external-model evidence'
+    Assert-Matches $standaloneFixtureReadme 'deterministic test-only fixture' 'PCF-001 must identify itself as deterministic test-only evidence'
+    Assert-Matches $standaloneFixtureReadme 'does not invoke an external model' 'PCF-001 must not claim external-model execution evidence'
+    Assert-Matches $standaloneFixtureExpected '(?s)"ReadyForRiskTriage".*"full-coverage".*"ReadyForSliceDecomposition".*"SL-001".*"SL-002".*"CROSS_SLICE_VERIFIED".*"READY_TO_CLOSE_WITH_NO_RESIDUALS"' 'PCF-001 must preserve the full lifecycle stage order'
+    Assert-Matches $standaloneE2E '\[string\]\$InstalledRoot' 'standalone E2E validator must support installed-root contract resolution'
+    foreach ($negativeCase in @('missing-sl-002-verification', 'missing-production-binding', 'missing-cross-slice-verdict', 'residual-before-cross-slice', 'removed-dependency-reference')) {
+        Assert-Matches $standaloneE2E ([regex]::Escape($negativeCase)) "standalone E2E validator must fail closed for $negativeCase"
+    }
+    Assert-Matches $standaloneE2E 'foreach \(\$verdict in @\(''Drift'', ''Unclear''\)\)' 'standalone E2E validator must fail closed for architecture Drift and Unclear'
+    Assert-Matches $apmSmoke '(?s)validate-plan-coverage-full-coverage-e2e\.ps1.*-InstalledRoot' 'remote APM smoke must execute standalone E2E against the installed closure'
+    Assert-Matches $workflow 'validate-plan-coverage-full-coverage-e2e\.ps1' 'Plan Coverage workflow must execute standalone E2E in source mode'
 
 }
 

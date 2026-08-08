@@ -257,10 +257,14 @@ residual decisionのclose verdictは次を含みます。
 - [Detailed process and agent requirements](../../docs/plan-coverage-process-and-agents.md)
 - [Full-coverage decomposition policy](../../docs/token-aware-full-coverage-decomposition-flow.md)
 - [Architecture Slice Readiness validation](../../docs/architecture-slice-readiness-validation.md)
+- [Standalone full-coverage E2E fixture](tests/full-coverage-standalone/PCF-001/README.md)
 - [Manual model smoke](tests/manual-model-smoke/README.md)
 
 ```powershell
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1
+./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1
 ```
+
+standalone full-coverage E2Eは、2つのbounded slice payloadを依存順に適用し、slice-local verification、production entrypoint経由のcross-slice verification、residual decisionまでをdeterministicに検証します。外部modelは実行しないため、CodexやCopilot等がlifecycleを自律実行した証拠ではありません。
 
 remote APM install smokeはpackageの変更をremote refで検証するときだけ実行します。
