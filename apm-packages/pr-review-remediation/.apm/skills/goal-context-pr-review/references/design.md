@@ -11,7 +11,9 @@ The utility resolves the current repository, prefers the current branch Ready PR
 - `round-NNN/`: collector context/patch, Goal Context selection, reviewer raw outputs, parent assessment
 - `terminal-projection.json` and `completion-notification.txt`: optional XC-001 producer fields
 
-It does not spawn reviewers, edit production files, commit, or push. Its only GitHub mutation is the round 1 Copilot review request. Other writes remain with the Codex parent; reviewer roles stay read-only.
+It does not spawn reviewers, edit production files, commit, or push. Its only GitHub mutation is the round 1 Copilot review request. Other writes remain with the original parent; reviewer roles stay read-only.
+
+`scripts/execute-reviewer.cs` is the deterministic reviewer execution address. The parent invokes it with typed `--execution-app`, `--model`, and `--reviewer-role` selection. The executor builds role input from existing round artifacts, runs the Codex exec or GitHub Copilot CLI adapter, waits with timeout, extracts the final review body, and atomically publishes `round-NNN/{role}.raw.md` plus `{role}.execution.json`. It does not assess findings, own remediation, or transition run state. Arbitrary raw command strings are rejected. Adapter limitations (for example top-level `codex exec` instead of native subagent UI) are recorded and not disguised.
 
 ## Authority and precedence
 

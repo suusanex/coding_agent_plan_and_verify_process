@@ -40,8 +40,8 @@ $goal-context-pr-review
 
 - managerがGitHub Copilot reviewを明示要求し、automatic review設定なしでもreviewが開始される
 - GitHub Copilot terminal reviewがcurrent headにbindingされる。inline指摘が0件ならcollector-completeな`reviewOnly`、1件以上なら`reviewAndInline`を記録する
-- `local-reviewer`と`purpose-reviewer`が別read-only subagentとして実行される
-- raw outputが別artifactとして保持され、両方に`Production code changed: No`がある
+- `local-reviewer`と`purpose-reviewer`が`execute-reviewer.cs`（typed `codex-exec`または`copilot-cli`）で独立に実行される
+- raw outputと`{role}.execution.json`が別artifactとして保持され、両方に`Production code changed: No`がある
 - reviewer role/countとreviewed headがrun summaryへ記録される
 - reviewer実行中にproduction/tests/docsのdiffが増えない
 

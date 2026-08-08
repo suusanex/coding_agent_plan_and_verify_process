@@ -128,6 +128,7 @@ try {
         'SKILL.md',
         'scripts/select-goal-context.cs',
         'scripts/manage-same-parent-review.cs',
+        'scripts/execute-reviewer.cs',
         'scripts/manage-review-cycle.cs',
         'templates/purpose-review-findings.md',
         'templates/round-assessment.example.json',
@@ -135,7 +136,8 @@ try {
         'templates/review-round-result.example.json',
         'references/design.md',
         'references/usage.md',
-        'references/troubleshooting.md'
+        'references/troubleshooting.md',
+        'references/execute-reviewer.md'
     )) {
         Assert-File (Join-Path $deployedGoalReviewSkill $relative) "deployed Goal Context review Skill asset $relative"
     }
@@ -159,6 +161,7 @@ try {
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedReviewSkill 'scripts/collect-pr-review-context.cs'), '--', '--help') 'deployed relative collector help'
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedGoalReviewSkill 'scripts/select-goal-context.cs'), '--', '--help') 'deployed Goal Context selector help'
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedGoalReviewSkill 'scripts/manage-same-parent-review.cs'), '--', '--help') 'deployed canonical same-parent manager help'
+    Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedGoalReviewSkill 'scripts/execute-reviewer.cs'), '--', '--help') 'deployed deterministic reviewer executor help'
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedGoalReviewSkill 'scripts/manage-review-cycle.cs'), '--', '--help') 'deployed multi-round cycle manager help'
 
     $freeFormGoalContext = Join-Path $scratch 'consumer-goal.txt'

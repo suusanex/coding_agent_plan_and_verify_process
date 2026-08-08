@@ -8,6 +8,7 @@
 | --- | --- | --- |
 | `scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs` | always-on Codex callback runtimeをuser-level設定へ導入する | canonical runtime、Local Spool provider、user-level `notify` |
 | `apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs` | PR Review Remediation導入後にconcrete Codex reviewer profilesを同期する | `.codex/agents/local-reviewer.toml`、`purpose-reviewer.toml`、`review-planner.toml` |
+| Goal Context Skill `scripts/execute-reviewer.cs` | typed設定でCodex exec / GitHub Copilot CLI reviewerを決定的に起動・待機・raw保存する | `round-NNN/{role}.raw.md`、`{role}.execution.json` |
 | `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM導入後にAdaptive Implementationのconcrete Codex profilesを補完する | `.codex/agents/high-implementation-starter.toml`、`standard-implementation-completer.toml` |
 | `scripts/provision-work-repo-agents.cs` | 既存のPlan Coverage / full-coverage packageをAPM経由で導入し、Codex向け配置を補正する | `apm install`、agent TOML補正、full-coverage templates |
 | Goal Context validators | Goal Context authoring packageやfree-form文書を確認する | readability、package structure、APM install smoke |
@@ -89,6 +90,7 @@ repository rootから、変更したownership surfaceに対応するcheckを実�
 
 ```powershell
 ./apm-packages/pr-review-remediation/scripts/validate-same-parent-review.ps1
+./apm-packages/pr-review-remediation/scripts/validate-execute-reviewer.ps1
 ./apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
 ```
 
