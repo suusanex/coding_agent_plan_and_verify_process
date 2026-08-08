@@ -145,12 +145,14 @@ full-coverage
   -> architecture-slice-readiness
      -> architecture-elaboration -> readiness rerun, when required
      -> plan-slice-decomposition, when authorized
-  -> each bounded slice re-enters the standard Plan Coverage chain
+  -> each bounded slice
+     -> architecture baseline compatibility: Match
+     -> standard Plan Coverage chain
   -> cross-slice-verification
   -> residual-decision-gate
 ```
 
-`plan-slice-decomposition`が作る各`plans/<slug>-slice-SL-xxx.md`は、Plan Coverage自身が扱うbounded Planです。各sliceはparent Plan、approved architecture、decompositionとのtraceabilityを保ったまま必要なpre-implementation gates、Adaptive Implementation、independent verificationを実行し、全sliceの後にcross-slice verificationとresidual decisionを行います。
+`plan-slice-decomposition`が作る各`plans/<slug>-slice-SL-xxx.md`は、Plan Coverage自身が扱うbounded Planです。各sliceはparent Plan、approved architecture、decompositionとのtraceabilityを保ったまま必要なpre-implementation gatesを実行し、current architecture baselineとのcompatibilityが`Match`の場合だけAdaptive Implementationへ進みます。`Drift`はArchitecture Slice Readiness / Elaborationへ戻し、`Unclear`はfail closedしてreadinessを再実行します。`ArchitectureNotRequired`でもLightweight architecture baselineとの比較を省略しません。全sliceのindependent verification後にcross-slice verificationとresidual decisionを行います。
 
 ## Agent reference
 

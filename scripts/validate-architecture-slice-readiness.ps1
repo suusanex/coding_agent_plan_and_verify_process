@@ -94,6 +94,9 @@ Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'trac
 Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'watch_paths' 'watch path freshness'
 Assert-FileContains '.github/agents/architecture-elaboration.agent.md' 'production evidence address' 'bounded production inspection'
 Assert-FileContains '.github/agents/plan-slice-decomposition.agent.md' 'Architecture source IDs / sections' 'slice-local architecture traceability'
+Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'Architecture baseline compatibility' 'Plan Coverage parent compatibility owner'
+Assert-FileContains '.github/agents/implementation-handoff-review.agent.md' 'Check 11. Architecture baseline compatibility' 'pre-implementation compatibility gate'
+Assert-FileContains '.github/instructions/plan-coverage-shared.instructions.md' 'Only `Match` may proceed to implementation' 'shared Match-only implementation invariant'
 Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md' 'artifact_revision' 'explicit slice architecture revision'
 Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md' 'elaboration_trigger' 'immutable elaboration trigger snapshot'
 Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md' 'freshness_dependency: false' 'non-freshness elaboration trigger'
@@ -206,6 +209,8 @@ $validatedContracts = @(
     '.github/agents/architecture-slice-readiness.agent.md',
     '.github/agents/architecture-elaboration.agent.md',
     '.github/agents/plan-slice-decomposition.agent.md',
+    '.github/agents/implementation-handoff-review.agent.md',
+    '.github/instructions/plan-coverage-shared.instructions.md',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md',

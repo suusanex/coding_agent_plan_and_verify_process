@@ -144,8 +144,18 @@ if ($failures.Count -eq 0) {
     Assert-Matches $designPairValidator 'Plan Coverage package version 0\.10\.0' 'Design Pair validator package version pin must be 0.10.0'
 
     $decomposition = Get-NormalizedText (Join-Path $repoRoot $decompositionRelativePath)
+    $sharedInstructions = Get-NormalizedText (Join-Path $repoRoot $sharedInstructionsRelativePath)
+    $handoffReview = Get-NormalizedText (Join-Path $repoRoot '.github/agents/implementation-handoff-review.agent.md')
+    $processDocumentation = Get-NormalizedText (Join-Path $repoRoot 'docs/plan-coverage-process-and-agents.md')
     Assert-Matches $skill 'Treat every executable `plans/<slug>-slice-SL-xxx\.md` artifact as a bounded Plan that re-enters this Plan Coverage flow' 'full-coverage slices must re-enter Plan Coverage as bounded Plans'
     Assert-Matches $decomposition 'executable slice については.*bounded Plan として読む' 'decomposition must produce bounded Plan slice artifacts'
+    Assert-Matches $skill 'Architecture baseline compatibility' 'Plan Coverage parent must own the pre-slice architecture compatibility check'
+    Assert-Matches $skill 'Only a current-baseline `Match` may proceed.*`Drift` returns to Architecture Slice Readiness / Elaboration.*`Unclear` fails closed' 'Plan Coverage must fail closed on architecture Drift or Unclear'
+    Assert-Matches $sharedInstructions 'Only `Match` may proceed to implementation.*`Drift` returns to Architecture Slice Readiness / Elaboration.*`Unclear` fails closed' 'shared guardrails must require Match before full-coverage implementation'
+    Assert-Matches $handoffReview '(?m)^#### Check 11\. Architecture baseline compatibility\s*$' 'implementation handoff review must own the architecture compatibility gate'
+    Assert-Matches $handoffReview '\| Slice ID \| Readiness verdict \| Baseline authority \| Baseline identity \| Observed semantics \| Match / Drift / Unclear \| Required action \|' 'implementation handoff review must emit architecture compatibility evidence'
+    Assert-Matches $handoffReview '`ArchitectureNotRequired`.*Lightweight architecture baseline' 'ArchitectureNotRequired must retain baseline comparison'
+    Assert-NotMatches $processDocumentation 'Slice preparation and parent review return `Match`' 'active docs must not assign architecture compatibility to removed 3-layer owners'
 
     $rollbackContractRelativePaths = @(
         $skillRelativePath,

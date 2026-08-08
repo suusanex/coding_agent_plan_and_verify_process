@@ -2,10 +2,10 @@
 
 ## Execution metadata
 
-- Executed at: `2026-08-08T18:20:30+09:00`
-- Executor: Issue #94 semantic rollback; deterministic ASR-001 through ASR-006 fixture comparison rerun after restoring bounded Plan slice execution
+- Executed at: `2026-08-08T19:51:34+09:00`
+- Executor: Issue #94 review remediation; deterministic ASR-001 through ASR-006 fixture comparison rerun after assigning pre-slice architecture compatibility to Plan Coverage
 - Branch: `issue-93` (Issue #93 recovery sequence after Issue #95)
-- Reviewed source: PR #80 semantic delta compared with pre-change commit `1932e5a9f66c308130a33b4e3f20ec2eb09ee769`; Plan Coverage owns bounded slice execution without the deleted 3-layer package, state, agents, or templates
+- Reviewed source: PR #80 semantic delta compared with pre-change commit `1932e5a9f66c308130a33b4e3f20ec2eb09ee769`; Plan Coverage owns bounded slice execution and current-baseline `Match / Drift / Unclear` gating without the deleted 3-layer package, state, agents, or templates
 - Scope: entry authorization, routing, artifact, and existing architecture semantics only; no production code or external system changes
 
 ### Contract revisions evaluated
@@ -17,7 +17,9 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | `.github/agents/architecture-slice-readiness.agent.md` | `c2f93ce3004a309d8430bea7e7875e38a2fd983843c95a1abca0324654bf5259` |
 | `.github/agents/architecture-elaboration.agent.md` | `8f53674b988131d847d8c32ca01d850c90820fddb40595a6ca6ff54382948344` |
 | `.github/agents/plan-slice-decomposition.agent.md` | `2d92766ad496003fa31be917c8355188adce9165b05bfe709044c4715c2a0fae` |
-| `plan-coverage-residual-flow/SKILL.md` | `356af2ff7b8b88d20cf9a146f140cb6d4c724cc0eb780c1e8e248a78f1539267` |
+| `.github/agents/implementation-handoff-review.agent.md` | `18b83fe6a0c02af7551a0a33095f7acab024fe07ce3b7846f4cdd7223ac11997` |
+| `.github/instructions/plan-coverage-shared.instructions.md` | `1f38405b04f752d2af27e46ae21773e68849f558f20706187c7057984a7f6c24` |
+| `plan-coverage-residual-flow/SKILL.md` | `01cb6ce5aceac254c065b77175024b12ac6eac2af6ef222620b1a138ef91f485` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 | `coverage-ledger.md` template | `b1a532b4ab59dbaa1471d8bd1beb6af5e7f570f3086719c8fcbe452f7f493962` |
 | `plan-coverage-lite.md` template | `e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90` |
@@ -156,7 +158,7 @@ Immediate next action: stop until the decision source is recorded
 | Slice Architecture template path | PASS | canonical template exists and all affected manifests reference an existing path |
 | Durable fixture artifacts | PASS | ASR-001〜006 input/output/run files exist and every run reference resolves |
 | Expected / actual comparison | PASS | validator compared every `actual.json` with `expected.json` and checked values against full Markdown outputs |
-| Current contract revision hashes | PASS | all seven surviving normalized contract hashes above match the files revalidated for Issue #94; deleted PR #80 contract hashes are retained only as historical evidence |
+| Current contract revision hashes | PASS | all nine surviving normalized contract hashes above match the files revalidated for Issue #94 review remediation; deleted PR #80 contract hashes are retained only as historical evidence |
 | `git diff --check` | PASS | no whitespace errors; Windows line-ending warnings only |
 
 ## Limitations

@@ -1,6 +1,6 @@
 ---
 name: implementation-handoff-review
-description: Review the kernel artifact chain immediately before implementation. Documents only. Distinguishes Guardrail Focus readiness from bounded parent Plan pass readiness, requires a Parent Plan Coverage Ledger, and blocks unmapped parent acceptance conditions. Does not implement code, does not read source files broadly, and does not produce a lengthy critique list.
+description: Review the kernel artifact chain immediately before implementation. Documents only. Distinguishes Guardrail Focus readiness from bounded parent Plan pass readiness, requires a Parent Plan Coverage Ledger, blocks unmapped parent acceptance conditions, and requires current-baseline architecture compatibility for full-coverage slices. Does not implement code, does not read source files broadly, and does not produce a lengthy critique list.
 # Copyright (c) 2026 suusanex
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
@@ -59,8 +59,9 @@ Guardrail Focus coverage の guardrail chain が整っていても、parent Plan
 2. **Runtime contracts → test points の断絶**: RC に対応する TP が存在しない、または TP が RC の observable behavior を検証していない。
 3. **Production binding requirement 抜け**: production path の確認が必要な TP が `Production binding required: Yes` になっていない。
 4. **Slice decomposition との断絶**: full-coverage decomposition 由来の slice で、slice scope / non-goals / cross-slice dependencies / XC IDs が handoff に残っていない。
-5. **未解決の human decision**: 実装前に決定が必要な事項が残っており、実装者が進めない。
-6. **Behavior Case coverage の断絶**: behavior expansion が必要な Plan で、relevant Case IDs が Plan FR / AC、coverage route、または explicit disposition に対応しないまま実装へ進んでしまう。
+5. **Architecture baseline drift の見落とし**: full-coverage slice のpre-implementation decisionsがcurrent Slice ArchitectureまたはLightweight architecture baselineと一致しない、あるいはbaseline freshnessを証明できないまま実装へ進んでしまう。
+6. **未解決の human decision**: 実装前に決定が必要な事項が残っており、実装者が進めない。
+7. **Behavior Case coverage の断絶**: behavior expansion が必要な Plan で、relevant Case IDs が Plan FR / AC、coverage route、または explicit disposition に対応しないまま実装へ進んでしまう。
 
 ## Embedded process policy
 
@@ -73,6 +74,7 @@ Guardrail Focus coverage の guardrail chain が整っていても、parent Plan
 - **No implementation**: code を書いてはいけない。tests を作成してはいけない。
 - **No-Guardrail-Focus standard route**: change-risk-triage が selected runtime contracts / Guardrail Focus を要求していない標準 route では、runtime-contract-kernel と test-design-kernel は必須ではありません。この場合、Check 2〜6 は `N/A (no Guardrail Focus)` として扱い、missing runtime/test artifacts だけを理由に BLOCKED にしてはいけません。
 - **Slice decomposition aware**: full-coverage decomposition 由来の slice では、Plan → Slice → RC / TP → XC の接続を確認する。cross-slice contract を slice 内で完了扱いしている handoff は blocking として扱う。
+- **Full-coverage architecture baseline compatibility**: full-coverage decomposition由来の各sliceでは、Plan Coverage parentが再確認したcurrent Architecture Slice Readiness evidenceを必須とし、slice-local pre-implementation decisionsをapproved Slice Architectureまたは`ArchitectureNotRequired` readiness artifactのLightweight architecture baselineと比較する。`Match`だけをimplementation allowedとし、`Drift`はArchitecture Slice Readiness / Elaborationへ戻し、stale・missing・contradicted・証明不足を含む`Unclear`はfail closedしてArchitecture Slice Readinessを再実行する。
 - **Parent Plan Coverage Ledger required**: Plan の FR / AC を Guardrail Focus RC / TP / slice / cross-slice contract / deferred residual / out-of-scope のいずれかへ分類する。Guardrail Focus coverage に含まれなかった parent Plan item を黙って落としてはいけない。
 - **Implementation route propagation**: durable route artifact、resume evidence、Design Pair evidenceがないfresh intakeだけ`implementation_route: adaptive` / `implementation_route_source: default`を初期化する。resumeではupstream durable artifactの両route fieldを必須とし、欠落または矛盾があればAdaptiveへ補完せず`BLOCKED_BY_ARTIFACT_MISMATCH`とする。唯一の互換例外はcanonical `Legacy Adaptive handoff normalization`を満たすexact pre-Design-Pair Adaptive completion handoffとする。Design Pair はupstream durable artifactに`implementation_route: design-pair` / `implementation_route_source: explicit-user-selection`とexplicit user evidenceがある場合だけ保持する。`design_pair_handoff`、`design_pair_interaction_stage`、`design_pair_user_evidence`を下流へ伝播し、waiting中はAdaptiveやverificationを次stepにしない。riskやarchitectureから自動選択、推奨、提案してはいけない。
 - **Canonical coverage ledger aware**: `plans/<ticket-or-slug>-coverage-ledger.md` が存在する場合は canonical Parent Plan Coverage Ledger として読み、今回の handoff で変わった行だけを `Coverage Ledger Delta` に記録する。canonical ledger がない場合は、この artifact に full Parent Plan Coverage Ledger を作成する。full ledger と delta が矛盾する場合は `BLOCKED_BY_ARTIFACT_MISMATCH` とする。
@@ -119,7 +121,9 @@ Guardrail Focus coverage の guardrail chain が整っていても、parent Plan
 6. Implementation Contract Kernel（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）— `change-risk-triage` の `Implementation realization risk` が `Present` / `Unclear` の場合は必須
 7. Implementation Contract Review Kernel（`plans/<ticket-or-slug>-implementation-contract-review-kernel.md`）— explicit review-only fallback として存在する場合だけ読む
 8. Plan Slice Decomposition artifact（`plans/<ticket-or-slug>-slice-decomposition.md`）— full-coverage decomposition 由来の slice をレビューする場合は必須
-9. Black-box Behavior Spec artifact（`plans/<ticket-or-slug>-black-box-behavior-spec.md`）— Plan の `Behavior spec artifact required: Yes` の場合は必須。`Expansion required: Yes` でも inline behavior sketch sufficient の場合は、Plan / Lite artifact 内の Inline behavior sketch と Case-to-Plan mapping を source として扱う
+9. Architecture Slice Readiness artifact（`plans/<ticket-or-slug>-architecture-slice-readiness.md`）— full-coverage decomposition由来のsliceでは必須。Plan Coverage parentがtracked source hash / revisionとwatch-path diffを再確認し、currentであるevidenceを記録している必要がある
+10. Slice Architecture artifact（`plans/<ticket-or-slug>-slice-architecture.md`）— readiness verdictが`ReadyForSliceDecomposition`の場合は必須。`ArchitectureNotRequired`ではreadiness artifact内のLightweight architecture baselineを使う
+11. Black-box Behavior Spec artifact（`plans/<ticket-or-slug>-black-box-behavior-spec.md`）— Plan の `Behavior spec artifact required: Yes` の場合は必須。`Expansion required: Yes` でも inline behavior sketch sufficient の場合は、Plan / Lite artifact 内の Inline behavior sketch と Case-to-Plan mapping を source として扱う
 
 slug は、caller が渡した artifact path または file 名から安全に推定してください。安全に推定できない場合は、推測で別 artifact を読まず、`BLOCKED` として理由を記録してください。
 
@@ -311,6 +315,21 @@ full-coverage decomposition 由来の slice を実装する場合だけ確認し
 
 Plan Slice Decomposition artifact が必要なのに存在しない、または対象 Slice ID / XC ID を特定できない場合は Blocking として記録してください。
 
+#### Check 11. Architecture baseline compatibility
+
+full-coverage decomposition由来のsliceを実装する場合だけ確認してください。通常のnon-sliced routeでは`N/A (not a full-coverage slice)`です。
+
+1. Architecture Slice Readiness artifactのverdict、baseline authority、baseline identity、tracked source hash / revision、watch-path差分の再確認evidenceを読む。
+2. `ReadyForSliceDecomposition`ではcurrent Slice Architectureをbaseline authorityとする。`ArchitectureNotRequired`ではcurrent readiness artifact内のLightweight architecture baselineをauthorityとし、このcheckを省略しない。
+3. Plan、slice decomposition、implementation contract、runtime contract、test design、implementation prompt / handoffに現れたslice-local pre-implementation decisionsをbaselineと比較し、Observed semanticsを記録する。
+4. 新しいshared semanticsがなくcurrent baselineと一致する場合だけ`Match`とする。baselineと異なる場合は`Drift`、freshness・authority・observed semanticsの証明が不足する場合は`Unclear`とする。
+5. `Match`だけがimplementation allowedである。`Drift`はArchitecture Slice Readiness / Elaborationへ戻す。stale、missing、contradictedを含む`Unclear`はfail closedし、Architecture Slice Readinessを再実行する。
+
+次のtableを必ず出力してください。
+
+| Slice ID | Readiness verdict | Baseline authority | Baseline identity | Observed semantics | Match / Drift / Unclear | Required action |
+| --- | --- | --- | --- | --- | --- | --- |
+
 ### Step 3. Determine verdict and readiness scope
 
 次の 2 つを必ず決定してください。
@@ -324,8 +343,8 @@ route metadata も決定ではなく upstream から伝播する。新規 intake
 
 | Verdict | 条件 |
 | --- | --- |
-| `READY_FOR_BOUNDED_PARENT_PLAN_PASS` | Blocking issue がなく、Parent Plan Coverage Ledger に parent-level blocking がなく、bounded parent Plan pass と Guardrail Focus の接続が実装前に確認できている |
-| `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS` | Blocking issue はないが、`DeferredToKnownSlice` / `CoveredByCrossSliceVerification` / `MappedButWeak` / `NeedsHumanDecision` など residual risk candidates が明示されている |
+| `READY_FOR_BOUNDED_PARENT_PLAN_PASS` | Blocking issue がなく、Parent Plan Coverage Ledger に parent-level blocking がなく、bounded parent Plan pass と Guardrail Focus の接続が実装前に確認でき、full-coverage sliceではarchitecture baseline compatibilityが`Match`である |
+| `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS` | Blocking issue はないが、`DeferredToKnownSlice` / `CoveredByCrossSliceVerification` / `MappedButWeak` / `NeedsHumanDecision` など residual risk candidates が明示されている。full-coverage sliceではarchitecture baseline compatibilityが`Match`であることを引き続き必須とする |
 | `BLOCKED_BY_UNMAPPED_PARENT_ACCEPTANCE` | Parent Plan Coverage Ledger に `UnmappedBlocking` が 1 件以上ある |
 | `BLOCKED_BY_ARTIFACT_MISMATCH` | selected IDs / scope / source-of-truth / supplement 優先関係が矛盾している |
 | `BLOCKED_BY_HUMAN_DECISION` | 実装前に human decision が必要 |
@@ -363,10 +382,11 @@ route metadata も決定ではなく upstream から伝播する。新規 intake
 
 1. `UnmappedBlocking` がある → `BLOCKED_BY_UNMAPPED_PARENT_ACCEPTANCE`
 2. Behavior Case Coverage Ledger に `UnmappedBlocking` がある → `BLOCKED_BY_UNMAPPED_PARENT_ACCEPTANCE`
-3. artifact の Guardrail Focus coverage / effective scope が決められない → `BLOCKED_BY_ARTIFACT_MISMATCH`
-4. 実装前 human decision が必要 → `BLOCKED_BY_HUMAN_DECISION`
-5. Behavior Case または parent residual risk candidates が残る → `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS`
-6. bounded parent Plan pass、Behavior Case coverage、Guardrail Focus の接続（Guardrail Focus がない標準 route では `N/A`）が整い、blocking/residual risk candidates がない → `READY_FOR_BOUNDED_PARENT_PLAN_PASS`
+3. full-coverage sliceのarchitecture baseline compatibilityが`Drift`または`Unclear` → `BLOCKED_BY_ARTIFACT_MISMATCH`
+4. artifact の Guardrail Focus coverage / effective scope が決められない → `BLOCKED_BY_ARTIFACT_MISMATCH`
+5. 実装前 human decision が必要 → `BLOCKED_BY_HUMAN_DECISION`
+6. Behavior Case または parent residual risk candidates が残る → `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS`
+7. bounded parent Plan pass、Behavior Case coverage、Guardrail Focus の接続（Guardrail Focus がない標準 route では `N/A`）が整い、full-coverage sliceではarchitecture baseline compatibilityが`Match`で、blocking/residual risk candidatesがない → `READY_FOR_BOUNDED_PARENT_PLAN_PASS`
 
 BLOCKED になるのは本当に危険な場合だけです。実装者が自分で判断できる軽微な不整合は Note にとどめてください。
 
@@ -406,6 +426,9 @@ READY_FOR_BOUNDED_PARENT_PLAN_PASS | READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DEC
 | Parent Plan coverage ledger complete? | Yes / No / Not evaluated |
 | Behavior Case coverage ledger complete? | Yes / No / N/A / Not evaluated |
 | Guardrail Focus ready? | Yes / No / NotApplicable |
+| Architecture baseline identity current? | Yes / No / Unclear / N/A |
+| Architecture compatibility | Match / Drift / Unclear / N/A |
+| Architecture gate rerun required? | Yes / No / N/A |
 | implementation_route | adaptive / design-pair |
 | implementation_route_source | default / explicit-user-selection |
 | design_pair_handoff | N/A / pending until Design Pair / plans/<ticket-or-slug>-design-pair-implementation-handoff.md |
@@ -415,6 +438,13 @@ READY_FOR_BOUNDED_PARENT_PLAN_PASS | READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DEC
 ## ブロッキング問題
 
 <!-- BLOCKED でない場合は "None" と記載する -->
+
+## Architecture baseline compatibility
+
+| Slice ID | Readiness verdict | Baseline authority | Baseline identity | Observed semantics | Match / Drift / Unclear | Required action |
+| --- | --- | --- | --- | --- | --- | --- |
+
+<!-- full-coverage slice以外は "N/A - not a full-coverage slice" と記載する -->
 
 ## 非ブロッキング注記
 
@@ -431,6 +461,8 @@ READY_FOR_BOUNDED_PARENT_PLAN_PASS | READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DEC
 - plans/<ticket-or-slug>-runtime-contract-kernel.md（Guardrail Focus / selected runtime contracts がある場合）
 - plans/<ticket-or-slug>-test-design-kernel.md（Guardrail Focus / selected runtime contracts がある場合）
 - plans/<ticket-or-slug>-slice-decomposition.md（full-coverage decomposition 由来の slice の場合）
+- plans/<ticket-or-slug>-architecture-slice-readiness.md（full-coverage decomposition由来のsliceの場合）
+- plans/<ticket-or-slug>-slice-architecture.md（Readiness verdictがReadyForSliceDecompositionの場合）
 - plans/<ticket-or-slug>-design-pair-implementation-handoff.md（明示選択された Design Pair 完了後）
 
 ## Parent Plan Coverage Ledger
@@ -475,6 +507,7 @@ canonical coverage ledger が存在する場合は "See: plans/<ticket-or-slug>-
 - design_pair_handoff: N/A / pending until Design Pair / plans/<ticket-or-slug>-design-pair-implementation-handoff.md
 - design_pair_interaction_stage: N/A / not-started / target-selection / disposition-confirmation / upstream-decision / complete / artifact-repair
 - design_pair_user_evidence: N/A / Pending / <Target Map presentation and post-map user response references>
+- Architecture baseline compatibility: Match / Drift / Unclear / N/A
 - Source artifacts: <読み込んだ artifacts の一覧>
 - Coverage ledger source: <plans/<ticket-or-slug>-coverage-ledger.md / not found; full ledger emitted here>
 - Selected contracts / IDs: <レビュー対象の Contract IDs / Test Point IDs。特定できない場合はその理由>
@@ -555,3 +588,5 @@ Handoff Packet の `Remaining work`、`ブロッキング問題`、`非ブロッ
   - Check 7: Plan ambiguity や source-of-truth の断絶が deterministic に直せない場合は、human review または上流の要求整理へ戻す
   - Check 8: human decision を行ってから該当 artifact を更新
   - Check 9: `implementation-contract-kernel.agent.md` または `implementation-contract-review-kernel.agent.md` を実行してから再レビュー
+  - Check 10: `plan-slice-decomposition.agent.md`へ戻してslice / XC mappingを修復
+  - Check 11: `Drift`は`architecture-slice-readiness.agent.md` / `architecture-elaboration.agent.md`へ戻し、`Unclear`は`architecture-slice-readiness.agent.md`を再実行
