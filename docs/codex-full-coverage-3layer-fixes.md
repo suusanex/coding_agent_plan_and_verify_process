@@ -1,6 +1,6 @@
 # Codex 3層運用 agent 定義 修正ゴール
 
-> Status update (2026-07-14): この文書は `slice-impl` を標準 owner としていた時点の調査・修正履歴です。Issue #44 以降、`slice-impl` は legacy compatibility entry であり、非自明な READY slice は `high-implementation-starter` から開始し、valid handoff 後だけ `standard-implementation-completer` を使います。現行 route は `token-aware-full-coverage-3layer` package の skill / instructions を参照してください。
+> Historical record only (Issue #95): この文書は3-layer processが存在していた時点の調査・修正履歴です。`token-aware-full-coverage-3layer` packageは削除済みであり、以下の「現行」表現やpathは当時の状態を示す監査記録であって、current installationまたはrouting guidanceではありません。
 
 ## 目的
 

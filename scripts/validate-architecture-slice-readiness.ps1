@@ -47,8 +47,7 @@ function Assert-FileNotContains([string]$RelativePath, [string]$Pattern, [string
 }
 
 $manifests = @(
-    'apm-packages/plan-coverage-residual-flow/apm.yml',
-    'apm-packages/token-aware-full-coverage-3layer/apm.yml'
+    'apm-packages/plan-coverage-residual-flow/apm.yml'
 )
 
 foreach ($manifest in $manifests) {
@@ -95,13 +94,10 @@ Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'trac
 Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'watch_paths' 'watch path freshness'
 Assert-FileContains '.github/agents/architecture-elaboration.agent.md' 'production evidence address' 'bounded production inspection'
 Assert-FileContains '.github/agents/plan-slice-decomposition.agent.md' 'Architecture source IDs / sections' 'slice-local architecture traceability'
-Assert-FileContains 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md' 'Shared semantics drift' 'parent architecture drift gate'
 Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md' 'artifact_revision' 'explicit slice architecture revision'
 Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md' 'elaboration_trigger' 'immutable elaboration trigger snapshot'
 Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md' 'freshness_dependency: false' 'non-freshness elaboration trigger'
 Assert-FileNotContains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md' 'role:\s*architecture_readiness_input' 'readiness as architecture tracked source'
-Assert-FileContains 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/references/full-coverage-slice-record.md' 'BEGIN IMMUTABLE SLICE BASELINE' 'immutable compact slice baseline'
-Assert-FileContains 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/references/full-coverage-final.md' 'Final Verification Snapshot' 'compact final verification owner section'
 Assert-FileContains 'docs/architecture-slice-readiness-validation-result.md' 'ASR-006' 'executed validation result'
 
 $fixtureRoot = Join-Path $repoRoot 'tests/architecture-slice-readiness'
@@ -210,16 +206,10 @@ $validatedContracts = @(
     '.github/agents/architecture-slice-readiness.agent.md',
     '.github/agents/architecture-elaboration.agent.md',
     '.github/agents/plan-slice-decomposition.agent.md',
-    'apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-prep.agent.md',
-    'apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-impl.agent.md',
-    'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md',
-    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md',
-    'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/references/full-coverage-parent-orchestration-state.md',
-    'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/references/full-coverage-slice-record.md',
-    'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/references/full-coverage-final.md'
+    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md'
 )
 
 foreach ($contract in $validatedContracts) {

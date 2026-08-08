@@ -131,9 +131,6 @@ $requiredFiles = @(
     'apm-packages/design-pair-implementation-execution/.apm/skills/design-pair-implementation-execution/handoff.md',
     'apm-packages/plan-coverage-residual-flow/apm.yml',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md',
-    'apm-packages/token-aware-full-coverage-3layer/apm.yml',
-    'apm-packages/token-aware-full-coverage-3layer/.apm/instructions/token-aware-full-coverage-3layer.instructions.md',
-    'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md',
     'scripts/provision-work-repo-agents.cs'
 )
 
@@ -186,8 +183,7 @@ if (Test-Path -LiteralPath $manifestPath) {
 }
 
 $integratedManifests = @(
-    @{ Path = 'apm-packages/plan-coverage-residual-flow/apm.yml'; Version = '0\.9\.0' },
-    @{ Path = 'apm-packages/token-aware-full-coverage-3layer/apm.yml'; Version = '0\.6\.0' }
+    @{ Path = 'apm-packages/plan-coverage-residual-flow/apm.yml'; Version = '0\.9\.0' }
 )
 
 foreach ($integratedManifest in $integratedManifests) {
@@ -210,8 +206,7 @@ foreach ($integratedManifest in $integratedManifests) {
 }
 
 foreach ($integratedManifestPath in @(
-    'apm-packages/plan-coverage-residual-flow/apm.yml',
-    'apm-packages/token-aware-full-coverage-3layer/apm.yml'
+    'apm-packages/plan-coverage-residual-flow/apm.yml'
 )) {
     Assert-Contains $integratedManifestPath 'apm-packages/adaptive-implementation-execution/\.apm/skills/adaptive-implementation-execution' 'Adaptive Implementation skill dependency'
     Assert-Contains $integratedManifestPath '\.github/agents/high-implementation-starter\.agent\.md' 'canonical HIGH agent dependency'
@@ -239,26 +234,7 @@ $handoffReviewAgent = '.github/agents/implementation-handoff-review.agent.md'
 Assert-Contains $handoffReviewAgent 'Plan網羅チェック・残件判定フロー.*mandatory pre-implementation review gate' 'handoff review Plan Coverage placement'
 Assert-Contains $handoffReviewAgent 'standalone Adaptive.*呼び出さず' 'handoff review standalone Adaptive exclusion'
 
-$fullCoverageSkill = 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md'
-Assert-Contains $fullCoverageSkill 'non-trivial READY slice.*high-implementation-starter' 'per-slice HIGH_MODEL start'
-Assert-Contains $fullCoverageSkill 'READY_FOR_STANDARD_COMPLETION.*standard-implementation-completer' 'per-slice STANDARD completion gate'
-Assert-Contains $fullCoverageSkill 'NEEDS_HIGH_MODEL_REENTRY.*high-implementation-starter' 'per-slice HIGH_MODEL re-entry'
-Assert-Contains $fullCoverageSkill 'HIGH and STANDARD write owners did not overlap' 'per-slice serial ownership audit'
-Assert-Contains $fullCoverageSkill '`slice-impl`.*legacy compatibility' 'legacy slice implementation notice'
-Assert-Contains $fullCoverageSkill 'BlockedByMissingAdaptiveImplementationDelegation' 'missing adaptive delegation blocker'
-Assert-Contains $fullCoverageSkill 'same Slice Record Implementation section' 'full-coverage durable implementation result record'
-Assert-Contains $fullCoverageSkill 'Completion Handoff.*inline' 'full-coverage inline completion handoff default'
-$fullCoverageInstruction = 'apm-packages/token-aware-full-coverage-3layer/.apm/instructions/token-aware-full-coverage-3layer.instructions.md'
-Assert-Contains $fullCoverageInstruction 'high-implementation-starter' 'full-coverage instruction HIGH start'
-Assert-Contains $fullCoverageInstruction 'standard-implementation-completer' 'full-coverage instruction STANDARD completion'
-Assert-Contains $fullCoverageInstruction 'NEEDS_HIGH_MODEL_REENTRY' 'full-coverage instruction HIGH re-entry'
-Assert-Contains $fullCoverageInstruction '`slice-impl`.*legacy compatibility' 'full-coverage instruction legacy notice'
-Assert-Contains $fullCoverageInstruction 'fresh intakeだけ.*`implementation_route: adaptive` / `implementation_route_source: default`' 'full-coverage instruction fresh-only Adaptive default'
-Assert-Contains $fullCoverageInstruction 'resumeでは`implementation_route`と`implementation_route_source`の両方.*欠落または矛盾.*Adaptiveへ補完せず' 'full-coverage instruction resume route fail-closed rule'
-Assert-NotContains $fullCoverageInstruction 'BlockedByMissingSliceImplDelegation' 'obsolete missing slice-impl blocker'
-
 Assert-Contains '.github/agents/implementation-execution.agent.md' 'Compatibility status: legacy' 'legacy Plan Coverage implementation notice'
-Assert-Contains 'apm-packages/token-aware-full-coverage-3layer/.apm/agents/slice-impl.agent.md' 'Compatibility status: legacy' 'legacy slice implementation notice'
 
 $skill = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md'
 Assert-Contains $skill '(?m)^disable-model-invocation:\s*true\s*$' 'skill explicit-only model invocation'
@@ -537,8 +513,8 @@ else {
 }
 Assert-Contains $provisioner '(?s)HighImplementationStarterDefaults\s*=.*?\["model"\]\s*=\s*HighImplementationModel.*?\["model_reasoning_effort"\]\s*=\s*AdaptiveImplementationReasoningEffort.*?\["sandbox_mode"\]\s*=\s*AdaptiveImplementationSandboxMode' 'canonical HIGH provision defaults'
 Assert-Contains $provisioner '(?s)StandardImplementationCompleterDefaults\s*=.*?\["model"\]\s*=\s*StandardImplementationModel.*?\["model_reasoning_effort"\]\s*=\s*AdaptiveImplementationReasoningEffort.*?\["sandbox_mode"\]\s*=\s*AdaptiveImplementationSandboxMode' 'canonical STANDARD provision defaults'
-Assert-Contains $provisioner '(?s)HighImplementationStarterFileName,\s*SliceImplOrder,\s*HighImplementationStarterDefaults,\s*options\.Force,\s*true,' 'canonical HIGH expected-value enforcement'
-Assert-Contains $provisioner '(?s)StandardImplementationCompleterFileName,\s*SliceImplOrder,\s*StandardImplementationCompleterDefaults,\s*options\.Force,\s*true,' 'canonical STANDARD expected-value enforcement'
+Assert-Contains $provisioner '(?s)HighImplementationStarterFileName,\s*AdaptiveAgentOrder,\s*HighImplementationStarterDefaults,\s*options\.Force,\s*true,' 'canonical HIGH expected-value enforcement'
+Assert-Contains $provisioner '(?s)StandardImplementationCompleterFileName,\s*AdaptiveAgentOrder,\s*StandardImplementationCompleterDefaults,\s*options\.Force,\s*true,' 'canonical STANDARD expected-value enforcement'
 Assert-Contains $provisioner 'mismatch; use --force to overwrite' 'canonical mapping mismatch guidance'
 
 foreach ($sharedMarker in @(
@@ -691,7 +667,6 @@ Assert-Contains $workflow 'github\.event\.pull_request\.head\.sha.*github\.sha' 
 foreach ($pathFilter in @(
     'apm-packages/design-pair-implementation-execution/\*\*',
     'apm-packages/plan-coverage-residual-flow/\*\*',
-    'apm-packages/token-aware-full-coverage-3layer/\*\*',
     'scripts/provision-work-repo-agents\.cs',
     'docs/\*\*'
 )) {

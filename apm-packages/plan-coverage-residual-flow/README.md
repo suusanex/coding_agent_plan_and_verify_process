@@ -150,8 +150,6 @@ full-coverage
   -> residual-decision-gate
 ```
 
-fresh post-decomposition workでは[full-coverage 3層運用](../token-aware-full-coverage-3layer/README.md)の`compact-slice-record-v2`を使います。parent authorityをslice内で再導出せず、Slice Preparation Delta、Parent Authorization、Adaptive Implementation、independent Slice Verification、Final Recordの順で進めます。
-
 ## Agent reference
 
 | Agent | Responsibility |

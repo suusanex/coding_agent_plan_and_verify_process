@@ -86,8 +86,6 @@ Do not use this skill when:
 - the agent is trying to resolve product semantics, policy, or expected behavior by inference instead of recording `NeedsHumanDecision` and stopping
 - the agent is trying to treat a requirement-elaboration gap as implementation work
 
-For full-coverage decomposition after `plan-slice-decomposition.agent.md`, use `token-aware-full-coverage-3layer` or an equivalent advanced route.
-
 ## Required inputs
 
 Read only the artifacts and related source files needed for the current phase. Do not scan the whole repository indiscriminately.

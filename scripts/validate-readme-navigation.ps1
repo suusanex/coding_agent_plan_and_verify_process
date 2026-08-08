@@ -31,8 +31,7 @@ $documentationFiles = @(
     'apm-packages/full-autonomous-plan-first-flow/README.md',
     'apm-packages/goal-context-authoring/README.md',
     'apm-packages/plan-coverage-residual-flow/README.md',
-    'apm-packages/pr-review-remediation/README.md',
-    'apm-packages/token-aware-full-coverage-3layer/README.md'
+    'apm-packages/pr-review-remediation/README.md'
 )
 
 $rootReadme = Read-Text 'README.md'
@@ -52,7 +51,6 @@ foreach ($target in @(
     'apm-packages/adaptive-implementation-execution/README.md',
     'apm-packages/design-pair-implementation-execution/README.md',
     'apm-packages/full-autonomous-plan-first-flow/README.md',
-    'apm-packages/token-aware-full-coverage-3layer/README.md',
     'apm-packages/pr-review-remediation/README.md',
     'apm-packages/goal-context-authoring/README.md',
     'apm-packages/completion-notification-decorator/README.md',

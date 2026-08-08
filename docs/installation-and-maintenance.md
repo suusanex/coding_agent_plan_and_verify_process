@@ -10,7 +10,7 @@
 | `apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs` | PR Review Remediation導入後にconcrete Codex reviewer profilesを同期する | `.codex/agents/local-reviewer.toml`、`purpose-reviewer.toml`、`review-planner.toml` |
 | Goal Context Skill `scripts/execute-reviewer.cs` | typed設定でCodex exec / GitHub Copilot CLI reviewerを決定的に起動・待機・raw保存する | `round-NNN/{role}.raw.md`、`{role}.execution.json` |
 | `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM導入後にAdaptive Implementationのconcrete Codex profilesを補完する | `.codex/agents/high-implementation-starter.toml`、`standard-implementation-completer.toml` |
-| `scripts/provision-work-repo-agents.cs` | 既存のPlan Coverage / full-coverage packageをAPM経由で導入し、Codex向け配置を補正する | `apm install`、agent TOML補正、full-coverage templates |
+| `scripts/provision-work-repo-agents.cs` | 既存のPlan Coverage packageをAPM経由で導入し、Codex向け配置を補正する | `apm install`、HIGH / STANDARD agent TOML補正 |
 | Goal Context validators | Goal Context authoring packageやfree-form文書を確認する | readability、package structure、APM install smoke |
 | `scripts/validate-architecture-slice-readiness.ps1` | architecture readinessのagents、manifest、templates、routingを確認する | ASR contractとfixture evidence |
 
@@ -28,7 +28,7 @@ dotnet run --file <installer.cs> -- <target> --check
 
 ## Existing APM provisioning helper
 
-`scripts/provision-work-repo-agents.cs`は、Plan Coverageやfull-coverage packagesを対象repositoryへ導入し、APM変換後のCodex TOMLとtemplate配置を補正します。Adaptive Implementationは専用packageのinstallerを使い、Design PairとPR Review Remediationは各packageのREADMEにある導入・同期手順を使います。
+`scripts/provision-work-repo-agents.cs`は、Plan Coverage packageを対象repositoryへ導入し、APM変換後のHIGH / STANDARD Codex TOMLを補正します。Adaptive Implementationは専用packageのinstallerを使い、Design PairとPR Review Remediationは各packageのREADMEにある導入・同期手順を使います。
 
 ```powershell
 dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target --dry-run
@@ -96,11 +96,10 @@ repository rootから、変更したownership surfaceに対応するcheckを実�
 
 外部modelへpayloadを送るagent smokeは通常の文書変更では実行しません。必要な場合は先に`-DescribePayload`で対象を確認し、明示承認後だけ`-ConfirmExternalModelPayload`を使います。
 
-### Plan Coverage and full-coverage
+### Plan Coverage
 
 ```powershell
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1
-./scripts/validate-full-coverage-slice-flow.ps1
 ./scripts/validate-architecture-slice-readiness.ps1
 ```
 

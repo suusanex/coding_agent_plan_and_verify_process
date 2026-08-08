@@ -12,9 +12,8 @@ GitHub Copilot / CodexでPlan-first開発を行うためのAPM processes、agent
 | 通常のPlanから、非自明な実装をHIGH_MODELで開始して安全な残作業だけを委譲したい | APM process | [Adaptive Implementation Execution](apm-packages/adaptive-implementation-execution/README.md) |
 | 実装前に予定変更面をfile / symbol単位で利用者と対話し、確定事項だけを実装へ渡したい | optional APM pre-stage | [Design Pair Implementation Execution](apm-packages/design-pair-implementation-execution/README.md) |
 | 広い要求をruntime evidenceとintegration test designまで含めて自律的に進めたい | APM process | [Full Autonomous Plan-first Flow](apm-packages/full-autonomous-plan-first-flow/README.md) |
-| full-coverage判定後、architecture gate済みのdecompositionをparent管理下でslice実行したい | advanced APM process | [Token-aware Full-coverage 3-layer](apm-packages/token-aware-full-coverage-3layer/README.md) |
 
-選択に迷う場合は、通常のPlan-first開発ではPlan Coverage、既にPlanがある実装ではAdaptive Implementation、広い自律実行ではFull Autonomousを基準にしてください。full-coverage 3層運用は、Plan CoverageのArchitecture Slice Readiness Gateとslice decompositionを通過した場合だけ使います。
+選択に迷う場合は、通常のPlan-first開発ではPlan Coverage、既にPlanがある実装ではAdaptive Implementation、広い自律実行ではFull Autonomousを基準にしてください。
 
 ## 補助機能を使う
 
