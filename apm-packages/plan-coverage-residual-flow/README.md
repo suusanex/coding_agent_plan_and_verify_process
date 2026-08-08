@@ -145,12 +145,18 @@ full-coverage
   -> architecture-slice-readiness
      -> architecture-elaboration -> readiness rerun, when required
      -> plan-slice-decomposition, when authorized
-  -> compact-slice-record-v2 execution
+  -> each bounded slice
+     -> standard Plan Coverage pre-implementation gates
+     -> architecture baseline compatibility: Match
+     -> Adaptive Implementation
+     -> independent verification
   -> cross-slice-verification
   -> residual-decision-gate
 ```
 
-fresh post-decomposition workでは[full-coverage 3層運用](../token-aware-full-coverage-3layer/README.md)の`compact-slice-record-v2`を使います。parent authorityをslice内で再導出せず、Slice Preparation Delta、Parent Authorization、Adaptive Implementation、independent Slice Verification、Final Recordの順で進めます。
+`plan-slice-decomposition`が作る各`plans/<slug>-slice-SL-xxx.md`は、Plan Coverage自身が扱うbounded Planです。各sliceはparent Plan、approved architecture、decompositionとのtraceabilityを保ったまま必要なpre-implementation gatesを実行し、current architecture baselineとのcompatibilityが`Match`の場合だけAdaptive Implementationへ進みます。`Drift`はArchitecture Slice Readiness / Elaborationへ戻し、`Unclear`はfail closedしてreadinessを再実行します。`ArchitectureNotRequired`でもLightweight architecture baselineとの比較を省略しません。全sliceのindependent verification後にcross-slice verificationとresidual decisionを行います。
+
+このrouteは現在、各bounded sliceを通常のPlan Coverage chainへ再入場させるため、sliceごとに標準artifactとhandoffを作成します。Living Recordやslice専用のlightweight lifecycleでartifact負荷を削減する方式は未実装であり、現行contractには含まれません。
 
 ## Agent reference
 
@@ -197,7 +203,7 @@ fresh post-decomposition workでは[full-coverage 3層運用](../token-aware-ful
 | `plans/<slug>-coverage-gap-triage.md` | unresolved gap classification |
 | `plans/<slug>-residual-decision-gate.md` | residual decisionsとnext verdict |
 
-full-coverage v2ではParent State、canonical Coverage Ledger、各sliceのliving Slice Record、Final Recordを使います。legacy split artifactsは既存workのresumeと明示的compatibilityにだけ残し、自動migrationしません。
+full-coverageではcanonical Coverage Ledger、parent decomposition artifact、各bounded sliceと通常のPlan Coverage outputを使います。slice固有のartifact layoutや外部orchestration stateは必須ではありません。各sliceが通常のPlan Coverage outputを持つ現行のartifact負荷は残っており、Living Recordや新しいlightweight slice flowへの統合は行っていません。
 
 ## Verdicts and residual policy
 
@@ -251,10 +257,14 @@ residual decisionのclose verdictは次を含みます。
 - [Detailed process and agent requirements](../../docs/plan-coverage-process-and-agents.md)
 - [Full-coverage decomposition policy](../../docs/token-aware-full-coverage-decomposition-flow.md)
 - [Architecture Slice Readiness validation](../../docs/architecture-slice-readiness-validation.md)
+- [Standalone full-coverage E2E fixture](tests/full-coverage-standalone/PCF-001/README.md)
 - [Manual model smoke](tests/manual-model-smoke/README.md)
 
 ```powershell
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1
+./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1
 ```
+
+standalone full-coverage E2Eは、currentまたはinstalled agent/reference authorityからrequired outputのsection、table、handoff field、Agent / Skill hashを導出し、fixture artifactがそのcontractを満たすことを確認します。そのうえで2つのbounded slice payloadを依存順に適用し、slice-local verification、production entrypoint経由のcross-slice verification、residual decisionまでをdeterministicに検証します。外部modelは実行しないため、CodexやCopilot等がlifecycleを自律実行した証拠ではありません。
 
 remote APM install smokeはpackageの変更をremote refで検証するときだけ実行します。

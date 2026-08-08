@@ -399,7 +399,3 @@ implementation-coverage-of-integration-test）を使ったか、どの ID を対
 この agent は、出力内で `.github/instructions/plan-coverage-shared.instructions.md` の shared status vocabulary を使用してください。
 
 `Done` は classification が完了したことだけを意味し、修復または実装の完了を意味しません。`Bound` は既存 artifact から転記する場合を除き、新たに付けないでください。
-
-## Full-coverage slice v2
-
-With `artifact_layout: compact-slice-record-v2`, accept Slice Verification as Source A and return Gap Triage subsection content to the same record. Do not create a separate triage artifact; return requirement or architecture drift to the parent route.

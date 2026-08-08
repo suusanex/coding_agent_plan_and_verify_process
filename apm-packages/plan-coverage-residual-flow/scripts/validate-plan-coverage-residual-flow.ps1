@@ -49,17 +49,41 @@ $deployedSkillRelativePath = '.agents/skills/plan-coverage-residual-flow/SKILL.m
 $coverageLedgerRelativePath = 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md'
 $deployedCoverageLedgerRelativePath = '.agents/skills/plan-coverage-residual-flow/references/coverage-ledger.md'
 $manifestRelativePath = 'apm-packages/plan-coverage-residual-flow/apm.yml'
+$packageReadmeRelativePath = 'apm-packages/plan-coverage-residual-flow/README.md'
+$purposeDocumentationRelativePath = 'docs/plan-coverage-purpose.md'
+$processDocumentationRelativePath = 'docs/plan-coverage-process-and-agents.md'
+$fullCoverageDocumentationRelativePath = 'docs/token-aware-full-coverage-decomposition-flow.md'
+$asrValidationDocumentationRelativePath = 'docs/architecture-slice-readiness-validation.md'
+$sharedInstructionsRelativePath = '.github/instructions/plan-coverage-shared.instructions.md'
+$decompositionRelativePath = '.github/agents/plan-slice-decomposition.agent.md'
 $scenarioRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/invocation-authorization-scenarios.json'
 $manualReadmeRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/manual-model-smoke/README.md'
 $manualTemplateRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/manual-model-smoke/result-template.md'
+$standaloneE2ERelativePath = 'apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1'
+$standaloneFixtureReadmeRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/full-coverage-standalone/PCF-001/README.md'
+$standaloneFixtureExpectedRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/full-coverage-standalone/PCF-001/expected.json'
+$apmSmokeRelativePath = 'apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1'
+$workflowRelativePath = '.github/workflows/validate-plan-coverage-residual-flow.yml'
 
 $requiredFiles = @(
     $skillRelativePath,
     $coverageLedgerRelativePath,
     $manifestRelativePath,
+    $packageReadmeRelativePath,
+    $purposeDocumentationRelativePath,
+    $processDocumentationRelativePath,
+    $fullCoverageDocumentationRelativePath,
+    $asrValidationDocumentationRelativePath,
+    $sharedInstructionsRelativePath,
+    $decompositionRelativePath,
     $scenarioRelativePath,
     $manualReadmeRelativePath,
-    $manualTemplateRelativePath
+    $manualTemplateRelativePath,
+    $standaloneE2ERelativePath,
+    $standaloneFixtureReadmeRelativePath,
+    $standaloneFixtureExpectedRelativePath,
+    $apmSmokeRelativePath,
+    $workflowRelativePath
 )
 
 foreach ($relativePath in $requiredFiles) {
@@ -130,12 +154,98 @@ if ($failures.Count -eq 0) {
 
     $manifest = Get-NormalizedText (Join-Path $repoRoot $manifestRelativePath)
     Assert-Matches $manifest '(?m)^name:\s*plan-coverage-residual-flow\s*$' 'package name must remain stable'
-    Assert-Matches $manifest '(?m)^version:\s*0\.9\.0\s*$' 'package version must be 0.9.0'
+    Assert-Matches $manifest '(?m)^version:\s*0\.10\.0\s*$' 'package version must be 0.10.0'
 
     $adaptiveValidator = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1')
     $designPairValidator = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1')
-    Assert-Matches $adaptiveValidator "plan-coverage-residual-flow/apm\.yml'; Version = '0\\\.9\\\.0'" 'Adaptive validator package version pin must be 0.9.0'
-    Assert-Matches $designPairValidator 'Plan Coverage package version 0\.9\.0' 'Design Pair validator package version pin must be 0.9.0'
+    Assert-Matches $adaptiveValidator "plan-coverage-residual-flow/apm\.yml'; Version = '0\\\.10\\\.0'" 'Adaptive validator package version pin must be 0.10.0'
+    Assert-Matches $designPairValidator 'Plan Coverage package version 0\.10\.0' 'Design Pair validator package version pin must be 0.10.0'
+
+    Assert-Matches $skill 'The `design-pair-implementation-execution` package remains a separate package' 'Design Pair must remain a separate package without target-specific qualification'
+    Assert-Matches $skill 'both packages are installed for the same target and the user explicitly selects Design Pair' 'Design Pair route must require same-target installation and explicit selection'
+    Assert-Matches $skill 'keep `plan-coverage-residual-flow` selection evidence separate from Design Pair implementation route selection evidence' 'Plan Coverage and Design Pair selection evidence must remain separate'
+    Assert-Matches $skill 'While Design Pair is waiting, do not fall back to Adaptive' 'Design Pair waiting state must block Adaptive fallback'
+    Assert-NotMatches $skill 'formal targets .*copilot.*codex.*agent-skills' 'PR #90 target enumeration must not remain in Plan Coverage'
+    Assert-NotMatches $skill 'Plan Coverage parent runtime qualif(?:ication).*Design Pair.*Adaptive.*GitHub Copilot CLI' 'PR #90 Copilot qualification claim must not remain in Plan Coverage'
+    Assert-NotMatches $skill 'Plan Coverage Copilot CLI\s+issue' 'PR #90 Copilot qualification issue handoff must not remain in Plan Coverage'
+
+    $decomposition = Get-NormalizedText (Join-Path $repoRoot $decompositionRelativePath)
+    $sharedInstructions = Get-NormalizedText (Join-Path $repoRoot $sharedInstructionsRelativePath)
+    $handoffReview = Get-NormalizedText (Join-Path $repoRoot '.github/agents/implementation-handoff-review.agent.md')
+    $packageReadme = Get-NormalizedText (Join-Path $repoRoot $packageReadmeRelativePath)
+    $purposeDocumentation = Get-NormalizedText (Join-Path $repoRoot $purposeDocumentationRelativePath)
+    $processDocumentation = Get-NormalizedText (Join-Path $repoRoot $processDocumentationRelativePath)
+    $fullCoverageDocumentation = Get-NormalizedText (Join-Path $repoRoot $fullCoverageDocumentationRelativePath)
+    $asrValidationDocumentation = Get-NormalizedText (Join-Path $repoRoot $asrValidationDocumentationRelativePath)
+    Assert-Matches $skill 'Treat every executable `plans/<slug>-slice-SL-xxx\.md` artifact as a bounded Plan that re-enters this Plan Coverage flow' 'full-coverage slices must re-enter Plan Coverage as bounded Plans'
+    Assert-Matches $decomposition 'executable slice については.*bounded Plan として読む' 'decomposition must produce bounded Plan slice artifacts'
+    Assert-Matches $skill 'Architecture baseline compatibility' 'Plan Coverage parent must own the pre-slice architecture compatibility check'
+    Assert-Matches $skill 'Only a current-baseline `Match` may proceed.*`Drift` returns to Architecture Slice Readiness / Elaboration.*`Unclear` fails closed' 'Plan Coverage must fail closed on architecture Drift or Unclear'
+    Assert-Matches $sharedInstructions 'Only `Match` may proceed to implementation.*`Drift` returns to Architecture Slice Readiness / Elaboration.*`Unclear` fails closed' 'shared guardrails must require Match before full-coverage implementation'
+    Assert-Matches $handoffReview '(?m)^#### Check 11\. Architecture baseline compatibility\s*$' 'implementation handoff review must own the architecture compatibility gate'
+    Assert-Matches $handoffReview '\| Slice ID \| Readiness verdict \| Baseline authority \| Baseline identity \| Observed semantics \| Match / Drift / Unclear \| Required action \|' 'implementation handoff review must emit architecture compatibility evidence'
+    Assert-Matches $handoffReview '`ArchitectureNotRequired`.*Lightweight architecture baseline' 'ArchitectureNotRequired must retain baseline comparison'
+    Assert-NotMatches $processDocumentation 'Slice preparation and parent review return `Match`' 'active docs must not assign architecture compatibility to removed 3-layer owners'
+
+    Assert-Matches $packageReadme '(?m)^full-coverage\n  -> architecture-slice-readiness\n     -> architecture-elaboration -> readiness rerun, when required\n     -> plan-slice-decomposition, when authorized\n  -> each bounded slice\n     -> standard Plan Coverage pre-implementation gates\n     -> architecture baseline compatibility: Match\n     -> Adaptive Implementation\n     -> independent verification\n  -> cross-slice-verification\n  -> residual-decision-gate$' 'package README must order each bounded slice through pre-implementation gates, architecture Match, Adaptive Implementation, independent verification, cross-slice verification, and residual decision'
+    Assert-Matches $packageReadme 'Living Record.*lightweight lifecycle.*未実装' 'package README must state that lightweight full-coverage artifact reduction is not implemented'
+    Assert-Matches $purposeDocumentation '(?s)Architecture Slice Readiness / Elaboration.*Plan Slice Decomposition.*each executable slice re-enters the standard Plan Coverage chain.*Cross-Slice Verification.*Residual Decision' 'purpose policy must describe the self-contained full-coverage lifecycle'
+    Assert-Matches $purposeDocumentation 'repeated artifact and handoff cost remains an unresolved optimization boundary' 'purpose policy must keep current per-slice artifact cost explicit'
+    Assert-Matches $fullCoverageDocumentation 'normal Plan Coverage artifact and handoff set for every executable slice' 'decomposition policy must preserve normal per-slice Plan Coverage artifacts'
+    Assert-Matches $fullCoverageDocumentation 'Living Record.*lightweight full-coverage lifecycle has not been implemented' 'decomposition policy must not claim an implemented lightweight lifecycle'
+    Assert-Matches $processDocumentation '(?m)^## Current process flows\s*$' 'detailed process documentation must identify the current flows'
+    Assert-Matches $processDocumentation '(?m)^## Full Autonomous boundary\s*$' 'detailed process documentation must state the current Full Autonomous boundary'
+    Assert-Matches $processDocumentation 'full-coverage remains self-contained under Plan Coverage ownership from Architecture Slice Readiness through Residual Decision' 'detailed process documentation must keep full-coverage under Plan Coverage ownership'
+    Assert-NotMatches $processDocumentation '(?m)^## (?:Agent creation order|Suggested README update|Recommended process flows)\s*$|(?m)^Required changes:\s*$' 'obsolete future agent revision planning must not remain in active process documentation'
+    Assert-Matches $asrValidationDocumentation 'Plan Coverage parent compatibility.*`Match`' 'ASR suite must assign architecture compatibility to the Plan Coverage parent'
+    Assert-Matches $asrValidationDocumentation '`implementation-handoff-review` Check 11.*records baseline identity.*`Match`' 'ASR suite must require current implementation handoff evidence'
+    Assert-NotMatches $asrValidationDocumentation 'slice-prep|slice-impl|Parent Review Gate|Parent review records' 'ASR suite must not assign current compatibility ownership to removed 3-layer stages'
+
+    $activeDocumentation = @($packageReadme, $purposeDocumentation, $processDocumentation, $fullCoverageDocumentation, $asrValidationDocumentation) -join "`n"
+    Assert-NotMatches $activeDocumentation 'formal targets .*copilot.*codex.*agent-skills|Plan Coverage parent runtime qualif(?:ication)|Plan Coverage Copilot CLI\s+issue' 'PR #90 Plan Coverage-specific qualification wording must not remain in active documentation'
+
+    $rollbackContractRelativePaths = @(
+        $skillRelativePath,
+        $coverageLedgerRelativePath,
+        $packageReadmeRelativePath,
+        $sharedInstructionsRelativePath,
+        $decompositionRelativePath,
+        '.github/agents/change-risk-triage.agent.md',
+        '.github/agents/coverage-gap-resolution-slice.agent.md',
+        '.github/agents/coverage-gap-triage.agent.md',
+        '.github/agents/cross-slice-verification-kernel.agent.md',
+        '.github/agents/high-implementation-starter.agent.md',
+        '.github/agents/implementation-contract-kernel.agent.md',
+        '.github/agents/implementation-contract-review-kernel.agent.md',
+        '.github/agents/implementation-execution.agent.md',
+        '.github/agents/implementation-handoff-review.agent.md',
+        '.github/agents/residual-decision-gate.agent.md',
+        '.github/agents/runtime-contract-kernel.agent.md',
+        '.github/agents/standard-implementation-completer.agent.md',
+        '.github/agents/test-design-kernel.agent.md',
+        '.github/agents/verification-kernel.agent.md',
+        $processDocumentationRelativePath,
+        $purposeDocumentationRelativePath,
+        $fullCoverageDocumentationRelativePath,
+        $asrValidationDocumentationRelativePath
+    )
+    $prohibitedRollbackPatterns = @(
+        'compact-slice-record-v2',
+        'Parent Orchestration State',
+        'Parent Authorization',
+        'Slice Preparation Delta',
+        'Full-Coverage Final Record',
+        'full-coverage-slice-v2',
+        'legacy-split-v1',
+        'slice-prep\.agent\.md',
+        'slice-impl'
+    )
+    foreach ($relativePath in $rollbackContractRelativePaths) {
+        $contractText = Get-NormalizedText (Join-Path $repoRoot $relativePath)
+        foreach ($pattern in $prohibitedRollbackPatterns) {
+            Assert-NotMatches $contractText $pattern "PR #80 compact-v2 semantic '$pattern' must not remain in $relativePath"
+        }
+    }
 
     $coverageLedgerPath = Join-Path $repoRoot $coverageLedgerRelativePath
     $deployedSkillPath = Join-Path $repoRoot $deployedSkillRelativePath
@@ -180,6 +290,29 @@ if ($failures.Count -eq 0) {
     foreach ($scenarioId in 'A'..'H') {
         Assert-Matches $manualTemplate "(?m)^\| $scenarioId \| NOT RUN \|" "manual result template must include Scenario $scenarioId"
     }
+
+    $standaloneE2E = Get-NormalizedText (Join-Path $repoRoot $standaloneE2ERelativePath)
+    $standaloneFixtureReadme = Get-NormalizedText (Join-Path $repoRoot $standaloneFixtureReadmeRelativePath)
+    $standaloneFixtureExpected = Get-NormalizedText (Join-Path $repoRoot $standaloneFixtureExpectedRelativePath)
+    $apmSmoke = Get-NormalizedText (Join-Path $repoRoot $apmSmokeRelativePath)
+    $workflow = Get-NormalizedText (Join-Path $repoRoot $workflowRelativePath)
+    Assert-Matches $packageReadme 'Standalone full-coverage E2E fixture' 'package README must link the standalone full-coverage E2E fixture'
+    Assert-Matches $packageReadme 'validate-plan-coverage-full-coverage-e2e\.ps1' 'package README must document the standalone E2E command'
+    Assert-Matches $packageReadme '外部modelは実行しない.*自律実行した証拠ではありません' 'package README must separate deterministic evidence from external-model evidence'
+    Assert-Matches $standaloneFixtureReadme 'deterministic test-only fixture' 'PCF-001 must identify itself as deterministic test-only evidence'
+    Assert-Matches $standaloneFixtureReadme 'does not invoke an external model' 'PCF-001 must not claim external-model execution evidence'
+    Assert-Matches $standaloneFixtureReadme 'required output sections, table headers, handoff fields, verdict vocabulary, and Agent / Skill hashes derived from the current or installed Plan Coverage agents' 'PCF-001 must describe current authority-derived artifact validation'
+    Assert-Matches $standaloneFixtureExpected '(?s)"ReadyForRiskTriage".*"full-coverage".*"ReadyForSliceDecomposition".*"SL-001".*"SL-002".*"CROSS_SLICE_VERIFIED".*"READY_TO_CLOSE_WITH_NO_RESIDUALS"' 'PCF-001 must preserve the full lifecycle stage order'
+    Assert-Matches $standaloneE2E '\[string\]\$InstalledRoot' 'standalone E2E validator must support installed-root contract resolution'
+    foreach ($authorityCheck in @('Get-RequiredOutputTemplate', 'Add-ContractShapeErrors', 'Add-CanonicalLedgerShapeErrors', 'Add-AgentVersionErrors')) {
+        Assert-Matches $standaloneE2E ([regex]::Escape($authorityCheck)) "standalone E2E validator must enforce current artifact authority through $authorityCheck"
+    }
+    foreach ($negativeCase in @('missing-sl-002-verification', 'missing-production-binding', 'missing-cross-slice-verdict', 'residual-before-cross-slice', 'removed-dependency-reference', 'missing-current-handoff-section', 'missing-canonical-ledger-section')) {
+        Assert-Matches $standaloneE2E ([regex]::Escape($negativeCase)) "standalone E2E validator must fail closed for $negativeCase"
+    }
+    Assert-Matches $standaloneE2E 'foreach \(\$verdict in @\(''Drift'', ''Unclear''\)\)' 'standalone E2E validator must fail closed for architecture Drift and Unclear'
+    Assert-Matches $apmSmoke '(?s)validate-plan-coverage-full-coverage-e2e\.ps1.*-InstalledRoot' 'remote APM smoke must execute standalone E2E against the installed closure'
+    Assert-Matches $workflow 'validate-plan-coverage-full-coverage-e2e\.ps1' 'Plan Coverage workflow must execute standalone E2E in source mode'
 
 }
 

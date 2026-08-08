@@ -1,20 +1,18 @@
-# Plan Coverage Check and Residual Decision Flow: Process and Agent Requirements
+# Plan Coverage Check and Residual Decision Flow: Current Process and Agent Contract
 
 ## Purpose of this document
 
-This document defines a concrete process and agent structure for making the Plan-first workflow bounded and token-conscious while preserving the guardrails that prevent cross-process contract mismatches and stub-only implementation success.
+This document defines the current process and agent contract for making the Plan-first workflow bounded and token-conscious while preserving the guardrails that prevent cross-process contract mismatches and stub-only implementation success.
 
-This document is a requirements specification for creating or revising agents. It is not an implementation task list.
+It describes the active Plan Coverage route. It is not a future agent creation plan or an implementation task list.
 
-この document は、agent を作成または改訂する側が読む authoring-time context です。agent 実行時に、この document や `docs/` 配下の file が存在することを前提にしてはいけません。
-
-この document に基づいて agent を作成または改訂する場合、作成者または作成プロセスは次を authoring-time context として読む必要があります。
+このdocumentはactive contractのmaintainer向け説明です。agent実行時に、このdocumentや`docs/`配下のfileが存在することを前提にしてはいけません。contractを変更するmaintainerは次を同時に確認します。
 
 - `docs/plan-coverage-purpose.md`
 - replace または complement する existing agent files
 - 実際の implementation task を想定するために必要な target repository context
 
-作成された agent は、別 repository に単体で配置される可能性があります。そのため、agent の実行時に必要な目的、方針、profile、handoff、他 agent との関係は、agent file 自体、または同時に配布される共通 instruction file に含めてください。
+agentは別repositoryへ配布される可能性があります。そのため、実行時に必要な目的、方針、profile、handoff、他agentとの関係は、agent file自体または同時に配布される共通instruction fileに含めます。
 
 ## Design policy
 
@@ -45,22 +43,16 @@ For Guardrail Focus surfaces, the process must still connect:
 8. production wiring / entrypoint
 9. explicit unresolved status
 
-## Corrected process gap
+## Plan-first boundary
 
-The originally drafted lightweight kernel process began with `change-risk-triage.agent.md`. That was incomplete for the intended purpose.
+The active route begins with `plan-kernel.agent.md`, not `change-risk-triage.agent.md`. Its goal is not merely to triage risk; it preserves the Plan-first sequence — create Plan, implement, and verify that implementation gaps are not missed — while reducing token consumption and avoiding open-ended repair loops.
 
-The goal of this repository is not merely to triage risk. The goal is to keep the existing Plan-first sequence — create Plan, implement, and verify that implementation gaps are not missed — while reducing token consumption and avoiding open-ended repair loops.
-
-Therefore, the Plan網羅チェック・残件判定フロー needs a lightweight Plan creation phase before risk triage.
-
-The chosen direction is to add a dedicated `plan-kernel.agent.md` instead of making `change-risk-triage.agent.md` generate a Plan.
-
-Reasoning:
+The current responsibility boundary is:
 
 - `change-risk-triage.agent.md` should remain `triage-only` and should not become a mixed Plan-generation agent.
 - `runtime-contract-kernel.agent.md` is a high-risk boundary guardrail, not a complete requirements specification.
 - implementation agents need the overall Plan as the source of truth, plus kernel artifacts as guardrails.
-- a dedicated Plan Kernel keeps the lightweight flow Plan-first without forcing the full `plan-generation.agent.md` / `runtime-evidence.agent.md` / `integration-test-design.agent.md` chain.
+- `plan-kernel.agent.md` keeps the bounded route Plan-first without forcing the explicit Full Autonomous `plan-generation.agent.md` / `runtime-evidence.agent.md` / `integration-test-design.agent.md` chain.
 
 ## Requirement-elaboration gap
 
@@ -154,10 +146,10 @@ Use when:
 In the Plan網羅チェック・残件判定フロー, this is not an automatic handoff to Flow C.
 The immediate next step is `architecture-slice-readiness.agent.md`, not decomposition. Requirement readiness and Architecture slice readiness are separate gates.
 `ReadyForSliceDecomposition` requires a current slice architecture artifact. `ArchitectureNotRequired` permits decomposition without one for a source-backed simple structure. `NeedsArchitectureElaboration` runs `architecture-elaboration.agent.md` and then reruns readiness; `NeedsHumanDecision` stops.
-For `ArchitectureNotRequired`, the readiness artifact itself is the lightweight baseline authority. Slice preparation and parent review return `Match` only when no new shared semantics are introduced; `Drift` or `Unclear` blocks implementation.
+For `ArchitectureNotRequired`, the readiness artifact itself is the lightweight baseline authority. Before implementation authorization for every executable slice, the Plan Coverage parent reconfirms baseline freshness and `implementation-handoff-review` compares slice-local pre-implementation decisions with the current approved Slice Architecture or Lightweight architecture baseline. Only `Match` may proceed; `Drift` returns to Architecture Slice Readiness / Elaboration, and `Unclear` fails closed and reruns Architecture Slice Readiness.
 Readiness and architecture artifacts record a source repository commit, tracked source content hashes / explicit revisions, watch paths, explicit artifact revision, and evaluation time. Freshness compares tracked sources and the source-commit-to-current diff on watch paths; HEAD changes containing only generated gate artifacts do not self-invalidate the baseline. A semantic baseline change is `stale`, even when paths are unchanged.
 The pre-elaboration readiness R1 is retained in Slice Architecture as an immutable `elaboration_trigger` audit snapshot with `freshness_dependency: false`. Replacing the standard readiness path with post-elaboration R2 does not stale the architecture; R2 instead tracks the Slice Architecture external content hash.
-Only an approved readiness verdict may proceed to `plan-slice-decomposition.agent.md`. Each resulting slice inherits the approved parent authority and enters compact Slice Preparation Delta, Parent Authorization, Adaptive Implementation, and independent Slice Verification. After local verification, the parent flow runs `cross-slice-verification-kernel.agent.md` and then `residual-decision-gate.agent.md` through the Final Record.
+Only an approved readiness verdict may proceed to `plan-slice-decomposition.agent.md`. Each resulting slice then re-enters the Plan網羅チェック・残件判定フロー as a bounded parent Plan pass. After slice verification, the parent flow runs `cross-slice-verification-kernel.agent.md` and then `residual-decision-gate.agent.md`.
 
 `full-coverage` does not require many executable slices. If a small number of slices, including 2 slices, preserves parent acceptance conditions, cross-slice contracts, field continuity, and Behavior Case mapping, that is a valid decomposition. `plan-slice-decomposition.agent.md` must include a `Slice granularity review` before output and must coalesce candidates when delegation overhead would outweigh implementation value.
 
@@ -196,11 +188,11 @@ Otherwise, the flow must use `standard` or stop before implementation.
 
 Maintainers should run `apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1` for its implemented package-layout, explicit invocation-authorization, fixture, and manual-smoke-template checks. Use the package-owned `tests/invocation-authorization-scenarios.json` scenarios and `tests/manual-model-smoke/` for authorization behavior and manual smoke evidence; this validator does not perform artifact-count / sections-read comparisons or broad negative scans.
 
-## Recommended process flows
+## Current process flows
 
 ### Main flow: Plan網羅チェック・残件判定フロー
 
-Use for the main lightweight process this repository now targets.
+This is the canonical Plan Coverage route.
 
 1. `plan-kernel.agent.md`
 2. If Plan readiness is `NeedsPlanBehaviorExpansion` because source-to-case expansion is missing, run `black-box-behavior-spec-kernel.agent.md`
@@ -1306,85 +1298,13 @@ For each selected ID:
 
 Stop after one bounded pass over selected IDs. Remaining issues must be recorded, not chased indefinitely.
 
-## 9. Revisions to existing agents
+## Full Autonomous boundary
 
-### `plan-generation.agent.md`
+`plan-generation.agent.md`, `plan-review.agent.md`, `runtime-evidence.agent.md`, `integration-test-design.agent.md`, `integration-test-verification-implementation.agent.md`, and `coverage-gap-resolution.agent.md` belong to the explicit Full Autonomous flow or compatibility routes. Selecting Plan Coverage `full-coverage` does not invoke them automatically. Inside Plan Coverage, `full-coverage` means Architecture Slice Readiness, bounded decomposition, normal Plan Coverage execution and verification for each slice, Cross-Slice Verification, and Residual Decision.
 
-May remain the full-flow Plan generation agent. Do not overload it if doing so would make the lightweight flow ambiguous.
+## Current contract acceptance criteria
 
-If revised, it should clearly separate full mode from bounded Plan Kernel behavior.
-
-### `plan-review.agent.md`
-
-Should support review-only and review-and-fix behavior.
-
-Required changes:
-
-- allow a mode that only reports issues without editing
-- in bounded mode, limit deterministic fixes to Guardrail Focus coverage
-- flag missing runtime contract / production binding chains explicitly
-
-### `integration-test-design.agent.md`
-
-Should support selected-contract mode.
-
-Required changes:
-
-- allow generation for selected Runtime Contract IDs only
-- keep the full feature / abnormal / load / continuous-operation coverage for full mode
-- require production binding checks when stubs are expected
-
-### `integration-test-verification-implementation.agent.md`
-
-Should support selected-ID mode.
-
-Required changes:
-
-- allow verifying only selected Test Point IDs or Runtime Contract IDs
-- keep the existing production implementation existence check
-- produce Stub-to-Production Binding output when substitutes are used
-- stop after classification and bounded test additions
-
-### `coverage-gap-resolution.agent.md`
-
-Should not be the default next step for all unresolved work.
-
-Required changes:
-
-- prefer `coverage-gap-triage.agent.md` before repair
-- create or use a slice-oriented variant for selected IDs
-- keep full resolution only as an explicit full-coverage choice
-
-## Agent creation order
-
-Recommended order after this correction:
-
-1. Create `black-box-behavior-spec-kernel.agent.md`
-2. Revise `plan-kernel.agent.md` so it records expansion decision, Case-to-Plan mapping, and Plan readiness
-3. Revise `change-risk-triage.agent.md` so it refuses non-ready Plans before risk/profile selection
-4. Revise README so Plan網羅チェック・残件判定フロー begins with Plan readiness and conditional behavior expansion
-5. Verify the existing kernel agents still reference the Plan as source of truth where necessary
-6. Continue with any revisions to existing full-flow agents
-
-For a fresh implementation of the Plan網羅チェック・残件判定フロー, the intended order is:
-
-1. `plan-kernel.agent.md`
-2. `black-box-behavior-spec-kernel.agent.md` when Plan readiness is `NeedsPlanBehaviorExpansion` because behavior cases are missing
-3. `plan-kernel.agent.md` rerun when Case IDs must be mapped to FR / AC or explicit disposition
-4. `change-risk-triage.agent.md` only after `ReadyForRiskTriage`
-5. `implementation-contract-kernel.agent.md`（when implementation-realization risk is present）
-6. `implementation-contract-review-kernel.agent.md`（implementation-contract self-check に explicit review-only fallback が必要な場合だけ）
-7. `runtime-contract-kernel.agent.md`
-8. `test-design-kernel.agent.md`
-9. implementation
-10. `verification-kernel.agent.md`
-11. `coverage-gap-triage.agent.md` when unresolved implementation coverage items need classification and no complete `Direct FixNow selectors` table exists
-12. `residual-decision-gate.agent.md` when residual / manual / human-decision candidates remain
-13. `coverage-gap-resolution-slice.agent.md` only when an explicit FixNow selector exists
-
-## Acceptance criteria for the corrected process
-
-The corrected process is acceptable when:
+The current process contract is satisfied when:
 
 - a bounded Plan is created before risk triage
 - expansion decision and Plan readiness are recorded before risk triage
@@ -1392,7 +1312,7 @@ The corrected process is acceptable when:
 - all relevant Case IDs are mapped to FR / AC or explicit disposition before `ReadyForRiskTriage`
 - `NeedsPlanBehaviorExpansion` does not choose `full-coverage`
 - implementation agents receive the Plan plus kernel guardrail artifacts
-- a lightweight run can handle Guardrail Focus cross-boundary coverage without skipping runtime contracts
+- a bounded run can handle Guardrail Focus cross-boundary coverage without skipping runtime contracts
 - a stub-based test cannot be marked complete without production binding verification
 - when implementation-realization risk is `Present` / `Unclear`, implementation-contract branch is recommended before `runtime-contract-kernel`
 - when Plan-named dependency / API / provider path is unconfirmed, it remains unresolved and is not replaced by nearby existing implementation
@@ -1410,20 +1330,9 @@ The corrected process is acceptable when:
 - implementation-handoff-review includes Behavior Case Coverage Ledger when expansion was required
 - verification-kernel records Behavior Case Evidence Ledger for Case IDs in the current pass
 - residual-decision-gate treats `UnexpandedRequirement`, `SourceRequirementNotMappedToPlan`, and `UnmappedBehaviorCase` as replan candidates by default
-
-## Suggested README update after `plan-kernel.agent.md` exists
-
-After `plan-kernel.agent.md` is created, update `README.md` to describe the corrected Plan網羅チェック・残件判定フロー:
-
-- Plan網羅チェック・残件判定フロー starts with bounded Plan creation plus Plan readiness
-- `black-box-behavior-spec-kernel.agent.md` runs only when behavior expansion is required
-- `change-risk-triage.agent.md` consumes only `ReadyForRiskTriage` Plans and recommends Guardrail Focus coverage
-- implementation-realization risk uses conditional `implementation-contract-kernel` / review before runtime-contract
-- implementation receives Plan + triage + implementation-contract artifacts (when required) + runtime-contract-kernel + test-design-kernel
-- full Plan-first flow remains available for broad autonomous work
-
-The README should make clear that the lightweight flow narrows the Guardrail Focus coverage, but does not remove Plan creation or the guardrail chain for Guardrail Focus contracts.
-
-## Full-coverage compact post-decomposition ownership
-
-Fresh full-coverage decomposition uses `compact-slice-record-v2`. Parent Plan, behavior, triage, and architecture remain authoritative. Slice preparation records only local delta; Parent Authorization and its Inline Slice Ready Gate authorize Adaptive Implementation; an independent verifier writes the same Slice Record; cross-slice verification and residual close decisions share the Final Record. The canonical Coverage Ledger owns the full table. Legacy split and non-sliced artifacts retain their existing paths.
+- full-coverage remains self-contained under Plan Coverage ownership from Architecture Slice Readiness through Residual Decision
+- every executable full-coverage slice re-enters the standard Plan Coverage chain as a bounded Plan and receives independent verification
+- the Plan Coverage parent and implementation-handoff-review allow implementation only for a current-baseline architecture `Match`
+- `Drift` returns to Architecture Slice Readiness / Elaboration and `Unclear` fails closed
+- Cross-Slice Verification runs after all executable slices and before parent residual closure
+- the current repeated per-slice artifact and handoff cost remains explicit; no Living Record or new lightweight slice lifecycle is claimed as implemented

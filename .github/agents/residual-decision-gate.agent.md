@@ -257,7 +257,3 @@ direct FixNow selector を出してよいのは、FixNow items が 1〜2 件で�
 ## Stop condition
 
 Residual Decision Ledger と verdict を出したら停止してください。FixNow がある場合は `coverage-gap-resolution-slice.agent.md`、human decision が必要な場合は human への質問、manual verification が必要な場合は manual handoff を recommended next step に記録してください。
-
-## Full-coverage final record v2
-
-With `artifact_layout: compact-slice-record-v2`, use Final Record, canonical Coverage Ledger, and Parent State. Update only Residual Decision, Human Decisions Required, Close Decision, Coverage Ledger Delta, and Handoff Packet in the Final Record. Do not create a separate residual file or rewrite Final Verification Snapshot. Generic non-sliced output paths remain unchanged.

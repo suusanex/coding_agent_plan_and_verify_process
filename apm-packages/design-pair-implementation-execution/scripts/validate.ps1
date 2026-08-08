@@ -82,8 +82,6 @@ $requiredFiles = @(
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md',
-    'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md',
-    'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/references/full-coverage-parent-orchestration-state.md',
     'README.md'
 )
 
@@ -108,8 +106,7 @@ Assert-Contains $manifest 'adaptive-implementation-execution/\.apm/skills/adapti
 Assert-Contains $manifest '\.github/agents/high-implementation-starter\.agent\.md' 'canonical HIGH agent dependency'
 Assert-Contains $manifest '\.github/agents/standard-implementation-completer\.agent\.md' 'canonical STANDARD agent dependency'
 Assert-NotContains $manifest 'implementation-execution\.agent\.md' 'legacy implementation orchestration dependency'
-Assert-Contains 'apm-packages/plan-coverage-residual-flow/apm.yml' '(?m)^version:\s*0\.9\.0\s*$' 'Plan Coverage package version 0.9.0'
-Assert-Contains 'apm-packages/token-aware-full-coverage-3layer/apm.yml' '(?m)^version:\s*0\.6\.0\s*$' 'full-coverage package version 0.6.0'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/apm.yml' '(?m)^version:\s*0\.10\.0\s*$' 'Plan Coverage package version 0.10.0'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/apm.yml' '(?m)^version:\s*0\.4\.0\s*$' 'Adaptive package version 0.4.0'
 
 $maxWindowsPackagePathLength = 112
@@ -381,8 +378,7 @@ Assert-Contains $planCoverageSkill 'While Design Pair is waiting.*Do not treat w
 
 foreach ($statePath in @(
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md',
-    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md',
-    'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/references/full-coverage-parent-orchestration-state.md'
+    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md'
 )) {
     Assert-Contains $statePath 'implementation_route' 'implementation route state field'
     Assert-Contains $statePath 'implementation_route_source' 'implementation route source state field'
@@ -397,12 +393,6 @@ Assert-Contains '.github/agents/implementation-handoff-review.agent.md' '新規 
 Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'resume.*BLOCKED_BY_ARTIFACT_MISMATCH' 'handoff review resume fail-closed rule'
 Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'design_pair_interaction_stage' 'handoff review interaction stage propagation'
 Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'waiting中はAdaptiveやverificationを次stepにしない' 'handoff review waiting downstream block'
-
-$fullCoverageSkill = 'apm-packages/token-aware-full-coverage-3layer/.apm/skills/token-aware-full-coverage-3layer/SKILL.md'
-Assert-Contains $fullCoverageSkill 'resumeではParent Orchestration State.*必須' 'full-coverage resume route requirement'
-Assert-Contains $fullCoverageSkill 'Adaptiveへ補完せずartifact mismatchとして停止' 'full-coverage resume fail-closed rule'
-Assert-Contains $fullCoverageSkill '(?s)最初のturnはTarget Map全体を提示.*AWAITING_USER_INPUT / target-selection.*停止.*AWAITING_USER_INPUT / disposition-confirmation.*再停止' 'full-coverage mandatory Design Pair turn boundaries'
-Assert-Contains $fullCoverageSkill 'design_pair_user_evidence' 'full-coverage user evidence propagation'
 
 foreach ($id in 1..31) {
     $scenarioId = 'DP-VAL-{0:D3}' -f $id
@@ -425,8 +415,12 @@ Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/usage-gu
 Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' '(?s)DP-VAL-008: Copilot support boundary.*formal target 名 `copilot`.*GitHub Copilot CLI.*real multi-turn evidence' 'DP-VAL-008 Copilot formal support'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' 'design-pair-implementation-execution` packageも`copilot` targetを宣言' 'Adaptive install guide Design Pair Copilot support'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' 'Design Pair package が post-map 対話と tracked handoff を生成' 'Adaptive usage guide Design Pair Copilot support'
-Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'formal targets `copilot`, `codex`, and `agent-skills`' 'Plan Coverage Design Pair Copilot co-install boundary'
-Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'Plan Coverage parent runtime qualification of the Design Pair -> Adaptive path on GitHub Copilot CLI is not claimed' 'Plan Coverage defers DP runtime qualification'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'The `design-pair-implementation-execution` package remains a separate package' 'Plan Coverage target-neutral Design Pair package boundary'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'both packages are installed for the same target and the user explicitly selects Design Pair' 'Plan Coverage same-target explicit Design Pair selection boundary'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'keep `plan-coverage-residual-flow` selection evidence separate from Design Pair implementation route selection evidence' 'Plan Coverage and Design Pair selection evidence separation'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'While Design Pair is waiting, do not fall back to Adaptive' 'Plan Coverage Design Pair waiting fallback boundary'
+Assert-NotContains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'Plan Coverage parent runtime qualif(?:ication).*Design Pair.*Adaptive.*GitHub Copilot CLI' 'removed Plan Coverage Copilot qualification claim'
+Assert-NotContains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'Plan Coverage Copilot CLI\s+issue' 'removed Plan Coverage Copilot qualification issue handoff'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'without adding a stop instruction' 'manual smoke verifies skill-owned stop'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'Human action required' 'manual smoke human participation boundary'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'GitHub Copilot CLI' 'manual smoke Copilot CLI surface'

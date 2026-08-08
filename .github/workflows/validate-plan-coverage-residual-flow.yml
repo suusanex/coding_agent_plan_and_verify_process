@@ -4,19 +4,33 @@ on:
   pull_request:
     paths:
       - '.github/workflows/validate-plan-coverage-residual-flow.yml'
+      - '.github/agents/**'
+      - '.github/instructions/plan-coverage-shared.instructions.md'
       - '.agents/skills/plan-coverage-residual-flow/**'
       - 'apm-packages/plan-coverage-residual-flow/**'
       - 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1'
       - 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1'
+      - 'docs/plan-coverage-process-and-agents.md'
+      - 'docs/plan-coverage-purpose.md'
+      - 'docs/token-aware-full-coverage-decomposition-flow.md'
+      - 'docs/architecture-slice-readiness-validation.md'
+      - 'docs/architecture-slice-readiness-validation-result.md'
   push:
     branches:
       - main
     paths:
       - '.github/workflows/validate-plan-coverage-residual-flow.yml'
+      - '.github/agents/**'
+      - '.github/instructions/plan-coverage-shared.instructions.md'
       - '.agents/skills/plan-coverage-residual-flow/**'
       - 'apm-packages/plan-coverage-residual-flow/**'
       - 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1'
       - 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1'
+      - 'docs/plan-coverage-process-and-agents.md'
+      - 'docs/plan-coverage-purpose.md'
+      - 'docs/token-aware-full-coverage-decomposition-flow.md'
+      - 'docs/architecture-slice-readiness-validation.md'
+      - 'docs/architecture-slice-readiness-validation-result.md'
 
 permissions:
   contents: read
@@ -31,6 +45,9 @@ jobs:
       - name: Validate invocation authorization contract
         shell: pwsh
         run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1
+      - name: Validate standalone full-coverage lifecycle
+        shell: pwsh
+        run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1
       - name: Check branch or PR whitespace
         shell: pwsh
         env:
@@ -63,7 +80,7 @@ jobs:
         with:
           setup-only: 'true'
           apm-version: '0.26.0'
-      - name: Validate fresh package installation
+      - name: Validate fresh package installation and standalone lifecycle
         shell: pwsh
         env:
           PACKAGE_REPOSITORY: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}

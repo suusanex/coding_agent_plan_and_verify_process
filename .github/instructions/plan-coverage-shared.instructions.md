@@ -20,6 +20,7 @@ These rules apply to Plan Coverage Check and Residual Decision Flow agents when 
 - **Fail closed on missing authority**: if the required Plan authority, implementation authorization, evidence, or human decision is missing, record the blocker and stop instead of treating the item as complete.
 - **Adaptive implementation ownership**: after implementation authorization, every non-trivial bounded implementation starts with `high-implementation-starter` on `HIGH_MODEL`. It may delegate only a decision-free remainder to `standard-implementation-completer` on `STANDARD_MODEL`, and that completer must return `NEEDS_HIGH_MODEL_REENTRY` instead of reopening structural decisions. These write owners run serially within one bounded pass.
 - **Explicit implementation route selection**: initialize `implementation_route: adaptive` and `implementation_route_source: default` only at fresh intake when no durable route or resume evidence exists. Use `implementation_route: design-pair` only when the user explicitly selected it, and preserve `implementation_route_source: explicit-user-selection` through durable artifacts and resume state. On resume, missing or contradictory route metadata must fail closed and must not be normalized to Adaptive. The only compatibility exception is an exact pre-Design-Pair Adaptive completion handoff that passes the canonical `Legacy Adaptive handoff normalization` predicate and has no Design Pair evidence; record `route_metadata_normalization: legacy-adaptive-handoff`. Do not infer, recommend, or propose Design Pair from risk, difficulty, size, or architecture. When explicitly selected, run `design-pair-implementation-execution` only after implementation authorization and before `high-implementation-starter`.
+- **Full-coverage architecture baseline compatibility**: before implementation authorization for every executable full-coverage slice, the Plan Coverage parent must confirm that the Architecture Slice Readiness baseline is current and compare slice-local pre-implementation decisions with the approved Slice Architecture or the readiness artifact's Lightweight architecture baseline. Record `Match`, `Drift`, or `Unclear`. Only `Match` may proceed to implementation; `Drift` returns to Architecture Slice Readiness / Elaboration, and `Unclear` fails closed and reruns Architecture Slice Readiness. `ArchitectureNotRequired` does not waive this check.
 
 ## Shared artifact discipline
 
@@ -44,14 +45,6 @@ Use these statuses when an agent needs common progress, residual, or handoff cla
 | `Bound` | A formal production-binding status for test substitutes. Use only when the owning agent's local rules allow it and the required production interface, concrete implementation, wiring / entrypoint, and post-wiring behavior evidence are present. |
 
 ## Bounded reading
-
-## Full-coverage decomposition inheritance
-
-For fresh post-decomposition work with `full_coverage_artifact_layout: compact-slice-record-v2`, parent Goal, FR, AC, CASE, risk, architecture authority, and XC roles are inherited rather than re-derived per slice. The canonical owners are Parent Plan, Behavior Spec, Parent triage, architecture baseline, immutable Slice Record baseline, canonical Coverage Ledger, Parent State, and Final Record respectively.
-
-A phase does not imply a separate artifact. Slice Record sections have serial owners: decomposition writes immutable baseline; preparation writes delta; parent writes authorization; Adaptive owner writes implementation; independent verifier writes verification; selected fix owner writes bounded fix; current phase owner writes handoff and ledger delta. Parent State alone owns orchestration and authorization tables; Final Record owns cross-slice verification, residual, and close sections. Do not full-copy the canonical ledger.
-
-Separate artifact creation requires an independent lifecycle plus an authority/confidentiality/concurrency/resume-safety reason, Parent State exception registration, canonical owner, and merge-back rule. Do not create generic per-slice contract/result files merely because an agent has a default output path. A partial or contradictory v1/v2 layout, or a v2 authorization that implicitly uses legacy artifacts, is `BlockedByArtifactLayoutMismatch` and fails closed.
 
 - Read the Plan and upstream artifacts needed for the current phase before reading source code broadly.
 - Inspect source files only where the current artifact, selected contract, selected gap, or verification target points.

@@ -7,8 +7,6 @@ return await RepoAgentSetup.RunAsync(args);
 internal static class RepoAgentSetup
 {
     private const string VerbosePrefix = "VERBOSE: ";
-    private const string SlicePrepFileName = "slice-prep.toml";
-    private const string SliceImplFileName = "slice-impl.toml";
     private const string HighImplementationStarterFileName = "high-implementation-starter.toml";
     private const string StandardImplementationCompleterFileName = "standard-implementation-completer.toml";
     private const string HighImplementationModel = "gpt-5.6-terra";
@@ -17,25 +15,12 @@ internal static class RepoAgentSetup
     private const string AdaptiveImplementationSandboxMode = "workspace-write";
     private const string FrontmatterPhrase = "top-level frontmatter";
     private const string FrontmatterReplacement = "top-level TOML fields";
-    private static readonly string[] FullCoverageTemplateFileNames =
-    [
-        "full-coverage-parent-orchestration-state.md",
-        "full-coverage-slice-record.md",
-        "full-coverage-final.md"
-    ];
-    private static readonly string FullCoverageTemplateSourceDirectoryRelative = Path.Combine(
-        "apm-packages", "token-aware-full-coverage-3layer", ".apm", "skills",
-        "token-aware-full-coverage-3layer", "references");
-    private static readonly string FullCoverageTemplateTargetDirectoryRelative = Path.Combine("plans", "_templates");
-
-    private static readonly string[] SlicePrepOrder =
+    private static readonly string[] AdaptiveAgentOrder =
     [
         "model",
         "model_reasoning_effort",
         "sandbox_mode"
     ];
-
-    private static readonly string[] SliceImplOrder = SlicePrepOrder;
 
     private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
     private const string OutputNewLine = "\r\n";
@@ -45,25 +30,8 @@ internal static class RepoAgentSetup
         "copilot,codex,agent-skills"
     ];
 
-    private static readonly string[] ApmPackages =
-    [
-        "suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow",
-        "suusanex/coding_agent_plan_and_verify_process/apm-packages/token-aware-full-coverage-3layer"
-    ];
-
-    private static readonly IReadOnlyDictionary<string, string> SlicePrepDefaults = new Dictionary<string, string>(StringComparer.Ordinal)
-    {
-        ["model"] = "gpt-5.6-terra",
-        ["model_reasoning_effort"] = "medium",
-        ["sandbox_mode"] = "read-only"
-    };
-
-    private static readonly IReadOnlyDictionary<string, string> SliceImplDefaults = new Dictionary<string, string>(StringComparer.Ordinal)
-    {
-        ["model"] = "gpt-5.6-luna",
-        ["model_reasoning_effort"] = "high",
-        ["sandbox_mode"] = "workspace-write"
-    };
+    private const string PlanCoveragePackage =
+        "suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow";
 
     private static readonly IReadOnlyDictionary<string, string> HighImplementationStarterDefaults = new Dictionary<string, string>(StringComparer.Ordinal)
     {
@@ -108,17 +76,6 @@ internal static class RepoAgentSetup
         string? FrontmatterFixLine
     );
 
-    private sealed record TemplateReport(
-        string SourcePath,
-        string TargetPath,
-        bool SourceExists,
-        bool TargetExists,
-        bool Changed,
-        bool ShouldFailCheck,
-        bool Applied,
-        string Decision
-    );
-
     public static async Task<int> RunAsync(string[] args)
     {
         Options options;
@@ -161,26 +118,8 @@ internal static class RepoAgentSetup
         {
             await ProcessTomlFileAsync(
                 options.TargetRoot,
-                SlicePrepFileName,
-                SlicePrepOrder,
-                SlicePrepDefaults,
-                options.Force,
-                false,
-                options.Verbose,
-                noWrite),
-            await ProcessTomlFileAsync(
-                options.TargetRoot,
-                SliceImplFileName,
-                SliceImplOrder,
-                SliceImplDefaults,
-                options.Force,
-                false,
-                options.Verbose,
-                noWrite),
-            await ProcessTomlFileAsync(
-                options.TargetRoot,
                 HighImplementationStarterFileName,
-                SliceImplOrder,
+                AdaptiveAgentOrder,
                 HighImplementationStarterDefaults,
                 options.Force,
                 true,
@@ -189,19 +128,13 @@ internal static class RepoAgentSetup
             await ProcessTomlFileAsync(
                 options.TargetRoot,
                 StandardImplementationCompleterFileName,
-                SliceImplOrder,
+                AdaptiveAgentOrder,
                 StandardImplementationCompleterDefaults,
                 options.Force,
                 true,
                 options.Verbose,
                 noWrite)
         };
-        var templateReports = new List<TemplateReport>();
-        foreach (var templateFileName in FullCoverageTemplateFileNames)
-        {
-            templateReports.Add(await ProcessTemplateAsync(options.TargetRoot, templateFileName, options.Verbose, noWrite));
-        }
-
         var hasFailure = false;
         var hasChanges = false;
         foreach (var report in reports)
@@ -209,13 +142,6 @@ internal static class RepoAgentSetup
             PrintFileReport(report);
             hasChanges |= report.Changed;
             hasFailure |= report.ShouldFailCheck;
-        }
-
-        foreach (var templateReport in templateReports)
-        {
-            PrintTemplateReport(templateReport);
-            hasChanges |= templateReport.Changed;
-            hasFailure |= templateReport.ShouldFailCheck;
         }
 
         Console.WriteLine();
@@ -315,8 +241,7 @@ internal static class RepoAgentSetup
             "--update",
             "--target",
             ApmTargets[0],
-            ApmPackages[0],
-            ApmPackages[1]
+            PlanCoveragePackage
         };
 
         if (verbose)
@@ -626,87 +551,6 @@ internal static class RepoAgentSetup
             frontmatterFixLine);
     }
 
-    private static async Task<TemplateReport> ProcessTemplateAsync(
-        string targetRoot,
-        string templateFileName,
-        bool verbose,
-        bool noWrite)
-    {
-        var sourcePath = ResolveSourceTemplatePath(templateFileName);
-        var targetPath = Path.Combine(targetRoot, FullCoverageTemplateTargetDirectoryRelative, templateFileName);
-
-        if (sourcePath is null || !File.Exists(sourcePath))
-        {
-            return new TemplateReport(
-                sourcePath ?? Path.Combine(FullCoverageTemplateSourceDirectoryRelative, templateFileName),
-                targetPath,
-                false,
-                File.Exists(targetPath),
-                true,
-                true,
-                false,
-                "missing-source");
-        }
-
-        var sourceText = EnsureNoUtf8Bom(await File.ReadAllTextAsync(sourcePath));
-        var targetExists = File.Exists(targetPath);
-        var targetText = targetExists ? EnsureNoUtf8Bom(await File.ReadAllTextAsync(targetPath)) : string.Empty;
-        var changed = !targetExists || !string.Equals(NormalizeNewlinesToLf(sourceText), NormalizeNewlinesToLf(targetText), StringComparison.Ordinal);
-
-        if (verbose)
-        {
-            Console.WriteLine(VerbosePrefix + $"template source: {sourcePath}");
-            Console.WriteLine(VerbosePrefix + $"template target: {targetPath}");
-        }
-
-        if (noWrite || !changed)
-        {
-            return new TemplateReport(
-                sourcePath,
-                targetPath,
-                true,
-                targetExists,
-                changed,
-                changed,
-                false,
-                changed ? "would-copy" : "keep");
-        }
-
-        var targetDirectory = Path.GetDirectoryName(targetPath);
-        if (!string.IsNullOrEmpty(targetDirectory))
-        {
-            Directory.CreateDirectory(targetDirectory);
-        }
-
-        await File.WriteAllTextAsync(targetPath, EnsureNoUtf8Bom(sourceText), Utf8NoBom);
-        return new TemplateReport(
-            sourcePath,
-            targetPath,
-            true,
-            targetExists,
-            true,
-            false,
-            true,
-            targetExists ? "updated" : "copied");
-    }
-
-    private static string? ResolveSourceTemplatePath(string templateFileName)
-    {
-        var current = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (current is not null)
-        {
-            var candidate = Path.Combine(current.FullName, FullCoverageTemplateSourceDirectoryRelative, templateFileName);
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
-
-            current = current.Parent;
-        }
-
-        return null;
-    }
-
     private static int FindFirstSectionIndex(IReadOnlyList<string> lines)
     {
         for (var i = 0; i < lines.Count; i++)
@@ -938,24 +782,6 @@ internal static class RepoAgentSetup
         {
             Console.WriteLine("  - developer_instructions wording: top-level frontmatter -> top-level TOML fields");
         }
-    }
-
-    private static void PrintTemplateReport(TemplateReport report)
-    {
-        var status = report.Applied
-            ? "updated"
-            : report.Changed
-                ? "would-update"
-                : "ok";
-
-        if (!report.SourceExists)
-        {
-            status = "missing-source";
-        }
-
-        Console.WriteLine($"[{status}] {report.TargetPath}");
-        Console.WriteLine($"  - source: {report.SourcePath}");
-        Console.WriteLine($"  - decision: {report.Decision}");
     }
 
     private static void PrintUsage()

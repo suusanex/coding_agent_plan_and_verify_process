@@ -209,7 +209,3 @@ implementation decisions と unresolved implementation-realization items を記�
 
 - この agent は full-flow `implementation-contract-generation.agent.md` の概念を bounded run に適用する lightweight variant です。
 - broad な実装調査が必要で token-aware の bounded scope に収まらない場合は、`full-coverage` として `architecture-slice-readiness.agent.md` に戻すことを推奨してください。readiness verdictなしでdecompositionへ進めません。full-flow `implementation-contract-generation.agent.md` は、caller が明示的に Full autonomous Plan-first flow を選んだ場合だけ推奨してください。
-
-## Compact full-coverage embedded output
-
-When `artifact_layout: compact-slice-record-v2` is supplied, require `embedded_output_target` and `embedded_output_section`, inspect only the named slice-local implementation realization, and return a delta for the Slice Record. Do not create a file, re-decide parent/shared architecture, or broaden into a parent risk pass.

@@ -71,13 +71,19 @@ try {
         }
 
         $block = $lockBlock.Groups['block'].Value
-        if ($block -cnotmatch '(?m)^  version:\s*0\.9\.0\s*$') {
-            throw 'Fresh APM lock does not contain Plan Coverage package version 0.9.0.'
+        if ($block -cnotmatch '(?m)^  version:\s*0\.10\.0\s*$') {
+            throw 'Fresh APM lock does not contain Plan Coverage package version 0.10.0.'
         }
 
         $installedHash = Get-NormalizedTextSha256 $installedSkillPath
         if ($block -cnotmatch "(?m)^    \.agents/skills/plan-coverage-residual-flow/SKILL\.md: sha256:$installedHash\s*$") {
             throw 'Fresh APM lock deployed Skill hash does not match the installed file.'
+        }
+
+        $standaloneE2EPath = Join-Path $packageRoot 'scripts/validate-plan-coverage-full-coverage-e2e.ps1'
+        & $standaloneE2EPath -InstalledRoot $tempRoot
+        if ($LASTEXITCODE -ne 0) {
+            throw "Installed Plan Coverage standalone E2E failed with exit code $LASTEXITCODE."
         }
     }
 

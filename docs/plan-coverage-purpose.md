@@ -17,9 +17,9 @@ As GitHub Copilot usage moves toward token-consumption-based cost awareness, the
 
 Optimize the Plan-first process for bounded progress, explicit residual work, and reusable handoff artifacts without removing the guardrail chain that protects runtime contracts and production implementation coverage.
 
-The revised Plan網羅チェック・残件判定フロー is still a Plan-first process.
+The current Plan網羅チェック・残件判定フロー is a Plan-first process.
 
-The intended sequence is:
+The current standard sequence is:
 
 1. Read source requirements and decide whether black-box behavior expansion is required.
 2. Create or consume black-box behavior cases when source requirements need case expansion.
@@ -30,6 +30,19 @@ The intended sequence is:
 7. Verify that Guardrail Focus contracts, test points, production implementation, production wiring, and current Behavior Case evidence are aligned.
 8. Record unresolved work instead of continuing indefinitely.
 
+When a ready parent Plan selects `full-coverage`, Plan Coverage owns the complete bounded-slice lifecycle:
+
+```text
+Architecture Slice Readiness / Elaboration
+  -> Plan Slice Decomposition
+  -> each executable slice re-enters the standard Plan Coverage chain as a bounded Plan
+  -> independent per-slice verification
+  -> Cross-Slice Verification
+  -> Residual Decision
+```
+
+Before each slice enters implementation, the Plan Coverage parent reconfirms the current architecture baseline and `implementation-handoff-review` records `Match / Drift / Unclear`. Only a current-baseline `Match` may proceed. `Drift` returns to Architecture Slice Readiness / Elaboration, and `Unclear` fails closed and reruns readiness. This also applies when the readiness verdict is `ArchitectureNotRequired` and the readiness artifact is the Lightweight architecture baseline.
+
 When implementation-realization risk is present (for example: Plan-named external SDK/API/provider, unresolved dependency/API surface confirmation, or nearest-neighbor substitution risk), the Plan網羅チェック・残件判定フロー must add a conditional implementation-contract branch before runtime-contract work.
 
 The key policy is:
@@ -38,7 +51,7 @@ The key policy is:
 
 Lightweight execution narrows Guardrail Focus coverage for deep checks. It does not shrink the parent Plan implementation scope or final completion criteria. It must not remove the Plan, and it must not remove the minimum chain needed to connect runtime contracts, test design, stub usage, production implementation, and production wiring.
 
-## Corrected scope of the Plan網羅チェック・残件判定フロー
+## Current scope of the Plan網羅チェック・残件判定フロー
 
 The Plan網羅チェック・残件判定フロー is not intended to start directly from risk triage.
 
@@ -50,11 +63,9 @@ Risk triage is meaningful only after there is a Plan or equivalent bounded Plan 
 - what acceptance conditions matter
 - where high-risk runtime boundaries may exist
 
-Therefore, a lightweight Plan-generation step is required before `change-risk-triage.agent.md`.
+Therefore, `plan-kernel.agent.md` creates or refreshes the bounded Plan before `change-risk-triage.agent.md`.
 
-The current conclusion is to add a dedicated `plan-kernel.agent.md` rather than overloading `change-risk-triage.agent.md`.
-
-`plan-kernel.agent.md` should create a bounded implementation Plan that is lighter than the existing full `plan-generation.agent.md` flow. It should not create detailed runtime evidence or full integration test design by itself. Instead, it should hand off high-risk boundary candidates to `change-risk-triage.agent.md` and the downstream kernel agents.
+`plan-kernel.agent.md` owns bounded Plan creation instead of overloading `change-risk-triage.agent.md`. It does not create detailed runtime evidence or full integration test design by itself. It hands high-risk boundary candidates to `change-risk-triage.agent.md` and the downstream kernel agents.
 
 ## Non-goals
 
@@ -223,7 +234,7 @@ Preferred profile names are based on scope and intent:
 | `plan-kernel` | Create the bounded Plan that remains the implementation source of truth | Plan preserved | Narrow to moderate |
 | `contract-kernel` | Minimal high-risk guardrail for Guardrail Focus runtime coverage | Preserved | Narrow |
 | `standard-slice` | Normal bounded Plan-first process for Guardrail Focus contracts / IDs | Preserved | Moderate |
-| `full-coverage` | Current-style broad process for complex or high-risk changes | Preserved and expanded | Broad |
+| `full-coverage` | Decompose a ready broad parent Plan, run each executable slice through the standard Plan Coverage chain, then verify and decide residuals across slices | Preserved and expanded | Broad |
 | `triage-only` | Classify risk and recommend next slice without implementation | Classification only | Variable |
 | `fix-slice` | Resolve explicit FixNow gaps only | Preserved for explicit FixNow gaps | Narrow |
 
@@ -268,6 +279,10 @@ Full mode may continue to use detailed runtime evidence, scenario ledgers, integ
 
 Full mode is not a substitute for missing Plan readiness. If the ambiguity is that source behavior has not been expanded or mapped to the Plan, the flow must return to behavior expansion or human decision before any full-coverage decomposition.
 
+Inside Plan Coverage, `full-coverage` is self-contained: Architecture Slice Readiness / Elaboration precedes decomposition; every executable slice becomes a bounded Plan and re-enters the standard Plan Coverage chain; each slice is independently verified; then Cross-Slice Verification and Residual Decision close the parent route. The Plan Coverage parent and `implementation-handoff-review` enforce the current-baseline `Match` requirement immediately before slice implementation.
+
+This current route deliberately reuses the standard Plan Coverage artifact set for every bounded slice. Its repeated artifact and handoff cost remains an unresolved optimization boundary. A Living Record, compact slice record, or new lightweight slice lifecycle is not implemented or implied by this policy.
+
 ## Agent design implications
 
 New or revised agents should be designed around bounded responsibilities.
@@ -296,9 +311,9 @@ New agent files should be created or revised only after the authoring process re
 
 These documents are not intended to be runtime dependencies of the generated agents. A generated agent may be copied into another repository without this `docs/` directory. Therefore, any purpose, policy, profile, handoff, or cross-agent relationship that the agent needs during execution must be embedded in the agent file itself or in a common instruction file that is distributed together with the agent.
 
-## Success criteria for this improvement
+## Current contract criteria
 
-This improvement succeeds when:
+The current contract remains satisfied when:
 
 - the Plan網羅チェック・残件判定フロー still begins with a bounded Plan
 - Plan readiness blocks risk triage until expansion decision and required Case-to-Plan mapping are present
@@ -310,7 +325,6 @@ This improvement succeeds when:
 - agents stop with useful residual work instead of looping toward perfect completion
 - full mode remains available for genuinely complex work
 - downstream agents can consume prior artifacts without rediscovering the same context
-
-## Compact full-coverage continuation
-
-Post-decomposition full-coverage work inherits parent authority through `compact-slice-record-v2`; it reduces repeated analysis and artifact breadth without reducing authorization, production binding, independent verification, cross-slice checks, or explicit residual decisions.
+- full-coverage keeps Architecture Slice Readiness, bounded-slice re-entry, per-slice verification, Cross-Slice Verification, and Residual Decision in one Plan Coverage-owned lifecycle
+- only a current-baseline architecture `Match` authorizes slice implementation
+- the current repeated per-slice artifact cost is described as unresolved rather than represented as an implemented lightweight lifecycle

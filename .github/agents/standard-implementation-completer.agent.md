@@ -212,7 +212,3 @@ Parent Plan Coverage、Behavior Case、slice、runtime-contract、test-point、i
 - final review status: `Not performed by this agent`
 
 `COMPLETED` は、scope 内の acceptance item がすべて `Complete` であり、各 item に実装または validation evidence がある場合だけ返します。未完了 item がある場合は、allowed surface と locked decisions の範囲で実装を継続するか、必要な verdict を返します。これは implementation completion を表すだけであり、final code review、architecture review、または独立 verification を実施済みと宣言してはいけません。
-
-## Compact full-coverage slice handoff
-
-For `artifact_layout: compact-slice-record-v2`, the tracked completion handoff may live in the Slice Record Implementation Completion Handoff subsection. Preserve authorization revision and baseline digest, fail closed on layout mismatch, and merge only your current Implementation Self-Map delta into the same record. Do not create a standalone implementation-execution artifact.

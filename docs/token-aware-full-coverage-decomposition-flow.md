@@ -4,7 +4,7 @@
 
 `full-coverage` 判定を、Full autonomous Plan-first flow へのエスカレーションではなく、実装前の Plan slice decomposition として扱うための運用メモです。
 
-このメモは、Plan網羅チェック・残件判定フロー に関する `full-coverage` の意味付けを要約した補足ポリシーです。`docs/plan-coverage-process-and-agents.md` 側でも、`### full-coverage`、main flow、full autonomous flow、および `runtime-contract-kernel.agent.md` の escalation condition をこの方針に合わせて更新します。
+このメモは、Plan網羅チェック・残件判定フロー に関する current `full-coverage` contractを要約した補足ポリシーです。`docs/plan-coverage-process-and-agents.md` の`### full-coverage`、main flow、Full Autonomousとの境界、および各active agent contractはこの方針に従います。
 
 ## Policy
 
@@ -15,12 +15,13 @@
 - The next step is always `architecture-slice-readiness.agent.md`; `full-coverage` must not transition directly to decomposition.
 - `ReadyForSliceDecomposition` requires a current `plans/<slug>-slice-architecture.md`. `ArchitectureNotRequired` permits decomposition without that artifact only when the readiness verdict gives a source-backed simple-structure reason.
 - `NeedsArchitectureElaboration` routes to `architecture-elaboration.agent.md` and then reruns readiness. `NeedsHumanDecision`, `ArchitectureCritical`, missing, stale, or contradicted architecture artifacts block decomposition.
-- `plan-slice-decomposition.agent.md` must consider delegation overhead. A candidate slice should be executable only when running `slice-prep`, parent review, `slice-impl`, and verification separately has value.
+- `plan-slice-decomposition.agent.md` must consider delegation overhead. A candidate slice should be executable only when running the required Plan Coverage gates, Adaptive Implementation, and verification as a separate bounded pass has value.
 - Candidate slices that share owner, module, production wiring, verification route, and parent acceptance condition should be coalesced unless there is a documented reason to keep them separate.
-- Small independent slices require `Small slice justification`; otherwise they should be recorded as `merge-candidate`, `too-small-to-delegate`, or `coalesce-with-SL-xxx` and not sent to `slice-prep`.
+- Small independent slices require `Small slice justification`; otherwise they should be recorded as `merge-candidate`, `too-small-to-delegate`, or `coalesce-with-SL-xxx` and not sent to downstream Plan Coverage execution.
 - The broad autonomous flow remains available only as an explicit, separate process choice; it is not the default interpretation of `full-coverage` inside Plan網羅チェック triage.
-- Each resulting slice inherits approved parent authority and enters compact slice execution: Slice Preparation Delta, Parent Authorization, Adaptive Implementation, independent Slice Verification, and an optional bounded fix in the same Slice Record.
-- If Design Pair was explicitly selected, each slice preserves `design_pair_handoff`, `design_pair_interaction_stage`, and post-map user evidence in Parent Orchestration State. Its first Design Pair turn stops at `target-selection`; unresolved final disposition stops at `disposition-confirmation`. No Adaptive or verification step starts while either stage is waiting.
+- Each resulting slice re-enters the Plan Coverage flow as a bounded Plan pass while retaining traceability to the parent Plan, approved architecture, decomposition, Case IDs, and XC IDs.
+- Before implementation authorization, the Plan Coverage parent reconfirms the Architecture Slice Readiness baseline and the implementation handoff records Slice ID, readiness verdict, baseline authority / identity, observed semantics, `Match / Drift / Unclear`, and required action. Only a current-baseline `Match` may proceed. `Drift` returns to Architecture Slice Readiness / Elaboration; `Unclear` reruns Architecture Slice Readiness. `ArchitectureNotRequired` still compares against the readiness artifact's Lightweight architecture baseline.
+- If Design Pair was explicitly selected, the parent decomposition artifact and each implementation-ready slice handoff preserve `design_pair_handoff`, `design_pair_interaction_stage`, and post-map user evidence. Its first Design Pair turn stops at `target-selection`; unresolved final disposition stops at `disposition-confirmation`. No Adaptive or verification step starts while either stage is waiting.
 - Cross-slice contracts must remain explicit and must be verified after slice implementations.
 - Cross-slice verification must confirm runtime postconditions after production wiring, not only structural wiring. Production interface / implementation / wiring, source-structure tests, and CI green are not enough unless they prove the parent acceptance condition postcondition.
 - Parent acceptance condition forbidden states must be carried into the cross-slice verification artifact and denied by evidence before a pass verdict is allowed.
@@ -40,6 +41,7 @@ Parent Plan Kernel
   → Architecture Elaboration and readiness rerun when needed
 → Plan Slice Decomposition
 → Per-slice Plan網羅チェック・残件判定フロー
+  → Architecture baseline compatibility: Match
   → Explicit Design Pair Target Map / user disposition boundary when selected
   → Adaptive implementation only after complete / READY_FOR_ADAPTIVE_IMPLEMENTATION
 → Cross-Slice Verification Kernel
@@ -47,9 +49,11 @@ Parent Plan Kernel
 → FixNow repair only when explicit selector exists
 ```
 
-## Compact slice execution (current route)
+## Bounded slice execution
 
-Each resulting slice inherits the approved parent authority and enters the compact slice execution flow. Parent readiness, parent risk, and shared architecture are not re-derived per slice. Slice preparation records only slice-local deltas, then Parent Authorization, Adaptive Implementation, independent Slice Verification, and optional bounded repair update the same Slice Record. Final XC verification and residual decisions use the Final Record. `legacy-split-v1` remains resume-only compatibility.
+Each executable `plans/<slug>-slice-SL-xxx.md` is a bounded Plan owned by Plan Coverage. It runs the standard pre-implementation gates required by its recommended profile. Before Adaptive Implementation, the Plan Coverage parent reconfirms baseline freshness and the implementation handoff must record a current-baseline `Match`; `Drift` or `Unclear` blocks implementation and returns to the architecture gate. The slice must not redefine parent requirements or shared architecture, and it must leave cross-slice completion to `cross-slice-verification-kernel.agent.md`. Parent residual and close decisions use the normal `residual-decision-gate.agent.md` output.
+
+The current route uses the normal Plan Coverage artifact and handoff set for every executable slice. It does not depend on an external orchestration package or a slice-specific artifact layout. This means repeated per-slice artifact cost still exists. A Living Record, compact record, or other lightweight full-coverage lifecycle has not been implemented and must not be inferred from this decomposition policy.
 
 ## Synthetic self-check fixture
 
