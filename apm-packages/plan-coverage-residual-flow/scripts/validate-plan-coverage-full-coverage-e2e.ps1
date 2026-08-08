@@ -15,7 +15,7 @@ function Get-NormalizedText([string]$Path) {
 }
 
 function Find-OneFile([string]$Root, [string]$Leaf, [string]$Purpose) {
-    $matches = @(Get-ChildItem -LiteralPath $Root -Recurse -File -Filter $Leaf)
+    $matches = @(Get-ChildItem -LiteralPath $Root -Force -Recurse -File -Filter $Leaf)
     if ($matches.Count -ne 1) {
         throw "$Purpose must resolve to exactly one '$Leaf' file under $Root; found $($matches.Count)."
     }
@@ -302,23 +302,23 @@ try {
         Assert-NegativeMutationFails "architecture-$($verdict.ToLowerInvariant())" {
             param($root)
             $path = Join-Path $root 'plans/pcf-001-slice-SL-002-implementation-handoff-review.md'
-            [System.IO.File]::WriteAllText($path, (Get-NormalizedText $path).Replace('Architecture baseline compatibility: `Match`', "Architecture baseline compatibility: ``$verdict``"), [System.Text.UTF8Encoding]::new($false))
+            [System.IO.File]::WriteAllText($path, ([System.IO.File]::ReadAllText($path)).Replace('Architecture baseline compatibility: `Match`', "Architecture baseline compatibility: ``$verdict``"), [System.Text.UTF8Encoding]::new($false))
         }.GetNewClosure()
     }
     Assert-NegativeMutationFails 'missing-production-binding' {
         param($root)
         $path = Join-Path $root 'expected.json'
-        [System.IO.File]::WriteAllText($path, (Get-NormalizedText $path).Replace('src/StartupFlow.ps1', 'src/MissingStartupFlow.ps1'), [System.Text.UTF8Encoding]::new($false))
+        [System.IO.File]::WriteAllText($path, ([System.IO.File]::ReadAllText($path)).Replace('src/StartupFlow.ps1', 'src/MissingStartupFlow.ps1'), [System.Text.UTF8Encoding]::new($false))
     }
     Assert-NegativeMutationFails 'missing-cross-slice-verdict' {
         param($root)
         $path = Join-Path $root 'plans/pcf-001-cross-slice-verification-kernel.md'
-        [System.IO.File]::WriteAllText($path, (Get-NormalizedText $path).Replace('`CROSS_SLICE_VERIFIED`', '`CROSS_SLICE_PENDING`'), [System.Text.UTF8Encoding]::new($false))
+        [System.IO.File]::WriteAllText($path, ([System.IO.File]::ReadAllText($path)).Replace('`CROSS_SLICE_VERIFIED`', '`CROSS_SLICE_PENDING`'), [System.Text.UTF8Encoding]::new($false))
     }
     Assert-NegativeMutationFails 'residual-before-cross-slice' {
         param($root)
         $path = Join-Path $root 'expected.json'
-        $text = Get-NormalizedText $path
+        $text = [System.IO.File]::ReadAllText($path)
         $text = $text -replace '"CROSS_SLICE_VERIFIED",\s*"READY_TO_CLOSE_WITH_NO_RESIDUALS"', "`"READY_TO_CLOSE_WITH_NO_RESIDUALS`",`n    `"CROSS_SLICE_VERIFIED`""
         [System.IO.File]::WriteAllText($path, $text, [System.Text.UTF8Encoding]::new($false))
     }
