@@ -11,7 +11,7 @@ if ($result.CorrelationId -cne 'pcf-001') {
 
 [pscustomobject]@{
     slice = 'SL-001'
-    verdict = 'SLICE_VERIFIED'
+    verdict = 'PARENT_PLAN_VERIFIED'
     snapshot_state = $result.SnapshotState
     correlation_id = $result.CorrelationId
 } | ConvertTo-Json -Compress

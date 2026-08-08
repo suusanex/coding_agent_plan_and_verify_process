@@ -301,9 +301,13 @@ if ($failures.Count -eq 0) {
     Assert-Matches $packageReadme '外部modelは実行しない.*自律実行した証拠ではありません' 'package README must separate deterministic evidence from external-model evidence'
     Assert-Matches $standaloneFixtureReadme 'deterministic test-only fixture' 'PCF-001 must identify itself as deterministic test-only evidence'
     Assert-Matches $standaloneFixtureReadme 'does not invoke an external model' 'PCF-001 must not claim external-model execution evidence'
+    Assert-Matches $standaloneFixtureReadme 'required output sections, table headers, handoff fields, verdict vocabulary, and Agent / Skill hashes derived from the current or installed Plan Coverage agents' 'PCF-001 must describe current authority-derived artifact validation'
     Assert-Matches $standaloneFixtureExpected '(?s)"ReadyForRiskTriage".*"full-coverage".*"ReadyForSliceDecomposition".*"SL-001".*"SL-002".*"CROSS_SLICE_VERIFIED".*"READY_TO_CLOSE_WITH_NO_RESIDUALS"' 'PCF-001 must preserve the full lifecycle stage order'
     Assert-Matches $standaloneE2E '\[string\]\$InstalledRoot' 'standalone E2E validator must support installed-root contract resolution'
-    foreach ($negativeCase in @('missing-sl-002-verification', 'missing-production-binding', 'missing-cross-slice-verdict', 'residual-before-cross-slice', 'removed-dependency-reference')) {
+    foreach ($authorityCheck in @('Get-RequiredOutputTemplate', 'Add-ContractShapeErrors', 'Add-CanonicalLedgerShapeErrors', 'Add-AgentVersionErrors')) {
+        Assert-Matches $standaloneE2E ([regex]::Escape($authorityCheck)) "standalone E2E validator must enforce current artifact authority through $authorityCheck"
+    }
+    foreach ($negativeCase in @('missing-sl-002-verification', 'missing-production-binding', 'missing-cross-slice-verdict', 'residual-before-cross-slice', 'removed-dependency-reference', 'missing-current-handoff-section', 'missing-canonical-ledger-section')) {
         Assert-Matches $standaloneE2E ([regex]::Escape($negativeCase)) "standalone E2E validator must fail closed for $negativeCase"
     }
     Assert-Matches $standaloneE2E 'foreach \(\$verdict in @\(''Drift'', ''Unclear''\)\)' 'standalone E2E validator must fail closed for architecture Drift and Unclear'

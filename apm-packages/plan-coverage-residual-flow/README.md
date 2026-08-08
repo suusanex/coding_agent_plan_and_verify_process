@@ -265,6 +265,6 @@ residual decisionのclose verdictは次を含みます。
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1
 ```
 
-standalone full-coverage E2Eは、2つのbounded slice payloadを依存順に適用し、slice-local verification、production entrypoint経由のcross-slice verification、residual decisionまでをdeterministicに検証します。外部modelは実行しないため、CodexやCopilot等がlifecycleを自律実行した証拠ではありません。
+standalone full-coverage E2Eは、currentまたはinstalled agent/reference authorityからrequired outputのsection、table、handoff field、Agent / Skill hashを導出し、fixture artifactがそのcontractを満たすことを確認します。そのうえで2つのbounded slice payloadを依存順に適用し、slice-local verification、production entrypoint経由のcross-slice verification、residual decisionまでをdeterministicに検証します。外部modelは実行しないため、CodexやCopilot等がlifecycleを自律実行した証拠ではありません。
 
 remote APM install smokeはpackageの変更をremote refで検証するときだけ実行します。

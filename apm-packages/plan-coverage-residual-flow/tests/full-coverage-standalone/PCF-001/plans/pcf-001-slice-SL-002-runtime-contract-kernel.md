@@ -1,7 +1,33 @@
-# SL-002 Runtime Contract Kernel
+# Runtime Contract Kernel
 
-- Input: `snapshot_state` and `correlation_id` from `SL-001`.
-- Accepting branch: `snapshot_state=Active` produces consumer state `Accepting` and push postcondition `Accepted`.
-- Rejecting branch: any non-accepting consumer state throws `Consumer is not accepting items.`.
-- Production bindings: `src/ConsumerGate.ps1`, `src/StartupFlow.ps1`.
-- Coverage: `FR-002`, `AC-001`, `AC-002`, `CASE-001`, `CASE-002`, `XC-001`.
+## スコープ
+
+Bounded `SL-002` consumer and production binding contract inherited from `RC-002` and `XC-001`.
+
+## Runtime Contract Kernel
+
+| Contract ID | Scenario | Producer | Consumer | Message / API / Event | Required fields | Error / timeout behavior | Production implementation address | Verification hook |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `RC-002` | consume producer state and push item | `Get-ConsumerState` | `Push-ConsumerItem` | PowerShell function calls | `SnapshotState`, `CorrelationId`, consumer `State` | non-accepting state throws `Consumer is not accepting items.`; timeout N/A | `src/ConsumerGate.ps1`, `src/StartupFlow.ps1` | `TP-002`, `TP-003` |
+
+## Plan / implementation contract 適合性
+
+| Runtime Contract ID | Plan requirement | Implementation contract decision | Runtime contract address | Conformance |
+| --- | --- | --- | --- | --- |
+| `RC-002` | `SL2-FR-001`, `SL2-AC-001`, `SL2-AC-002`, `FR-002`, `AC-001`, `AC-002` | use approved consumer and startup paths | `src/ConsumerGate.ps1`, `src/StartupFlow.ps1` | Conformant |
+
+## 注記 / 前提
+
+Cross-slice production postcondition is independently verified after this bounded pass.
+
+## Handoff Packet
+
+- Profile used: contract-kernel
+- Source artifacts: bounded Plan, parent Plan, decomposition, Slice Architecture, `SL-001` verification
+- Selected contracts / IDs: `RC-002`, `XC-001`
+- Files inspected: planning artifacts and previous verdict
+- Files intentionally not inspected: production payload before implementation
+- Decisions made: accepting/rejecting contract and production addresses
+- Do not redo unless new evidence appears: `RC-002` behavior contract
+- Remaining work: test design, handoff, implementation, verification
+- Recommended next step: `test-design-kernel.agent.md`

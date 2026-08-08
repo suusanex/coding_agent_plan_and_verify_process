@@ -23,7 +23,7 @@ if ($accepted.Postcondition -cne 'Accepted') {
 
 [pscustomobject]@{
     slice = 'SL-002'
-    verdict = 'SLICE_VERIFIED'
+    verdict = 'PARENT_PLAN_VERIFIED'
     consumer_state = $consumerState.State
     postcondition = $accepted.Postcondition
     reject_observed = $rejectObserved
