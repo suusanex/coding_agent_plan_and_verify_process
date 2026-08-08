@@ -50,6 +50,10 @@ $coverageLedgerRelativePath = 'apm-packages/plan-coverage-residual-flow/.apm/ski
 $deployedCoverageLedgerRelativePath = '.agents/skills/plan-coverage-residual-flow/references/coverage-ledger.md'
 $manifestRelativePath = 'apm-packages/plan-coverage-residual-flow/apm.yml'
 $packageReadmeRelativePath = 'apm-packages/plan-coverage-residual-flow/README.md'
+$purposeDocumentationRelativePath = 'docs/plan-coverage-purpose.md'
+$processDocumentationRelativePath = 'docs/plan-coverage-process-and-agents.md'
+$fullCoverageDocumentationRelativePath = 'docs/token-aware-full-coverage-decomposition-flow.md'
+$asrValidationDocumentationRelativePath = 'docs/architecture-slice-readiness-validation.md'
 $sharedInstructionsRelativePath = '.github/instructions/plan-coverage-shared.instructions.md'
 $decompositionRelativePath = '.github/agents/plan-slice-decomposition.agent.md'
 $scenarioRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/invocation-authorization-scenarios.json'
@@ -61,6 +65,10 @@ $requiredFiles = @(
     $coverageLedgerRelativePath,
     $manifestRelativePath,
     $packageReadmeRelativePath,
+    $purposeDocumentationRelativePath,
+    $processDocumentationRelativePath,
+    $fullCoverageDocumentationRelativePath,
+    $asrValidationDocumentationRelativePath,
     $sharedInstructionsRelativePath,
     $decompositionRelativePath,
     $scenarioRelativePath,
@@ -154,7 +162,11 @@ if ($failures.Count -eq 0) {
     $decomposition = Get-NormalizedText (Join-Path $repoRoot $decompositionRelativePath)
     $sharedInstructions = Get-NormalizedText (Join-Path $repoRoot $sharedInstructionsRelativePath)
     $handoffReview = Get-NormalizedText (Join-Path $repoRoot '.github/agents/implementation-handoff-review.agent.md')
-    $processDocumentation = Get-NormalizedText (Join-Path $repoRoot 'docs/plan-coverage-process-and-agents.md')
+    $packageReadme = Get-NormalizedText (Join-Path $repoRoot $packageReadmeRelativePath)
+    $purposeDocumentation = Get-NormalizedText (Join-Path $repoRoot $purposeDocumentationRelativePath)
+    $processDocumentation = Get-NormalizedText (Join-Path $repoRoot $processDocumentationRelativePath)
+    $fullCoverageDocumentation = Get-NormalizedText (Join-Path $repoRoot $fullCoverageDocumentationRelativePath)
+    $asrValidationDocumentation = Get-NormalizedText (Join-Path $repoRoot $asrValidationDocumentationRelativePath)
     Assert-Matches $skill 'Treat every executable `plans/<slug>-slice-SL-xxx\.md` artifact as a bounded Plan that re-enters this Plan Coverage flow' 'full-coverage slices must re-enter Plan Coverage as bounded Plans'
     Assert-Matches $decomposition 'executable slice については.*bounded Plan として読む' 'decomposition must produce bounded Plan slice artifacts'
     Assert-Matches $skill 'Architecture baseline compatibility' 'Plan Coverage parent must own the pre-slice architecture compatibility check'
@@ -164,6 +176,23 @@ if ($failures.Count -eq 0) {
     Assert-Matches $handoffReview '\| Slice ID \| Readiness verdict \| Baseline authority \| Baseline identity \| Observed semantics \| Match / Drift / Unclear \| Required action \|' 'implementation handoff review must emit architecture compatibility evidence'
     Assert-Matches $handoffReview '`ArchitectureNotRequired`.*Lightweight architecture baseline' 'ArchitectureNotRequired must retain baseline comparison'
     Assert-NotMatches $processDocumentation 'Slice preparation and parent review return `Match`' 'active docs must not assign architecture compatibility to removed 3-layer owners'
+
+    Assert-Matches $packageReadme '(?s)full-coverage.*architecture-slice-readiness.*plan-slice-decomposition.*each bounded slice.*standard Plan Coverage chain.*cross-slice-verification.*residual-decision-gate' 'package README must describe the self-contained bounded-slice lifecycle'
+    Assert-Matches $packageReadme 'Living Record.*lightweight lifecycle.*未実装' 'package README must state that lightweight full-coverage artifact reduction is not implemented'
+    Assert-Matches $purposeDocumentation '(?s)Architecture Slice Readiness / Elaboration.*Plan Slice Decomposition.*each executable slice re-enters the standard Plan Coverage chain.*Cross-Slice Verification.*Residual Decision' 'purpose policy must describe the self-contained full-coverage lifecycle'
+    Assert-Matches $purposeDocumentation 'repeated artifact and handoff cost remains an unresolved optimization boundary' 'purpose policy must keep current per-slice artifact cost explicit'
+    Assert-Matches $fullCoverageDocumentation 'normal Plan Coverage artifact and handoff set for every executable slice' 'decomposition policy must preserve normal per-slice Plan Coverage artifacts'
+    Assert-Matches $fullCoverageDocumentation 'Living Record.*lightweight full-coverage lifecycle has not been implemented' 'decomposition policy must not claim an implemented lightweight lifecycle'
+    Assert-Matches $processDocumentation '(?m)^## Current process flows\s*$' 'detailed process documentation must identify the current flows'
+    Assert-Matches $processDocumentation '(?m)^## Full Autonomous boundary\s*$' 'detailed process documentation must state the current Full Autonomous boundary'
+    Assert-Matches $processDocumentation 'full-coverage remains self-contained under Plan Coverage ownership from Architecture Slice Readiness through Residual Decision' 'detailed process documentation must keep full-coverage under Plan Coverage ownership'
+    Assert-NotMatches $processDocumentation '(?m)^## (?:Agent creation order|Suggested README update|Recommended process flows)\s*$|(?m)^Required changes:\s*$' 'obsolete future agent revision planning must not remain in active process documentation'
+    Assert-Matches $asrValidationDocumentation 'Plan Coverage parent compatibility.*`Match`' 'ASR suite must assign architecture compatibility to the Plan Coverage parent'
+    Assert-Matches $asrValidationDocumentation '`implementation-handoff-review` Check 11.*records baseline identity.*`Match`' 'ASR suite must require current implementation handoff evidence'
+    Assert-NotMatches $asrValidationDocumentation 'slice-prep|slice-impl|Parent Review Gate|Parent review records' 'ASR suite must not assign current compatibility ownership to removed 3-layer stages'
+
+    $activeDocumentation = @($packageReadme, $purposeDocumentation, $processDocumentation, $fullCoverageDocumentation, $asrValidationDocumentation) -join "`n"
+    Assert-NotMatches $activeDocumentation 'formal targets .*copilot.*codex.*agent-skills|Plan Coverage parent runtime qualif(?:ication)|Plan Coverage Copilot CLI\s+issue' 'PR #90 Plan Coverage-specific qualification wording must not remain in active documentation'
 
     $rollbackContractRelativePaths = @(
         $skillRelativePath,
@@ -185,9 +214,10 @@ if ($failures.Count -eq 0) {
         '.github/agents/standard-implementation-completer.agent.md',
         '.github/agents/test-design-kernel.agent.md',
         '.github/agents/verification-kernel.agent.md',
-        'docs/plan-coverage-process-and-agents.md',
-        'docs/plan-coverage-purpose.md',
-        'docs/token-aware-full-coverage-decomposition-flow.md'
+        $processDocumentationRelativePath,
+        $purposeDocumentationRelativePath,
+        $fullCoverageDocumentationRelativePath,
+        $asrValidationDocumentationRelativePath
     )
     $prohibitedRollbackPatterns = @(
         'compact-slice-record-v2',

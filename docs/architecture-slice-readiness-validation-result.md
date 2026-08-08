@@ -43,6 +43,8 @@ Complete input, actual output, expected JSON, machine-readable actual JSON, and 
 
 ASR-001 through ASR-006 fixture output and run IDs are reused from the prior Issue #65 deterministic scenario set. Issue #96 reruns the unchanged fixture comparison and updates the Plan Coverage Skill contract hash and evidence metadata after the target-neutral wording change; it does not relabel or reconstruct the prior run IDs.
 
+Issue #97 keeps those fixture files and run IDs unchanged as historical scenario evidence. Legacy filenames and output headings that mention slice preparation, parent review, or slice implementation authorization describe the owner mapping at the time of the captured run; they are not the current active route. In the current contract, those checkpoints map to the Plan Coverage parent architecture compatibility check and `implementation-handoff-review` Check 11. Only a current-baseline `Match` permits implementation; `Drift` or `Unclear` blocks and returns to Architecture Slice Readiness / Elaboration. A new end-to-end evidence set is outside this documentation alignment and remains for Issue #98.
+
 | Fixture | Run ID | Complete evidence root |
 | --- | --- | --- |
 | ASR-001 | `asr-001-20260731-issue65-r4` | `tests/architecture-slice-readiness/ASR-001/` |
@@ -60,9 +62,9 @@ The validator compares every `actual.json` with `expected.json`, verifies all ru
 | --- | --- | --- | --- | --- | --- | --- |
 | ASR-001 | `full-coverage` → `NeedsArchitectureElaboration`; A1 stores R1 as non-freshness trigger; same-path R2 rerun=`ReadyForSliceDecomposition` and A1 remains current | `ArchitectureCritical`: state owner, precedence, release sequence, cross-run identity; rerun=0 blocking | Initially blocked; allowed only after current A1 + R2 pair | `architecture-elaboration.agent.md`, readiness rerun, freshness re-evaluation, then decomposition | None | PASS |
 | ASR-002 | `full-coverage` → readiness FAIL | `ArchitectureCritical`: source precedence and retry-exhaustion release | Blocked | Resolve in elaboration; no executable slice | None | PASS |
-| ASR-003 | `ArchitectureNotRequired`; readiness artifact is lightweight baseline authority | No blocking residual | Allowed | slice-prep=`Match`; Parent Review=`Can implement now? Yes`; slice-impl architecture gate passes on current baseline | Extended beyond original decomposition-only expectation | PASS |
+| ASR-003 | `ArchitectureNotRequired`; readiness artifact is Lightweight architecture baseline authority | No blocking residual | Allowed | Plan Coverage parent confirms current baseline; `implementation-handoff-review` Check 11=`Match`; implementation allowed | Historical fixture vocabulary mapped to current owners | PASS |
 | ASR-004 | `ReadyForSliceDecomposition` | `ImplementationDetail` / `SliceLocalContract` only | Allowed | `plan-slice-decomposition.agent.md` | None | PASS |
-| ASR-005 | Parent Architecture drift review=`Drift` | Proposed writer change is architecture-level, not slice-local | Blocked | `Can implement now? No`; return to readiness | None | PASS |
+| ASR-005 | Pre-implementation architecture compatibility=`Drift` | Proposed writer change is architecture-level, not slice-local | Blocked | Plan Coverage parent and Check 11 block implementation; return to readiness / elaboration | Historical fixture vocabulary mapped to current owners | PASS |
 | ASR-006 | `NeedsHumanDecision` | `NeedsHumanDecision`: externally observable precedence policy | Blocked | Stop until decision source is recorded | None | PASS |
 
 ## Observed output excerpts
@@ -104,7 +106,9 @@ Decomposition allowed now: No
 Executable slices produced: 0
 ```
 
-### ASR-003 end-to-end authorization
+### ASR-003 historical fixture excerpt
+
+The excerpt below is retained verbatim from the durable fixture and uses legacy owner vocabulary. Its current interpretation is: the Plan Coverage parent confirms baseline freshness and `implementation-handoff-review` Check 11 records `Match` before implementation.
 
 ```text
 Readiness verdict: ArchitectureNotRequired
@@ -129,6 +133,8 @@ Decomposition allowed now: Yes
 ```
 
 ### ASR-005
+
+This retained fixture excerpt records the same `Drift` outcome using its historical review wording. The current owner is the Plan Coverage parent architecture compatibility check together with `implementation-handoff-review` Check 11.
 
 ```text
 Approved owner: Participant A
@@ -164,5 +170,6 @@ Immediate next action: stop until the decision source is recorded
 ## Limitations
 
 - These are repository-captured bounded agent contract runs revalidated by deterministic fixture comparison, not newly generated stochastic multi-model benchmark runs. Complete inputs, outputs, run IDs, and machine comparisons are retained for audit.
+- Legacy fixture filenames and output headings retain their original owner vocabulary for audit. Current owner mapping is documented above and is enforced by the active validators.
 - Production repositories, secrets, billing, GitHub settings, and external services were not accessed.
 - Rerun this suite when any contract revision above changes; hash mismatch makes this result stale.

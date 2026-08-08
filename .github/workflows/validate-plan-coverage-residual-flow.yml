@@ -13,6 +13,8 @@ on:
       - 'docs/plan-coverage-process-and-agents.md'
       - 'docs/plan-coverage-purpose.md'
       - 'docs/token-aware-full-coverage-decomposition-flow.md'
+      - 'docs/architecture-slice-readiness-validation.md'
+      - 'docs/architecture-slice-readiness-validation-result.md'
   push:
     branches:
       - main
@@ -27,6 +29,8 @@ on:
       - 'docs/plan-coverage-process-and-agents.md'
       - 'docs/plan-coverage-purpose.md'
       - 'docs/token-aware-full-coverage-decomposition-flow.md'
+      - 'docs/architecture-slice-readiness-validation.md'
+      - 'docs/architecture-slice-readiness-validation-result.md'
 
 permissions:
   contents: read

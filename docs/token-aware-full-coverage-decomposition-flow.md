@@ -4,7 +4,7 @@
 
 `full-coverage` 判定を、Full autonomous Plan-first flow へのエスカレーションではなく、実装前の Plan slice decomposition として扱うための運用メモです。
 
-このメモは、Plan網羅チェック・残件判定フロー に関する `full-coverage` の意味付けを要約した補足ポリシーです。`docs/plan-coverage-process-and-agents.md` 側でも、`### full-coverage`、main flow、full autonomous flow、および `runtime-contract-kernel.agent.md` の escalation condition をこの方針に合わせて更新します。
+このメモは、Plan網羅チェック・残件判定フロー に関する current `full-coverage` contractを要約した補足ポリシーです。`docs/plan-coverage-process-and-agents.md` の`### full-coverage`、main flow、Full Autonomousとの境界、および各active agent contractはこの方針に従います。
 
 ## Policy
 
@@ -52,6 +52,8 @@ Parent Plan Kernel
 ## Bounded slice execution
 
 Each executable `plans/<slug>-slice-SL-xxx.md` is a bounded Plan owned by Plan Coverage. It runs the standard pre-implementation gates required by its recommended profile. Before Adaptive Implementation, the Plan Coverage parent reconfirms baseline freshness and the implementation handoff must record a current-baseline `Match`; `Drift` or `Unclear` blocks implementation and returns to the architecture gate. The slice must not redefine parent requirements or shared architecture, and it must leave cross-slice completion to `cross-slice-verification-kernel.agent.md`. Parent residual and close decisions use the normal `residual-decision-gate.agent.md` output.
+
+The current route uses the normal Plan Coverage artifact and handoff set for every executable slice. It does not depend on an external orchestration package or a slice-specific artifact layout. This means repeated per-slice artifact cost still exists. A Living Record, compact record, or other lightweight full-coverage lifecycle has not been implemented and must not be inferred from this decomposition policy.
 
 ## Synthetic self-check fixture
 

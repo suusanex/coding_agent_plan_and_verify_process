@@ -2,6 +2,8 @@
 
 This maintainer suite validates the routing contract added between `full-coverage` risk triage and Plan Slice Decomposition. It does not implement code, change production systems, or treat current implementation as architecture authority.
 
+For every executable slice, the Plan Coverage parent reconfirms baseline freshness and `implementation-handoff-review` Check 11 records architecture compatibility. Only a current-baseline `Match` permits implementation. `Drift` returns to Architecture Slice Readiness / Elaboration, and `Unclear` fails closed and reruns readiness.
+
 ## Validation contract
 
 For each fixture, record:
@@ -74,12 +76,12 @@ No new participant, durable state, identity, retry, capacity, cross-boundary con
 | readiness artifact | required, with source-backed simple-structure reason |
 | decomposition allowed | `Yes` |
 | architecture baseline authority | readiness artifactの`Lightweight architecture baseline` |
-| slice-prep conformance | `Match` when no new shared semantics are introduced |
-| parent drift verdict | `Match` |
-| parent implementation authorization | `Can implement now? = Yes` when other gates pass |
-| slice-impl architecture gate | current readiness baseline + `Match`で通過 |
+| Plan Coverage parent compatibility | `Match` when no new shared semantics are introduced |
+| baseline freshness | current at implementation authorization |
+| `implementation-handoff-review` Check 11 | records baseline identity, observed semantics, and `Match` |
+| implementation allowed | `Yes` only when the current baseline is `Match` and other gates pass |
 
-This fixture is not complete at decomposition. Continue it through slice-prep, Parent Review Gate, and slice-impl authorization to prove the lightweight baseline path is closed.
+This fixture is not complete at decomposition. Continue it through the Plan Coverage parent architecture compatibility check and `implementation-handoff-review` Check 11 to prove the Lightweight architecture baseline path is closed. `Drift` or `Unclear` must block implementation.
 
 ## ASR-004: Slice-local details do not block readiness
 
@@ -94,18 +96,18 @@ Only helper names, internal class split, and fixture paths remain undecided.
 
 The residuals are `ImplementationDetail` or `SliceLocalContract`. With a current slice architecture artifact and no blocking residual, the verdict is `ReadyForSliceDecomposition`.
 
-## ASR-005: Parent review detects decomposition drift
+## ASR-005: Pre-implementation compatibility detects drift
 
 ### Fixture
 
 ```text
 Approved architecture: durable state owner is Participant A; Observation B is derived and read-only.
-Slice-prep proposal: Participant B writes the canonical state when observation is newer.
+Slice-local pre-implementation proposal: Participant B writes the canonical state when observation is newer.
 ```
 
 ### Expected
 
-Parent review records `Drift`, sets `Can implement now? = No`, and routes back to `architecture-slice-readiness.agent.md`. The proposal must not become a slice-local contract or expected test fixture.
+The Plan Coverage parent and `implementation-handoff-review` Check 11 record `Drift`, block implementation, and route back to Architecture Slice Readiness / Elaboration. The proposal must not become a slice-local contract or expected test fixture.
 
 ## ASR-006: Human authority stops the route
 
@@ -161,6 +163,6 @@ Complete durable evidence for the current run is stored under `tests/architectur
 2. Provide the parent Plan, behavior coverage, and triage input from one fixture.
 3. Capture the readiness verdict before allowing elaboration or decomposition.
 4. For ASR-001, run elaboration, verify the template sections, and rerun readiness.
-5. For ASR-005, provide the approved architecture and drifting slice-prep output to the parent review gate.
+5. For ASR-005, provide the approved architecture and drifting slice-local pre-implementation proposal to the Plan Coverage parent compatibility check and `implementation-handoff-review` Check 11.
 6. Compare verdict, artifact requirement, residual classification, and next action with this suite.
 7. Do not allow implementation, production writes, secrets, billing, external services, or GitHub setting changes during validation.

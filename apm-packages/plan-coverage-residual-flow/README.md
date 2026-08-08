@@ -154,6 +154,8 @@ full-coverage
 
 `plan-slice-decomposition`が作る各`plans/<slug>-slice-SL-xxx.md`は、Plan Coverage自身が扱うbounded Planです。各sliceはparent Plan、approved architecture、decompositionとのtraceabilityを保ったまま必要なpre-implementation gatesを実行し、current architecture baselineとのcompatibilityが`Match`の場合だけAdaptive Implementationへ進みます。`Drift`はArchitecture Slice Readiness / Elaborationへ戻し、`Unclear`はfail closedしてreadinessを再実行します。`ArchitectureNotRequired`でもLightweight architecture baselineとの比較を省略しません。全sliceのindependent verification後にcross-slice verificationとresidual decisionを行います。
 
+このrouteは現在、各bounded sliceを通常のPlan Coverage chainへ再入場させるため、sliceごとに標準artifactとhandoffを作成します。Living Recordやslice専用のlightweight lifecycleでartifact負荷を削減する方式は未実装であり、現行contractには含まれません。
+
 ## Agent reference
 
 | Agent | Responsibility |
@@ -199,7 +201,7 @@ full-coverage
 | `plans/<slug>-coverage-gap-triage.md` | unresolved gap classification |
 | `plans/<slug>-residual-decision-gate.md` | residual decisionsとnext verdict |
 
-full-coverageではcanonical Coverage Ledger、parent decomposition artifact、各bounded sliceと通常のPlan Coverage outputを使います。slice固有のartifact layoutや外部orchestration stateは必須ではありません。
+full-coverageではcanonical Coverage Ledger、parent decomposition artifact、各bounded sliceと通常のPlan Coverage outputを使います。slice固有のartifact layoutや外部orchestration stateは必須ではありません。各sliceが通常のPlan Coverage outputを持つ現行のartifact負荷は残っており、Living Recordや新しいlightweight slice flowへの統合は行っていません。
 
 ## Verdicts and residual policy
 
