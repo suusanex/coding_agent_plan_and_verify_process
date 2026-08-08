@@ -2,10 +2,10 @@
 
 ## Execution metadata
 
-- Executed at: `2026-08-08T19:51:34+09:00`
-- Executor: Issue #94 review remediation; deterministic ASR-001 through ASR-006 fixture comparison rerun after assigning pre-slice architecture compatibility to Plan Coverage
+- Executed at: `2026-08-08T20:43:19+09:00`
+- Executor: Issue #96 rollback; deterministic ASR-001 through ASR-006 fixture comparison rerun after removing Plan Coverage-specific Copilot qualification wording
 - Branch: `issue-93` (Issue #93 recovery sequence after Issue #95)
-- Reviewed source: PR #80 semantic delta compared with pre-change commit `1932e5a9f66c308130a33b4e3f20ec2eb09ee769`; Plan Coverage owns bounded slice execution and current-baseline `Match / Drift / Unclear` gating without the deleted 3-layer package, state, agents, or templates
+- Reviewed source: post-PR #80 Plan Coverage path history (`05c0f84`, `3e42758`, `f2b6bbe`) confirms that only PR #90 added Plan Coverage-specific Copilot qualification wording; the current Skill keeps a target-neutral separate-package, explicit-selection, and waiting-state boundary while preserving the Issue #94 bounded-slice and architecture compatibility contracts
 - Scope: entry authorization, routing, artifact, and existing architecture semantics only; no production code or external system changes
 
 ### Contract revisions evaluated
@@ -19,7 +19,7 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | `.github/agents/plan-slice-decomposition.agent.md` | `2d92766ad496003fa31be917c8355188adce9165b05bfe709044c4715c2a0fae` |
 | `.github/agents/implementation-handoff-review.agent.md` | `18b83fe6a0c02af7551a0a33095f7acab024fe07ce3b7846f4cdd7223ac11997` |
 | `.github/instructions/plan-coverage-shared.instructions.md` | `1f38405b04f752d2af27e46ae21773e68849f558f20706187c7057984a7f6c24` |
-| `plan-coverage-residual-flow/SKILL.md` | `01cb6ce5aceac254c065b77175024b12ac6eac2af6ef222620b1a138ef91f485` |
+| `plan-coverage-residual-flow/SKILL.md` | `797d8628ecd35dd76d0d386a3bb23bc30b9f369f213c2c2a0e1d2bfa4bfd4530` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 | `coverage-ledger.md` template | `b1a532b4ab59dbaa1471d8bd1beb6af5e7f570f3086719c8fcbe452f7f493962` |
 | `plan-coverage-lite.md` template | `e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90` |
@@ -41,7 +41,7 @@ The following hashes are retained as audit evidence for the contract set validat
 
 Complete input, actual output, expected JSON, machine-readable actual JSON, and run metadata are stored under `tests/architecture-slice-readiness/ASR-001` through `ASR-006`.
 
-ASR-001 through ASR-006 fixture output and run IDs are reused from the prior Issue #65 deterministic scenario set. Issue #94 reruns the unchanged fixture comparison and updates the surviving Plan Coverage contract hashes and evidence metadata; it does not relabel or reconstruct the prior run IDs.
+ASR-001 through ASR-006 fixture output and run IDs are reused from the prior Issue #65 deterministic scenario set. Issue #96 reruns the unchanged fixture comparison and updates the Plan Coverage Skill contract hash and evidence metadata after the target-neutral wording change; it does not relabel or reconstruct the prior run IDs.
 
 | Fixture | Run ID | Complete evidence root |
 | --- | --- | --- |
@@ -158,7 +158,7 @@ Immediate next action: stop until the decision source is recorded
 | Slice Architecture template path | PASS | canonical template exists and all affected manifests reference an existing path |
 | Durable fixture artifacts | PASS | ASR-001〜006 input/output/run files exist and every run reference resolves |
 | Expected / actual comparison | PASS | validator compared every `actual.json` with `expected.json` and checked values against full Markdown outputs |
-| Current contract revision hashes | PASS | all nine surviving normalized contract hashes above match the files revalidated for Issue #94 review remediation; deleted PR #80 contract hashes are retained only as historical evidence |
+| Current contract revision hashes | PASS | all nine surviving normalized contract hashes above match the files revalidated for Issue #96; deleted PR #80 contract hashes are retained only as historical evidence |
 | `git diff --check` | PASS | no whitespace errors; Windows line-ending warnings only |
 
 ## Limitations

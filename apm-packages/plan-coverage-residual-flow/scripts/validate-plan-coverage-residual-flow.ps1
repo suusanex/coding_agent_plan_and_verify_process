@@ -143,6 +143,14 @@ if ($failures.Count -eq 0) {
     Assert-Matches $adaptiveValidator "plan-coverage-residual-flow/apm\.yml'; Version = '0\\\.10\\\.0'" 'Adaptive validator package version pin must be 0.10.0'
     Assert-Matches $designPairValidator 'Plan Coverage package version 0\.10\.0' 'Design Pair validator package version pin must be 0.10.0'
 
+    Assert-Matches $skill 'The `design-pair-implementation-execution` package remains a separate package' 'Design Pair must remain a separate package without target-specific qualification'
+    Assert-Matches $skill 'both packages are installed for the same target and the user explicitly selects Design Pair' 'Design Pair route must require same-target installation and explicit selection'
+    Assert-Matches $skill 'keep `plan-coverage-residual-flow` selection evidence separate from Design Pair implementation route selection evidence' 'Plan Coverage and Design Pair selection evidence must remain separate'
+    Assert-Matches $skill 'While Design Pair is waiting, do not fall back to Adaptive' 'Design Pair waiting state must block Adaptive fallback'
+    Assert-NotMatches $skill 'formal targets .*copilot.*codex.*agent-skills' 'PR #90 target enumeration must not remain in Plan Coverage'
+    Assert-NotMatches $skill 'Plan Coverage parent runtime qualif(?:ication).*Design Pair.*Adaptive.*GitHub Copilot CLI' 'PR #90 Copilot qualification claim must not remain in Plan Coverage'
+    Assert-NotMatches $skill 'Plan Coverage Copilot CLI\s+issue' 'PR #90 Copilot qualification issue handoff must not remain in Plan Coverage'
+
     $decomposition = Get-NormalizedText (Join-Path $repoRoot $decompositionRelativePath)
     $sharedInstructions = Get-NormalizedText (Join-Path $repoRoot $sharedInstructionsRelativePath)
     $handoffReview = Get-NormalizedText (Join-Path $repoRoot '.github/agents/implementation-handoff-review.agent.md')
