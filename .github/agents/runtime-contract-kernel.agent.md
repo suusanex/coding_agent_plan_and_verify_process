@@ -216,7 +216,3 @@ contract を記録するために必要な情報が不足している場合は�
 `Contract ID`、`Scenario`、`Producer`、`Consumer`、`Message / API / Event`、`Required fields` などの table 列には status ではなく具体的な情報を書いてください。status はこれらの情報が得られなかった場合の `注記 / 前提` や Handoff Packet の `Remaining work` での記録に使います。
 
 この agent は production wiring / entrypoint verification を完了する agent ではありません。既存 artifact に production interface・production implementation・production wiring / entrypoint と post-wiring behavior against required postcondition が確認済みである明確な evidence がある場合を除き、`Bound` を自分で新規に判断してはいけません。production binding や wiring の確認は `verification-kernel.agent.md` に引き継いでください。
-
-## Compact full-coverage embedded output
-
-With `artifact_layout: compact-slice-record-v2`, require `embedded_output_target` and `embedded_output_section` and return only a slice-local RC delta in the Slice Record. Do not create a separate contract artifact or redefine parent/XC semantics.

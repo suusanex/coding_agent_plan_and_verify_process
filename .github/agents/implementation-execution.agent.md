@@ -532,7 +532,3 @@ Plan や kernel artifacts に誤りがあると判断した場合は、直接修
   - `implementation-contract-kernel.agent.md` へ戻す。explicit review-only fallback が必要な場合だけ `implementation-contract-review-kernel.agent.md` を使う。
 - `BLOCKED_BY_EXTERNAL_DEPENDENCY`:
   - dependency / environment / permission を人間が解決してから再実行する。
-
-## Compact full-coverage compatibility boundary
-
-This agent remains legacy compatibility only. A `compact-slice-record-v2` input must route to `high-implementation-starter`; do not use this agent as the v2 standard route.

@@ -45,14 +45,6 @@ Use these statuses when an agent needs common progress, residual, or handoff cla
 
 ## Bounded reading
 
-## Full-coverage decomposition inheritance
-
-For fresh post-decomposition work with `full_coverage_artifact_layout: compact-slice-record-v2`, parent Goal, FR, AC, CASE, risk, architecture authority, and XC roles are inherited rather than re-derived per slice. The canonical owners are Parent Plan, Behavior Spec, Parent triage, architecture baseline, immutable Slice Record baseline, canonical Coverage Ledger, Parent State, and Final Record respectively.
-
-A phase does not imply a separate artifact. Slice Record sections have serial owners: decomposition writes immutable baseline; preparation writes delta; parent writes authorization; Adaptive owner writes implementation; independent verifier writes verification; selected fix owner writes bounded fix; current phase owner writes handoff and ledger delta. Parent State alone owns orchestration and authorization tables; Final Record owns cross-slice verification, residual, and close sections. Do not full-copy the canonical ledger.
-
-Separate artifact creation requires an independent lifecycle plus an authority/confidentiality/concurrency/resume-safety reason, Parent State exception registration, canonical owner, and merge-back rule. Do not create generic per-slice contract/result files merely because an agent has a default output path. A partial or contradictory v1/v2 layout, or a v2 authorization that implicitly uses legacy artifacts, is `BlockedByArtifactLayoutMismatch` and fails closed.
-
 - Read the Plan and upstream artifacts needed for the current phase before reading source code broadly.
 - Inspect source files only where the current artifact, selected contract, selected gap, or verification target points.
 - Do not continue repository exploration after the current phase has enough evidence to produce its required artifact, verdict, or stop condition.

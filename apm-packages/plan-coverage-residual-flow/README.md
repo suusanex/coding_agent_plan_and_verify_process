@@ -145,10 +145,12 @@ full-coverage
   -> architecture-slice-readiness
      -> architecture-elaboration -> readiness rerun, when required
      -> plan-slice-decomposition, when authorized
-  -> compact-slice-record-v2 execution
+  -> each bounded slice re-enters the standard Plan Coverage chain
   -> cross-slice-verification
   -> residual-decision-gate
 ```
+
+`plan-slice-decomposition`が作る各`plans/<slug>-slice-SL-xxx.md`は、Plan Coverage自身が扱うbounded Planです。各sliceはparent Plan、approved architecture、decompositionとのtraceabilityを保ったまま必要なpre-implementation gates、Adaptive Implementation、independent verificationを実行し、全sliceの後にcross-slice verificationとresidual decisionを行います。
 
 ## Agent reference
 
@@ -195,7 +197,7 @@ full-coverage
 | `plans/<slug>-coverage-gap-triage.md` | unresolved gap classification |
 | `plans/<slug>-residual-decision-gate.md` | residual decisionsとnext verdict |
 
-full-coverage v2ではParent State、canonical Coverage Ledger、各sliceのliving Slice Record、Final Recordを使います。legacy split artifactsは既存workのresumeと明示的compatibilityにだけ残し、自動migrationしません。
+full-coverageではcanonical Coverage Ledger、parent decomposition artifact、各bounded sliceと通常のPlan Coverage outputを使います。slice固有のartifact layoutや外部orchestration stateは必須ではありません。
 
 ## Verdicts and residual policy
 

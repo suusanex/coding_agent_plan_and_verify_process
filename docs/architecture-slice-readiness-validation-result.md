@@ -2,10 +2,10 @@
 
 ## Execution metadata
 
-- Executed at: `2026-08-05T23:45:00+09:00`
-- Executor: issue-69 review remediation; deterministic ASR-001 through ASR-006 fixture comparison reused after Plan Coverage Design Pair Copilot wording and #86 deferral note update
-- Branch: `issue-69` (Design Pair GitHub Copilot CLI formal support)
-- Reviewed source: Plan Coverage skill notes Design Pair formal targets and that parent runtime qualification of Design Pair -> Adaptive on Copilot CLI is not claimed by Design Pair package support alone; architecture entry/routing/artifact semantics unchanged from prior validated set
+- Executed at: `2026-08-08T18:20:30+09:00`
+- Executor: Issue #94 semantic rollback; deterministic ASR-001 through ASR-006 fixture comparison rerun after restoring bounded Plan slice execution
+- Branch: `issue-93` (Issue #93 recovery sequence after Issue #95)
+- Reviewed source: PR #80 semantic delta compared with pre-change commit `1932e5a9f66c308130a33b4e3f20ec2eb09ee769`; Plan Coverage owns bounded slice execution without the deleted 3-layer package, state, agents, or templates
 - Scope: entry authorization, routing, artifact, and existing architecture semantics only; no production code or external system changes
 
 ### Contract revisions evaluated
@@ -16,14 +16,21 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | --- | --- |
 | `.github/agents/architecture-slice-readiness.agent.md` | `c2f93ce3004a309d8430bea7e7875e38a2fd983843c95a1abca0324654bf5259` |
 | `.github/agents/architecture-elaboration.agent.md` | `8f53674b988131d847d8c32ca01d850c90820fddb40595a6ca6ff54382948344` |
-| `.github/agents/plan-slice-decomposition.agent.md` | `b29bf45b5e032b4186b01459a39be37d293dd6d3fe43f1d90d917ca177348208` |
+| `.github/agents/plan-slice-decomposition.agent.md` | `2d92766ad496003fa31be917c8355188adce9165b05bfe709044c4715c2a0fae` |
+| `plan-coverage-residual-flow/SKILL.md` | `356af2ff7b8b88d20cf9a146f140cb6d4c724cc0eb780c1e8e248a78f1539267` |
+| `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
+| `coverage-ledger.md` template | `b1a532b4ab59dbaa1471d8bd1beb6af5e7f570f3086719c8fcbe452f7f493962` |
+| `plan-coverage-lite.md` template | `e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90` |
+
+### Historical PR #80 contract hashes
+
+The following hashes are retained as audit evidence for the contract set validated before Issue #95. These files are deleted and are not current ASR dependencies.
+
+| Historical contract | UTF-8/LF normalized SHA-256 |
+| --- | --- |
 | `slice-prep.agent.md` | `6581969b6c5e65653357e3e00ae574d3cbebedf109359316f06510d5fe7b77f8` |
 | `slice-impl.agent.md` | `3ba9061879cc5643d7dea7b32501d852cc7926168837a428dc71551c56dff7b5` |
 | `token-aware-full-coverage-3layer/SKILL.md` | `717c91f6b65e3eab4003ba4938f99ec4abb01982f212ecbd2dc254208e9c9c91` |
-| `plan-coverage-residual-flow/SKILL.md` | `53c3fe59591016913ec48adb6c9a14a5bab28f4ee91772f7c594f30a4581678a` |
-| `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
-| `coverage-ledger.md` template | `af6d9252c720ba9298e99f8ac23a975108a841be725ff3fbb0a4d5c4c6866da7` |
-| `plan-coverage-lite.md` template | `e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90` |
 | `full-coverage-parent-orchestration-state.md` template | `80d422aafd8b13642fdcfa66cbd136e6b5119bc0e3d6672ebbe7ad4c9bba2e4f` |
 | `full-coverage-slice-record.md` template | `e20f93f7401b52b8a34d1f1feb4e774ad4dcb9780c44babcad81d6c9b01dd283` |
 | `full-coverage-final.md` template | `cb61121c3dc556017bb9793800fd89ecc7e5c64c3a7a4f237f633cfa91b664a9` |
@@ -32,7 +39,7 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 
 Complete input, actual output, expected JSON, machine-readable actual JSON, and run metadata are stored under `tests/architecture-slice-readiness/ASR-001` through `ASR-006`.
 
-ASR-001 through ASR-006 fixture output and run IDs are reused from the prior Issue #65 deterministic scenario set. This Issue #69 revalidation reruns the unchanged fixture comparison and updates the validated Plan Coverage skill contract hash and evidence metadata; it does not relabel or reconstruct the prior run IDs.
+ASR-001 through ASR-006 fixture output and run IDs are reused from the prior Issue #65 deterministic scenario set. Issue #94 reruns the unchanged fixture comparison and updates the surviving Plan Coverage contract hashes and evidence metadata; it does not relabel or reconstruct the prior run IDs.
 
 | Fixture | Run ID | Complete evidence root |
 | --- | --- | --- |
@@ -149,7 +156,7 @@ Immediate next action: stop until the decision source is recorded
 | Slice Architecture template path | PASS | canonical template exists and all affected manifests reference an existing path |
 | Durable fixture artifacts | PASS | ASR-001〜006 input/output/run files exist and every run reference resolves |
 | Expected / actual comparison | PASS | validator compared every `actual.json` with `expected.json` and checked values against full Markdown outputs |
-| Current contract revision hashes | PASS | all normalized contract hashes above match the files revalidated for PR #80 |
+| Current contract revision hashes | PASS | all seven surviving normalized contract hashes above match the files revalidated for Issue #94; deleted PR #80 contract hashes are retained only as historical evidence |
 | `git diff --check` | PASS | no whitespace errors; Windows line-ending warnings only |
 
 ## Limitations

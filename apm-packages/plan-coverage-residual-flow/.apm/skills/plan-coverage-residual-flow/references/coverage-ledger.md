@@ -1,7 +1,5 @@
 # Coverage Ledger
 
-> **Full-coverage artifact layout:** Fresh `compact-slice-record-v2` runs retain the complete table only in this canonical ledger. Slice Records and the Final Record contain deltas only; Parent State contains no coverage body. Existing `legacy-split-v1` runs remain unmodified.
-
 この artifact は、Plan Coverage Check and Residual Decision Flow の canonical parent Plan coverage ledger です。
 
 `plans/<slug>-coverage-ledger.md` は parent Plan の FR / AC を source of truth として保持します。handoff、implementation、verification、residual decision、coverage gap resolution の各中間 artifact は、必要な場合だけ `Coverage Ledger Delta` を出力し、この canonical ledger を読み替えたり縮小したりしてはいけません。

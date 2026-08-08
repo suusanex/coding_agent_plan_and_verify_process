@@ -263,7 +263,3 @@ test point を定義するために必要な情報が不足している場合は
 この agent は production binding verification の要求を設計する agent であり、production binding を実際に確認する agent ではありません。既存 artifact に production interface・production implementation・production wiring / entrypoint と post-wiring behavior against required postcondition が確認済みである明確な evidence がある場合を除き、`Bound` を付けてはいけません。通常は `必須 production binding 確認事項` に verification-kernel への確認事項として渡してください。
 
 `Test Point ID`、`Runtime Contract ID`、`What to verify`、`Expected observation` などの table 列には status ではなく具体的な情報を書いてください。status は `Status` 列と `Remaining work` での記録に使います。
-
-## Compact full-coverage embedded output
-
-With `artifact_layout: compact-slice-record-v2`, require `embedded_output_target` and `embedded_output_section`; return a slice-local TP delta in the Slice Record, never a separate test-design artifact or a replacement for independent verification.

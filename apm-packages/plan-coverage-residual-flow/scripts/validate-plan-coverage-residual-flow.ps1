@@ -49,6 +49,9 @@ $deployedSkillRelativePath = '.agents/skills/plan-coverage-residual-flow/SKILL.m
 $coverageLedgerRelativePath = 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md'
 $deployedCoverageLedgerRelativePath = '.agents/skills/plan-coverage-residual-flow/references/coverage-ledger.md'
 $manifestRelativePath = 'apm-packages/plan-coverage-residual-flow/apm.yml'
+$packageReadmeRelativePath = 'apm-packages/plan-coverage-residual-flow/README.md'
+$sharedInstructionsRelativePath = '.github/instructions/plan-coverage-shared.instructions.md'
+$decompositionRelativePath = '.github/agents/plan-slice-decomposition.agent.md'
 $scenarioRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/invocation-authorization-scenarios.json'
 $manualReadmeRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/manual-model-smoke/README.md'
 $manualTemplateRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/manual-model-smoke/result-template.md'
@@ -57,6 +60,9 @@ $requiredFiles = @(
     $skillRelativePath,
     $coverageLedgerRelativePath,
     $manifestRelativePath,
+    $packageReadmeRelativePath,
+    $sharedInstructionsRelativePath,
+    $decompositionRelativePath,
     $scenarioRelativePath,
     $manualReadmeRelativePath,
     $manualTemplateRelativePath
@@ -130,12 +136,58 @@ if ($failures.Count -eq 0) {
 
     $manifest = Get-NormalizedText (Join-Path $repoRoot $manifestRelativePath)
     Assert-Matches $manifest '(?m)^name:\s*plan-coverage-residual-flow\s*$' 'package name must remain stable'
-    Assert-Matches $manifest '(?m)^version:\s*0\.9\.0\s*$' 'package version must be 0.9.0'
+    Assert-Matches $manifest '(?m)^version:\s*0\.10\.0\s*$' 'package version must be 0.10.0'
 
     $adaptiveValidator = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1')
     $designPairValidator = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1')
-    Assert-Matches $adaptiveValidator "plan-coverage-residual-flow/apm\.yml'; Version = '0\\\.9\\\.0'" 'Adaptive validator package version pin must be 0.9.0'
-    Assert-Matches $designPairValidator 'Plan Coverage package version 0\.9\.0' 'Design Pair validator package version pin must be 0.9.0'
+    Assert-Matches $adaptiveValidator "plan-coverage-residual-flow/apm\.yml'; Version = '0\\\.10\\\.0'" 'Adaptive validator package version pin must be 0.10.0'
+    Assert-Matches $designPairValidator 'Plan Coverage package version 0\.10\.0' 'Design Pair validator package version pin must be 0.10.0'
+
+    $decomposition = Get-NormalizedText (Join-Path $repoRoot $decompositionRelativePath)
+    Assert-Matches $skill 'Treat every executable `plans/<slug>-slice-SL-xxx\.md` artifact as a bounded Plan that re-enters this Plan Coverage flow' 'full-coverage slices must re-enter Plan Coverage as bounded Plans'
+    Assert-Matches $decomposition 'executable slice については.*bounded Plan として読む' 'decomposition must produce bounded Plan slice artifacts'
+
+    $rollbackContractRelativePaths = @(
+        $skillRelativePath,
+        $coverageLedgerRelativePath,
+        $packageReadmeRelativePath,
+        $sharedInstructionsRelativePath,
+        $decompositionRelativePath,
+        '.github/agents/change-risk-triage.agent.md',
+        '.github/agents/coverage-gap-resolution-slice.agent.md',
+        '.github/agents/coverage-gap-triage.agent.md',
+        '.github/agents/cross-slice-verification-kernel.agent.md',
+        '.github/agents/high-implementation-starter.agent.md',
+        '.github/agents/implementation-contract-kernel.agent.md',
+        '.github/agents/implementation-contract-review-kernel.agent.md',
+        '.github/agents/implementation-execution.agent.md',
+        '.github/agents/implementation-handoff-review.agent.md',
+        '.github/agents/residual-decision-gate.agent.md',
+        '.github/agents/runtime-contract-kernel.agent.md',
+        '.github/agents/standard-implementation-completer.agent.md',
+        '.github/agents/test-design-kernel.agent.md',
+        '.github/agents/verification-kernel.agent.md',
+        'docs/plan-coverage-process-and-agents.md',
+        'docs/plan-coverage-purpose.md',
+        'docs/token-aware-full-coverage-decomposition-flow.md'
+    )
+    $prohibitedRollbackPatterns = @(
+        'compact-slice-record-v2',
+        'Parent Orchestration State',
+        'Parent Authorization',
+        'Slice Preparation Delta',
+        'Full-Coverage Final Record',
+        'full-coverage-slice-v2',
+        'legacy-split-v1',
+        'slice-prep\.agent\.md',
+        'slice-impl'
+    )
+    foreach ($relativePath in $rollbackContractRelativePaths) {
+        $contractText = Get-NormalizedText (Join-Path $repoRoot $relativePath)
+        foreach ($pattern in $prohibitedRollbackPatterns) {
+            Assert-NotMatches $contractText $pattern "PR #80 compact-v2 semantic '$pattern' must not remain in $relativePath"
+        }
+    }
 
     $coverageLedgerPath = Join-Path $repoRoot $coverageLedgerRelativePath
     $deployedSkillPath = Join-Path $repoRoot $deployedSkillRelativePath

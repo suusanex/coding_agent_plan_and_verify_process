@@ -432,7 +432,3 @@ cross-slice verification scope、runtime postcondition oracle、parent acceptanc
 `.github/instructions/plan-coverage-shared.instructions.md` の shared status vocabulary を使ってください。
 
 `OutOfScopeForThisPass` は cross-slice verification scope の外にある item に使います。`Bound` は parent acceptance condition の runtime postcondition まで含めて production binding evidence が確認できた場合に限ります。
-
-## Full-coverage final record v2
-
-With `artifact_layout: compact-slice-record-v2`, use Parent State, all Slice Records, canonical Coverage Ledger, parent authority, and relevant production wiring. Do not require separate per-slice artifacts. Write only Final Verification Snapshot in `plans/<slug>-full-coverage-final.md`, preserve logical verification verdicts, and respect section ownership.
