@@ -146,8 +146,10 @@ full-coverage
      -> architecture-elaboration -> readiness rerun, when required
      -> plan-slice-decomposition, when authorized
   -> each bounded slice
+     -> standard Plan Coverage pre-implementation gates
      -> architecture baseline compatibility: Match
-     -> standard Plan Coverage chain
+     -> Adaptive Implementation
+     -> independent verification
   -> cross-slice-verification
   -> residual-decision-gate
 ```
