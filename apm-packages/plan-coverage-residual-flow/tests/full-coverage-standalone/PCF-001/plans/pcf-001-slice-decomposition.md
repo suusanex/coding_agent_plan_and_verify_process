@@ -15,6 +15,13 @@ Two runtime participants and their production wiring require dependent bounded s
 - Architecture artifact: `plans/pcf-001-slice-architecture.md`
 - Blocking architecture residuals: 0
 
+## Record Metadata
+
+- documentation_level: standard
+- selected_process: full-coverage
+- artifact_mode: slice-living-record
+- Canonical Coverage Ledger: `plans/pcf-001-coverage-ledger.md`
+
 ## 分割方針
 
 Split by producer and consumer ownership; preserve the production entrypoint as the final cross-slice binding.
@@ -23,8 +30,8 @@ Split by producer and consumer ownership; preserve the production entrypoint as 
 
 | Slice ID | Name | Goal | Recommended profile | Immediate next agent | Depends on | Can run in parallel? |
 | --- | --- | --- | --- | --- | --- | --- |
-| `SL-001` | Producer restore | emit approved producer fields | contract-kernel | standard Plan Coverage pre-implementation chain | none | No |
-| `SL-002` | Consumer and entrypoint | consume fields and enforce acceptance | standard-slice | standard Plan Coverage pre-implementation chain | `SL-001` verified | No |
+| `SL-001` | Producer restore | emit approved producer fields | contract-kernel | slice-local risk delta | none | No |
+| `SL-002` | Consumer and entrypoint | consume fields and enforce acceptance | standard-slice | slice-local risk delta | `SL-001` verified | No |
 
 ## Slice granularity review
 
@@ -80,7 +87,7 @@ Split by producer and consumer ownership; preserve the production entrypoint as 
   - Why not merged: producer contract must be verified before consumer implementation.
 - Implementation-realization risks: none.
 - Recommended process profile: contract-kernel.
-- Immediate next agent: standard Plan Coverage pre-implementation chain.
+- Immediate next agent: `change-risk-triage.agent.md` in slice-local delta mode.
 - Required inputs for next agent: parent Plan, decomposition, readiness, architecture, canonical ledger.
 - Stop condition for this slice: `PARENT_PLAN_VERIFIED` for the bounded slice.
 
@@ -129,7 +136,7 @@ Split by producer and consumer ownership; preserve the production entrypoint as 
   - Why not merged: owns separate consumer and production binding semantics.
 - Implementation-realization risks: none.
 - Recommended process profile: standard-slice.
-- Immediate next agent: standard Plan Coverage pre-implementation chain.
+- Immediate next agent: `change-risk-triage.agent.md` in slice-local delta mode.
 - Required inputs for next agent: parent Plan, decomposition, readiness, architecture, canonical ledger, `SL-001` verification.
 - Stop condition for this slice: `PARENT_PLAN_VERIFIED` for the bounded slice.
 
@@ -170,10 +177,20 @@ Split by producer and consumer ownership; preserve the production entrypoint as 
 
 ## Execution order
 
-1. `SL-001` pre-implementation gates, architecture `Match`, Adaptive Implementation, independent verification.
-2. `SL-002` after `SL-001=PARENT_PLAN_VERIFIED`, using the same sequence.
+1. Update the `SL-001` Living Record by section delta, require architecture `Match`, aggregate Adaptive Implementation evidence, and run independent verification.
+2. Update the `SL-002` Living Record after `SL-001=PARENT_PLAN_VERIFIED` and pending ledger delta count 0, using the same sequence.
 3. Cross-Slice Verification after both bounded Plan verdicts are `PARENT_PLAN_VERIFIED`.
 4. Residual Decision after `CROSS_SLICE_VERIFIED`.
+
+## Artifact Budget
+
+- Base parent artifacts: 5
+- Executable slices: 2
+- Slice Living Records: 2
+- Final close artifact: 1
+- Base expected total: 8
+- Conditional artifacts: Behavior Spec (`Expansion required: Yes`); Slice Architecture (`ReadyForSliceDecomposition`)
+- Exceptions: none
 
 ## Final cross-slice verification requirements
 
@@ -205,6 +222,9 @@ External model execution, parallel orchestration, retries, and persistence.
 - Files intentionally not inspected: production payloads; decomposition is document-only
 - Decisions made: producer then consumer, followed by cross-slice verification
 - Do not redo unless new evidence appears: slice ownership and execution order
-- Remaining work: both bounded Plan chains, cross-slice verification, residual decision
-- Recommended next step: run the bounded Plan chain for `SL-001`
-- Required downstream guardrails: each slice reads parent and decomposition; bounded scope/non-goals; RC/XC mapping; architecture Match; independent verification
+- Remaining work: both Slice Living Record lifecycles, cross-slice verification, residual decision
+- Recommended next step: run slice-local risk delta for `SL-001`
+- Required downstream guardrails: each slice reads parent and decomposition; bounded scope/non-goals; RC/XC mapping; architecture Match; parent-only Living Record and ledger writes; independent verification
+- Artifact mode: `slice-living-record`
+- Living Record writer: Plan Coverage parent/router only
+- Canonical Coverage Ledger writer: Plan Coverage parent/router only

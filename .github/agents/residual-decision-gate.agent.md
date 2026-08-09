@@ -53,6 +53,8 @@ Residual Decision Gate は、parent Plan の未完了・未検証項目を、age
 
 通常ルートでは `cross-slice-verification-kernel` artifact が存在しなくても実行できます。存在する場合だけ読み、cross-slice residual を decision ledger に merge してください。
 
+`artifact_mode: slice-living-record`の場合は、`full_coverage_close_path: plans/<slug>-full-coverage-close.md`、`canonical_coverage_ledger`、`output_contract: section-delta`を必須とします。close recordのCross-Slice Verification sectionがformal cross-slice verdictを持ち、そのledger deltaがcanonical ledgerへ適用済みでなければ開始してはいけません。
+
 ## Workflow
 
 ### Step 1. Read source artifacts
@@ -157,6 +159,32 @@ direct FixNow selector を出してよいのは、FixNow items が 1〜2 件で�
 
 ## Required output structure
 
+Slice Living Record modeではrepository fileを書かず、次のdeltaをcallerへ返します。Cross-Slice Verificationを再実行・統合せず、Plan Coverage parent/routerだけがclose recordとcanonical ledgerを書きます。
+
+```md
+## Section Delta
+
+- Target record: plans/<slug>-full-coverage-close.md
+- Target section: Residual Decision
+- Semantic owner: residual-decision-gate
+- Replace owned section: Yes
+
+## Residual Decision
+
+- Formal residual-decision-gate verdict:
+- Cross-slice verdict consumed:
+- Residual decisions:
+- Human decisions:
+- Remaining blockers:
+
+## Coverage Ledger Delta
+
+| Delta ID | Source phase | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Applied to canonical ledger? |
+| --- | --- | --- | --- | --- | --- | --- |
+```
+
+`RESIDUAL-001`のようなstable Delta IDを使います。formal verdict vocabularyは変更しません。normal routeの場合だけ次の既存output pathを使います。
+
 出力先は `plans/<ticket-or-slug>-residual-decision-gate.md` です。
 
 ```md
@@ -253,6 +281,7 @@ direct FixNow selector を出してよいのは、FixNow items が 1〜2 件で�
 - owner / method / required evidence が明示されていない manual verification を `ManualVerificationDelegated` と扱わない。
 - residual を記録しただけで close verdict を出さない。
 - Guardrail Focus verification を parent Plan completion と表現しない。
+- Slice Living Record modeでclose recordまたはcanonical ledgerを直接編集したり、Cross-Slice Verification sectionを生成してはいけません。
 
 ## Stop condition
 

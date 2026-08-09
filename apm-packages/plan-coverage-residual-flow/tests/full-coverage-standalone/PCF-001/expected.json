@@ -13,35 +13,44 @@
   "acceptance_ids": ["AC-001", "AC-002"],
   "case_ids": ["CASE-001", "CASE-002"],
   "cross_cutting_ids": ["XC-001"],
+  "artifact_mode": "slice-living-record",
+  "base_parent_artifacts": 5,
+  "conditional_artifacts": [
+    {
+      "path": "plans/pcf-001-black-box-behavior-spec.md",
+      "condition": "Expansion required: Yes"
+    },
+    {
+      "path": "plans/pcf-001-slice-architecture.md",
+      "condition": "ReadyForSliceDecomposition"
+    }
+  ],
   "slices": [
     {
       "id": "SL-001",
       "depends_on": [],
-      "plan": "plans/pcf-001-slice-SL-001.md",
-      "runtime_contract": "plans/pcf-001-slice-SL-001-runtime-contract-kernel.md",
-      "test_design": "plans/pcf-001-slice-SL-001-test-design-kernel.md",
-      "handoff": "plans/pcf-001-slice-SL-001-implementation-handoff-review.md",
-      "implementation": "plans/pcf-001-slice-SL-001-implementation-execution.md",
-      "verification": "plans/pcf-001-slice-SL-001-verification-kernel.md",
+      "requirement_ids": ["FR-001"],
+      "acceptance_ids": ["AC-001"],
+      "case_ids": ["CASE-001"],
+      "xc_ids": ["XC-001"],
+      "living_record": "plans/pcf-001-slice-SL-001.md",
       "payload": "slices/SL-001",
       "verifier": "tests/verify-sl-001.ps1"
     },
     {
       "id": "SL-002",
       "depends_on": ["SL-001"],
-      "plan": "plans/pcf-001-slice-SL-002.md",
-      "runtime_contract": "plans/pcf-001-slice-SL-002-runtime-contract-kernel.md",
-      "test_design": "plans/pcf-001-slice-SL-002-test-design-kernel.md",
-      "handoff": "plans/pcf-001-slice-SL-002-implementation-handoff-review.md",
-      "implementation": "plans/pcf-001-slice-SL-002-implementation-execution.md",
-      "verification": "plans/pcf-001-slice-SL-002-verification-kernel.md",
+      "requirement_ids": ["FR-002"],
+      "acceptance_ids": ["AC-001", "AC-002"],
+      "case_ids": ["CASE-001", "CASE-002"],
+      "xc_ids": ["XC-001"],
+      "living_record": "plans/pcf-001-slice-SL-002.md",
       "payload": "slices/SL-002",
       "verifier": "tests/verify-sl-002.ps1"
     }
   ],
   "production_entrypoint": "src/StartupFlow.ps1",
   "cross_slice_verifier": "tests/verify-cross-slice.ps1",
-  "cross_slice_artifact": "plans/pcf-001-cross-slice-verification-kernel.md",
-  "residual_artifact": "plans/pcf-001-residual-decision-gate.md",
+  "full_coverage_close": "plans/pcf-001-full-coverage-close.md",
   "coverage_ledger": "plans/pcf-001-coverage-ledger.md"
 }

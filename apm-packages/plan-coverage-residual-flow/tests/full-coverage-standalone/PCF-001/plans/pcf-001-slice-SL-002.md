@@ -1,79 +1,146 @@
-# Plan Kernel
+# SL-002: Bind consumer gate and startup flow
 
-## 目的
+## Record Metadata
 
-Implement the bounded consumer gate and production startup binding slice defined by `SL-002`.
+- Parent Plan: `plans/pcf-001.md`
+- Slice ID: `SL-002`
+- artifact_mode: slice-living-record
+- documentation_level: standard
+- implementation_route: adaptive
+- implementation_route_source: default
+- design_pair_handoff: N/A
+- design_pair_interaction_stage: not-started
+- Canonical Coverage Ledger: `plans/pcf-001-coverage-ledger.md`
+- Current architecture baseline: `plans/pcf-001-slice-architecture.md` via current readiness verdict
+- Artifact exceptions: none
 
-## 非目標
+## Slice Plan / Scope
 
-- Producer restore internals and residual policy changes.
+- Goal: bind the consumer gate and production startup flow after `SL-001` verification.
+- Non-goals: change the producer contract or redefine shared architecture.
+- Parent requirements covered: `FR-002`
+- Parent acceptance conditions covered: `AC-001`, `AC-002`
+- Affected components / modules: `src/ConsumerGate.ps1`, `src/StartupFlow.ps1`
+- Expected implementation scope: apply `slices/SL-002` and run positive and negative independent verification.
+- Stop condition: `PARENT_PLAN_VERIFIED` with the consumer ledger delta applied.
 
-## 機能要件
+## Parent / Behavior Mapping
 
-- `SL2-FR-001`: Convert `Active` producer state to `Accepting` and reject non-accepting pushes.
+### FR / AC mapping
 
-## 受け入れ条件
+| Parent item | Slice item | Disposition |
+| --- | --- | --- |
+| `FR-002` | `SL2-FR-001` | ImplementInSlice |
+| `AC-001` | `SL2-AC-001` | CoveredByCrossSliceVerification after slice contribution |
+| `AC-002` | `SL2-AC-002` | ImplementInSlice |
 
-- `SL2-AC-001`: accepted input returns `Accepted`.
-- `SL2-AC-002`: non-accepting input throws the required rejection.
+### Black-box Behavior Coverage
 
-## Black-box behavior coverage
-
+- Behavior spec artifact: `plans/pcf-001-black-box-behavior-spec.md`
 - Expansion required: Yes
-- Inline behavior sketch sufficient: No
-- Behavior spec artifact required: Yes
-- Behavior spec artifact: `plans/pcf-001-black-box-behavior-spec.md`
-- Plan readiness: ReadyForRiskTriage
-- Expansion decision reason: inherited positive and negative parent cases.
-- Blocking requirement-elaboration items: none
+- Slice Plan readiness: ReadyForRiskTriage
 
-### Case-to-Plan mapping
+### Case-to-Slice Mapping
 
-| Case ID | Source IDs | FR / AC | Disposition | Notes |
+| Case ID | Parent FR / AC | Slice FR / AC | Cross-slice Contract ID | Disposition |
 | --- | --- | --- | --- | --- |
-| `CASE-001` | `FR-002`, `AC-001`, `XC-001` | `SL2-FR-001`, `SL2-AC-001` | MappedToPlan | accepted path |
-| `CASE-002` | `FR-002`, `AC-002` | `SL2-FR-001`, `SL2-AC-002` | MappedToPlan | rejection path |
+| `CASE-001` | `FR-002`, `AC-001` | `SL2-FR-001`, `SL2-AC-001` | `XC-001` | ImplementInSlice |
+| `CASE-002` | `FR-002`, `AC-002` | `SL2-FR-001`, `SL2-AC-002` | `XC-001` | ImplementInSlice |
 
-## 影響コンポーネント / モジュール
+## Cross-Slice Contracts / Field Continuity
 
-- `src/ConsumerGate.ps1`
-- `src/StartupFlow.ps1`
+- Related XC IDs: `XC-001`
+- Producer / Consumer role: Consumer
+- Required fields / state / identifiers: consume `SnapshotState=Active` and the exact `CorrelationId`; consumer must be `Accepting` before push.
+- Source authority: `plans/pcf-001-slice-decomposition.md`, `plans/pcf-001-slice-architecture.md`, verified `SL-001` record.
+- Deferred / unresolved items: parent production postcondition remains for final cross-slice verification.
 
-## 実装スコープ
+## Slice Risk / Guardrail Selection
 
-Apply `slices/SL-002` after `SL-001=PARENT_PLAN_VERIFIED` and run its independent verifier.
+- Inherited parent risks: startup wiring, positive/negative state handling, cross-slice field continuity, no fake-only completion.
+- Slice-local added risks: production entrypoint binding.
+- Slice-local removed / not-applicable risks: producer implementation is verified in `SL-001`.
+- Implementation realization risk: Absent
+- Selected Runtime Contract IDs: `RC-002`
+- Selected Test Point scope: `TP-002`, `TP-003`
+- Human decision blockers: none
+- Recommended next phase: Runtime Contract, Test Design, Inline Ready Gate
 
-## 既知の high-risk boundaries
+## Implementation Contract Decisions
 
-- `XC-001` consumption and production wiring.
+N/A - the approved consumer functions and production startup address are explicit.
 
-## 今回の対象外
+## Runtime Contract
 
-- Producer implementation internals and final residual policy.
+| Contract ID | Scenario | Producer | Consumer | Message / API / Event | Required fields | Error / timeout behavior | Production implementation address | Verification hook |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `RC-002` | consume producer state and push item | `Get-ConsumerState` | `Push-ConsumerItem` | PowerShell function calls | `SnapshotState`, `CorrelationId`, consumer `State` | non-accepting state throws `Consumer is not accepting items.`; timeout N/A | `src/ConsumerGate.ps1`, `src/StartupFlow.ps1` | `TP-002`, `TP-003` |
 
-## change-risk-triage への引き継ぎ
+## Test Design
 
-Use inherited `standard-slice` profile and `RC-002`.
+| Test Point ID | Runtime Contract ID | What to verify | Stub / fake allowed? | Production binding required? | Expected observation | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `TP-002` | `RC-002` | accepting consumer branch | No | Yes | `Active -> Accepting -> Accepted` | Done |
+| `TP-003` | `RC-002` | non-accepting rejection branch | No | Yes | required exception message | Done |
 
-## 実装実現性の残留事項
+## Inline Ready Gate
 
-None; production paths and dependency verdict are explicit.
+- Formal implementation-handoff-review verdict: `READY_FOR_BOUNDED_PARENT_PLAN_PASS`
+- Readiness scope: `SL-002` only after verified `SL-001`
+- Parent coverage state: `FR-002`, `AC-001`, `AC-002` mapped
+- Behavior Case coverage state: `CASE-001`, `CASE-002` mapped to `RC-002` / `TP-002` / `TP-003` / `XC-001`
+- Architecture baseline identity: current `plans/pcf-001-slice-architecture.md` tracked by readiness
+- Architecture compatibility: Match
+- Implementation allowed: Yes
+- Blocking issues: none
 
-## Handoff Packet
+| Slice ID | Readiness verdict | Baseline authority | Baseline identity | Observed semantics | Architecture compatibility | Required action |
+| --- | --- | --- | --- | --- | --- | --- |
+| `SL-002` | `ReadyForSliceDecomposition` | Slice Architecture artifact | current tracked content hash | consumer and startup follow approved transition | Match | proceed to Adaptive Implementation |
 
-- Profile used: plan-kernel
-- Plan artifact: `plans/pcf-001-slice-SL-002.md`
-- Plan readiness: ReadyForRiskTriage
-- Documentation level: standard
-- Inline behavior sketch sufficient: No
-- Behavior spec artifact required: Yes
-- Behavior spec artifact: `plans/pcf-001-black-box-behavior-spec.md`
-- Source artifacts: parent Plan, decomposition, readiness, Slice Architecture, `SL-001` verification
-- Selected contracts / IDs: `RC-002`, `TP-002`, `XC-001`
-- Implementation-realization residuals: none
-- Files inspected: bounded planning artifacts and previous slice verdict
-- Files intentionally not inspected: production payload before implementation
-- Decisions made: preserve consumer and startup binding scope
-- Do not redo unless new evidence appears: inherited slice boundary and dependency
-- Remaining work: pre-implementation gates, architecture Match, implementation, verification
-- Recommended next step: runtime contract and test design kernels
+## Implementation Evidence
+
+- Implementation route: adaptive / default
+- Model / owner sequence: HIGH_MODEL -> `COMPLETED_BY_HIGH_MODEL`
+- Files / symbols changed: `src/ConsumerGate.ps1`, `src/StartupFlow.ps1`
+- Validation performed: implementation-local syntax/load check passed after `SL-001=PARENT_PLAN_VERIFIED`.
+- Acceptance evidence: accepting and rejecting production paths implemented; independent verifier remained separate.
+- Remaining work: independent verification only.
+
+### Implementation Self-Map
+
+| Change ID | Change | File / Symbol | Reason | Related Plan item | Related Behavior Case IDs | Related SL / XC / RC / TP / IC / Gap item | Assumption made | Review hint |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `SL-002-IMPL-001` | add consumer gate and startup binding | `src/ConsumerGate.ps1`, `src/StartupFlow.ps1` | implement approved consumer role and wiring | `FR-002`, `AC-001`, `AC-002` | `CASE-001`, `CASE-002` | `SL-002`, `XC-001`, `RC-002`, `TP-002`, `TP-003` | none | verify both accepting and rejecting paths |
+
+## Verification Result
+
+- Formal verification-kernel verdict: `PARENT_PLAN_VERIFIED`
+- Verification scope: `SL-002`, `RC-002`, `TP-002`, `TP-003`
+- Production binding evidence: `tests/verify-sl-002.ps1` imports the production consumer functions and observes `Accepting`, `Accepted`, and the required rejection.
+- Behavior Case evidence: `CASE-001` and `CASE-002` slice contributions observed.
+- Fake / stub / mock assessment: no substitute used.
+- Remaining gaps: final production entrypoint and full `XC-001` postcondition require cross-slice verification.
+
+## Coverage Ledger Delta
+
+| Delta ID | Source phase | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Applied to canonical ledger? |
+| --- | --- | --- | --- | --- | --- | --- |
+| `SL-002-READY-001` | Inline Ready Gate | `FR-002`, `AC-001`, `AC-002`, `CASE-001`, `CASE-002` | Planned | ReadyForImplementation | formal handoff verdict and architecture Match | Yes |
+| `SL-002-IMPL-001` | Adaptive implementation | `FR-002` | ReadyForImplementation | Implemented | production consumer and startup implementation applied | Yes |
+| `SL-002-VERIFY-001` | Verification | `FR-002`, `AC-002`, `CASE-001`, `CASE-002` | Implemented | VerifiedInSlice | independent positive and negative verifier passed | Yes |
+
+## Slice Residuals / Handoff
+
+- FixNow candidates: none
+- Manual verification candidates: none
+- NeedsHumanDecision: none
+- Cross-slice verification dependencies: `XC-001`, `AC-001`, production `src/StartupFlow.ps1`
+- Remaining blocking items: none within this slice
+- Recommended next step: run cross-slice verification after confirming all slice pending ledger delta counts are 0.
+
+## Artifact Exceptions
+
+| Path | Reason code | Why separate artifact is required | Owner | Canonical or supplemental | Lifecycle |
+| --- | --- | --- | --- | --- | --- |
+| none | N/A | no exception artifact | Plan Coverage parent | supplemental | N/A |

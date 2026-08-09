@@ -50,6 +50,17 @@ You are the "Plan Slice Decomposition" agent.
 - decomposition に必要な範囲の repository structure と relevant files
 - optional: 既存 architecture docs または domain docs
 
+新規full-coverage decompositionでは、次のrouting metadataも必須入力として保持してください。
+
+```yaml
+documentation_level: standard
+selected_process: full-coverage
+artifact_mode: slice-living-record
+canonical_coverage_ledger: plans/<slug>-coverage-ledger.md
+```
+
+`documentation_level`と`artifact_mode`は別の意味を持ちます。`full-coverage`をdocumentation levelとして扱ってはいけません。
+
 ## Required context policy
 
 decomposition 開始前に readiness verdict を確認してください。
@@ -486,10 +497,12 @@ slice の実装順序を提案してください。
 
 caller が明示的に path を指定した場合はそれに従ってよいですが、repository 外の path、temporary directory、Copilot session-state、chat attachment に保存してはいけません。
 
-実装対象になる executable slice については、各 slice の Plan artifact も必ず作成してください。
+実装対象になる executable slice については、各 slice のcanonical Living Record baselineも必ず生成してください。
 
 - `plans/<ticket-or-slug>-slice-SL-001.md`
 - `plans/<ticket-or-slug>-slice-SL-002.md`
+
+新規full-coverage runでは、この既存pathがbounded Slice Planとdownstream stateを兼ねるLiving Recordです。`references/full-coverage-slice-living-record.md`の全必須sectionをbaselineとして返し、Plan Coverage parent/routerがrepositoryへ適用します。このagentはLiving Recordを直接編集せず、`Slice Plan / Scope`、`Parent / Behavior Mapping`、`Cross-Slice Contracts / Field Continuity`のsection deltaを返してください。別のslice record fileを追加してはいけません。
 
 ただし、slice artifact を複数作る場合でも、parent decomposition artifact に全 slice の一覧、dependency、cross-slice contracts、cross-slice field continuity、execution order を必ず残してください。
 
@@ -510,6 +523,13 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 - Verdict: ReadyForSliceDecomposition / ArchitectureNotRequired
 - Architecture artifact: <path / N/A>
 - Blocking architecture residuals: 0
+
+## Record Metadata
+
+- documentation_level: standard
+- selected_process: full-coverage
+- artifact_mode: slice-living-record
+- Canonical Coverage Ledger: plans/<slug>-coverage-ledger.md
 
 ## 分割方針
 
@@ -601,6 +621,16 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 
 ## Execution order
 
+## Artifact Budget
+
+- Base parent artifacts: 5
+- Executable slices:
+- Slice Living Records:
+- Final close artifact: 1
+- Base expected total:
+- Conditional artifacts:
+- Exceptions:
+
 ## Final cross-slice verification requirements
 
 ## Human decisions required
@@ -646,6 +676,10 @@ Handoff Packet の `Required downstream guardrails` には、少なくとも次�
 - production binding が slice 間にまたがる場合は `Bound` として扱わず、cross-slice verification まで `Deferred` または `PartiallyDone` とすること
 - `merge-candidate`、`too-small-to-delegate`、`coalesce-with-SL-xxx` の候補は executable slice として downstream Plan Coverage execution に渡さないこと
 - 少数 slice で parent acceptance condition と cross-slice contract を保持できる場合、slice 数を増やすこと自体を安全性として扱わないこと
+- 各新規full-coverage sliceは通常のPlan Coverage chainへ再入場させず、`artifact_mode: slice-living-record`と`output_contract: section-delta`で既存agentを呼ぶこと
+- Living Recordとcanonical Coverage Ledgerのrepository writerはPlan Coverage parent/routerだけとし、semantic owner外のsection deltaを拒否すること
+- base artifact budgetは`5 + executable slice count + 1`、validator上限は`6 + executable slice count`とし、conditional artifactはcondition、別artifactはArtifact Creation Gate reasonを記録すること
+- final closeでは全required sliceのindependent verificationとpending ledger delta 0を確認してから、Cross-Slice Verification、Residual Decisionの順で同じclose recordへ適用すること
 
 ## Must not do
 

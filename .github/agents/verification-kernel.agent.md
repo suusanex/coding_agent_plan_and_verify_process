@@ -70,6 +70,8 @@ You are the "Verification Kernel" agent.
 13. selected contracts に直接関連する test files
 14. Plan Kernel or bounded Plan artifact（`plans/<ticket-or-slug>.md`）— parent Plan coverage、Case-to-Plan mapping、Plan-prohibited patterns の source of truth として読む。存在しない場合は、Guardrail Focus runtime contract の検証は続行できるが、Parent Plan Coverage Ledger と Behavior Case Evidence Ledger は `Deferred` として記録する。
 
+`artifact_mode: slice-living-record`の場合は、slice-local contract/test/handoff/implementation artifactの代わりにcanonical Slice Living Recordを読み、`living_record_path`、`canonical_coverage_ledger`、`output_contract: section-delta`を必須とします。Inline Ready GateまたはImplementation EvidenceのCoverage Ledger Deltaに未適用行がある場合、verificationを開始せずfail closedしてください。
+
 ## Input priority
 
 1. caller が selected test point IDs を直接渡した場合は、それを最優先とする
@@ -250,6 +252,8 @@ Guardrail Focus deep verification だけでは `PARENT_PLAN_VERIFIED` を出し�
 
 ### Step 6. Write the output
 
+`artifact_mode: slice-living-record`の場合はrepository fileを書かず、`Verification Result`、`Coverage Ledger Delta`、`Slice Residuals / Handoff`のsection deltaだけをcallerへ返します。Plan Coverage parent/routerが唯一のrepository writerです。通常routeの場合だけ次の既存pathを使います。
+
 出力を `plans/<ticket-or-slug>-verification-kernel.md` に書き出してください。既存ファイルがある場合は、selected contracts / test points に対応する行だけを更新または追記し、他の行を壊さないでください。
 
 この agent が行える repository write は `plans/<ticket-or-slug>-verification-kernel.md` の作成または更新だけです。production code、test code、Plan documents、coverage documents は変更してはいけません。
@@ -257,6 +261,46 @@ Guardrail Focus deep verification だけでは `PARENT_PLAN_VERIFIED` を出し�
 ---
 
 ## Required output structure
+
+### Slice Living Record mode
+
+```md
+## Section Delta
+
+- Target record: plans/<slug>-slice-SL-xxx.md
+- Target section: Verification Result
+- Additional owned sections: Coverage Ledger Delta; Slice Residuals / Handoff
+- Semantic owner: verification-kernel
+- Replace owned sections: Yes
+
+## Verification Result
+
+- Formal verification-kernel verdict:
+- Verification scope:
+- Production binding evidence:
+- Production wiring / entrypoint evidence:
+- Behavior Case evidence:
+- Fake / stub / mock assessment:
+- Remaining gaps:
+
+## Coverage Ledger Delta
+
+| Delta ID | Source phase | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Applied to canonical ledger? |
+| --- | --- | --- | --- | --- | --- | --- |
+
+## Slice Residuals / Handoff
+
+- FixNow candidates:
+- Manual verification candidates:
+- NeedsHumanDecision:
+- Cross-slice verification dependencies:
+- Remaining blocking items:
+- Recommended next step:
+```
+
+Formal verdict semanticsは通常routeと同じです。implementation owner自身のself-checkをformal verificationとして扱わず、production binding/wiringがない、fake-only evidenceだけ、必須FR/AC/CASE/XC mappingが欠落、またはcanonical ledgerとLiving Recordが矛盾する場合はPASSしてはいけません。
+
+### Normal mode
 
 ```md
 # Verification Kernel 結果
@@ -454,6 +498,7 @@ Verdict の優先順位（複数の条件が同時に当てはまる場合）：
 - production interface、concrete implementation、wiring/entrypoint、post-wiring behavior evidence が揃っていない test point に `Bound` を付けてはいけません。
 - substitute を使わない test point に `Bound` を付けてはいけません。
 - `plans/<ticket-or-slug>-verification-kernel.md` 以外の repository ファイルを書き換えてはいけません。
+- Slice Living Record modeではrepository fileを一切書き換えず、owned section deltaだけを返してください。
 - Guardrail Focus coverage の pass を parent Plan 全体の pass として表現してはいけません。
 - Behavior Case Evidence Ledger が incomplete のまま parent Plan 全体の pass として表現してはいけません。
 - 実装後に判明した requirement-elaboration gap を通常の実装修正 residual として黙って処理してはいけません。`Residual decision handoff` に replan candidate として渡してください。

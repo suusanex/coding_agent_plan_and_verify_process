@@ -35,10 +35,12 @@ When a ready parent Plan selects `full-coverage`, Plan Coverage owns the complet
 ```text
 Architecture Slice Readiness / Elaboration
   -> Plan Slice Decomposition
-  -> each executable slice re-enters the standard Plan Coverage chain as a bounded Plan
+  -> each executable slice uses one canonical Slice Living Record
+  -> existing semantic agents return owned section deltas
   -> independent per-slice verification
-  -> Cross-Slice Verification
-  -> Residual Decision
+  -> one Full-Coverage Close Record
+     -> Cross-Slice Verification
+     -> Residual Decision
 ```
 
 Before each slice enters implementation, the Plan Coverage parent reconfirms the current architecture baseline and `implementation-handoff-review` records `Match / Drift / Unclear`. Only a current-baseline `Match` may proceed. `Drift` returns to Architecture Slice Readiness / Elaboration, and `Unclear` fails closed and reruns readiness. This also applies when the readiness verdict is `ArchitectureNotRequired` and the readiness artifact is the Lightweight architecture baseline.
@@ -234,7 +236,7 @@ Preferred profile names are based on scope and intent:
 | `plan-kernel` | Create the bounded Plan that remains the implementation source of truth | Plan preserved | Narrow to moderate |
 | `contract-kernel` | Minimal high-risk guardrail for Guardrail Focus runtime coverage | Preserved | Narrow |
 | `standard-slice` | Normal bounded Plan-first process for Guardrail Focus contracts / IDs | Preserved | Moderate |
-| `full-coverage` | Decompose a ready broad parent Plan, run each executable slice through the standard Plan Coverage chain, then verify and decide residuals across slices | Preserved and expanded | Broad |
+| `full-coverage` | Decompose a ready broad parent Plan, update one canonical Living Record per executable slice, then verify and decide residuals across slices | Preserved and expanded | Broad |
 | `triage-only` | Classify risk and recommend next slice without implementation | Classification only | Variable |
 | `fix-slice` | Resolve explicit FixNow gaps only | Preserved for explicit FixNow gaps | Narrow |
 
@@ -279,9 +281,9 @@ Full mode may continue to use detailed runtime evidence, scenario ledgers, integ
 
 Full mode is not a substitute for missing Plan readiness. If the ambiguity is that source behavior has not been expanded or mapped to the Plan, the flow must return to behavior expansion or human decision before any full-coverage decomposition.
 
-Inside Plan Coverage, `full-coverage` is self-contained: Architecture Slice Readiness / Elaboration precedes decomposition; every executable slice becomes a bounded Plan and re-enters the standard Plan Coverage chain; each slice is independently verified; then Cross-Slice Verification and Residual Decision close the parent route. The Plan Coverage parent and `implementation-handoff-review` enforce the current-baseline `Match` requirement immediately before slice implementation.
+Inside Plan Coverage, `full-coverage` is self-contained: Architecture Slice Readiness / Elaboration precedes decomposition; every executable slice becomes one canonical Slice Living Record; existing semantic agents return owned section deltas; each slice is independently verified; then Cross-Slice Verification and Residual Decision update one Full-Coverage Close Record in that order. The Plan Coverage parent and `implementation-handoff-review` enforce the current-baseline `Match` requirement immediately before slice implementation.
 
-This current route deliberately reuses the standard Plan Coverage artifact set for every bounded slice. Its repeated artifact and handoff cost remains an unresolved optimization boundary. A Living Record, compact slice record, or new lightweight slice lifecycle is not implemented or implied by this policy.
+`documentation_level: standard` still selects the semantic rigor; `artifact_mode: slice-living-record` separately selects the durable full-coverage layout. The parent/router is the only Living Record and canonical ledger writer. A two-slice base run uses at most eight durable artifacts before explicitly conditioned artifacts. Pre-redesign separate-artifact runs may resume without forced migration.
 
 ## Agent design implications
 
@@ -325,6 +327,7 @@ The current contract remains satisfied when:
 - agents stop with useful residual work instead of looping toward perfect completion
 - full mode remains available for genuinely complex work
 - downstream agents can consume prior artifacts without rediscovering the same context
-- full-coverage keeps Architecture Slice Readiness, bounded-slice re-entry, per-slice verification, Cross-Slice Verification, and Residual Decision in one Plan Coverage-owned lifecycle
+- full-coverage keeps Architecture Slice Readiness, Slice Living Records, per-slice verification, Cross-Slice Verification, and Residual Decision in one Plan Coverage-owned lifecycle
 - only a current-baseline architecture `Match` authorizes slice implementation
-- the current repeated per-slice artifact cost is described as unresolved rather than represented as an implemented lightweight lifecycle
+- the parent/router is the only Living Record and canonical Coverage Ledger writer, while semantic owners return section deltas
+- the base artifact budget is five parent artifacts plus one Living Record per executable slice plus one close record

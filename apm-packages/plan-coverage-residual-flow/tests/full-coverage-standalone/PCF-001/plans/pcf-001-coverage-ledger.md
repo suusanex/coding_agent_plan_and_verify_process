@@ -6,15 +6,16 @@
 | --- | --- |
 | Parent Plan | `plans/pcf-001.md` |
 | Documentation level | standard |
+| Artifact mode | slice-living-record |
 | implementation_route | adaptive |
 | implementation_route_source | default |
 | design_pair_handoff | N/A |
 | design_pair_interaction_stage | N/A |
 | design_pair_user_evidence | N/A |
-| Selected process | advanced-full-coverage |
+| Selected process | full-coverage |
 | Route note | full-coverage |
-| Last full ledger update | `plans/pcf-001-cross-slice-verification-kernel.md` at deterministic-fixture |
-| Last delta applied | `DELTA-CSV-001` |
+| Last full ledger update | `plans/pcf-001-full-coverage-close.md` at deterministic-fixture |
+| Last delta applied | `RESIDUAL-001` |
 
 ## Parent Plan Coverage Ledger
 
@@ -42,18 +43,23 @@
 
 | Delta ID | Source artifact | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Blocking? |
 | --- | --- | --- | --- | --- | --- | --- |
-| `DELTA-V-SL1` | `pcf-001-slice-SL-001-verification-kernel.md` | `FR-001`, `CASE-001`, `XC-001` producer role | Implemented / ReadyForVerification | ImplementedAndVerified | direct production producer verifier passed | No |
-| `DELTA-V-SL2` | `pcf-001-slice-SL-002-verification-kernel.md` | `FR-002`, `AC-002`, `CASE-001`, `CASE-002`, `XC-001` consumer role | Implemented / ReadyForVerification | ImplementedAndVerified | direct production consumer verifier passed both branches | No |
-| `DELTA-CSV-001` | `pcf-001-cross-slice-verification-kernel.md` | `AC-001`, `AC-002`, `CASE-001`, `CASE-002`, `XC-001` | BoundedVerified / CrossSlicePending | Verified | production entrypoint positive and negative oracles passed | No |
+| `SL-001-READY-001` | `pcf-001-slice-SL-001.md` / Inline Ready Gate | `FR-001`, `CASE-001` | Planned | ReadyForImplementation | formal handoff and architecture Match | No |
+| `SL-001-IMPL-001` | `pcf-001-slice-SL-001.md` / Implementation Evidence | `FR-001` | ReadyForImplementation | Implemented | production producer implementation applied | No |
+| `SL-001-VERIFY-001` | `pcf-001-slice-SL-001.md` / Verification Result | `FR-001`, `CASE-001`, `XC-001` producer role | Implemented | VerifiedInSlice | independent production producer verifier passed | No |
+| `SL-002-READY-001` | `pcf-001-slice-SL-002.md` / Inline Ready Gate | `FR-002`, `AC-001`, `AC-002`, `CASE-001`, `CASE-002` | Planned | ReadyForImplementation | formal handoff and architecture Match | No |
+| `SL-002-IMPL-001` | `pcf-001-slice-SL-002.md` / Implementation Evidence | `FR-002` | ReadyForImplementation | Implemented | production consumer and startup implementation applied | No |
+| `SL-002-VERIFY-001` | `pcf-001-slice-SL-002.md` / Verification Result | `FR-002`, `AC-002`, `CASE-001`, `CASE-002`, `XC-001` consumer role | Implemented | VerifiedInSlice | independent production consumer verifier passed both branches | No |
+| `CROSS-VERIFY-001` | `pcf-001-full-coverage-close.md` / Cross-Slice Verification | `AC-001`, `AC-002`, `CASE-001`, `CASE-002`, `XC-001` | VerifiedInSlice / CrossSlicePending | Verified | production entrypoint positive and negative oracles passed | No |
+| `RESIDUAL-001` | `pcf-001-full-coverage-close.md` / Residual Decision | all parent items and cases | Verified / ResidualDecisionPending | CloseReady | no residual candidate and canonical ledger complete | No |
 
 ## Close readiness summary
 
 | Check | Status | Evidence |
 | --- | --- | --- |
 | All parent Plan FR / AC classified | PASS | four parent rows present |
-| All implementation-required items implemented | PASS | both Adaptive evidence artifacts and production payloads |
-| All verification-required items verified or explicitly dispositioned | PASS | both Verification Kernel artifacts and cross-slice result |
+| All implementation-required items implemented | PASS | both Slice Living Record Implementation Evidence sections and production payloads |
+| All verification-required items verified or explicitly dispositioned | PASS | both Slice Living Record Verification Results and the Full-Coverage Close Record |
 | Behavior Case coverage complete or N/A | PASS | `CASE-001`, `CASE-002` verified |
-| Residual decisions explicit | PASS | no residual candidate; Residual Decision Gate confirms |
+| Residual decisions explicit | PASS | no residual candidate; Full-Coverage Close Record confirms |
 | No fake-only completion | PASS | all verifiers import production payload functions |
-| No unclassified delta remains | PASS | all three deltas applied |
+| No unclassified delta remains | PASS | all eight deltas applied by the Plan Coverage parent/router |
