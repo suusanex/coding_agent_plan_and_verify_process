@@ -436,7 +436,7 @@ if ($failures.Count -eq 0) {
     Assert-Matches $fullCoverageDocumentation 'canonical Slice Living Record.*does not re-enter as a fresh standard Plan Coverage run' 'decomposition policy must use Living Records'
     Assert-Matches $fullCoverageDocumentation 'five parent control-plane artifacts, one Living Record per executable slice, and one final close record' 'decomposition policy must state the artifact budget'
     Assert-Matches $processDocumentation '(?m)^## Current process flows\s*$' 'detailed process documentation must identify the current flows'
-    Assert-Matches $processDocumentation '(?m)^## Full Autonomous boundary\s*$' 'detailed process documentation must state the current Full Autonomous boundary'
+    Assert-Matches $processDocumentation '(?m)^## Plan Coverage ownership boundary\s*$' 'detailed process documentation must state the current Plan Coverage ownership boundary'
     Assert-Matches $processDocumentation 'full-coverage remains self-contained under Plan Coverage ownership from Architecture Slice Readiness through Residual Decision' 'detailed process documentation must keep full-coverage under Plan Coverage ownership'
     Assert-Matches $processDocumentation 'artifact_mode: slice-living-record.*Plan Coverage parent/router is the only Living Record and canonical ledger writer' 'detailed process documentation must define Living Record ownership'
     Assert-NotMatches $processDocumentation '(?m)^## (?:Agent creation order|Suggested README update|Recommended process flows)\s*$|(?m)^Required changes:\s*$' 'obsolete future agent revision planning must not remain in active process documentation'
@@ -446,6 +446,40 @@ if ($failures.Count -eq 0) {
 
     $activeDocumentation = @($packageReadme, $purposeDocumentation, $processDocumentation, $fullCoverageDocumentation, $asrValidationDocumentation) -join "`n"
     Assert-NotMatches $activeDocumentation 'formal targets .*copilot.*codex.*agent-skills|Plan Coverage parent runtime qualif(?:ication)|Plan Coverage Copilot CLI\s+issue' 'PR #90 Plan Coverage-specific qualification wording must not remain in active documentation'
+
+    $retiredFlowRelativePaths = @(
+        'README.md',
+        $packageReadmeRelativePath,
+        $skillRelativePath,
+        $purposeDocumentationRelativePath,
+        $processDocumentationRelativePath,
+        $fullCoverageDocumentationRelativePath,
+        '.github/agents/change-risk-triage.agent.md',
+        '.github/agents/coverage-gap-triage.agent.md',
+        '.github/agents/cross-slice-verification-kernel.agent.md',
+        '.github/agents/implementation-contract-kernel.agent.md',
+        '.github/agents/implementation-contract-review-kernel.agent.md',
+        '.github/agents/implementation-execution.agent.md',
+        '.github/agents/implementation-handoff-review.agent.md',
+        '.github/agents/plan-slice-decomposition.agent.md',
+        '.github/agents/runtime-contract-kernel.agent.md',
+        '.github/agents/test-design-kernel.agent.md',
+        '.codex/agents/change-risk-triage.toml',
+        '.codex/agents/coverage-gap-triage.toml',
+        '.codex/agents/cross-slice-verification-kernel.toml',
+        '.codex/agents/implementation-contract-kernel.toml',
+        '.codex/agents/implementation-contract-review-kernel.toml',
+        '.codex/agents/implementation-execution.toml',
+        '.codex/agents/implementation-handoff-review.toml',
+        '.codex/agents/plan-slice-decomposition.toml',
+        '.codex/agents/runtime-contract-kernel.toml',
+        '.codex/agents/test-design-kernel.toml',
+        'apm-packages/plan-coverage-residual-flow/tests/full-coverage-standalone/PCF-001/plans/pcf-001-change-risk-triage.md'
+    )
+    $retiredFlowPattern = 'full-autonomous-plan-first-flow|Full [Aa]utonomous Plan-first|full autonomous flow|Flow C|plan-generation(?:\.agent\.md)?(?![-A-Za-z0-9_])|plan-review(?:\.agent\.md)?(?![-A-Za-z0-9_])|runtime-evidence(?:\.agent\.md)?(?![-A-Za-z0-9_])|integration-test-design(?:\.agent\.md)?(?![-A-Za-z0-9_])|integration-test-verification-implementation(?:\.agent\.md)?(?![-A-Za-z0-9_])|coverage-gap-resolution(?:\.agent\.md)?(?![-A-Za-z0-9_])|implementation-contract-generation(?:\.agent\.md)?(?![-A-Za-z0-9_])|implementation-contract-review(?:\.agent\.md)?(?![-A-Za-z0-9_])'
+    foreach ($relativePath in $retiredFlowRelativePaths) {
+        Assert-NotMatches (Get-NormalizedText (Join-Path $repoRoot $relativePath)) $retiredFlowPattern "retired Full Autonomous reference must not remain in $relativePath"
+    }
 
     $rollbackContractRelativePaths = @(
         $skillRelativePath,

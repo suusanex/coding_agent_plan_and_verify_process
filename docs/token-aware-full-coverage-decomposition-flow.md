@@ -2,9 +2,9 @@
 
 ## Purpose
 
-`full-coverage` 判定を、Full autonomous Plan-first flow へのエスカレーションではなく、実装前の Plan slice decomposition として扱うための運用メモです。
+`full-coverage` 判定を、実装前の Plan slice decomposition として扱うための運用メモです。
 
-このメモは、Plan網羅チェック・残件判定フロー に関する current `full-coverage` contractを要約した補足ポリシーです。`docs/plan-coverage-process-and-agents.md` の`### full-coverage`、main flow、Full Autonomousとの境界、および各active agent contractはこの方針に従います。
+このメモは、Plan網羅チェック・残件判定フロー に関する current `full-coverage` contractを要約した補足ポリシーです。`docs/plan-coverage-process-and-agents.md` の`### full-coverage`、main flow、Plan Coverage ownership boundary、および各active agent contractはこの方針に従います。
 
 ## Policy
 
@@ -12,7 +12,7 @@
 - Change Risk Triage builds the minimum bounded runtime sequence before scanning risk. Same-process ABI/FFI, cross-process IPC, cross-process durable-state observation, external service, local async, independent worker, and persistent queue are distinct execution models. `Present` count is not a profile score.
 - `full-coverage` does not mean that many executable slices are required. If parent acceptance conditions, cross-slice contracts, field continuity, and Behavior Case mapping remain traceable, few slices are valid, including a 2-slice decomposition.
 - `full-coverage` does not mean: missing behavior expansion, missing Case-to-Plan mapping, or undecided expected behavior. Those are Plan readiness failures and must return to `black-box-behavior-spec-kernel.agent.md`, `plan-kernel.agent.md`, or human decision.
-- `full-coverage` does not mean: run `plan-generation.agent.md`, `runtime-evidence.agent.md`, or `integration-test-design.agent.md`.
+- `full-coverage` does not mean direct unbounded execution; it remains in the Plan Coverage route.
 - The next step is always `architecture-slice-readiness.agent.md`; `full-coverage` must not transition directly to decomposition.
 - `StandardSliceSufficient` is a successful de-escalation to `selected_process: standard-slice`; it forbids decomposition and rejoins the normal bounded route. `ReadyForSliceDecomposition` requires a current `plans/<slug>-slice-architecture.md`. `ArchitectureNotRequired` permits decomposition without that artifact only when multiple slices remain necessary and existing shared semantics are source-backed and unchanged.
 - `NeedsArchitectureElaboration` routes to `architecture-elaboration.agent.md` and then reruns readiness. `NeedsHumanDecision`, `ArchitectureCritical`, missing, stale, or contradicted architecture artifacts block decomposition.
@@ -20,7 +20,6 @@
 - `plan-slice-decomposition.agent.md` must reject `StandardSliceSufficient` and any pre-decomposition triage whose escalation gate is missing, empty, generic, or not `Satisfied`.
 - Candidate slices that share owner, module, production wiring, verification route, and parent acceptance condition should be coalesced unless there is a documented reason to keep them separate.
 - Small independent slices require `Small slice justification`; otherwise they should be recorded as `merge-candidate`, `too-small-to-delegate`, or `coalesce-with-SL-xxx` and not sent to downstream Plan Coverage execution.
-- The broad autonomous flow remains available only as an explicit, separate process choice; it is not the default interpretation of `full-coverage` inside Plan網羅チェック triage.
 - Each resulting slice becomes a canonical Slice Living Record while retaining traceability to the parent Plan, approved architecture, decomposition, Case IDs, and XC IDs. It does not re-enter as a fresh standard Plan Coverage run.
 - New decompositions record `documentation_level: standard`, `selected_process: full-coverage`, and `artifact_mode: slice-living-record` plus an Artifact Budget.
 - Existing agents run in `output_contract: section-delta` mode for their owned section. The Plan Coverage parent/router is the only repository writer for Living Records and the canonical Coverage Ledger.

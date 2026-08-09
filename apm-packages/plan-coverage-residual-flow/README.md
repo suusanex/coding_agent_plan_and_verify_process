@@ -2,11 +2,11 @@
 
 bounded Planを実装・検証のsource of truthとして維持し、通常可能な作業を進めながら、manual-only、blocked、ambiguous、high-costな残件を明示判断へ渡すAPM processです。日本語では「Plan網羅チェック・残件判定フロー」と呼び、起動名は`plan-coverage-residual-flow`です。
 
-広いruntime evidenceとintegration test designを含めて自走させる場合は[Full Autonomous Plan-first Flow](../full-autonomous-plan-first-flow/README.md)、既にあるPlanを実装するだけなら[Adaptive Implementation Execution](../adaptive-implementation-execution/README.md)を使います。
+広い要求は、このprocessの`full-coverage` routeでArchitecture Slice ReadinessからResidual Decisionまで自己完結して扱います。既にあるPlanの実装だけを進める場合は[Adaptive Implementation Execution](../adaptive-implementation-execution/README.md)を使います。
 
 ## Use when
 
-- Plan-firstを維持したいが、full autonomous flowは重すぎる
+- Plan-firstを維持し、広い要求も明示的なsliceとresidual decisionで扱いたい
 - parent Plan全体のcoverageを落とさず、riskの高いruntime / production-binding surfaceだけを深く確認したい
 - stub、fake、mockを使ったtestがあり、production implementationやwiringの欠落を防ぎたい
 - 1回のbounded passで無理に完了させず、残件をexplicit decisionへ渡したい

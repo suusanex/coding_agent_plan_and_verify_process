@@ -42,7 +42,6 @@ You are the "Implementation Contract Review Kernel" agent.
 - **Bounded pass**: 1 回の pass で verdict を出し、未解決は明示して停止する。
 - **No fixes**: production code を書かない。tests を書かない。Plan を改変しない。
 - **No guessed readiness**: required evidence がない場合は ready を出さない。
-- **Kernel/full coexistence**: この agent は full-flow `implementation-contract-review.agent.md` を置き換えない。bounded run 用の lightweight verdict gate として使う。
 - **Review-only fallback**: この agent は implementation contract を生成・修正しない。通常の readiness 判定は `implementation-contract-kernel.agent.md` の self-check verdict を source とし、この agent はその verdict を explicit fallback として検査するだけです。
 
 ### Slice Living Record mode
@@ -205,6 +204,6 @@ required artifacts が欠けている場合は `NEEDS_HUMAN_DECISION` または�
 
 single verdict、blocking/non-blocking findings、handoff を記録したら停止してください。
 
-## Relationship to full-flow review
+## Relationship to implementation-contract-kernel
 
-この agent は bounded token-aware run 用の compatibility shim です。広範囲の implementation contract review が必要な場合は既存の `implementation-contract-review.agent.md` を使ってください。
+この agent は bounded token-aware run 用の compatibility shim です。通常は`implementation-contract-kernel.agent.md`のself-check verdictをsourceとし、必要な場合だけindependent reviewを行ってください。

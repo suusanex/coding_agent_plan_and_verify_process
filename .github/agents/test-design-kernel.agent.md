@@ -127,7 +127,7 @@ Plan に `Black-box behavior coverage` がある場合は、`Case-to-Plan mappin
 
 ### Step 3. Check for escalation conditions
 
-次のいずれかに該当する場合、token-aware route では `full-coverage` profile と `architecture-slice-readiness.agent.md` へのエスカレーションを推奨してください。readiness verdictなしでdecompositionへ進めません。`integration-test-design.agent.md` は、caller が明示的に Full autonomous Plan-first flow へ移ることを求めた場合だけ推奨してください。
+次のいずれかに該当する場合、token-aware route では `full-coverage` profile と `architecture-slice-readiness.agent.md` へのエスカレーションを推奨してください。readiness verdictなしでdecompositionへ進めません。
 
 - selected contracts の検証に、feature 全体の動作、load、連続運転、または広範な error scenario の coverage が必要
 - 複数の contracts にまたがる end-to-end のシナリオを定義しないと、各 contract の test point が意味をなさない
@@ -282,7 +282,6 @@ test の実装、実行、または検証が完了したことを意味するわ
 - すべての Case ID に自動テストを要求してはいけません。
 - Case ID に runtime contract が不要な場合に、無理に RC を作ってはいけません。
 - caller、Runtime Contract Kernel、または triage によって selected とされた Contract IDs 以外に test points を追加してはいけません。
-- caller が明示的に Full autonomous Plan-first flow を求めない限り、`integration-test-design.agent.md` の作業を始めてはいけません。
 - stub / fake を使う test point に対して、production binding required を省略または `No` にしてはいけません。
 - local adapter/factory shape だけを根拠に、Plan-required production path の binding 確認を省略してはいけません。
 - `plans/<ticket-or-slug>-test-design-kernel.md` 以外の repository ファイルを書き換えてはいけません。

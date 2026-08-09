@@ -9,7 +9,7 @@ baseline:
   tracked_sources:
     - { role: parent_plan, path: "plans/pcf-001.md", revision_type: content_sha256, revision: "bcc766f949dd5d81e687b568266c20a16d5bb1fab7c285d4daa2565fcd16e1e7" }
     - { role: behavior_spec, path: "plans/pcf-001-black-box-behavior-spec.md", revision_type: content_sha256, revision: "0402070d0115688cb9976e4515e3ba68af354939b04f09e20817070d84eda24e" }
-    - { role: change_risk_triage, path: "plans/pcf-001-change-risk-triage.md", revision_type: content_sha256, revision: "35e3a0eb8e1c5391f648447e124fca5cf9c5c7fb48a643783e01973fb1867375" }
+    - { role: change_risk_triage, path: "plans/pcf-001-change-risk-triage.md", revision_type: content_sha256, revision: "1fc71327f478ad3f20984cb73026ce4fdaae1ea1f0ec5635203e5002ca5e748f" }
     - { role: slice_architecture, path: "plans/pcf-001-slice-architecture.md", revision_type: external_content_sha256, revision: "579a1d16057f4b1223f989b7913ba92855a3693d6e46a732d300cdc013fa84dd" }
   watch_paths:
     - src/ProducerState.ps1

@@ -16,10 +16,10 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | --- | --- |
 | `.github/agents/architecture-slice-readiness.agent.md` | `d461dd63ba06ce232caac055303a7fce180248bbc6b60516c71bd5d8f3ba5683` |
 | `.github/agents/architecture-elaboration.agent.md` | `8f53674b988131d847d8c32ca01d850c90820fddb40595a6ca6ff54382948344` |
-| `.github/agents/plan-slice-decomposition.agent.md` | `ff7b0527f006803fd254db551b5454c3a75c71de089251062e9d7baa6b7c308f` |
-| `.github/agents/implementation-handoff-review.agent.md` | `8cf54b1444379cc43187e3f99056a61f466105121d99c98a7e8bc6ef07e4bca2` |
+| `.github/agents/plan-slice-decomposition.agent.md` | `cc4ce914c0626ebc25b8c665577283f56bf837f7e96374bff805d40f33547d67` |
+| `.github/agents/implementation-handoff-review.agent.md` | `ac84c40a4bba67f3b1e83105aab0db7fd92945da160475dfdfe3aed37cd8c202` |
 | `.github/instructions/plan-coverage-shared.instructions.md` | `13ec65b00d4ad776af8237d8d2d66e59d288febf19ee9893406207661e4d1a8d` |
-| `plan-coverage-residual-flow/SKILL.md` | `7077598c7fec2f52198f28d1a656f72d1d74d509b159e002b3d5acc876baf23c` |
+| `plan-coverage-residual-flow/SKILL.md` | `38d3886518fe46e0dd4ec7e2f456ebc4601e4694bc40fdd2557dd3600778c0ce` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 | `coverage-ledger.md` template | `b1a532b4ab59dbaa1471d8bd1beb6af5e7f570f3086719c8fcbe452f7f493962` |
 | `plan-coverage-lite.md` template | `e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90` |

@@ -242,5 +242,5 @@ implementation decisions と unresolved implementation-realization items を記�
 
 ## Artifact relationship
 
-- この agent は full-flow `implementation-contract-generation.agent.md` の概念を bounded run に適用する lightweight variant です。
-- broad な実装調査が必要で token-aware の bounded scope に収まらない場合は、`full-coverage` として `architecture-slice-readiness.agent.md` に戻すことを推奨してください。readiness verdictなしでdecompositionへ進めません。full-flow `implementation-contract-generation.agent.md` は、caller が明示的に Full autonomous Plan-first flow を選んだ場合だけ推奨してください。
+- この agent は、bounded runのimplementation realization decisionsと未解決項目を記録する唯一のcontract ownerです。
+- broad な実装調査が必要で token-aware の bounded scope に収まらない場合は、`full-coverage` として `architecture-slice-readiness.agent.md` に戻すことを推奨してください。readiness verdictなしでdecompositionへ進めません。

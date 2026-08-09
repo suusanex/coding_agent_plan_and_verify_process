@@ -81,7 +81,6 @@ After authorization, use this flow to:
 Do not use this skill when:
 
 - the change is a simple local fix that does not need a Plan artifact
-- the user explicitly selected the Full autonomous Plan-first flow
 - the agent is trying to resolve product semantics, policy, or expected behavior by inference instead of recording `NeedsHumanDecision` and stopping
 - the agent is trying to treat a requirement-elaboration gap as implementation work
 
@@ -216,7 +215,7 @@ The parent Plan FR / AC remain the implementation and verification source of tru
 
 ## Full-coverage route
 
-`full-coverage` is not an automatic move to the Full autonomous Plan-first flow.
+`full-coverage` remains inside Plan Coverage ownership from Architecture Slice Readiness through Residual Decision.
 
 Use `full-coverage` only after Plan readiness is `ReadyForRiskTriage`. Change Risk Triage must first build the minimum bounded runtime sequence, classify same-process ABI/FFI separately from cross-process and worker/queue models, consider a concrete `standard-slice` candidate, and emit a source-backed `Why standard-slice is insufficient` section with `Escalation gate result: Satisfied`. `Present` trigger count is not a profile score.
 

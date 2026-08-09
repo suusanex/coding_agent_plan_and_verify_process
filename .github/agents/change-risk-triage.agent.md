@@ -1,6 +1,6 @@
 ---
 name: change-risk-triage
-description: Check Plan readiness, classify a ready Plan, identify high-risk runtime and architecture-readiness boundaries, and recommend the minimum sufficient token-aware process profile without implementing anything. When full-coverage risk is detected, route to architecture-slice-readiness rather than directly to decomposition or the Full autonomous Plan-first flow.
+description: Check Plan readiness, classify a ready Plan, identify high-risk runtime and architecture-readiness boundaries, and recommend the minimum sufficient token-aware process profile without implementing anything. When full-coverage risk is detected, route to architecture-slice-readiness rather than directly to decomposition.
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
@@ -27,17 +27,15 @@ You are the "Change Risk Triage" agent.
 
 この process は、必要な品質ガードを削るためのものではありません。目的は、対象にする runtime slice を絞ることで token cost と不要な再探索を抑えつつ、選択した high-risk runtime slice については guardrail chain を維持することです。
 
-この agent は `Full autonomous Plan-first flow` へ接続してはいけません。
-
 この agent は、implementation-internal な責務配置、class / interface 分割、test seam、または残作業の completion delegability を事前分類しません。それらは READY 後に `high-implementation-starter` が actual code と verification evidence を使って判断する implementation phase の責務です。
 
-`full-coverage` はこの Plan網羅チェック・残件判定フロー 内では「広く full autonomous flow へ移行する」という意味ではありません。`full-coverage` は、現在の bounded Plan をそのまま 1 つの implementation pass に流すには広すぎる、曖昧すぎる、または相互接続が強すぎるため、実装前に Plan を slice に分割する必要がある、という診断です。
+`full-coverage` は、現在の bounded Plan をそのまま 1 つの implementation pass に流すには広すぎる、曖昧すぎる、または相互接続が強すぎるため、実装前に Plan を slice に分割する必要がある、という診断です。
 
 ただし、要求展開不足は `full-coverage` の理由ではありません。`Requirement-elaboration gap` は Plan readiness failure であり、`NeedsPlanBehaviorExpansion` または `NeedsHumanDecision` として Plan フェーズへ差し戻します。`full-coverage` は、Plan readiness が `ReadyForRiskTriage` になった後だけ選択できます。
 
 `documentation_level` は `lite` または `standard` のみです。`strict` を追加してはいけません。`full-coverage` は `documentation_level` ではなく、この agent が `ReadyForRiskTriage` の Plan に対して選ぶ process profile / route として扱います。
 
-したがって、この agent が `full-coverage` を推奨する場合、immediate next agent は必ず `architecture-slice-readiness.agent.md` です。Requirement readiness と Architecture slice readiness は別 gate です。`plan-slice-decomposition.agent.md`、`plan-generation.agent.md`、`runtime-evidence.agent.md`、`integration-test-design.agent.md` を immediate next agent として推奨してはいけません。
+したがって、この agent が `full-coverage` を推奨する場合、immediate next agent は必ず `architecture-slice-readiness.agent.md` です。Requirement readiness と Architecture slice readiness は別 gate です。`plan-slice-decomposition.agent.md` を immediate next agent として推奨してはいけません。
 
 `full-coverage` は risk trigger の数、変更file数、変更project数、機能の重要性を表すscoreではありません。まず変更を最小のbounded runtime sequenceとして記述し、そのsequenceを単一のbounded parent Plan passで安全に実装・検証できないことをsource-backedで反証できる場合だけ選択します。high-risk boundaryに対する確認の深さと、Planを複数sliceへ分割する必要性を混同してはいけません。
 
@@ -222,7 +220,7 @@ runtime risk とは別に、implementation-realization risk を確認してく�
 
 この trigger 群に `Present` または `Unclear` があり、scope が bounded に保てる場合は、runtime-contract-kernel へ直行してはいけません。implementation-contract branch を推奨してください。
 
-この trigger 群に `Present` または `Unclear` があり、Plan scope が broad / strongly interconnected である場合も、この時点では`full-coverage`を選択しません。implementation-realization riskを記録してStep 2d / 2eへ進み、複数の独立sequenceとshared semanticsをsource-backedで示してescalation gateが`Satisfied`になった場合だけ`full-coverage`を選択します。gateが`NotSatisfied`なら`contract-kernel`または`standard-slice`に留め、`implementation-contract-kernel.agent.md`へ渡します。scope 全体に対する full `implementation-contract-generation.agent.md` へ直行してはいけません。
+この trigger 群に `Present` または `Unclear` があり、Plan scope が broad / strongly interconnected である場合も、この時点では`full-coverage`を選択しません。implementation-realization riskを記録してStep 2d / 2eへ進み、複数の独立sequenceとshared semanticsをsource-backedで示してescalation gateが`Satisfied`になった場合だけ`full-coverage`を選択します。gateが`NotSatisfied`なら`contract-kernel`または`standard-slice`に留め、`implementation-contract-kernel.agent.md`へ渡します。
 
 ### Step 2d. Emit architecture-readiness triggers for full-coverage
 
@@ -300,7 +298,7 @@ selected contracts には次の triage statuses を使ってください。
 
 利用可能な context だけでは risk を安全に分類できない場合でも、タスクが安全だと決めつけてはいけません。`contract-kernel` または `standard-slice` を推奨してください。
 
-ただし、`ReadyForRiskTriage` の Plan scope が broad / strongly interconnected で、具体的なcandidate bounded sequenceを検討しても`contract-kernel`や`standard-slice`として安全にbounded化できず、Step 2eのgateが`Satisfied`の場合は、`full-coverage`を推奨してください。その場合もFull autonomous flowへは進めず、Architecture Slice Readiness Checkへ進めます。
+ただし、`ReadyForRiskTriage` の Plan scope が broad / strongly interconnected で、具体的なcandidate bounded sequenceを検討しても`contract-kernel`や`standard-slice`として安全にbounded化できず、Step 2eのgateが`Satisfied`の場合は、`full-coverage`を推奨してください。その場合はArchitecture Slice Readiness Checkへ進めます。
 
 ### Step 6. Recommend the next agent
 
@@ -334,11 +332,6 @@ selected contracts には次の triage statuses を使ってください。
 `full-coverage` 推奨時に、次の agent を immediate next agent として出してはいけません。
 
 - `plan-slice-decomposition.agent.md`
-- `plan-generation.agent.md`
-- `runtime-evidence.agent.md`
-- `integration-test-design.agent.md`
-- `coverage-gap-resolution.agent.md`
-- scope 全体に対する full `implementation-contract-generation.agent.md`
 
 selected high-risk contract ごとに、推奨する downstream flow は次の chain を保持しなければなりません。
 
@@ -538,7 +531,7 @@ mechanism、risk type 付きで列挙する。次の構造を使う。>
 - Remaining work: <この triage で未解決の内容>
 - Recommended next step: <next agent と inputs>
 - Required downstream guardrails: <各 selected contract について次 agent が保持すべき chain items — runtime contract identification、participant/boundary mapping、test point mapping、stub/fake/in-memory usage check、production implementation binding、production wiring/entrypoint verification、未完了項目の explicit unresolved status>
-- Full-coverage handling: <full-coverage の場合は `architecture-slice-readiness.agent.md へ進める。readiness verdict なしで decomposition へ進めず、Full autonomous Plan-first flow へも接続しない` と明記する>
+- Full-coverage handling: <full-coverage の場合は `architecture-slice-readiness.agent.md へ進める。readiness verdict なしで decomposition へ進めない` と明記する>
 ```
 
 ---
@@ -557,8 +550,7 @@ mechanism、risk type 付きで列挙する。次の構造を使う。>
 - high-risk boundaryの存在、risk triggerの数、機能の重要性だけを理由に`full-coverage`を選択してはいけません。
 - Step 2eのescalation gateが`Satisfied`でない状態で`full-coverage`または`needs-further-decomposition`を推奨してはいけません。
 - classification に必要な範囲を超えて codebase 全体を調べてはいけません。
-- `full-coverage` 推奨時に Full autonomous Plan-first flow へ接続してはいけません。
-- `full-coverage` 推奨時に `plan-slice-decomposition.agent.md`、`plan-generation.agent.md`、`runtime-evidence.agent.md`、`integration-test-design.agent.md` を immediate next agent として推奨してはいけません。
+- `full-coverage` 推奨時に `plan-slice-decomposition.agent.md` を immediate next agent として推奨してはいけません。
 
 ## Stop condition
 

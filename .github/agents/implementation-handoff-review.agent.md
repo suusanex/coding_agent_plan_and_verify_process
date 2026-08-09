@@ -577,7 +577,7 @@ canonical coverage ledger が存在する場合は "See: plans/<ticket-or-slug>-
 - code を書いてはいけません
 - tests を作成してはいけません
 - full runtime evidence や full integration test design を要求する指摘を出してはいけません
-- `plan-review.agent.md` のような詳細な runtime completeness / verification completeness / traceability / execution readiness の全次元レビューを行ってはいけません
+- 詳細な runtime completeness / verification completeness / traceability / execution readiness の全次元レビューを行ってはいけません
 - 長い指摘リストを作ってはいけません。blocking issue は本当に危険な場合のみ
 - BLOCKED にするための指摘を探してはいけません。実装者が安全に進める方法を探してください
 - Guardrail Focus coverage の traceability だけを根拠に、parent Plan 全体が ready であるように書いてはいけません
@@ -619,7 +619,7 @@ Handoff Packet の `Remaining work`、`ブロッキング問題`、`非ブロッ
 - **通常の直前の agent**: Guardrail Focus がある場合は `test-design-kernel.agent.md`、Guardrail Focus がない標準 route では risk / contract gate — この agent の入力を生成する
 - **直後の agent**: explicit Design Pair route では `design-pair-implementation-execution`、通常 route では `high-implementation-starter.agent.md`、または人間の実装者 — この agent の `引き継ぎ必須 inputs` と `Handoff Packet` を受け取る。standalone Adaptive はこの agent を invoke しない
 - **任意の実装後 gate**: `code-review-focus-kernel.agent.md` — human code review 用の読み順と重点箇所を整理する
-- **この agent は代替しない**: `plan-review.agent.md`（full Plan review）、`verification-kernel.agent.md`（実装後の production binding 検証）
+- **この agent は代替しない**: `plan-kernel.agent.md`（Plan readiness）、`verification-kernel.agent.md`（実装後の production binding 検証）
 - **BLOCKED 時の修正先**:
   - Check 1, 2: `plan-kernel.agent.md` を再実行または手動修正
   - Check 3, 4: Guardrail Focus がある場合は `runtime-contract-kernel.agent.md` を再実行または手動修正。Guardrail Focus がない場合は `N/A`
