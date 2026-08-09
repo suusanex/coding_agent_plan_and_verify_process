@@ -1,0 +1,16 @@
+{
+  "scenario_id": "CRT-001",
+  "bounded_runtime_sequence": ["one sequence"],
+  "execution_models": ["Same-process ABI / FFI boundary"],
+  "recommended_profile": "standard-slice",
+  "required_sections": {},
+  "candidate_bounded_sequence": "one sequence",
+  "independent_implementation_slices_required": [],
+  "shared_semantics_that_must_remain_fixed": [],
+  "why_one_bounded_parent_pass_is_insufficient": "Not established.",
+  "failure_mode_that_decomposition_prevents": "Not established.",
+  "escalation_gate_result": "NotSatisfied",
+  "recommendation_confidence": "High",
+  "evidence_that_would_lower_the_profile": "Lower evidence.",
+  "evidence_that_would_raise_the_profile": "Raise evidence."
+}

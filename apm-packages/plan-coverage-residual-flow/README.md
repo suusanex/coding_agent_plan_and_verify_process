@@ -280,6 +280,6 @@ residual decisionのclose verdictは次を含みます。
 
 standalone full-coverage E2Eは、currentまたはinstalled Living Record / close reference authorityからrequired sectionとtableを導出し、2-slice fixtureのowner境界、artifact budget、negative cases、ledger delta適用、production bindingを確認します。そのうえで2つのslice payloadを依存順に適用し、slice-local verification、production entrypoint経由のcross-slice verification、residual decisionまでをdeterministicに検証します。外部modelは実行しないため、CodexやCopilot等がlifecycleを自律実行した証拠ではありません。
 
-Change Risk Triage smokeのscenario schemaとagent hashはCIで検証します。外部modelによる`CRT-001`〜`CRT-003`各3回のfresh-session一致確認はmanual evidenceとして分離し、`NOT RUN`や`UNOBSERVABLE`をPASSにしません。
+Change Risk Triage smokeはchange-facts inputとCI-only oracleを分離し、result schemaとagent hashもCIで検証します。外部modelにはoracleを渡さず、`CRT-001`〜`CRT-003`各3回のfresh-session一致確認をmanual evidenceとして分離し、`NOT RUN`や`UNOBSERVABLE`をPASSにしません。
 
 remote APM install smokeはpackageの変更をremote refで検証するときだけ実行します。

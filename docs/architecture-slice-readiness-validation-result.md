@@ -2,9 +2,9 @@
 
 ## Execution metadata
 
-- Executed at: `2026-08-09T16:31:58+09:00`
-- Executor: deterministic ASR-001 through ASR-007 fixture comparison for Issue #84
-- Branch: `codex/redesign-fullcoverage-living-record`
+- Executed at: `2026-08-09T18:34:00+09:00`
+- Executor: deterministic ASR-001 through ASR-008 fixture comparison for Issue #84
+- Branch: `issue-84`
 - Reviewed source: post-PR #80 Plan Coverage path history (`05c0f84`, `3e42758`, `f2b6bbe`) confirms that only PR #90 added Plan Coverage-specific Copilot qualification wording; the current Skill keeps a target-neutral separate-package, explicit-selection, and waiting-state boundary while preserving the Issue #94 bounded-slice and architecture compatibility contracts
 - Scope: architecture readiness routing, de-escalation, decomposition authorization, and existing architecture compatibility semantics; no external system changes
 
@@ -39,23 +39,24 @@ The following hashes are retained as audit evidence for the contract set validat
 
 ## Durable fixture evidence
 
-Complete input, actual output, expected JSON, machine-readable actual JSON, and run metadata are stored under `tests/architecture-slice-readiness/ASR-001` through `ASR-007`.
+Complete input, actual output, expected JSON, machine-readable actual JSON, and run metadata are stored under `tests/architecture-slice-readiness/ASR-001` through `ASR-008`.
 
-ASR-001, ASR-002, and ASR-004 through ASR-006 reuse the prior Issue #65 deterministic scenario evidence. ASR-003 is replaced by the Issue #84 de-escalation scenario, and ASR-007 is new.
+ASR-001, ASR-002, and ASR-004 through ASR-006 reuse the prior Issue #65 deterministic scenario evidence. ASR-003 now protects the pre-readiness legacy-triage return, ASR-007 protects the `ArchitectureNotRequired` decomposition path with production evidence, and ASR-008 protects satisfied-gate de-escalation.
 
-Issue #97 keeps those fixture files and run IDs unchanged as historical scenario evidence. Legacy filenames and output headings that mention slice preparation, parent review, or slice implementation authorization describe the owner mapping at the time of the captured run; they are not the current active route. In the current contract, those checkpoints map to the Plan Coverage parent architecture compatibility check and `implementation-handoff-review` Check 11. Only a current-baseline `Match` permits implementation; `Drift` or `Unclear` blocks and returns to Architecture Slice Readiness / Elaboration. A new end-to-end evidence set is outside this documentation alignment and remains for Issue #98.
+Legacy filenames and output headings that mention slice preparation, parent review, or slice implementation authorization describe the owner mapping at the time of the captured run; they are not the current active route. In the current contract, those checkpoints map to the Plan Coverage parent architecture compatibility check and `implementation-handoff-review` Check 11. Only a current-baseline `Match` permits implementation; `Drift` or `Unclear` blocks and returns to Architecture Slice Readiness / Elaboration.
 
-The Issue #84 rerun changes ASR-003 into the de-escalation regression and adds ASR-007 to preserve the distinct `ArchitectureNotRequired` decomposition path. Existing decomposed fixtures retain the same `Match / Drift / Unclear` gate semantics.
+The Issue #84 review rerun separates the legacy missing-gate return in ASR-003 from the new-format satisfied-gate de-escalation in ASR-008. ASR-007 preserves the distinct `ArchitectureNotRequired` decomposition path. Existing decomposed fixtures retain the same `Match / Drift / Unclear` gate semantics.
 
 | Fixture | Run ID | Complete evidence root |
 | --- | --- | --- |
 | ASR-001 | `asr-001-20260731-issue65-r4` | `tests/architecture-slice-readiness/ASR-001/` |
 | ASR-002 | `asr-002-20260731-issue65-r3` | `tests/architecture-slice-readiness/ASR-002/` |
-| ASR-003 | `asr-003-20260809-issue84-r1` | `tests/architecture-slice-readiness/ASR-003/` |
+| ASR-003 | `asr-003-20260809-issue84-review-r2` | `tests/architecture-slice-readiness/ASR-003/` |
 | ASR-004 | `asr-004-20260731-issue65-r3` | `tests/architecture-slice-readiness/ASR-004/` |
 | ASR-005 | `asr-005-20260731-issue65-r3` | `tests/architecture-slice-readiness/ASR-005/` |
 | ASR-006 | `asr-006-20260731-issue65-r3` | `tests/architecture-slice-readiness/ASR-006/` |
 | ASR-007 | `asr-007-20260809-issue84-r1` | `tests/architecture-slice-readiness/ASR-007/` |
+| ASR-008 | `asr-008-20260809-issue84-review-r1` | `tests/architecture-slice-readiness/ASR-008/` |
 
 The validator compares every `actual.json` with `expected.json`, verifies all run-referenced input/output files, checks unique run IDs and execution metadata, and confirms that verdict, residual, next action, drift, and parent authorization values are present in the complete Markdown outputs.
 
@@ -65,11 +66,12 @@ The validator compares every `actual.json` with `expected.json`, verifies all ru
 | --- | --- | --- | --- | --- | --- | --- |
 | ASR-001 | `full-coverage` → `NeedsArchitectureElaboration`; A1 stores R1 as non-freshness trigger; same-path R2 rerun=`ReadyForSliceDecomposition` and A1 remains current | `ArchitectureCritical`: state owner, precedence, release sequence, cross-run identity; rerun=0 blocking | Initially blocked; allowed only after current A1 + R2 pair | `architecture-elaboration.agent.md`, readiness rerun, freshness re-evaluation, then decomposition | None | PASS |
 | ASR-002 | `full-coverage` → readiness FAIL | `ArchitectureCritical`: source precedence and retry-exhaustion release | Blocked | Resolve in elaboration; no executable slice | None | PASS |
-| ASR-003 | `full-coverage` → `StandardSliceSufficient`; selected process=`standard-slice` | No blocking residual | Not allowed (successful route correction) | `runtime-contract-kernel.agent.md`; no decomposition, parent review, or Check 11 | None | PASS |
+| ASR-003 | legacy `full-coverage` → `NoArchitectureVerdict` | `MissingOrInvalidEscalationGate` | Not allowed | `change-risk-triage.agent.md`; no architecture verdict or decomposition | None | PASS |
 | ASR-004 | `ReadyForSliceDecomposition` | `ImplementationDetail` / `SliceLocalContract` only | Allowed | `plan-slice-decomposition.agent.md` | None | PASS |
 | ASR-005 | Pre-implementation architecture compatibility=`Drift` | Proposed writer change is architecture-level, not slice-local | Blocked | Plan Coverage parent and Check 11 block implementation; return to readiness / elaboration | Historical fixture vocabulary mapped to current owners | PASS |
 | ASR-006 | `NeedsHumanDecision` | `NeedsHumanDecision`: externally observable precedence policy | Blocked | Stop until decision source is recorded | None | PASS |
 | ASR-007 | `full-coverage` → `ArchitectureNotRequired`; readiness artifact is Lightweight architecture baseline authority | No blocking residual | Allowed | `plan-slice-decomposition.agent.md`; Plan Coverage parent and Check 11=`Match` | None | PASS |
+| ASR-008 | new-format `full-coverage` → `StandardSliceSufficient`; selected process=`standard-slice` | No blocking residual | Not allowed (successful route correction) | `runtime-contract-kernel.agent.md`; no decomposition, parent review, or Check 11 | None | PASS |
 
 ## Observed output excerpts
 
@@ -113,11 +115,10 @@ Executable slices produced: 0
 ### ASR-003
 
 ```text
-Readiness verdict: StandardSliceSufficient
-Selected process after readiness: standard-slice
+Architecture verdict: NoArchitectureVerdict
 Decomposition allowed now: No
-Immediate next agent: runtime-contract-kernel.agent.md
-No decomposition, slice preparation, parent review, or slice implementation authorization is created
+Immediate next agent: change-risk-triage.agent.md
+Reassessment result: ReturnToRiskTriage
 ```
 
 ### ASR-004
@@ -164,6 +165,19 @@ Decomposition allowed now: Yes
 Can implement now: Yes after Plan Coverage parent and Check 11 record Match
 ```
 
+Production evidence addresses include `schemas/envelope-v3.json`, `src/EnvelopeAuthority.ps1::Assert-ProducerOwnedFields`, `src/AdapterRegistry.ps1::Register-EnvelopeV3Adapters`, and `tests/verify-envelope-v3-contract.ps1`.
+
+### ASR-008
+
+```text
+Upstream escalation gate: Satisfied
+Readiness verdict: StandardSliceSufficient
+Selected process after readiness: standard-slice
+Production reinspection: one owner, entrypoint, lifecycle, and end-to-end verifier
+Decomposition allowed now: No
+Immediate next agent: runtime-contract-kernel.agent.md
+```
+
 ## Static validation
 
 | Check | Result | Evidence |
@@ -172,7 +186,7 @@ Can implement now: Yes after Plan Coverage parent and Check 11 record Match
 | Agent frontmatter | PASS | new readiness and elaboration agents have complete frontmatter delimiters, name, and description |
 | Direct `full-coverage → decomposition` route | PASS | remaining matches are prohibition or validation text only |
 | Slice Architecture template path | PASS | canonical template exists and all affected manifests reference an existing path |
-| Durable fixture artifacts | PASS | ASR-001〜007 input/output/run files exist and every run reference resolves |
+| Durable fixture artifacts | PASS | ASR-001〜008 input/output/run files exist and every run reference resolves |
 | Expected / actual comparison | PASS | validator compared every `actual.json` with `expected.json` and checked values against full Markdown outputs |
 | Current contract revision hashes | PASS | all nine surviving normalized contract hashes above match the files revalidated for Issue #84; deleted PR #80 contract hashes are retained only as historical evidence |
 | `git diff --check` | PASS | no whitespace errors; Windows line-ending warnings only |

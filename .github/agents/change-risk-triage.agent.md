@@ -222,7 +222,7 @@ runtime risk とは別に、implementation-realization risk を確認してく�
 
 この trigger 群に `Present` または `Unclear` があり、scope が bounded に保てる場合は、runtime-contract-kernel へ直行してはいけません。implementation-contract branch を推奨してください。
 
-この trigger 群に `Present` または `Unclear` があり、かつ `ReadyForRiskTriage` の Plan scope が broad / strongly interconnected である場合は、`full-coverage` を推奨し、`architecture-slice-readiness.agent.md` へ進めてください。scope 全体に対する full `implementation-contract-generation.agent.md` へ直行してはいけません。
+この trigger 群に `Present` または `Unclear` があり、Plan scope が broad / strongly interconnected である場合も、この時点では`full-coverage`を選択しません。implementation-realization riskを記録してStep 2d / 2eへ進み、複数の独立sequenceとshared semanticsをsource-backedで示してescalation gateが`Satisfied`になった場合だけ`full-coverage`を選択します。gateが`NotSatisfied`なら`contract-kernel`または`standard-slice`に留め、`implementation-contract-kernel.agent.md`へ渡します。scope 全体に対する full `implementation-contract-generation.agent.md` へ直行してはいけません。
 
 ### Step 2d. Emit architecture-readiness triggers for full-coverage
 
@@ -310,8 +310,8 @@ selected contracts には次の triage statuses を使ってください。
 - Plan readiness `NeedsPlanBehaviorExpansion` + behavior spec はあるが Case IDs が Plan FR / AC に未対応 → `plan-kernel.agent.md`
 - Plan readiness `NeedsHumanDecision` → 停止し、human decision を待つ
 - `contract-kernel` または `standard-slice` + implementation-realization risk `Absent` → `runtime-contract-kernel.agent.md`
-- `contract-kernel` または `standard-slice` + implementation-realization risk `Present` / `Unclear` + bounded scope → `implementation-contract-kernel.agent.md`
-- implementation-realization risk `Present` / `Unclear` + broader scope → `full-coverage` として `architecture-slice-readiness.agent.md`
+- `contract-kernel` または `standard-slice` + implementation-realization risk `Present` / `Unclear` → `implementation-contract-kernel.agent.md`。scopeがbroaderでもescalation gateが`NotSatisfied`ならこのrouteを維持する
+- implementation-realization risk `Present` / `Unclear` + broader scope + Step 2e `Satisfied` + selected profile `full-coverage` → `architecture-slice-readiness.agent.md`
 - `standard-slice` で Plan が不足している場合だけ → `plan-kernel.agent.md`
 - `full-coverage` → `architecture-slice-readiness.agent.md`
 - `fix-slice` → `coverage-gap-resolution-slice.agent.md` with selected IDs

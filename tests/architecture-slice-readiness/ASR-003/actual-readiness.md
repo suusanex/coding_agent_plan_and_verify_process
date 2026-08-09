@@ -1,19 +1,14 @@
-# ASR-003 Actual Architecture Slice Readiness
+# ASR-003 Pre-readiness Gate Result
 
-- Verdict: `StandardSliceSufficient`
-- Selected process after readiness: `standard-slice`
-- Architecture baseline authority: `N/A - no decomposition`
+- Architecture verdict: `NoArchitectureVerdict`
+- Selected process after readiness: `N/A`
 - Decomposition allowed now: `No`
-- Immediate next agent: `runtime-contract-kernel.agent.md`
+- Blocking residual: `MissingOrInvalidEscalationGate`
+- Immediate next agent: `change-risk-triage.agent.md`
 
-## Full-coverage escalation reassessment
+## Full-coverage escalation precondition
 
-- Candidate bounded sequence: existing validator invokes the existing text formatter and emits the revised message.
-- Independent implementation slices required: none.
-- Shared semantics that must remain fixed before decomposition: none; existing schema and production wiring are unchanged.
-- Why one bounded parent pass is insufficient: no source-backed reason exists.
-- Failure mode that decomposition prevents: none.
 - Upstream escalation gate: `MissingOrInvalid`
-- Reassessment result: `StandardSliceSufficient`
+- Reassessment result: `ReturnToRiskTriage`
 
-The false-positive `full-coverage` recommendation is preserved in `input-triage.md` as audit evidence. No decomposition, slice preparation, parent review, or slice implementation authorization is created.
+The pre-decomposition triage predates `Why standard-slice is insufficient` and does not contain `Escalation gate result: Satisfied`. Architecture Slice Readiness therefore creates no architecture verdict, baseline, decomposition, parent review, or slice implementation authorization.

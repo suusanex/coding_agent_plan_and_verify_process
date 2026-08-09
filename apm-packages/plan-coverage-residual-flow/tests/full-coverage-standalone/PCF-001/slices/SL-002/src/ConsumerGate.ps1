@@ -21,9 +21,9 @@ function Get-ConsumerState {
     }
 
     [pscustomobject]@{
-        State = if ($ProducerSnapshot.SnapshotState -ceq 'Active') { 'Accepting' } else { 'Recovering' }
-        CorrelationId = $ProducerSnapshot.CorrelationId
-        Generation = [int]$ProducerSnapshot.Generation
+        State = if ($producerSnapshot.SnapshotState -ceq 'Active') { 'Accepting' } else { 'Recovering' }
+        CorrelationId = $producerSnapshot.CorrelationId
+        Generation = [int]$producerSnapshot.Generation
     }
 }
 

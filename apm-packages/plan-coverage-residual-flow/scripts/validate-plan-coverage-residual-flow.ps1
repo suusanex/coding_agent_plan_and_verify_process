@@ -32,6 +32,123 @@ function Get-NormalizedText([string]$Path) {
     return [System.IO.File]::ReadAllText($Path).Replace("`r`n", "`n").Replace("`r", "`n")
 }
 
+function Get-ChangeRiskResultSchemaErrors([object]$Result) {
+    $errors = [System.Collections.Generic.List[string]]::new()
+    $requiredTopLevel = @(
+        'scenario_id',
+        'bounded_runtime_sequence',
+        'execution_models',
+        'recommended_profile',
+        'required_sections',
+        'candidate_bounded_sequence',
+        'independent_implementation_slices_required',
+        'shared_semantics_that_must_remain_fixed',
+        'why_one_bounded_parent_pass_is_insufficient',
+        'failure_mode_that_decomposition_prevents',
+        'escalation_gate_result',
+        'recommendation_confidence',
+        'evidence_that_would_lower_the_profile',
+        'evidence_that_would_raise_the_profile'
+    )
+    $requiredSectionNames = @(
+        'bounded_runtime_sequence',
+        'execution_model_classification',
+        'risk_semantics',
+        'why_standard_slice_is_insufficient',
+        'recommendation_confidence',
+        'profile_change_evidence'
+    )
+    $executionModelEnum = @(
+        'Same-process ABI / FFI boundary',
+        'Cross-process IPC',
+        'Cross-process durable-state observation',
+        'External or independently deployed service',
+        'Local asynchronous operation / UI-thread handoff',
+        'Independent background worker',
+        'Persistent queue / replayable job'
+    )
+
+    if ($null -eq $Result -or $Result -isnot [pscustomobject]) {
+        $errors.Add('root must be an object')
+        return $errors.ToArray()
+    }
+
+    $actualTopLevel = @($Result.psobject.Properties.Name | Sort-Object)
+    $expectedTopLevel = @($requiredTopLevel | Sort-Object)
+    if (($actualTopLevel -join ',') -cne ($expectedTopLevel -join ',')) {
+        $errors.Add('top-level required and additionalProperties constraints failed')
+    }
+
+    if ($Result.scenario_id -isnot [string] -or @('CRT-001', 'CRT-002', 'CRT-003') -cnotcontains $Result.scenario_id) {
+        $errors.Add('scenario_id must be an allowed string')
+    }
+
+    foreach ($arrayField in @('bounded_runtime_sequence', 'execution_models', 'independent_implementation_slices_required', 'shared_semantics_that_must_remain_fixed')) {
+        $value = $Result.$arrayField
+        if ($value -isnot [System.Array]) {
+            $errors.Add("$arrayField must be an array")
+            continue
+        }
+        if ($arrayField -in @('bounded_runtime_sequence', 'execution_models') -and $value.Count -lt 1) {
+            $errors.Add("$arrayField must contain at least one item")
+        }
+        foreach ($item in $value) {
+            if ($item -isnot [string] -or $item.Length -lt 1) {
+                $errors.Add("$arrayField items must be non-empty strings")
+            }
+        }
+    }
+
+    if ($Result.execution_models -is [System.Array]) {
+        foreach ($model in $Result.execution_models) {
+            if ($executionModelEnum -cnotcontains $model) {
+                $errors.Add("execution_models contains an unknown value: $model")
+            }
+        }
+    }
+
+    if ($Result.recommended_profile -isnot [string] -or @('lightweight', 'standard-slice', 'contract-kernel', 'full-coverage') -cnotcontains $Result.recommended_profile) {
+        $errors.Add('recommended_profile must be an allowed string')
+    }
+
+    if ($Result.required_sections -isnot [pscustomobject]) {
+        $errors.Add('required_sections must be an object')
+    }
+    else {
+        $actualSectionNames = @($Result.required_sections.psobject.Properties.Name | Sort-Object)
+        $expectedSectionNames = @($requiredSectionNames | Sort-Object)
+        if (($actualSectionNames -join ',') -cne ($expectedSectionNames -join ',')) {
+            $errors.Add('required_sections required and additionalProperties constraints failed')
+        }
+        foreach ($sectionName in $requiredSectionNames) {
+            if ($Result.required_sections.$sectionName -isnot [bool] -or $Result.required_sections.$sectionName -ne $true) {
+                $errors.Add("required_sections.$sectionName must be boolean true")
+            }
+        }
+    }
+
+    foreach ($stringField in @(
+        'candidate_bounded_sequence',
+        'why_one_bounded_parent_pass_is_insufficient',
+        'failure_mode_that_decomposition_prevents',
+        'evidence_that_would_lower_the_profile',
+        'evidence_that_would_raise_the_profile'
+    )) {
+        if ($Result.$stringField -isnot [string] -or $Result.$stringField.Length -lt 1) {
+            $errors.Add("$stringField must be a non-empty string")
+        }
+    }
+
+    if ($Result.escalation_gate_result -isnot [string] -or @('Satisfied', 'NotSatisfied', 'N/A') -cnotcontains $Result.escalation_gate_result) {
+        $errors.Add('escalation_gate_result must be an allowed string')
+    }
+    if ($Result.recommendation_confidence -isnot [string] -or @('High', 'Medium', 'Low') -cnotcontains $Result.recommendation_confidence) {
+        $errors.Add('recommendation_confidence must be an allowed string')
+    }
+
+    return $errors.ToArray()
+}
+
 function Test-AffirmativeDirectRouteSelection([string]$Message) {
     if ([string]::IsNullOrWhiteSpace($Message)) {
         return $false
@@ -62,7 +179,17 @@ $sharedInstructionsRelativePath = '.github/instructions/plan-coverage-shared.ins
 $changeRiskRelativePath = '.github/agents/change-risk-triage.agent.md'
 $architectureReadinessRelativePath = '.github/agents/architecture-slice-readiness.agent.md'
 $decompositionRelativePath = '.github/agents/plan-slice-decomposition.agent.md'
-$changeRiskScenarioRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/scenarios.json'
+$changeRiskOracleRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/oracles.json'
+$changeRiskInputRelativePaths = @(
+    'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/inputs/CRT-001.md',
+    'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/inputs/CRT-002.md',
+    'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/inputs/CRT-003.md'
+)
+$changeRiskInvalidResultRelativePaths = @(
+    'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/invalid-results/required-sections-missing.json',
+    'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/invalid-results/invalid-enum.json',
+    'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/invalid-results/wrong-nested-types.json'
+)
 $changeRiskReadmeRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/README.md'
 $changeRiskTemplateRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/result-template.md'
 $changeRiskResultSchemaRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/result.schema.json'
@@ -92,7 +219,7 @@ $requiredFiles = @(
     $changeRiskRelativePath,
     $architectureReadinessRelativePath,
     $decompositionRelativePath,
-    $changeRiskScenarioRelativePath,
+    $changeRiskOracleRelativePath,
     $changeRiskReadmeRelativePath,
     $changeRiskTemplateRelativePath,
     $changeRiskResultSchemaRelativePath,
@@ -107,6 +234,8 @@ $requiredFiles = @(
     $apmSmokeRelativePath,
     $workflowRelativePath
 )
+$requiredFiles += $changeRiskInputRelativePaths
+$requiredFiles += $changeRiskInvalidResultRelativePaths
 
 foreach ($relativePath in $requiredFiles) {
     Assert-True (Test-Path -LiteralPath (Join-Path $repoRoot $relativePath) -PathType Leaf) "Missing required file: $relativePath"
@@ -373,11 +502,16 @@ if ($failures.Count -eq 0) {
         Assert-True ((Get-NormalizedText $fullCoverageClosePath) -ceq (Get-NormalizedText $deployedFullCoverageClosePath)) 'provisioned close projection must match the canonical reference'
     }
 
-    $changeRiskScenarios = @(Get-Content -Raw -LiteralPath (Join-Path $repoRoot $changeRiskScenarioRelativePath) | ConvertFrom-Json)
-    Assert-True ($changeRiskScenarios.Count -eq 3) 'Change Risk Triage fixture must contain exactly CRT-001 through CRT-003'
-    Assert-True ((@($changeRiskScenarios.id) -join ',') -ceq 'CRT-001,CRT-002,CRT-003') 'Change Risk Triage scenario IDs must be ordered CRT-001 through CRT-003'
-    Assert-True ((@($changeRiskScenarios.expected_profile) -join ',') -ceq 'standard-slice,standard-slice,full-coverage') 'Change Risk Triage expected profiles must preserve both de-escalation cases and one positive full-coverage case'
-    Assert-True ((@($changeRiskScenarios.escalation_gate) -join ',') -ceq 'NotSatisfied,NotSatisfied,Satisfied') 'Change Risk Triage escalation results must reject CRT-001/002 and satisfy CRT-003'
+    $changeRiskOracles = @(Get-Content -Raw -LiteralPath (Join-Path $repoRoot $changeRiskOracleRelativePath) | ConvertFrom-Json)
+    Assert-True ($changeRiskOracles.Count -eq 3) 'Change Risk Triage oracle must contain exactly CRT-001 through CRT-003'
+    Assert-True ((@($changeRiskOracles.id) -join ',') -ceq 'CRT-001,CRT-002,CRT-003') 'Change Risk Triage oracle IDs must be ordered CRT-001 through CRT-003'
+    Assert-True ((@($changeRiskOracles.expected_profile) -join ',') -ceq 'standard-slice,standard-slice,full-coverage') 'Change Risk Triage expected profiles must preserve both de-escalation cases and one positive full-coverage case'
+    Assert-True ((@($changeRiskOracles.escalation_gate) -join ',') -ceq 'NotSatisfied,NotSatisfied,Satisfied') 'Change Risk Triage escalation results must reject CRT-001/002 and satisfy CRT-003'
+
+    foreach ($inputRelativePath in $changeRiskInputRelativePaths) {
+        $inputText = Get-NormalizedText (Join-Path $repoRoot $inputRelativePath)
+        Assert-NotMatches $inputText '(?i)expected[_ -]?(?:profile|execution|gate)|escalation[_ -]?gate|recommended[_ -]?profile|standard-slice|full-coverage|NotSatisfied|Satisfied' "$inputRelativePath must not expose oracle answers"
+    }
 
     $requiredExecutionModels = @(
         'Same-process ABI / FFI boundary',
@@ -385,30 +519,28 @@ if ($failures.Count -eq 0) {
         'Cross-process durable-state observation'
     )
     foreach ($executionModel in $requiredExecutionModels) {
-        Assert-True (@($changeRiskScenarios[0].execution_models) -ccontains $executionModel) "CRT-001 must include execution model '$executionModel'"
+        Assert-True (@($changeRiskOracles[0].execution_models) -ccontains $executionModel) "CRT-001 must include execution model '$executionModel'"
     }
-    Assert-True (@($changeRiskScenarios[1].execution_models) -ccontains 'Cross-process IPC') 'CRT-002 must include Cross-process IPC'
-    Assert-True (@($changeRiskScenarios[1].execution_models) -ccontains 'Persistent queue / replayable job') 'CRT-002 must include a persistent replayable job'
-    Assert-True ([int]$changeRiskScenarios[2].bounded_runtime_sequences -ge 2) 'CRT-003 must contain independent runtime sequences'
-    foreach ($field in @(
-        'candidate_bounded_sequence',
-        'independent_implementation_slices_required',
-        'shared_semantics_that_must_remain_fixed',
-        'why_one_bounded_parent_pass_is_insufficient',
-        'failure_mode_decomposition_prevents'
-    )) {
-        Assert-True ($null -ne $changeRiskScenarios[2].why_standard_slice_is_insufficient.$field) "CRT-003 escalation evidence must contain $field"
-    }
+    Assert-True (@($changeRiskOracles[1].execution_models) -ccontains 'Cross-process IPC') 'CRT-002 must include Cross-process IPC'
+    Assert-True ((@($changeRiskOracles[1].execution_models) -join ',') -ceq 'Cross-process IPC') 'CRT-002 must classify only its direct cross-process message hop'
+    Assert-True ([int]$changeRiskOracles[2].independent_slice_count -eq 2) 'CRT-003 oracle must require independent runtime slices'
+    Assert-True (@($changeRiskOracles[2].execution_models) -ccontains 'External or independently deployed service') 'CRT-003 must classify its independently released runtime components'
 
     $changeRiskReadme = Get-NormalizedText (Join-Path $repoRoot $changeRiskReadmeRelativePath)
     $changeRiskTemplate = Get-NormalizedText (Join-Path $repoRoot $changeRiskTemplateRelativePath)
     $changeRiskResultSchema = Get-NormalizedText (Join-Path $repoRoot $changeRiskResultSchemaRelativePath) | ConvertFrom-Json
     Assert-Matches $changeRiskReadme 'fresh session three times' 'Change Risk Triage manual smoke must require three fresh sessions per scenario'
+    Assert-Matches $changeRiskReadme 'Never provide `oracles.json`' 'Change Risk Triage manual smoke must hide oracle answers from model sessions'
     Assert-Matches $changeRiskReadme 'CI does not invoke an external model' 'Change Risk Triage CI evidence must remain separate from external-model observations'
     Assert-Matches $changeRiskReadme '`NOT RUN` and `UNOBSERVABLE` do not count as passes' 'Change Risk Triage manual smoke must not count missing observations as passes'
     Assert-True ($changeRiskResultSchema.additionalProperties -eq $false) 'Change Risk Triage result schema must reject unknown top-level fields'
     Assert-True ((@($changeRiskResultSchema.required) -ccontains 'bounded_runtime_sequence') -and (@($changeRiskResultSchema.required) -ccontains 'escalation_gate_result')) 'Change Risk Triage result schema must require bounded sequence and escalation evidence'
     Assert-True (@($changeRiskResultSchema.properties.execution_models.items.enum).Count -eq 7) 'Change Risk Triage result schema must enumerate all seven execution models'
+    foreach ($invalidRelativePath in $changeRiskInvalidResultRelativePaths) {
+        $invalidResult = Get-Content -LiteralPath (Join-Path $repoRoot $invalidRelativePath) -Raw | ConvertFrom-Json
+        $invalidErrors = @(Get-ChangeRiskResultSchemaErrors $invalidResult)
+        Assert-True ($invalidErrors.Count -gt 0) "$invalidRelativePath must be rejected by nested result-schema validation"
+    }
     foreach ($scenarioId in 'CRT-001', 'CRT-002', 'CRT-003') {
         foreach ($run in 1..3) {
             Assert-Matches $changeRiskTemplate "(?m)^\| $scenarioId \| $run \| NOT RUN \|" "Change Risk Triage result template must include $scenarioId run $run"
@@ -424,23 +556,23 @@ if ($failures.Count -eq 0) {
         }
     )
     Assert-True ((@($changeRiskResultFiles.Name) -join ',') -ceq ($expectedResultNames -join ',')) 'Change Risk Triage result filenames must cover three runs for every scenario'
-    $expectedResultProperties = @($changeRiskResultSchema.required | Sort-Object)
     foreach ($resultFile in $changeRiskResultFiles) {
         $result = Get-Content -LiteralPath $resultFile.FullName -Raw | ConvertFrom-Json
         $nameMatch = [regex]::Match($resultFile.Name, '^(?<scenario>CRT-00[1-3])-run-(?<run>[1-3])\.json$')
         Assert-True ($nameMatch.Success -and $result.scenario_id -ceq $nameMatch.Groups['scenario'].Value) "$($resultFile.Name) scenario ID must match its filename"
-        $actualResultProperties = @($result.psobject.Properties.Name | Sort-Object)
-        Assert-True (($actualResultProperties -join ',') -ceq ($expectedResultProperties -join ',')) "$($resultFile.Name) must match the result schema top-level property set"
-        Assert-True (@($result.required_sections.psobject.Properties.Value | Where-Object { -not $_ }).Count -eq 0) "$($resultFile.Name) must report every required output section"
+        $schemaErrors = @(Get-ChangeRiskResultSchemaErrors $result)
+        Assert-True ($schemaErrors.Count -eq 0) "$($resultFile.Name) must satisfy every nested result schema constraint: $($schemaErrors -join '; ')"
 
-        $scenario = @($changeRiskScenarios | Where-Object { $_.id -ceq $result.scenario_id })[0]
-        Assert-True ((@($result.execution_models) -join ',') -ceq (@($scenario.execution_models) -join ',')) "$($resultFile.Name) execution-model classification must match its fixture"
+        $oracle = @($changeRiskOracles | Where-Object { $_.id -ceq $result.scenario_id })[0]
+        $actualModelSet = @($result.execution_models | Sort-Object)
+        $oracleModelSet = @($oracle.execution_models | Sort-Object)
+        Assert-True (($actualModelSet -join ',') -ceq ($oracleModelSet -join ',')) "$($resultFile.Name) execution-model classification set must match its CI-only oracle"
         Assert-True (@($result.execution_models | Select-Object -Unique).Count -eq @($result.execution_models).Count) "$($resultFile.Name) execution models must be unique"
-        Assert-True ($result.recommended_profile -ceq $scenario.expected_profile) "$($resultFile.Name) profile must match its fixture"
-        Assert-True ($result.escalation_gate_result -ceq $scenario.escalation_gate) "$($resultFile.Name) escalation gate must match its fixture"
-        if ($result.scenario_id -ceq 'CRT-003') {
-            Assert-True (@($result.independent_implementation_slices_required).Count -eq 2) "$($resultFile.Name) must retain both independent implementation slices"
-            Assert-True (@($result.shared_semantics_that_must_remain_fixed).Count -eq 3) "$($resultFile.Name) must retain all shared semantics"
+        Assert-True ($result.recommended_profile -ceq $oracle.expected_profile) "$($resultFile.Name) profile must match its CI-only oracle"
+        Assert-True ($result.escalation_gate_result -ceq $oracle.escalation_gate) "$($resultFile.Name) escalation gate must match its CI-only oracle"
+        Assert-True (@($result.independent_implementation_slices_required).Count -eq [int]$oracle.independent_slice_count) "$($resultFile.Name) independent slice count must match its CI-only oracle"
+        if ($null -ne $oracle.minimum_shared_semantic_count) {
+            Assert-True (@($result.shared_semantics_that_must_remain_fixed).Count -ge [int]$oracle.minimum_shared_semantic_count) "$($resultFile.Name) must retain the minimum source-backed shared semantics"
         }
     }
     $changeRiskResultSummary = Get-NormalizedText (Join-Path $repoRoot $changeRiskResultSummaryRelativePath)

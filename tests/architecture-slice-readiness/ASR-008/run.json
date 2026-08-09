@@ -1,0 +1,8 @@
+{
+  "run_id": "asr-008-20260809-issue84-review-r1",
+  "executed_at": "2026-08-09T18:25:00+09:00",
+  "executor": "Codex primary agent",
+  "environment": "repository-local deterministic satisfied-gate de-escalation backstop fixture for Issue #84",
+  "inputs": ["input-plan.md", "input-triage.md", "production-evidence.md"],
+  "outputs": ["actual-readiness.md", "actual.json"]
+}
