@@ -142,7 +142,7 @@ try {
     Assert-Contains $copilotHigh '(?m)^target:\s*vscode\s*$' 'Copilot HIGH target'
     Assert-Contains $copilotHigh '(?m)^disable-model-invocation:\s*true\s*$' 'Copilot HIGH explicit-only invocation'
     Assert-Contains $copilotHigh 'agent:\s*standard-implementation-completer' 'Copilot bounded completion handoff'
-    Assert-Contains $copilotHigh 'codeを変更せずに委譲できます' 'Copilot HIGH zero-code decision closure'
+    Assert-Contains $copilotHigh 'Delegation basis.*non-local-decisions-closed' 'Copilot HIGH zero-code decision closure'
     Assert-NotContains $copilotStandard '(?m)^tools:' 'Copilot STANDARD explicit tools frontmatter'
     Assert-Contains $copilotStandard '(?m)^model:\s*GPT-5\.6 Luna \(copilot\)\s*$' 'Copilot STANDARD model'
     Assert-Contains $copilotStandard '(?m)^target:\s*vscode\s*$' 'Copilot STANDARD target'

@@ -318,6 +318,8 @@ Assert-Contains $highAgent '(?s)Selected / Delegated-to-Adaptiveの各Targetに�
 Assert-Contains $highAgent '(?s)AIが未選択Targetを`Adaptive-Owned`.*最終user responseなしに`Discussed-Unlocked`.*許可しません' 'HIGH rejects AI-owned disposition assignment'
 Assert-Contains $highAgent '(?s)selected Targetにはuser-facing assistant turn reference.*具体的code location.*current invariant.*alternatives / trade-offs.*非binding proposalまたはNo proposal理由.*validation expectation.*`Selected Target Discussion Evidence`' 'HIGH selected Target discussion evidence gate'
 Assert-Contains $highAgent '抽象的なTarget Mapまたはdiscussion evidence' 'HIGH abstract discussion rejection'
+Assert-Contains $highAgent 'locked boundary、cross-file responsibility、public / shared internal contract、dependency direction、wiring architecture、state semantics、またはtest architectureに影響する複数の妥当な案' 'HIGH non-local alternatives boundary'
+Assert-NotContains $highAgent '(?m)^- 複数の妥当な実装案から trade-off 判断が必要$' 'unbounded HIGH alternatives retention rule'
 Assert-Contains $highAgent '(?s)Target Map presentation evidenceは全Targetのuser-facingな具体的file / symbol.*current invariant.*内部設計判断候補.*relevant evidence.*artifact linkまたは論点名だけの要約ではない' 'HIGH concrete Target Map presentation gate'
 Assert-Contains $highAgent '(?s)## Required inputs.*- implementation_route.*- implementation_route_source.*- Design Pair Implementation Handoff path または `N/A`.*`BLOCKED`.*BlockedByInvalidCompletionHandoff' 'HIGH required route input validation'
 Assert-Contains $highAgent '(?s)`Implementation Completion Handoff` には次を含めます。.*- implementation_route.*- implementation_route_source.*- Validation performed' 'HIGH completion handoff route propagation'
@@ -340,6 +342,9 @@ Assert-Contains $standardAgent '(?s)片方が欠ける、矛盾する、また�
 Assert-Contains $standardAgent '(?s)`NEEDS_HIGH_MODEL_REENTRY`は.*Required authorizationを通過.*locked non-local decision.*invalid.*re-entry handoffを作成しません' 'STANDARD locked non-local re-entry boundary'
 Assert-Contains $standardAgent 'locked済みsignatureと配置を持つclass/interface' 'STANDARD locked class and interface implementation authority'
 Assert-Contains $standardAgent 'DI / factory / entrypoint wiringの実コード作成' 'STANDARD locked wiring implementation authority'
+Assert-Contains $standardAgent '複数案からの選択によってlocked non-local decisionを新設または変更すること' 'STANDARD prohibited alternatives boundary'
+Assert-Contains $standardAgent '複数案からの選択によってlocked non-local decisionを新設または変更する必要がある' 'STANDARD alternatives re-entry boundary'
+Assert-NotContains $standardAgent '(?m)^- 複数の設計案からの選択$|(?m)^- 複数の妥当な設計案から選択する必要がある$' 'unbounded STANDARD alternatives prohibition'
 Assert-Contains $standardAgent '(?s)## Output.*通常はすべてのverdict.*唯一の例外.*`Verdict: BLOCKED`.*BlockedByInvalidCompletionHandoff.*raw observed value.*`<missing>`.*外部blocker.*完全なunchanged identity.*- implementation_route.*- implementation_route_source.*- Design Pair handoff path または `N/A`' 'STANDARD conditional route identity output'
 Assert-NotContains $standardAgent '(?m)^すべてのverdictでincoming route identityを変更せず返します。$' 'unconditional STANDARD route identity output'
 
@@ -358,6 +363,7 @@ foreach ($toml in @($adaptiveHighToml)) {
     Assert-Contains $toml 'A topic label, artifact link, or abstract option list alone is invalid' 'portable HIGH abstract discussion rejection'
     Assert-Contains $toml "Require Target Map presentation evidence to reference a user-facing turn that presented every Target's concrete file and symbol, current invariant, internal design decision candidate, and relevant evidence" 'portable HIGH concrete Target Map presentation gate'
     Assert-Contains $toml 'An artifact link, Target ID, or topic summary alone is invalid presentation evidence' 'portable HIGH abstract Target Map rejection'
+    Assert-Contains $toml 'Do not retain implementation merely because multiple local alternatives exist.*only when choosing among alternatives affects a locked boundary' 'portable HIGH non-local alternatives boundary'
 }
 foreach ($toml in @($adaptiveStandardToml)) {
     Assert-Contains $toml 'accept only implementation_route: adaptive with implementation_route_source: default, or implementation_route: design-pair with implementation_route_source: explicit-user-selection' 'portable STANDARD exact route pairs'
@@ -368,6 +374,7 @@ foreach ($toml in @($adaptiveStandardToml)) {
     Assert-Contains $toml 'Reserve NEEDS_HIGH_MODEL_REENTRY for evidence that a locked non-local decision must change' 'portable STANDARD locked non-local re-entry boundary'
     Assert-Contains $toml 'Do not re-enter merely because implementation creates a new file, a locked class or interface, or locked DI or entrypoint wiring' 'portable STANDARD edit-type-only re-entry rejection'
     Assert-Contains $toml "Keep an exact legacy handoff's former narrow Remaining work and Allowed edit surface authority; do not infer 0\.5 fields.*0\.4 current-schema handoff missing 0\.5 fields requires HIGH_MODEL to reissue" 'portable STANDARD legacy and 0.4 current-schema boundary'
+    Assert-Contains $toml 'Do not re-enter merely because multiple local implementation alternatives exist.*only when it requires creating or changing a locked non-local decision' 'portable STANDARD alternatives re-entry boundary'
 }
 
 Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' 'DP-VAL-012: Portable agent route contract' 'portable Design Pair route validation scenario'

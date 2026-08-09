@@ -51,6 +51,7 @@
 ## Implemented
 
 - 実装済みの production code、tests、wiring、代表経路
+- `HIGH_MODEL code changes: No`の場合は`None (inspection-only)`とし、decision closureを支えるinspection evidenceをApplicability evidenceへ記録する
 
 ## Locked decisions
 
@@ -88,7 +89,7 @@ Allowed edit surfaceは全Work PackageのAuthorized surfaceを包含する編集
 - state ownership / error / cancellation / retry semanticsの変更が必要
 - test architecture / seam strategy / harness方針の変更が必要
 - allowed edit surface envelope外へのresponsibility移動が必要
-- 複数の設計案から選択する必要がある
+- 複数案からの選択によってlocked non-local decisionを新設または変更する必要がある
 - Plan と actual code が矛盾する
 
 ## Known assumptions / unresolved observations

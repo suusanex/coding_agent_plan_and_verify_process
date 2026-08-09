@@ -226,7 +226,7 @@ Locked Decision conflict で停止する場合は、少なくとも affected Des
 - repository instructions
 - Design Pair Decision IDs を含む統合済み Locked decisions
 
-HIGH_MODELとSTANDARD_MODELを同時に起動しません。STANDARD_MODELはWork PackagesとAllowed edit surface envelope内のproduction implementation、tests、validationを主体として担当し、locked boundariesを変更しないlocalかつreversibleなimplementation choiceを自律判断できます。
+HIGH_MODELとSTANDARD_MODELを同時に起動しません。STANDARD_MODELはWork PackagesとAllowed edit surface envelope内のproduction implementation、tests、validationを主体として担当し、locked boundariesを変更しないlocalかつreversibleなimplementation choiceを自律判断できます。private helperとinline、branch順序、既存utility、fixture構成などに複数の局所案があること自体はre-entry理由ではありません。
 
 ## Step 5: Handle STANDARD_MODEL result
 

@@ -66,8 +66,11 @@ function Get-Scenario([object]$Document, [string]$Id) {
 }
 
 function Get-ReferenceHandoff([object]$Document) {
-    $event = (Get-Scenario $Document 'A').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION'
-    return Copy-Object $event.handoff
+    $events = @((Get-Scenario $Document 'A').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION')
+    if ($events.Count -ne 1 -or -not (Has-Property $events[0] 'handoff')) {
+        return $null
+    }
+    return Copy-Object $events[0].handoff
 }
 
 function Get-ResolvedHandoff([object]$Event, [object]$Document) {
@@ -83,7 +86,14 @@ function Get-ResolvedHandoff([object]$Event, [object]$Document) {
 
     if ($null -ne $handoff -and (Has-Property $Event 'handoff_override')) {
         $concern = [string]$Event.handoff_override.decision_concern
-        $handoff.decision_closure.$concern.status = [string]$Event.handoff_override.status
+        if ([string]::IsNullOrWhiteSpace($concern) -or
+            -not (Has-Property $handoff 'decision_closure') -or
+            -not (Has-Property $handoff.decision_closure $concern)) {
+            $handoff | Add-Member -NotePropertyName resolution_error -NotePropertyValue "handoff override references unknown decision concern '$concern'"
+        }
+        else {
+            $handoff.decision_closure.$concern.status = [string]$Event.handoff_override.status
+        }
     }
     return $handoff
 }
@@ -113,6 +123,9 @@ function Get-HandoffErrors([object]$Handoff) {
     if ($null -eq $Handoff -or $Handoff.valid -ne $true) {
         $errors.Add('handoff is absent or not marked valid')
         return $errors
+    }
+    if (Has-Property $Handoff 'resolution_error') {
+        $errors.Add([string]$Handoff.resolution_error)
     }
     if ($Handoff.delegation_basis -cne 'non-local-decisions-closed') {
         $errors.Add('delegation basis is not non-local-decisions-closed')
@@ -166,18 +179,24 @@ function Get-HandoffErrors([object]$Handoff) {
         $workById[[string]$workPackage.work_id] = $workPackage
     }
     foreach ($row in $acceptanceRows) {
-        if ($row.status -ceq 'Blocked') {
-            $errors.Add("acceptance item '$($row.acceptance_item)' is Blocked")
+        $status = [string]$row.status
+        if ($status -cnotin @('Complete', 'Incomplete')) {
+            $errors.Add("acceptance item '$($row.acceptance_item)' has unsupported status '$status'")
         }
-        if ($row.status -ceq 'Complete' -and [string]::IsNullOrWhiteSpace([string]$row.evidence)) {
+        if ($status -ceq 'Complete' -and [string]::IsNullOrWhiteSpace([string]$row.evidence)) {
             $errors.Add("complete acceptance item '$($row.acceptance_item)' has no evidence")
         }
-        if ($row.status -ceq 'Incomplete' -and @($row.work_ids).Count -eq 0) {
+        if ($status -ceq 'Incomplete' -and @($row.work_ids).Count -eq 0) {
             $errors.Add("incomplete acceptance item '$($row.acceptance_item)' has no Work ID")
         }
         foreach ($workId in @($row.work_ids)) {
             if (-not $workById.ContainsKey([string]$workId)) {
                 $errors.Add("acceptance item '$($row.acceptance_item)' maps to unknown Work ID '$workId'")
+                continue
+            }
+            $referencedWork = $workById[[string]$workId]
+            if ([string]$row.acceptance_item -cnotin @($referencedWork.acceptance_items)) {
+                $errors.Add("acceptance item '$($row.acceptance_item)' maps to Work ID '$workId', but that Work Package does not declare the acceptance item")
             }
         }
     }
@@ -362,12 +381,17 @@ function Get-ScenarioErrors([object]$Scenario, [object]$Document) {
     return $errors
 }
 
-function Assert-RejectedMutation([string]$Name, [object]$Document, [scriptblock]$Mutate) {
+function Assert-RejectedMutation([string]$Name, [object]$Document, [scriptblock]$Mutate, [string]$ExpectedErrorPattern = '') {
     $copy = Copy-Object $Document
     & $Mutate $copy
     $scenario = Get-Scenario $copy $Name.Substring(0, 1)
-    if (@(Get-ScenarioErrors $scenario $copy).Count -eq 0) {
+    $errors = @(Get-ScenarioErrors $scenario $copy)
+    if ($errors.Count -eq 0) {
         throw "Mutation '$Name' was incorrectly accepted."
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedErrorPattern) -and
+        ($errors.Count -ne 1 -or $errors[0] -cnotmatch $ExpectedErrorPattern)) {
+        throw "Mutation '$Name' was rejected for the wrong reason: $($errors -join '; ')"
     }
 }
 
@@ -420,11 +444,15 @@ Assert-RejectedMutation 'B-change-locked-decision' $document {
 }
 Assert-RejectedMutation 'C-edit-type-only-reentry' $document {
     param($copy)
-    $event = (Get-Scenario $copy 'C').events | Where-Object verdict -CEQ 'COMPLETED'
+    $scenario = Get-Scenario $copy 'C'
+    $event = $scenario.events | Where-Object verdict -CEQ 'COMPLETED'
     $event.verdict = 'NEEDS_HIGH_MODEL_REENTRY'
     $event | Add-Member -NotePropertyName locked_non_local_decision_change_required -NotePropertyValue $false
     $event | Add-Member -NotePropertyName edit_type_only -NotePropertyValue $true
-}
+    $event | Add-Member -NotePropertyName tracked_state_ref -NotePropertyValue 'D'
+    $scenario.expected.final_state = 'HighReentryReady'
+    $scenario.expected.PSObject.Properties.Remove('locked_wiring_implemented')
+} 'without a locked non-local decision change'
 Assert-RejectedMutation 'D-missing-reentry-state' $document {
     param($copy)
     $event = (Get-Scenario $copy 'D').events | Where-Object verdict -CEQ 'NEEDS_HIGH_MODEL_REENTRY'
@@ -446,6 +474,61 @@ Assert-RejectedMutation 'G-accept-unresolved-decision' $document {
     param($copy)
     ((Get-Scenario $copy 'G').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION').expected_rejected = $false
 }
+Assert-RejectedMutation 'G-ambiguous-reference-handoff' $document {
+    param($copy)
+    $scenarioA = Get-Scenario $copy 'A'
+    $referenceEvent = @($scenarioA.events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION')[0]
+    $scenarioA.events = @($scenarioA.events) + (Copy-Object $referenceEvent)
+    $event = (Get-Scenario $copy 'G').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION'
+    $event.handoff_override.status = 'Locked'
+    $event.expected_rejected = $false
+} 'handoff is absent or not marked valid'
+Assert-RejectedMutation 'G-missing-reference-handoff' $document {
+    param($copy)
+    $scenarioA = Get-Scenario $copy 'A'
+    $scenarioA.events = @($scenarioA.events | Where-Object verdict -CNE 'READY_FOR_STANDARD_COMPLETION')
+    $event = (Get-Scenario $copy 'G').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION'
+    $event.handoff_override.status = 'Locked'
+    $event.expected_rejected = $false
+} 'handoff is absent or not marked valid'
+Assert-RejectedMutation 'G-unknown-decision-concern' $document {
+    param($copy)
+    $event = (Get-Scenario $copy 'G').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION'
+    $event.handoff_override.decision_concern = 'unknown_concern'
+    $event.handoff_override.status = 'Locked'
+    $event.expected_rejected = $false
+} 'handoff override references unknown decision concern'
+Assert-RejectedMutation 'G-unsupported-acceptance-status' $document {
+    param($copy)
+    $referenceHandoff = ((Get-Scenario $copy 'A').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION').handoff
+    $referenceHandoff.acceptance_status = @($referenceHandoff.acceptance_status) + [pscustomobject]@{
+        acceptance_item = 'AC-pending'
+        status = 'Pending'
+        work_ids = @()
+        evidence = ''
+    }
+    $event = (Get-Scenario $copy 'G').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION'
+    $event.handoff_override.status = 'Locked'
+    $event.expected_rejected = $false
+} 'unsupported status'
+Assert-RejectedMutation 'G-asymmetric-acceptance-edge' $document {
+    param($copy)
+    $referenceHandoff = ((Get-Scenario $copy 'A').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION').handoff
+    $secondWork = Copy-Object $referenceHandoff.remaining_work[0]
+    $secondWork.work_id = 'RW-2'
+    $secondWork.acceptance_items = @('AC-2')
+    $referenceHandoff.remaining_work = @($referenceHandoff.remaining_work) + $secondWork
+    $referenceHandoff.acceptance_status[0].work_ids = @('RW-1', 'RW-2')
+    $referenceHandoff.acceptance_status = @($referenceHandoff.acceptance_status) + [pscustomobject]@{
+        acceptance_item = 'AC-2'
+        status = 'Incomplete'
+        work_ids = @('RW-2')
+        evidence = 'Decision closure is complete; test implementation remains'
+    }
+    $event = (Get-Scenario $copy 'G').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION'
+    $event.handoff_override.status = 'Locked'
+    $event.expected_rejected = $false
+} 'does not declare the acceptance item'
 Assert-RejectedMutation 'H-redelegate-without-reduction' $document {
     param($copy)
     ((Get-Scenario $copy 'H').events | Where-Object { $_.verdict -ceq 'READY_FOR_STANDARD_COMPLETION' -and $_.expected_rejected -eq $true }).expected_rejected = $false

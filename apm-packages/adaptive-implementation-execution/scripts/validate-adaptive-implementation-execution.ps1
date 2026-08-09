@@ -324,6 +324,8 @@ Assert-Contains $highAgent '(?m)^disable-model-invocation:\s*true\s*$' 'Copilot 
 Assert-Contains $highAgent '(?s)handoffs:.*agent:\s*standard-implementation-completer.*model:\s*GPT-5\.6 Luna \(copilot\)' 'Copilot HIGH bounded completion handoff'
 Assert-Contains $highAgent '第一目的は.*implementation を可能な限り完成させることではありません' 'HIGH_MODEL decision-closure primary objective'
 Assert-Contains $highAgent 'code inspectionだけでdecision closureを証明できる場合.*変更せずに委譲' 'zero-code HIGH delegation'
+Assert-Contains $highAgent 'locked boundary、cross-file responsibility、public / shared internal contract、dependency direction、wiring architecture、state semantics、またはtest architectureに影響する複数の妥当な案' 'HIGH_MODEL non-local alternatives boundary'
+Assert-NotContains $highAgent '(?m)^- 複数の妥当な実装案から trade-off 判断が必要$' 'unbounded HIGH_MODEL alternatives retention rule'
 Assert-Contains $highAgent 'CONTINUE_HIGH_IMPLEMENTATION' 'continue-high verdict'
 Assert-Contains $highAgent 'COMPLETED_BY_HIGH_MODEL' 'high completion verdict'
 Assert-Contains $highAgent 'Allowed edit surface' 'handoff allowed surface'
@@ -366,6 +368,9 @@ Assert-Contains $standardAgent 'Allowed edit surface' 'allowed edit boundary'
 Assert-Contains $standardAgent '通常のimplementation owner' 'STANDARD implementation ownership'
 Assert-Contains $standardAgent 'locked済みsignatureと配置を持つclass/interface' 'STANDARD locked class and interface implementation authority'
 Assert-Contains $standardAgent 'DI / factory / entrypoint wiringの実コード作成' 'STANDARD locked wiring implementation authority'
+Assert-Contains $standardAgent '複数案からの選択によってlocked non-local decisionを新設または変更すること' 'STANDARD prohibited alternatives boundary'
+Assert-Contains $standardAgent '複数案からの選択によってlocked non-local decisionを新設または変更する必要がある' 'STANDARD alternatives re-entry boundary'
+Assert-NotContains $standardAgent '(?m)^- 複数の設計案からの選択$|(?m)^- 複数の妥当な設計案から選択する必要がある$' 'unbounded STANDARD alternatives prohibition'
 Assert-Contains $standardAgent 'Final code review performed|final review status' 'review boundary'
 Assert-Contains $standardAgent 'acceptance status table' 'standard-model acceptance evidence output'
 Assert-Contains $standardAgent '一度 re-entry した後' 'standard-model re-entry ownership'
@@ -429,6 +434,8 @@ Assert-Contains $handoff 'Remaining work mapping \(Work ID\)' 'acceptance-to-wor
 Assert-Contains $handoff 'Work ID.*Acceptance item\(s\)' 'work-to-acceptance mapping columns'
 Assert-Contains $handoff 'Responsibility.*Authorized surface.*Expected behavior.*Locked boundaries.*Local freedom.*Completion check' 'decision-closed Work Package schema'
 Assert-Contains $handoff '`Unresolved`が1件でもあるhandoff.*受理しない' 'unresolved decision closure rejection'
+Assert-Contains $handoff '`HIGH_MODEL code changes: No`の場合は`None \(inspection-only\)`' 'inspection-only Implemented representation'
+Assert-Contains $handoff '複数案からの選択によってlocked non-local decisionを新設または変更する必要がある' 'handoff alternatives re-entry boundary'
 Assert-Contains $handoff '編集許可envelope' 'Allowed edit surface envelope semantics'
 Assert-Contains $handoff '`Blocked` を許可しない' 'blocked acceptance rejection'
 Assert-Contains $handoff 'Origin.*Decision ID.*Decision.*Affected files / symbols.*Validation expectation.*Compliance evidence' 'consolidated locked decision schema'
@@ -513,6 +520,7 @@ foreach ($toml in @($highToml)) {
     Assert-Contains $toml "Require Target Map presentation evidence to reference a user-facing turn that presented every Target's concrete file and symbol, current invariant, internal design decision candidate, and relevant evidence" 'portable HIGH concrete Target Map presentation gate'
     Assert-Contains $toml 'An artifact link, Target ID, or topic summary alone is invalid presentation evidence' 'portable HIGH abstract Target Map rejection'
     Assert-Contains $toml 'keep the original Plan and Upstream Binding Constraints as separate binding inputs without Design Pair Decision IDs' 'portable HIGH upstream binding separation'
+    Assert-Contains $toml 'Do not retain implementation merely because multiple local alternatives exist.*only when choosing among alternatives affects a locked boundary.*cross-file responsibility.*shared contract.*dependency direction.*wiring architecture.*state semantics.*test architecture' 'portable HIGH non-local alternatives boundary'
 }
 foreach ($toml in @($standardToml)) {
     Assert-Contains $toml 'including implementation_route and implementation_route_source, before editing' 'portable STANDARD route authorization'
@@ -526,6 +534,7 @@ foreach ($toml in @($standardToml)) {
     Assert-Contains $toml 'Do not re-enter merely because implementation creates a new file, a locked class or interface, or locked DI or entrypoint wiring' 'portable STANDARD edit-type-only re-entry rejection'
     Assert-Contains $toml "Keep an exact legacy handoff's former narrow Remaining work and Allowed edit surface authority; do not infer 0\.5 fields.*0\.4 current-schema handoff missing 0\.5 fields requires HIGH_MODEL to reissue" 'portable STANDARD legacy and 0.4 current-schema boundary'
     Assert-Contains $toml 'autonomously choose method-body algorithms.*private helpers.*fixtures.*test builders' 'portable STANDARD local implementation autonomy'
+    Assert-Contains $toml 'Do not re-enter merely because multiple local implementation alternatives exist.*only when it requires creating or changing a locked non-local decision' 'portable STANDARD alternatives re-entry boundary'
 }
 
 Assert-NormalizedEqual 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md' '.agents/skills/adaptive-implementation-execution/SKILL.md' 'Adaptive Skill projection'
@@ -620,6 +629,15 @@ Assert-Contains $routingValidator 'Get-ScenarioErrors' 'routing state-machine va
 Assert-Contains $routingValidator 'Assert-RejectedMutation' 'negative routing mutation checks'
 Assert-Contains $routingValidator 'allowedDirectCompletionReasons' 'direct completion reason validation'
 Assert-Contains $routingValidator 'locked_non_local_decision_change_required' 'locked non-local re-entry validation'
+Assert-Contains $routingValidator '(?s)function Get-ReferenceHandoff.*events\.Count -ne 1.*return \$null' 'reference handoff exact-single fail-closed validation'
+Assert-Contains $routingValidator 'handoff override references unknown decision concern' 'unknown decision concern readable failure'
+Assert-Contains $routingValidator "status -cnotin @\('Complete', 'Incomplete'\)" 'complete acceptance status enum validation'
+Assert-Contains $routingValidator 'does not declare the acceptance item' 'acceptance row to Work Package reverse-edge validation'
+Assert-Contains $routingValidator "(?s)C-edit-type-only-reentry.*tracked_state_ref.*'D'.*HighReentryReady" 'edit-type-only mutation uses otherwise valid re-entry state'
+Assert-Contains $routingValidator 'rejected for the wrong reason' 'negative mutation rejection-reason isolation'
+foreach ($mutation in @('G-ambiguous-reference-handoff', 'G-missing-reference-handoff', 'G-unknown-decision-concern', 'G-unsupported-acceptance-status', 'G-asymmetric-acceptance-edge')) {
+    Assert-Contains $routingValidator ([regex]::Escape($mutation)) "routing negative mutation $mutation"
+}
 Assert-Contains $routingValidator 'no evidence or N/A reason' 'decision closure evidence validation'
 Assert-Contains $routingValidator 'bidirectionally mapped' 'acceptance and Work ID bidirectional mapping validation'
 Assert-Contains $routingValidator 'A-incomplete-work-package' 'incomplete Work Package mutation'

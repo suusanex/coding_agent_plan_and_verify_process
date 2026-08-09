@@ -60,7 +60,7 @@ HIGH_MODELとSTANDARD_MODELのwrite-heavy workは並列化しません。非局�
 | Compatibility installer | `scripts/install-adaptive-implementation-local.cs` |
 | Static validator | `scripts/validate-adaptive-implementation-execution.ps1` |
 | APM 0.26.0 remote install smoke | `scripts/validate-adaptive-implementation-apm-smoke.ps1` |
-| Executable route scenarios A-G | `tests/routing-scenarios.json` + `tests/validate-routing-scenarios.ps1` |
+| Executable route scenarios A-J | `tests/routing-scenarios.json` + `tests/validate-routing-scenarios.ps1` |
 | Pre-Design-Pair resume fixture | `docs/examples/legacy-adaptive-handoff.md` |
 
 root `.github/agents/high-implementation-starter.agent.md` と `standard-implementation-completer.agent.md` がportable agent contractです。APM 0.26.0はこれらの root agent と package Skill を target ごとに導入し、Copilotでは`.agent.md`、Codexではmodel-less TOML stubを扱います。両agentは`disable-model-invocation: true`によりagent pickerからの明示選択を維持しつつ、他agentのmodel判断によるsubagent起動を禁止します。`tools`は省略してCopilotの全toolを許可し、Codex変換時のfrontmatter dropを防ぎます。

@@ -117,7 +117,7 @@ Design Pair origin の Locked decisions は Design Pair Decision ID を維持し
 - production wiring architecture、DI lifetime / placement方針の変更判断
 - state ownership、error、cancellation、retry 方針の変更判断
 - test seam、mock boundary、test harness の変更判断
-- 複数の設計案からの選択
+- 複数案からの選択によってlocked non-local decisionを新設または変更すること
 - Plan の前提と actual code の矛盾を局所的なねじ込みで隠すこと
 
 ## Workflow
@@ -142,7 +142,7 @@ Design Pair origin の Locked decisions は Design Pair Decision ID を維持し
 - state ownership / error / cancellation / retry 方針の変更が必要
 - test architecture / seam strategy / mock boundary / test harness方針の変更が必要
 - Allowed edit surface envelope外へproduction responsibilityを移す必要がある
-- 複数の妥当な設計案から選択する必要がある
+- 複数案からの選択によってlocked non-local decisionを新設または変更する必要がある
 - Plan と actual code が矛盾する
 
 re-entry 時は、追加の redesign を行わず次を返します。

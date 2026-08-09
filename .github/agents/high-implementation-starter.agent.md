@@ -97,7 +97,7 @@ Design Pair handoff がある場合は、実装中に各 Design Pair Decision ID
 - error、cancellation、retry、state ownership が未確定
 - test architecture、test seam strategy、harness方針が未確定
 - existing code への局所追加が不自然なねじ込みになる
-- 複数の妥当な実装案から trade-off 判断が必要
+- locked boundary、cross-file responsibility、public / shared internal contract、dependency direction、wiring architecture、state semantics、またはtest architectureに影響する複数の妥当な案からtrade-off判断が必要
 - Plan と existing code の矛盾を解消するには scope または acceptance の変更が必要
 
 Locked Decision 以外の新しい decision surface は停止理由ではありません。この agent が通常どおり判断して実装を続けます。
