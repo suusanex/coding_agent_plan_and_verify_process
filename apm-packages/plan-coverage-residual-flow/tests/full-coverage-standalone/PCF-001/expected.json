@@ -6,6 +6,10 @@
     "ReadyForSliceDecomposition",
     "SL-001",
     "SL-002",
+    "CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES",
+    "GAP_TRIAGED",
+    "RESOLVED_FOR_SELECTED_SCOPE",
+    "SL-002_REVERIFIED",
     "CROSS_SLICE_VERIFIED",
     "READY_TO_CLOSE_WITH_NO_RESIDUALS"
   ],
@@ -23,6 +27,15 @@
     {
       "path": "plans/pcf-001-slice-architecture.md",
       "condition": "ReadyForSliceDecomposition"
+    },
+    {
+      "path": "plans/pcf-001-slice-SL-002-implementation-completion-handoff.md",
+      "condition": "READY_FOR_STANDARD_COMPLETION requires cross-model handoff",
+      "reason_code": "cross-thread-handoff",
+      "slice_id": "SL-002",
+      "owner": "Plan Coverage parent / Adaptive implementation",
+      "classification": "supplemental",
+      "lifecycle": "created only after this row was applied; retained through verification"
     }
   ],
   "slices": [

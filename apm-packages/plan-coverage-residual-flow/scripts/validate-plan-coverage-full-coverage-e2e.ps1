@@ -28,7 +28,7 @@ function Find-OneFile([string]$Root, [string]$Leaf, [string]$Purpose) {
 }
 
 function Get-MarkdownTemplate([string]$Text, [string]$HeadingPattern, [string]$Name) {
-    $pattern = '(?ms)^```md\s*\n(?<template>' + $HeadingPattern + '.*?)^```\s*$'
+    $pattern = '(?ms)^```md[ \t]*\n(?<template>' + $HeadingPattern + '.*?)(?:\n^```[ \t]*$)'
     $match = [regex]::Match($Text, $pattern)
     if (-not $match.Success) {
         throw "$Name markdown template is missing."
@@ -55,6 +55,14 @@ function Add-TemplateShapeErrors(
             $Errors.Add("$Name is missing required heading: $heading")
         }
     }
+    foreach ($field in @($templateLines | Where-Object { $_ -cmatch '^- [^:]+:' } | ForEach-Object {
+        [regex]::Match($_, '^- (?<label>[^:]+):').Groups['label'].Value
+    } | Select-Object -Unique)) {
+        $fieldPattern = '^- ' + [regex]::Escape($field) + ':'
+        if (-not (@($artifactLines | Where-Object { $_ -cmatch $fieldPattern }).Count -gt 0)) {
+            $Errors.Add("$Name is missing required field: $field")
+        }
+    }
     for ($index = 0; $index -lt ($templateLines.Count - 1); $index++) {
         if ($templateLines[$index] -cmatch '^\|.*\|\s*$' -and $templateLines[$index + 1] -cmatch '^\|(?:\s*:?-+:?\s*\|)+\s*$') {
             $required = Get-NormalizedTableHeader $templateLines[$index]
@@ -78,13 +86,17 @@ function Resolve-ContractAuthority {
         'implementation-handoff-review.agent.md',
         'verification-kernel.agent.md',
         'cross-slice-verification-kernel.agent.md',
-        'residual-decision-gate.agent.md'
+        'residual-decision-gate.agent.md',
+        'coverage-gap-triage.agent.md',
+        'coverage-gap-resolution-slice.agent.md',
+        'implementation-contract-review-kernel.agent.md'
     )
     if ([string]::IsNullOrWhiteSpace($InstalledRoot)) {
         $files = [ordered]@{
             PlanCoverageSkill = Join-Path $packageRoot '.apm/skills/plan-coverage-residual-flow/SKILL.md'
             SliceLivingRecord = Join-Path $packageRoot '.apm/skills/plan-coverage-residual-flow/references/full-coverage-slice-living-record.md'
             FullCoverageClose = Join-Path $packageRoot '.apm/skills/plan-coverage-residual-flow/references/full-coverage-close.md'
+            CoverageLedger = Join-Path $packageRoot '.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md'
         }
         foreach ($leaf in $agentLeaves) {
             $files[$leaf] = Join-Path $repoRoot ".github/agents/$leaf"
@@ -96,6 +108,7 @@ function Resolve-ContractAuthority {
             PlanCoverageSkill = Join-Path $resolvedInstalledRoot '.agents/skills/plan-coverage-residual-flow/SKILL.md'
             SliceLivingRecord = Join-Path $resolvedInstalledRoot '.agents/skills/plan-coverage-residual-flow/references/full-coverage-slice-living-record.md'
             FullCoverageClose = Join-Path $resolvedInstalledRoot '.agents/skills/plan-coverage-residual-flow/references/full-coverage-close.md'
+            CoverageLedger = Join-Path $resolvedInstalledRoot '.agents/skills/plan-coverage-residual-flow/references/coverage-ledger.md'
         }
         foreach ($leaf in $agentLeaves) {
             $files[$leaf] = Find-OneFile $resolvedInstalledRoot $leaf "installed agent $leaf"
@@ -120,7 +133,7 @@ function Get-FixtureErrors([string]$Root, [System.Collections.IDictionary]$Autho
         return $errors
     }
 
-    $requiredOrder = 'ReadyForRiskTriage,full-coverage,ReadyForSliceDecomposition,SL-001,SL-002,CROSS_SLICE_VERIFIED,READY_TO_CLOSE_WITH_NO_RESIDUALS'
+    $requiredOrder = 'ReadyForRiskTriage,full-coverage,ReadyForSliceDecomposition,SL-001,SL-002,CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES,GAP_TRIAGED,RESOLVED_FOR_SELECTED_SCOPE,SL-002_REVERIFIED,CROSS_SLICE_VERIFIED,READY_TO_CLOSE_WITH_NO_RESIDUALS'
     if ((@($expected.stage_order) -join ',') -cne $requiredOrder) {
         $errors.Add('Stage order must keep cross-slice verification before residual decision.')
     }
@@ -146,9 +159,33 @@ function Get-FixtureErrors([string]$Root, [System.Collections.IDictionary]$Autho
         $errors.Add('The two-slice base durable artifact budget must be 8 and no greater than 6 + executable slices.')
     }
 
+    $allowedExceptionReasons = @('cross-thread-handoff', 'parallel-write-isolation', 'human-approval-wait', 'external-audit-evidence', 'record-size-limit')
     foreach ($conditional in @($expected.conditional_artifacts)) {
         if ([string]::IsNullOrWhiteSpace([string]$conditional.path) -or [string]::IsNullOrWhiteSpace([string]$conditional.condition)) {
             $errors.Add('Every conditional artifact needs path and condition.')
+        }
+        if (-not [string]::IsNullOrWhiteSpace([string]$conditional.reason_code)) {
+            if ($allowedExceptionReasons -cnotcontains [string]$conditional.reason_code) {
+                $errors.Add("Conditional artifact has an invalid exception reason: $($conditional.path)")
+            }
+            $targetSlice = @($expected.slices | Where-Object { $_.id -ceq [string]$conditional.slice_id })
+            if ($targetSlice.Count -ne 1) {
+                $errors.Add("Exception artifact must identify one target slice: $($conditional.path)")
+            }
+            else {
+                $targetRecordPath = Join-Path $Root ([string]$targetSlice[0].living_record)
+                if (Test-Path -LiteralPath $targetRecordPath -PathType Leaf) {
+                    $targetRecord = Get-NormalizedText $targetRecordPath
+                    $exceptionPattern = '(?m)^\|\s*' + [regex]::Escape("``$($conditional.path)``") +
+                        '\s*\|\s*' + [regex]::Escape("``$($conditional.reason_code)``") +
+                        '\s*\|.*\|\s*' + [regex]::Escape([string]$conditional.owner) +
+                        '\s*\|\s*' + [regex]::Escape([string]$conditional.classification) +
+                        '\s*\|\s*' + [regex]::Escape([string]$conditional.lifecycle) + '\s*\|$'
+                    if ($targetRecord -cnotmatch $exceptionPattern) {
+                        $errors.Add("Artifact exception row is missing or not pre-applied: $($conditional.path)")
+                    }
+                }
+            }
         }
     }
     $declaredPaths = @('README.md') + $basePaths + @($expected.conditional_artifacts | ForEach-Object { [string]$_.path })
@@ -176,10 +213,16 @@ function Get-FixtureErrors([string]$Root, [System.Collections.IDictionary]$Autho
     }
 
     $plansRoot = Join-Path $Root 'plans'
-    $separatePattern = '^pcf-001-slice-SL-\d{3}-(?:change-risk-triage|implementation-contract-kernel|runtime-contract-kernel|test-design-kernel|implementation-handoff-review|implementation-execution|verification-kernel)\.md$'
+    $separatePattern = '^pcf-001-slice-SL-\d{3}-(?:change-risk-triage|implementation-contract-kernel|runtime-contract-kernel|test-design-kernel|implementation-handoff-review|implementation-completion-handoff|implementation-execution|verification-kernel|coverage-gap-triage|coverage-gap-resolution-slice)\.md$'
     foreach ($file in @(Get-ChildItem -LiteralPath $plansRoot -File -ErrorAction SilentlyContinue)) {
         if ($file.Name -cmatch $separatePattern) {
-            $errors.Add("Separate per-slice artifact bypassed Artifact Creation Gate: $($file.Name)")
+            $relativePath = "plans/$($file.Name)"
+            $declaredException = @($expected.conditional_artifacts | Where-Object {
+                $_.path -ceq $relativePath -and -not [string]::IsNullOrWhiteSpace([string]$_.reason_code)
+            })
+            if ($declaredException.Count -ne 1) {
+                $errors.Add("Separate per-slice artifact bypassed Artifact Creation Gate: $($file.Name)")
+            }
         }
     }
     if (@(Get-ChildItem -LiteralPath $plansRoot -Filter '*.md' -File).Count -ne ($baseExpected + @($expected.conditional_artifacts).Count)) {
@@ -189,10 +232,12 @@ function Get-FixtureErrors([string]$Root, [System.Collections.IDictionary]$Autho
 
     $livingTemplate = Get-MarkdownTemplate (Get-NormalizedText $Authority['SliceLivingRecord']) '# SL-xxx: <slice name>' 'Slice Living Record'
     $closeTemplate = Get-MarkdownTemplate (Get-NormalizedText $Authority['FullCoverageClose']) '# Full-Coverage Close Record' 'Full-Coverage Close Record'
+    $ledgerTemplate = Get-NormalizedText $Authority['CoverageLedger']
     $decomposition = Get-NormalizedText (Join-Path $Root 'plans/pcf-001-slice-decomposition.md')
     $ledger = Get-NormalizedText (Join-Path $Root ([string]$expected.coverage_ledger))
     $close = Get-NormalizedText (Join-Path $Root ([string]$expected.full_coverage_close))
     Add-TemplateShapeErrors $errors $close $closeTemplate 'Full-Coverage Close Record'
+    Add-TemplateShapeErrors $errors $ledger $ledgerTemplate 'Coverage Ledger'
 
     if ($decomposition -cnotmatch '(?m)^- artifact_mode: slice-living-record$' -or $decomposition -cnotmatch '(?m)^- Base expected total: 8$') {
         $errors.Add('Decomposition must record Living Record mode and the base artifact budget.')
@@ -214,7 +259,7 @@ function Get-FixtureErrors([string]$Root, [System.Collections.IDictionary]$Autho
         if ($record -cmatch '(?m)^- Architecture compatibility: (?:Drift|Unclear)$') {
             $errors.Add("$($slice.id) architecture Drift or Unclear must fail closed.")
         }
-        if ($record -cnotmatch '(?m)^- Implementation route: adaptive / default$' -or $record -cnotmatch '`COMPLETED_BY_HIGH_MODEL`' -or $record -cnotmatch '(?m)^### Implementation Self-Map$') {
+        if ($record -cnotmatch '(?m)^- Implementation route: adaptive / default$' -or $record -cnotmatch '`(?:COMPLETED_BY_HIGH_MODEL|COMPLETED)`' -or $record -cnotmatch '(?m)^### Implementation Self-Map$') {
             $errors.Add("$($slice.id) must aggregate Adaptive evidence and the Implementation Self-Map.")
         }
         if ($record -cnotmatch '(?m)^- Formal verification-kernel verdict: `PARENT_PLAN_VERIFIED`$' -or $record -cnotmatch '(?m)^- Fake / stub / mock assessment: no substitute used\.$') {
@@ -243,6 +288,26 @@ function Get-FixtureErrors([string]$Root, [System.Collections.IDictionary]$Autho
     if ($close -cnotmatch '(?m)^- Formal cross-slice-verification-kernel verdict: `CROSS_SLICE_VERIFIED`$' -or $close -cnotmatch 'src/StartupFlow\.ps1') {
         $errors.Add('Cross-slice verification must use production wiring and its formal verdict.')
     }
+    if ($close -cnotmatch '(?m)^\| `CROSS-PARTIAL-001` \| Cross-Slice Verification .*\| FixNowSelected \|.*\| Yes \|$') {
+        $errors.Add('The partial cross-slice verdict delta must be applied before the repair loop.')
+    }
+    $repairRecord = Get-NormalizedText (Join-Path $Root 'plans/pcf-001-slice-SL-002.md')
+    if ($close -cnotmatch '(?m)^- Trigger verdict: `CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES`$' -or
+        $close -cnotmatch '(?m)^- Selected gap selectors: `GAP-001`$' -or
+        $close -cnotmatch '(?m)^- Target Slice Living Records: `plans/pcf-001-slice-SL-002\.md`$' -or
+        $close -cnotmatch '(?m)^- Repair verdicts: `GAP-001=RESOLVED_FOR_SELECTED_SCOPE`$' -or
+        $close -cnotmatch '(?m)^- Slice re-verification verdicts: `SL-002=PARENT_PLAN_VERIFIED`$' -or
+        $close -cnotmatch '(?m)^- Cross-slice rerun verdict: `CROSS_SLICE_VERIFIED`$') {
+        $errors.Add('Full-Coverage Close Record does not preserve the FixNow repair and re-verification loop.')
+    }
+    if ($repairRecord -cnotmatch '(?m)^## Gap Repair Evidence$' -or
+        $repairRecord -cnotmatch '(?m)^- Selected selectors: `GAP-001`$' -or
+        $repairRecord -cnotmatch '(?m)^- Repair verdict: `RESOLVED_FOR_SELECTED_SCOPE`$' -or
+        $repairRecord -cnotmatch '(?m)^- Re-verification required: Yes; completed with `PARENT_PLAN_VERIFIED`$' -or
+        $repairRecord -cnotmatch '(?m)^\| `SL-002-REPAIR-001` \| Gap Repair .*\| Yes \|$' -or
+        $repairRecord -cnotmatch '(?m)^\| `SL-002-REVERIFY-001` \| Verification Rerun .*\| Yes \|$') {
+        $errors.Add('SL-002 Living Record does not contain applied repair and re-verification evidence.')
+    }
     if ($close -cnotmatch '(?m)^- Required slices independently verified: `SL-001=PARENT_PLAN_VERIFIED`, `SL-002=PARENT_PLAN_VERIFIED`$') {
         $errors.Add('Every required slice must be independently verified before cross-slice verification.')
     }
@@ -251,6 +316,9 @@ function Get-FixtureErrors([string]$Root, [System.Collections.IDictionary]$Autho
     }
     if ($close.IndexOf('## Cross-Slice Verification', [StringComparison]::Ordinal) -gt $close.IndexOf('## Residual Decision', [StringComparison]::Ordinal)) {
         $errors.Add('Residual Decision appears before Cross-Slice Verification.')
+    }
+    if ($close.IndexOf('## FixNow Repair Loop', [StringComparison]::Ordinal) -gt $close.IndexOf('## Residual Decision', [StringComparison]::Ordinal)) {
+        $errors.Add('Residual Decision appears before the conditional FixNow repair loop is consumed.')
     }
     if ($close -cmatch '(?m)^\| `(?:CROSS-VERIFY|RESIDUAL)-[^|]+\|.*\| No \|$') {
         $errors.Add('Close record contains a pending Coverage Ledger Delta.')
@@ -288,7 +356,8 @@ function Assert-FixtureValid([string]$Root, [string]$Context, [System.Collection
     if ($errors.Count -gt 0) { throw "$Context failed fixture validation:`n- $($errors -join "`n- ")" }
 }
 
-function Set-TextReplacement([string]$Path, [string]$Old, [string]$New) {
+$script:ReplaceText = {
+    param([string]$Path, [string]$Old, [string]$New)
     [System.IO.File]::WriteAllText($Path, ([System.IO.File]::ReadAllText($Path)).Replace($Old, $New), [System.Text.UTF8Encoding]::new($false))
 }
 
@@ -324,22 +393,26 @@ try {
     $record1 = 'plans/pcf-001-slice-SL-001.md'
     $record2 = 'plans/pcf-001-slice-SL-002.md'
     $closePath = 'plans/pcf-001-full-coverage-close.md'
-    Assert-NegativeMutationFails 'missing-required-section' { param($r) Set-TextReplacement (Join-Path $r $record1) '## Runtime Contract' '## Omitted Runtime Contract' } $authority
+    Assert-NegativeMutationFails 'missing-required-section' { param($r) & $script:ReplaceText (Join-Path $r $record1) '## Runtime Contract' '## Omitted Runtime Contract' } $authority
+    Assert-NegativeMutationFails 'missing-required-field' { param($r) & $script:ReplaceText (Join-Path $r $closePath) '- Production wiring verified: PASS via `src/StartupFlow.ps1`' '- Removed production wiring field' } $authority
+    Assert-NegativeMutationFails 'coverage-ledger-schema-missing' { param($r) & $script:ReplaceText (Join-Path $r 'plans/pcf-001-coverage-ledger.md') '## Residual Decision Ledger' '## Omitted Residual Decision Ledger' } $authority
     Assert-NegativeMutationFails 'owner-outside-section' { param($r) Add-Content -LiteralPath (Join-Path $r $record1) '- Unauthorized section write attempted: Runtime Contract by verification-kernel' } $authority
     foreach ($verdict in @('Drift', 'Unclear')) {
-        Assert-NegativeMutationFails "architecture-$($verdict.ToLowerInvariant())" { param($r) Set-TextReplacement (Join-Path $r $record2) '- Architecture compatibility: Match' "- Architecture compatibility: $verdict" }.GetNewClosure() $authority
+        Assert-NegativeMutationFails "architecture-$($verdict.ToLowerInvariant())" { param($r) & $script:ReplaceText (Join-Path $r $record2) '- Architecture compatibility: Match' "- Architecture compatibility: $verdict" }.GetNewClosure() $authority
     }
-    Assert-NegativeMutationFails 'missing-independent-verification' { param($r) Set-TextReplacement (Join-Path $r $record2) '- Formal verification-kernel verdict: `PARENT_PLAN_VERIFIED`' '- Formal verification-kernel verdict: pending' } $authority
-    Assert-NegativeMutationFails 'missing-production-binding' { param($r) Set-TextReplacement (Join-Path $r 'expected.json') 'src/StartupFlow.ps1' 'src/MissingStartupFlow.ps1' } $authority
-    Assert-NegativeMutationFails 'fake-only-evidence' { param($r) Set-TextReplacement (Join-Path $r $record1) '- Fake / stub / mock assessment: no substitute used.' '- Fake / stub / mock assessment: fake-only evidence.' } $authority
-    Assert-NegativeMutationFails 'xc-field-continuity-missing' { param($r) Set-TextReplacement (Join-Path $r $record1) 'XC-001' 'XC-MISSING' } $authority
-    Assert-NegativeMutationFails 'mapping-missing' { param($r) Set-TextReplacement (Join-Path $r $record1) 'CASE-001' 'CASE-MISSING' } $authority
-    Assert-NegativeMutationFails 'pending-before-verification' { param($r) Set-TextReplacement (Join-Path $r $record1) '| Yes |' '| No |' } $authority
-    Assert-NegativeMutationFails 'pending-before-close' { param($r) Set-TextReplacement (Join-Path $r $closePath) '- Pending Coverage Ledger Delta count: 0' '- Pending Coverage Ledger Delta count: 1' } $authority
-    Assert-NegativeMutationFails 'ledger-contradiction' { param($r) Set-TextReplacement (Join-Path $r $closePath) '- Canonical ledger consistency: PASS' '- Canonical ledger consistency: FAIL' } $authority
+    Assert-NegativeMutationFails 'missing-independent-verification' { param($r) & $script:ReplaceText (Join-Path $r $record2) '- Formal verification-kernel verdict: `PARENT_PLAN_VERIFIED`' '- Formal verification-kernel verdict: pending' } $authority
+    Assert-NegativeMutationFails 'missing-production-binding' { param($r) & $script:ReplaceText (Join-Path $r 'expected.json') 'src/StartupFlow.ps1' 'src/MissingStartupFlow.ps1' } $authority
+    Assert-NegativeMutationFails 'fake-only-evidence' { param($r) & $script:ReplaceText (Join-Path $r $record1) '- Fake / stub / mock assessment: no substitute used.' '- Fake / stub / mock assessment: fake-only evidence.' } $authority
+    Assert-NegativeMutationFails 'xc-field-continuity-missing' { param($r) & $script:ReplaceText (Join-Path $r $record1) 'XC-001' 'XC-MISSING' } $authority
+    Assert-NegativeMutationFails 'mapping-missing' { param($r) & $script:ReplaceText (Join-Path $r $record1) 'CASE-001' 'CASE-MISSING' } $authority
+    Assert-NegativeMutationFails 'pending-before-verification' { param($r) & $script:ReplaceText (Join-Path $r $record1) '| Yes |' '| No |' } $authority
+    Assert-NegativeMutationFails 'pending-before-close' { param($r) & $script:ReplaceText (Join-Path $r $closePath) '- Pending Coverage Ledger Delta count: 0' '- Pending Coverage Ledger Delta count: 1' } $authority
+    Assert-NegativeMutationFails 'ledger-contradiction' { param($r) & $script:ReplaceText (Join-Path $r $closePath) '- Canonical ledger consistency: PASS' '- Canonical ledger consistency: FAIL' } $authority
+    Assert-NegativeMutationFails 'repair-loop-skipped' { param($r) & $script:ReplaceText (Join-Path $r $closePath) '- Cross-slice rerun verdict: `CROSS_SLICE_VERIFIED`' '- Cross-slice rerun verdict: skipped' } $authority
+    Assert-NegativeMutationFails 'tracked-handoff-without-exception' { param($r) & $script:ReplaceText (Join-Path $r $record2) '| `plans/pcf-001-slice-SL-002-implementation-completion-handoff.md` | `cross-thread-handoff` |' '| removed | removed |' } $authority
     Assert-NegativeMutationFails 'ungated-separate-artifact' { param($r) Copy-Item (Join-Path $r $record1) (Join-Path $r 'plans/pcf-001-slice-SL-001-runtime-contract-kernel.md') } $authority
-    Assert-NegativeMutationFails 'artifact-budget-exceeded' { param($r) Set-TextReplacement (Join-Path $r 'plans/pcf-001-slice-decomposition.md') '- Base expected total: 8' '- Base expected total: 9' } $authority
-    Assert-NegativeMutationFails 'required-slice-unverified' { param($r) Set-TextReplacement (Join-Path $r $closePath) '`SL-002=PARENT_PLAN_VERIFIED`' '`SL-002=PENDING`' } $authority
+    Assert-NegativeMutationFails 'artifact-budget-exceeded' { param($r) & $script:ReplaceText (Join-Path $r 'plans/pcf-001-slice-decomposition.md') '- Base expected total: 8' '- Base expected total: 9' } $authority
+    Assert-NegativeMutationFails 'required-slice-unverified' { param($r) & $script:ReplaceText (Join-Path $r $closePath) '`SL-002=PARENT_PLAN_VERIFIED`' '`SL-002=PENDING`' } $authority
     Assert-NegativeMutationFails 'residual-before-cross' {
         param($r)
         $path = Join-Path $r 'expected.json'
@@ -348,7 +421,7 @@ try {
         [System.IO.File]::WriteAllText($path, $text, [System.Text.UTF8Encoding]::new($false))
     } $authority
     Assert-NegativeMutationFails 'forced-legacy-migration' { param($r) Add-Content -LiteralPath (Join-Path $r 'README.md') 'Compatibility normalization: forced migration' } $authority
-    Assert-NegativeMutationFails 'mixed-artifact-mode' { param($r) Set-TextReplacement (Join-Path $r $record2) '- artifact_mode: slice-living-record' '- artifact_mode: legacy-separate' } $authority
+    Assert-NegativeMutationFails 'mixed-artifact-mode' { param($r) & $script:ReplaceText (Join-Path $r $record2) '- artifact_mode: slice-living-record' '- artifact_mode: legacy-separate' } $authority
     Assert-NegativeMutationFails 'removed-three-layer-semantics' { param($r) Add-Content -LiteralPath (Join-Path $r $record1) '## Parent Authorization' } $authority
 
     $expected = Get-Content -Raw -LiteralPath (Join-Path $fixtureRoot 'expected.json') | ConvertFrom-Json

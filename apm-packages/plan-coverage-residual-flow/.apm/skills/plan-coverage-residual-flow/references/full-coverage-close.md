@@ -26,6 +26,15 @@ The Plan Coverage parent/router is the only repository writer. `cross-slice-veri
 - Behavior Case evidence:
 - Remaining gaps:
 
+## FixNow Repair Loop
+
+- Trigger verdict:
+- Selected gap selectors:
+- Target Slice Living Records:
+- Repair verdicts:
+- Slice re-verification verdicts:
+- Cross-slice rerun verdict:
+
 ## Coverage Ledger Delta
 
 | Delta ID | Source phase | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Applied to canonical ledger? |
@@ -54,6 +63,10 @@ Required order:
 all required slices independently verified
 -> no pending slice ledger delta
 -> cross-slice-verification-kernel section delta
+-> if CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES: target-slice triage delta
+-> one bounded gap-resolution pass and Gap Repair Evidence delta
+-> affected slice verification rerun
+-> cross-slice-verification-kernel rerun
 -> apply CROSS ledger delta
 -> residual-decision-gate section delta
 -> apply residual ledger delta
@@ -61,4 +74,4 @@ all required slices independently verified
 -> close readiness
 ```
 
-The close record does not authorize implementation and does not introduce Parent Authorization, Parent Orchestration State, a scheduler, or a parallel orchestration layer.
+`CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES` must not flow directly to Residual Decision. The Plan Coverage parent records repair-loop history in this close record, while triage, repair, and slice re-verification details are applied to the affected Slice Living Records. The close record does not authorize implementation and does not introduce Parent Authorization, Parent Orchestration State, a scheduler, or a parallel orchestration layer.

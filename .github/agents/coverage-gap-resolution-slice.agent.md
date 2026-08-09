@@ -15,6 +15,19 @@ You are the "Coverage Gap Resolution Slice" agent.
 
 この agent は guardrail kernel chain の最後の segment に位置し、`coverage-gap-triage.agent.md` または `verification-kernel.agent.md` の実行後に動作します。
 
+## Slice Living Record mode
+
+caller が次の routing metadata を渡した場合、通常の `coverage-gap-resolution-slice.md` を作成せず、対象 Slice Living Record の `Gap Repair Evidence` section delta と Coverage Ledger Delta を返してください。
+
+```yaml
+artifact_mode: slice-living-record
+living_record_path: plans/<slug>-slice-SL-xxx.md
+canonical_coverage_ledger: plans/<slug>-coverage-ledger.md
+output_contract: section-delta
+```
+
+この mode でも selected selectors に必要な bounded production / test 修正は実行できます。ただし、Living Record と canonical Coverage Ledger の repository writer は Plan Coverage parent/router だけです。この agent は両 canonical artifact を直接変更せず、修正 evidence を delta として返します。修復後の formal verdict を自己付与せず、必ず `verification-kernel.agent.md` の再実行を要求してください。
+
 ## Shared instruction
 
 この agent 固有のルールを適用する前に、`.github/instructions/plan-coverage-shared.instructions.md` の共通 guardrail も適用してください。Plan source-of-truth、fake-only completion の禁止、residual explicit decision、Handoff Packet discipline、bounded reading は shared instruction を共通の参照元とします。
@@ -289,7 +302,34 @@ evidence が不足している場合は、coverage status を成功扱いにし�
 
 ## Required output
 
-出力ファイル: `plans/<ticket-or-slug>-coverage-gap-resolution-slice.md`
+通常 mode の出力ファイル: `plans/<ticket-or-slug>-coverage-gap-resolution-slice.md`
+
+Slice Living Record mode の出力:
+
+```md
+## Section Delta
+
+- Target record: plans/<slug>-slice-SL-xxx.md
+- Target section: Gap Repair Evidence
+- Semantic owner: coverage-gap-resolution-slice
+- Replace owned section: Yes
+
+## Gap Repair Evidence
+
+- Selected selectors:
+- Production / test changes:
+- Targeted validation:
+- Repair verdict: RESOLVED_FOR_SELECTED_SCOPE / PARTIAL_RESOLUTION / BLOCKED / ESCALATE
+- Re-verification required: Yes
+- Remaining repair scope:
+
+## Coverage Ledger Delta
+
+| Delta ID | Source phase | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Applied to canonical ledger? |
+| --- | --- | --- | --- | --- | --- | --- |
+```
+
+`Applied to canonical ledger?` は parent 適用前には `No` とし、repair verdict は formal verification verdict の代わりにしてはいけません。
 
 ```md
 # Coverage Gap Resolution Slice 結果
@@ -375,7 +415,7 @@ canonical coverage ledger が存在する場合、または source coverage arti
 
 ## Repository write policy
 
-この agent が行ってよい repository への書き込みは次のものに限ります。
+通常 mode でこの agent が行ってよい repository への書き込みは次のものに限ります。Slice Living Record mode では、下記の production / test code 変更は許可されますが、output/status artifact、Living Record、canonical Coverage Ledger の書き込みは Plan Coverage parent/router に返す delta に置き換えます。
 
 - `plans/<ticket-or-slug>-coverage-gap-resolution-slice.md` の作成または更新（output artifact）
 - `plans/<ticket-or-slug>-implementation-contract-kernel.md` の作成または更新（implementation-realization gap の precondition を満たす場合のみ）

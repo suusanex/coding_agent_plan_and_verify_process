@@ -51,6 +51,21 @@ You are the "Coverage Gap Triage" agent.
 
 この agent は、既存の coverage gap を分類するだけです。production code・test code の変更・実装は行いません。source artifact の status を complete に更新してはいけません。すでに complete であるという evidence が input artifacts に存在する場合は、`AlreadyCoveredButDocumentationStale` として分類し、後続の documentation update slice に渡してください。
 
+### Slice Living Record mode
+
+caller が次の routing metadata を渡した場合、separate triage artifact を作成せず、対象 Slice Living Record の section delta を返してください。
+
+```yaml
+artifact_mode: slice-living-record
+living_record_path: plans/<slug>-slice-SL-xxx.md
+canonical_coverage_ledger: plans/<slug>-coverage-ledger.md
+output_contract: section-delta
+```
+
+source は対象 Living Record の `Verification Result` / `Slice Residuals / Handoff`、または caller が指定した Full-Coverage Close Record の `CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES` selector です。cross-slice selector は必ず 1 つの target Slice Living Record へ対応付けてください。安全に一意化できない selector は FixNow にせず、blocking / broader-scope classification として返します。
+
+この mode の semantic owner は `Slice Residuals / Handoff` です。Plan Coverage parent/router が唯一の Living Record / canonical ledger writerであり、この agent は repository file を直接変更しません。
+
 ### Selected items only
 
 入力された source artifact に存在する項目だけを対象にしてください。新しい contract や test point を発見・追加してはいけません。
@@ -234,9 +249,9 @@ Gap type は `## Embedded process policy` の `Gap type precedence` に従って
 
 ### Step 5. Write output
 
-`plans/<ticket-or-slug>-coverage-gap-triage.md` に output を書き出してください。適切な slug を決められない場合は inline で出力してください。
+通常 mode では `plans/<ticket-or-slug>-coverage-gap-triage.md` に output を書き出してください。適切な slug を決められない場合は inline で出力してください。
 
-この agent が行える repository write は `plans/<ticket-or-slug>-coverage-gap-triage.md` の作成または更新だけです。production code、test code、Plan documents、Runtime Contract Kernel、Test Design Kernel、implementation coverage documents は変更してはいけません。
+通常 mode でこの agent が行える repository write は `plans/<ticket-or-slug>-coverage-gap-triage.md` の作成または更新だけです。production code、test code、Plan documents、Runtime Contract Kernel、Test Design Kernel、implementation coverage documents は変更してはいけません。Slice Living Record mode では repository write を行いません。
 
 ---
 
@@ -299,6 +314,33 @@ Gap type は `## Embedded process policy` の `Gap type precedence` に従って
 ---
 
 ## Required output structure
+
+Slice Living Record mode では、通常 artifact の内容を次の delta shapeへ投影します。
+
+```md
+## Section Delta
+
+- Target record: plans/<slug>-slice-SL-xxx.md
+- Target section: Slice Residuals / Handoff
+- Semantic owner: coverage-gap-triage
+- Replace owned section: Yes
+
+## Slice Residuals / Handoff
+
+- FixNow candidates: <stable downstream selectors>
+- Manual verification candidates:
+- NeedsHumanDecision:
+- Cross-slice verification dependencies:
+- Remaining blocking items:
+- Recommended next step:
+
+## Coverage Ledger Delta
+
+| Delta ID | Source phase | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Applied to canonical ledger? |
+| --- | --- | --- | --- | --- | --- | --- |
+```
+
+`Applied to canonical ledger?` は parent 適用前には `No` とします。
 
 ```md
 # Coverage Gap Triage

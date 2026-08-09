@@ -12,7 +12,7 @@
 - design_pair_interaction_stage: not-started
 - Canonical Coverage Ledger: `plans/pcf-001-coverage-ledger.md`
 - Current architecture baseline: `plans/pcf-001-slice-architecture.md` via current readiness verdict
-- Artifact exceptions: none
+- Artifact exceptions: tracked implementation completion handoff registered before cross-model delegation.
 
 ## Slice Plan / Scope
 
@@ -70,6 +70,10 @@
 
 N/A - the approved consumer functions and production startup address are explicit.
 
+### Independent Review
+
+N/A - no explicit review-only fallback was invoked.
+
 ## Runtime Contract
 
 | Contract ID | Scenario | Producer | Consumer | Message / API / Event | Required fields | Error / timeout behavior | Production implementation address | Verification hook |
@@ -101,7 +105,7 @@ N/A - the approved consumer functions and production startup address are explici
 ## Implementation Evidence
 
 - Implementation route: adaptive / default
-- Model / owner sequence: HIGH_MODEL -> `COMPLETED_BY_HIGH_MODEL`
+- Model / owner sequence: HIGH_MODEL -> `READY_FOR_STANDARD_COMPLETION` -> STANDARD_MODEL -> `COMPLETED`
 - Files / symbols changed: `src/ConsumerGate.ps1`, `src/StartupFlow.ps1`
 - Validation performed: implementation-local syntax/load check passed after `SL-001=PARENT_PLAN_VERIFIED`.
 - Acceptance evidence: accepting and rejecting production paths implemented; independent verifier remained separate.
@@ -112,6 +116,15 @@ N/A - the approved consumer functions and production startup address are explici
 | Change ID | Change | File / Symbol | Reason | Related Plan item | Related Behavior Case IDs | Related SL / XC / RC / TP / IC / Gap item | Assumption made | Review hint |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `SL-002-IMPL-001` | add consumer gate and startup binding | `src/ConsumerGate.ps1`, `src/StartupFlow.ps1` | implement approved consumer role and wiring | `FR-002`, `AC-001`, `AC-002` | `CASE-001`, `CASE-002` | `SL-002`, `XC-001`, `RC-002`, `TP-002`, `TP-003` | none | verify both accepting and rejecting paths |
+
+## Gap Repair Evidence
+
+- Selected selectors: `GAP-001`
+- Production / test changes: corrected the bounded `SL-002` startup acceptance wiring and retained the negative-path verifier.
+- Targeted validation: `tests/verify-sl-002.ps1` and `tests/verify-cross-slice.ps1` passed after the repair.
+- Repair verdict: `RESOLVED_FOR_SELECTED_SCOPE`
+- Re-verification required: Yes; completed with `PARENT_PLAN_VERIFIED`
+- Remaining repair scope: none
 
 ## Verification Result
 
@@ -129,6 +142,9 @@ N/A - the approved consumer functions and production startup address are explici
 | `SL-002-READY-001` | Inline Ready Gate | `FR-002`, `AC-001`, `AC-002`, `CASE-001`, `CASE-002` | Planned | ReadyForImplementation | formal handoff verdict and architecture Match | Yes |
 | `SL-002-IMPL-001` | Adaptive implementation | `FR-002` | ReadyForImplementation | Implemented | production consumer and startup implementation applied | Yes |
 | `SL-002-VERIFY-001` | Verification | `FR-002`, `AC-002`, `CASE-001`, `CASE-002` | Implemented | VerifiedInSlice | independent positive and negative verifier passed | Yes |
+| `SL-002-TRIAGE-001` | Gap Triage | `GAP-001`, `AC-001`, `XC-001` | CrossSliceFixCandidate | FixNowSelected | target slice and bounded selector classified | Yes |
+| `SL-002-REPAIR-001` | Gap Repair | `GAP-001`, `AC-001`, `XC-001` | FixNowSelected | RepairedPendingVerification | bounded production wiring repair and targeted tests passed | Yes |
+| `SL-002-REVERIFY-001` | Verification Rerun | `GAP-001`, `AC-001`, `XC-001` | RepairedPendingVerification | VerifiedInSlice | independent slice verification rerun returned PARENT_PLAN_VERIFIED | Yes |
 
 ## Slice Residuals / Handoff
 
@@ -143,4 +159,4 @@ N/A - the approved consumer functions and production startup address are explici
 
 | Path | Reason code | Why separate artifact is required | Owner | Canonical or supplemental | Lifecycle |
 | --- | --- | --- | --- | --- | --- |
-| none | N/A | no exception artifact | Plan Coverage parent | supplemental | N/A |
+| `plans/pcf-001-slice-SL-002-implementation-completion-handoff.md` | `cross-thread-handoff` | HIGH to STANDARD cross-model delegation requires tracked state | Plan Coverage parent / Adaptive implementation | supplemental | created only after this row was applied; retained through verification |

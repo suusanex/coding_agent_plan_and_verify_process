@@ -29,8 +29,9 @@
 - Parent acceptance condition forbidden states must be carried into the cross-slice verification artifact and denied by evidence before a pass verdict is allowed.
 - Stateful cross-slice contracts must check both producer state and consumer gate. Startup, recovery, async worker, durable state, and state-machine consistency cannot be closed by source-structure evidence alone.
 - Reruns must include previous gap / residual closure delta. A previous gap cannot be closed with evidence of the same or weaker strength than the evidence previously judged insufficient.
-- Cross-slice verification is not the final close gate. Unresolved items must go through `residual-decision-gate.agent.md`.
-- `coverage-gap-resolution-slice.agent.md` is used only when coverage-gap-triage or residual-decision-gate emits an explicit FixNow selector.
+- Cross-slice verification is not the final close gate. `CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES` first returns to the affected Slice Living Record for triage, one bounded repair pass, slice re-verification, and cross-slice rerun. It must not flow directly to Residual Decision.
+- `coverage-gap-resolution-slice.agent.md` is used only when coverage-gap-triage or another permitted direct-selector source emits an explicit FixNow selector. In Living Record mode it returns `Gap Repair Evidence` and Coverage Ledger Delta instead of creating a separate result artifact.
+- A tracked Implementation Completion Handoff may be created only after the parent applies an exact-path `cross-thread-handoff` Artifact Exception row to the target Slice Living Record.
 
 ## Minimal chain
 
@@ -50,13 +51,16 @@ Parent Plan Kernel
   → Independent Verification section delta
 → Full-Coverage Close Record
   → Cross-Slice Verification Kernel section delta
+  → If FixNow candidates: target-slice triage delta
+    → one bounded Gap Repair Evidence delta
+    → affected slice Verification rerun
+    → Cross-Slice Verification rerun
   → Residual Decision Gate section delta
-→ FixNow repair only when explicit selector exists
 ```
 
 ## Bounded slice execution
 
-Each executable `plans/<slug>-slice-SL-xxx.md` is both a bounded Slice Plan and its canonical Living Record. Agents run only the selected pre-implementation semantics and return their owned section delta; they do not create separate slice-local gate artifacts. Before Adaptive Implementation, the Plan Coverage parent reconfirms baseline freshness and the Inline Ready Gate must record a current-baseline `Match`; `Drift` or `Unclear` blocks implementation and returns to the architecture gate. Adaptive returns its normal result and Implementation Self-Map Delta for parent aggregation. Independent `verification-kernel` then returns Verification Result, Coverage Ledger Delta, and Slice Residuals / Handoff deltas.
+Each executable `plans/<slug>-slice-SL-xxx.md` is both a bounded Slice Plan and its canonical Living Record. Agents run only the selected pre-implementation semantics and return their owned section or subsection delta; they do not create separate slice-local gate artifacts. Before Adaptive Implementation, the Plan Coverage parent reconfirms baseline freshness and the Inline Ready Gate must record a current-baseline `Match`; `Drift` or `Unclear` blocks implementation and returns to the architecture gate. Adaptive returns its normal result and Implementation Self-Map Delta for parent aggregation. A tracked completion handoff requires a pre-applied Artifact Exception. Independent `verification-kernel` then returns Verification Result, Coverage Ledger Delta, and Slice Residuals / Handoff deltas; any later repair is recorded in `Gap Repair Evidence` and followed by a verification rerun.
 
 The base durable artifact budget is five parent control-plane artifacts, one Living Record per executable slice, and one final close record. Conditional Behavior Spec, Slice Architecture, and Design Pair artifacts are counted separately. Any other artifact requires a recorded Artifact Creation Gate reason. Existing pre-redesign runs retain explicit legacy/separate mode and are not silently migrated or mixed with the new mode.
 

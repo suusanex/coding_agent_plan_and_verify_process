@@ -45,11 +45,24 @@ You are the "Implementation Contract Review Kernel" agent.
 - **Kernel/full coexistence**: この agent は full-flow `implementation-contract-review.agent.md` を置き換えない。bounded run 用の lightweight verdict gate として使う。
 - **Review-only fallback**: この agent は implementation contract を生成・修正しない。通常の readiness 判定は `implementation-contract-kernel.agent.md` の self-check verdict を source とし、この agent はその verdict を explicit fallback として検査するだけです。
 
+### Slice Living Record mode
+
+caller が次の routing metadata を渡した場合、separate review artifact を作成せず、Slice Living Record の owned subsection delta を返してください。
+
+```yaml
+artifact_mode: slice-living-record
+living_record_path: plans/<slug>-slice-SL-xxx.md
+canonical_coverage_ledger: plans/<slug>-coverage-ledger.md
+output_contract: section-delta
+```
+
+この mode では `Implementation Contract Decisions` の既存 kernel decision を読み、`Implementation Contract Decisions / Independent Review` subsection だけを semantic owner として扱います。親 section 全体、別 subsection、別 slice、canonical ledger を直接変更してはいけません。Plan Coverage parent/router が唯一の repository writer です。
+
 ## Runtime inputs
 
 1. bounded Plan（`plans/<ticket-or-slug>.md`）
 2. change-risk-triage output（`plans/<ticket-or-slug>-change-risk-triage.md`）
-3. implementation-contract-kernel output（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）。`Self-check / Readiness verdict` が存在しない旧 artifact の場合は compatibility review として扱う
+3. implementation-contract-kernel output（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）。Slice Living Record mode では指定された Living Record の `Implementation Contract Decisions` section。`Self-check / Readiness verdict` が存在しない旧 artifact の場合は compatibility review として扱う
 4. optional: previous review output（`plans/<ticket-or-slug>-implementation-contract-review-kernel.md`）
 
 ## Target profile
@@ -97,11 +110,31 @@ required artifacts が欠けている場合は `NEEDS_HUMAN_DECISION` または�
 
 ### Step 4. Write output and stop
 
-出力先:
+通常 mode の出力先:
 
 - `plans/<ticket-or-slug>-implementation-contract-review-kernel.md`
 
-この agent が repository に書き込めるのはこの output artifact のみです。
+通常 mode でこの agent が repository に書き込めるのはこの output artifact のみです。Slice Living Record mode では repository file を書かず、次の delta を caller へ返します。
+
+```md
+## Section Delta
+
+- Target record: plans/<slug>-slice-SL-xxx.md
+- Target section: Implementation Contract Decisions / Independent Review
+- Semantic owner: implementation-contract-review-kernel
+- Replace owned subsection: Yes
+
+### Independent Review
+
+<verdict、blocking/non-blocking findings、review evidence、recommended next step>
+
+## Coverage Ledger Delta
+
+| Delta ID | Source phase | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Applied to canonical ledger? |
+| --- | --- | --- | --- | --- | --- | --- |
+```
+
+`Applied to canonical ledger?` は parent 適用前には `No` とします。
 
 ---
 

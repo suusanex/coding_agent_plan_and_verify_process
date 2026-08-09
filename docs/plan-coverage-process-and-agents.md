@@ -201,19 +201,17 @@ This is the canonical Plan Coverage route.
 5. If triage recommends `full-coverage`, run `architecture-slice-readiness.agent.md`
 6. If needed, run `architecture-elaboration.agent.md` and rerun readiness; stop on human decision or blocking architecture residual
 7. Run `plan-slice-decomposition.agent.md` only for `ReadyForSliceDecomposition` or `ArchitectureNotRequired`
-8. Run each resulting slice through the bounded Plan網羅チェック・残件判定フロー:
-   - `implementation-contract-kernel.agent.md`, when implementation-realization risk is present
-   - `implementation-contract-review-kernel.agent.md`, only as an explicit review-only fallback for the implementation contract self-check verdict
-   - `runtime-contract-kernel.agent.md`
-   - `test-design-kernel.agent.md`
-   - `implementation-handoff-review.agent.md`
+8. For each executable slice, use its canonical Slice Living Record instead of re-entering a fresh bounded Plan Coverage run. Existing semantic agents return owned section deltas; the Plan Coverage parent/router alone applies Living Record and canonical Coverage Ledger changes:
+   - slice-local `change-risk-triage.agent.md`
+   - `implementation-contract-kernel.agent.md` when implementation-realization risk is present, with `implementation-contract-review-kernel.agent.md` only as an explicit `Implementation Contract Decisions / Independent Review` fallback
+   - `runtime-contract-kernel.agent.md`, `test-design-kernel.agent.md`, and `implementation-handoff-review.agent.md` as selected by slice risk
    - when explicitly selected, Design Pair Target Map presentation and mandatory `AWAITING_USER_INPUT` boundary
-   - Adaptive implementation by the canonical HIGH -> optional STANDARD -> HIGH route
-   - `verification-kernel.agent.md`
-9. When decomposition was used, run `cross-slice-verification-kernel.agent.md`
-10. `coverage-gap-triage.agent.md`, when FixNow candidates or unresolved implementation coverage items need classification and no complete `Direct FixNow selectors` table exists
-11. `residual-decision-gate.agent.md`, when residual / manual / human-decision candidates remain
-12. `coverage-gap-resolution-slice.agent.md`, only when verification-kernel, coverage-gap-triage, or residual-decision-gate emits an explicit FixNow selector
+   - Adaptive implementation by the canonical HIGH -> optional STANDARD -> HIGH route, with tracked completion handoff creation gated by a pre-applied `Artifact Exceptions` row
+   - independent `verification-kernel.agent.md`, followed by atomic application of its section and ledger deltas
+9. After all required slices are independently verified with no pending delta, create one Full-Coverage Close Record and run `cross-slice-verification-kernel.agent.md`.
+10. If the cross-slice verdict is `CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES`, do not run Residual Decision. Route selectors to affected Slice Living Records, run Living Record-aware `coverage-gap-triage.agent.md` unless a complete direct selector permits bypass, run one bounded `coverage-gap-resolution-slice.agent.md` pass, rerun affected slice verification, and rerun cross-slice verification.
+11. Run `residual-decision-gate.agent.md` only after cross-slice verification or its repair-loop rerun returns a verdict that permits residual classification, then apply its close-record section and ledger delta.
+12. Stop or return to the appropriate upstream gate when a repair cannot be mapped to one bounded target slice, remains broader than `fix-slice`, or produces a repeated unresolved candidate.
 
 Implementation handoff must include:
 

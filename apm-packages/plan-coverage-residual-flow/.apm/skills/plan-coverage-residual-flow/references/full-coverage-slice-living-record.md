@@ -62,6 +62,10 @@ The Plan Coverage parent/router is the only repository writer for this record an
 
 N/A when no implementation-realization analysis is required.
 
+### Independent Review
+
+N/A unless `implementation-contract-review-kernel` is explicitly invoked as a review-only fallback.
+
 ## Runtime Contract
 
 N/A when no Guardrail Focus runtime contract is required.
@@ -94,6 +98,15 @@ N/A when no Test Design Kernel is required.
 
 | Change ID | Change | File / Symbol | Reason | Related Plan item | Related Behavior Case IDs | Related SL / XC / RC / TP / IC / Gap item | Assumption made | Review hint |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+## Gap Repair Evidence
+
+- Selected selectors:
+- Production / test changes:
+- Targeted validation:
+- Repair verdict:
+- Re-verification required:
+- Remaining repair scope:
 
 ## Verification Result
 
@@ -133,11 +146,13 @@ N/A when no Test Design Kernel is required.
 | Parent / Behavior Mapping | `plan-slice-decomposition` | Plan Coverage parent |
 | Cross-Slice Contracts / Field Continuity | `plan-slice-decomposition` | Plan Coverage parent |
 | Slice Risk / Guardrail Selection | `change-risk-triage` slice-local delta mode | Plan Coverage parent |
-| Implementation Contract Decisions | `implementation-contract-kernel` | Plan Coverage parent |
+| Implementation Contract Decisions, excluding Independent Review | `implementation-contract-kernel` | Plan Coverage parent |
+| Implementation Contract Decisions / Independent Review | `implementation-contract-review-kernel` | Plan Coverage parent |
 | Runtime Contract | `runtime-contract-kernel` | Plan Coverage parent |
 | Test Design | `test-design-kernel` | Plan Coverage parent |
 | Inline Ready Gate | `implementation-handoff-review` | Plan Coverage parent |
 | Implementation Evidence / Implementation Self-Map | Adaptive result aggregation | Plan Coverage parent |
+| Gap Repair Evidence | `coverage-gap-resolution-slice` in Living Record mode | Plan Coverage parent |
 | Verification Result | `verification-kernel` | Plan Coverage parent |
 | Coverage Ledger Delta | semantic owner of the source phase | Plan Coverage parent |
 | Slice Residuals / Handoff | verification / gap classification | Plan Coverage parent |
@@ -172,7 +187,7 @@ It returns:
 | --- | --- | --- | --- | --- | --- | --- |
 ```
 
-The parent validates target path, target section, semantic owner, current section, and stable Delta IDs, then applies both writes atomically. It marks a delta `Applied` only after the canonical ledger write succeeds. Verification fails closed when any earlier authorization or implementation delta is pending. Close fails closed when any delta is pending or when the record contradicts the canonical ledger (`SourceOfTruthDrift`).
+The target may be an explicitly owned subsection such as `Implementation Contract Decisions / Independent Review`; replacing that subsection must not replace its parent section or sibling content. The parent validates target path, target section or subsection, semantic owner, current body, and stable Delta IDs, then applies both writes atomically. It marks a delta `Applied` only after the canonical ledger write succeeds. Verification fails closed when any earlier authorization, implementation, or gap-repair delta is pending. Close fails closed when any delta is pending or when the record contradicts the canonical ledger (`SourceOfTruthDrift`).
 
 ## Artifact Creation Gate
 
@@ -184,4 +199,4 @@ A separate slice-local artifact is allowed only after the parent records an `Art
 - `external-audit-evidence`
 - `record-size-limit`
 
-The exception is supplemental unless the existing contract explicitly requires otherwise. It must not replace the parent Plan, Slice Living Record, or canonical Coverage Ledger. Different slices may progress in parallel because they have different records; multiple writers must not edit the same slice record concurrently.
+The exception row records the exact slice-scoped path, reason code, why the Living Record is insufficient, owner, canonical/supplemental status, and lifecycle, and the parent applies the row before file creation. The separate artifact is supplemental unless the existing contract explicitly requires otherwise. It must not replace the parent Plan, Slice Living Record, or canonical Coverage Ledger. Different slices may progress in parallel because they have different records; multiple writers must not edit the same slice record concurrently. Before Adaptive is invoked, a tracked `plans/<slug>-slice-SL-xxx-implementation-completion-handoff.md` requires a pre-applied `cross-thread-handoff` row and the registered path must be supplied to Adaptive; an inline handoff does not.

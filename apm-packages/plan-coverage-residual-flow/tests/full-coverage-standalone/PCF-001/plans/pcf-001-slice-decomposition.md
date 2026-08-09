@@ -178,9 +178,10 @@ Split by producer and consumer ownership; preserve the production entrypoint as 
 ## Execution order
 
 1. Update the `SL-001` Living Record by section delta, require architecture `Match`, aggregate Adaptive Implementation evidence, and run independent verification.
-2. Update the `SL-002` Living Record after `SL-001=PARENT_PLAN_VERIFIED` and pending ledger delta count 0, using the same sequence.
-3. Cross-Slice Verification after both bounded Plan verdicts are `PARENT_PLAN_VERIFIED`.
-4. Residual Decision after `CROSS_SLICE_VERIFIED`.
+2. Before HIGH to STANDARD delegation for `SL-002`, apply its tracked-handoff Artifact Exception row, create the supplemental completion handoff, finish implementation, and verify the slice after `SL-001=PARENT_PLAN_VERIFIED` with pending ledger delta count 0.
+3. Run Cross-Slice Verification after both bounded Plan verdicts are `PARENT_PLAN_VERIFIED`.
+4. Consume `CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES` through target-slice triage, one bounded repair pass, `SL-002` re-verification, and a cross-slice verification rerun.
+5. Run Residual Decision only after the rerun returns `CROSS_SLICE_VERIFIED`.
 
 ## Artifact Budget
 
@@ -189,8 +190,8 @@ Split by producer and consumer ownership; preserve the production entrypoint as 
 - Slice Living Records: 2
 - Final close artifact: 1
 - Base expected total: 8
-- Conditional artifacts: Behavior Spec (`Expansion required: Yes`); Slice Architecture (`ReadyForSliceDecomposition`)
-- Exceptions: none
+- Conditional artifacts: Behavior Spec (`Expansion required: Yes`); Slice Architecture (`ReadyForSliceDecomposition`); tracked `SL-002` Implementation Completion Handoff (`READY_FOR_STANDARD_COMPLETION`)
+- Exceptions: `plans/pcf-001-slice-SL-002-implementation-completion-handoff.md` / `cross-thread-handoff`, pre-applied in the `SL-002` Living Record
 
 ## Final cross-slice verification requirements
 

@@ -186,11 +186,15 @@ if ($failures.Count -eq 0) {
     $asrValidationDocumentation = Get-NormalizedText (Join-Path $repoRoot $asrValidationDocumentationRelativePath)
     $sliceLivingRecord = Get-NormalizedText (Join-Path $repoRoot $sliceLivingRecordRelativePath)
     $fullCoverageClose = Get-NormalizedText (Join-Path $repoRoot $fullCoverageCloseRelativePath)
-    Assert-Matches $skill 'documentation_level: standard.*selected_process: full-coverage.*artifact_mode: slice-living-record' 'full-coverage must keep documentation level separate from artifact mode'
+    Assert-Matches $skill '(?m)^documentation_level: standard$' 'full-coverage must record the standard documentation level'
+    Assert-Matches $skill '(?m)^selected_process: full-coverage$' 'full-coverage must record the selected process'
+    Assert-Matches $skill '(?m)^artifact_mode: slice-living-record$' 'full-coverage must record Living Record artifact mode'
     Assert-Matches $skill 'Do not re-enter each executable slice as a new standard Plan Coverage run' 'full-coverage slices must use the Living Record lifecycle instead of fresh standard re-entry'
     Assert-Matches $skill 'Plan Coverage parent/router is the only repository writer for Slice Living Records and the canonical Coverage Ledger' 'Plan Coverage parent must own both canonical writes'
     Assert-Matches $skill 'base durable artifact budget is `5 \+ executable slice count \+ 1`.*at most `6 \+ executable slice count`' 'full-coverage artifact budget must be explicit'
     Assert-Matches $skill 'cross-thread-handoff.*parallel-write-isolation.*human-approval-wait.*external-audit-evidence.*record-size-limit' 'Artifact Creation Gate reason codes must be complete'
+    Assert-Matches $skill 'Before invoking Adaptive.*parent must first apply a matching `Artifact Exceptions` row.*`cross-thread-handoff`.*implementation-completion-handoff\.md' 'tracked completion handoff must pass the Artifact Creation Gate'
+    Assert-Matches $skill 'CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES.*do not run `residual-decision-gate\.agent\.md`.*coverage-gap-triage\.agent\.md.*coverage-gap-resolution-slice\.agent\.md.*rerun `verification-kernel\.agent\.md`.*rerun `cross-slice-verification-kernel\.agent\.md`' 'FixNow candidates must complete the Living Record repair and re-verification loop before residual decision'
     Assert-Matches $skill 'pre-redesign artifact with no mode.*existing artifact set clearly matches the old contract.*do not silently migrate' 'legacy resume must be recognized without forced migration'
     Assert-Matches $decomposition 'canonical Living Record baseline' 'decomposition must produce Living Record baselines'
     Assert-Matches $decomposition '(?m)^## Artifact Budget\s*$' 'decomposition must emit an Artifact Budget'
@@ -199,6 +203,7 @@ if ($failures.Count -eq 0) {
     Assert-Matches $sliceLivingRecord '(?m)^## Section delta protocol\s*$' 'Living Record reference must define section delta protocol'
     Assert-Matches $sliceLivingRecord '(?m)^## Artifact Creation Gate\s*$' 'Living Record reference must define Artifact Creation Gate'
     Assert-Matches $fullCoverageClose 'cross-slice-verification-kernel.*residual-decision-gate.*separate semantic owners' 'close reference must preserve separate semantic owners'
+    Assert-Matches $fullCoverageClose '(?m)^## FixNow Repair Loop\s*$' 'close reference must preserve conditional FixNow repair history'
     Assert-Matches $skill 'Architecture baseline compatibility' 'Plan Coverage parent must own the pre-slice architecture compatibility check'
     Assert-Matches $skill 'Only a current-baseline `Match` may proceed.*`Drift` returns to Architecture Slice Readiness / Elaboration.*`Unclear` fails closed' 'Plan Coverage must fail closed on architecture Drift or Unclear'
     Assert-Matches $sharedInstructions 'Only `Match` may proceed to implementation.*`Drift` returns to Architecture Slice Readiness / Elaboration.*`Unclear` fails closed' 'shared guardrails must require Match before full-coverage implementation'
@@ -213,7 +218,10 @@ if ($failures.Count -eq 0) {
         @{ Path = '.github/agents/runtime-contract-kernel.agent.md'; Section = 'Runtime Contract'; Owner = 'runtime-contract-kernel' },
         @{ Path = '.github/agents/test-design-kernel.agent.md'; Section = 'Test Design'; Owner = 'test-design-kernel' },
         @{ Path = '.github/agents/implementation-handoff-review.agent.md'; Section = 'Inline Ready Gate'; Owner = 'implementation-handoff-review' },
-        @{ Path = '.github/agents/verification-kernel.agent.md'; Section = 'Verification Result'; Owner = 'verification-kernel' }
+        @{ Path = '.github/agents/verification-kernel.agent.md'; Section = 'Verification Result'; Owner = 'verification-kernel' },
+        @{ Path = '.github/agents/coverage-gap-triage.agent.md'; Section = 'Slice Residuals / Handoff'; Owner = 'coverage-gap-triage' },
+        @{ Path = '.github/agents/coverage-gap-resolution-slice.agent.md'; Section = 'Gap Repair Evidence'; Owner = 'coverage-gap-resolution-slice' },
+        @{ Path = '.github/agents/implementation-contract-review-kernel.agent.md'; Section = 'Implementation Contract Decisions / Independent Review'; Owner = 'implementation-contract-review-kernel' }
     )
     foreach ($contract in $sectionDeltaContracts) {
         $contractText = Get-NormalizedText (Join-Path $repoRoot $contract.Path)
@@ -221,7 +229,7 @@ if ($failures.Count -eq 0) {
         Assert-Matches $contractText 'output_contract: section-delta' "$($contract.Path) must require section-delta output"
         Assert-Matches $contractText ([regex]::Escape("Target section: $($contract.Section)")) "$($contract.Path) must target its owned section"
         Assert-Matches $contractText ([regex]::Escape("Semantic owner: $($contract.Owner)")) "$($contract.Path) must identify its semantic owner"
-        Assert-Matches $contractText 'Plan Coverage parent/router.*only|Plan Coverage parent/router.*唯一' "$($contract.Path) must leave repository writes to the parent"
+        Assert-Matches $contractText 'Plan Coverage parent/router.*(?:only|唯一|だけ)' "$($contract.Path) must leave repository writes to the parent"
     }
     $crossContract = Get-NormalizedText (Join-Path $repoRoot '.github/agents/cross-slice-verification-kernel.agent.md')
     $residualContract = Get-NormalizedText (Join-Path $repoRoot '.github/agents/residual-decision-gate.agent.md')

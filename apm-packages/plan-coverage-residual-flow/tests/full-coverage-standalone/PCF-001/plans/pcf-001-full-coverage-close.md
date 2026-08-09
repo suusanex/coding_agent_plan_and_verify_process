@@ -24,11 +24,21 @@
 | `FR-001`, `AC-001`, `CASE-001` | `SL-001`, `SL-002` | `XC-001`, `RC-001`, `RC-002`, `TP-001`, `TP-002` | `src/StartupFlow.ps1`, `tests/verify-cross-slice.ps1` | Done |
 | `FR-002`, `AC-002`, `CASE-002` | `SL-002` | `XC-001`, `RC-002`, `TP-003` | production rejection observation | Done |
 
+## FixNow Repair Loop
+
+- Trigger verdict: `CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES`
+- Selected gap selectors: `GAP-001`
+- Target Slice Living Records: `plans/pcf-001-slice-SL-002.md`
+- Repair verdicts: `GAP-001=RESOLVED_FOR_SELECTED_SCOPE`
+- Slice re-verification verdicts: `SL-002=PARENT_PLAN_VERIFIED`
+- Cross-slice rerun verdict: `CROSS_SLICE_VERIFIED`
+
 ## Coverage Ledger Delta
 
 | Delta ID | Source phase | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Applied to canonical ledger? |
 | --- | --- | --- | --- | --- | --- | --- |
-| `CROSS-VERIFY-001` | Cross-Slice Verification | `FR-001`, `FR-002`, `AC-001`, `AC-002`, `CASE-001`, `CASE-002`, `XC-001` | VerifiedInSlice / CrossSlicePending | Verified | executed production startup and rejection postconditions | Yes |
+| `CROSS-PARTIAL-001` | Cross-Slice Verification | `GAP-001`, `AC-001`, `XC-001` | VerifiedInSlice / CrossSlicePending | FixNowSelected | first cross-slice pass emitted a bounded target-slice selector | Yes |
+| `CROSS-VERIFY-001` | Cross-Slice Verification Rerun | `FR-001`, `FR-002`, `AC-001`, `AC-002`, `CASE-001`, `CASE-002`, `XC-001` | FixNowSelected / VerifiedInSlice | Verified | executed production startup and rejection postconditions after repair and slice re-verification | Yes |
 | `RESIDUAL-001` | Residual Decision | all parent items and cases | Verified / ResidualDecisionPending | CloseReady | no residual candidate and canonical ledger complete | Yes |
 
 ## Residual Decision

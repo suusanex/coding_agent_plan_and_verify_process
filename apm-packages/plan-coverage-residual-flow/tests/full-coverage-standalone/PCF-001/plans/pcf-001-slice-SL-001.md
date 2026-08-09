@@ -68,6 +68,10 @@
 
 N/A - the approved production path and API surface are explicit in the Slice Architecture and decomposition.
 
+### Independent Review
+
+N/A - no explicit review-only fallback was invoked.
+
 ## Runtime Contract
 
 | Contract ID | Scenario | Producer | Consumer | Message / API / Event | Required fields | Error / timeout behavior | Production implementation address | Verification hook |
@@ -109,6 +113,15 @@ N/A - the approved production path and API surface are explicit in the Slice Arc
 | Change ID | Change | File / Symbol | Reason | Related Plan item | Related Behavior Case IDs | Related SL / XC / RC / TP / IC / Gap item | Assumption made | Review hint |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `SL-001-IMPL-001` | add producer restore output | `src/ProducerState.ps1` / `Restore-ProducerSnapshot` | implement approved producer role | `FR-001`, `AC-001` contribution | `CASE-001` | `SL-001`, `XC-001`, `RC-001`, `TP-001` | none | verify exact field continuity |
+
+## Gap Repair Evidence
+
+- Selected selectors: N/A
+- Production / test changes: N/A
+- Targeted validation: N/A
+- Repair verdict: N/A
+- Re-verification required: No
+- Remaining repair scope: none
 
 ## Verification Result
 

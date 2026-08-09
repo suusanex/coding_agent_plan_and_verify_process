@@ -40,6 +40,7 @@ Architecture Slice Readiness / Elaboration
   -> independent per-slice verification
   -> one Full-Coverage Close Record
      -> Cross-Slice Verification
+     -> conditional target-slice triage / repair / re-verification / cross-slice rerun
      -> Residual Decision
 ```
 
@@ -281,9 +282,9 @@ Full mode may continue to use detailed runtime evidence, scenario ledgers, integ
 
 Full mode is not a substitute for missing Plan readiness. If the ambiguity is that source behavior has not been expanded or mapped to the Plan, the flow must return to behavior expansion or human decision before any full-coverage decomposition.
 
-Inside Plan Coverage, `full-coverage` is self-contained: Architecture Slice Readiness / Elaboration precedes decomposition; every executable slice becomes one canonical Slice Living Record; existing semantic agents return owned section deltas; each slice is independently verified; then Cross-Slice Verification and Residual Decision update one Full-Coverage Close Record in that order. The Plan Coverage parent and `implementation-handoff-review` enforce the current-baseline `Match` requirement immediately before slice implementation.
+Inside Plan Coverage, `full-coverage` is self-contained: Architecture Slice Readiness / Elaboration precedes decomposition; every executable slice becomes one canonical Slice Living Record; existing semantic agents return owned section deltas; each slice is independently verified; then Cross-Slice Verification and Residual Decision update one Full-Coverage Close Record in that order. A `CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES` result conditionally returns to the affected Living Record for triage, bounded repair, slice re-verification, and a cross-slice rerun before Residual Decision. The Plan Coverage parent and `implementation-handoff-review` enforce the current-baseline `Match` requirement immediately before slice implementation.
 
-`documentation_level: standard` still selects the semantic rigor; `artifact_mode: slice-living-record` separately selects the durable full-coverage layout. The parent/router is the only Living Record and canonical ledger writer. A two-slice base run uses at most eight durable artifacts before explicitly conditioned artifacts. Pre-redesign separate-artifact runs may resume without forced migration.
+`documentation_level: standard` still selects the semantic rigor; `artifact_mode: slice-living-record` separately selects the durable full-coverage layout. The parent/router is the only Living Record and canonical ledger writer. A two-slice base run uses at most eight durable artifacts before explicitly conditioned artifacts. A tracked Implementation Completion Handoff requires a pre-applied exact-path Artifact Exception; review-only fallback and gap repair otherwise remain subsection/section deltas. Pre-redesign separate-artifact runs may resume without forced migration.
 
 ## Agent design implications
 
