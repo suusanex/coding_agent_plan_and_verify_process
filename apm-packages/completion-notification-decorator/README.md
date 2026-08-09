@@ -6,16 +6,17 @@ The package contains no custom agent or generic process runner. It includes chec
 
 ## Install or update
 
-From this repository root, install the package, then use either the canonical repository installer or the installed package asset:
+To install into a work repository, run the following from the target root and point `$sourceRoot` at this repository checkout. The package smoke validates this local package path from a separate consumer repository.
 
 ```powershell
-apm install .\apm-packages\completion-notification-decorator --target codex,agent-skills
+$sourceRoot = "C:\path\to\coding_agent_plan_and_verify_process"
+apm install "$sourceRoot\apm-packages\completion-notification-decorator" --target codex,agent-skills
 dotnet run --file .\.agents\skills\completion-notification-decorator\assets\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --dry-run
 dotnet run --file .\.agents\skills\completion-notification-decorator\assets\codex-notification-runtime\install-codex-notification-runtime-local.cs -- install
 dotnet run --file .\.agents\skills\completion-notification-decorator\assets\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --check
 ```
 
-The runtime installer configures exactly one Local Spool provider. Its default folder is `%LOCALAPPDATA%\CodexNotificationRuntime\spool`; `CODEX_NOTIFICATION_SPOOL_HOME` can supply an absolute override. Restart Codex after changing the user-level runtime configuration.
+The runtime installer configures exactly one Local Spool provider for the current OS user. Its default folder is `%LOCALAPPDATA%\CodexNotificationRuntime\spool`; `CODEX_NOTIFICATION_SPOOL_HOME` can supply an absolute override. Run it once for each OS user who uses Codex, and restart Codex after changing that user's configuration.
 
 ## Ordinary notifications
 

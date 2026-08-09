@@ -12,6 +12,28 @@ bounded Planを実装・検証のsource of truthとして維持し、通常可�
 - 1回のbounded passで無理に完了させず、残件をexplicit decisionへ渡したい
 - requirementが広くslice decompositionを必要とする可能性がある
 
+## Install
+
+推奨入口はrepository rootの[`scripts/provision-work-repo-agents.cs`](../../scripts/provision-work-repo-agents.cs)です。このFile-based appは、対象repositoryへPlan Coverage packageを`copilot,codex,agent-skills` targetでAPM install / updateし、Codex用の`high-implementation-starter.toml`と`standard-implementation-completer.toml`へconcrete model / reasoning / sandbox profileを補正します。
+
+このrepositoryのcheckout rootから、dry-run、apply、checkの順で実行します。
+
+```powershell
+dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target --dry-run
+dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target
+dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target --check
+```
+
+`--dry-run`と`--check`はAPM commandやfile書き込みを行いません。applyは内部で次のremote packageを`apm install --update`します。
+
+```text
+suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
+```
+
+manifestはPlan Coverage agentsに加え、Adaptive Implementation Skillとcanonical HIGH / STANDARD agentsをdependencyとして持ちます。このprovisionerがCodex profileの補正も行うため、Plan Coverageの通常導入でAdaptive packageを別途installする必要はありません。implementation stageでDesign Pairを使う場合だけ、[Design Pair Implementation Execution](../design-pair-implementation-execution/README.md)も対象repositoryへ導入し、flow開始時に明示選択します。
+
+既存の異なるmodel mappingをpackage既定値へ変更する場合だけ、内容とownershipを確認して`--force`を使います。cross-package installerの詳細とvalidationは[Installation and Maintenance](../../docs/installation-and-maintenance.md#existing-apm-provisioning-helper)を参照してください。
+
 ## Core model
 
 このprocessが守るchainは次のとおりです。
