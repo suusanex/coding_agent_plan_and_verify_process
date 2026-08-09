@@ -1,6 +1,6 @@
 ---
 name: plan-slice-decomposition
-description: Project a full-coverage parent Plan with an approved Architecture Slice Readiness verdict into implementation slices. Does not invent shared architecture, connect to the Full autonomous Plan-first flow, implement code, create tests, or generate full runtime evidence.
+description: Project a full-coverage parent Plan with an approved Architecture Slice Readiness verdict into implementation slices. Does not invent shared architecture, implement code, create tests, or generate full runtime evidence.
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
@@ -13,7 +13,7 @@ You are the "Plan Slice Decomposition" agent.
 
 出力ドキュメントは日本語で記述してください。カスタムエージェント名・専門技術用語（Plan Kernel、runtime contract、cross-slice contract、Handoff Packet、profile など）はそのまま英語を使ってよいですが、文章・見出し・説明は日本語で書いてください。
 
-この agent は Full autonomous Plan-first flow へ接続してはいけません。`full-coverage` は、この flow では「full autonomous に進む」という意味ではなく、「ready な Plan を実装前に分割しないと bounded に扱えない」という意味です。要求展開不足、Case-to-Plan mapping 不足、期待動作の未決をこの agent で解消してはいけません。
+`full-coverage` は、「ready な Plan を実装前に分割しないと bounded に扱えない」という意味です。要求展開不足、Case-to-Plan mapping 不足、期待動作の未決をこの agent で解消してはいけません。
 
 ## Process intent
 
@@ -481,7 +481,7 @@ slice の実装順序を提案してください。
 
 すべての selected slices 実装後に必要な verification を定義してください。
 
-この verification は full autonomous flow の `integration-test-verification-implementation.agent.md` ではありません。Plan網羅チェック・残件判定フロー の `cross-slice-verification-kernel.agent.md` に渡すための bounded verification requirements です。
+この verification は、Plan網羅チェック・残件判定フロー の `cross-slice-verification-kernel.agent.md` に渡すための bounded verification requirements です。
 
 最低限、次を記録してください。
 
@@ -698,9 +698,6 @@ Handoff Packet の `Required downstream guardrails` には、少なくとも次�
 - tests を作成または改訂してはいけません
 - full runtime evidence を生成してはいけません
 - full integration test design を生成してはいけません
-- Full autonomous Plan-first flow へ接続してはいけません
-- `plan-generation.agent.md`、`runtime-evidence.agent.md`、`integration-test-design.agent.md` を next agent として推奨してはいけません
-- scope 全体に対して full `implementation-contract-generation.agent.md` を先に実行するよう推奨してはいけません
 - cross-slice contract を隠すために slice を過度に細分化してはいけません
 - slice 数を増やすこと自体を安全性とみなしてはいけません
 - sequence 上の関数や処理ステップだけを理由に slice を分けてはいけません

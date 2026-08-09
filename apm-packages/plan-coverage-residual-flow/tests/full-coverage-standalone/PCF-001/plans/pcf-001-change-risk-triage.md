@@ -132,4 +132,4 @@ External services, model execution, and installer behavior.
 - Recommended next step: `architecture-slice-readiness.agent.md`
 - Required downstream guardrails: preserve RC/XC mapping, durable identity, authority, forbidden state, production binding, wiring, and unresolved statuses
 - Full-coverage escalation gate: Satisfied
-- Full-coverage handling: `architecture-slice-readiness.agent.md`へ進める。readiness verdictなしでdecompositionへ進めず、Full autonomous Plan-first flowへも接続しない
+- Full-coverage handling: `architecture-slice-readiness.agent.md`へ進める。readiness verdictなしでdecompositionへ進めない

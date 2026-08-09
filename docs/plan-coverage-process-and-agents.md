@@ -52,7 +52,7 @@ The current responsibility boundary is:
 - `change-risk-triage.agent.md` should remain `triage-only` and should not become a mixed Plan-generation agent.
 - `runtime-contract-kernel.agent.md` is a high-risk boundary guardrail, not a complete requirements specification.
 - implementation agents need the overall Plan as the source of truth, plus kernel artifacts as guardrails.
-- `plan-kernel.agent.md` keeps the bounded route Plan-first without forcing the explicit Full Autonomous `plan-generation.agent.md` / `runtime-evidence.agent.md` / `integration-test-design.agent.md` chain.
+- `plan-kernel.agent.md` keeps the bounded route Plan-first and hands only selected risks to the current kernel chain.
 
 ## Requirement-elaboration gap
 
@@ -250,7 +250,7 @@ The Plan網羅チェック process documentation must also enforce these points:
 - Runtime contract artifacts are not substitutes for implementation contract artifacts.
 - Plan conformance checks are required but do not remove the need to investigate unknown implementation paths.
 - Unresolved implementation-realization items must stay explicit and must not be converted to guessed production addresses.
-- Full-flow implementation contract agents remain available and should be recommended when the kernel variant is too narrow.
+- Broad implementation-realization risk must return through `full-coverage` and Architecture Slice Readiness instead of selecting a separate contract route.
 - Source-structure tests and CI green are not runtime postcondition proof unless the test body or test-design mapping asserts the required postcondition / forbidden state.
 - Previous gaps and residuals must not be closed with evidence that is the same strength or weaker than the evidence previously judged insufficient.
 
@@ -268,23 +268,6 @@ Use only after a bounded Plan exists, Plan readiness is `ReadyForRiskTriage`, an
 8. `coverage-gap-resolution-slice.agent.md` only when an explicit FixNow selector exists
 
 This sub-flow must not be used as a replacement for Plan creation.
-
-### Flow C: Explicit full autonomous flow
-
-Use only when the user explicitly chooses the broad autonomous process for broad, ambiguous, or highly interconnected changes.
-
-This flow remains available, but it is not the automatic interpretation of `full-coverage` inside the Plan網羅チェック `change-risk-triage.agent.md` route.
-
-1. `plan-generation.agent.md`
-2. `runtime-evidence.agent.md`
-3. `integration-test-design.agent.md`
-4. `plan-review.agent.md`
-5. optional `implementation-contract-generation.agent.md`
-6. optional `implementation-contract-review.agent.md`
-7. implementation
-8. `integration-test-verification-implementation.agent.md`
-9. `coverage-gap-triage.agent.md`
-10. `coverage-gap-resolution-slice.agent.md` or full `coverage-gap-resolution.agent.md` only by explicit choice
 
 ## Shared output concepts
 
@@ -721,7 +704,7 @@ Use these statuses consistently unless an existing artifact has a stronger conve
 
 ## Shared bounded-pass rules
 
-All Plan網羅チェック agents should follow these rules unless the user explicitly asks to leave the bounded route and run the full autonomous flow:
+All Plan網羅チェック agents should follow these rules:
 
 - Perform one bounded pass.
 - Do not keep repairing until all issues disappear.
@@ -963,7 +946,7 @@ When implementation-realization risk is `Present` or `Unclear`, the next-step re
 - `implementation-contract-kernel.agent.md`
 - `full-coverage`
 
-Do not recommend immediate `runtime-contract-kernel.agent.md` in this condition. Recommend full `implementation-contract-generation.agent.md` only when the user explicitly chooses Flow C.
+Do not recommend immediate `runtime-contract-kernel.agent.md` in this condition.
 
 ## 4. `runtime-contract-kernel.agent.md`
 
@@ -1019,7 +1002,6 @@ For each selected contract, verify or record:
 
 If the selected contracts need decomposition before safe bounded handling, send the work back to `change-risk-triage.agent.md` for reclassification.
 If that reclassification returns `full-coverage`, hand off to `architecture-slice-readiness.agent.md`; decomposition requires an approved readiness verdict.
-Recommend `runtime-evidence.agent.md` only when the user explicitly wants to leave the Plan網羅チェック flow and run Flow C.
 
 ## 5. `test-design-kernel.agent.md`
 
@@ -1074,7 +1056,7 @@ For each Guardrail Focus runtime contract:
 
 ### Escalation condition
 
-Recommend `full-coverage` / `architecture-slice-readiness.agent.md` when the bounded parent Plan pass cannot be handled safely as one Plan網羅チェック pass. Recommend `integration-test-design.agent.md` only when the user explicitly wants to leave the Plan網羅チェック flow and run Flow C.
+Recommend `full-coverage` / `architecture-slice-readiness.agent.md` when the bounded parent Plan pass cannot be handled safely as one Plan網羅チェック pass.
 
 ## 6. `verification-kernel.agent.md`
 
@@ -1311,9 +1293,9 @@ For each selected ID:
 
 Stop after one bounded pass over selected IDs. Remaining issues must be recorded, not chased indefinitely.
 
-## Full Autonomous boundary
+## Plan Coverage ownership boundary
 
-`plan-generation.agent.md`, `plan-review.agent.md`, `runtime-evidence.agent.md`, `integration-test-design.agent.md`, `integration-test-verification-implementation.agent.md`, and `coverage-gap-resolution.agent.md` belong to the explicit Full Autonomous flow or compatibility routes. Selecting Plan Coverage `full-coverage` does not invoke them automatically. Inside Plan Coverage, `full-coverage` means Architecture Slice Readiness, bounded decomposition, normal Plan Coverage execution and verification for each slice, Cross-Slice Verification, and Residual Decision.
+`full-coverage` remains self-contained under Plan Coverage ownership from Architecture Slice Readiness through Residual Decision. It means Architecture Slice Readiness, bounded decomposition, normal Plan Coverage execution and verification for each slice, Cross-Slice Verification, and Residual Decision.
 
 ## Current contract acceptance criteria
 

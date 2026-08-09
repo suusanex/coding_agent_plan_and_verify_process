@@ -134,7 +134,6 @@ Source B を使うのは次の場合だけです。
 Source A も Source B も存在しない場合は、停止して適切な predecessor agent を推奨してください。
 
 - Runtime Contract Kernel または Test Design Kernel がある kernel branch では、`verification-kernel.agent.md` の実行を推奨してください。
-- integration test points がある integration-test branch では、`integration-test-verification-implementation.agent.md` の実行を推奨してください。
 - どちらの branch か判断できない場合は、`triage-only` として停止し、必要な predecessor を human decision として記録してください。
 
 ## Input normalization

@@ -85,7 +85,7 @@ This improvement is not intended to:
 - replace runtime evidence with a shallow checklist
 - treat stub-based tests as sufficient proof of production readiness
 - treat requirement-elaboration gaps as `full-coverage` candidates
-- make full autonomous completion the default goal
+- make unbounded autonomous completion the default goal
 - force every task through the heaviest possible full process
 - turn Plan documents into detailed implementation task lists
 - make agents keep fixing until all issues are resolved regardless of cost

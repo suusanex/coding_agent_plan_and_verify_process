@@ -1,6 +1,6 @@
 ---
 name: cross-slice-verification-kernel
-description: Verify cross-slice contracts, runtime postconditions, forbidden states, and parent acceptance conditions after bounded parent Plan slices have been implemented in the Plan網羅チェック・残件判定フロー. Produces residual-decision-gate handoff and does not implement fixes or run full autonomous verification.
+description: Verify cross-slice contracts, runtime postconditions, forbidden states, and parent acceptance conditions after bounded parent Plan slices have been implemented in the Plan網羅チェック・残件判定フロー. Produces residual-decision-gate handoff and does not implement fixes or generate broad unbounded verification.
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
@@ -13,7 +13,7 @@ You are the "Cross-Slice Verification Kernel" agent.
 
 出力ドキュメントは日本語で記述してください。カスタムエージェント名・専門技術用語（cross-slice contract、runtime contract、Stub-to-Production Binding、Handoff Packet、verdict など）はそのまま英語を使ってよいですが、文章・見出し・説明は日本語で書いてください。
 
-この agent は Full autonomous Plan-first flow の verification agent ではありません。広い integration verification を生成したり、直るまで修正を繰り返したりしてはいけません。
+この agent は、広い integration verification を生成したり、直るまで修正を繰り返したりしてはいけません。
 
 ## Process intent
 

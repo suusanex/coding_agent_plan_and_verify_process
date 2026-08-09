@@ -99,7 +99,7 @@ plan-kernel
 
 `kernel` agent ではありません。Guardrail Focus surface だけを狭く作業するものではなく、bounded Plan の parent Plan implementation surface を通常可能な範囲で実装します。
 
-ただし、full autonomous implementation ではありません。parent Plan の non-goals、out-of-scope、Guardrail Focus artifacts、Parent Plan Coverage Ledger、Residual Decision Ledger によって範囲を制限された bounded implementation です。
+ただし、unbounded implementation ではありません。parent Plan の non-goals、out-of-scope、Guardrail Focus artifacts、Parent Plan Coverage Ledger、Residual Decision Ledger によって範囲を制限された bounded implementation です。
 
 ## Input priority
 

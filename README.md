@@ -11,9 +11,8 @@ GitHub Copilot / CodexでPlan-first開発を行うためのAPM processes、agent
 | bounded Planをsource of truthとして実装・検証し、未解決項目を明示判断したい | APM process | [Plan Coverage Check and Residual Decision Flow](apm-packages/plan-coverage-residual-flow/README.md) |
 | 通常のPlanから、HIGH_MODELで非局所decisionを閉じ、決定済み境界内の実装をSTANDARD_MODEL主体で進めたい | APM process | [Adaptive Implementation Execution](apm-packages/adaptive-implementation-execution/README.md) |
 | 実装前に予定変更面をfile / symbol単位で利用者と対話し、確定事項だけを実装へ渡したい | optional APM pre-stage | [Design Pair Implementation Execution](apm-packages/design-pair-implementation-execution/README.md) |
-| 広い要求をruntime evidenceとintegration test designまで含めて自律的に進めたい | APM process | [Full Autonomous Plan-first Flow](apm-packages/full-autonomous-plan-first-flow/README.md) |
 
-選択に迷う場合は、通常のPlan-first開発ではPlan Coverage、既にPlanがある実装ではAdaptive Implementation、広い自律実行ではFull Autonomousを基準にしてください。
+選択に迷う場合は、Plan-first開発と広い要求の`full-coverage`ではPlan Coverage、既にあるPlanの実装ではAdaptive Implementationを基準にしてください。
 
 ## 補助機能を使う
 

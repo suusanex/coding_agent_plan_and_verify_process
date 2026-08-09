@@ -115,7 +115,7 @@ change-risk-triage の `Implementation realization risk` が `Present` または
 
 各 selected contract について、次の条件を確認してください。
 
-次のいずれかに該当する場合、token-aware route では `full-coverage` profile と `architecture-slice-readiness.agent.md` へのエスカレーションを推奨してください。readiness verdictなしでdecompositionへ進めません。`runtime-evidence.agent.md` は、caller が明示的に Full autonomous Plan-first flow へ移ることを求めた場合だけ推奨してください。
+次のいずれかに該当する場合、token-aware route では `full-coverage` profile と `architecture-slice-readiness.agent.md` へのエスカレーションを推奨してください。readiness verdictなしでdecompositionへ進めません。
 
 - contract の participants や boundary mechanism を安全に記録するために、詳細な sequence diagram が必要
 - 複数の contracts が複雑に相互依存しており、kernel 表だけでは因果関係が伝わらない

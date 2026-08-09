@@ -13,10 +13,7 @@ The goal is not to describe one incident only. The goal is to prevent a class of
 
 ## Background
 
-The repository already has two related process directions:
-
-1. A full autonomous Plan-first flow, which includes implementation contract generation and review.
-2. A Plan網羅チェック・残件判定フロー, which narrows the inspected slice while preserving important guardrails.
+The repository provides a Plan網羅チェック・残件判定フロー that narrows the inspected slice while preserving important guardrails.
 
 The Plan網羅チェック・残件判定フロー currently emphasizes:
 
@@ -64,13 +61,13 @@ After these requirements are implemented, the flow must prevent or explicitly su
 
 ## Non-goals
 
-These requirements do not require every token-aware run to become a full autonomous flow.
+These requirements do not require every token-aware run to become an unbounded exhaustive process.
 
 They do not require exhaustive repository exploration for every task.
 
 They do not require the Plan網羅チェック・残件判定フロー to inspect unrelated features, unrelated runtime scenarios, or all possible implementation alternatives.
 
-They do not require replacing the existing full-flow `implementation-contract-generation.agent.md` and `implementation-contract-review.agent.md`.
+They do not require a separate non-kernel implementation-contract path.
 
 The intended change is to add a lightweight implementation-realization branch and make downstream artifacts respect its findings.
 
@@ -115,14 +112,9 @@ A token-aware bounded pass must prefer explicit unresolved status over speculati
 
 If a required API surface, package, binary, namespace, method, or wiring point cannot be confirmed within the Guardrail Focus coverage, the artifact must record that as a blocker or residual item. It must not invent a production address or silently redirect to a similar existing path.
 
-### 5. Full-flow concepts should be reused, not duplicated unnecessarily
+### 5. Implementation-contract decisions should be reused, not duplicated unnecessarily
 
-The existing full-flow implementation contract agents express the correct concept. The Plan網羅チェック・残件判定フロー should either:
-
-- invoke the existing full implementation contract agents when the risk is broad enough, or
-- introduce lightweight kernel variants for bounded runs.
-
-The lightweight variant should preserve the same intent: turn a Plan into concrete, reviewable implementation decisions before coding.
+The Plan網羅チェック・残件判定フロー uses `implementation-contract-kernel.agent.md` as the contract owner and preserves its decisions through downstream verification. The review-only kernel is an explicit fallback, not a parallel full-flow route.
 
 ## Required Process Changes
 
@@ -145,7 +137,6 @@ It must detect at least these triggers:
 When any of these are present or unclear, triage must recommend one of:
 
 - `implementation-contract-kernel`,
-- existing full `implementation-contract-generation.agent.md`, or
 - `full-coverage` if the implementation-realization problem is broad and coupled with complex runtime behavior.
 
 The triage output must include an `Implementation realization risk` section.
@@ -235,14 +226,11 @@ Stop condition:
 - Do not create tests.
 - Do not continue into broad redesign.
 
-### 3. Add or adapt implementation-contract-review for kernel usage
+### 3. Add implementation-contract-review-kernel usage
 
 The Plan網羅チェック・残件判定フロー must include a review step when implementation-realization risk is present and the implementation contract is non-trivial.
 
-This can be either:
-
-- a new `implementation-contract-review-kernel.agent.md`, or
-- a bounded mode in the existing `implementation-contract-review.agent.md`.
+Use `implementation-contract-review-kernel.agent.md` only as the explicit review-only fallback for a non-trivial implementation contract.
 
 Purpose:
 
@@ -327,7 +315,7 @@ Add or support gap types such as:
 - `ProductionWiringMissing`,
 - `ContractMismatch`.
 
-When a gap requires API/dependency/provider investigation, the recommended next step must be `implementation-contract-kernel` or full `implementation-contract-generation.agent.md`, not direct implementation repair.
+When a gap requires API/dependency/provider investigation, the recommended next step must be `implementation-contract-kernel`, not direct implementation repair.
 
 `coverage-gap-resolution-slice.agent.md` must not repair such a gap by guessing. In normal or legacy-separate mode it must first consume or create the necessary implementation contract artifact within the selected slice. In Slice Living Record mode it must consume the current `Implementation Contract Decisions`; if those decisions are insufficient, it must request an `implementation-contract-kernel` section delta from the parent and stop until the parent applies it. The repair agent must not create a separate implementation-contract artifact or write the section itself.
 
@@ -374,7 +362,7 @@ The documentation must clearly state:
 - Runtime contract artifacts are not substitutes for implementation contract artifacts.
 - Plan conformance checks are required but do not remove the need to investigate unknown implementation paths.
 - A token-aware run must preserve unresolved implementation-realization items instead of converting them into guessed implementation addresses.
-- Full-flow implementation contract agents remain available and should be recommended when the kernel variant would be too narrow.
+- Broad implementation-realization risk must return through `full-coverage` and Architecture Slice Readiness instead of selecting a separate contract route.
 
 ## Expected Incident-Class Handling
 
