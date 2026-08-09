@@ -70,11 +70,25 @@ Design Pair Implementation Handoff が入力にある場合、次を検証しま
 - `implementation_route: design-pair`
 - `implementation_route_source: explicit-user-selection`
 - verdict が `READY_FOR_ADAPTIVE_IMPLEMENTATION`
-- original Plan / Implementation Intent reference、Target Map、Locked Decisions、readiness check が存在する
+- `Interaction stage: complete`
+- original Plan / Implementation Intent reference、Target Map、`Upstream Binding Constraints`、Locked Decisions、readiness check が存在する
+- Target Map presentation evidence と Target 選択要求 evidence がある
+- Target Map presentation evidenceが、全Targetのuser-facingな具体的file / symbol、current invariant、内部設計判断候補、relevant evidenceを参照し、artifact linkまたは論点名だけの要約ではない
+- Target Map 提示後の actual user response reference と `User response occurred after Target Map presentation: Yes` がある
+- 一件以上の selected Target、または explicit all-Adaptive delegation があり、pending human-owned Target がない
+- Target Map ID が一意で、summary の全 Target ID が Target Map に実在する
+- `Selected`、`Delegated-to-Adaptive`、`No-Change`、`Upstream-Decision-Required`、`Pending human-owned` の5集合が互いに素で、和集合が Target Map 全体と完全一致する
+- 各 summary 集合が Target Map row の `Locked` / `Discussed-Unlocked`、`Adaptive-Owned`、`No-Change`、`Upstream-Decision-Required`、pending disposition と一致する
 - blocking な `Upstream-Decision-Required` がない
-- `Locked Decisions` の各 entry に Design Pair Decision ID と explicit human confirmation がある
+- `Locked Decisions` の各 entry に Design Pair Decision ID、Target ID、actual user message / turn reference、confirmed content、post-map confirmation `Yes` がある
+- 各 Locked Decision Target ID が `Selected Target IDs` に含まれ、その Target Map row が `Locked` である
+- `Selected Target IDs`と`Delegated-to-Adaptive Target IDs`の各Targetに一件だけ`Target Disposition Evidence`があり、Target Map rowと一致する`Locked` / `Discussed-Unlocked` / `Adaptive-Owned`、actual user message / turn reference、confirmed content、post-map confirmation `Yes`を持つ
+- selected Targetごとに`Selected Target Discussion Evidence`があり、user-facing assistant turn reference、具体的code location、current invariant、alternatives / trade-offs、proposalまたはNo proposal理由、validation expectationを含む
+- explicit all-Adaptive delegation では selected / pending が `None`、Locked Decisions がなく、全 Target row が `Adaptive-Owned` で delegated集合と完全一致する
 
-binding なのは `Locked Decisions` に明示された事項だけです。Target Map、`Discussed but Unlocked`、`Adaptive-Owned`、Known Evidence、Known Assumptions、Knowledge Candidates は参考情報であり、HIGH_MODEL の通常 authority を拘束しません。
+Design Pair が今回新たに作る decision のうち binding なのは `Locked Decisions` に明示された事項だけです。original Plan / Implementation Intent、repository policy、および handoff の `Upstream Binding Constraints` は Design Pair Decision ID を持たない既存の binding input として別に守ります。Target Map、`Upstream User Initial Positions`、`Discussed but Unlocked`、`Adaptive-Owned`、Known Evidence、Known Assumptions、Knowledge Candidates は参考情報であり、HIGH_MODEL の通常 authority を拘束しません。
+
+上の条件が欠落または矛盾する場合、Target 未選択を空集合として PASS にせず、架空 ID、重複 ID、未分類 Target、row / summary 不一致、Target Disposition Evidenceの欠落・重複・架空ID・row disposition不一致・pre-map reference、抽象的な論点名だけで具体的なSelected Target discussion evidenceがないartifactも拒否して HIGH_MODELを起動しません。AIが未選択Targetを自己判断で`Adaptive-Owned`へ移したartifact、または利用者の最終応答なしに`Discussed-Unlocked`へ移したartifactも拒否します。`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてraw observed fields、`<missing>`、artifact repair evidenceを返し、upstream textからuser responseを再構成したりAdaptiveへfallbackしたりしません。
 
 Design Pair handoff の `Affected files / symbols` と Target Map の file / symbol は Decision の適用対象または調査 evidence であり、Adaptive Implementation の `Allowed edit surface` として扱いません。HIGH_MODEL は goal、scope、acceptance を満たすために必要な関連 code / tests / production wiring を通常どおり調査・編集できます。
 
@@ -90,7 +104,7 @@ resume または既存 artifact がある状態では `implementation_route`、`
 
 唯一の互換例外は、Design Pair 導入前の `Implementation Completion Handoff` schema と一致し、Design Pair evidence が一切ない tracked handoff の resume です。この場合は `Legacy Adaptive handoff normalization` を適用し、`implementation_route: adaptive`、`implementation_route_source: default`、`design_pair_handoff: N/A`、`route_metadata_normalization: legacy-adaptive-handoff` を記録してから続行できます。部分的に新schemaを持つ handoff、Design Pair evidence がある handoff、旧schemaの必須fieldが欠ける handoffにはこの例外を適用しません。
 
-Design Pair route の場合も HIGH_MODEL は通常の adaptive implementation と同じ authority を維持し、Locked Decisions 以外の新しい decision surface を実コードと verification evidence に基づいて処理します。
+Design Pair route の場合も HIGH_MODEL は通常の adaptive implementation と同じ authority を維持し、original Plan / upstream constraints と Locked Decisions を守ったうえで、それ以外の新しい decision surface を実コードと verification evidence に基づいて処理します。
 
 ## Required execution order
 
@@ -111,6 +125,13 @@ ordinary Plan / short implementation intent
 ```
 
 すべての非自明な implementation は `high-implementation-starter` から開始します。課題全体が small-bounded、low risk、少数ファイルであることだけを理由に STANDARD_MODEL へ直行してはいけません。
+
+## Runtime adapters
+
+- Codex: `high-implementation-starter` / `standard-implementation-completer`のportable contractを使い、concrete modelはrepository-local `.codex/agents/*.toml`で補完できる。
+- GitHub Copilot Chat in VS Code: `high-implementation-starter`は`GPT-5.6 Terra (copilot)`、`standard-implementation-completer`は`GPT-5.6 Luna (copilot)`、re-entryは再びTerraを要求する。
+
+Copilotのhandoff buttonは手動遷移候補であり、verdictを検証するrouterではありません。HIGHからSTANDARDへのbuttonはvalidな`READY_FOR_STANDARD_COMPLETION`でだけ使い、`COMPLETED_BY_HIGH_MODEL`とstop verdictでは次agentを起動しません。STANDARDからHIGHへのbuttonはvalidな`NEEDS_HIGH_MODEL_REENTRY`でだけ使います。Copilotのagent/model遷移ではtracked handoffを必須とし、会話履歴だけを唯一のstate保持手段にしません。
 
 ## Step 1: Validate the intent
 
@@ -145,7 +166,7 @@ Plan Coverage、Behavior Case、slice、runtime-contract、test-point、implemen
 
 parentはHIGH_MODEL起動前に、route pairが`adaptive / default`または`design-pair / explicit-user-selection`のどちらかであり、Design Pair evidenceおよびhandoff pathと一致することを検証します。`adaptive / default`ではpathが明示的な`N/A`、`design-pair / explicit-user-selection`ではcurrent tracked pathであることを要求します。fieldの欠落、組み合わせ矛盾、またはevidenceとの不一致がある場合はHIGH_MODELを起動せず`BLOCKED`で停止し、`Stop reason: BlockedByInvalidCompletionHandoff`とraw observed values、欠落fieldの`<missing>`、artifact repairに必要なevidenceを報告します。
 
-HIGH_MODEL は code を読み、production code / tests を編集し、focused verification を行います。事前文書だけで `direct implementation` と `shape-then-complete` を分類しません。
+HIGH_MODELはactual code、production wiring、signatures、call sites、testsを読み、非局所decisionを閉じます。decision closureに必要な場合だけ最小の自然なproduction/test変更とfocused verificationを行い、code inspectionだけで閉じられる場合はcodeを変更せずSTANDARDへ渡せます。事前文書だけでrouteを固定分類しません。
 
 ## Step 3: Validate the HIGH_MODEL verdict
 
@@ -153,7 +174,7 @@ HIGH_MODEL は code を読み、production code / tests を編集し、focused v
 
 ### COMPLETED_BY_HIGH_MODEL
 
-HIGH_MODEL が scope 内の acceptance item をすべて `Complete` とし、各 item の実装または validation evidence、checks、remaining uncertainty、および検証済みroute identityを報告した場合に受理します。未完了 item があれば実装継続または適切な stop verdict を求めます。小規模課題でも、安全な delegation point がなければこの経路で構いません。
+HIGH_MODELがscope内のacceptance itemをすべて`Complete`とし、各itemの実装またはvalidation evidence、checks、remaining uncertainty、検証済みroute identity、`Direct completion reason`と具体的根拠を報告した場合に受理します。許可reasonは`tiny-local-change`、`design-implementation-inseparable`、`standard-model-unavailable`、`delegation-materially-increases-risk-or-cost`、`post-reentry-high-ownership`だけです。`post-reentry-high-ownership`は実際のre-entry後だけ、`tiny-local-change`は独立したmeaningfulなWork Packageが残らない場合だけ受理します。初回HIGH completionにreasonがない場合はverdictを拒否し、委譲または有効なexception evidenceを求めます。
 
 ### CONTINUE_HIGH_IMPLEMENTATION
 
@@ -163,9 +184,12 @@ HIGH_MODEL が scope 内の acceptance item をすべて `Complete` とし、各
 
 `refs/handoff.md` の必須 field がすべて存在し、次を満たす場合だけ受理します。
 
-- representative production path / wiring evidence がある
-- production path / wiring、test harness、test seam、mock boundary の applicability evidence がある。該当しない concern は `N/A` と理由がある
-- focused verification が実行済み
+- Original Implementation Intentのtracked pathまたはgoal / scope / acceptance / constraints / validation snapshotがある
+- `Delegation basis: non-local-decisions-closed`である
+- `HIGH_MODEL code changes: Yes / No`が明示されている
+- Decision closureのresponsibility / ownership、public / shared internal contract、dependency direction、production sequence / wiring architecture、state / error / cancellation / retry semantics、test architecture / seam strategyがすべて`Locked`または理由付き`N/A`であり、`Unresolved`がない
+- Applicability evidenceがDecision closureをactual code、wiring、signatures、call sites、existing testsへ接続している
+- HIGHがcodeを変更した場合は関連checkと自然なworktree state、変更していない場合はinspection evidenceとbuild/testをWork Packageへ委ねた理由がある
 - scope 内の全 acceptance item と現在の status / evidence が列挙されている
 - `Blocked` の acceptance item が存在しない
 - すべての `Incomplete` acceptance item が1件以上の `Remaining work` Work ID に対応している
@@ -175,14 +199,14 @@ HIGH_MODEL が scope 内の acceptance item をすべて `Complete` とし、各
 - locked decisions が明示されている
 - Design Pair 由来の Locked Decisions が origin と Design Pair Decision ID を保ったまま、HIGH_MODEL が実装中に確定した decisions と統合されている
 - Design Pair handoff path または `N/A` が明示されている
-- remaining work が file / symbol / expected behavior 単位
-- allowed edit surface が明示されている
+- remaining workがWork ID、Acceptance item(s)、Responsibility、Authorized surface、Expected behavior、Locked boundaries、Local freedom、Completion checkを持つWork Packageである
+- Allowed edit surfaceが全Work PackageのAuthorized surfaceを包含するdirectory / file group envelopeとして明示されている
 - high-model re-entry triggers が明示されている
-- 残作業に新しい構造判断がない
+- 残る不確実性がlocked boundaryを変更しないlocalかつreversibleなimplementation choiceだけである
 
 不足がある場合は STANDARD_MODEL へ渡さず、HIGH_MODEL に handoff 修正または実装継続を求めます。
 
-Design Pair 導入前に作成された tracked handoff の resume では、`refs/handoff.md` の `Legacy Adaptive handoff normalization` を先に適用します。normalization 条件を満たす旧handoffは、新しい Design Pair fields の欠落だけを理由に HIGH_MODEL へ戻しません。normalization record と deterministic legacy Decision IDs を parent / router が tracked handoff に追記してから STANDARD_MODEL へ渡します。
+Design Pair導入前に作成されたtracked handoffのresumeでは、`refs/handoff.md`の`Legacy Adaptive handoff normalization`を先に適用します。exact legacy handoffは旧来の狭いauthorizationを維持し、0.5 fieldsを推測しません。normalization recordとdeterministic legacy Decision IDsをparent / routerがtracked handoffに追記してからSTANDARD_MODELへ渡します。0.5 fieldsを欠く0.4系current-schema handoffはlegacy扱いせず、HIGH_MODELによるhandoff再発行を要求します。
 
 ### Stop verdicts
 
@@ -192,7 +216,7 @@ Locked Decision conflict で停止する場合は、少なくとも affected Des
 
 ## Step 4: Delegate bounded completion
 
-`READY_FOR_STANDARD_COMPLETION` のときだけ `standard-implementation-completer` を起動します。
+`READY_FOR_STANDARD_COMPLETION` のときだけ `standard-implementation-completer` を起動します。GitHub Copilot Chat in VS CodeではTerraからLunaへの別model / agent遷移になるため、Implementation Completion Handoffを必ず`tracked`で保存し、そのpathをhandoff promptへ渡します。
 
 渡すもの:
 
@@ -202,7 +226,7 @@ Locked Decision conflict で停止する場合は、少なくとも affected Des
 - repository instructions
 - Design Pair Decision IDs を含む統合済み Locked decisions
 
-HIGH_MODEL と STANDARD_MODEL を同時に起動しません。STANDARD_MODEL は completion scope と allowed edit surface だけを変更します。
+HIGH_MODELとSTANDARD_MODELを同時に起動しません。STANDARD_MODELはWork PackagesとAllowed edit surface envelope内のproduction implementation、tests、validationを主体として担当し、locked boundariesを変更しないlocalかつreversibleなimplementation choiceを自律判断できます。
 
 ## Step 5: Handle STANDARD_MODEL result
 
@@ -214,7 +238,7 @@ completion scope、validation results、Design Pair Decision ID ごとの locked
 
 ### NEEDS_HIGH_MODEL_REENTRY
 
-`NEEDS_HIGH_MODEL_REENTRY`は、有効なImplementation Completion Handoffのauthorization後、許可された実装または検証の途中で新しい構造判断が判明した場合だけ受理します。STANDARD_MODEL の `High-model Re-entry Handoff`、元の `Implementation Completion Handoff`、元の Implementation Intent、元の locked decisions、current worktree state を保持して `high-implementation-starter` を直列に再実行します。両handoffの`implementation_route`、`implementation_route_source`、Design Pair handoff pathが一致することを再実行前に検証し、欠落または不一致があればHIGH_MODELを起動せず`BLOCKED`で停止し、`Stop reason: BlockedByInvalidCompletionHandoff`を報告します。
+`NEEDS_HIGH_MODEL_REENTRY`は、有効なImplementation Completion Handoffのauthorization後、許可された実装または検証の途中でlocked non-local decisionを変更する必要が判明した場合だけ受理します。新規file、locked済みclass/interfaceの作成、または決定済みwiringの実装という編集種別だけでは受理しません。STANDARD_MODELのtracked `High-model Re-entry Handoff`、元のtracked `Implementation Completion Handoff`、元のImplementation Intent、元のlocked decisions、current worktree stateを保持して`high-implementation-starter`を直列に再実行します。両handoffの`implementation_route`、`implementation_route_source`、Design Pair handoff pathが一致することを再実行前に検証し、欠落または不一致があればHIGH_MODELを起動せず`BLOCKED`で停止し、`Stop reason: BlockedByInvalidCompletionHandoff`を報告します。Copilotでは両artifact pathをTerraへのhandoff promptに渡します。
 
 STANDARD_MODEL に redesign を続行させません。re-entry 後の HIGH_MODEL は actual code と new evidence を読み、必要な設計判断と実装を行います。1 回 re-entry した後は HIGH_MODEL が完了まで担当することを既定とします。
 
@@ -232,10 +256,10 @@ re-entry state は次の順に更新します。
 
 ## Handoff persistence
 
-- `inline`: 同一 run / 同一 parent orchestration 内の通常 handoff。既定値。
-- `tracked`: resume、別 thread、別 model、別作業者へ渡す場合。
+- `inline`: 同一 run / 同一 parent orchestration / 同一model内の通常 handoff。Codexの同一parent orchestrationでは既定値にできる。
+- `tracked`: resume、別 thread、別 model、別agent、別作業者へ渡す場合。GitHub Copilot Chat in VS CodeのHIGH -> STANDARDとSTANDARD -> HIGHでは必須。
 
-tracked handoff の推奨 path は `plans/<slug>-implementation-completion-handoff.md` です。実コードを source of truth とし、handoff は後段の自由度と re-entry trigger を伝える短い実行情報に留めます。
+tracked completion handoff の推奨 path は `plans/<slug>-implementation-completion-handoff.md`、re-entry handoffは`plans/<slug>-high-model-reentry-handoff.md`です。実コードを source of truth としつつ、Original Implementation Intent、route identity、Design Pair handoff path / Decision IDs、Locked Decisions、current worktree stateをmodel間で失わないだけのdurable stateを保持します。
 
 ## Verification boundary
 

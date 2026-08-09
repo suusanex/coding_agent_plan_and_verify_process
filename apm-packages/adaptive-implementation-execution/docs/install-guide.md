@@ -50,8 +50,8 @@ APM install後、VS Codeでrepositoryを開き、Copilot Chatのagent pickerか�
 
 | Role | Agent | Requested model |
 | --- | --- | --- |
-| HIGH start | `high-implementation-starter` | `GPT-5.6 Terra (copilot)` |
-| Bounded STANDARD completion | `standard-implementation-completer` | `GPT-5.6 Luna (copilot)` |
+| HIGH non-local decision closure | `high-implementation-starter` | `GPT-5.6 Terra (copilot)` |
+| Decision-closed STANDARD implementation | `standard-implementation-completer` | `GPT-5.6 Luna (copilot)` |
 | Structural re-entry | `high-implementation-starter` | `GPT-5.6 Terra (copilot)` |
 
 HIGHからSTANDARDへのhandoff buttonはvalidな`READY_FOR_STANDARD_COMPLETION`とtracked artifactがある場合だけ使います。`COMPLETED_BY_HIGH_MODEL`、`REPLAN_REQUIRED`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`では次agentへ進みません。STANDARDからHIGHへのbuttonは`NEEDS_HIGH_MODEL_REENTRY`とtracked re-entry artifactがある場合だけ使います。

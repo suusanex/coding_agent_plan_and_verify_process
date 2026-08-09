@@ -116,6 +116,13 @@ try {
     foreach ($relative in @('SKILL.md', 'refs/intent.md', 'refs/handoff.md')) {
         Assert-File (Join-Path $skillRoot $relative) "deployed Skill asset $relative"
     }
+    $lockPath = Join-Path $scratch 'apm.lock.yaml'
+    Assert-File $lockPath 'remote APM lock'
+    $lock = Get-Content -Raw -LiteralPath $lockPath
+    $lockBlock = [regex]::Match($lock.Replace("`r`n", "`n"), '(?ms)^- .*?name: adaptive-implementation-execution\n(?<block>.*?)(?=^- |\z)')
+    if (-not $lockBlock.Success -or $lockBlock.Groups['block'].Value -cnotmatch '(?m)^  version:\s*0\.5\.0\s*$') {
+        throw 'Remote APM lock does not contain Adaptive package version 0.5.0.'
+    }
     $deployedSkill = Join-Path $skillRoot 'SKILL.md'
     Assert-Contains $deployedSkill '(?m)^disable-model-invocation:\s*true\s*$' 'deployed skill explicit-only model invocation'
     Assert-Contains $deployedSkill '(?m)^user-invocable:\s*true\s*$' 'deployed skill remains user-invocable'
@@ -124,6 +131,9 @@ try {
     Assert-Contains $deployedSkill '/adaptive-implementation-execution' 'deployed skill documents slash invocation'
     Assert-NotContains $deployedSkill 'or when the task clearly requires' 'deployed skill has no task-requires auto-selection description'
     Assert-NotContains $deployedSkill '\$adaptive-implementation-execution' 'deployed skill has no dollar-prefix invocation example'
+    Assert-Contains $deployedSkill 'Delegation basis: non-local-decisions-closed' 'deployed skill decision-closure delegation basis'
+    Assert-Contains $deployedSkill 'HIGH_MODEL code changes: Yes / No' 'deployed skill zero-code HIGH state'
+    Assert-Contains $deployedSkill 'Responsibility、Authorized surface、Expected behavior、Locked boundaries、Local freedom、Completion check' 'deployed skill Work Package schema'
 
     $copilotHigh = Join-Path $scratch '.github/agents/high-implementation-starter.agent.md'
     $copilotStandard = Join-Path $scratch '.github/agents/standard-implementation-completer.agent.md'
@@ -132,11 +142,14 @@ try {
     Assert-Contains $copilotHigh '(?m)^target:\s*vscode\s*$' 'Copilot HIGH target'
     Assert-Contains $copilotHigh '(?m)^disable-model-invocation:\s*true\s*$' 'Copilot HIGH explicit-only invocation'
     Assert-Contains $copilotHigh 'agent:\s*standard-implementation-completer' 'Copilot bounded completion handoff'
+    Assert-Contains $copilotHigh 'codeを変更せずに委譲できます' 'Copilot HIGH zero-code decision closure'
     Assert-NotContains $copilotStandard '(?m)^tools:' 'Copilot STANDARD explicit tools frontmatter'
     Assert-Contains $copilotStandard '(?m)^model:\s*GPT-5\.6 Luna \(copilot\)\s*$' 'Copilot STANDARD model'
     Assert-Contains $copilotStandard '(?m)^target:\s*vscode\s*$' 'Copilot STANDARD target'
     Assert-Contains $copilotStandard '(?m)^disable-model-invocation:\s*true\s*$' 'Copilot STANDARD explicit-only invocation'
     Assert-Contains $copilotStandard 'agent:\s*high-implementation-starter' 'Copilot HIGH re-entry handoff'
+    Assert-Contains $copilotStandard 'locked済みsignatureと配置を持つclass/interface' 'Copilot STANDARD locked class implementation ownership'
+    Assert-Contains $copilotStandard 'DI / factory / entrypoint wiringの実コード作成' 'Copilot STANDARD locked wiring ownership'
 
     $codexHigh = Join-Path $scratch '.codex/agents/high-implementation-starter.toml'
     $codexStandard = Join-Path $scratch '.codex/agents/standard-implementation-completer.toml'
@@ -162,6 +175,8 @@ try {
     Invoke-Native 'dotnet' @('run', '--file', $adaptiveHelper, '--', $scratch, '--check') 'Codex profile check'
     Assert-Contains $codexHigh '(?m)^model\s*=\s*"gpt-5\.6-terra"\s*$' 'Codex HIGH model'
     Assert-Contains $codexStandard '(?m)^model\s*=\s*"gpt-5\.6-luna"\s*$' 'Codex STANDARD model'
+    Assert-Contains $codexHigh 'non-local-decisions-closed' 'Codex HIGH decision-closure delegation basis'
+    Assert-Contains $codexStandard 'autonomously choose method-body algorithms' 'Codex STANDARD local implementation autonomy'
 
     if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch 'AGENTS.md')).Hash -ne $agentsHash) {
         throw 'Remote APM install or Codex helper changed AGENTS.md.'

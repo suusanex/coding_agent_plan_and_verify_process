@@ -22,10 +22,9 @@
 
 Input:
 
-- external behavior is small
-- existing implementation pattern is clear
-- HIGH_MODEL edits a representative production case and runs a focused test
-- only same-pattern cases and tests remain
+- code、wiring、signatures、call sites、testsから非局所decisionを閉じられる
+- HIGH_MODELのproduction/test editは不要
+- production implementation、wiring、testsを含むmeaningfulなWork Packageが残る
 
 Expected:
 
@@ -35,19 +34,20 @@ READY_FOR_STANDARD_COMPLETION -> COMPLETED
 
 Checks:
 
-- HIGH_MODEL edited production code or tests before delegation
-- handoff names files, symbols, expected behavior, and allowed surface
-- handoff records acceptance status and applicability evidence, including reasons for any N/A concern
+- handoff records `HIGH_MODEL code changes: No` and `Delegation basis: non-local-decisions-closed`
+- every Decision closure concern is `Locked` or evidence-backed `N/A`
+- Work Packages name responsibility, authorized surface, expected behavior, locked boundaries, local freedom, and completion check
+- Allowed edit surface contains every Work Package surface as an envelope
 - every Incomplete acceptance item and Remaining work row has a bidirectional Work ID mapping, no Blocked item exists, and every Complete item has evidence
-- STANDARD_MODEL makes no structural change
+- STANDARD_MODEL owns production implementation, tests, and validation without changing locked boundaries
 
 ## VAL-002: Mid-implementation delegation
 
 Input:
 
-- class responsibility, DI, representative production path, and test seam require decisions
-- HIGH_MODEL implements those decisions and passes build / smoke test
-- validation branches and test cases remain
+- class responsibility、signature、DI strategy/location/lifetime、state/error/cancellation/retry semantics、test architecture require decisions
+- HIGH_MODEL locks those decisions from actual code evidence
+- class/interface files、method bodies、DI registration、tests remain
 
 Expected:
 
@@ -58,14 +58,14 @@ READY_FOR_STANDARD_COMPLETION -> COMPLETED
 Checks:
 
 - locked decisions include responsibility, wiring, signature, and test seam
-- STANDARD_MODEL handles only remaining branches and tests
+- STANDARD_MODEL creates the locked class/interface, implements wiring and behavior, and writes tests
 
 ## VAL-003: HIGH_MODEL completes
 
 Input:
 
 - state ownership, error handling, and API shape decisions continue through implementation
-- no natural delegation point exists
+- implementation itself is required to close those non-local decisions
 
 Expected:
 
@@ -77,6 +77,7 @@ Checks:
 
 - no artificial skeleton or broken intermediate state is created for delegation
 - HIGH_MODEL records completed scope and checks
+- `Direct completion reason: design-implementation-inseparable` and concrete evidence are present
 - every in-scope acceptance item is Complete with implementation or validation evidence
 - `COMPLETED_BY_HIGH_MODEL` includes unchanged `implementation_route`, `implementation_route_source`, and the Design Pair handoff path or `N/A`
 
@@ -85,7 +86,7 @@ Checks:
 Input:
 
 - HIGH_MODEL initially delegates through a handoff that has passed authorization
-- STANDARD_MODEL discovers that test seam or production wiring must change
+- STANDARD_MODEL discovers that the locked signature, wiring architecture, semantics, or test architecture must change
 
 Expected:
 
@@ -97,8 +98,8 @@ READY_FOR_STANDARD_COMPLETION
 
 Checks:
 
-- STANDARD_MODEL does not redesign the seam or wiring
-- `NEEDS_HIGH_MODEL_REENTRY` is emitted only for the structural decision discovered after valid authorization, never to repair invalid route metadata
+- STANDARD_MODEL implements locked class/interface/wiring without re-entry and does not redesign locked boundaries
+- `NEEDS_HIGH_MODEL_REENTRY` is emitted only when a locked non-local decision must change after valid authorization, never for an edit type or invalid route metadata
 - High-model Re-entry Handoff contains invalidating evidence, worktree state, unchanged route pair, and Design Pair handoff path or `N/A`
 - STANDARD_MODEL increments incoming reentry_count and preserves incoming previous_reentry_trigger
 - parent passes both the original Implementation Completion Handoff and the High-model Re-entry Handoff back to HIGH_MODEL and rejects route identity mismatch
@@ -250,7 +251,7 @@ Expected:
 - STANDARD_MODEL preserves the route pair and Design Pair handoff path in every High-model Re-entry Handoff
 - both agents return the complete route identity on every non-invalid result
 - invalid-artifact `BLOCKED` returns raw observed values or `<missing>` plus repair evidence instead of fabricating a complete identity
-- STANDARD_MODEL reserves `NEEDS_HIGH_MODEL_REENTRY` for structural decisions found after a valid handoff passes authorization
+- STANDARD_MODEL reserves `NEEDS_HIGH_MODEL_REENTRY` for evidence that a locked non-local decision must change after a valid handoff passes authorization
 
 ## VAL-013: GitHub Copilot VS Code package configuration
 
@@ -278,11 +279,11 @@ Expected:
 
 | ID | Scenario | Expected verdict sequence | Expected implementation owner sequence | Required state / audit evidence |
 | --- | --- | --- | --- | --- |
-| `INT-001` | 新規 service + DI + tests | `READY_FOR_STANDARD_COMPLETION -> COMPLETED` | HIGH が service responsibility、DI、代表 test seam を固定し、STANDARD が Work-ID-mapped remainder を Completion Handoff に従って完了 | HIGH start、valid handoff、serial owner、production wiring evidence |
-| `INT-002` | 大きな class からの責務分離 | `COMPLETED_BY_HIGH_MODEL` | `high-implementation-starter` が責務境界と移動を完了 | `shape_handoff_status = NotRequired`、STANDARD run は N/A、抽出後の behavior evidence |
-| `INT-003` | async + retry + cancellation | `COMPLETED_BY_HIGH_MODEL` | HIGH が state ownership、retry、cancellation、error semantics を完了 | HIGH owner、runtime postcondition、forbidden-state evidence、STANDARD run は N/A |
-| `INT-004` | 既存 pattern が明確な早期 STANDARD 委譲 | `READY_FOR_STANDARD_COMPLETION -> COMPLETED` | HIGH が representative production case と focused check を実行後、STANDARD が同型 remainder を Completion Handoff に従って完了 | `Pending -> Ready -> Consumed`、complete handoff、no write-owner overlap |
-| `INT-005` | STANDARD 中の構造判断再発と HIGH re-entry | `READY_FOR_STANDARD_COMPLETION -> NEEDS_HIGH_MODEL_REENTRY -> COMPLETED_BY_HIGH_MODEL` | HIGH -> STANDARD -> HIGH | `Ready -> Invalidated -> NotRequired`、`shape_reentry_reason`、incremented re-entry count、HIGH return evidence |
+| `INT-001` | 新規 service + DI + tests | `READY_FOR_STANDARD_COMPLETION -> COMPLETED` | HIGHがservice contract、DI strategy/location/lifetime、test seam strategyをlockし、STANDARDがclass/interface、wiring、testsを実装 | zero/minimal HIGH LOC、Decision closure、Work Packages、STANDARD implementation share |
+| `INT-002` | 大きな class からの責務分離 | `READY_FOR_STANDARD_COMPLETION -> COMPLETED` | HIGHがextraction boundary、ownership、contractをlockし、STANDARDがcode moveとtestsを実装 | boundary evidence、serial owner、locked contract compliance |
+| `INT-003` | async + retry + cancellation | `READY_FOR_STANDARD_COMPLETION -> COMPLETED` | HIGHがstate ownership、retry、cancellation、error semanticsをlockし、STANDARDがimplementationとtestsを担当 | runtime postconditions、forbidden-state evidence、locked semantics compliance |
+| `INT-004` | 既存 pattern が明確な早期 STANDARD 委譲 | `READY_FOR_STANDARD_COMPLETION -> COMPLETED` | HIGHがcode inspectionだけでdecision closureし、STANDARDがproduction/test実装を主体的に完了 | `HIGH_MODEL code changes: No`、local freedom evidence、no write-owner overlap |
+| `INT-005` | locked non-local decisionの無効化と HIGH re-entry | `READY_FOR_STANDARD_COMPLETION -> NEEDS_HIGH_MODEL_REENTRY -> COMPLETED_BY_HIGH_MODEL` | HIGH -> STANDARD -> HIGH | invalidating evidence、incremented re-entry count、`post-reentry-high-ownership` evidence |
 
 ### Surface expectations
 
@@ -306,13 +307,15 @@ Expected:
 
 1. 同じ source Plan、repository revision、acceptance criteria、検証環境を固定する。
 2. standalone Adaptive route で `INT-001` から `INT-005` を個別に実行する。
-3. agent ごとの configured / observed model、input / output token、wall time、handoff verdict、re-entry count、changed files、checks を記録する。
+3. agentごとのconfigured / observed model、input / output token、wall time、handoff verdict、re-entry count/category、changed files/LOC/test LOC、checksを記録する。clientがtokenを公開しない場合は`Unavailable`と理由を記録する。
 4. 同じ human reviewer が、acceptance miss、production wiring miss、unnecessary structural change、review finding count を記録する。
 5. 品質、token cost、re-entry 回数、人間レビュー指摘数を記録する。静的 contract 合格だけから品質改善を推論しない。
 
-| Run | Quality / acceptance | Token cost | Re-entry count | Human review findings | Status |
-| --- | --- | --- | --- | --- | --- |
-| Standalone Adaptive HIGH -> STANDARD -> HIGH | 未計測 | 未計測 | 未計測 | 未計測 | `NOT RUN` |
+| Run | Eligible / STANDARD started | HIGH / STANDARD LOC share | Direct completion reason | Quality / acceptance | Token cost | Re-entry count / category | Human review findings | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Standalone Adaptive HIGH -> STANDARD -> HIGH | 未計測 | 未計測 | 未計測 | 未計測 | 未計測 | 未計測 | 未計測 | `NOT RUN` |
+
+初期観測目安は、中規模以上のeligible taskでSTANDARD start rate 50–70%以上、delegated taskでSTANDARD changed LOC share 50%以上、re-entry 20%以下、quality baseline非劣性です。使用率そのものは品質指標またはmerge gateにしません。
 
 実モデル run は `NOT RUN` です。CI と static validation は routing contract を検証しますが、実証済みの品質改善や token cost 削減を宣言しません。
 
@@ -347,12 +350,13 @@ The historical Codex checks below were first recorded with APM 0.18.0. The Copil
 | Remote branch package install | PASS | APM resolved the virtual package and both `git: parent` portable agents from `#codex/issue-45` at `66e1234b`, then deployed the skill, references, and both Codex agents |
 | Remote rollback | PASS | `apm uninstall` removed the direct package and skill, custom agent removal deleted package-owned TOMLs, and `apm prune` removed both orphaned portable agent packages; no integrated skill, agent, or package files remained |
 | Agent discovery contract | PASS | remote install created both named `.codex/agents` entries and the static validator confirmed that the skill routes to those names |
-| Copilot frontmatter and executable scenarios | PASS | the validator checks canonical agents and the package local installer, then executes the A-G state machine and negative mutations |
+| Copilot frontmatter and executable scenarios | PASS | the validator checks canonical agents, tracked projections, and the package local installer, then executes the schema-v3 A-J state machine and negative mutations |
 | APM 0.26.0 local package-configuration install | PASS | a temporary dependency composed from the root agents and packaged Skill deployed Copilot agents, Codex stubs, and the shared Skill; frozen reinstall preserved hashes, the Codex helper completed and checked both model mappings, and an unmanaged same-name Copilot agent was preserved without `--force` |
 | APM 0.26.0 pinned remote install smoke | PASS | the disposable Copilot CLI E2E installed the package from full commit `816268eea12ae4e61a40f045de9448d180ef4a2c`; CI also runs `validate-adaptive-implementation-apm-smoke.ps1` |
-| GitHub Copilot CLI real-model orchestration | PASS | `copilot-cli-real-model-e2e-2026-07-31.md` records Terra direct completion, Terra-to-Luna bounded completion, Luna-to-Terra structural re-entry, negative routing, and validations |
+| Historical GitHub Copilot CLI real-model orchestration for 0.4.0 | PASS | `copilot-cli-real-model-e2e-2026-07-31.md` records the former representative-path-first contract and remains historical evidence only |
+| GitHub Copilot CLI real-model orchestration for 0.5.0 | NOT RUN | `copilot-cli-real-model-e2e-2026-08-09.md` requires a candidate remote ref and must observe zero/minimal HIGH implementation, STANDARD implementation ownership, local autonomy, and locked-boundary re-entry |
 | GitHub Copilot Chat in VS Code UI smoke | NOT RUN | follow `copilot-manual-smoke.md` only for VS Code-specific agent picker, `target` filter, and handoff-button coverage; real-model routing itself is covered by the CLI E2E |
-| Runtime multi-agent orchestration | PASS | Copilot CLI executed both implementation agents with the shared Skill and tracked handoffs; model resolution and terminal verdict evidence are recorded in `copilot-cli-real-model-e2e-2026-07-31.md` |
+| Runtime multi-agent orchestration for 0.5.0 | NOT RUN | the 2026-07-31 record must not be reused as evidence for the new semantics |
 | Full package local-path install | NOT APPLICABLE | APM 0.26.0 cannot inherit `git: parent` from a local path dependency; the supported remote repository route is validated separately above |
 
 The local package-configuration smoke validates current transformation and collision behavior but does not replace the pinned remote smoke for the real `git: parent` dependency graph. The full-package local-path limitation does not change the package manifest. The remote branch validation confirms that the `git: parent` convention resolves the root portable agents when APM installs the repository subdirectory package.

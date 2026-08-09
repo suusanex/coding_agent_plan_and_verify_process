@@ -2,10 +2,10 @@
 
 ## Suitable tasks
 
-- 通常 Plan Mode で scope と acceptance は決まったが、実装中の責務配置や wiring 判断が残り得る変更
+- 通常 Plan Mode で scope と acceptance は決まり、actual code調査で非局所decisionを閉じられる変更
 - small-bounded または medium-bounded な production implementation
-- existing pattern を確認してから、同型 case や tests を STANDARD_MODEL へ渡せる可能性がある変更
-- HIGH_MODEL が代表経路を実装した後に残存 decision surface を評価すべき変更
+- HIGH_MODELが責務、contract、dependency、wiring、semantics、test architectureを確定し、STANDARD_MODELがproduction implementationとtestsを主体的に完了できる変更
+- code inspectionだけでdecision closureできるか、最小のimplementation evidenceが必要かをHIGH_MODELが判断すべき変更
 
 ## Unsuitable tasks
 
@@ -30,7 +30,7 @@ APM install で skill と portable custom agents を導入します。この ski
 4. HIGHがvalidなtracked `READY_FOR_STANDARD_COMPLETION`を返した場合だけhandoff buttonで`standard-implementation-completer`へ移る。
 5. STANDARDがtracked `NEEDS_HIGH_MODEL_REENTRY`を返した場合だけ、両handoff pathを渡して`high-implementation-starter`へ戻る。
 
-model mappingはHIGH start / re-entryが`GPT-5.6 Terra (copilot)`、bounded STANDARD completionが`GPT-5.6 Luna (copilot)`です。Lunaからfresh intakeを開始しません。`COMPLETED_BY_HIGH_MODEL`またはstop verdictではhandoff buttonを使わず停止します。buttonが表示されていること自体はauthorizationではありません。
+model mappingはHIGH decision closure / re-entryが`GPT-5.6 Terra (copilot)`、decision-closed STANDARD implementationが`GPT-5.6 Luna (copilot)`です。Lunaからfresh intakeを開始しません。`COMPLETED_BY_HIGH_MODEL`またはstop verdictではhandoff buttonを使わず停止します。buttonが表示されていること自体はauthorizationではありません。
 
 両custom agentは`disable-model-invocation: true`を指定し、agent pickerには表示したまま、他agentのmodel判断ではsubagentとして起動されないようにします。HIGH startは利用者がpickerから明示選択し、STANDARDへの遷移はvalidなtracked handoff確認後のhandoff buttonに限定します。
 
@@ -83,9 +83,9 @@ Validation: focused unit tests と solution build。
 
 ## What HIGH_MODEL does
 
-`high-implementation-starter` は relevant code、tests、production wiring を読み、実際に編集し、focused checks を実行します。
+`high-implementation-starter`はrelevant code、tests、production wiring、signatures、call sitesを読み、非局所decisionを`Locked`または理由付き`N/A`へ閉じます。code inspectionだけで十分ならcodeを変更せず`READY_FOR_STANDARD_COMPLETION`を返せます。
 
-事前に `direct implementation` / `shape-then-complete` を固定分類しません。actual code と verification の結果から、残っている decision surface を繰り返し評価します。
+actual implementationを試さないとdecisionを閉じられない場合だけ、最小の自然なproduction/test変更とfocused checksを行います。委譲用のTODO skeletonは作りません。
 
 次が残る間は HIGH_MODEL が続行します。
 
@@ -95,40 +95,42 @@ Validation: focused unit tests と solution build。
 - DI / entrypoint / production wiring
 - error / cancellation / retry / state ownership
 - test seam / mock boundary / harness
-- implementation trade-off
+- cross-fileまたはhigh-impactなimplementation trade-off
 
-安全な delegation point がない場合は `COMPLETED_BY_HIGH_MODEL` で完了して構いません。完了 verdict は、scope 内の acceptance item がすべて `Complete` で、実装または validation evidence がある場合だけ返します。
+上記がすべて閉じ、meaningfulなWork Packageが残る場合はSTANDARDへ委譲します。初回`COMPLETED_BY_HIGH_MODEL`には`tiny-local-change`、`design-implementation-inseparable`、`standard-model-unavailable`、`delegation-materially-increases-risk-or-cost`のいずれかと根拠が必要です。re-entry後は`post-reentry-high-ownership`を使用できます。
 
 ## What STANDARD_MODEL does
 
-`standard-implementation-completer` は handoff の `Remaining work` と `Allowed edit surface` だけを扱います。
+`standard-implementation-completer`はhandoffのWork PackagesとAllowed edit surface envelope内でproduction implementation、tests、validationを主体として担当します。
 
-適した残作業:
+自律判断できるlocal freedom:
 
-- established pattern に沿った追加 case
-- validation / mapping の局所追加
-- tests / fixtures / test data
-- locked decisions を変えない focused failure 修正
+- method body、branch順序、validation / mappingの局所構造
+- private helper、file-local type、局所refactor
+- tests、fixtures、test data builders、locked architecture内のmock設定
+- locked済みsignatureと配置を持つclass/interfaceの作成
+- HIGHが方式、location、lifetimeを確定したDI / factory / entrypoint wiringの実装
+- locked boundariesを変えないfocused failure修正
 
-有効なhandoffで実装または検証を開始した後にlocked decisionsを変える必要が判明した場合は、局所的にねじ込まず `NEEDS_HIGH_MODEL_REENTRY` を返します。handoffの欠落・矛盾・evidence不一致は構造判断ではなくinvalid artifactとして`BLOCKED` / `BlockedByInvalidCompletionHandoff`で停止します。
+有効なhandoffで実装または検証を開始した後にlocked non-local decisionを変える必要が判明した場合だけ、局所的にねじ込まず`NEEDS_HIGH_MODEL_REENTRY`を返します。新規file、locked class/interface、決定済みwiringの実装という編集種別だけではre-entryしません。handoffの欠落・矛盾・evidence不一致はinvalid artifactとして`BLOCKED` / `BlockedByInvalidCompletionHandoff`で停止します。
 
 ## Acceptance mapping in a handoff
 
-`READY_FOR_STANDARD_COMPLETION` handoff は、`Incomplete` acceptance item と `Remaining work` row を Work ID で双方向に対応させます。`Blocked` item を含む handoff は STANDARD_MODEL へ渡しません。`Complete` item には implementation または validation evidence が必要です。
+`READY_FOR_STANDARD_COMPLETION` handoffは、`Incomplete` acceptance itemとWork PackageをWork IDで双方向に対応させます。各Work PackageはResponsibility、Authorized surface、Expected behavior、Locked boundaries、Local freedom、Completion checkを持ち、Allowed edit surfaceはそのunion envelopeです。Decision closureに`Unresolved`または`Blocked` acceptance itemがあればSTANDARD_MODELへ渡しません。
 
 ## Re-entry example
 
-HIGH_MODEL が validation branches と tests を委譲した後、STANDARD_MODEL が production entrypoint の registration 変更を必要と判断した例:
+HIGH_MODELがDI lifetimeとregistration locationをlockした後、STANDARD_MODELがregistration codeを実装する例:
 
 ```text
 READY_FOR_STANDARD_COMPLETION
   -> standard-implementation-completer starts
-  -> existing test cannot reach the production registration path
-  -> NEEDS_HIGH_MODEL_REENTRY
-  -> high-implementation-starter resumes with the original intent, original completion handoff, and re-entry handoff
+  -> creates the locked class and registration
+  -> runs implementation tests
+  -> COMPLETED
 ```
 
-STANDARD_MODEL は registration を暗黙変更しません。re-entry handoff にoriginal Implementation Intent、invalidating evidence、変更済み files、実行した checks、必要な decision、current worktree state、incomingの`implementation_route`、`implementation_route_source`、Design Pair handoff pathを変更せず記録します。parentは元のcompletion handoffも保持し、両handoffのroute identityが一致することを確認してからHIGH_MODELを再実行します。HIGH_MODELとSTANDARD_MODELは通常完了を含むresultで同じ3項目を返し、parentはincoming identityとの一致を検証します。
+locked signatureではexisting callerを成立させられない、DI lifetime自体を変える必要がある、ownershipやretry semantics、test seam strategyを変更する必要がある場合はre-entryします。re-entry handoffにはoriginal Implementation Intent、invalidating evidence、変更済みfiles、checks、必要なdecision、current worktree state、route identityを記録します。
 
 例外は`Verdict: BLOCKED`かつ`Stop reason: BlockedByInvalidCompletionHandoff`だけです。欠落したidentityを捏造せず、各fieldのraw observed valueまたは`<missing>`とrepair evidenceを返します。parentはこのresultに完全なpairを要求せず受理して停止します。外部blockerを理由とする`BLOCKED`では完全なunchanged identityが必要です。
 
@@ -162,8 +164,9 @@ tracked handoff は実コードの代替設計書ではありません。ただ�
 - originは`HIGH_MODEL`とする
 - 補完したAffected files / symbolsはAllowed edit surfaceに使わない
 - normalization recordをtracked handoffへ追記してからSTANDARD_MODELへ渡す
+- legacy handoffの旧来の狭いRemaining workとAllowed edit surfaceを維持し、0.5 fieldsを推測しない
 
-部分的に新しいDesign Pair fieldを持つ、Design Pair selection evidenceがある、または旧必須fieldが不足するhandoffはnormalizationしません。production code / testsを編集せず、`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてartifact repairを要求します。fixtureは`docs/examples/legacy-adaptive-handoff.md`です。
+0.5 fieldsを欠く0.4系current-schema handoff、部分的に新しいDesign Pair fieldを持つhandoff、Design Pair selection evidenceがあるhandoff、旧必須fieldが不足するhandoffはnormalizationしません。production code / testsを編集せず、`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてHIGH_MODELによるhandoff再発行またはartifact repairを要求します。fixtureは`docs/examples/legacy-adaptive-handoff.md`です。
 
 ## Verification and final review
 
