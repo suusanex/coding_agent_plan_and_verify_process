@@ -2,7 +2,7 @@
 
 This suite separates deterministic contract validation from external-model observations.
 
-`inputs/CRT-001.md` through `inputs/CRT-003.md` contain change facts only. `oracles.json` is the CI-only authority for the expected execution-model classifications, selected profile, and escalation result. `result.schema.json` constrains each fresh-session observation, and `agent.sha256` pins the reviewed Change Risk Triage contract. Update that pin only when the reviewed agent contract changes. CI does not invoke an external model and must not present fixture expectations as model observations.
+`inputs/CRT-001.md` through `inputs/CRT-003.md` contain change facts only. `oracles.json` is the CI-only authority for the expected execution-model classifications, selected profile, and escalation result. `result.schema.json` constrains each fresh-session observation, and `agent.sha256` pins the reviewed Change Risk Triage contract using UTF-8 bytes after normalizing CRLF and CR line endings to LF. Update that pin only when the reviewed agent contract changes. CI does not invoke an external model and must not present fixture expectations as model observations.
 
 ## Manual procedure
 

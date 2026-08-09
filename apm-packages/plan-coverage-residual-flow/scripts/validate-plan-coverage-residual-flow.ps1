@@ -32,6 +32,12 @@ function Get-NormalizedText([string]$Path) {
     return [System.IO.File]::ReadAllText($Path).Replace("`r`n", "`n").Replace("`r", "`n")
 }
 
+function Get-NormalizedTextSha256([string]$Path) {
+    $normalizedText = Get-NormalizedText $Path
+    $bytes = [System.Text.UTF8Encoding]::new($false).GetBytes($normalizedText)
+    return [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()
+}
+
 function Get-ChangeRiskResultSchemaErrors([object]$Result) {
     $errors = [System.Collections.Generic.List[string]]::new()
     $requiredTopLevel = @(
@@ -585,8 +591,9 @@ if ($failures.Count -eq 0) {
     $hashMatch = [regex]::Match($hashPin, '\A(?<hash>[0-9a-f]{64})\s+\.github/agents/change-risk-triage\.agent\.md\z')
     Assert-True $hashMatch.Success 'Change Risk Triage agent hash pin must use the expected SHA-256 record format'
     if ($hashMatch.Success) {
-        $actualChangeRiskHash = (Get-FileHash -LiteralPath (Join-Path $repoRoot $changeRiskRelativePath) -Algorithm SHA256).Hash.ToLowerInvariant()
+        $actualChangeRiskHash = Get-NormalizedTextSha256 (Join-Path $repoRoot $changeRiskRelativePath)
         Assert-True ($actualChangeRiskHash -ceq $hashMatch.Groups['hash'].Value) 'Change Risk Triage agent hash pin is stale'
+        Assert-Matches $changeRiskResultSummary ([regex]::Escape($actualChangeRiskHash)) 'Change Risk Triage result summary must identify the pinned normalized agent revision'
     }
 
     $scenarios = @(Get-Content -Raw -LiteralPath (Join-Path $repoRoot $scenarioRelativePath) | ConvertFrom-Json)

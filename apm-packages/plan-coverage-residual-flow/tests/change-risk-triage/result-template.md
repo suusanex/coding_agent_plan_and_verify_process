@@ -1,6 +1,6 @@
 # Change Risk Triage profile stability result
 
-- Agent SHA-256:
+- Agent SHA-256 (UTF-8/LF normalized):
 - Executor:
 - Environment:
 - Executed at:
