@@ -190,8 +190,8 @@ Split by producer and consumer ownership; preserve the production entrypoint as 
 - Slice Living Records: 2
 - Final close artifact: 1
 - Base expected total: 8
-- Conditional artifacts: Behavior Spec (`Expansion required: Yes`); Slice Architecture (`ReadyForSliceDecomposition`); tracked `SL-002` Implementation Completion Handoff (`READY_FOR_STANDARD_COMPLETION`)
-- Exceptions: `plans/pcf-001-slice-SL-002-implementation-completion-handoff.md` / `cross-thread-handoff`, pre-applied in the `SL-002` Living Record
+- Conditional artifacts: Behavior Spec (`Expansion required: Yes`); Slice Architecture (`ReadyForSliceDecomposition`); tracked `SL-002` Implementation Completion Handoff (`READY_FOR_STANDARD_COMPLETION`); tracked `SL-002` High-model Re-entry Handoff (`NEEDS_HIGH_MODEL_REENTRY`)
+- Exceptions: `plans/pcf-001-slice-SL-002-implementation-completion-handoff.md` / `cross-thread-handoff`, pre-applied before STANDARD delegation; `plans/pcf-001-slice-SL-002-high-model-reentry-handoff.md` / `cross-thread-handoff`, applied by the parent after STANDARD returned an unpersisted payload and before the parent saved it
 
 ## Final cross-slice verification requirements
 

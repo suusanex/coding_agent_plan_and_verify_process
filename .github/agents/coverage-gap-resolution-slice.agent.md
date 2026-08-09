@@ -118,6 +118,22 @@ interface のみ（implementation body がない）、または fake / stub / mo
 - `UnjustifiedSubstitution`
 - `SourceOfTruthDrift`
 
+#### Slice Living Record mode
+
+current Slice Living Record の `## Implementation Contract Decisions` を implementation contract authority として先に確認してください。selected gap の dependency、API surface、substitution、source of truth を解決する decision が十分なら、その decision を consume して bounded repair へ進めます。
+
+section が欠落、不十分、または selected gap を解決できない場合、この agent は別の implementation contract artifactを作成せず、`Implementation Contract Decisions` sectionも自分で生成・更新しません。`PARTIAL_RESOLUTION` として次の routing requestを Plan Coverage parent/routerへ返して停止してください。
+
+- invoke: `implementation-contract-kernel.agent.md`
+- routing metadata: current `artifact_mode: slice-living-record`、`living_record_path`、`canonical_coverage_ledger`、`output_contract: section-delta`
+- target section: `Implementation Contract Decisions`
+- optional fallback: self-checkだけでは判断できない場合の `implementation-contract-review-kernel.agent.md` / `Implementation Contract Decisions / Independent Review`
+- resume condition: parentがsection deltaとCoverage Ledger Deltaを適用し、unresolved implementation-realization statusがないことを確認した後に、このselected repairを再開する
+
+Living Record modeでは、repair agentによるseparate implementation contract artifactへのrepository writeを禁止します。section deltaのsemantic ownerは`implementation-contract-kernel`、repository writerはPlan Coverage parent/routerです。
+
+#### Normal / legacy-separate mode
+
 これらを受け取った場合は、selected slice 内で次を先に実行してください。
 
 1. 既存の `plans/<ticket-or-slug>-implementation-contract-kernel.md` を **consume** する
@@ -125,7 +141,7 @@ interface のみ（implementation body がない）、または fake / stub / mo
 
 この precondition が満たされるまで、production/test の修正を適用してはいけません。
 
-consume または create した implementation contract artifact に、selected gap に影響する次の status が残る場合は、production/test repair に進んではいけません。
+selected implementation contract authority に、selected gap に影響する次の status が残る場合は、production/test repair に進んではいけません。
 
 - `MissingButRequired`
 - `DependencyMissing`
@@ -249,11 +265,11 @@ triage 出力が利用可能な場合はその gap type と target files / addre
 
 | Gap type | 必要な修正 |
 | --- | --- |
-| `ImplementationContractMissing` | 先に implementation contract artifact を作成または補完する。artifact なしに direct repair へ進まない。 |
-| `DependencyMissing` | implementation contract artifact で dependency/source を確定し、その decision を consume してから最小修正へ進む。 |
-| `ApiSurfaceUnknown` | implementation contract artifact で API/symbol surface を確定し、その decision を consume してから最小修正へ進む。 |
-| `UnjustifiedSubstitution` | implementation contract artifact で prohibited/allowed reuse を確定し、正当化されない substitute を排除してから修正する。 |
-| `SourceOfTruthDrift` | implementation contract artifact を基準に Plan/runtime/test evidence の乖離を解消する。必要なら implementation contract を先に更新する。 |
+| `ImplementationContractMissing` | 先に selected implementation contract authority を作成または補完する。Living Record modeではparentへsection-delta routeを要求し、repair agent自身は作成しない。authorityなしにdirect repairへ進まない。 |
+| `DependencyMissing` | selected implementation contract authorityでdependency/sourceを確定し、そのdecisionをconsumeしてから最小修正へ進む。Living Record modeで不足する場合はparentへsection-delta routeを要求する。 |
+| `ApiSurfaceUnknown` | selected implementation contract authorityでAPI/symbol surfaceを確定し、そのdecisionをconsumeしてから最小修正へ進む。Living Record modeで不足する場合はparentへsection-delta routeを要求する。 |
+| `UnjustifiedSubstitution` | selected implementation contract authorityでprohibited/allowed reuseを確定し、正当化されないsubstituteを排除してから修正する。Living Record modeで不足する場合はparentへsection-delta routeを要求する。 |
+| `SourceOfTruthDrift` | selected implementation contract authorityを基準にPlan/runtime/test evidenceの乖離を解消する。Living Record modeでauthority更新が必要な場合はparentへsection-delta routeを要求する。 |
 | `ProductionImplementationMissing` | production implementation を実装する（その後 wiring も確認する） |
 | `ProductionWiringMissing` | DI 登録・entrypoint・configuration wiring を追加する（implementation が存在することも確認する） |
 | `ContractMismatch` | production code または code/schema/configuration として存在する production-side contract 定義の不一致を修正する。Plan、Runtime Contract Kernel、Test Design Kernel は変更しない。 |
@@ -415,7 +431,7 @@ canonical coverage ledger が存在する場合、または source coverage arti
 
 ## Repository write policy
 
-通常 mode でこの agent が行ってよい repository への書き込みは次のものに限ります。Slice Living Record mode では、下記の production / test code 変更は許可されますが、output/status artifact、Living Record、canonical Coverage Ledger の書き込みは Plan Coverage parent/router に返す delta に置き換えます。
+通常 mode でこの agent が行ってよい repository への書き込みは次のものに限ります。Slice Living Record mode では、下記の production / test code 変更だけが許可されます。output/status artifact、separate implementation contract artifact、Living Record、canonical Coverage Ledger の書き込みは行わず、必要な contract delta はsemantic ownerの再実行要求として、repair evidenceはPlan Coverage parent/routerに返すdeltaとして扱います。
 
 - `plans/<ticket-or-slug>-coverage-gap-resolution-slice.md` の作成または更新（output artifact）
 - `plans/<ticket-or-slug>-implementation-contract-kernel.md` の作成または更新（implementation-realization gap の precondition を満たす場合のみ）

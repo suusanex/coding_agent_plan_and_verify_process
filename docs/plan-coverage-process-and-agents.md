@@ -1278,7 +1278,7 @@ For each selected ID:
 - do not mark a parent Plan coverage gap complete by narrowing Guardrail Focus coverage silently
 - update Parent Plan Coverage Ledger in the output/status artifact, or create one in the output if missing
 - if the gap is a Plan-prohibited production pattern, include a negative test or verification hook unless explicitly impossible
-- for `ImplementationContractMissing` / `DependencyMissing` / `ApiSurfaceUnknown` / `UnjustifiedSubstitution` / `SourceOfTruthDrift`, first consume or create the selected-slice implementation contract artifact before direct repair
+- for `ImplementationContractMissing` / `DependencyMissing` / `ApiSurfaceUnknown` / `UnjustifiedSubstitution` / `SourceOfTruthDrift`, first consume the selected implementation contract authority before direct repair; in Slice Living Record mode, inspect `Implementation Contract Decisions` and, when insufficient, stop and ask the parent to run `implementation-contract-kernel.agent.md` with `output_contract: section-delta`, apply the delta, optionally run the Independent Review fallback, and then resume repair; the repair agent does not create the section or a separate implementation-contract artifact
 - identify the minimal production implementation / wiring / test update needed
 - apply only bounded changes required for that ID
 - update the active status artifact when appropriate

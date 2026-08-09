@@ -213,7 +213,7 @@ function Get-FixtureErrors([string]$Root, [System.Collections.IDictionary]$Autho
     }
 
     $plansRoot = Join-Path $Root 'plans'
-    $separatePattern = '^pcf-001-slice-SL-\d{3}-(?:change-risk-triage|implementation-contract-kernel|runtime-contract-kernel|test-design-kernel|implementation-handoff-review|implementation-completion-handoff|implementation-execution|verification-kernel|coverage-gap-triage|coverage-gap-resolution-slice)\.md$'
+    $separatePattern = '^pcf-001-slice-SL-\d{3}-(?:change-risk-triage|implementation-contract-kernel|runtime-contract-kernel|test-design-kernel|implementation-handoff-review|implementation-completion-handoff|high-model-reentry-handoff|implementation-execution|verification-kernel|coverage-gap-triage|coverage-gap-resolution-slice)\.md$'
     foreach ($file in @(Get-ChildItem -LiteralPath $plansRoot -File -ErrorAction SilentlyContinue)) {
         if ($file.Name -cmatch $separatePattern) {
             $relativePath = "plans/$($file.Name)"
@@ -308,6 +308,15 @@ function Get-FixtureErrors([string]$Root, [System.Collections.IDictionary]$Autho
         $repairRecord -cnotmatch '(?m)^\| `SL-002-REVERIFY-001` \| Verification Rerun .*\| Yes \|$') {
         $errors.Add('SL-002 Living Record does not contain applied repair and re-verification evidence.')
     }
+    $reentryPath = Join-Path $Root 'plans/pcf-001-slice-SL-002-high-model-reentry-handoff.md'
+    $reentry = if (Test-Path -LiteralPath $reentryPath -PathType Leaf) { Get-NormalizedText $reentryPath } else { '' }
+    if ($repairRecord -cnotmatch '(?m)^- Model / owner sequence: HIGH_MODEL -> `READY_FOR_STANDARD_COMPLETION` -> STANDARD_MODEL -> `NEEDS_HIGH_MODEL_REENTRY` payload -> Plan Coverage parent Artifact Creation Gate -> HIGH_MODEL -> `COMPLETED_BY_HIGH_MODEL`$' -or
+        $repairRecord -cnotmatch '(?m)^- Re-entry persistence sequence: STANDARD_MODEL returned an unpersisted payload -> Plan Coverage parent applied the exact-path Artifact Exceptions row -> parent persisted the tracked handoff -> HIGH_MODEL resumed\.$' -or
+        $reentry -cnotmatch '(?m)^- Verdict: `NEEDS_HIGH_MODEL_REENTRY`$' -or
+        $reentry -cnotmatch '(?m)^- Persistence state: persisted by Plan Coverage parent after Artifact Creation Gate$' -or
+        $reentry -cnotmatch '(?m)^- Artifact gate sequence: STANDARD_MODEL returned this content as `UNPERSISTED_PARENT_PAYLOAD`; Plan Coverage parent applied the exact-path Artifact Exceptions row; parent persisted this file; HIGH_MODEL resumed\.$') {
+        $errors.Add('SL-002 does not prove delayed parent registration and persistence of the tracked re-entry handoff.')
+    }
     if ($close -cnotmatch '(?m)^- Required slices independently verified: `SL-001=PARENT_PLAN_VERIFIED`, `SL-002=PARENT_PLAN_VERIFIED`$') {
         $errors.Add('Every required slice must be independently verified before cross-slice verification.')
     }
@@ -384,7 +393,8 @@ try {
         'artifact_mode: slice-living-record', 'output_contract: section-delta',
         'Plan Coverage parent/router', 'Artifact Creation Gate', 'needs-further-decomposition',
         'Only a current-baseline `Match` may proceed', 'references/full-coverage-close.md',
-        'legacy/separate', 'pending Coverage Ledger Delta'
+        'legacy/separate', 'pending Coverage Ledger Delta', 'unpersisted parent payload',
+        'high-model-reentry-handoff.md'
     )) {
         if ($authorityText -cnotmatch [regex]::Escape($pattern)) { throw "Contract authority is missing: $pattern" }
     }
@@ -410,6 +420,7 @@ try {
     Assert-NegativeMutationFails 'ledger-contradiction' { param($r) & $script:ReplaceText (Join-Path $r $closePath) '- Canonical ledger consistency: PASS' '- Canonical ledger consistency: FAIL' } $authority
     Assert-NegativeMutationFails 'repair-loop-skipped' { param($r) & $script:ReplaceText (Join-Path $r $closePath) '- Cross-slice rerun verdict: `CROSS_SLICE_VERIFIED`' '- Cross-slice rerun verdict: skipped' } $authority
     Assert-NegativeMutationFails 'tracked-handoff-without-exception' { param($r) & $script:ReplaceText (Join-Path $r $record2) '| `plans/pcf-001-slice-SL-002-implementation-completion-handoff.md` | `cross-thread-handoff` |' '| removed | removed |' } $authority
+    Assert-NegativeMutationFails 'tracked-reentry-without-exception' { param($r) & $script:ReplaceText (Join-Path $r $record2) '| `plans/pcf-001-slice-SL-002-high-model-reentry-handoff.md` | `cross-thread-handoff` |' '| removed | removed |' } $authority
     Assert-NegativeMutationFails 'ungated-separate-artifact' { param($r) Copy-Item (Join-Path $r $record1) (Join-Path $r 'plans/pcf-001-slice-SL-001-runtime-contract-kernel.md') } $authority
     Assert-NegativeMutationFails 'artifact-budget-exceeded' { param($r) & $script:ReplaceText (Join-Path $r 'plans/pcf-001-slice-decomposition.md') '- Base expected total: 8' '- Base expected total: 9' } $authority
     Assert-NegativeMutationFails 'required-slice-unverified' { param($r) & $script:ReplaceText (Join-Path $r $closePath) '`SL-002=PARENT_PLAN_VERIFIED`' '`SL-002=PENDING`' } $authority

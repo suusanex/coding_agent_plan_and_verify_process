@@ -36,6 +36,15 @@
       "owner": "Plan Coverage parent / Adaptive implementation",
       "classification": "supplemental",
       "lifecycle": "created only after this row was applied; retained through verification"
+    },
+    {
+      "path": "plans/pcf-001-slice-SL-002-high-model-reentry-handoff.md",
+      "condition": "NEEDS_HIGH_MODEL_REENTRY requires cross-model handoff",
+      "reason_code": "cross-thread-handoff",
+      "slice_id": "SL-002",
+      "owner": "Plan Coverage parent / Adaptive implementation",
+      "classification": "supplemental",
+      "lifecycle": "parent persisted only after payload returned and this row was applied; retained through verification"
     }
   ],
   "slices": [

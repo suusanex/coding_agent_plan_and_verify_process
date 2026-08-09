@@ -1,0 +1,26 @@
+# High-model Re-entry Handoff
+
+- Slice ID: `SL-002`
+- Living Record: `plans/pcf-001-slice-SL-002.md`
+- Verdict: `NEEDS_HIGH_MODEL_REENTRY`
+- Handoff persistence: tracked
+- Persistence state: persisted by Plan Coverage parent after Artifact Creation Gate
+- Trigger: production startup wiring required a structural decision outside the STANDARD_MODEL completion surface
+- reentry_count: 1
+- previous_reentry_trigger: N/A
+- implementation_route: adaptive
+- implementation_route_source: default
+- Design Pair handoff: N/A
+- Original Implementation Intent: complete the approved consumer/startup behavior for `SL-002`
+- Plan reference: `plans/pcf-001.md`
+- Work completed before stop: consumer gate implementation completed within the bounded surface
+- Files changed: `src/ConsumerGate.ps1`
+- Validation performed: consumer-local verifier passed before startup integration
+- Evidence that invalidated the handoff: startup binding required a HIGH_MODEL-owned wiring decision
+- New decision required: bind the approved consumer transition at the production startup entrypoint
+- Suggested inspection points: `src/StartupFlow.ps1`, `tests/verify-sl-002.ps1`
+- Worktree state: bounded `SL-002` changes present
+- Design Pair Decision IDs preserved: N/A
+- Locked Decision conflict evidence, if any: none
+- Artifact gate sequence: STANDARD_MODEL returned this content as `UNPERSISTED_PARENT_PAYLOAD`; Plan Coverage parent applied the exact-path Artifact Exceptions row; parent persisted this file; HIGH_MODEL resumed.
+- Status: consumed by HIGH_MODEL and retained as supplemental evidence

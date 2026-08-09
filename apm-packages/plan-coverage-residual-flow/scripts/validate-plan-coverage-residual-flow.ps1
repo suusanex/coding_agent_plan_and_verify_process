@@ -179,6 +179,8 @@ if ($failures.Count -eq 0) {
     $sharedInstructions = Get-NormalizedText (Join-Path $repoRoot $sharedInstructionsRelativePath)
     $handoffReview = Get-NormalizedText (Join-Path $repoRoot '.github/agents/implementation-handoff-review.agent.md')
     $verificationKernel = Get-NormalizedText (Join-Path $repoRoot '.github/agents/verification-kernel.agent.md')
+    $gapResolution = Get-NormalizedText (Join-Path $repoRoot '.github/agents/coverage-gap-resolution-slice.agent.md')
+    $standardCompleter = Get-NormalizedText (Join-Path $repoRoot '.github/agents/standard-implementation-completer.agent.md')
     $packageReadme = Get-NormalizedText (Join-Path $repoRoot $packageReadmeRelativePath)
     $purposeDocumentation = Get-NormalizedText (Join-Path $repoRoot $purposeDocumentationRelativePath)
     $processDocumentation = Get-NormalizedText (Join-Path $repoRoot $processDocumentationRelativePath)
@@ -194,6 +196,7 @@ if ($failures.Count -eq 0) {
     Assert-Matches $skill 'base durable artifact budget is `5 \+ executable slice count \+ 1`.*at most `6 \+ executable slice count`' 'full-coverage artifact budget must be explicit'
     Assert-Matches $skill 'cross-thread-handoff.*parallel-write-isolation.*human-approval-wait.*external-audit-evidence.*record-size-limit' 'Artifact Creation Gate reason codes must be complete'
     Assert-Matches $skill 'Before invoking Adaptive.*parent must first apply a matching `Artifact Exceptions` row.*`cross-thread-handoff`.*implementation-completion-handoff\.md' 'tracked completion handoff must pass the Artifact Creation Gate'
+    Assert-Matches $skill 'When invoking STANDARD.*artifact_mode: slice-living-record.*reentry_handoff_path: plans/<slug>-slice-SL-xxx-high-model-reentry-handoff\.md.*output_contract: parent-persisted-handoff-payload.*`NEEDS_HIGH_MODEL_REENTRY` uses delayed registration.*STANDARD returns.*unpersisted parent payload.*applies an `Artifact Exceptions` row.*persists the payload.*resumes `high-implementation-starter\.agent\.md`' 'tracked re-entry handoff must use delayed parent registration before persistence and HIGH resume'
     Assert-Matches $skill 'CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES.*do not run `residual-decision-gate\.agent\.md`.*coverage-gap-triage\.agent\.md.*coverage-gap-resolution-slice\.agent\.md.*rerun `verification-kernel\.agent\.md`.*rerun `cross-slice-verification-kernel\.agent\.md`' 'FixNow candidates must complete the Living Record repair and re-verification loop before residual decision'
     Assert-Matches $skill 'pre-redesign artifact with no mode.*existing artifact set clearly matches the old contract.*do not silently migrate' 'legacy resume must be recognized without forced migration'
     Assert-Matches $decomposition 'canonical Living Record baseline' 'decomposition must produce Living Record baselines'
@@ -236,10 +239,17 @@ if ($failures.Count -eq 0) {
     Assert-Matches $crossContract 'Target section: Cross-Slice Verification' 'cross-slice verification must target its close-record section'
     Assert-Matches $residualContract 'Target section: Residual Decision' 'residual decision must target its close-record section'
     Assert-Matches $verificationKernel 'pending.*ledger delta|未適用.*Coverage Ledger Delta|Coverage Ledger Delta.*未適用' 'verification must fail closed on pending earlier ledger deltas'
+    $gapResolutionLivingMode = [regex]::Match($gapResolution, '(?ms)^#### Slice Living Record mode\s*$.*?(?=^#### Normal / legacy-separate mode\s*$)').Value
+    if ([string]::IsNullOrWhiteSpace($gapResolutionLivingMode)) { throw 'coverage-gap-resolution-slice must define a bounded Slice Living Record implementation-contract precondition.' }
+    Assert-NotMatches $gapResolutionLivingMode 'plans/<ticket-or-slug>-implementation-contract-kernel\.md' 'Living Record gap resolution must not authorize or target a separate implementation-contract artifact'
+    Assert-Matches $gapResolutionLivingMode '(?s)Implementation Contract Decisions.*別の implementation contract artifactを作成せず.*implementation-contract-kernel\.agent\.md.*output_contract: section-delta.*resume condition' 'Living Record gap resolution must request the implementation-contract semantic owner and wait for parent-applied deltas'
+    Assert-Matches $standardCompleter '(?s)output_contract: parent-persisted-handoff-payload.*UNPERSISTED_PARENT_PAYLOAD.*Artifact Exceptions.*reentry_handoff_path.*編集しません' 'STANDARD re-entry must return an unpersisted payload and leave gate/persistence writes to the Plan Coverage parent'
 
     Assert-Matches $packageReadme '(?s)full-coverage.*each Slice Living Record.*slice-local risk and required kernel section deltas.*architecture baseline compatibility: Match.*Adaptive Implementation.*independent verification.*Full-Coverage Close Record.*cross-slice-verification.*residual-decision-gate' 'package README must describe the Living Record lifecycle in order'
     Assert-Matches $packageReadme 'base artifact budget.*parent control-plane 5件.*sliceごとにLiving Record 1件.*final close 1件' 'package README must document the artifact budget'
     Assert-Matches $packageReadme 'pre-redesign run.*explicit legacy/separate mode.*silent migration' 'package README must document legacy resume compatibility'
+    Assert-Matches $packageReadme 'implementation-realization gap.*Implementation Contract Decisions.*別artifactやsectionを作成せず.*section-delta' 'package README must document implementation-contract owner re-entry for Living Record repairs'
+    Assert-Matches $packageReadme 'High-model Re-entry Handoff.*STANDARDが未保存payload.*parentが例外行を適用.*tracked fileを保存.*HIGHを再開' 'package README must document delayed re-entry handoff registration'
     Assert-Matches $purposeDocumentation 'every executable slice becomes one canonical Slice Living Record.*existing semantic agents return owned section deltas.*independently verified.*Full-Coverage Close Record' 'purpose policy must describe the self-contained Living Record lifecycle'
     Assert-Matches $purposeDocumentation 'two-slice base run uses at most eight durable artifacts' 'purpose policy must state the two-slice budget'
     Assert-Matches $fullCoverageDocumentation 'canonical Slice Living Record.*does not re-enter as a fresh standard Plan Coverage run' 'decomposition policy must use Living Records'

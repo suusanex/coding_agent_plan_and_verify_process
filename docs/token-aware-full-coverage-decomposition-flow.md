@@ -30,8 +30,8 @@
 - Stateful cross-slice contracts must check both producer state and consumer gate. Startup, recovery, async worker, durable state, and state-machine consistency cannot be closed by source-structure evidence alone.
 - Reruns must include previous gap / residual closure delta. A previous gap cannot be closed with evidence of the same or weaker strength than the evidence previously judged insufficient.
 - Cross-slice verification is not the final close gate. `CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES` first returns to the affected Slice Living Record for triage, one bounded repair pass, slice re-verification, and cross-slice rerun. It must not flow directly to Residual Decision.
-- `coverage-gap-resolution-slice.agent.md` is used only when coverage-gap-triage or another permitted direct-selector source emits an explicit FixNow selector. In Living Record mode it returns `Gap Repair Evidence` and Coverage Ledger Delta instead of creating a separate result artifact.
-- A tracked Implementation Completion Handoff may be created only after the parent applies an exact-path `cross-thread-handoff` Artifact Exception row to the target Slice Living Record.
+- `coverage-gap-resolution-slice.agent.md` is used only when coverage-gap-triage or another permitted direct-selector source emits an explicit FixNow selector. In Living Record mode it returns `Gap Repair Evidence` and Coverage Ledger Delta instead of creating a separate result artifact. If an implementation-realization selector lacks sufficient `Implementation Contract Decisions`, it stops and asks the parent to run `implementation-contract-kernel.agent.md` with `output_contract: section-delta`; it never creates the section or a separate implementation-contract artifact itself.
+- A tracked Implementation Completion Handoff may be created only after the parent applies an exact-path `cross-thread-handoff` Artifact Exception row to the target Slice Living Record. A tracked High-model Re-entry Handoff uses delayed registration: STANDARD returns an unpersisted payload, then the parent applies the exact-path exception, saves the payload, and resumes HIGH.
 
 ## Minimal chain
 

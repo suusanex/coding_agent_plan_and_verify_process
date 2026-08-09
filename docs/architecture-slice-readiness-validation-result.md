@@ -2,7 +2,7 @@
 
 ## Execution metadata
 
-- Executed at: `2026-08-09T13:15:01+09:00`
+- Executed at: `2026-08-09T16:31:58+09:00`
 - Executor: deterministic ASR-001 through ASR-006 fixture comparison rerun after PR #100 review remediation
 - Branch: `codex/redesign-fullcoverage-living-record`
 - Reviewed source: post-PR #80 Plan Coverage path history (`05c0f84`, `3e42758`, `f2b6bbe`) confirms that only PR #90 added Plan Coverage-specific Copilot qualification wording; the current Skill keeps a target-neutral separate-package, explicit-selection, and waiting-state boundary while preserving the Issue #94 bounded-slice and architecture compatibility contracts
@@ -19,7 +19,7 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | `.github/agents/plan-slice-decomposition.agent.md` | `3d8791cada6cec26e94532723808d1cd695004ed254ae35029d229e86eac0ad5` |
 | `.github/agents/implementation-handoff-review.agent.md` | `8cf54b1444379cc43187e3f99056a61f466105121d99c98a7e8bc6ef07e4bca2` |
 | `.github/instructions/plan-coverage-shared.instructions.md` | `1f38405b04f752d2af27e46ae21773e68849f558f20706187c7057984a7f6c24` |
-| `plan-coverage-residual-flow/SKILL.md` | `253f0d7ba2ade9b5f6b2d15674c978f3fa359bbb7694a4cc8a5c23cf5b858df5` |
+| `plan-coverage-residual-flow/SKILL.md` | `aa1f795a302fe27688c000a5f9485648a3d82d71d6a278c8cb2c56163ed37356` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 | `coverage-ledger.md` template | `b1a532b4ab59dbaa1471d8bd1beb6af5e7f570f3086719c8fcbe452f7f493962` |
 | `plan-coverage-lite.md` template | `e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90` |
