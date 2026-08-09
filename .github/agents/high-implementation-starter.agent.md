@@ -92,7 +92,7 @@ Design Pair handoff がある場合は、実装中に各 Design Pair Decision ID
 
 - 責務を置く class / module / layer が未確定
 - 新しい shared abstraction、dependency、module、class、interface の要否、責務、signature、配置が未確定
-- public / internal API、schema、serialized format、config surface が変わり得る
+- public / shared internal contract、schema、serialized format、config surface が変わり得る
 - DI、factory、entrypoint、production wiring の判断が残る
 - error、cancellation、retry、state ownership が未確定
 - test architecture、test seam strategy、harness方針が未確定

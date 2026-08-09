@@ -159,7 +159,10 @@ function Get-HandoffErrors([object]$Handoff) {
     }
     foreach ($workPackage in $workPackages) {
         foreach ($field in $script:requiredWorkPackageFields) {
-            if (-not (Has-Property $workPackage $field) -or @($workPackage.$field).Count -eq 0) {
+            $fieldValue = if (Has-Property $workPackage $field) { $workPackage.$field } else { $null }
+            if ($null -eq $fieldValue `
+                -or @($fieldValue).Count -eq 0 `
+                -or ($fieldValue -is [string] -and [string]::IsNullOrWhiteSpace($fieldValue))) {
                 $errors.Add("Work Package is missing '$field'")
             }
         }
@@ -176,7 +179,12 @@ function Get-HandoffErrors([object]$Handoff) {
     }
     $workById = @{}
     foreach ($workPackage in $workPackages) {
-        $workById[[string]$workPackage.work_id] = $workPackage
+        $workId = [string]$workPackage.work_id
+        if ($workById.ContainsKey($workId)) {
+            $errors.Add("duplicate Work ID '$workId'")
+            continue
+        }
+        $workById[$workId] = $workPackage
     }
     foreach ($row in $acceptanceRows) {
         $status = [string]$row.status
@@ -511,6 +519,22 @@ Assert-RejectedMutation 'G-unsupported-acceptance-status' $document {
     $event.handoff_override.status = 'Locked'
     $event.expected_rejected = $false
 } 'unsupported status'
+Assert-RejectedMutation 'G-duplicate-work-id' $document {
+    param($copy)
+    $referenceHandoff = ((Get-Scenario $copy 'A').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION').handoff
+    $referenceHandoff.remaining_work = @($referenceHandoff.remaining_work) + (Copy-Object $referenceHandoff.remaining_work[0])
+    $event = (Get-Scenario $copy 'G').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION'
+    $event.handoff_override.status = 'Locked'
+    $event.expected_rejected = $false
+} 'duplicate Work ID'
+Assert-RejectedMutation 'G-empty-work-package-responsibility' $document {
+    param($copy)
+    $referenceHandoff = ((Get-Scenario $copy 'A').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION').handoff
+    $referenceHandoff.remaining_work[0].responsibility = '  '
+    $event = (Get-Scenario $copy 'G').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION'
+    $event.handoff_override.status = 'Locked'
+    $event.expected_rejected = $false
+} "Work Package is missing 'responsibility'"
 Assert-RejectedMutation 'G-asymmetric-acceptance-edge' $document {
     param($copy)
     $referenceHandoff = ((Get-Scenario $copy 'A').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION').handoff

@@ -325,6 +325,8 @@ Assert-Contains $highAgent '(?s)handoffs:.*agent:\s*standard-implementation-comp
 Assert-Contains $highAgent '第一目的は.*implementation を可能な限り完成させることではありません' 'HIGH_MODEL decision-closure primary objective'
 Assert-Contains $highAgent 'code inspectionだけでdecision closureを証明できる場合.*変更せずに委譲' 'zero-code HIGH delegation'
 Assert-Contains $highAgent 'locked boundary、cross-file responsibility、public / shared internal contract、dependency direction、wiring architecture、state semantics、またはtest architectureに影響する複数の妥当な案' 'HIGH_MODEL non-local alternatives boundary'
+Assert-Contains $highAgent 'public / shared internal contract、schema、serialized format、config surface が変わり得る' 'HIGH_MODEL shared-contract continuation boundary'
+Assert-NotContains $highAgent 'public / internal API、schema、serialized format、config surface が変わり得る' 'overbroad HIGH_MODEL internal API continuation boundary'
 Assert-NotContains $highAgent '(?m)^- 複数の妥当な実装案から trade-off 判断が必要$' 'unbounded HIGH_MODEL alternatives retention rule'
 Assert-Contains $highAgent 'CONTINUE_HIGH_IMPLEMENTATION' 'continue-high verdict'
 Assert-Contains $highAgent 'COMPLETED_BY_HIGH_MODEL' 'high completion verdict'
@@ -632,10 +634,11 @@ Assert-Contains $routingValidator 'locked_non_local_decision_change_required' 'l
 Assert-Contains $routingValidator '(?s)function Get-ReferenceHandoff.*events\.Count -ne 1.*return \$null' 'reference handoff exact-single fail-closed validation'
 Assert-Contains $routingValidator 'handoff override references unknown decision concern' 'unknown decision concern readable failure'
 Assert-Contains $routingValidator "status -cnotin @\('Complete', 'Incomplete'\)" 'complete acceptance status enum validation'
+Assert-Contains $routingValidator 'duplicate Work ID' 'unique Work ID validation'
 Assert-Contains $routingValidator 'does not declare the acceptance item' 'acceptance row to Work Package reverse-edge validation'
 Assert-Contains $routingValidator "(?s)C-edit-type-only-reentry.*tracked_state_ref.*'D'.*HighReentryReady" 'edit-type-only mutation uses otherwise valid re-entry state'
 Assert-Contains $routingValidator 'rejected for the wrong reason' 'negative mutation rejection-reason isolation'
-foreach ($mutation in @('G-ambiguous-reference-handoff', 'G-missing-reference-handoff', 'G-unknown-decision-concern', 'G-unsupported-acceptance-status', 'G-asymmetric-acceptance-edge')) {
+foreach ($mutation in @('G-ambiguous-reference-handoff', 'G-missing-reference-handoff', 'G-unknown-decision-concern', 'G-unsupported-acceptance-status', 'G-duplicate-work-id', 'G-empty-work-package-responsibility', 'G-asymmetric-acceptance-edge')) {
     Assert-Contains $routingValidator ([regex]::Escape($mutation)) "routing negative mutation $mutation"
 }
 Assert-Contains $routingValidator 'no evidence or N/A reason' 'decision closure evidence validation'

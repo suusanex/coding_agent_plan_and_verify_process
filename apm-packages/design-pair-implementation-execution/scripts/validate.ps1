@@ -319,6 +319,8 @@ Assert-Contains $highAgent '(?s)AIが未選択Targetを`Adaptive-Owned`.*最終u
 Assert-Contains $highAgent '(?s)selected Targetにはuser-facing assistant turn reference.*具体的code location.*current invariant.*alternatives / trade-offs.*非binding proposalまたはNo proposal理由.*validation expectation.*`Selected Target Discussion Evidence`' 'HIGH selected Target discussion evidence gate'
 Assert-Contains $highAgent '抽象的なTarget Mapまたはdiscussion evidence' 'HIGH abstract discussion rejection'
 Assert-Contains $highAgent 'locked boundary、cross-file responsibility、public / shared internal contract、dependency direction、wiring architecture、state semantics、またはtest architectureに影響する複数の妥当な案' 'HIGH non-local alternatives boundary'
+Assert-Contains $highAgent 'public / shared internal contract、schema、serialized format、config surface が変わり得る' 'HIGH shared-contract continuation boundary'
+Assert-NotContains $highAgent 'public / internal API、schema、serialized format、config surface が変わり得る' 'overbroad HIGH internal API continuation boundary'
 Assert-NotContains $highAgent '(?m)^- 複数の妥当な実装案から trade-off 判断が必要$' 'unbounded HIGH alternatives retention rule'
 Assert-Contains $highAgent '(?s)Target Map presentation evidenceは全Targetのuser-facingな具体的file / symbol.*current invariant.*内部設計判断候補.*relevant evidence.*artifact linkまたは論点名だけの要約ではない' 'HIGH concrete Target Map presentation gate'
 Assert-Contains $highAgent '(?s)## Required inputs.*- implementation_route.*- implementation_route_source.*- Design Pair Implementation Handoff path または `N/A`.*`BLOCKED`.*BlockedByInvalidCompletionHandoff' 'HIGH required route input validation'
