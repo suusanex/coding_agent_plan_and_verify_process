@@ -139,6 +139,7 @@ re-entry 時は、追加の redesign を行わず次を返します。
 
 - Verdict: NEEDS_HIGH_MODEL_REENTRY
 - Handoff persistence: tracked
+- Persistence state: persisted / `UNPERSISTED_PARENT_PAYLOAD`
 - Trigger:
 - reentry_count:
 - previous_reentry_trigger:
@@ -158,6 +159,12 @@ re-entry 時は、追加の redesign を行わず次を返します。
 - Locked Decision conflict evidence, if any:
 ```
 
+### Plan Coverage Slice Living Record adapter
+
+callerから`artifact_mode: slice-living-record`、`living_record_path`、`reentry_handoff_path`、`output_contract: parent-persisted-handoff-payload`が渡された場合、`NEEDS_HIGH_MODEL_REENTRY`のhandoffはrepositoryへ保存せず、上記schemaを完全に満たすunpersisted payloadとしてPlan Coverage parent/routerへ返してください。この場合、`Handoff persistence: tracked`は最終的に必要なdurabilityを示し、`Persistence state: UNPERSISTED_PARENT_PAYLOAD`はまだtracked artifactではないことを示します。
+
+このagentは`Artifact Exceptions`、Slice Living Record、canonical Coverage Ledger、`reentry_handoff_path`を編集しません。parentがpayloadとroute identityを検証し、exact pathの`cross-thread-handoff`例外行を適用し、その後にpayloadを保存するまで、frontmatterのHIGH handoffを使用してはいけません。例外行を適用できない場合、payloadは未保存のまま停止します。
+
 re-entry state は次の規則で設定します。
 
 - `Trigger` は今回発見した trigger とする
@@ -166,7 +173,7 @@ re-entry state は次の規則で設定します。
 - `implementation_route`、`implementation_route_source`、Design Pair handoff pathはincoming Implementation Completion Handoffの値を変更せず維持する
 - `Trigger` と `previous_reentry_trigger` が同じ場合は、同じ trigger の再発であることを evidence に明記する
 
-parent は、この tracked handoff、incoming tracked Implementation Completion Handoff、元の Implementation Intent を保持して `high-implementation-starter` を再実行します。GitHub Copilot Chat in VS Codeではhandoff promptへ両artifact pathを渡し、会話履歴だけを唯一の状態保持手段にしてはいけません。
+通常modeではparentは、この tracked handoff、incoming tracked Implementation Completion Handoff、元の Implementation Intentを保持して`high-implementation-starter`を再実行します。Plan Coverage Slice Living Record adapterでは、parentがArtifact Creation Gateを通してpayloadをtracked handoffへmaterializeした後に限り、同じ三者を保持して再実行します。GitHub Copilot Chat in VS Codeではhandoff promptへ両artifact pathを渡し、会話履歴だけを唯一の状態保持手段にしてはいけません。
 
 一度 re-entry した後は HIGH_MODEL が完了まで担当することを既定とします。再委譲は、HIGH_MODEL が `Remaining work` と `Allowed edit surface` の両方が前回より厳密に縮小したことを evidence 付きで示し、同じ trigger が再発していない場合だけ許可されます。
 

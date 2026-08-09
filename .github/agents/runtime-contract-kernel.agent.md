@@ -51,6 +51,8 @@ You are the "Runtime Contract Kernel" agent.
 - 存在する場合は対象タスクの Plan document（`plans/<ticket-or-slug>.md`）
 - participant、boundary、production address を特定するために必要な範囲の code または補足資料
 
+`artifact_mode: slice-living-record`の場合は、`living_record_path`、`canonical_coverage_ledger`、`output_contract: section-delta`も必須です。
+
 ## Target profile
 
 この agent は `contract-kernel` profile として動作します。
@@ -131,6 +133,38 @@ change-risk-triage の `Implementation realization risk` が `Present` または
 ---
 
 ## Required output structure
+
+### Slice Living Record mode
+
+repository artifactを作成・編集せず、次だけを返してください。
+
+```md
+## Section Delta
+
+- Target record: plans/<slug>-slice-SL-xxx.md
+- Target section: Runtime Contract
+- Semantic owner: runtime-contract-kernel
+- Replace owned section: Yes
+
+## Runtime Contract
+
+| Contract ID | Scenario | Producer | Consumer | Message / API / Event | Required fields | Error / timeout behavior | Production implementation address | Verification hook |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+### Plan / implementation contract conformance
+
+| Runtime Contract ID | Plan requirement | Implementation contract decision | Runtime contract address | Conformance |
+| --- | --- | --- | --- | --- |
+
+## Coverage Ledger Delta
+
+| Delta ID | Source phase | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Applied to canonical ledger? |
+| --- | --- | --- | --- | --- | --- | --- |
+```
+
+既存のRC semanticsとtable rulesを維持し、別sectionを書き換えてはいけません。Plan Coverage parent/routerが唯一のrepository writerです。
+
+### Normal mode
 
 ```md
 # Runtime Contract Kernel

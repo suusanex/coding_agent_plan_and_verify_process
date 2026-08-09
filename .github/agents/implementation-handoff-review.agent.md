@@ -121,6 +121,8 @@ Guardrail Focus coverage の guardrail chain が整っていても、parent Plan
 6. Implementation Contract Kernel（`plans/<ticket-or-slug>-implementation-contract-kernel.md`）— `change-risk-triage` の `Implementation realization risk` が `Present` / `Unclear` の場合は必須
 7. Implementation Contract Review Kernel（`plans/<ticket-or-slug>-implementation-contract-review-kernel.md`）— explicit review-only fallback として存在する場合だけ読む
 8. Plan Slice Decomposition artifact（`plans/<ticket-or-slug>-slice-decomposition.md`）— full-coverage decomposition 由来の slice をレビューする場合は必須
+
+`artifact_mode: slice-living-record`の場合、上記slice-local artifactの代わりにcanonical Slice Living Record内のowned upstream sectionsを読みます。さらに`living_record_path`、`canonical_coverage_ledger`、`output_contract: section-delta`が必須です。canonical ledgerに未適用のpre-implementation deltaがある場合はfail closedしてください。
 9. Architecture Slice Readiness artifact（`plans/<ticket-or-slug>-architecture-slice-readiness.md`）— full-coverage decomposition由来のsliceでは必須。Plan Coverage parentがtracked source hash / revisionとwatch-path diffを再確認し、currentであるevidenceを記録している必要がある
 10. Slice Architecture artifact（`plans/<ticket-or-slug>-slice-architecture.md`）— readiness verdictが`ReadyForSliceDecomposition`の場合は必須。`ArchitectureNotRequired`ではreadiness artifact内のLightweight architecture baselineを使う
 11. Black-box Behavior Spec artifact（`plans/<ticket-or-slug>-black-box-behavior-spec.md`）— Plan の `Behavior spec artifact required: Yes` の場合は必須。`Expansion required: Yes` でも inline behavior sketch sufficient の場合は、Plan / Lite artifact 内の Inline behavior sketch と Case-to-Plan mapping を source として扱う
@@ -392,11 +394,47 @@ BLOCKED になるのは本当に危険な場合だけです。実装者が自分
 
 ### Step 4. Write the review output
 
+`artifact_mode: slice-living-record`の場合はrepository fileを書かず、`Inline Ready Gate` section deltaとCoverage Ledger Deltaだけをcallerへ返します。Plan Coverage parent/routerが唯一のrepository writerです。通常routeの場合だけ、次の既存output pathを使います。
+
 出力を `plans/<ticket-or-slug>-implementation-handoff-review.md` に書き出してください。既存ファイルがある場合は、同じ requested change / Guardrail Focus coverage に対応する内容だけを更新し、無関係なレビュー結果を壊さないでください。
 
 この agent が行える repository write は `plans/<ticket-or-slug>-implementation-handoff-review.md` の作成または更新だけです。Plan、triage、runtime contract、test design、production code、test code、coverage artifact は変更してはいけません。
 
 以下のフォーマットで出力してください。
+
+Slice Living Record modeでは先に次のformatを使ってください。
+
+```md
+## Section Delta
+
+- Target record: plans/<slug>-slice-SL-xxx.md
+- Target section: Inline Ready Gate
+- Semantic owner: implementation-handoff-review
+- Replace owned section: Yes
+
+## Inline Ready Gate
+
+- Formal implementation-handoff-review verdict:
+- Readiness scope:
+- Parent coverage state:
+- Behavior Case coverage state:
+- Architecture baseline identity:
+- Architecture compatibility: Match / Drift / Unclear
+- Implementation allowed: Yes / No
+- Blocking issues:
+
+### Architecture baseline compatibility
+
+| Slice ID | Readiness verdict | Baseline authority | Baseline identity | Observed semantics | Architecture compatibility | Required action |
+| --- | --- | --- | --- | --- | --- | --- |
+
+## Coverage Ledger Delta
+
+| Delta ID | Source phase | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Applied to canonical ledger? |
+| --- | --- | --- | --- | --- | --- | --- |
+```
+
+Formal verdict vocabularyは通常routeと同じです。`Match`だけがimplementationを許可します。`Drift`はArchitecture Slice Readiness / Elaborationへ戻し、`Unclear`はfail closedしてArchitecture Slice Readinessを再実行します。`ArchitectureNotRequired`でもLightweight architecture baselineとの比較を省略してはいけません。
 
 ```md
 # 実装引き継ぎレビュー
@@ -548,6 +586,7 @@ canonical coverage ledger が存在する場合は "See: plans/<ticket-or-slug>-
 - `UnmappedBlocking` または実装前判断が必要な `NeedsHumanDecision` がある Behavior Case を非ブロッキング扱いしてはいけません
 - `DeferredToKnownSlice` や `CoveredByCrossSliceVerification` を、完了済みとして扱ってはいけません
 - supplement が historical scope を上書きしている場合、effective scope を明記せずに READY を出してはいけません
+- Slice Living Record modeでowned section以外を返したり、Living Recordまたはcanonical Coverage Ledgerを直接編集してはいけません
 
 ## Stop condition
 

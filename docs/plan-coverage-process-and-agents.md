@@ -149,7 +149,7 @@ The immediate next step is `architecture-slice-readiness.agent.md`, not decompos
 For `ArchitectureNotRequired`, the readiness artifact itself is the lightweight baseline authority. Before implementation authorization for every executable slice, the Plan Coverage parent reconfirms baseline freshness and `implementation-handoff-review` compares slice-local pre-implementation decisions with the current approved Slice Architecture or Lightweight architecture baseline. Only `Match` may proceed; `Drift` returns to Architecture Slice Readiness / Elaboration, and `Unclear` fails closed and reruns Architecture Slice Readiness.
 Readiness and architecture artifacts record a source repository commit, tracked source content hashes / explicit revisions, watch paths, explicit artifact revision, and evaluation time. Freshness compares tracked sources and the source-commit-to-current diff on watch paths; HEAD changes containing only generated gate artifacts do not self-invalidate the baseline. A semantic baseline change is `stale`, even when paths are unchanged.
 The pre-elaboration readiness R1 is retained in Slice Architecture as an immutable `elaboration_trigger` audit snapshot with `freshness_dependency: false`. Replacing the standard readiness path with post-elaboration R2 does not stale the architecture; R2 instead tracks the Slice Architecture external content hash.
-Only an approved readiness verdict may proceed to `plan-slice-decomposition.agent.md`. Each resulting slice then re-enters the Plan網羅チェック・残件判定フロー as a bounded parent Plan pass. After slice verification, the parent flow runs `cross-slice-verification-kernel.agent.md` and then `residual-decision-gate.agent.md`.
+Only an approved readiness verdict may proceed to `plan-slice-decomposition.agent.md`. New decomposition records `documentation_level: standard` and `artifact_mode: slice-living-record`; each executable slice becomes one canonical Living Record. Existing semantic agents return owned section deltas, and the Plan Coverage parent/router is the only Living Record and canonical ledger writer. After independent slice verification and pending ledger delta count 0, the parent flow records `cross-slice-verification-kernel.agent.md` and then `residual-decision-gate.agent.md` in one Full-Coverage Close Record.
 
 `full-coverage` does not require many executable slices. If a small number of slices, including 2 slices, preserves parent acceptance conditions, cross-slice contracts, field continuity, and Behavior Case mapping, that is a valid decomposition. `plan-slice-decomposition.agent.md` must include a `Slice granularity review` before output and must coalesce candidates when delegation overhead would outweigh implementation value.
 
@@ -201,19 +201,17 @@ This is the canonical Plan Coverage route.
 5. If triage recommends `full-coverage`, run `architecture-slice-readiness.agent.md`
 6. If needed, run `architecture-elaboration.agent.md` and rerun readiness; stop on human decision or blocking architecture residual
 7. Run `plan-slice-decomposition.agent.md` only for `ReadyForSliceDecomposition` or `ArchitectureNotRequired`
-8. Run each resulting slice through the bounded Plan網羅チェック・残件判定フロー:
-   - `implementation-contract-kernel.agent.md`, when implementation-realization risk is present
-   - `implementation-contract-review-kernel.agent.md`, only as an explicit review-only fallback for the implementation contract self-check verdict
-   - `runtime-contract-kernel.agent.md`
-   - `test-design-kernel.agent.md`
-   - `implementation-handoff-review.agent.md`
+8. For each executable slice, use its canonical Slice Living Record instead of re-entering a fresh bounded Plan Coverage run. Existing semantic agents return owned section deltas; the Plan Coverage parent/router alone applies Living Record and canonical Coverage Ledger changes:
+   - slice-local `change-risk-triage.agent.md`
+   - `implementation-contract-kernel.agent.md` when implementation-realization risk is present, with `implementation-contract-review-kernel.agent.md` only as an explicit `Implementation Contract Decisions / Independent Review` fallback
+   - `runtime-contract-kernel.agent.md`, `test-design-kernel.agent.md`, and `implementation-handoff-review.agent.md` as selected by slice risk
    - when explicitly selected, Design Pair Target Map presentation and mandatory `AWAITING_USER_INPUT` boundary
-   - Adaptive implementation by the canonical HIGH -> optional STANDARD -> HIGH route
-   - `verification-kernel.agent.md`
-9. When decomposition was used, run `cross-slice-verification-kernel.agent.md`
-10. `coverage-gap-triage.agent.md`, when FixNow candidates or unresolved implementation coverage items need classification and no complete `Direct FixNow selectors` table exists
-11. `residual-decision-gate.agent.md`, when residual / manual / human-decision candidates remain
-12. `coverage-gap-resolution-slice.agent.md`, only when verification-kernel, coverage-gap-triage, or residual-decision-gate emits an explicit FixNow selector
+   - Adaptive implementation by the canonical HIGH -> optional STANDARD -> HIGH route, with tracked completion handoff creation gated by a pre-applied `Artifact Exceptions` row
+   - independent `verification-kernel.agent.md`, followed by atomic application of its section and ledger deltas
+9. After all required slices are independently verified with no pending delta, create one Full-Coverage Close Record and run `cross-slice-verification-kernel.agent.md`.
+10. If the cross-slice verdict is `CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES`, do not run Residual Decision. Route selectors to affected Slice Living Records, run Living Record-aware `coverage-gap-triage.agent.md` unless a complete direct selector permits bypass, run one bounded `coverage-gap-resolution-slice.agent.md` pass, rerun affected slice verification, and rerun cross-slice verification.
+11. Run `residual-decision-gate.agent.md` only after cross-slice verification or its repair-loop rerun returns a verdict that permits residual classification, then apply its close-record section and ledger delta.
+12. Stop or return to the appropriate upstream gate when a repair cannot be mapped to one bounded target slice, remains broader than `fix-slice`, or produces a repeated unresolved candidate.
 
 Implementation handoff must include:
 
@@ -1280,7 +1278,7 @@ For each selected ID:
 - do not mark a parent Plan coverage gap complete by narrowing Guardrail Focus coverage silently
 - update Parent Plan Coverage Ledger in the output/status artifact, or create one in the output if missing
 - if the gap is a Plan-prohibited production pattern, include a negative test or verification hook unless explicitly impossible
-- for `ImplementationContractMissing` / `DependencyMissing` / `ApiSurfaceUnknown` / `UnjustifiedSubstitution` / `SourceOfTruthDrift`, first consume or create the selected-slice implementation contract artifact before direct repair
+- for `ImplementationContractMissing` / `DependencyMissing` / `ApiSurfaceUnknown` / `UnjustifiedSubstitution` / `SourceOfTruthDrift`, first consume the selected implementation contract authority before direct repair; in Slice Living Record mode, inspect `Implementation Contract Decisions` and, when insufficient, stop and ask the parent to run `implementation-contract-kernel.agent.md` with `output_contract: section-delta`, apply the delta, optionally run the Independent Review fallback, and then resume repair; the repair agent does not create the section or a separate implementation-contract artifact
 - identify the minimal production implementation / wiring / test update needed
 - apply only bounded changes required for that ID
 - update the active status artifact when appropriate
@@ -1331,8 +1329,8 @@ The current process contract is satisfied when:
 - verification-kernel records Behavior Case Evidence Ledger for Case IDs in the current pass
 - residual-decision-gate treats `UnexpandedRequirement`, `SourceRequirementNotMappedToPlan`, and `UnmappedBehaviorCase` as replan candidates by default
 - full-coverage remains self-contained under Plan Coverage ownership from Architecture Slice Readiness through Residual Decision
-- every executable full-coverage slice re-enters the standard Plan Coverage chain as a bounded Plan and receives independent verification
+- every executable full-coverage slice uses one canonical Living Record, preserves the standard guardrail semantics through owned section deltas, and receives independent verification
 - the Plan Coverage parent and implementation-handoff-review allow implementation only for a current-baseline architecture `Match`
 - `Drift` returns to Architecture Slice Readiness / Elaboration and `Unclear` fails closed
 - Cross-Slice Verification runs after all executable slices and before parent residual closure
-- the current repeated per-slice artifact and handoff cost remains explicit; no Living Record or new lightweight slice lifecycle is claimed as implemented
+- the full-coverage base artifact budget is five parent artifacts plus one Living Record per executable slice plus one close record; conditional and exception artifacts are explicitly justified

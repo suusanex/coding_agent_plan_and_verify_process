@@ -51,6 +51,8 @@ You are the "Implementation Contract Kernel" agent.
 4. original user requirement（supplementary context only）
 5. dependency / API surface / implementation path 確認に必要な範囲の project files
 
+`artifact_mode: slice-living-record`の場合は、`living_record_path`、`canonical_coverage_ledger`、`output_contract: section-delta`も必須です。
+
 ## Target profile
 
 この agent は `contract-kernel` profile として動作します。
@@ -97,6 +99,39 @@ You are the "Implementation Contract Kernel" agent.
 ---
 
 ## Required output structure
+
+### Slice Living Record mode
+
+repository artifactを作成・編集せず、owned sectionとstable-ID ledger deltaだけを返してください。
+
+```md
+## Section Delta
+
+- Target record: plans/<slug>-slice-SL-xxx.md
+- Target section: Implementation Contract Decisions
+- Semantic owner: implementation-contract-kernel
+- Replace owned section: Yes
+
+## Implementation Contract Decisions
+
+- Plan-required implementation path:
+- Dependency / API surface evidence:
+- Selected implementation approach:
+- Required code changes:
+- Prohibited substitutions:
+- Verification hooks:
+- Unresolved implementation-realization items:
+- Self-check / Readiness verdict:
+
+## Coverage Ledger Delta
+
+| Delta ID | Source phase | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Applied to canonical ledger? |
+| --- | --- | --- | --- | --- | --- | --- |
+```
+
+Slice Plan、XC mapping、architecture baseline、または別sectionを再解釈・再生成してはいけません。Plan Coverage parent/routerが唯一のrepository writerです。
+
+### Normal mode
 
 ```md
 # Implementation Contract Kernel

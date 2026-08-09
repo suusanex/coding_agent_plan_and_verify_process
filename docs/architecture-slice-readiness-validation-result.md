@@ -2,9 +2,9 @@
 
 ## Execution metadata
 
-- Executed at: `2026-08-08T20:43:19+09:00`
-- Executor: Issue #96 rollback; deterministic ASR-001 through ASR-006 fixture comparison rerun after removing Plan Coverage-specific Copilot qualification wording
-- Branch: `issue-93` (Issue #93 recovery sequence after Issue #95)
+- Executed at: `2026-08-09T16:31:58+09:00`
+- Executor: deterministic ASR-001 through ASR-006 fixture comparison rerun after PR #100 review remediation
+- Branch: `codex/redesign-fullcoverage-living-record`
 - Reviewed source: post-PR #80 Plan Coverage path history (`05c0f84`, `3e42758`, `f2b6bbe`) confirms that only PR #90 added Plan Coverage-specific Copilot qualification wording; the current Skill keeps a target-neutral separate-package, explicit-selection, and waiting-state boundary while preserving the Issue #94 bounded-slice and architecture compatibility contracts
 - Scope: entry authorization, routing, artifact, and existing architecture semantics only; no production code or external system changes
 
@@ -16,10 +16,10 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | --- | --- |
 | `.github/agents/architecture-slice-readiness.agent.md` | `c2f93ce3004a309d8430bea7e7875e38a2fd983843c95a1abca0324654bf5259` |
 | `.github/agents/architecture-elaboration.agent.md` | `8f53674b988131d847d8c32ca01d850c90820fddb40595a6ca6ff54382948344` |
-| `.github/agents/plan-slice-decomposition.agent.md` | `2d92766ad496003fa31be917c8355188adce9165b05bfe709044c4715c2a0fae` |
-| `.github/agents/implementation-handoff-review.agent.md` | `18b83fe6a0c02af7551a0a33095f7acab024fe07ce3b7846f4cdd7223ac11997` |
+| `.github/agents/plan-slice-decomposition.agent.md` | `3d8791cada6cec26e94532723808d1cd695004ed254ae35029d229e86eac0ad5` |
+| `.github/agents/implementation-handoff-review.agent.md` | `8cf54b1444379cc43187e3f99056a61f466105121d99c98a7e8bc6ef07e4bca2` |
 | `.github/instructions/plan-coverage-shared.instructions.md` | `1f38405b04f752d2af27e46ae21773e68849f558f20706187c7057984a7f6c24` |
-| `plan-coverage-residual-flow/SKILL.md` | `797d8628ecd35dd76d0d386a3bb23bc30b9f369f213c2c2a0e1d2bfa4bfd4530` |
+| `plan-coverage-residual-flow/SKILL.md` | `aa1f795a302fe27688c000a5f9485648a3d82d71d6a278c8cb2c56163ed37356` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 | `coverage-ledger.md` template | `b1a532b4ab59dbaa1471d8bd1beb6af5e7f570f3086719c8fcbe452f7f493962` |
 | `plan-coverage-lite.md` template | `e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90` |
@@ -44,6 +44,8 @@ Complete input, actual output, expected JSON, machine-readable actual JSON, and 
 ASR-001 through ASR-006 fixture output and run IDs are reused from the prior Issue #65 deterministic scenario set. Issue #96 reruns the unchanged fixture comparison and updates the Plan Coverage Skill contract hash and evidence metadata after the target-neutral wording change; it does not relabel or reconstruct the prior run IDs.
 
 Issue #97 keeps those fixture files and run IDs unchanged as historical scenario evidence. Legacy filenames and output headings that mention slice preparation, parent review, or slice implementation authorization describe the owner mapping at the time of the captured run; they are not the current active route. In the current contract, those checkpoints map to the Plan Coverage parent architecture compatibility check and `implementation-handoff-review` Check 11. Only a current-baseline `Match` permits implementation; `Drift` or `Unclear` blocks and returns to Architecture Slice Readiness / Elaboration. A new end-to-end evidence set is outside this documentation alignment and remains for Issue #98.
+
+The 2026-08-09 review-remediation rerun keeps the six architecture outcomes unchanged. The full-coverage durable layout now uses one Slice Living Record per executable slice and adds a post-verification FixNow repair loop, but Architecture Slice Readiness and `implementation-handoff-review` Check 11 retain the same `Match / Drift / Unclear` gate semantics.
 
 | Fixture | Run ID | Complete evidence root |
 | --- | --- | --- |

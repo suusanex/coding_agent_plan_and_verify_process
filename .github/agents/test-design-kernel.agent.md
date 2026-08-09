@@ -54,6 +54,8 @@ You are the "Test Design Kernel" agent.
 6. 存在する場合は Black-box Behavior Spec artifact（`plans/<ticket-or-slug>-black-box-behavior-spec.md`）
 7. selected contracts に直接関連する既存の test conventions または test utility files のみ
 
+`artifact_mode: slice-living-record`の場合は、`living_record_path`、`canonical_coverage_ledger`、`output_contract: section-delta`も必須です。
+
 Runtime Contract Kernel がある場合は、その `Contract ID`、`Scenario`、`Error / timeout behavior`、`Production implementation address` を test design の補助情報として使ってください。caller が直接 IDs を渡した場合でも、Runtime Contract Kernel の未選択行へ scope を広げてはいけません。
 
 `change-risk-triage` の `Implementation realization risk` が `Present` / `Unclear` で、`implementation-contract-kernel` が存在しない場合は、`Production binding required?` を十分に設計できない可能性があります。この場合は `NeedsHumanDecision` または `OutOfScopeForThisPass` を使って明示し、`implementation-contract-kernel.agent.md` を推奨してください。
@@ -142,6 +144,43 @@ Plan に `Black-box behavior coverage` がある場合は、`Case-to-Plan mappin
 ---
 
 ## Required output structure
+
+### Slice Living Record mode
+
+repository artifactを作成・編集せず、次だけを返してください。
+
+```md
+## Section Delta
+
+- Target record: plans/<slug>-slice-SL-xxx.md
+- Target section: Test Design
+- Semantic owner: test-design-kernel
+- Replace owned section: Yes
+
+## Test Design
+
+| Test Point ID | Runtime Contract ID | What to verify | Stub / fake allowed? | Production binding required? | Expected observation | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+
+### Required production binding checks
+
+| Test Point ID | Runtime Contract ID | Substitute used / expected | Production implementation to check | Production wiring / entrypoint to check | Notes |
+| --- | --- | --- | --- | --- | --- |
+
+### Behavior case test mapping
+
+| Case ID | Runtime Contract ID | Test Point ID | Expected behavior | Coverage disposition | Evidence target | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+
+## Coverage Ledger Delta
+
+| Delta ID | Source phase | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Applied to canonical ledger? |
+| --- | --- | --- | --- | --- | --- | --- |
+```
+
+observable behavior、negative expectations、substitute policy、production binding requirementを維持し、別sectionを書き換えてはいけません。Plan Coverage parent/routerが唯一のrepository writerです。
+
+### Normal mode
 
 ```md
 # Test Design Kernel

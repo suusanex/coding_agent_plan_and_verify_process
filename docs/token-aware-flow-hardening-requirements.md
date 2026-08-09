@@ -329,7 +329,7 @@ Add or support gap types such as:
 
 When a gap requires API/dependency/provider investigation, the recommended next step must be `implementation-contract-kernel` or full `implementation-contract-generation.agent.md`, not direct implementation repair.
 
-`coverage-gap-resolution-slice.agent.md` must not repair such a gap by guessing. It must first consume or create the necessary implementation contract artifact within the selected slice.
+`coverage-gap-resolution-slice.agent.md` must not repair such a gap by guessing. In normal or legacy-separate mode it must first consume or create the necessary implementation contract artifact within the selected slice. In Slice Living Record mode it must consume the current `Implementation Contract Decisions`; if those decisions are insufficient, it must request an `implementation-contract-kernel` section delta from the parent and stop until the parent applies it. The repair agent must not create a separate implementation-contract artifact or write the section itself.
 
 ### 8. Update implementation handoff / preflight behavior
 

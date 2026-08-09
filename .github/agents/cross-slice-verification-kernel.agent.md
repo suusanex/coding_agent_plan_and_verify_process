@@ -60,6 +60,8 @@ slice ごとの `verification-kernel.agent.md` は、assigned slice-local bounde
 - relevant production startup / DI / entrypoint files
 - relevant production files and tests for cross-slice verification scope only
 
+`artifact_mode: slice-living-record`の場合は各sliceのseparate outputsではなくcanonical Slice Living Recordsを読み、`full_coverage_close_path: plans/<slug>-full-coverage-close.md`、`canonical_coverage_ledger`、`output_contract: section-delta`を必須とします。全required sliceのindependent verificationが完了し、pending slice ledger deltaが0でなければ開始してはいけません。
+
 ## Scope policy
 
 この agent は、`plan-slice-decomposition` が定義した cross-slice contracts と parent acceptance conditions に必要な範囲だけを読みます。
@@ -313,6 +315,34 @@ Verdict は次のいずれか 1 つにしてください。
 
 ## Required output structure
 
+Slice Living Record modeではrepository fileを書かず、次のdeltaをcallerへ返します。Plan Coverage parent/routerが唯一のclose record / ledger writerです。
+
+```md
+## Section Delta
+
+- Target record: plans/<slug>-full-coverage-close.md
+- Target section: Cross-Slice Verification
+- Semantic owner: cross-slice-verification-kernel
+- Replace owned section: Yes
+
+## Cross-Slice Verification
+
+- Formal cross-slice-verification-kernel verdict:
+- Required slices independently verified:
+- Parent acceptance condition evidence:
+- XC / field continuity evidence:
+- Production binding / wiring evidence:
+- Behavior Case evidence:
+- Remaining gaps:
+
+## Coverage Ledger Delta
+
+| Delta ID | Source phase | Plan item / Case ID / Residual ID | Previous status | New status | Evidence / reason | Applied to canonical ledger? |
+| --- | --- | --- | --- | --- | --- | --- |
+```
+
+`CROSS-VERIFY-001`のようなstable Delta IDを使います。formal verdict vocabularyは変更しません。normal routeの場合だけ次の既存output pathを使います。
+
 出力先は `plans/<ticket-or-slug>-cross-slice-verification-kernel.md` です。
 
 ```md
@@ -420,6 +450,7 @@ Verdict は次のいずれか 1 つにしてください。
 - unresolved items を曖昧な note として隠してはいけません
 - `CROSS_SLICE_VERIFIED_WITH_RESIDUAL_DECISION_REQUIRED` を close-ready と扱ってはいけません
 - Residual Decision Gate を通さず residual candidate を accepted / delegated / deferred / aborted と扱ってはいけません
+- Slice Living Record modeでclose recordまたはcanonical ledgerを直接編集したり、Residual Decision sectionを生成してはいけません
 
 ## Stop condition
 

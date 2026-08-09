@@ -57,8 +57,9 @@ Guardrail Focus candidates、Plan readiness、次gateへのhandoffを記録し�
 5. 必要なimplementation contract、runtime contract、test design、implementation handoff reviewを作る。
 6. 非自明な実装は`high-implementation-starter`から開始し、valid handoff後だけ`standard-implementation-completer`へ直列委譲する。
 7. human reviewの重点を整理する場合は、任意で`code-review-focus-kernel`を実行する。
-8. `verification-kernel`がparent Plan coverageとproduction bindingを検証する。full-coverageでは`cross-slice-verification-kernel`も実行する。
-9. 未解決項目を`coverage-gap-triage`と`residual-decision-gate`へ渡す。explicit FixNow selectorだけを`coverage-gap-resolution-slice`で修正する。
+8. `verification-kernel`がparent Plan coverageとproduction bindingを検証する。full-coverageでは全slice検証後に`cross-slice-verification-kernel`も実行する。
+9. `CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES`は対象Slice Living Recordへtriage / repair deltaを適用し、slice検証とcross-slice検証を再実行する。Residual Decisionへ直接進めない。
+10. その他の未解決項目を`coverage-gap-triage`と`residual-decision-gate`へ渡す。explicit FixNow selectorだけを`coverage-gap-resolution-slice`で修正する。
 
 各agentは1回のbounded passで停止し、未解決項目をartifactへ残します。
 
@@ -145,18 +146,22 @@ full-coverage
   -> architecture-slice-readiness
      -> architecture-elaboration -> readiness rerun, when required
      -> plan-slice-decomposition, when authorized
-  -> each bounded slice
-     -> standard Plan Coverage pre-implementation gates
+  -> each Slice Living Record
+     -> slice-local risk and required kernel section deltas
      -> architecture baseline compatibility: Match
      -> Adaptive Implementation
      -> independent verification
-  -> cross-slice-verification
-  -> residual-decision-gate
+  -> Full-Coverage Close Record
+     -> cross-slice-verification
+     -> conditional target-slice triage / repair / slice re-verification / cross-slice rerun
+     -> residual-decision-gate
 ```
 
-`plan-slice-decomposition`が作る各`plans/<slug>-slice-SL-xxx.md`は、Plan Coverage自身が扱うbounded Planです。各sliceはparent Plan、approved architecture、decompositionとのtraceabilityを保ったまま必要なpre-implementation gatesを実行し、current architecture baselineとのcompatibilityが`Match`の場合だけAdaptive Implementationへ進みます。`Drift`はArchitecture Slice Readiness / Elaborationへ戻し、`Unclear`はfail closedしてreadinessを再実行します。`ArchitectureNotRequired`でもLightweight architecture baselineとの比較を省略しません。全sliceのindependent verification後にcross-slice verificationとresidual decisionを行います。
+新規full-coverage runは`documentation_level: standard`と`artifact_mode: slice-living-record`を別々に記録します。`plan-slice-decomposition`が作る各`plans/<slug>-slice-SL-xxx.md`はbounded Slice Planを兼ねるcanonical Living Recordです。risk、implementation contract、runtime contract、test design、Inline Ready Gate、Adaptive evidence、independent verification、coverage delta、residual handoffを同じrecordから追跡できます。
 
-このrouteは現在、各bounded sliceを通常のPlan Coverage chainへ再入場させるため、sliceごとに標準artifactとhandoffを作成します。Living Recordやslice専用のlightweight lifecycleでartifact負荷を削減する方式は未実装であり、現行contractには含まれません。
+agent semanticsとverdict vocabularyは維持されますが、各agentはowned section deltaだけを返し、Plan Coverage parent/routerだけがLiving Recordとcanonical Coverage Ledgerをrepositoryへ書きます。implementation-contract review-only fallbackは`Implementation Contract Decisions / Independent Review`へ、gap repairは`Gap Repair Evidence`へ投影します。implementation-realization gapでcurrent `Implementation Contract Decisions`が不足する場合、repair agentは別artifactやsectionを作成せず、parentへ`implementation-contract-kernel`のsection-delta実行を要求し、parent適用後にrepairを再開します。current architecture baselineとのcompatibilityが`Match`の場合だけAdaptive Implementationへ進み、`Drift`はArchitecture Slice Readiness / Elaborationへ戻し、`Unclear`はfail closedしてreadinessを再実行します。`ArchitectureNotRequired`でもLightweight architecture baselineとの比較を省略しません。全sliceのindependent verificationとpending ledger delta 0の後、`plans/<slug>-full-coverage-close.md`へCross-Slice Verificationを適用し、FixNow候補がある場合は対象sliceのtriage / repair / re-verificationとcross-slice rerunを完了してからResidual Decisionへ進みます。
+
+base artifact budgetはparent control-plane 5件、sliceごとにLiving Record 1件、final close 1件です。Black-box Behavior Spec、Slice Architecture、Design Pair handoffは条件付きで別集計します。別artifactはArtifact Creation Gateの`cross-thread-handoff`、`parallel-write-isolation`、`human-approval-wait`、`external-audit-evidence`、`record-size-limit`のいずれかを正確なpath付きで先にLiving Recordへ適用した場合だけ作成できます。tracked Implementation Completion HandoffもHigh-model Re-entry Handoffも例外ではありません。re-entryではSTANDARDが未保存payloadを返し、parentが例外行を適用してからtracked fileを保存してHIGHを再開します。pre-redesign runはexplicit legacy/separate modeのままresumeでき、silent migrationや同一run内のmode混在は行いません。
 
 ## Agent reference
 
@@ -203,7 +208,12 @@ full-coverage
 | `plans/<slug>-coverage-gap-triage.md` | unresolved gap classification |
 | `plans/<slug>-residual-decision-gate.md` | residual decisionsとnext verdict |
 
-full-coverageではcanonical Coverage Ledger、parent decomposition artifact、各bounded sliceと通常のPlan Coverage outputを使います。slice固有のartifact layoutや外部orchestration stateは必須ではありません。各sliceが通常のPlan Coverage outputを持つ現行のartifact負荷は残っており、Living Recordや新しいlightweight slice flowへの統合は行っていません。
+full-coverageではcanonical Coverage Ledger、parent control-plane artifacts、各Slice Living Record、final close recordを使います。通常のnon-full-coverage routeは上表のartifact名を維持します。Living Record modeでは通常の`*-runtime-contract-kernel.md`、`*-test-design-kernel.md`、`*-implementation-handoff-review.md`、`*-implementation-execution.md`、`*-verification-kernel.md`をsliceごとに作成しません。
+
+Living Recordとclose recordのcanonical shapeは次を参照してください。
+
+- `.agents/skills/plan-coverage-residual-flow/references/full-coverage-slice-living-record.md`
+- `.agents/skills/plan-coverage-residual-flow/references/full-coverage-close.md`
 
 ## Verdicts and residual policy
 
@@ -265,6 +275,6 @@ residual decisionのclose verdictは次を含みます。
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1
 ```
 
-standalone full-coverage E2Eは、currentまたはinstalled agent/reference authorityからrequired outputのsection、table、handoff field、Agent / Skill hashを導出し、fixture artifactがそのcontractを満たすことを確認します。そのうえで2つのbounded slice payloadを依存順に適用し、slice-local verification、production entrypoint経由のcross-slice verification、residual decisionまでをdeterministicに検証します。外部modelは実行しないため、CodexやCopilot等がlifecycleを自律実行した証拠ではありません。
+standalone full-coverage E2Eは、currentまたはinstalled Living Record / close reference authorityからrequired sectionとtableを導出し、2-slice fixtureのowner境界、artifact budget、negative cases、ledger delta適用、production bindingを確認します。そのうえで2つのslice payloadを依存順に適用し、slice-local verification、production entrypoint経由のcross-slice verification、residual decisionまでをdeterministicに検証します。外部modelは実行しないため、CodexやCopilot等がlifecycleを自律実行した証拠ではありません。
 
 remote APM install smokeはpackageの変更をremote refで検証するときだけ実行します。
