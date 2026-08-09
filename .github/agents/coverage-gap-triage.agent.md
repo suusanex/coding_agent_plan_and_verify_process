@@ -13,7 +13,7 @@ You are the "Coverage Gap Triage" agent.
 
 出力ドキュメントは日本語で記述してください。ただし、agent 名・技術用語・status 語彙・verdict 値・表のカラム名・Handoff Packet のフィールドキーは英語のままとします。
 
-この agent は guardrail kernel chain の終盤に位置し、`verification-kernel` の実行後、または `integration-test-verification-implementation` process の後に動作します。
+この agent は guardrail kernel chain の終盤に位置し、`verification-kernel` の実行後に動作します。
 
 ## Shared instruction
 
@@ -112,29 +112,18 @@ verification-kernel または cross-slice-verification-kernel が `UnexpandedReq
 入力は次の優先順位で読んでください。
 
 0. Caller が明示した source artifact または selected IDs — 明示指定がある場合はそれを最優先し、指定された範囲を勝手に広げない
-1. `plans/<ticket-or-slug>-verification-kernel.md` — verification-kernel の出力（Source A）
-2. `plans/<ticket-or-slug>-implementation-coverage-of-integration-test.md` — integration test coverage 文書（Source B）
-3. `plans/<ticket-or-slug>.md` または task description — Plan または要求記述（gap を Plan requirement にマッピングするために参照）
-4. `plans/<ticket-or-slug>-slice-decomposition.md` — Plan Slice Decomposition（full-coverage decomposition 由来の slice / XC / parent acceptance gap を分類する場合）
-5. `plans/<ticket-or-slug>-test-design-kernel.md` — Test Design Kernel（利用可能な場合、gap 分類の参考）
-6. `plans/<ticket-or-slug>-runtime-contract-kernel.md` — Runtime Contract Kernel（利用可能な場合、contract reference として参照）
-7. `plans/<ticket-or-slug>-implementation-contract-kernel.md` — Implementation Contract Kernel（利用可能な場合、implementation-realization gap 分類の参照）
-8. `plans/<ticket-or-slug>-integration-test-points.md` — integration test points（Source B のコンテキスト参照用）
+1. `plans/<ticket-or-slug>-verification-kernel.md` — verification-kernel の出力
+2. `plans/<ticket-or-slug>.md` または task description — Plan または要求記述（gap を Plan requirement にマッピングするために参照）
+3. `plans/<ticket-or-slug>-slice-decomposition.md` — Plan Slice Decomposition（full-coverage decomposition 由来の slice / XC / parent acceptance gap を分類する場合）
+4. `plans/<ticket-or-slug>-test-design-kernel.md` — Test Design Kernel（利用可能な場合、gap 分類の参考）
+5. `plans/<ticket-or-slug>-runtime-contract-kernel.md` — Runtime Contract Kernel（利用可能な場合、contract reference として参照）
+6. `plans/<ticket-or-slug>-implementation-contract-kernel.md` — Implementation Contract Kernel（利用可能な場合、implementation-realization gap 分類の参照）
 
-Source A と Source B の両方が存在し、caller が明示していない場合は、まず Source A を優先してください。Source A に unresolved items があるなら、narrower な token-aware kernel output としてそれを使います。
+`verification-kernel` output が存在する場合は、narrower な token-aware kernel output としてそれを使用します。存在しない場合は、停止して `verification-kernel.agent.md` を predecessor として推奨してください。
 
-Source B を使うのは次の場合だけです。
+### Historical compatibility input
 
-- Source A に unresolved items がない
-- caller が integration-test coverage の triage を明示的に求めている
-- current task が明らかに full integration-test verification flow の一部である
-
-どちらにも selected IDs がある、または selected IDs がない場合は、両方を無理に merge せず、選んだ artifact を `Scope` に理由付きで書いてください。
-
-Source A も Source B も存在しない場合は、停止して適切な predecessor agent を推奨してください。
-
-- Runtime Contract Kernel または Test Design Kernel がある kernel branch では、`verification-kernel.agent.md` の実行を推奨してください。
-- どちらの branch か判断できない場合は、`triage-only` として停止し、必要な predecessor を human decision として記録してください。
+caller が historical integration-test artifact を明示的 input として指定した場合に限り、その artifact を互換入力として読み、選んだ artifact を `Scope` に理由付きで記録してください。この互換入力は現行 route ではなく、削除済み process を起動・推奨してはいけません。
 
 ## Input normalization
 
@@ -155,7 +144,7 @@ Source artifact の形式が異なるため、classification に入る前に次�
 `ManualEnvironmentRequired` は、source artifact だけでは分類できず、real-environment または manual confirmation が本当に必要な場合にのみ使ってください。
 明示的に `ProductionImplementationMissing`、`ProductionWiringMissing`、`ContractMismatch` が記録されている場合は、それらを `ManualEnvironmentRequired` で上書きしてはいけません。
 
-### Source B: implementation-coverage-of-integration-test.md を使う場合
+### Historical compatibility artifact を使う場合
 
 Status が `Automated`、`Done`、または `Bound` でないすべての行を unresolved items として抽出してください。
 
@@ -347,7 +336,7 @@ Slice Living Record mode では、通常 artifact の内容を次の delta shape
 ## スコープ
 
 <この triage が扱う source artifact を説明する。どの source type（verification-kernel または
-implementation-coverage-of-integration-test）を使ったか、どの ID を対象としたかを書く。
+historical compatibility artifact）を使ったか、どの ID を対象としたかを書く。
 また、参照した Plan、Test Design Kernel、Runtime Contract Kernel があれば記録する。>
 
 ## Gap 分類
@@ -383,7 +372,7 @@ implementation-coverage-of-integration-test）を使ったか、どの ID を対
 ## Handoff Packet
 
 - Profile used: triage-only
-- Source artifact type: <verification-kernel または implementation-coverage-of-integration-test>
+- Source artifact type: <verification-kernel または historical compatibility artifact>
 - Source artifact: <読んだ source artifact のファイルパス>
 - Reference artifacts: <参照した Plan、Test Design Kernel、Runtime Contract Kernel などの一覧>
 - Items reviewed: <対象とした ID の一覧>

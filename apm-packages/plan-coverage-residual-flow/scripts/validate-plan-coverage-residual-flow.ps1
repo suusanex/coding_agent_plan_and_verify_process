@@ -476,7 +476,7 @@ if ($failures.Count -eq 0) {
         '.codex/agents/test-design-kernel.toml',
         'apm-packages/plan-coverage-residual-flow/tests/full-coverage-standalone/PCF-001/plans/pcf-001-change-risk-triage.md'
     )
-    $retiredFlowPattern = 'full-autonomous-plan-first-flow|Full [Aa]utonomous Plan-first|full autonomous flow|plan-generation\.agent\.md|plan-review\.agent\.md|runtime-evidence\.agent\.md|integration-test-design\.agent\.md|integration-test-verification-implementation\.agent\.md|coverage-gap-resolution\.agent\.md|implementation-contract-generation\.agent\.md|implementation-contract-review\.agent\.md'
+    $retiredFlowPattern = 'full-autonomous-plan-first-flow|Full [Aa]utonomous Plan-first|full autonomous flow|Flow C|plan-generation(?:\.agent\.md)?(?![-A-Za-z0-9_])|plan-review(?:\.agent\.md)?(?![-A-Za-z0-9_])|runtime-evidence(?:\.agent\.md)?(?![-A-Za-z0-9_])|integration-test-design(?:\.agent\.md)?(?![-A-Za-z0-9_])|integration-test-verification-implementation(?:\.agent\.md)?(?![-A-Za-z0-9_])|coverage-gap-resolution(?:\.agent\.md)?(?![-A-Za-z0-9_])|implementation-contract-generation(?:\.agent\.md)?(?![-A-Za-z0-9_])|implementation-contract-review(?:\.agent\.md)?(?![-A-Za-z0-9_])'
     foreach ($relativePath in $retiredFlowRelativePaths) {
         Assert-NotMatches (Get-NormalizedText (Join-Path $repoRoot $relativePath)) $retiredFlowPattern "retired Full Autonomous reference must not remain in $relativePath"
     }
