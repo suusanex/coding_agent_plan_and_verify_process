@@ -1,6 +1,6 @@
 # Installation and Maintenance
 
-この文書は、複数packageやrepository-local toolにまたがる導入入口と、変更後の検証方法をまとめたmaintainer向けreferenceです。各processの利用方法は、それぞれのpackage READMEを先に参照してください。
+この文書は、複数packageやrepository-local toolにまたがるinstaller details、maintainer手順、変更後のvalidation matrixをまとめたreferenceです。目的別の選択と簡潔なQuickstartはroot README、package固有の利用契約は各package READMEを先に参照してください。
 
 ## Choose an installation entrypoint
 
@@ -28,7 +28,7 @@ dotnet run --file <installer.cs> -- <target> --check
 
 ## Existing APM provisioning helper
 
-`scripts/provision-work-repo-agents.cs`は、Plan Coverage packageを対象repositoryへ導入し、APM変換後のHIGH / STANDARD Codex TOMLを補正します。Adaptive Implementationは専用packageのinstallerを使い、Design PairとPR Review Remediationは各packageのREADMEにある導入・同期手順を使います。
+`scripts/provision-work-repo-agents.cs`は、Plan Coverage packageを`copilot,codex,agent-skills` targetで対象repositoryへ`apm install --update`し、APM変換後のHIGH / STANDARD Codex TOMLを補正します。Plan Coverage manifestはAdaptive Implementation Skillとcanonical HIGH / STANDARD agentsをdependencyとして持つため、この入口ではAdaptive packageを重ねてinstallしません。Adaptive単独利用は専用packageのinstallerを使い、Design PairとPR Review Remediationは各package READMEの導入・同期手順を使います。
 
 ```powershell
 dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target --dry-run
@@ -40,10 +40,11 @@ dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target -
 
 ## Documentation ownership
 
-- repository root `README.md`は目的別navigationだけを所有する。
-- APM processとhelperの利用契約は`apm-packages/<name>/README.md`を入口にする。
+- repository root `README.md`はpurpose-oriented selection、簡潔なQuickstart、package relationship overview、repository-local / machine-level installation scopeを所有する。
+- APM package READMEはpackage固有のusage、install、update、remove、collision contractを所有する。
 - non-APM applicationとruntimeは、それぞれ`apps/<name>/README.md`と`scripts/<name>/README.md`を正本にする。
-- long-form design、requirements、validation results、historical notesは`docs/`に残し、利用者向けREADMEからreferenceとして分離する。
+- `docs/installation-and-maintenance.md`はcross-package installer details、maintainer procedures、validation matrix、runtime mirror maintenanceを所有する。
+- その他のlong-form design、requirements、validation results、historical notesは`docs/`に残し、利用者向けREADMEからreferenceとして分離する。
 - `plans/**`は実行artifactとhistorical recordであり、一般ドキュメント再編の対象にしない。
 
 ## Notification runtime mirrors
