@@ -75,8 +75,6 @@ dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target -
 
 apply時はPlan Coverage packageを`copilot,codex,agent-skills` targetへAPM install / updateし、HIGH / STANDARD Codex agent TOMLを補正します。Plan Coverage manifestはAdaptive Skillとcanonical HIGH / STANDARD agentsをdependencyとして持つため、Adaptiveを別途installする必要はありません。implementation stageでDesign Pairを使う場合だけDesign Pair packageを追加します。
 
-旧Full Autonomous processは現行repositoryでは廃止済みです。広いruntime surfaceを含む要求では、Plan Coverageの`full-coverage` routeを使用します。
-
 ## Processの関係
 
 | Process | 主な入口 | 他processとの関係 |
@@ -98,11 +96,14 @@ apply時はPlan Coverage packageを`copilot,codex,agent-skills` targetへAPM ins
    dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target --check
    ```
 
-2. 導入先repositoryのrootでDesign PairとPR Review Remediationを追加し、reviewer profilesを同期します。
+2. 導入先repositoryのrootでDesign PairとPR Review Remediationを追加します。共有Adaptive agentsに触れるAPM installをすべて終えてから、Adaptive profileを補正・検証し、reviewer profilesを同期します。
 
    ```powershell
    apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target copilot,codex,agent-skills
    apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills
+   $sourceRoot = "C:\path\to\coding_agent_plan_and_verify_process"
+   dotnet run --file "$sourceRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- .
+   dotnet run --file "$sourceRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- . --check
    $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
    dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --dry-run
    dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- .
@@ -126,10 +127,31 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/goal-cont
 | Component | 役割 | Installation scope |
 | --- | --- | --- |
 | [Completion Notification Decorator](apm-packages/completion-notification-decorator/README.md) | primary processのterminal status、title、result linkをenrichするoptional APM decorator | 利用するwork repositoryごと |
-| [Codex Notification Runtime](scripts/codex-notification-runtime/README.md) | callbackごとにLocal Spoolへeventを保存するalways-on producer。decoratorなしでもgeneric `TURN_ENDED`を生成する | PCのuser / machine-levelで一度setup |
+| [Codex Notification Runtime](scripts/codex-notification-runtime/README.md) | callbackごとにLocal Spoolへeventを保存するalways-on producer。decoratorなしでもgeneric `TURN_ENDED`を生成する | PCのuser-levelでOS userごとに一度setup |
 | [Codex Local Inbox](apps/CodexLocalInbox/README.md) | Windows上でLocal Spoolを読み、Resume、Open result、Deleteを提供するconsumer | local Windows application |
 
 通知を保存するだけならRuntimeをsetupします。process metadataも表示したいwork repositoryにだけDecoratorを導入し、GUIで扱う場合にInboxをbuild / installします。InboxはAPM processではありません。
+
+Decoratorは、現在検証済みのlocal package経路を使います。導入先work repositoryのrootで、source checkoutを指定します。
+
+```powershell
+$sourceRoot = "C:\path\to\coding_agent_plan_and_verify_process"
+apm install "$sourceRoot\apm-packages\completion-notification-decorator" --target codex,agent-skills
+```
+
+Runtimeはこのsource repositoryのrootからcurrent OS userへdry-run、install、checkの順で導入します。userが複数いるPCではuserごとに実行します。
+
+```powershell
+dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --dry-run
+dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- install
+dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --check
+```
+
+InboxはWindows上でsource repositoryのrootから起動します。build prerequisitesとpackaged appの制約はcomponent READMEを参照してください。
+
+```powershell
+dotnet run --project .\apps\CodexLocalInbox\CodexLocalInbox.csproj
+```
 
 ## 詳細ドキュメントとmaintenance
 

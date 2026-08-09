@@ -40,7 +40,7 @@ dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target -
 
 ## Documentation ownership
 
-- repository root `README.md`はpurpose-oriented selection、簡潔なQuickstart、package relationship overview、repository-local / machine-level installation scopeを所有する。
+- repository root `README.md`はpurpose-oriented selection、簡潔なQuickstart、package relationship overview、repository-local / user-level / local application installation scopeを所有する。
 - APM package READMEはpackage固有のusage、install、update、remove、collision contractを所有する。
 - non-APM applicationとruntimeは、それぞれ`apps/<name>/README.md`と`scripts/<name>/README.md`を正本にする。
 - `docs/installation-and-maintenance.md`はcross-package installer details、maintainer procedures、validation matrix、runtime mirror maintenanceを所有する。
@@ -58,7 +58,7 @@ apm-packages/completion-notification-decorator/
 
 runtime source、schema、producer / consumer contract、decision record、manual verificationを変更した場合はmirrorを同時に更新し、contract validatorとpackage install smokeでhash一致を確認します。
 
-READMEは利用コンテキストごとに責務を分けます。canonical READMEはsource repository rootからの導入・検証を案内し、asset READMEは導入先repositoryの`.agents/skills/completion-notification-decorator/assets/codex-notification-runtime/`から実行できる手順を案内します。README同士はhash一致の対象にせず、asset READMEがsource repository固有の`scripts/codex-notification-runtime/`を要求しないことをvalidatorで確認します。
+READMEは利用コンテキストごとに責務を分けます。canonical package READMEはsource checkoutのpackage pathからtarget repositoryへ導入する手順とsource側の検証を案内し、asset READMEは導入先repositoryの`.agents/skills/completion-notification-decorator/assets/codex-notification-runtime/`から実行できる手順を案内します。README同士はhash一致の対象にせず、asset READMEがsource repository固有の`scripts/codex-notification-runtime/`を要求しないことをvalidatorで確認します。
 
 ## Validation matrix
 

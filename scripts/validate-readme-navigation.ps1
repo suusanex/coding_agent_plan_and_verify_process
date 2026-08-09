@@ -93,21 +93,45 @@ foreach ($command in @(
     'apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills',
     'sync-pr-review-remediation-local.cs',
     'provision-work-repo-agents.cs -- C:\path\to\target --dry-run',
-    'apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/goal-context-authoring --target codex,agent-skills'
+    'apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/goal-context-authoring --target codex,agent-skills',
+    'apm install "$sourceRoot\apm-packages\completion-notification-decorator" --target codex,agent-skills',
+    'dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --dry-run',
+    'dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- install',
+    'dotnet run --file .\scripts\codex-notification-runtime\install-codex-notification-runtime-local.cs -- --check',
+    'dotnet run --project .\apps\CodexLocalInbox\CodexLocalInbox.csproj'
 )) {
     Assert-Contains $rootReadme $command "Root README is missing required Quickstart command: $command"
 }
 
 foreach ($scopePhrase in @(
     '利用するwork repositoryごと',
-    'PCのuser / machine-levelで一度setup',
+    'PCのuser-levelでOS userごとに一度setup',
     'local Windows application',
     'generic `TURN_ENDED`'
 )) {
     Assert-Contains $rootReadme $scopePhrase "Root README is missing installation scope or notification boundary: $scopePhrase"
 }
 
-Assert-Contains $rootReadme '旧Full Autonomous processは現行repositoryでは廃止済み' 'Root README must explain the current replacement for the retired Full Autonomous process.'
+if ($rootReadme.Contains('machine-level', [StringComparison]::OrdinalIgnoreCase)) {
+    Add-Failure 'Root README must not describe the current-user notification runtime as machine-level.'
+}
+
+$allInHeading = '## 通常使うprocessを一通り入れる'
+$supportHeading = '## 開発支援ツール'
+$allInStart = $rootReadme.IndexOf($allInHeading, [StringComparison]::Ordinal)
+$allInEnd = $rootReadme.IndexOf($supportHeading, [StringComparison]::Ordinal)
+if ($allInStart -ge 0 -and $allInEnd -gt $allInStart) {
+    $allInQuickstart = $rootReadme.Substring($allInStart, $allInEnd - $allInStart)
+    $designPairInstall = 'apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target copilot,codex,agent-skills'
+    $adaptiveApply = 'install-adaptive-implementation-local.cs" -- .'
+    $adaptiveCheck = 'install-adaptive-implementation-local.cs" -- . --check'
+    $designPairIndex = $allInQuickstart.IndexOf($designPairInstall, [StringComparison]::Ordinal)
+    $adaptiveApplyIndex = $allInQuickstart.IndexOf($adaptiveApply, [StringComparison]::Ordinal)
+    $adaptiveCheckIndex = $allInQuickstart.IndexOf($adaptiveCheck, [StringComparison]::Ordinal)
+    if ($designPairIndex -lt 0 -or $adaptiveApplyIndex -le $designPairIndex -or $adaptiveCheckIndex -le $adaptiveApplyIndex) {
+        Add-Failure 'The all-in Quickstart must complete and check Adaptive profiles after the Design Pair install.'
+    }
+}
 
 $rootLines = ($rootReadme -split "`n").Count
 if ($rootLines -gt 220) {
