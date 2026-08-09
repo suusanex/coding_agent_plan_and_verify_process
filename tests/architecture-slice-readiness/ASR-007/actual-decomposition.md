@@ -1,6 +1,7 @@
-# ASR-003 Actual Decomposition
+# ASR-007 Actual Decomposition
 
 - Readiness verdict: `ArchitectureNotRequired`
+- Escalation gate result: `Satisfied`
 - Baseline: `actual-readiness.md`
-- Slice: `SL-001`, existing validation text update
+- Executable slices: independently owned adapter groups
 - Architecture source: Lightweight architecture baseline

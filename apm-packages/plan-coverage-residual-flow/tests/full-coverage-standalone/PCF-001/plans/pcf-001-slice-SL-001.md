@@ -1,4 +1,4 @@
-# SL-001: Restore producer snapshot
+# SL-001: Recover and atomically publish producer snapshot
 
 ## Record Metadata
 
@@ -16,7 +16,7 @@
 
 ## Slice Plan / Scope
 
-- Goal: restore the producer snapshot and emit the approved cross-slice fields.
+- Goal: recover the producer snapshot and atomically publish the approved durable identity and state fields.
 - Non-goals: consumer acceptance, production startup binding, and parent residual decision.
 - Parent requirements covered: `FR-001`
 - Parent acceptance conditions covered: producer contribution to `AC-001`
@@ -76,13 +76,13 @@ N/A - no explicit review-only fallback was invoked.
 
 | Contract ID | Scenario | Producer | Consumer | Message / API / Event | Required fields | Error / timeout behavior | Production implementation address | Verification hook |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `RC-001` | restore producer snapshot | `Restore-ProducerSnapshot` | `SL-002` consumer gate | PowerShell object return | `SnapshotState`, `CorrelationId` | missing correlation is rejected by mandatory parameter binding; timeout N/A | `src/ProducerState.ps1` | `TP-001` |
+| `RC-001` | recover and atomically publish producer snapshot | `Restore-ProducerSnapshot` | durable store and later `SL-002` reader | atomic file replacement | `SnapshotState`, `CorrelationId`, `Generation`, `Published` | mandatory identity is enforced; incomplete temporary state is never the published path | `src/ProducerState.ps1` | `TP-001` |
 
 ## Test Design
 
 | Test Point ID | Runtime Contract ID | What to verify | Stub / fake allowed? | Production binding required? | Expected observation | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `TP-001` | `RC-001` | producer fields and exact correlation continuity | No | Yes | `Active` and `pcf-001` from production function | Done |
+| `TP-001` | `RC-001` | producer fields, exact durable identity, and completed atomic publication | No | Yes | `Active`, `pcf-001`, generation 7, and `Published=true` at the durable path | Done |
 
 ## Inline Ready Gate
 
@@ -127,7 +127,7 @@ N/A - no explicit review-only fallback was invoked.
 
 - Formal verification-kernel verdict: `PARENT_PLAN_VERIFIED`
 - Verification scope: `SL-001`, `RC-001`, `TP-001`
-- Production binding evidence: `tests/verify-sl-001.ps1` imports `src/ProducerState.ps1` and observes `Active` / `pcf-001`.
+- Production binding evidence: `tests/verify-sl-001.ps1` imports `src/ProducerState.ps1` and observes `Active`, `pcf-001`, generation 7, and a completed atomic durable publication.
 - Behavior Case evidence: `CASE-001` producer contribution observed.
 - Fake / stub / mock assessment: no substitute used.
 - Remaining gaps: `AC-001` and `XC-001` require `SL-002` and cross-slice verification.

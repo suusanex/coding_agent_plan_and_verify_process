@@ -1,0 +1,24 @@
+{
+  "scenario_id": "CRT-001",
+  "bounded_runtime_sequence": "not-an-array",
+  "execution_models": [],
+  "recommended_profile": "standard-slice",
+  "required_sections": {
+    "bounded_runtime_sequence": "true",
+    "execution_model_classification": true,
+    "risk_semantics": true,
+    "why_standard_slice_is_insufficient": true,
+    "recommendation_confidence": true,
+    "profile_change_evidence": true,
+    "unexpected": true
+  },
+  "candidate_bounded_sequence": "",
+  "independent_implementation_slices_required": "none",
+  "shared_semantics_that_must_remain_fixed": [false],
+  "why_one_bounded_parent_pass_is_insufficient": "Not established.",
+  "failure_mode_that_decomposition_prevents": "Not established.",
+  "escalation_gate_result": "NotSatisfied",
+  "recommendation_confidence": "High",
+  "evidence_that_would_lower_the_profile": "Lower evidence.",
+  "evidence_that_would_raise_the_profile": "Raise evidence."
+}

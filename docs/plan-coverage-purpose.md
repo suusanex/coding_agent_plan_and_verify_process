@@ -44,7 +44,11 @@ Architecture Slice Readiness / Elaboration
      -> Residual Decision
 ```
 
+`full-coverage` is selected only after Change Risk Triage builds the minimum bounded runtime sequence and records a source-backed `Why standard-slice is insufficient` escalation gate. Risk trigger count, changed file/project count, security importance, same-process ABI/FFI, local async work, shared durable storage, or production wiring do not independently justify decomposition. Guardrail depth remains available in `standard-slice` when the sequence is bounded.
+
 Before each slice enters implementation, the Plan Coverage parent reconfirms the current architecture baseline and `implementation-handoff-review` records `Match / Drift / Unclear`. Only a current-baseline `Match` may proceed. `Drift` returns to Architecture Slice Readiness / Elaboration, and `Unclear` fails closed and reruns readiness. This also applies when the readiness verdict is `ArchitectureNotRequired` and the readiness artifact is the Lightweight architecture baseline.
+
+Before decomposition, Architecture Slice Readiness also rechecks whether decomposition is necessary. `StandardSliceSufficient` returns the parent Plan to `selected_process: standard-slice` without creating Slice Architecture, decomposition, Living Records, or cross-slice verification artifacts. `ArchitectureNotRequired` remains distinct: decomposition is still required, but existing source-backed shared semantics make a separate architecture artifact unnecessary.
 
 When implementation-realization risk is present (for example: Plan-named external SDK/API/provider, unresolved dependency/API surface confirmation, or nearest-neighbor substitution risk), the Plan網羅チェック・残件判定フロー must add a conditional implementation-contract branch before runtime-contract work.
 
@@ -237,7 +241,7 @@ Preferred profile names are based on scope and intent:
 | `plan-kernel` | Create the bounded Plan that remains the implementation source of truth | Plan preserved | Narrow to moderate |
 | `contract-kernel` | Minimal high-risk guardrail for Guardrail Focus runtime coverage | Preserved | Narrow |
 | `standard-slice` | Normal bounded Plan-first process for Guardrail Focus contracts / IDs | Preserved | Moderate |
-| `full-coverage` | Decompose a ready broad parent Plan, update one canonical Living Record per executable slice, then verify and decide residuals across slices | Preserved and expanded | Broad |
+| `full-coverage` | Decompose a ready parent Plan only after the standard-slice insufficiency gate is satisfied; update one canonical Living Record per executable slice, then verify and decide residuals across slices | Preserved and expanded | Broad |
 | `triage-only` | Classify risk and recommend next slice without implementation | Classification only | Variable |
 | `fix-slice` | Resolve explicit FixNow gaps only | Preserved for explicit FixNow gaps | Narrow |
 

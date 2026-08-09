@@ -1,0 +1,23 @@
+{
+  "scenario_id": "CRT-999",
+  "bounded_runtime_sequence": ["one sequence"],
+  "execution_models": ["Invented execution model"],
+  "recommended_profile": "maximum",
+  "required_sections": {
+    "bounded_runtime_sequence": true,
+    "execution_model_classification": true,
+    "risk_semantics": true,
+    "why_standard_slice_is_insufficient": true,
+    "recommendation_confidence": true,
+    "profile_change_evidence": true
+  },
+  "candidate_bounded_sequence": "one sequence",
+  "independent_implementation_slices_required": [],
+  "shared_semantics_that_must_remain_fixed": [],
+  "why_one_bounded_parent_pass_is_insufficient": "Not established.",
+  "failure_mode_that_decomposition_prevents": "Not established.",
+  "escalation_gate_result": "Maybe",
+  "recommendation_confidence": "Certain",
+  "evidence_that_would_lower_the_profile": "Lower evidence.",
+  "evidence_that_would_raise_the_profile": "Raise evidence."
+}

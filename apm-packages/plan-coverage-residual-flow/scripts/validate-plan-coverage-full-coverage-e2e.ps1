@@ -336,7 +336,25 @@ function Get-FixtureErrors([string]$Root, [System.Collections.IDictionary]$Autho
         $errors.Add('Canonical ledger is not close-ready.')
     }
 
+    $triage = Get-NormalizedText (Join-Path $Root 'plans/pcf-001-change-risk-triage.md')
+    foreach ($positiveFullCoverageEvidence in @(
+        'SEQ-PUBLISH',
+        'SEQ-REPLAY',
+        'Cross-process durable-state observation',
+        'durable identity is `correlation_id` plus `generation`',
+        'producer is the only state authority',
+        'consumer startup accepts a stale or partially published generation',
+        'Escalation gate result: Satisfied'
+    )) {
+        if (-not $triage.Contains($positiveFullCoverageEvidence, [StringComparison]::Ordinal)) {
+            $errors.Add("Positive full-coverage triage evidence is missing: $positiveFullCoverageEvidence")
+        }
+    }
+
     $readiness = Get-NormalizedText (Join-Path $Root 'plans/pcf-001-architecture-slice-readiness.md')
+    if ($readiness -cnotmatch '(?m)^- Reassessment result: KeepFullCoverage$' -or $readiness -cnotmatch '(?m)^- Escalation gate result: `Satisfied`$') {
+        $errors.Add('Architecture readiness must confirm the positive full-coverage escalation evidence.')
+    }
     foreach ($tracked in @(
         @{ Path = 'plans/pcf-001.md'; RevisionType = 'content_sha256' },
         @{ Path = 'plans/pcf-001-black-box-behavior-spec.md'; RevisionType = 'content_sha256' },
@@ -442,13 +460,13 @@ try {
     $slice1 = $expected.slices[0]
     Copy-Item -Path (Join-Path $fixtureRoot "$($slice1.payload)/*") -Destination $consumerRoot -Recurse -Force
     $evidence1 = Invoke-FixtureVerifier $consumerRoot ([string]$slice1.verifier)
-    if ($evidence1.slice -cne 'SL-001' -or $evidence1.verdict -cne 'PARENT_PLAN_VERIFIED' -or $evidence1.snapshot_state -cne 'Active' -or $evidence1.correlation_id -cne 'pcf-001') { throw 'SL-001 runtime evidence mismatch.' }
+    if ($evidence1.slice -cne 'SL-001' -or $evidence1.verdict -cne 'PARENT_PLAN_VERIFIED' -or $evidence1.snapshot_state -cne 'Active' -or $evidence1.correlation_id -cne 'pcf-001' -or $evidence1.generation -ne 7 -or -not $evidence1.atomic_publish) { throw 'SL-001 runtime evidence mismatch.' }
     $slice2 = $expected.slices[1]
     Copy-Item -Path (Join-Path $fixtureRoot "$($slice2.payload)/*") -Destination $consumerRoot -Recurse -Force
     $evidence2 = Invoke-FixtureVerifier $consumerRoot ([string]$slice2.verifier)
-    if ($evidence2.slice -cne 'SL-002' -or $evidence2.verdict -cne 'PARENT_PLAN_VERIFIED' -or $evidence2.postcondition -cne 'Accepted' -or -not $evidence2.reject_observed) { throw 'SL-002 runtime evidence mismatch.' }
+    if ($evidence2.slice -cne 'SL-002' -or $evidence2.verdict -cne 'PARENT_PLAN_VERIFIED' -or $evidence2.postcondition -cne 'Accepted' -or -not $evidence2.reject_observed -or -not $evidence2.stale_generation_rejected -or -not $evidence2.replay_idempotent) { throw 'SL-002 runtime evidence mismatch.' }
     $cross = Invoke-FixtureVerifier $consumerRoot ([string]$expected.cross_slice_verifier)
-    if ($cross.verdict -cne 'CROSS_SLICE_VERIFIED' -or $cross.production_entrypoint -cne 'src/StartupFlow.ps1' -or $cross.postcondition -cne 'Accepted' -or -not $cross.reject_observed) { throw 'Cross-slice runtime evidence mismatch.' }
+    if ($cross.verdict -cne 'CROSS_SLICE_VERIFIED' -or $cross.production_entrypoint -cne 'src/StartupFlow.ps1' -or $cross.postcondition -cne 'Accepted' -or $cross.generation -ne 7 -or -not $cross.reject_observed -or -not $cross.stale_generation_rejected -or -not $cross.replay_idempotent) { throw 'Cross-slice runtime evidence mismatch.' }
 
     $mode = if ([string]::IsNullOrWhiteSpace($InstalledRoot)) { 'source' } else { 'installed' }
     Write-Host "Plan Coverage standalone full-coverage E2E ($mode): PASS"

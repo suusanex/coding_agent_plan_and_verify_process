@@ -14,7 +14,7 @@
 - Formal cross-slice-verification-kernel verdict: `CROSS_SLICE_VERIFIED`
 - Required slices independently verified: `SL-001=PARENT_PLAN_VERIFIED`, `SL-002=PARENT_PLAN_VERIFIED`
 - Parent acceptance condition evidence: `AC-001` uses executed production `src/StartupFlow.ps1`; `AC-002` uses the executed rejection branch.
-- XC / field continuity evidence: `XC-001` preserves `Active` and `pcf-001` from producer through the accepting consumer.
+- XC / field continuity evidence: `XC-001` preserves `Active`, `pcf-001`, and generation 7 from producer-only atomic publication through read-only idempotent consumer replay; stale generation 8 is rejected.
 - Production binding / wiring evidence: `tests/verify-cross-slice.ps1` executes `src/StartupFlow.ps1` and the production rejection function.
 - Behavior Case evidence: `CASE-001` accepted startup path and `CASE-002` non-accepting rejection both observed.
 - Remaining gaps: none

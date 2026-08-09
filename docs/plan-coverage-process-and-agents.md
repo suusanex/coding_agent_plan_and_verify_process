@@ -133,19 +133,20 @@ Use when:
 
 ### `full-coverage`
 
-Indicates that the current ready bounded Plan is too broad or strongly interconnected to be continued as a single Plan網羅チェック implementation pass.
+Indicates that a concrete bounded-sequence assessment proved the current ready Plan cannot be implemented and verified safely as one Plan網羅チェック pass.
 
 Use when:
 
-- multiple runtime scenarios interact
-- external dependencies, retries, persistence, or recovery semantics are important
-- the ready Plan is broad or strongly interconnected
-- human review needs detailed runtime evidence
-- prior implementation attempts already exposed sequence or production-binding gaps
+- multiple independent runtime sequences require independent implementation slices
+- slice boundaries share authority, identity, schema, temporal protocol, or forbidden states that must stay fixed
+- a concrete `standard-slice` candidate cannot preserve a safe implementation / verification sequence
+- the `Why standard-slice is insufficient` escalation gate is source-backed and `Satisfied`
+
+Risk trigger count, changed file/project count, security importance, same-process ABI/FFI, local async work, one shared durable store, production wiring, or replacing a test substitute are not independent reasons for `full-coverage`. Change Risk Triage builds the minimum bounded runtime sequence first and keeps the same guardrail depth in `standard-slice` when that sequence remains bounded.
 
 In the Plan網羅チェック・残件判定フロー, this is not an automatic handoff to Flow C.
 The immediate next step is `architecture-slice-readiness.agent.md`, not decomposition. Requirement readiness and Architecture slice readiness are separate gates.
-`ReadyForSliceDecomposition` requires a current slice architecture artifact. `ArchitectureNotRequired` permits decomposition without one for a source-backed simple structure. `NeedsArchitectureElaboration` runs `architecture-elaboration.agent.md` and then reruns readiness; `NeedsHumanDecision` stops.
+`StandardSliceSufficient` is a successful de-escalation to `selected_process: standard-slice`; it forbids decomposition and rejoins the normal bounded route. `ReadyForSliceDecomposition` requires a current slice architecture artifact. `ArchitectureNotRequired` permits decomposition without one only when multiple slices remain necessary and existing shared semantics are source-backed and unchanged. `NeedsArchitectureElaboration` runs `architecture-elaboration.agent.md` and then reruns readiness; `NeedsHumanDecision` stops.
 For `ArchitectureNotRequired`, the readiness artifact itself is the lightweight baseline authority. Before implementation authorization for every executable slice, the Plan Coverage parent reconfirms baseline freshness and `implementation-handoff-review` compares slice-local pre-implementation decisions with the current approved Slice Architecture or Lightweight architecture baseline. Only `Match` may proceed; `Drift` returns to Architecture Slice Readiness / Elaboration, and `Unclear` fails closed and reruns Architecture Slice Readiness.
 Readiness and architecture artifacts record a source repository commit, tracked source content hashes / explicit revisions, watch paths, explicit artifact revision, and evaluation time. Freshness compares tracked sources and the source-commit-to-current diff on watch paths; HEAD changes containing only generated gate artifacts do not self-invalidate the baseline. A semantic baseline change is `stale`, even when paths are unchanged.
 The pre-elaboration readiness R1 is retained in Slice Architecture as an immutable `elaboration_trigger` audit snapshot with `freshness_dependency: false`. Replacing the standard readiness path with post-elaboration R2 does not stale the architecture; R2 instead tracks the Slice Architecture external content hash.
@@ -180,7 +181,7 @@ It does not change the source of truth, residual decision, or production-binding
 | `standard` | The change has compatibility risk, behavior expansion, implementation-realization risk, canonical ledger / delta needs, non-trivial verification, or residual ambiguity | Separate or canonical artifacts preserve Plan readiness, risk, implementation contract, handoff / readiness, coverage ledger / delta, verification, and residual decision |
 
 `strict` is not a documentation level.
-`full-coverage` is a route / selected process for a ready but broad parent Plan, not a documentation level.
+`full-coverage` is a route / selected process for a ready parent Plan whose source-backed escalation gate proves one bounded pass insufficient, not a documentation level.
 When full-coverage decomposition is selected, the documentation level remains `standard` while the selected process records the advanced route.
 
 Lite may use Inline Ready Gate as an implementation authorization source only when the gate is explicitly equivalent to implementation handoff review and complete.
@@ -200,7 +201,7 @@ This is the canonical Plan Coverage route.
 4. `change-risk-triage.agent.md` only when Plan readiness is `ReadyForRiskTriage`
 5. If triage recommends `full-coverage`, run `architecture-slice-readiness.agent.md`
 6. If needed, run `architecture-elaboration.agent.md` and rerun readiness; stop on human decision or blocking architecture residual
-7. Run `plan-slice-decomposition.agent.md` only for `ReadyForSliceDecomposition` or `ArchitectureNotRequired`
+7. For `StandardSliceSufficient`, rejoin the normal `standard-slice` route; run `plan-slice-decomposition.agent.md` only for `ReadyForSliceDecomposition` or `ArchitectureNotRequired` and only while the triage escalation gate remains `Satisfied`
 8. For each executable slice, use its canonical Slice Living Record instead of re-entering a fresh bounded Plan Coverage run. Existing semantic agents return owned section deltas; the Plan Coverage parent/router alone applies Living Record and canonical Coverage Ledger changes:
    - slice-local `change-risk-triage.agent.md`
    - `implementation-contract-kernel.agent.md` when implementation-realization risk is present, with `implementation-contract-review-kernel.agent.md` only as an explicit `Implementation Contract Decisions / Independent Review` fallback
@@ -680,7 +681,8 @@ Architecture Slice Readiness verdicts are owned by `architecture-slice-readiness
 | --- | --- |
 | `ReadyForSliceDecomposition` | Shared architecture semantics are complete in a current architecture artifact and decomposition may proceed |
 | `NeedsArchitectureElaboration` | Requirements are ready but shared architecture needs elaboration before decomposition |
-| `ArchitectureNotRequired` | A source-backed simple structure can be decomposed safely without a separate architecture artifact |
+| `StandardSliceSufficient` | High-risk boundaries remain, but one bounded parent pass is sufficient; route back to `selected_process: standard-slice` without decomposition |
+| `ArchitectureNotRequired` | Multiple slices remain necessary, but existing source-backed shared semantics allow decomposition without a separate architecture artifact |
 | `NeedsHumanDecision` | Product, architecture, policy, or risk authority is required before progress |
 
 Architecture residual classifications are `ArchitectureCritical`, `NeedsHumanDecision`, `SliceLocalContract`, `ImplementationDetail`, and `OutOfScopeWithSource`. The first two block decomposition.
@@ -910,15 +912,26 @@ Before risk triggers, the agent must run Plan readiness check:
 
 Only `ReadyForRiskTriage` may proceed to risk trigger scan and profile selection.
 
-The agent must look for risk triggers including:
+Before counting or scanning risk, the agent must build the minimum bounded runtime sequence and classify each hop as one of:
 
-- cross-process or cross-service sequence
-- queue / event / webhook / background worker
+- same-process ABI / FFI boundary
+- cross-process IPC
+- cross-process durable-state observation
+- external or independently deployed service
+- local asynchronous operation / UI-thread handoff
+- independent background worker
+- persistent queue / replayable job
+
+It then scans risk semantics including:
+
 - external API / SDK
 - authentication / authorization
-- durable state / retry / replay / idempotency
+- durable state ownership / observation
+- retry / resume / replay / idempotency
 - startup wiring / DI / configuration
 - production implementation split from test substitute
+- multiple runtime participants coordinating state
+- observable behavior spanning more than one component
 - Plan names a specific external SDK or API
 - Plan names package / release / binary artifact / local lib folder
 - Plan names namespace / type / method / extension method / provider ID / config section
@@ -935,6 +948,8 @@ The agent must look for risk triggers including:
 - resolve gaps
 - select runtime contracts or process profile when Plan readiness is not `ReadyForRiskTriage`
 - treat requirement-elaboration gaps as `full-coverage`
+- treat risk trigger count, feature importance, ABI/FFI, local async, shared storage, wiring, or changed file/project count as a `full-coverage` score
+- recommend `full-coverage` or slice-local `needs-further-decomposition` without a source-backed `Why standard-slice is insufficient` escalation gate marked `Satisfied`
 
 ### Stop condition
 

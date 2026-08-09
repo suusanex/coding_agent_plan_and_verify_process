@@ -7,10 +7,10 @@ baseline:
   repository_ref: PCF-001-seed
   source_repository_commit: deterministic-fixture-v1
   tracked_sources:
-    - { role: parent_plan, path: "plans/pcf-001.md", revision_type: content_sha256, revision: "d0d85819fe39e4018daa1533f7eeccbac22b1cf959055395e0156720230f20e1" }
-    - { role: behavior_spec, path: "plans/pcf-001-black-box-behavior-spec.md", revision_type: content_sha256, revision: "2c57850bbcfeabed081b65d8eab2a6c6570ee9677ec683bf3f4aead2fb5f8ea8" }
-    - { role: change_risk_triage, path: "plans/pcf-001-change-risk-triage.md", revision_type: content_sha256, revision: "4180f3f98991742ffe34428336d026b476c4fd0bd3d820161c01a9b6b5529852" }
-    - { role: slice_architecture, path: "plans/pcf-001-slice-architecture.md", revision_type: external_content_sha256, revision: "117e4f5060989df14f1820f31cbe2d08afdc86308b90f975e14f37017ca5723a" }
+    - { role: parent_plan, path: "plans/pcf-001.md", revision_type: content_sha256, revision: "bcc766f949dd5d81e687b568266c20a16d5bb1fab7c285d4daa2565fcd16e1e7" }
+    - { role: behavior_spec, path: "plans/pcf-001-black-box-behavior-spec.md", revision_type: content_sha256, revision: "0402070d0115688cb9976e4515e3ba68af354939b04f09e20817070d84eda24e" }
+    - { role: change_risk_triage, path: "plans/pcf-001-change-risk-triage.md", revision_type: content_sha256, revision: "35e3a0eb8e1c5391f648447e124fca5cf9c5c7fb48a643783e01973fb1867375" }
+    - { role: slice_architecture, path: "plans/pcf-001-slice-architecture.md", revision_type: external_content_sha256, revision: "579a1d16057f4b1223f989b7913ba92855a3693d6e46a732d300cdc013fa84dd" }
   watch_paths:
     - src/ProducerState.ps1
     - src/ConsumerGate.ps1
@@ -22,10 +22,21 @@ baseline:
 ## Architecture readiness verdict
 
 - Verdict: ReadyForSliceDecomposition
+- Selected process after readiness: `full-coverage`
 - Architecture artifact: `plans/pcf-001-slice-architecture.md`
 - Architecture baseline authority: Slice Architecture artifact
 - Immediate next agent: `plan-slice-decomposition.agent.md`
 - Decomposition allowed now: Yes
+
+## Full-coverage escalation reassessment
+
+- Candidate bounded sequence: one pass combining producer recovery/publication and consumer startup/replay.
+- Independent implementation slices required: producer recovery/atomic publication and consumer startup/idempotent replay.
+- Shared semantics that must remain fixed before decomposition: `correlation_id` plus `generation`, producer-only authority, completed publication, and stale/incomplete rejection.
+- Why one bounded parent pass is insufficient: the sequences have independent entrypoints, owners, recovery lifecycles, and verifiers.
+- Failure mode that decomposition prevents: consumer acceptance of a stale or partially published generation.
+- Escalation gate result: `Satisfied`
+- Reassessment result: KeepFullCoverage
 
 ## Lightweight architecture baseline
 
@@ -35,7 +46,8 @@ N/A - current Slice Architecture is the baseline authority.
 
 | Trigger | Present / Absent / Unclear | Evidence | Required action |
 | --- | --- | --- | --- |
-| Shared producer/consumer fields | Present | `XC-001` | preserve field continuity |
+| Shared producer/consumer identity and authority | Present | `XC-001` | preserve identity, producer-only authority, and atomic publication |
+| Retry/replay forbidden state | Present | `CASE-001`, `CASE-002` | preserve idempotent replay and stale/incomplete rejection |
 | Production startup wiring | Present | `AC-001` | verify through production entrypoint |
 
 ## Readiness checklist
@@ -54,9 +66,9 @@ N/A - current Slice Architecture is the baseline authority.
 
 ## Cross-slice verification postconditions
 
-- `Active -> Accepting -> Accepted` through `src/StartupFlow.ps1`.
-- non-accepting state rejects the push.
-- `snapshot_state` and `correlation_id` remain continuous.
+- `Active -> atomically published -> replayed -> Accepting -> Accepted` through `src/StartupFlow.ps1`.
+- non-accepting, incomplete, and stale-generation state rejects without admitting work.
+- `snapshot_state`, `correlation_id`, and `generation` remain continuous; replay is idempotent.
 
 ## Files inspected
 

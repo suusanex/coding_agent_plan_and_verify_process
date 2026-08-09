@@ -1,0 +1,12 @@
+{
+  "fixture_id": "ASR-008",
+  "initial_verdict": "StandardSliceSufficient",
+  "final_verdict": "StandardSliceSufficient",
+  "selected_process_after_readiness": "standard-slice",
+  "decomposition_allowed_initial": false,
+  "decomposition_allowed_final": false,
+  "blocking_residuals_initial": [],
+  "next_action_initial": "runtime-contract-kernel.agent.md",
+  "parent_review_authorized": false,
+  "drift_result": "NotRun"
+}

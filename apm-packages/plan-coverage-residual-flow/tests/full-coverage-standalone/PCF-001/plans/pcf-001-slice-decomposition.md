@@ -2,11 +2,20 @@
 
 ## 親 Plan の要約
 
-Restore producer state, gate consumer work, and verify the production startup path while preserving `XC-001`.
+Recover and atomically publish producer state, replay it during consumer startup, and verify the production path while preserving `XC-001`.
 
 ## full-coverage 判定の理由
 
-Two runtime participants and their production wiring require dependent bounded slices and cross-slice verification.
+Producer recovery/publication and consumer startup/replay are independently owned sequences with separate retry and verification surfaces. Both must preserve one durable identity, state authority, publication protocol, and forbidden-state rule, so one bounded parent pass cannot safely isolate their failures.
+
+### Why standard-slice is insufficient
+
+- Candidate bounded sequence: one parent pass combining recovery, atomic publication, startup, and replay.
+- Independent implementation slices required: producer recovery/publish (`SL-001`) and consumer startup/replay (`SL-002`).
+- Shared semantics that must remain fixed before decomposition: `correlation_id` plus `generation`, producer-only state authority, atomic `published` protocol, and the stale/incomplete-generation forbidden state.
+- Why one bounded parent pass is insufficient: each sequence has an independent owner, entrypoint, recovery lifecycle, and verifier while sharing a protocol that neither slice may redefine.
+- Failure mode that decomposition prevents: consumer startup accepts a stale or partially published generation after producer recovery.
+- Escalation gate result: Satisfied
 
 ## Architecture Slice Readiness
 
@@ -24,7 +33,7 @@ Two runtime participants and their production wiring require dependent bounded s
 
 ## 分割方針
 
-Split by producer and consumer ownership; preserve the production entrypoint as the final cross-slice binding.
+Split producer recovery/atomic publication from consumer startup/idempotent replay; preserve the durable protocol and production entrypoint as cross-slice bindings.
 
 ## Slice 一覧
 
@@ -44,7 +53,7 @@ Split by producer and consumer ownership; preserve the production entrypoint as 
 
 ### SL-001: Producer restore
 
-- Goal: restore `snapshot_state=Active` and preserve `correlation_id`.
+- Goal: recover `snapshot_state=Active` and atomically publish `correlation_id`, `generation`, and `published`.
 - Non-goals: consumer gate, production entrypoint, residual decision.
 - Parent requirements covered: `FR-001`.
 - Parent acceptance conditions covered: contribution to `AC-001`.
@@ -75,9 +84,9 @@ Split by producer and consumer ownership; preserve the production entrypoint as 
   - Architecture source: Slice Architecture
   - This slice role: Producer
   - Mechanism: PowerShell object fields
-  - Required fields / state / identifiers: `snapshot_state`, `correlation_id`
+  - Required fields / state / identifiers: `snapshot_state`, `correlation_id`, `generation`, `published`
   - Owned by this slice: both fields
-  - Consumed by this slice: input `correlation_id`
+  - Consumed by this slice: input `correlation_id` and `generation`
   - Deferred / unresolved fields: none
 - Small slice justification: N/A unless this is a small independent slice.
   - Independent verification: Yes
@@ -124,7 +133,7 @@ Split by producer and consumer ownership; preserve the production entrypoint as 
   - Architecture source: Slice Architecture
   - This slice role: Consumer
   - Mechanism: PowerShell function calls
-  - Required fields / state / identifiers: `snapshot_state`, `correlation_id`
+  - Required fields / state / identifiers: `snapshot_state`, `correlation_id`, `generation`, `published`
   - Owned by this slice: consumer state and postcondition
   - Consumed by this slice: producer fields
   - Deferred / unresolved fields: none
@@ -144,7 +153,7 @@ Split by producer and consumer ownership; preserve the production entrypoint as 
 
 | Cross-slice Contract ID | Producer slice | Consumer slice | Runtime participants | Mechanism | Required fields / state / identifiers | Error / retry / recovery expectation | Verification requirement | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `XC-001` | `SL-001` | `SL-002` | producer, consumer, startup entrypoint | object fields and function wiring | `snapshot_state`, `correlation_id`, `Accepting`, `Accepted` | non-accepting rejects; no retry | production entrypoint positive and negative paths | Deferred |
+| `XC-001` | `SL-001` | `SL-002` | producer, durable store, consumer, startup entrypoint | atomic file publication and later read-only observation | `snapshot_state`, `correlation_id`, `generation`, `published`, `Accepting`, `Accepted` | producer retry replaces one generation atomically; consumer replay is idempotent; stale/incomplete state rejects | production entrypoint, replay, and forbidden-state paths | Deferred |
 
 ### Architecture traceability
 
@@ -158,6 +167,8 @@ Split by producer and consumer ownership; preserve the production entrypoint as 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `snapshot_state` | `FR-001`, `AC-001` | `SL-001` | `XC-001` | runtime object | `XC-001` | No | Deferred | must remain `Active` |
 | `correlation_id` | `FR-001`, `XC-001` | parent input / `SL-001` | `XC-001` | runtime object | `XC-001` | No | Deferred | exact value preserved |
+| `generation` | `FR-001`, `FR-002`, `XC-001` | parent input / `SL-001` | `XC-001` | durable store | `XC-001` | No | Deferred | exact generation preserved and stale generations rejected |
+| `published` | `AC-001`, `AC-002`, `XC-001` | `SL-001` | `XC-001` | durable store | `XC-001` | No | Deferred | only a completed atomic publication is observable |
 
 ## Parent contract mapping
 
@@ -203,7 +214,7 @@ None.
 
 ## 今回の decomposition の対象外
 
-External model execution, parallel orchestration, retries, and persistence.
+External model execution, parallel orchestration, and external services.
 
 ## Handoff Packet
 
@@ -214,7 +225,7 @@ External model execution, parallel orchestration, retries, and persistence.
 - Slice artifacts: `plans/pcf-001-slice-SL-001.md`, `plans/pcf-001-slice-SL-002.md`
 - Slice IDs: `SL-001`, `SL-002`
 - Cross-slice Contract IDs: `XC-001`
-- Cross-slice field continuity items: `snapshot_state`, `correlation_id`
+- Cross-slice field continuity items: `snapshot_state`, `correlation_id`, `generation`, `published`
 - Slice granularity review: both slices kept
 - Behavior spec artifact: `plans/pcf-001-black-box-behavior-spec.md`
 - Behavior Case IDs: `CASE-001`, `CASE-002`

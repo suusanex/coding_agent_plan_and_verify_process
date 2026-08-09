@@ -1,0 +1,37 @@
+[
+  {
+    "id": "CRT-001",
+    "execution_models": [
+      "Same-process ABI / FFI boundary",
+      "Local asynchronous operation / UI-thread handoff",
+      "Cross-process durable-state observation"
+    ],
+    "expected_profile": "standard-slice",
+    "escalation_gate": "NotSatisfied",
+    "independent_slice_count": 0,
+    "minimum_shared_semantic_count": null
+  },
+  {
+    "id": "CRT-002",
+    "execution_models": [
+      "Cross-process IPC"
+    ],
+    "expected_profile": "standard-slice",
+    "escalation_gate": "NotSatisfied",
+    "independent_slice_count": 0,
+    "minimum_shared_semantic_count": null
+  },
+  {
+    "id": "CRT-003",
+    "execution_models": [
+      "Cross-process durable-state observation",
+      "External or independently deployed service",
+      "Independent background worker",
+      "Persistent queue / replayable job"
+    ],
+    "expected_profile": "full-coverage",
+    "escalation_gate": "Satisfied",
+    "independent_slice_count": 2,
+    "minimum_shared_semantic_count": 3
+  }
+]

@@ -2,5 +2,5 @@
 
 | Case | Preconditions | Action | Observable postcondition | Coverage |
 |---|---|---|---|---|
-| `CASE-001` | producer state can be restored | invoke `src/StartupFlow.ps1` | `snapshot_state=Active`, consumer is `Accepting`, push is `Accepted` | `FR-001`, `FR-002`, `AC-001`, `XC-001` |
-| `CASE-002` | consumer state is not accepting | invoke consumer push | operation rejects with `Consumer is not accepting items.` | `FR-002`, `AC-002` |
+| `CASE-001` | producer recovery can publish generation 7 | invoke `src/StartupFlow.ps1`, then replay the durable snapshot | `snapshot_state=Active`, consumer is `Accepting`, push is `Accepted`, identity remains `pcf-001` plus generation 7, and replay is idempotent | `FR-001`, `FR-002`, `AC-001`, `XC-001` |
+| `CASE-002` | consumer state is not accepting, the publication is incomplete, or the requested generation is stale | invoke consumer push or startup replay | operation rejects without accepting work | `FR-002`, `AC-002`, `XC-001` |

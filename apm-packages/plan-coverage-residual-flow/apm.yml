@@ -1,5 +1,5 @@
 name: plan-coverage-residual-flow
-version: 0.11.0
+version: 0.12.0
 description: Plan Coverage Check and Residual Decision Flow with durable Design Pair waiting state, full-coverage Slice Living Records, Architecture Slice Readiness, Guardrail Focus, and residual decision gating
 type: hybrid
 targets:
