@@ -1,6 +1,6 @@
 # PCF-001: standalone full-coverage lifecycle
 
-PCF-001 is a deterministic test-only fixture for the current Plan Coverage full-coverage lifecycle. It represents a synthetic producer restore followed by a consumer startup gate.
+PCF-001 is a deterministic test-only fixture for the current Plan Coverage full-coverage lifecycle. It represents two independently owned runtime sequences: producer recovery plus atomic durable publication, followed by consumer startup plus replay from the durable state. The shared protocol fixes `correlation_id` plus `generation` as durable identity, makes the producer the sole state authority, and forbids a consumer from accepting a stale or partially published generation.
 
 The fixture uses `artifact_mode: slice-living-record`. It applies `SL-001` and `SL-002` payloads in dependency order, runs an independent verifier after each slice, records a bounded cross-slice FixNow candidate, applies triage and repair evidence to `SL-002`, reruns slice and cross-slice verification, and only then performs the separate residual decision. Each executable slice has one canonical Living Record and the final semantic gates plus repair-loop history share one Full-Coverage Close Record.
 

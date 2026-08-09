@@ -89,6 +89,10 @@ foreach ($agent in $agents) {
 }
 
 Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'Lightweight architecture baseline' 'ArchitectureNotRequired baseline authority'
+Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'StandardSliceSufficient' 'readiness de-escalation verdict'
+Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'Selected process after readiness' 'readiness route correction authority'
+Assert-FileContains '.github/agents/change-risk-triage.agent.md' 'Why standard-slice is insufficient' 'full-coverage escalation gate evidence'
+Assert-FileContains '.github/agents/plan-slice-decomposition.agent.md' 'StandardSliceSufficient' 'decomposition rejection for de-escalated runs'
 Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'source_repository_commit' 'freshness source commit anchor'
 Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'tracked_sources' 'tracked source freshness'
 Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'watch_paths' 'watch path freshness'
@@ -106,14 +110,16 @@ Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-c
 Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md' 'freshness_dependency: false' 'non-freshness elaboration trigger'
 Assert-FileNotContains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md' 'role:\s*architecture_readiness_input' 'readiness as architecture tracked source'
 Assert-FileContains 'docs/architecture-slice-readiness-validation-result.md' 'ASR-006' 'executed validation result'
+Assert-FileContains 'docs/architecture-slice-readiness-validation-result.md' 'ASR-007' 'ArchitectureNotRequired decomposition regression result'
 Assert-FileContains 'docs/architecture-slice-readiness-validation-result.md' 'Legacy filenames and output headings' 'historical fixture owner vocabulary classification'
 Assert-FileContains 'docs/architecture-slice-readiness-validation-result.md' 'Plan Coverage parent architecture compatibility check and `implementation-handoff-review` Check 11' 'historical-to-current ASR owner mapping'
-Assert-FileContains 'docs/architecture-slice-readiness-validation-result.md' 'ASR-003.*Plan Coverage parent confirms current baseline.*Check 11=`Match`' 'ASR-003 current owner summary'
+Assert-FileContains 'docs/architecture-slice-readiness-validation-result.md' 'ASR-003.*StandardSliceSufficient.*runtime-contract-kernel.agent.md' 'ASR-003 de-escalation summary'
+Assert-FileContains 'docs/architecture-slice-readiness-validation-result.md' 'ASR-007.*ArchitectureNotRequired.*Check 11=`Match`' 'ASR-007 decomposition summary'
 Assert-FileContains 'docs/architecture-slice-readiness-validation-result.md' 'ASR-005.*Pre-implementation architecture compatibility=`Drift`' 'ASR-005 current owner summary'
 
 $fixtureRoot = Join-Path $repoRoot 'tests/architecture-slice-readiness'
 $runIds = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-foreach ($fixtureId in 1..6 | ForEach-Object { 'ASR-{0:D3}' -f $_ }) {
+foreach ($fixtureId in 1..7 | ForEach-Object { 'ASR-{0:D3}' -f $_ }) {
     $fixturePath = Join-Path $fixtureRoot $fixtureId
     $requiredFiles = @('input-plan.md', 'input-triage.md', 'actual-readiness.md', 'expected.json', 'actual.json', 'run.json')
     foreach ($requiredFile in $requiredFiles) {
@@ -202,6 +208,34 @@ foreach ($fixtureId in 1..6 | ForEach-Object { 'ASR-{0:D3}' -f $_ }) {
             }
         }
     }
+    if ($fixtureId -eq 'ASR-003') {
+        if ($actual.decomposition_allowed_final -or $actual.parent_review_authorized -or $actual.drift_result -ne 'NotRun') {
+            Add-Failure('ASR-003: StandardSliceSufficient must stop decomposition and cross-slice compatibility checks')
+        }
+        foreach ($deescalationEvidence in @(
+            'Selected process after readiness: `standard-slice`',
+            'Decomposition allowed now: `No`',
+            'No decomposition, slice preparation, parent review, or slice implementation authorization is created'
+        )) {
+            if (-not $auditText.Contains($deescalationEvidence, [StringComparison]::Ordinal)) {
+                Add-Failure("ASR-003: complete outputs lack de-escalation evidence '$deescalationEvidence'")
+            }
+        }
+    }
+    if ($fixtureId -eq 'ASR-007') {
+        if (-not $actual.decomposition_allowed_final -or -not $actual.parent_review_authorized -or $actual.drift_result -ne 'Match') {
+            Add-Failure('ASR-007: ArchitectureNotRequired must remain decomposition-capable with a current baseline')
+        }
+        foreach ($decompositionEvidence in @(
+            'Escalation gate result: `Satisfied`',
+            'Architecture source: Lightweight architecture baseline',
+            'Can implement now: `Yes`'
+        )) {
+            if (-not $auditText.Contains($decompositionEvidence, [StringComparison]::Ordinal)) {
+                Add-Failure("ASR-007: complete outputs lack decomposition evidence '$decompositionEvidence'")
+            }
+        }
+    }
 }
 
 $resultPath = Join-Path $repoRoot 'docs/architecture-slice-readiness-validation-result.md'
@@ -234,7 +268,7 @@ foreach ($contract in $validatedContracts) {
 
     $hash = Get-NormalizedTextSha256 -LiteralPath $contractPath
     if ($null -ne $resultText -and -not $resultText.Contains($hash, [StringComparison]::Ordinal)) {
-        Add-Failure("Validation result is stale for ${contract}; rerun ASR-001..006 and record SHA-256 $hash")
+        Add-Failure("Validation result is stale for ${contract}; rerun ASR-001..007 and record SHA-256 $hash")
     }
 }
 

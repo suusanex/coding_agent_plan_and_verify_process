@@ -59,7 +59,15 @@ $processDocumentationRelativePath = 'docs/plan-coverage-process-and-agents.md'
 $fullCoverageDocumentationRelativePath = 'docs/token-aware-full-coverage-decomposition-flow.md'
 $asrValidationDocumentationRelativePath = 'docs/architecture-slice-readiness-validation.md'
 $sharedInstructionsRelativePath = '.github/instructions/plan-coverage-shared.instructions.md'
+$changeRiskRelativePath = '.github/agents/change-risk-triage.agent.md'
+$architectureReadinessRelativePath = '.github/agents/architecture-slice-readiness.agent.md'
 $decompositionRelativePath = '.github/agents/plan-slice-decomposition.agent.md'
+$changeRiskScenarioRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/scenarios.json'
+$changeRiskReadmeRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/README.md'
+$changeRiskTemplateRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/result-template.md'
+$changeRiskResultSchemaRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/result.schema.json'
+$changeRiskResultSummaryRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/results/2026-08-09.md'
+$changeRiskHashRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/agent.sha256'
 $scenarioRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/invocation-authorization-scenarios.json'
 $manualReadmeRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/manual-model-smoke/README.md'
 $manualTemplateRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/manual-model-smoke/result-template.md'
@@ -81,7 +89,15 @@ $requiredFiles = @(
     $fullCoverageDocumentationRelativePath,
     $asrValidationDocumentationRelativePath,
     $sharedInstructionsRelativePath,
+    $changeRiskRelativePath,
+    $architectureReadinessRelativePath,
     $decompositionRelativePath,
+    $changeRiskScenarioRelativePath,
+    $changeRiskReadmeRelativePath,
+    $changeRiskTemplateRelativePath,
+    $changeRiskResultSchemaRelativePath,
+    $changeRiskResultSummaryRelativePath,
+    $changeRiskHashRelativePath,
     $scenarioRelativePath,
     $manualReadmeRelativePath,
     $manualTemplateRelativePath,
@@ -160,12 +176,12 @@ if ($failures.Count -eq 0) {
 
     $manifest = Get-NormalizedText (Join-Path $repoRoot $manifestRelativePath)
     Assert-Matches $manifest '(?m)^name:\s*plan-coverage-residual-flow\s*$' 'package name must remain stable'
-    Assert-Matches $manifest '(?m)^version:\s*0\.11\.0\s*$' 'package version must be 0.11.0'
+    Assert-Matches $manifest '(?m)^version:\s*0\.12\.0\s*$' 'package version must be 0.12.0'
 
     $adaptiveValidator = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1')
     $designPairValidator = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1')
-    Assert-Matches $adaptiveValidator "plan-coverage-residual-flow/apm\.yml'; Version = '0\\\.11\\\.0'" 'Adaptive validator package version pin must be 0.11.0'
-    Assert-Matches $designPairValidator 'Plan Coverage package version 0\.11\.0' 'Design Pair validator package version pin must be 0.11.0'
+    Assert-Matches $adaptiveValidator "plan-coverage-residual-flow/apm\.yml'; Version = '0\\\.12\\\.0'" 'Adaptive validator package version pin must be 0.12.0'
+    Assert-Matches $designPairValidator 'Plan Coverage package version 0\.12\.0' 'Design Pair validator package version pin must be 0.12.0'
 
     Assert-Matches $skill 'The `design-pair-implementation-execution` package remains a separate package' 'Design Pair must remain a separate package without target-specific qualification'
     Assert-Matches $skill 'both packages are installed for the same target and the user explicitly selects Design Pair' 'Design Pair route must require same-target installation and explicit selection'
@@ -175,6 +191,8 @@ if ($failures.Count -eq 0) {
     Assert-NotMatches $skill 'Plan Coverage parent runtime qualif(?:ication).*Design Pair.*Adaptive.*GitHub Copilot CLI' 'PR #90 Copilot qualification claim must not remain in Plan Coverage'
     Assert-NotMatches $skill 'Plan Coverage Copilot CLI\s+issue' 'PR #90 Copilot qualification issue handoff must not remain in Plan Coverage'
 
+    $changeRisk = Get-NormalizedText (Join-Path $repoRoot $changeRiskRelativePath)
+    $architectureReadiness = Get-NormalizedText (Join-Path $repoRoot $architectureReadinessRelativePath)
     $decomposition = Get-NormalizedText (Join-Path $repoRoot $decompositionRelativePath)
     $sharedInstructions = Get-NormalizedText (Join-Path $repoRoot $sharedInstructionsRelativePath)
     $handoffReview = Get-NormalizedText (Join-Path $repoRoot '.github/agents/implementation-handoff-review.agent.md')
@@ -214,6 +232,32 @@ if ($failures.Count -eq 0) {
     Assert-Matches $handoffReview '\| Slice ID \| Readiness verdict \| Baseline authority \| Baseline identity \| Observed semantics \| Match / Drift / Unclear \| Required action \|' 'implementation handoff review must emit architecture compatibility evidence'
     Assert-Matches $handoffReview '`ArchitectureNotRequired`.*Lightweight architecture baseline' 'ArchitectureNotRequired must retain baseline comparison'
     Assert-NotMatches $processDocumentation 'Slice preparation and parent review return `Match`' 'active docs must not assign architecture compatibility to removed 3-layer owners'
+
+    Assert-Matches $changeRisk '(?m)^## Bounded runtime sequence\s*$' 'Change Risk Triage must emit a bounded runtime sequence before profile selection'
+    foreach ($executionModel in @(
+        'Same-process ABI / FFI boundary',
+        'Cross-process IPC',
+        'Cross-process durable-state observation',
+        'External or independently deployed service',
+        'Local asynchronous operation / UI-thread handoff',
+        'Independent background worker',
+        'Persistent queue / replayable job'
+    )) {
+        Assert-Matches $changeRisk ([regex]::Escape($executionModel)) "Change Risk Triage must classify execution model '$executionModel'"
+    }
+    Assert-Matches $changeRisk '(?m)^## Why standard-slice is insufficient\s*$' 'Change Risk Triage must emit the full-coverage escalation evidence section'
+    Assert-Matches $changeRisk '(?s)Candidate bounded sequence.*Independent implementation slices required.*Shared semantics that must remain fixed before decomposition.*Why one bounded parent pass is insufficient.*Failure mode that decomposition prevents.*Escalation gate result' 'Change Risk Triage must emit all escalation gate fields'
+    Assert-Matches $changeRisk '(?s)Recommendation confidence: High / Medium / Low.*Evidence that would lower the profile:.*Evidence that would raise the profile:' 'Change Risk Triage must emit profile confidence audit fields'
+    foreach ($directNonGround in @('authentication / authorization', 'OS API', 'P/Invoke', 'startup wiring', '一つのdurable store', 'local UI asynchronous operation', 'stub / fake', '複数project')) {
+        Assert-Matches $changeRisk ([regex]::Escape($directNonGround)) "Change Risk Triage must reject '$directNonGround' as a direct full-coverage ground"
+    }
+    Assert-Matches $architectureReadiness '(?s)StandardSliceSufficient.*selected_process: standard-slice' 'Architecture Slice Readiness must define the standard-slice route correction'
+    Assert-Matches $architectureReadiness '(?s)StandardSliceSufficient.*Decomposition allowed now: No.*implementation-contract-kernel\.agent\.md.*runtime-contract-kernel\.agent\.md' 'Architecture Slice Readiness must define successful de-escalation routing'
+    Assert-Matches $architectureReadiness '(?s)ArchitectureNotRequired.*複数slice.*plan-slice-decomposition\.agent\.md' 'ArchitectureNotRequired must remain decomposition-capable'
+    Assert-Matches $decomposition '(?s)StandardSliceSufficient.*decompositionを開始せず' 'Plan Slice Decomposition must reject de-escalated runs'
+    Assert-Matches $decomposition '(?s)Why standard-slice is insufficient.*Escalation gate result: Satisfied' 'Plan Slice Decomposition must require the full-coverage escalation gate'
+    Assert-Matches $skill 'legacy or stale triage without the current escalation gate must return to `change-risk-triage\.agent\.md`' 'Plan Coverage must rerun legacy pre-decomposition triage'
+    Assert-Matches $skill 'already has decomposition or slice implementation evidence.*not dismantled by retrospective de-escalation' 'Plan Coverage must preserve post-decomposition artifact mode'
 
     $sectionDeltaContracts = @(
         @{ Path = '.github/agents/change-risk-triage.agent.md'; Section = 'Slice Risk / Guardrail Selection'; Owner = 'change-risk-triage' },
@@ -327,6 +371,90 @@ if ($failures.Count -eq 0) {
         Assert-True ((Get-NormalizedText $coverageLedgerPath) -ceq (Get-NormalizedText $deployedCoverageLedgerPath)) 'provisioned coverage ledger projection must match the canonical reference'
         Assert-True ((Get-NormalizedText $sliceLivingRecordPath) -ceq (Get-NormalizedText $deployedSliceLivingRecordPath)) 'provisioned Slice Living Record projection must match the canonical reference'
         Assert-True ((Get-NormalizedText $fullCoverageClosePath) -ceq (Get-NormalizedText $deployedFullCoverageClosePath)) 'provisioned close projection must match the canonical reference'
+    }
+
+    $changeRiskScenarios = @(Get-Content -Raw -LiteralPath (Join-Path $repoRoot $changeRiskScenarioRelativePath) | ConvertFrom-Json)
+    Assert-True ($changeRiskScenarios.Count -eq 3) 'Change Risk Triage fixture must contain exactly CRT-001 through CRT-003'
+    Assert-True ((@($changeRiskScenarios.id) -join ',') -ceq 'CRT-001,CRT-002,CRT-003') 'Change Risk Triage scenario IDs must be ordered CRT-001 through CRT-003'
+    Assert-True ((@($changeRiskScenarios.expected_profile) -join ',') -ceq 'standard-slice,standard-slice,full-coverage') 'Change Risk Triage expected profiles must preserve both de-escalation cases and one positive full-coverage case'
+    Assert-True ((@($changeRiskScenarios.escalation_gate) -join ',') -ceq 'NotSatisfied,NotSatisfied,Satisfied') 'Change Risk Triage escalation results must reject CRT-001/002 and satisfy CRT-003'
+
+    $requiredExecutionModels = @(
+        'Same-process ABI / FFI boundary',
+        'Local asynchronous operation / UI-thread handoff',
+        'Cross-process durable-state observation'
+    )
+    foreach ($executionModel in $requiredExecutionModels) {
+        Assert-True (@($changeRiskScenarios[0].execution_models) -ccontains $executionModel) "CRT-001 must include execution model '$executionModel'"
+    }
+    Assert-True (@($changeRiskScenarios[1].execution_models) -ccontains 'Cross-process IPC') 'CRT-002 must include Cross-process IPC'
+    Assert-True (@($changeRiskScenarios[1].execution_models) -ccontains 'Persistent queue / replayable job') 'CRT-002 must include a persistent replayable job'
+    Assert-True ([int]$changeRiskScenarios[2].bounded_runtime_sequences -ge 2) 'CRT-003 must contain independent runtime sequences'
+    foreach ($field in @(
+        'candidate_bounded_sequence',
+        'independent_implementation_slices_required',
+        'shared_semantics_that_must_remain_fixed',
+        'why_one_bounded_parent_pass_is_insufficient',
+        'failure_mode_decomposition_prevents'
+    )) {
+        Assert-True ($null -ne $changeRiskScenarios[2].why_standard_slice_is_insufficient.$field) "CRT-003 escalation evidence must contain $field"
+    }
+
+    $changeRiskReadme = Get-NormalizedText (Join-Path $repoRoot $changeRiskReadmeRelativePath)
+    $changeRiskTemplate = Get-NormalizedText (Join-Path $repoRoot $changeRiskTemplateRelativePath)
+    $changeRiskResultSchema = Get-NormalizedText (Join-Path $repoRoot $changeRiskResultSchemaRelativePath) | ConvertFrom-Json
+    Assert-Matches $changeRiskReadme 'fresh session three times' 'Change Risk Triage manual smoke must require three fresh sessions per scenario'
+    Assert-Matches $changeRiskReadme 'CI does not invoke an external model' 'Change Risk Triage CI evidence must remain separate from external-model observations'
+    Assert-Matches $changeRiskReadme '`NOT RUN` and `UNOBSERVABLE` do not count as passes' 'Change Risk Triage manual smoke must not count missing observations as passes'
+    Assert-True ($changeRiskResultSchema.additionalProperties -eq $false) 'Change Risk Triage result schema must reject unknown top-level fields'
+    Assert-True ((@($changeRiskResultSchema.required) -ccontains 'bounded_runtime_sequence') -and (@($changeRiskResultSchema.required) -ccontains 'escalation_gate_result')) 'Change Risk Triage result schema must require bounded sequence and escalation evidence'
+    Assert-True (@($changeRiskResultSchema.properties.execution_models.items.enum).Count -eq 7) 'Change Risk Triage result schema must enumerate all seven execution models'
+    foreach ($scenarioId in 'CRT-001', 'CRT-002', 'CRT-003') {
+        foreach ($run in 1..3) {
+            Assert-Matches $changeRiskTemplate "(?m)^\| $scenarioId \| $run \| NOT RUN \|" "Change Risk Triage result template must include $scenarioId run $run"
+        }
+    }
+
+    $changeRiskResultRoot = Join-Path $repoRoot 'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/results'
+    $changeRiskResultFiles = @(Get-ChildItem -LiteralPath $changeRiskResultRoot -File -Filter 'CRT-*-run-*.json' | Sort-Object Name)
+    Assert-True ($changeRiskResultFiles.Count -eq 9) 'Change Risk Triage results must contain exactly nine fresh-session JSON observations'
+    $expectedResultNames = @(
+        foreach ($scenarioId in 'CRT-001', 'CRT-002', 'CRT-003') {
+            foreach ($run in 1..3) { "$scenarioId-run-$run.json" }
+        }
+    )
+    Assert-True ((@($changeRiskResultFiles.Name) -join ',') -ceq ($expectedResultNames -join ',')) 'Change Risk Triage result filenames must cover three runs for every scenario'
+    $expectedResultProperties = @($changeRiskResultSchema.required | Sort-Object)
+    foreach ($resultFile in $changeRiskResultFiles) {
+        $result = Get-Content -LiteralPath $resultFile.FullName -Raw | ConvertFrom-Json
+        $nameMatch = [regex]::Match($resultFile.Name, '^(?<scenario>CRT-00[1-3])-run-(?<run>[1-3])\.json$')
+        Assert-True ($nameMatch.Success -and $result.scenario_id -ceq $nameMatch.Groups['scenario'].Value) "$($resultFile.Name) scenario ID must match its filename"
+        $actualResultProperties = @($result.psobject.Properties.Name | Sort-Object)
+        Assert-True (($actualResultProperties -join ',') -ceq ($expectedResultProperties -join ',')) "$($resultFile.Name) must match the result schema top-level property set"
+        Assert-True (@($result.required_sections.psobject.Properties.Value | Where-Object { -not $_ }).Count -eq 0) "$($resultFile.Name) must report every required output section"
+
+        $scenario = @($changeRiskScenarios | Where-Object { $_.id -ceq $result.scenario_id })[0]
+        Assert-True ((@($result.execution_models) -join ',') -ceq (@($scenario.execution_models) -join ',')) "$($resultFile.Name) execution-model classification must match its fixture"
+        Assert-True (@($result.execution_models | Select-Object -Unique).Count -eq @($result.execution_models).Count) "$($resultFile.Name) execution models must be unique"
+        Assert-True ($result.recommended_profile -ceq $scenario.expected_profile) "$($resultFile.Name) profile must match its fixture"
+        Assert-True ($result.escalation_gate_result -ceq $scenario.escalation_gate) "$($resultFile.Name) escalation gate must match its fixture"
+        if ($result.scenario_id -ceq 'CRT-003') {
+            Assert-True (@($result.independent_implementation_slices_required).Count -eq 2) "$($resultFile.Name) must retain both independent implementation slices"
+            Assert-True (@($result.shared_semantics_that_must_remain_fixed).Count -eq 3) "$($resultFile.Name) must retain all shared semantics"
+        }
+    }
+    $changeRiskResultSummary = Get-NormalizedText (Join-Path $repoRoot $changeRiskResultSummaryRelativePath)
+    foreach ($resultName in $expectedResultNames) {
+        Assert-Matches $changeRiskResultSummary ([regex]::Escape($resultName)) "Change Risk Triage summary must link $resultName"
+    }
+    Assert-Matches $changeRiskResultSummary '(?m)^\| CRT-003 \| Yes \| Yes \| Yes \| PASS \|$' 'Change Risk Triage summary must record CRT-003 consistency PASS'
+
+    $hashPin = (Get-NormalizedText (Join-Path $repoRoot $changeRiskHashRelativePath)).Trim()
+    $hashMatch = [regex]::Match($hashPin, '\A(?<hash>[0-9a-f]{64})\s+\.github/agents/change-risk-triage\.agent\.md\z')
+    Assert-True $hashMatch.Success 'Change Risk Triage agent hash pin must use the expected SHA-256 record format'
+    if ($hashMatch.Success) {
+        $actualChangeRiskHash = (Get-FileHash -LiteralPath (Join-Path $repoRoot $changeRiskRelativePath) -Algorithm SHA256).Hash.ToLowerInvariant()
+        Assert-True ($actualChangeRiskHash -ceq $hashMatch.Groups['hash'].Value) 'Change Risk Triage agent hash pin is stale'
     }
 
     $scenarios = @(Get-Content -Raw -LiteralPath (Join-Path $repoRoot $scenarioRelativePath) | ConvertFrom-Json)

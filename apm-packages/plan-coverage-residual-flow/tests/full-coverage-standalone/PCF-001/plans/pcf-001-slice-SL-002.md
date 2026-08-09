@@ -78,14 +78,14 @@ N/A - no explicit review-only fallback was invoked.
 
 | Contract ID | Scenario | Producer | Consumer | Message / API / Event | Required fields | Error / timeout behavior | Production implementation address | Verification hook |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `RC-002` | consume producer state and push item | `Get-ConsumerState` | `Push-ConsumerItem` | PowerShell function calls | `SnapshotState`, `CorrelationId`, consumer `State` | non-accepting state throws `Consumer is not accepting items.`; timeout N/A | `src/ConsumerGate.ps1`, `src/StartupFlow.ps1` | `TP-002`, `TP-003` |
+| `RC-002` | observe durable producer state, replay startup, and push item | durable snapshot reader | `Push-ConsumerItem` | read-only durable observation plus PowerShell calls | `SnapshotState`, `CorrelationId`, `Generation`, `Published`, consumer `State` | stale or incomplete identity rejects before admission; non-accepting state throws `Consumer is not accepting items.` | `src/ConsumerGate.ps1`, `src/StartupFlow.ps1` | `TP-002`, `TP-003` |
 
 ## Test Design
 
 | Test Point ID | Runtime Contract ID | What to verify | Stub / fake allowed? | Production binding required? | Expected observation | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `TP-002` | `RC-002` | accepting consumer branch | No | Yes | `Active -> Accepting -> Accepted` | Done |
-| `TP-003` | `RC-002` | non-accepting rejection branch | No | Yes | required exception message | Done |
+| `TP-002` | `RC-002` | matching published generation and idempotent replay | No | Yes | generation 7 replays repeatedly as `Active -> Accepting -> Accepted` | Done |
+| `TP-003` | `RC-002` | non-accepting, stale-generation, and incomplete-publication rejection | No | Yes | no forbidden state becomes `Accepting`; required exceptions are observed | Done |
 
 ## Inline Ready Gate
 
@@ -131,7 +131,7 @@ N/A - no explicit review-only fallback was invoked.
 
 - Formal verification-kernel verdict: `PARENT_PLAN_VERIFIED`
 - Verification scope: `SL-002`, `RC-002`, `TP-002`, `TP-003`
-- Production binding evidence: `tests/verify-sl-002.ps1` imports the production consumer functions and observes `Accepting`, `Accepted`, and the required rejection.
+- Production binding evidence: `tests/verify-sl-002.ps1` imports the production consumer functions and observes idempotent replay, `Accepting`, `Accepted`, non-accepting rejection, and stale-generation rejection.
 - Behavior Case evidence: `CASE-001` and `CASE-002` slice contributions observed.
 - Fake / stub / mock assessment: no substitute used.
 - Remaining gaps: final production entrypoint and full `XC-001` postcondition require cross-slice verification.

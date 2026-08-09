@@ -116,7 +116,7 @@ Allowed values:
 
 Do not add `strict` as a `documentation_level`. When more rigor is needed, route to `standard` and then to the appropriate guardrail or advanced route.
 
-`full-coverage` is not a `documentation_level`. It remains a process profile / route selected after `Plan readiness: ReadyForRiskTriage` when a ready parent Plan is too broad or interconnected for one bounded pass.
+`full-coverage` is not a `documentation_level`. It remains a process profile / route selected after `Plan readiness: ReadyForRiskTriage` only when a source-backed bounded runtime sequence assessment and `Why standard-slice is insufficient` escalation gate show that one bounded pass is insufficient.
 
 `artifact_mode` is separate routing metadata. New full-coverage decompositions must record:
 
@@ -179,6 +179,7 @@ Run the flow in this order unless a stop condition applies:
    - `standard-slice`: run one bounded parent Plan pass.
    - `fix-slice`: run only the explicitly selected FixNow items.
    - `full-coverage`: follow the full-coverage route below.
+   `full-coverage` requires `Escalation gate result: Satisfied`. Risk trigger count, changed file/project count, security importance, ABI/FFI, local async work, one shared durable store, production wiring, or a test-substitute replacement do not independently satisfy this gate.
 8. In a normal bounded pass, run the needed pre-implementation gates:
    - `implementation-contract-kernel.agent.md`, when implementation-realization risk is present or unclear
    - `implementation-contract-review-kernel.agent.md`, only as an explicit review-only fallback for the implementation contract self-check verdict
@@ -217,7 +218,7 @@ The parent Plan FR / AC remain the implementation and verification source of tru
 
 `full-coverage` is not an automatic move to the Full autonomous Plan-first flow.
 
-Use `full-coverage` only after Plan readiness is `ReadyForRiskTriage`. It means the ready parent Plan is too broad, strongly interconnected, or cross-slice to handle safely as a single bounded pass.
+Use `full-coverage` only after Plan readiness is `ReadyForRiskTriage`. Change Risk Triage must first build the minimum bounded runtime sequence, classify same-process ABI/FFI separately from cross-process and worker/queue models, consider a concrete `standard-slice` candidate, and emit a source-backed `Why standard-slice is insufficient` section with `Escalation gate result: Satisfied`. `Present` trigger count is not a profile score.
 
 When `change-risk-triage.agent.md` recommends `full-coverage`:
 
@@ -225,13 +226,14 @@ When `change-risk-triage.agent.md` recommends `full-coverage`:
 2. Follow the readiness verdict:
    - `ReadyForSliceDecomposition`: require the cited current `plans/<slug>-slice-architecture.md`, then continue.
    - `NeedsArchitectureElaboration`: run `architecture-elaboration.agent.md`, then rerun readiness.
+   - `StandardSliceSufficient`: preserve the original triage as audit evidence, record this readiness artifact as the route correction authority, set `selected_process: standard-slice`, and rejoin the normal bounded route. Run `implementation-contract-kernel.agent.md` when implementation-realization risk is `Present` / `Unclear`; otherwise run `runtime-contract-kernel.agent.md`. Do not create Slice Architecture, decomposition, Slice Living Records, or cross-slice verification artifacts.
    - `ArchitectureNotRequired`: use the current source-backed readiness artifact and its Lightweight architecture baseline as the baseline authority; continue without a separate architecture artifact.
    - `NeedsHumanDecision`: stop.
    When elaboration is required, preserve R1 as a non-freshness `elaboration_trigger` snapshot. R2 may update the same readiness path and must track the Slice Architecture external content hash; R1 path/hash changes do not stale the architecture.
 3. Do not continue while any `ArchitectureCritical` or `NeedsHumanDecision` residual remains. Recompute tracked source content hashes / explicit revisions and inspect the source-repository-commit-to-current diff for declared watch paths. HEAD equality is not required, and generated readiness/architecture artifact commits do not self-invalidate the baseline. Path equality is insufficient; any semantic baseline change makes the verdict stale and requires a readiness rerun.
-4. Run `plan-slice-decomposition.agent.md` only after the architecture gate permits it. Every new decomposition records `documentation_level: standard`, `selected_process: full-coverage`, and `artifact_mode: slice-living-record` and includes an Artifact Budget. The decomposition's executable slice artifacts become canonical Slice Living Records using `references/full-coverage-slice-living-record.md`; do not create a second slice-record file.
+4. Run `plan-slice-decomposition.agent.md` only after the architecture gate permits it and the triage escalation gate remains `Satisfied`. `StandardSliceSufficient` explicitly forbids decomposition. Every new decomposition records `documentation_level: standard`, `selected_process: full-coverage`, and `artifact_mode: slice-living-record` and includes an Artifact Budget. The decomposition's executable slice artifacts become canonical Slice Living Records using `references/full-coverage-slice-living-record.md`; do not create a second slice-record file.
 5. Do not re-enter each executable slice as a new standard Plan Coverage run. For each slice, read the parent Plan, parent triage, approved readiness / architecture source, decomposition, canonical Coverage Ledger, and Slice Living Record baseline. Preserve parent FR / AC, Case IDs, XC IDs, field continuity, architecture source, and explicit residuals without re-deciding shared architecture or work assigned to another slice.
-6. Use existing agents in section-delta mode. Give each agent `artifact_mode: slice-living-record`, `living_record_path`, `canonical_coverage_ledger`, and `output_contract: section-delta`. The agent returns only its owned section body and Coverage Ledger Delta; it must not write repository files or regenerate another section. `change-risk-triage.agent.md` runs slice-local delta mode and inherits the parent risk decision without selecting full-coverage again. If the slice remains full-coverage-sized, return `needs-further-decomposition`.
+6. Use existing agents in section-delta mode. Give each agent `artifact_mode: slice-living-record`, `living_record_path`, `canonical_coverage_ledger`, and `output_contract: section-delta`. The agent returns only its owned section body and Coverage Ledger Delta; it must not write repository files or regenerate another section. `change-risk-triage.agent.md` runs slice-local delta mode and inherits the parent risk decision without selecting full-coverage again. It may return `needs-further-decomposition` only with its own source-backed `Why standard-slice is insufficient` subsection and `Escalation gate result: Satisfied`.
 7. The Plan Coverage parent/router is the only repository writer for Slice Living Records and the canonical Coverage Ledger. Before applying a delta, validate target path, target section, semantic owner, existing section, and stable Delta ID. Reject cross-section or cross-slice writes. Apply the Living Record and ledger updates atomically and mark the delta Applied only after the canonical ledger succeeds.
 8. Run only the pre-implementation kernels selected by the slice risk delta: implementation contract when implementation-realization risk requires it, `implementation-contract-review-kernel.agent.md` only as an explicit review-only fallback into `Implementation Contract Decisions / Independent Review`, runtime contract when Guardrail Focus requires it, test design when required, then `implementation-handoff-review.agent.md` for the `Inline Ready Gate` section. Use source-backed `N/A` for an inapplicable section or subsection; absence is not N/A.
 9. Before the Inline Ready Gate may authorize implementation, the Plan Coverage parent owns the `Architecture baseline compatibility` check:
@@ -256,6 +258,8 @@ The base durable artifact budget is `5 + executable slice count + 1`, or at most
 Before creating any separate slice-local artifact, record and apply an `Artifact Exceptions` row with exactly one allowed reason code: `cross-thread-handoff`, `parallel-write-isolation`, `human-approval-wait`, `external-audit-evidence`, or `record-size-limit`. The row must contain the exact slice-scoped path, owner, canonical/supplemental classification, and lifecycle before file creation. The exception is normally supplemental and cannot replace the canonical Plan, Living Record, or Coverage Ledger. Parallel work may use different slice records; multiple writers must not edit the same slice record concurrently. Tracked Implementation Completion and High-model Re-entry Handoffs are not exempt from this gate; the delayed re-entry payload does not become a repository artifact until the parent applies its exact-path exception row.
 
 New runs must not mix legacy separate-artifact slices with Living Record slices. For resume, use explicit `artifact_mode`. An explicit legacy/separate mode resumes unchanged. A pre-redesign artifact with no mode may be recognized only when its existing artifact set clearly matches the old contract; record compatibility normalization and do not silently migrate it. Artifact Creation Gate supplements do not count as mixed modes.
+
+For a run that has not started decomposition, a legacy or stale triage without the current escalation gate must return to `change-risk-triage.agent.md` before Architecture Slice Readiness or decomposition. A run that already has decomposition or slice implementation evidence continues in its recorded artifact mode and is not dismantled by retrospective de-escalation.
 
 Do not use `full-coverage` for:
 

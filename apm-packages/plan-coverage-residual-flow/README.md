@@ -52,8 +52,8 @@ Guardrail Focus candidates、Plan readiness、次gateへのhandoffを記録し�
 
 1. `plan-kernel`がbounded PlanとPlan readinessを作る。
 2. behavior expansionが必要なら`black-box-behavior-spec-kernel`でCase IDsを作り、`plan-kernel`へ戻してFR / ACへmappingする。
-3. `change-risk-triage`がparent Plan全体を分類し、Guardrail Focusとprocess profileを選ぶ。
-4. `full-coverage`の場合は`architecture-slice-readiness`を通す。必要なら`architecture-elaboration`後に再判定し、許可された場合だけ`plan-slice-decomposition`へ進む。
+3. `change-risk-triage`がbounded runtime sequenceを先に組み立て、execution model、Guardrail Focus、minimum sufficient process profileを選ぶ。
+4. `full-coverage`は`Why standard-slice is insufficient` escalation gateが`Satisfied`の場合だけ`architecture-slice-readiness`へ進む。readinessが`StandardSliceSufficient`なら通常の`standard-slice`へ戻し、decompositionが必要な場合だけ後続gateへ進む。
 5. 必要なimplementation contract、runtime contract、test design、implementation handoff reviewを作る。
 6. 非自明な実装は`high-implementation-starter`から開始し、valid handoff後だけ`standard-implementation-completer`へ直列委譲する。
 7. human reviewの重点を整理する場合は、任意で`code-review-focus-kernel`を実行する。
@@ -139,11 +139,12 @@ selector外へ広げず、修正後はverificationとresidual decisionへ戻し�
 
 ## Full-coverage route
 
-`full-coverage`は要求不足の代用ではありません。Plan readinessが成立した広い変更について、Architecture Slice Readiness Gateがshared semanticsをslice可能な精度か判定します。
+`full-coverage`は要求不足、risk trigger数、変更file/project数、security上の重要性の代用ではありません。Change Risk Triageはsame-process ABI、cross-process IPC、durable-state observation、local async、independent worker、persistent queueを分け、具体的なstandard-slice candidateが不十分な理由を示した場合だけescalateします。Architecture Slice Readiness Gateはdecomposition自体の必要性も再確認します。
 
 ```text
 full-coverage
   -> architecture-slice-readiness
+     -> StandardSliceSufficient -> standard-slice normal route
      -> architecture-elaboration -> readiness rerun, when required
      -> plan-slice-decomposition, when authorized
   -> each Slice Living Record
@@ -159,7 +160,7 @@ full-coverage
 
 新規full-coverage runは`documentation_level: standard`と`artifact_mode: slice-living-record`を別々に記録します。`plan-slice-decomposition`が作る各`plans/<slug>-slice-SL-xxx.md`はbounded Slice Planを兼ねるcanonical Living Recordです。risk、implementation contract、runtime contract、test design、Inline Ready Gate、Adaptive evidence、independent verification、coverage delta、residual handoffを同じrecordから追跡できます。
 
-agent semanticsとverdict vocabularyは維持されますが、各agentはowned section deltaだけを返し、Plan Coverage parent/routerだけがLiving Recordとcanonical Coverage Ledgerをrepositoryへ書きます。implementation-contract review-only fallbackは`Implementation Contract Decisions / Independent Review`へ、gap repairは`Gap Repair Evidence`へ投影します。implementation-realization gapでcurrent `Implementation Contract Decisions`が不足する場合、repair agentは別artifactやsectionを作成せず、parentへ`implementation-contract-kernel`のsection-delta実行を要求し、parent適用後にrepairを再開します。current architecture baselineとのcompatibilityが`Match`の場合だけAdaptive Implementationへ進み、`Drift`はArchitecture Slice Readiness / Elaborationへ戻し、`Unclear`はfail closedしてreadinessを再実行します。`ArchitectureNotRequired`でもLightweight architecture baselineとの比較を省略しません。全sliceのindependent verificationとpending ledger delta 0の後、`plans/<slug>-full-coverage-close.md`へCross-Slice Verificationを適用し、FixNow候補がある場合は対象sliceのtriage / repair / re-verificationとcross-slice rerunを完了してからResidual Decisionへ進みます。
+agent semanticsとverdict vocabularyは維持されますが、各agentはowned section deltaだけを返し、Plan Coverage parent/routerだけがLiving Recordとcanonical Coverage Ledgerをrepositoryへ書きます。`StandardSliceSufficient`はdecomposition不要の成功verdictであり、original triageを監査証跡として残したまま`selected_process: standard-slice`へ戻します。`ArchitectureNotRequired`は複数sliceが必要だが独立architecture artifactが不要な場合だけ維持します。implementation-contract review-only fallbackは`Implementation Contract Decisions / Independent Review`へ、gap repairは`Gap Repair Evidence`へ投影します。implementation-realization gapでcurrent `Implementation Contract Decisions`が不足する場合、repair agentは別artifactやsectionを作成せず、parentへ`implementation-contract-kernel`のsection-delta実行を要求し、parent適用後にrepairを再開します。current architecture baselineとのcompatibilityが`Match`の場合だけAdaptive Implementationへ進み、`Drift`はArchitecture Slice Readiness / Elaborationへ戻し、`Unclear`はfail closedしてreadinessを再実行します。`ArchitectureNotRequired`でもLightweight architecture baselineとの比較を省略しません。全sliceのindependent verificationとpending ledger delta 0の後、`plans/<slug>-full-coverage-close.md`へCross-Slice Verificationを適用し、FixNow候補がある場合は対象sliceのtriage / repair / re-verificationとcross-slice rerunを完了してからResidual Decisionへ進みます。
 
 base artifact budgetはparent control-plane 5件、sliceごとにLiving Record 1件、final close 1件です。Black-box Behavior Spec、Slice Architecture、Design Pair handoffは条件付きで別集計します。別artifactはArtifact Creation Gateの`cross-thread-handoff`、`parallel-write-isolation`、`human-approval-wait`、`external-audit-evidence`、`record-size-limit`のいずれかを正確なpath付きで先にLiving Recordへ適用した場合だけ作成できます。tracked Implementation Completion HandoffもHigh-model Re-entry Handoffも例外ではありません。re-entryではSTANDARDが未保存payloadを返し、parentが例外行を適用してからtracked fileを保存してHIGHを再開します。pre-redesign runはexplicit legacy/separate modeのままresumeでき、silent migrationや同一run内のmode混在は行いません。
 
@@ -268,13 +269,17 @@ residual decisionのclose verdictは次を含みます。
 - [Full-coverage decomposition policy](../../docs/token-aware-full-coverage-decomposition-flow.md)
 - [Architecture Slice Readiness validation](../../docs/architecture-slice-readiness-validation.md)
 - [Standalone full-coverage E2E fixture](tests/full-coverage-standalone/PCF-001/README.md)
+- [Change Risk Triage profile stability smoke](tests/change-risk-triage/README.md)
 - [Manual model smoke](tests/manual-model-smoke/README.md)
 
 ```powershell
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1
+./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1
 ```
 
 standalone full-coverage E2Eは、currentまたはinstalled Living Record / close reference authorityからrequired sectionとtableを導出し、2-slice fixtureのowner境界、artifact budget、negative cases、ledger delta適用、production bindingを確認します。そのうえで2つのslice payloadを依存順に適用し、slice-local verification、production entrypoint経由のcross-slice verification、residual decisionまでをdeterministicに検証します。外部modelは実行しないため、CodexやCopilot等がlifecycleを自律実行した証拠ではありません。
+
+Change Risk Triage smokeのscenario schemaとagent hashはCIで検証します。外部modelによる`CRT-001`〜`CRT-003`各3回のfresh-session一致確認はmanual evidenceとして分離し、`NOT RUN`や`UNOBSERVABLE`をPASSにしません。
 
 remote APM install smokeはpackageの変更をremote refで検証するときだけ実行します。

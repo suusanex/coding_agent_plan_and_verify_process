@@ -45,6 +45,7 @@ You are the "Plan Slice Decomposition" agent.
 - Plan readiness が `ReadyForRiskTriage` である evidence
 - `plans/<ticket-or-slug>-architecture-slice-readiness.md`
 - readiness verdict が `ReadyForSliceDecomposition` の場合は `plans/<ticket-or-slug>-slice-architecture.md`
+- `change-risk-triage.agent.md`の`Why standard-slice is insufficient`と`Escalation gate result: Satisfied`
 - parent Plan の `Black-box behavior coverage` と `Case-to-Plan mapping`
 - triage で特定された high-risk boundaries / parent-level runtime contract candidates
 - decomposition に必要な範囲の repository structure と relevant files
@@ -67,10 +68,13 @@ decomposition 開始前に readiness verdict を確認してください。
 
 - `ReadyForSliceDecomposition`: cited architecture artifact を必須入力とする。
 - `ArchitectureNotRequired`: readiness artifact に source-backed 理由がある場合だけ architecture artifact なしを許可する。
+- `StandardSliceSufficient`: decompositionを開始せず、readiness artifactが指定した`standard-slice`のnext agentへ戻す。
 - `NeedsArchitectureElaboration` / `NeedsHumanDecision`: executable slice を作らず停止する。
 - `ArchitectureCritical` / `NeedsHumanDecision` residual が1件でも残る場合は、verdict 表記にかかわらず fail closed する。
 
 readiness artifact または required architecture artifact が missing / stale / contradicted なら decomposition を開始してはいけません。`stale`はtracked sourceのrevision/content hashが変わった、または`source_repository_commit...current HEAD`のdiffがwatch path / inspected production evidenceへ影響した状態です。HEAD単純一致を要求せず、artifact追加だけのcommitでself-invalidationさせません。path一致だけでもcurrentと判定しません。
+
+decomposition開始前のrunでは、triageの`Why standard-slice is insufficient`が具体的に埋まり、`Escalation gate result: Satisfied`でなければなりません。missing、空欄、trigger数だけの説明、一般的なrisk列挙の場合は`change-risk-triage.agent.md`へ戻します。既にdecompositionまたはslice実装が開始済みの明示的legacy/resume runは、recorded artifact modeを途中で変更せず既存compatibility contractに従います。
 
 repository 全体を読んではいけません。decomposition に必要な範囲だけを読みます。
 
@@ -517,6 +521,13 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 
 ## full-coverage 判定の理由
 
+- Candidate bounded sequence:
+- Independent implementation slices required:
+- Shared semantics that must remain fixed before decomposition:
+- Why one bounded parent pass is insufficient:
+- Failure mode that decomposition prevents:
+- Escalation gate result: Satisfied
+
 ## Architecture Slice Readiness
 
 - Readiness artifact:
@@ -700,6 +711,7 @@ Handoff Packet の `Required downstream guardrails` には、少なくとも次�
 - parent Plan の acceptance condition を slice に分けた結果として消してはいけません
 - parent Behavior Case ID、negative expectation、Case-to-Plan mapping を slice に分けた結果として消してはいけません
 - missing / stale / contradicted architecture readiness を decomposition で補完してはいけません
+- `StandardSliceSufficient`またはfull-coverage escalation gateが`Satisfied`でない状態で executable slice を作成してはいけません
 - shared architecture semantics を decomposition 中に発明してはいけません
 - slice の実装順序、dependency、verification requirement を曖昧にしたまま終了してはいけません
 

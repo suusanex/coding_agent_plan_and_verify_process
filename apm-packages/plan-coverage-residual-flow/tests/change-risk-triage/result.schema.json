@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Change Risk Triage fresh-session observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scenario_id",
+    "bounded_runtime_sequence",
+    "execution_models",
+    "recommended_profile",
+    "required_sections",
+    "candidate_bounded_sequence",
+    "independent_implementation_slices_required",
+    "shared_semantics_that_must_remain_fixed",
+    "why_one_bounded_parent_pass_is_insufficient",
+    "failure_mode_that_decomposition_prevents",
+    "escalation_gate_result",
+    "recommendation_confidence",
+    "evidence_that_would_lower_the_profile",
+    "evidence_that_would_raise_the_profile"
+  ],
+  "properties": {
+    "scenario_id": {
+      "type": "string",
+      "enum": ["CRT-001", "CRT-002", "CRT-003"]
+    },
+    "bounded_runtime_sequence": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "execution_models": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "Same-process ABI / FFI boundary",
+          "Cross-process IPC",
+          "Cross-process durable-state observation",
+          "External or independently deployed service",
+          "Local asynchronous operation / UI-thread handoff",
+          "Independent background worker",
+          "Persistent queue / replayable job"
+        ]
+      }
+    },
+    "recommended_profile": {
+      "type": "string",
+      "enum": ["lightweight", "standard-slice", "contract-kernel", "full-coverage"]
+    },
+    "required_sections": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bounded_runtime_sequence",
+        "execution_model_classification",
+        "risk_semantics",
+        "why_standard_slice_is_insufficient",
+        "recommendation_confidence",
+        "profile_change_evidence"
+      ],
+      "properties": {
+        "bounded_runtime_sequence": { "type": "boolean", "const": true },
+        "execution_model_classification": { "type": "boolean", "const": true },
+        "risk_semantics": { "type": "boolean", "const": true },
+        "why_standard_slice_is_insufficient": { "type": "boolean", "const": true },
+        "recommendation_confidence": { "type": "boolean", "const": true },
+        "profile_change_evidence": { "type": "boolean", "const": true }
+      }
+    },
+    "candidate_bounded_sequence": { "type": "string", "minLength": 1 },
+    "independent_implementation_slices_required": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "shared_semantics_that_must_remain_fixed": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "why_one_bounded_parent_pass_is_insufficient": { "type": "string", "minLength": 1 },
+    "failure_mode_that_decomposition_prevents": { "type": "string", "minLength": 1 },
+    "escalation_gate_result": { "type": "string", "enum": ["Satisfied", "NotSatisfied", "N/A"] },
+    "recommendation_confidence": { "type": "string", "enum": ["High", "Medium", "Low"] },
+    "evidence_that_would_lower_the_profile": { "type": "string", "minLength": 1 },
+    "evidence_that_would_raise_the_profile": { "type": "string", "minLength": 1 }
+  }
+}

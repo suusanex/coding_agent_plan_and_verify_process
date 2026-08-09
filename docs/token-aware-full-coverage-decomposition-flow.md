@@ -8,14 +8,16 @@
 
 ## Policy
 
-- `full-coverage` means: a `ReadyForRiskTriage` parent Plan is too broad or strongly interconnected to implement as one bounded pass.
+- `full-coverage` means: a `ReadyForRiskTriage` parent Plan has multiple independent implementation slices and shared semantics, and a source-backed `Why standard-slice is insufficient` escalation gate proves that one bounded pass cannot preserve a safe implementation / verification sequence.
+- Change Risk Triage builds the minimum bounded runtime sequence before scanning risk. Same-process ABI/FFI, cross-process IPC, cross-process durable-state observation, external service, local async, independent worker, and persistent queue are distinct execution models. `Present` count is not a profile score.
 - `full-coverage` does not mean that many executable slices are required. If parent acceptance conditions, cross-slice contracts, field continuity, and Behavior Case mapping remain traceable, few slices are valid, including a 2-slice decomposition.
 - `full-coverage` does not mean: missing behavior expansion, missing Case-to-Plan mapping, or undecided expected behavior. Those are Plan readiness failures and must return to `black-box-behavior-spec-kernel.agent.md`, `plan-kernel.agent.md`, or human decision.
 - `full-coverage` does not mean: run `plan-generation.agent.md`, `runtime-evidence.agent.md`, or `integration-test-design.agent.md`.
 - The next step is always `architecture-slice-readiness.agent.md`; `full-coverage` must not transition directly to decomposition.
-- `ReadyForSliceDecomposition` requires a current `plans/<slug>-slice-architecture.md`. `ArchitectureNotRequired` permits decomposition without that artifact only when the readiness verdict gives a source-backed simple-structure reason.
+- `StandardSliceSufficient` is a successful de-escalation to `selected_process: standard-slice`; it forbids decomposition and rejoins the normal bounded route. `ReadyForSliceDecomposition` requires a current `plans/<slug>-slice-architecture.md`. `ArchitectureNotRequired` permits decomposition without that artifact only when multiple slices remain necessary and existing shared semantics are source-backed and unchanged.
 - `NeedsArchitectureElaboration` routes to `architecture-elaboration.agent.md` and then reruns readiness. `NeedsHumanDecision`, `ArchitectureCritical`, missing, stale, or contradicted architecture artifacts block decomposition.
 - `plan-slice-decomposition.agent.md` must consider delegation overhead. A candidate slice should be executable only when running the required Plan Coverage gates, Adaptive Implementation, and verification as a separate bounded pass has value.
+- `plan-slice-decomposition.agent.md` must reject `StandardSliceSufficient` and any pre-decomposition triage whose escalation gate is missing, empty, generic, or not `Satisfied`.
 - Candidate slices that share owner, module, production wiring, verification route, and parent acceptance condition should be coalesced unless there is a documented reason to keep them separate.
 - Small independent slices require `Small slice justification`; otherwise they should be recorded as `merge-candidate`, `too-small-to-delegate`, or `coalesce-with-SL-xxx` and not sent to downstream Plan Coverage execution.
 - The broad autonomous flow remains available only as an explicit, separate process choice; it is not the default interpretation of `full-coverage` inside Plan網羅チェック triage.

@@ -106,7 +106,7 @@ Assert-Contains $manifest 'adaptive-implementation-execution/\.apm/skills/adapti
 Assert-Contains $manifest '\.github/agents/high-implementation-starter\.agent\.md' 'canonical HIGH agent dependency'
 Assert-Contains $manifest '\.github/agents/standard-implementation-completer\.agent\.md' 'canonical STANDARD agent dependency'
 Assert-NotContains $manifest 'implementation-execution\.agent\.md' 'legacy implementation orchestration dependency'
-Assert-Contains 'apm-packages/plan-coverage-residual-flow/apm.yml' '(?m)^version:\s*0\.11\.0\s*$' 'Plan Coverage package version 0.11.0'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/apm.yml' '(?m)^version:\s*0\.12\.0\s*$' 'Plan Coverage package version 0.12.0'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/apm.yml' '(?m)^version:\s*0\.4\.0\s*$' 'Adaptive package version 0.4.0'
 
 $maxWindowsPackagePathLength = 112

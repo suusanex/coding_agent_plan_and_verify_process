@@ -1,0 +1,11 @@
+{
+  "fixture_id": "ASR-007",
+  "initial_verdict": "ArchitectureNotRequired",
+  "final_verdict": "ArchitectureNotRequired",
+  "decomposition_allowed_initial": true,
+  "decomposition_allowed_final": true,
+  "blocking_residuals_initial": [],
+  "next_action_initial": "plan-slice-decomposition.agent.md",
+  "parent_review_authorized": true,
+  "drift_result": "Match"
+}
