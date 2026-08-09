@@ -2,11 +2,11 @@
 
 ## Execution metadata
 
-- Executed at: `2026-08-09T18:34:00+09:00`
-- Executor: deterministic ASR-001 through ASR-008 fixture comparison for Issue #84
-- Branch: `issue-84`
-- Reviewed source: post-PR #80 Plan Coverage path history (`05c0f84`, `3e42758`, `f2b6bbe`) confirms that only PR #90 added Plan Coverage-specific Copilot qualification wording; the current Skill keeps a target-neutral separate-package, explicit-selection, and waiting-state boundary while preserving the Issue #94 bounded-slice and architecture compatibility contracts
-- Scope: architecture readiness routing, de-escalation, decomposition authorization, and existing architecture compatibility semantics; no external system changes
+- Executed at: `2026-08-09T20:19:33+09:00`
+- Executor: deterministic ASR-001 through ASR-008 fixture comparison after rebasing PR #102 onto `origin/main`
+- Branch: `adaptive-impl-update`
+- Reviewed source: `origin/main` at `d662ff7` preserves the Issue #84 ASR-007/008 de-escalation and decomposition contracts, while the rebased PR #102 changes the shared Adaptive implementation ownership sentence; the combined contract retains Architecture Slice Readiness, baseline compatibility, and `Match / Drift / Unclear` authorization semantics
+- Scope: ASR-001 through ASR-008 fixture comparison, current contract hashes, de-escalation and decomposition authorization, shared Adaptive ownership propagation, and existing architecture semantics only; no production code or external system changes
 
 ### Contract revisions evaluated
 
@@ -18,7 +18,7 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | `.github/agents/architecture-elaboration.agent.md` | `8f53674b988131d847d8c32ca01d850c90820fddb40595a6ca6ff54382948344` |
 | `.github/agents/plan-slice-decomposition.agent.md` | `ff7b0527f006803fd254db551b5454c3a75c71de089251062e9d7baa6b7c308f` |
 | `.github/agents/implementation-handoff-review.agent.md` | `8cf54b1444379cc43187e3f99056a61f466105121d99c98a7e8bc6ef07e4bca2` |
-| `.github/instructions/plan-coverage-shared.instructions.md` | `cf8dafd1410e08c08909a0993c8937a4b24126a15b67508372cd4ba1cb0ee814` |
+| `.github/instructions/plan-coverage-shared.instructions.md` | `13ec65b00d4ad776af8237d8d2d66e59d288febf19ee9893406207661e4d1a8d` |
 | `plan-coverage-residual-flow/SKILL.md` | `7077598c7fec2f52198f28d1a656f72d1d74d509b159e002b3d5acc876baf23c` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 | `coverage-ledger.md` template | `b1a532b4ab59dbaa1471d8bd1beb6af5e7f570f3086719c8fcbe452f7f493962` |
@@ -46,6 +46,8 @@ ASR-001, ASR-002, and ASR-004 through ASR-006 reuse the prior Issue #65 determin
 Legacy filenames and output headings that mention slice preparation, parent review, or slice implementation authorization describe the owner mapping at the time of the captured run; they are not the current active route. In the current contract, those checkpoints map to the Plan Coverage parent architecture compatibility check and `implementation-handoff-review` Check 11. Only a current-baseline `Match` permits implementation; `Drift` or `Unclear` blocks and returns to Architecture Slice Readiness / Elaboration.
 
 The Issue #84 review rerun separates the legacy missing-gate return in ASR-003 from the new-format satisfied-gate de-escalation in ASR-008. ASR-007 preserves the distinct `ArchitectureNotRequired` decomposition path. Existing decomposed fixtures retain the same `Match / Drift / Unclear` gate semantics.
+
+The PR #102 rerun re-compares ASR-001 through ASR-006 against their expected outputs after the shared guardrail assigns non-local decision closure to HIGH and decision-closed implementation to STANDARD. That ownership change does not alter slice architecture readiness, freshness, or compatibility outcomes, so the six retained run IDs and expected results remain valid while the current shared-instruction hash and execution metadata are refreshed.
 
 | Fixture | Run ID | Complete evidence root |
 | --- | --- | --- |
@@ -188,7 +190,7 @@ Immediate next agent: runtime-contract-kernel.agent.md
 | Slice Architecture template path | PASS | canonical template exists and all affected manifests reference an existing path |
 | Durable fixture artifacts | PASS | ASR-001〜008 input/output/run files exist and every run reference resolves |
 | Expected / actual comparison | PASS | validator compared every `actual.json` with `expected.json` and checked values against full Markdown outputs |
-| Current contract revision hashes | PASS | all nine surviving normalized contract hashes above match the files revalidated for Issue #84; deleted PR #80 contract hashes are retained only as historical evidence |
+| Current contract revision hashes | PASS | all nine surviving normalized contract hashes above match the files revalidated after integrating Issue #84 and PR #102; deleted PR #80 contract hashes are retained only as historical evidence |
 | `git diff --check` | PASS | no whitespace errors; Windows line-ending warnings only |
 
 ## Limitations

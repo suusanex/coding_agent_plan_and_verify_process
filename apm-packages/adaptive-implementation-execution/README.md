@@ -1,12 +1,12 @@
 # Adaptive Implementation Execution
 
-通常の Plan Mode output、短い実装計画、または明示選択された Design Pair handoff から、非自明な実装を HIGH_MODEL が開始し、残作業から構造上の意思決定がなくなった場合だけ STANDARD_MODEL へ直列委譲する、Codex / GitHub Copilot Chat in VS Code対応のAPM packageです。
+通常の Plan Mode output、短い実装計画、または明示選択された Design Pair handoff から、HIGH_MODELがactual code evidenceに基づいて非局所decisionを閉じ、決定済み境界内のproduction implementation、tests、validationをSTANDARD_MODEL主体で直列実行する、Codex / GitHub Copilot Chat in VS Code対応のAPM packageです。
 
 ## 解決する問題
 
 外部仕様や課題全体の規模が小さくても、実装開始後には責務配置、signature、dependency、production wiring、error handling、state ownership、test seam などの判断が必要になる場合があります。
 
-この package は、実装前の文書だけで model tier を固定せず、HIGH_MODEL が実コードを編集し、build / focused test の evidence を得た後に残存 decision surface を評価します。
+このpackageは、実装前の文書だけでmodel tierを固定しません。HIGH_MODELはcode、wiring、signatures、call sites、testsを調査して非局所decisionを閉じ、必要な場合だけ最小のcode editでevidenceを得ます。HIGHによるproduction/test editはSTANDARD delegationの必須条件ではありません。
 
 ## Plan Coverage Flow との違い
 
@@ -45,7 +45,7 @@ ordinary Plan
        -> REPLAN_REQUIRED / HUMAN_DECISION_REQUIRED / BLOCKED
 ```
 
-HIGH_MODEL と STANDARD_MODEL の write-heavy work は並列化しません。安全な delegation point がない場合、HIGH_MODEL が完了まで実装します。
+HIGH_MODELとSTANDARD_MODELのwrite-heavy workは並列化しません。非局所decisionが閉じ、meaningfulなWork Packageが残る場合はSTANDARDへ主体を移します。HIGHが直接完了する場合は許可された`Direct completion reason`と根拠が必要です。
 
 ## Package contents
 
@@ -60,7 +60,7 @@ HIGH_MODEL と STANDARD_MODEL の write-heavy work は並列化しません。�
 | Compatibility installer | `scripts/install-adaptive-implementation-local.cs` |
 | Static validator | `scripts/validate-adaptive-implementation-execution.ps1` |
 | APM 0.26.0 remote install smoke | `scripts/validate-adaptive-implementation-apm-smoke.ps1` |
-| Executable route scenarios A-G | `tests/routing-scenarios.json` + `tests/validate-routing-scenarios.ps1` |
+| Executable route scenarios A-J | `tests/routing-scenarios.json` + `tests/validate-routing-scenarios.ps1` |
 | Pre-Design-Pair resume fixture | `docs/examples/legacy-adaptive-handoff.md` |
 
 root `.github/agents/high-implementation-starter.agent.md` と `standard-implementation-completer.agent.md` がportable agent contractです。APM 0.26.0はこれらの root agent と package Skill を target ごとに導入し、Copilotでは`.agent.md`、Codexではmodel-less TOML stubを扱います。両agentは`disable-model-invocation: true`によりagent pickerからの明示選択を維持しつつ、他agentのmodel判断によるsubagent起動を禁止します。`tools`は省略してCopilotの全toolを許可し、Codex変換時のfrontmatter dropを防ぎます。
@@ -79,7 +79,7 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-
 
 APM install が skill と portable custom agents を導入する本体です。現行 APM が `.codex/agents/*.toml` に concrete model 設定を生成しない場合だけ、互換処理として package 付属の設定を同期し、検証します。
 
-CopilotではVS CodeのChat viewでagent pickerから`high-implementation-starter`を選びます。`standard-implementation-completer`から直接開始しません。model mappingはHIGH / re-entryが`GPT-5.6 Terra (copilot)`、valid `READY_FOR_STANDARD_COMPLETION`後のSTANDARDが`GPT-5.6 Luna (copilot)`です。Terra -> Luna -> Terraの遷移ではtracked handoff pathを渡し、会話履歴だけにstateを置きません。
+CopilotではVS CodeのChat viewでagent pickerから`high-implementation-starter`を選びます。`standard-implementation-completer`から直接開始しません。model mappingはHIGH decision closure / re-entryが`GPT-5.6 Terra (copilot)`、valid `READY_FOR_STANDARD_COMPLETION`後のSTANDARD implementation ownershipが`GPT-5.6 Luna (copilot)`です。Terra -> Luna -> Terraの遷移ではtracked handoff pathを渡し、会話履歴だけにstateを置きません。
 
 ```powershell
 dotnet run --file .\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --dry-run
@@ -97,7 +97,7 @@ skill の選択条件と、選択後の実行順序、handoff、re-entry、verif
 
 Copilotのmodel名と利用可否はCopilot plan、VS Code / extension version、organization policyに依存します。requested modelとobserved modelが一致しない、またはTerra / Lunaを選択できない場合は別tierへ黙って開始せず、mappingを明示変更するかpolicy管理者へ確認し、manual smokeへrequested / observed modelを記録します。
 
-Design Pair導入前のtracked Adaptive handoffは、旧必須fieldがすべて揃い、Design Pair evidenceが一切ない場合だけ`Legacy Adaptive handoff normalization`でresumeできます。`route_metadata_normalization: legacy-adaptive-handoff`とdeterministic `LEGACY-HIGH-Dxx` Decision IDsを記録し、新Design Pair fieldsの欠落だけを理由にHIGH_MODELへ戻しません。部分的な新schema、Design Pair evidence、不完全な旧schemaは`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてartifact repairを要求します。
+Design Pair導入前のtracked Adaptive handoffは、旧必須fieldがすべて揃い、Design Pair evidenceが一切ない場合だけ`Legacy Adaptive handoff normalization`で旧来の狭いauthorizationを保ってresumeできます。`route_metadata_normalization: legacy-adaptive-handoff`とdeterministic `LEGACY-HIGH-Dxx` Decision IDsを記録し、0.5 fieldsを推測しません。0.5のDecision closureやWork Package fieldsを欠く0.4系current-schema handoff、部分的な新schema、Design Pair evidence、不完全な旧schemaは`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてHIGH_MODELによるhandoff再発行またはartifact repairを要求します。
 
 起動例:
 
