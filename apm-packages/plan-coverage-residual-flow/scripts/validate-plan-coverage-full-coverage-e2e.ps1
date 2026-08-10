@@ -27,6 +27,41 @@ function Find-OneFile([string]$Root, [string]$Leaf, [string]$Purpose) {
     return $matches[0].FullName
 }
 
+function Resolve-InstalledAgentAuthority([string]$Root, [string]$Leaf) {
+    $runtimeProjection = Join-Path $Root ".github/agents/$Leaf"
+    if (Test-Path -LiteralPath $runtimeProjection -PathType Leaf) {
+        return $runtimeProjection
+    }
+
+    $apmModulesRoot = Join-Path $Root 'apm_modules'
+    if (-not (Test-Path -LiteralPath $apmModulesRoot -PathType Container)) {
+        throw "installed agent $Leaf has no runtime projection under .github/agents and no apm_modules fallback root."
+    }
+
+    $canonicalCandidates = @(
+        Get-ChildItem -LiteralPath $apmModulesRoot -Force -Recurse -File -Filter $Leaf |
+            Where-Object {
+                $_.FullName -match '[\\/]\.apm[\\/]agents[\\/]' -and
+                $_.FullName -match '[\\/]plan-coverage-residual-flow[\\/]'
+            } |
+            ForEach-Object { $_.FullName }
+    )
+    if ($canonicalCandidates.Count -eq 0) {
+        throw "installed agent $Leaf could not be resolved from .github/agents or package-owned .apm/agents under apm_modules."
+    }
+
+    $uniqueContents = @(
+        $canonicalCandidates |
+            ForEach-Object { Get-NormalizedText $_ } |
+            Select-Object -Unique
+    )
+    if ($uniqueContents.Count -ne 1) {
+        throw "installed agent $Leaf resolved to multiple distinct package-owned authorities under apm_modules; found $($canonicalCandidates.Count) path(s)."
+    }
+
+    return $canonicalCandidates[0]
+}
+
 function Get-MarkdownTemplate([string]$Text, [string]$HeadingPattern, [string]$Name) {
     $pattern = '(?ms)^```md[ \t]*\n(?<template>' + $HeadingPattern + '.*?)(?:\n^```[ \t]*$)'
     $match = [regex]::Match($Text, $pattern)
@@ -99,7 +134,7 @@ function Resolve-ContractAuthority {
             CoverageLedger = Join-Path $packageRoot '.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md'
         }
         foreach ($leaf in $agentLeaves) {
-            $files[$leaf] = Join-Path $repoRoot ".github/agents/$leaf"
+            $files[$leaf] = Join-Path $packageRoot ".apm/agents/$leaf"
         }
     }
     else {
@@ -111,7 +146,7 @@ function Resolve-ContractAuthority {
             CoverageLedger = Join-Path $resolvedInstalledRoot '.agents/skills/plan-coverage-residual-flow/references/coverage-ledger.md'
         }
         foreach ($leaf in $agentLeaves) {
-            $files[$leaf] = Find-OneFile $resolvedInstalledRoot $leaf "installed agent $leaf"
+            $files[$leaf] = Resolve-InstalledAgentAuthority $resolvedInstalledRoot $leaf
         }
     }
     foreach ($entry in $files.GetEnumerator()) {

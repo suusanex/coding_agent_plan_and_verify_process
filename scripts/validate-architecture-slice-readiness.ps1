@@ -70,8 +70,8 @@ foreach ($manifest in $manifests) {
 }
 
 $agents = @(
-    '.github/agents/architecture-slice-readiness.agent.md',
-    '.github/agents/architecture-elaboration.agent.md'
+    'apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-slice-readiness.agent.md',
+    'apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-elaboration.agent.md'
 )
 
 foreach ($agent in $agents) {
@@ -88,19 +88,19 @@ foreach ($agent in $agents) {
     }
 }
 
-Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'Lightweight architecture baseline' 'ArchitectureNotRequired baseline authority'
-Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'StandardSliceSufficient' 'readiness de-escalation verdict'
-Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'Selected process after readiness' 'readiness route correction authority'
-Assert-FileContains '.github/agents/change-risk-triage.agent.md' 'Why standard-slice is insufficient' 'full-coverage escalation gate evidence'
-Assert-FileContains '.github/agents/plan-slice-decomposition.agent.md' 'StandardSliceSufficient' 'decomposition rejection for de-escalated runs'
-Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'source_repository_commit' 'freshness source commit anchor'
-Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'tracked_sources' 'tracked source freshness'
-Assert-FileContains '.github/agents/architecture-slice-readiness.agent.md' 'watch_paths' 'watch path freshness'
-Assert-FileContains '.github/agents/architecture-elaboration.agent.md' 'production evidence address' 'bounded production inspection'
-Assert-FileContains '.github/agents/plan-slice-decomposition.agent.md' 'Architecture source IDs / sections' 'slice-local architecture traceability'
+Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-slice-readiness.agent.md' 'Lightweight architecture baseline' 'ArchitectureNotRequired baseline authority'
+Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-slice-readiness.agent.md' 'StandardSliceSufficient' 'readiness de-escalation verdict'
+Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-slice-readiness.agent.md' 'Selected process after readiness' 'readiness route correction authority'
+Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/agents/change-risk-triage.agent.md' 'Why standard-slice is insufficient' 'full-coverage escalation gate evidence'
+Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/agents/plan-slice-decomposition.agent.md' 'StandardSliceSufficient' 'decomposition rejection for de-escalated runs'
+Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-slice-readiness.agent.md' 'source_repository_commit' 'freshness source commit anchor'
+Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-slice-readiness.agent.md' 'tracked_sources' 'tracked source freshness'
+Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-slice-readiness.agent.md' 'watch_paths' 'watch path freshness'
+Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-elaboration.agent.md' 'production evidence address' 'bounded production inspection'
+Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/agents/plan-slice-decomposition.agent.md' 'Architecture source IDs / sections' 'slice-local architecture traceability'
 Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'Architecture baseline compatibility' 'Plan Coverage parent compatibility owner'
-Assert-FileContains '.github/agents/implementation-handoff-review.agent.md' 'Check 11. Architecture baseline compatibility' 'pre-implementation compatibility gate'
-Assert-FileContains '.github/instructions/plan-coverage-shared.instructions.md' 'Only `Match` may proceed to implementation' 'shared Match-only implementation invariant'
+Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md' 'Check 11. Architecture baseline compatibility' 'pre-implementation compatibility gate'
+Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/instructions/plan-coverage-shared.instructions.md' 'Only `Match` may proceed to implementation' 'shared Match-only implementation invariant'
 Assert-FileContains 'docs/architecture-slice-readiness-validation.md' 'Plan Coverage parent compatibility' 'ASR suite current compatibility owner'
 Assert-FileContains 'docs/architecture-slice-readiness-validation.md' 'implementation-handoff-review` Check 11' 'ASR suite current handoff gate owner'
 Assert-FileContains 'docs/architecture-slice-readiness-validation.md' 'Only a current-baseline `Match`' 'ASR suite Match-only authorization invariant'
@@ -269,11 +269,11 @@ else {
 }
 
 $validatedContracts = @(
-    '.github/agents/architecture-slice-readiness.agent.md',
-    '.github/agents/architecture-elaboration.agent.md',
-    '.github/agents/plan-slice-decomposition.agent.md',
-    '.github/agents/implementation-handoff-review.agent.md',
-    '.github/instructions/plan-coverage-shared.instructions.md',
+    'apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-slice-readiness.agent.md',
+    'apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-elaboration.agent.md',
+    'apm-packages/plan-coverage-residual-flow/.apm/agents/plan-slice-decomposition.agent.md',
+    'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md',
+    'apm-packages/plan-coverage-residual-flow/.apm/instructions/plan-coverage-shared.instructions.md',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md',

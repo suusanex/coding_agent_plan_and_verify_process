@@ -1297,6 +1297,23 @@ Stop after one bounded pass over selected IDs. Remaining issues must be recorded
 
 `full-coverage` remains self-contained under Plan Coverage ownership from Architecture Slice Readiness through Residual Decision. It means Architecture Slice Readiness, bounded decomposition, normal Plan Coverage execution and verification for each slice, Cross-Slice Verification, and Residual Decision.
 
+### Canonical authoring source and runtime projections
+
+Plan Coverage agent contracts, shared instructions, and the entrypoint Skill are authored once under the package-owned canonical tree:
+
+```text
+Canonical authoring source:
+  apm-packages/plan-coverage-residual-flow/.apm/
+
+Runtime / checked-in projections:
+  .github/agents/
+  .github/instructions/
+  .codex/agents/
+  .agents/skills/
+```
+
+Edit canonical contracts under `.apm`. Do not treat root runtime files as an independent source of truth. APM projects the same semantic contract into runtime-specific surfaces; validators detect projection drift. Adaptive Implementation remains a separate package ownership boundary, and Codex concrete HIGH / STANDARD profile overlays remain existing provisioner ownership.
+
 ## Current contract acceptance criteria
 
 The current process contract is satisfied when:
