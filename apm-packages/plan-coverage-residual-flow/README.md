@@ -30,7 +30,28 @@ dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target -
 suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
 ```
 
-manifestはPlan Coverage agentsに加え、Adaptive Implementation Skillとcanonical HIGH / STANDARD agentsをdependencyとして持ちます。このprovisionerがCodex profileの補正も行うため、Plan Coverageの通常導入でAdaptive packageを別途installする必要はありません。implementation stageでDesign Pairを使う場合だけ、[Design Pair Implementation Execution](../design-pair-implementation-execution/README.md)も対象repositoryへ導入し、flow開始時に明示選択します。
+manifestはPlan Coverage package-owned `.apm` primitivesを`includes: auto`で配布し、Adaptive Implementationはseparate package boundary（`apm-packages/adaptive-implementation-execution`）へのdependencyだけで解決します。HIGH / STANDARD agentsとAdaptive SkillのownershipはAdaptive package側に残り、Plan Coverageへ複製しません。このprovisionerがCodex向けHIGH / STANDARD concrete profile補正も行うため、Plan Coverageの通常導入でAdaptive packageを別途installする必要はありません。implementation stageでDesign Pairを使う場合だけ、[Design Pair Implementation Execution](../design-pair-implementation-execution/README.md)も対象repositoryへ導入し、flow開始時に明示選択します。
+
+## Canonical source and runtime projections
+
+Plan Coverageのsemantic contract ownershipは次のとおりです。
+
+```text
+Canonical authoring source:
+  apm-packages/plan-coverage-residual-flow/.apm/
+
+Runtime / checked-in projections:
+  .github/agents/
+  .github/instructions/
+  .codex/agents/
+  .agents/skills/
+```
+
+- canonical contractを修正するときは `.apm` を修正する
+- root runtime files（`.github` / `.codex` / `.agents`）をsource of truthとして直接編集しない
+- projection driftはstatic validatorとAPM install smokeで検出する
+- Adaptive Implementationは別package ownership
+- Codex concrete HIGH / STANDARD profile overlayはexisting provisioner ownership
 
 既存の異なるmodel mappingをpackage既定値へ変更する場合だけ、内容とownershipを確認して`--force`を使います。cross-package installerの詳細とvalidationは[Installation and Maintenance](../../docs/installation-and-maintenance.md#existing-apm-provisioning-helper)を参照してください。
 

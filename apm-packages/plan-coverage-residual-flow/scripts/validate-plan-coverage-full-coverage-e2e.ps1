@@ -99,7 +99,7 @@ function Resolve-ContractAuthority {
             CoverageLedger = Join-Path $packageRoot '.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md'
         }
         foreach ($leaf in $agentLeaves) {
-            $files[$leaf] = Join-Path $repoRoot ".github/agents/$leaf"
+            $files[$leaf] = Join-Path $packageRoot ".apm/agents/$leaf"
         }
     }
     else {

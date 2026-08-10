@@ -204,7 +204,7 @@ if (Test-Path -LiteralPath $manifestPath) {
 }
 
 $integratedManifests = @(
-    @{ Path = 'apm-packages/plan-coverage-residual-flow/apm.yml'; Version = '0\.12\.0' }
+    @{ Path = 'apm-packages/plan-coverage-residual-flow/apm.yml'; Version = '0\.13\.0' }
 )
 
 foreach ($integratedManifest in $integratedManifests) {
@@ -229,11 +229,13 @@ foreach ($integratedManifest in $integratedManifests) {
 foreach ($integratedManifestPath in @(
     'apm-packages/plan-coverage-residual-flow/apm.yml'
 )) {
-    Assert-Contains $integratedManifestPath 'apm-packages/adaptive-implementation-execution/\.apm/skills/adaptive-implementation-execution' 'Adaptive Implementation skill dependency'
-    Assert-Contains $integratedManifestPath '\.github/agents/high-implementation-starter\.agent\.md' 'canonical HIGH agent dependency'
-    Assert-Contains $integratedManifestPath '\.github/agents/standard-implementation-completer\.agent\.md' 'canonical STANDARD agent dependency'
-    Assert-Contains $integratedManifestPath '\.github/agents/implementation-execution\.agent\.md' 'legacy implementation dependency'
+    Assert-Contains $integratedManifestPath '(?m)^\s*path:\s*apm-packages/adaptive-implementation-execution\s*$' 'Adaptive Implementation package boundary dependency'
+    Assert-NotContains $integratedManifestPath 'apm-packages/adaptive-implementation-execution/\.apm/skills/adaptive-implementation-execution' 'Adaptive Implementation internal skill path must not be re-owned'
+    Assert-NotContains $integratedManifestPath '\.github/agents/high-implementation-starter\.agent\.md' 'HIGH agent must remain Adaptive package ownership'
+    Assert-NotContains $integratedManifestPath '\.github/agents/standard-implementation-completer\.agent\.md' 'STANDARD agent must remain Adaptive package ownership'
+    Assert-NotContains $integratedManifestPath '\.github/agents/implementation-execution\.agent\.md' 'legacy implementation must not be re-imported from root .github'
 }
+Assert-FileExists 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-execution.agent.md'
 
 $planCoveragePackageName = 'plan-coverage-residual-flow'
 $planCoveragePackageRoot = "apm-packages/$planCoveragePackageName"

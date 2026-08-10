@@ -1,5 +1,5 @@
 name: plan-coverage-residual-flow
-version: 0.12.0
+version: 0.13.0
 description: Plan Coverage Check and Residual Decision Flow with durable Design Pair waiting state, full-coverage Slice Living Records, Architecture Slice Readiness, Guardrail Focus, and residual decision gating
 type: hybrid
 targets:
@@ -10,49 +10,6 @@ includes: auto
 
 dependencies:
   apm:
+    # Adaptive Implementation remains a separate package. Depend on its public package boundary only.
     - git: parent
-      path: .github/instructions/plan-coverage-shared.instructions.md
-    - git: parent
-      path: .github/agents/plan-kernel.agent.md
-    - git: parent
-      path: .github/agents/black-box-behavior-spec-kernel.agent.md
-    - git: parent
-      path: .github/agents/change-risk-triage.agent.md
-    - git: parent
-      path: .github/agents/architecture-slice-readiness.agent.md
-    - git: parent
-      path: .github/agents/architecture-elaboration.agent.md
-    - git: parent
-      path: .github/agents/plan-slice-decomposition.agent.md
-    - git: parent
-      path: .github/agents/runtime-contract-kernel.agent.md
-    - git: parent
-      path: .github/agents/test-design-kernel.agent.md
-    - git: parent
-      path: .github/agents/implementation-handoff-review.agent.md
-    - git: parent
-      path: .github/agents/verification-kernel.agent.md
-    - git: parent
-      path: .github/agents/cross-slice-verification-kernel.agent.md
-    - git: parent
-      path: .github/agents/coverage-gap-triage.agent.md
-    - git: parent
-      path: .github/agents/residual-decision-gate.agent.md
-    - git: parent
-      path: .github/agents/coverage-gap-resolution-slice.agent.md
-    - git: parent
-      path: .github/agents/implementation-contract-kernel.agent.md
-    - git: parent
-      path: .github/agents/implementation-contract-review-kernel.agent.md
-    - git: parent
-      path: .github/agents/code-review-focus-kernel.agent.md
-    - git: parent
-      path: .github/agents/implementation-execution.agent.md
-    # Canonical adaptive implementation route. The legacy implementation-execution
-    # dependency above remains available only for explicit compatibility use.
-    - git: parent
-      path: apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
-    - git: parent
-      path: .github/agents/high-implementation-starter.agent.md
-    - git: parent
-      path: .github/agents/standard-implementation-completer.agent.md
+      path: apm-packages/adaptive-implementation-execution
