@@ -12,8 +12,4 @@ dependencies:
   apm:
     # Adaptive Implementation remains the only implementation orchestration source of truth.
     - git: parent
-      path: apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution
-    - git: parent
-      path: .github/agents/high-implementation-starter.agent.md
-    - git: parent
-      path: .github/agents/standard-implementation-completer.agent.md
+      path: apm-packages/adaptive-implementation-execution

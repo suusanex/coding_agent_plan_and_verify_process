@@ -30,7 +30,7 @@ dotnet run --file <installer.cs> -- <target> --check
 
 `scripts/provision-work-repo-agents.cs`は、Plan Coverage packageを`copilot,codex,agent-skills` targetで対象repositoryへ`apm install --update`し、APM変換後のHIGH / STANDARD Codex TOMLを補正します。Plan Coverage manifestはpackage-owned `.apm` primitivesを`includes: auto`で配布し、Adaptive Implementation package（`apm-packages/adaptive-implementation-execution`）へpackage boundary dependencyするため、この入口ではAdaptive packageを重ねてinstallしません。HIGH / STANDARD agentsとAdaptive SkillのownershipはAdaptive package側に残り、Codex concrete profile overlayだけがexisting provisioner ownershipです。Adaptive単独利用は専用packageのinstallerを使い、Design PairとPR Review Remediationは各package READMEの導入・同期手順を使います。
 
-Plan Coverageのcanonical authoring sourceは`apm-packages/plan-coverage-residual-flow/.apm/`です。`.github/agents/`、`.github/instructions/`、`.codex/agents/`、`.agents/skills/`はruntime / checked-in projectionであり、独立したsource of truthとして直接編集しません。canonical contractを修正するときは`.apm`を修正し、projection driftはPlan Coverage validatorとAPM install smokeで検出します。
+Plan Coverageのcanonical authoring sourceは`apm-packages/plan-coverage-residual-flow/.apm/`です。source repository rootにpackage runtime projection（`.github/agents/`、`.github/instructions/`、`.codex/agents/`、`.agents/skills/`）をchecked-inしません。canonical contractを修正するときは`.apm`を修正し、runtime projectionの正しさはAPM install smokeで検証します。
 
 ```powershell
 dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target --dry-run

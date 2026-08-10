@@ -6,10 +6,6 @@ on:
       - 'apm-packages/design-pair-implementation-execution/**'
       - 'apm-packages/adaptive-implementation-execution/**'
       - 'apm-packages/plan-coverage-residual-flow/**'
-      - '.github/agents/high-implementation-starter.agent.md'
-      - '.github/agents/standard-implementation-completer.agent.md'
-      - '.github/agents/implementation-handoff-review.agent.md'
-      - '.github/instructions/plan-coverage-shared.instructions.md'
       - '.github/workflows/validate-design-pair-implementation-execution.yml'
       - 'README.md'
   push:
@@ -19,10 +15,6 @@ on:
       - 'apm-packages/design-pair-implementation-execution/**'
       - 'apm-packages/adaptive-implementation-execution/**'
       - 'apm-packages/plan-coverage-residual-flow/**'
-      - '.github/agents/high-implementation-starter.agent.md'
-      - '.github/agents/standard-implementation-completer.agent.md'
-      - '.github/agents/implementation-handoff-review.agent.md'
-      - '.github/instructions/plan-coverage-shared.instructions.md'
       - '.github/workflows/validate-design-pair-implementation-execution.yml'
       - 'README.md'
 

@@ -31,13 +31,13 @@ function New-FixtureRepo {
     if ($ApmAgentsOnly) {
         $agentDir = Join-Path $root 'apm_modules\owner\repo\.apm\agents'
         New-Item -ItemType Directory -Path $agentDir -Force | Out-Null
-        Copy-Item -LiteralPath (Join-Path $repoRoot '.github\agents\local-reviewer.agent.md') -Destination (Join-Path $agentDir 'local-reviewer.agent.md')
-        Copy-Item -LiteralPath (Join-Path $repoRoot '.github\agents\purpose-reviewer.agent.md') -Destination (Join-Path $agentDir 'purpose-reviewer.agent.md')
+        Copy-Item -LiteralPath (Join-Path $packageRoot '.apm\agents\local-reviewer.agent.md') -Destination (Join-Path $agentDir 'local-reviewer.agent.md')
+        Copy-Item -LiteralPath (Join-Path $packageRoot '.apm\agents\purpose-reviewer.agent.md') -Destination (Join-Path $agentDir 'purpose-reviewer.agent.md')
     }
     else {
         New-Item -ItemType Directory -Path (Join-Path $root '.github\agents') | Out-Null
-        Copy-Item -LiteralPath (Join-Path $repoRoot '.github\agents\local-reviewer.agent.md') -Destination (Join-Path $root '.github\agents\local-reviewer.agent.md')
-        Copy-Item -LiteralPath (Join-Path $repoRoot '.github\agents\purpose-reviewer.agent.md') -Destination (Join-Path $root '.github\agents\purpose-reviewer.agent.md')
+        Copy-Item -LiteralPath (Join-Path $packageRoot '.apm\agents\local-reviewer.agent.md') -Destination (Join-Path $root '.github\agents\local-reviewer.agent.md')
+        Copy-Item -LiteralPath (Join-Path $packageRoot '.apm\agents\purpose-reviewer.agent.md') -Destination (Join-Path $root '.github\agents\purpose-reviewer.agent.md')
     }
     if ($IncludeCodexProfiles) {
         New-Item -ItemType Directory -Path (Join-Path $root 'apm-packages\pr-review-remediation\codex-agents') | Out-Null

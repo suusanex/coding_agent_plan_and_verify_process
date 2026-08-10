@@ -124,8 +124,8 @@ function Get-FrontmatterString {
 }
 
 $requiredFiles = @(
-    '.github/agents/high-implementation-starter.agent.md',
-    '.github/agents/standard-implementation-completer.agent.md',
+    'apm-packages/adaptive-implementation-execution/.apm/agents/high-implementation-starter.agent.md',
+    'apm-packages/adaptive-implementation-execution/.apm/agents/standard-implementation-completer.agent.md',
     '.github/workflows/validate-adaptive-implementation-execution.yml',
     '.github/workflows/validate-design-pair-implementation-execution.yml',
     'apm-packages/adaptive-implementation-execution/apm.yml',
@@ -251,13 +251,13 @@ Assert-Contains $planCoverageSkill 'completion handoff inline unless resume, ano
 Assert-Contains $planCoverageSkill 'Implementation Self-Map Delta' 'per-phase implementation traceability delta'
 Assert-Contains $planCoverageSkill 'Related Plan item.*Related Behavior Case IDs.*Related SL / XC / RC / TP / IC / Gap item.*Assumption made.*Review hint' 'complete Self-Map traceability schema'
 Assert-Contains $planCoverageSkill 'orchestrator is the single aggregation owner' 'Self-Map aggregation ownership'
-Assert-Contains '.github/agents/change-risk-triage.agent.md' 'implementation-internal.*implementation phase' 'risk triage shape boundary'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/change-risk-triage.agent.md' 'implementation-internal.*implementation phase' 'risk triage shape boundary'
 
-$handoffReviewAgent = '.github/agents/implementation-handoff-review.agent.md'
+$handoffReviewAgent = 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md'
 Assert-Contains $handoffReviewAgent 'Plan網羅チェック・残件判定フロー.*mandatory pre-implementation review gate' 'handoff review Plan Coverage placement'
 Assert-Contains $handoffReviewAgent 'standalone Adaptive.*呼び出さず' 'handoff review standalone Adaptive exclusion'
 
-Assert-Contains '.github/agents/implementation-execution.agent.md' 'Compatibility status: legacy' 'legacy Plan Coverage implementation notice'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-execution.agent.md' 'Compatibility status: legacy' 'legacy Plan Coverage implementation notice'
 
 $skill = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md'
 Assert-Contains $skill '(?m)^disable-model-invocation:\s*true\s*$' 'skill explicit-only model invocation'
@@ -318,7 +318,7 @@ Assert-Contains $skill 'handoff button.*手動遷移候補.*verdictを検証す�
 Assert-Contains $skill 'Copilot.*tracked handoff.*会話履歴だけを唯一のstate保持手段にしません' 'Copilot tracked handoff state boundary'
 Assert-Contains $skill '`COMPLETED_BY_HIGH_MODEL`とstop verdictでは次agentを起動しません' 'Copilot stop verdict routing boundary'
 
-$highAgent = '.github/agents/high-implementation-starter.agent.md'
+$highAgent = 'apm-packages/adaptive-implementation-execution/.apm/agents/high-implementation-starter.agent.md'
 Assert-NotContains $highAgent '(?m)^tools:' 'explicit Copilot HIGH tools frontmatter that APM drops for Codex'
 Assert-Contains $highAgent '(?m)^model:\s*GPT-5\.6 Terra \(copilot\)\s*$' 'Copilot HIGH model frontmatter'
 Assert-Contains $highAgent '(?m)^target:\s*vscode\s*$' 'Copilot HIGH VS Code target'
@@ -360,7 +360,7 @@ Assert-Contains $highAgent 'Original Implementation Intent.*goal / scope / accep
 Assert-Contains $highAgent 'GitHub Copilot Chat in VS Code.*必ずtracked artifact.*会話履歴だけを唯一の状態保持手段' 'Copilot HIGH tracked handoff requirement'
 Assert-NotContains $highAgent 'agent:\s*copilot-standard-verifier' 'Copilot HIGH stop/completion verification handoff'
 
-$standardAgent = '.github/agents/standard-implementation-completer.agent.md'
+$standardAgent = 'apm-packages/adaptive-implementation-execution/.apm/agents/standard-implementation-completer.agent.md'
 Assert-NotContains $standardAgent '(?m)^tools:' 'explicit Copilot STANDARD tools frontmatter that APM drops for Codex'
 Assert-Contains $standardAgent '(?m)^model:\s*GPT-5\.6 Luna \(copilot\)\s*$' 'Copilot STANDARD model frontmatter'
 Assert-Contains $standardAgent '(?m)^target:\s*vscode\s*$' 'Copilot STANDARD VS Code target'
@@ -540,12 +540,6 @@ foreach ($toml in @($standardToml)) {
     Assert-Contains $toml 'autonomously choose method-body algorithms.*private helpers.*fixtures.*test builders' 'portable STANDARD local implementation autonomy'
     Assert-Contains $toml 'Do not re-enter merely because multiple local implementation alternatives exist.*only when it requires creating or changing a locked non-local decision' 'portable STANDARD alternatives re-entry boundary'
 }
-
-Assert-NormalizedEqual 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md' '.agents/skills/adaptive-implementation-execution/SKILL.md' 'Adaptive Skill projection'
-Assert-NormalizedEqual 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/intent.md' '.agents/skills/adaptive-implementation-execution/refs/intent.md' 'Adaptive intent reference projection'
-Assert-NormalizedEqual 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md' '.agents/skills/adaptive-implementation-execution/refs/handoff.md' 'Adaptive handoff reference projection'
-Assert-NormalizedEqual $highToml '.codex/agents/high-implementation-starter.toml' 'HIGH_MODEL Codex projection'
-Assert-NormalizedEqual $standardToml '.codex/agents/standard-implementation-completer.toml' 'STANDARD_MODEL Codex projection'
 
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'VAL-012: Portable agent route validation' 'portable route validation scenario'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'missing, contradictory, or evidence-inconsistent current-schema handoff returns `BLOCKED` with `BlockedByInvalidCompletionHandoff` and does not emit `NEEDS_HIGH_MODEL_REENTRY`' 'invalid handoff validation scenario'

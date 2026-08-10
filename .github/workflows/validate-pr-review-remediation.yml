@@ -3,11 +3,6 @@ name: Validate PR Review Remediation
 on:
   pull_request:
     paths:
-      - '.github/agents/local-reviewer.agent.md'
-      - '.github/agents/purpose-reviewer.agent.md'
-      - '.github/agents/review-planner.agent.md'
-      - '.github/agents/high-implementation-starter.agent.md'
-      - '.github/agents/standard-implementation-completer.agent.md'
       - '.github/workflows/validate-pr-review-remediation.yml'
       - 'apm-packages/pr-review-remediation/**'
       - 'apm-packages/goal-context-authoring/**'
@@ -16,11 +11,6 @@ on:
       - 'README.md'
   push:
     paths:
-      - '.github/agents/local-reviewer.agent.md'
-      - '.github/agents/purpose-reviewer.agent.md'
-      - '.github/agents/review-planner.agent.md'
-      - '.github/agents/high-implementation-starter.agent.md'
-      - '.github/agents/standard-implementation-completer.agent.md'
       - '.github/workflows/validate-pr-review-remediation.yml'
       - 'apm-packages/pr-review-remediation/**'
       - 'apm-packages/goal-context-authoring/**'

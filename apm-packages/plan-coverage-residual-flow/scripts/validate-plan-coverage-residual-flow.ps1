@@ -195,15 +195,10 @@ $planCoverageOwnedAgentNames = @(
 )
 $canonicalAgentsRelativeRoot = 'apm-packages/plan-coverage-residual-flow/.apm/agents'
 $canonicalSharedInstructionsRelativePath = 'apm-packages/plan-coverage-residual-flow/.apm/instructions/plan-coverage-shared.instructions.md'
-$copilotSharedInstructionsRelativePath = '.github/instructions/plan-coverage-shared.instructions.md'
 $skillRelativePath = 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md'
-$deployedSkillRelativePath = '.agents/skills/plan-coverage-residual-flow/SKILL.md'
 $coverageLedgerRelativePath = 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md'
-$deployedCoverageLedgerRelativePath = '.agents/skills/plan-coverage-residual-flow/references/coverage-ledger.md'
 $sliceLivingRecordRelativePath = 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/full-coverage-slice-living-record.md'
-$deployedSliceLivingRecordRelativePath = '.agents/skills/plan-coverage-residual-flow/references/full-coverage-slice-living-record.md'
 $fullCoverageCloseRelativePath = 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/full-coverage-close.md'
-$deployedFullCoverageCloseRelativePath = '.agents/skills/plan-coverage-residual-flow/references/full-coverage-close.md'
 $manifestRelativePath = 'apm-packages/plan-coverage-residual-flow/apm.yml'
 $packageReadmeRelativePath = 'apm-packages/plan-coverage-residual-flow/README.md'
 $purposeDocumentationRelativePath = 'docs/plan-coverage-purpose.md'
@@ -252,7 +247,6 @@ $requiredFiles = @(
     $fullCoverageDocumentationRelativePath,
     $asrValidationDocumentationRelativePath,
     $canonicalSharedInstructionsRelativePath,
-    $copilotSharedInstructionsRelativePath,
     $installationDocumentationRelativePath,
     $changeRiskRelativePath,
     $architectureReadinessRelativePath,
@@ -353,12 +347,8 @@ if ($failures.Count -eq 0) {
 
     foreach ($agentName in $planCoverageOwnedAgentNames) {
         $canonicalAgentRelativePath = "$canonicalAgentsRelativeRoot/$agentName.agent.md"
-        $copilotAgentRelativePath = ".github/agents/$agentName.agent.md"
         Assert-True (Test-Path -LiteralPath (Join-Path $repoRoot $canonicalAgentRelativePath) -PathType Leaf) "Missing canonical Plan Coverage agent: $canonicalAgentRelativePath"
-        Assert-True (Test-Path -LiteralPath (Join-Path $repoRoot $copilotAgentRelativePath) -PathType Leaf) "Missing Copilot projection for Plan Coverage agent: $copilotAgentRelativePath"
-        Assert-True ((Get-NormalizedText (Join-Path $repoRoot $canonicalAgentRelativePath)) -ceq (Get-NormalizedText (Join-Path $repoRoot $copilotAgentRelativePath))) "Copilot projection drift for $agentName"
     }
-    Assert-True ((Get-NormalizedText (Join-Path $repoRoot $canonicalSharedInstructionsRelativePath)) -ceq (Get-NormalizedText (Join-Path $repoRoot $copilotSharedInstructionsRelativePath))) 'Copilot shared instruction projection must match canonical shared instruction'
     foreach ($adaptiveAgentName in @('high-implementation-starter', 'standard-implementation-completer')) {
         Assert-True (-not (Test-Path -LiteralPath (Join-Path $repoRoot "$canonicalAgentsRelativeRoot/$adaptiveAgentName.agent.md"))) "Adaptive agent $adaptiveAgentName must not be copied into Plan Coverage .apm/agents"
     }
@@ -387,7 +377,7 @@ if ($failures.Count -eq 0) {
     $handoffReview = Get-NormalizedText (Join-Path $repoRoot "$canonicalAgentsRelativeRoot/implementation-handoff-review.agent.md")
     $verificationKernel = Get-NormalizedText (Join-Path $repoRoot "$canonicalAgentsRelativeRoot/verification-kernel.agent.md")
     $gapResolution = Get-NormalizedText (Join-Path $repoRoot "$canonicalAgentsRelativeRoot/coverage-gap-resolution-slice.agent.md")
-    $standardCompleter = Get-NormalizedText (Join-Path $repoRoot '.github/agents/standard-implementation-completer.agent.md')
+    $standardCompleter = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution/.apm/agents/standard-implementation-completer.agent.md')
     $packageReadme = Get-NormalizedText (Join-Path $repoRoot $packageReadmeRelativePath)
     $purposeDocumentation = Get-NormalizedText (Join-Path $repoRoot $purposeDocumentationRelativePath)
     $processDocumentation = Get-NormalizedText (Join-Path $repoRoot $processDocumentationRelativePath)
@@ -487,11 +477,9 @@ if ($failures.Count -eq 0) {
     Assert-Matches $packageReadme 'implementation-realization gap.*Implementation Contract Decisions.*別artifactやsectionを作成せず.*section-delta' 'package README must document implementation-contract owner re-entry for Living Record repairs'
     Assert-Matches $packageReadme 'High-model Re-entry Handoff.*STANDARDが未保存payload.*parentが例外行を適用.*tracked fileを保存.*HIGHを再開' 'package README must document delayed re-entry handoff registration'
     Assert-Matches $packageReadme 'apm-packages/plan-coverage-residual-flow/\.apm/' 'package README must identify package .apm as canonical authoring source'
-    Assert-Matches $packageReadme '(?s)\.github/agents/.*\.github/instructions/.*\.codex/agents/.*\.agents/skills/' 'package README must identify runtime projections'
     Assert-Matches $packageReadme 'canonical contractを修正するときは `\.apm` を修正する|canonical.*\.apm' 'package README must direct contract edits to .apm'
     Assert-Matches $packageReadme 'Adaptive Implementationは別package ownership|Adaptive Implementation.*separate package|Adaptive package' 'package README must keep Adaptive ownership separate'
     Assert-Matches $processDocumentation 'apm-packages/plan-coverage-residual-flow/\.apm/' 'process docs must identify package .apm as canonical authoring source'
-    Assert-Matches $processDocumentation '(?s)\.github/agents/.*\.codex/agents/.*\.agents/skills/' 'process docs must identify runtime projections'
     Assert-Matches $installationDocumentation 'apm-packages/plan-coverage-residual-flow/\.apm/' 'installation docs must identify package .apm as canonical authoring source'
     Assert-Matches $installationDocumentation 'Adaptive Implementation package' 'installation docs must describe Adaptive package-boundary dependency'
     Assert-Matches $purposeDocumentation 'every executable slice becomes one canonical Slice Living Record.*existing semantic agents return owned section deltas.*independently verified.*Full-Coverage Close Record' 'purpose policy must describe the self-contained Living Record lifecycle'
@@ -527,16 +515,6 @@ if ($failures.Count -eq 0) {
         "$canonicalAgentsRelativeRoot/plan-slice-decomposition.agent.md",
         "$canonicalAgentsRelativeRoot/runtime-contract-kernel.agent.md",
         "$canonicalAgentsRelativeRoot/test-design-kernel.agent.md",
-        '.codex/agents/change-risk-triage.toml',
-        '.codex/agents/coverage-gap-triage.toml',
-        '.codex/agents/cross-slice-verification-kernel.toml',
-        '.codex/agents/implementation-contract-kernel.toml',
-        '.codex/agents/implementation-contract-review-kernel.toml',
-        '.codex/agents/implementation-execution.toml',
-        '.codex/agents/implementation-handoff-review.toml',
-        '.codex/agents/plan-slice-decomposition.toml',
-        '.codex/agents/runtime-contract-kernel.toml',
-        '.codex/agents/test-design-kernel.toml',
         'apm-packages/plan-coverage-residual-flow/tests/full-coverage-standalone/PCF-001/plans/pcf-001-change-risk-triage.md'
     )
     $retiredFlowPattern = 'full-autonomous-plan-first-flow|Full [Aa]utonomous Plan-first|full autonomous flow|Flow C|plan-generation(?:\.agent\.md)?(?![-A-Za-z0-9_])|plan-review(?:\.agent\.md)?(?![-A-Za-z0-9_])|runtime-evidence(?:\.agent\.md)?(?![-A-Za-z0-9_])|integration-test-design(?:\.agent\.md)?(?![-A-Za-z0-9_])|integration-test-verification-implementation(?:\.agent\.md)?(?![-A-Za-z0-9_])|coverage-gap-resolution(?:\.agent\.md)?(?![-A-Za-z0-9_])|implementation-contract-generation(?:\.agent\.md)?(?![-A-Za-z0-9_])|implementation-contract-review(?:\.agent\.md)?(?![-A-Za-z0-9_])'
@@ -554,14 +532,12 @@ if ($failures.Count -eq 0) {
         "$canonicalAgentsRelativeRoot/coverage-gap-resolution-slice.agent.md",
         "$canonicalAgentsRelativeRoot/coverage-gap-triage.agent.md",
         "$canonicalAgentsRelativeRoot/cross-slice-verification-kernel.agent.md",
-        '.github/agents/high-implementation-starter.agent.md',
         "$canonicalAgentsRelativeRoot/implementation-contract-kernel.agent.md",
         "$canonicalAgentsRelativeRoot/implementation-contract-review-kernel.agent.md",
         "$canonicalAgentsRelativeRoot/implementation-execution.agent.md",
         "$canonicalAgentsRelativeRoot/implementation-handoff-review.agent.md",
         "$canonicalAgentsRelativeRoot/residual-decision-gate.agent.md",
         "$canonicalAgentsRelativeRoot/runtime-contract-kernel.agent.md",
-        '.github/agents/standard-implementation-completer.agent.md',
         "$canonicalAgentsRelativeRoot/test-design-kernel.agent.md",
         "$canonicalAgentsRelativeRoot/verification-kernel.agent.md",
         $processDocumentationRelativePath,
@@ -590,22 +566,6 @@ if ($failures.Count -eq 0) {
     $coverageLedgerPath = Join-Path $repoRoot $coverageLedgerRelativePath
     $sliceLivingRecordPath = Join-Path $repoRoot $sliceLivingRecordRelativePath
     $fullCoverageClosePath = Join-Path $repoRoot $fullCoverageCloseRelativePath
-    $deployedSkillPath = Join-Path $repoRoot $deployedSkillRelativePath
-    $deployedCoverageLedgerPath = Join-Path $repoRoot $deployedCoverageLedgerRelativePath
-    $deployedSliceLivingRecordPath = Join-Path $repoRoot $deployedSliceLivingRecordRelativePath
-    $deployedFullCoverageClosePath = Join-Path $repoRoot $deployedFullCoverageCloseRelativePath
-    $deployedSkillExists = Test-Path -LiteralPath $deployedSkillPath -PathType Leaf
-    $deployedLedgerExists = Test-Path -LiteralPath $deployedCoverageLedgerPath -PathType Leaf
-    $deployedSliceLivingRecordExists = Test-Path -LiteralPath $deployedSliceLivingRecordPath -PathType Leaf
-    $deployedFullCoverageCloseExists = Test-Path -LiteralPath $deployedFullCoverageClosePath -PathType Leaf
-    $projectionCount = @($deployedSkillExists, $deployedLedgerExists, $deployedSliceLivingRecordExists, $deployedFullCoverageCloseExists).Where({ $_ }).Count
-    Assert-True ($projectionCount -eq 0 -or $projectionCount -eq 4) 'deployed Plan Coverage projections must be present as a complete set when provisioned'
-    if ($projectionCount -eq 4) {
-        Assert-True ((Get-NormalizedText $skillPath) -ceq (Get-NormalizedText $deployedSkillPath)) 'provisioned Skill projection must match the canonical Skill'
-        Assert-True ((Get-NormalizedText $coverageLedgerPath) -ceq (Get-NormalizedText $deployedCoverageLedgerPath)) 'provisioned coverage ledger projection must match the canonical reference'
-        Assert-True ((Get-NormalizedText $sliceLivingRecordPath) -ceq (Get-NormalizedText $deployedSliceLivingRecordPath)) 'provisioned Slice Living Record projection must match the canonical reference'
-        Assert-True ((Get-NormalizedText $fullCoverageClosePath) -ceq (Get-NormalizedText $deployedFullCoverageClosePath)) 'provisioned close projection must match the canonical reference'
-    }
 
     $changeRiskOracles = @(Get-Content -Raw -LiteralPath (Join-Path $repoRoot $changeRiskOracleRelativePath) | ConvertFrom-Json)
     Assert-True ($changeRiskOracles.Count -eq 3) 'Change Risk Triage oracle must contain exactly CRT-001 through CRT-003'
@@ -750,10 +710,8 @@ if ($failures.Count -eq 0) {
     Assert-Matches $standaloneE2E 'foreach \(\$verdict in @\(''Drift'', ''Unclear''\)\)' 'standalone E2E validator must fail closed for architecture Drift and Unclear'
     Assert-Matches $apmSmoke '(?s)validate-plan-coverage-full-coverage-e2e\.ps1.*-InstalledRoot' 'remote APM smoke must execute standalone E2E against the installed closure'
     Assert-Matches $apmSmoke 'copilot,codex,agent-skills' 'APM smoke must install all Plan Coverage targets'
-    Assert-Matches $apmSmoke '\.codex/agents/' 'APM smoke must compare Codex projections'
     Assert-Matches $apmSmoke 'high-implementation-starter' 'APM smoke must verify Adaptive assets arrive transitively'
     Assert-Matches $workflow 'validate-plan-coverage-full-coverage-e2e\.ps1' 'Plan Coverage workflow must execute standalone E2E in source mode'
-    Assert-Matches $workflow '\.codex/agents/\*\*' 'Plan Coverage workflow must trigger on Codex projection changes'
 
 }
 

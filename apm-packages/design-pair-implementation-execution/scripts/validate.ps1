@@ -55,9 +55,9 @@ function Assert-NotContains {
 }
 
 $requiredFiles = @(
-    '.github/agents/high-implementation-starter.agent.md',
-    '.github/agents/standard-implementation-completer.agent.md',
-    '.github/agents/implementation-handoff-review.agent.md',
+    'apm-packages/adaptive-implementation-execution/.apm/agents/high-implementation-starter.agent.md',
+    'apm-packages/adaptive-implementation-execution/.apm/agents/standard-implementation-completer.agent.md',
+    'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md',
     '.github/workflows/validate-design-pair-implementation-execution.yml',
     'apm-packages/design-pair-implementation-execution/apm.yml',
     'apm-packages/design-pair-implementation-execution/README.md',
@@ -102,9 +102,8 @@ Assert-Contains $manifest '(?m)^\s*-\s+codex\s*$' 'codex target'
 Assert-Contains $manifest '(?m)^\s*-\s+agent-skills\s*$' 'agent-skills target'
 Assert-NotContains $manifest '(?m)^\s*-\s+github-copilot\s*$' 'invalid github-copilot target alias'
 Assert-NotContains $manifest '(?m)^\s*-\s+vscode\s*$' 'invalid bare vscode target alias'
-Assert-Contains $manifest 'adaptive-implementation-execution/\.apm/skills/adaptive-implementation-execution' 'Adaptive skill dependency'
-Assert-Contains $manifest '\.github/agents/high-implementation-starter\.agent\.md' 'canonical HIGH agent dependency'
-Assert-Contains $manifest '\.github/agents/standard-implementation-completer\.agent\.md' 'canonical STANDARD agent dependency'
+Assert-Contains $manifest 'path:\s*apm-packages/adaptive-implementation-execution\s*$' 'Adaptive package boundary dependency'
+Assert-NotContains $manifest '\.github/agents/' 'no root .github/agents dependency'
 Assert-NotContains $manifest 'implementation-execution\.agent\.md' 'legacy implementation orchestration dependency'
 Assert-Contains 'apm-packages/plan-coverage-residual-flow/apm.yml' '(?m)^version:\s*0\.13\.0\s*$' 'Plan Coverage package version 0.13.0'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/apm.yml' '(?m)^version:\s*0\.5\.0\s*$' 'Adaptive package version 0.5.0'
@@ -306,7 +305,7 @@ foreach ($legacyField in @(
     Assert-Contains $legacyFixture ([regex]::Escape($legacyField)) "legacy handoff former required field $legacyField"
 }
 
-$highAgent = '.github/agents/high-implementation-starter.agent.md'
+$highAgent = 'apm-packages/adaptive-implementation-execution/.apm/agents/high-implementation-starter.agent.md'
 Assert-Contains $highAgent 'Design Pair Implementation Handoff' 'HIGH Design Pair input support'
 Assert-Contains $highAgent 'Decision ID' 'HIGH Decision ID propagation'
 Assert-Contains $highAgent 'Locked Decision conflict' 'HIGH conflict stop report'
@@ -329,7 +328,7 @@ Assert-Contains $highAgent 're-entry handoffと元のImplementation Completion H
 Assert-Contains $highAgent '(?s)## Output.*通常はすべてのverdict.*唯一の例外.*`Verdict: BLOCKED`.*BlockedByInvalidCompletionHandoff.*raw observed value.*`<missing>`.*外部blocker.*完全なunchanged identity.*- implementation_route.*- implementation_route_source.*- Design Pair handoff path または `N/A`' 'HIGH conditional route identity output'
 Assert-NotContains $highAgent '(?m)^すべてのverdictでincoming route identityを変更せず返します。$' 'unconditional HIGH route identity output'
 
-$standardAgent = '.github/agents/standard-implementation-completer.agent.md'
+$standardAgent = 'apm-packages/adaptive-implementation-execution/.apm/agents/standard-implementation-completer.agent.md'
 Assert-Contains $standardAgent 'Origin.*Decision ID' 'STANDARD consolidated decision authorization'
 Assert-Contains $standardAgent 'Design Pair Decision IDs' 'STANDARD Decision ID reporting'
 Assert-Contains $standardAgent 'Legacy Adaptive handoff normalization' 'STANDARD legacy handoff normalization'
@@ -405,12 +404,12 @@ foreach ($statePath in @(
     Assert-Contains $statePath 'design_pair_user_evidence' 'Design Pair user evidence state field'
 }
 
-Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'implementation_route' 'handoff review route propagation'
-Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'design-pair-implementation-execution' 'handoff review explicit next route'
-Assert-Contains '.github/agents/implementation-handoff-review.agent.md' '新規 intake.*だけ `adaptive / default` を初期化' 'handoff review fresh-intake-only default'
-Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'resume.*BLOCKED_BY_ARTIFACT_MISMATCH' 'handoff review resume fail-closed rule'
-Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'design_pair_interaction_stage' 'handoff review interaction stage propagation'
-Assert-Contains '.github/agents/implementation-handoff-review.agent.md' 'waiting中はAdaptiveやverificationを次stepにしない' 'handoff review waiting downstream block'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md' 'implementation_route' 'handoff review route propagation'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md' 'design-pair-implementation-execution' 'handoff review explicit next route'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md' '新規 intake.*だけ `adaptive / default` を初期化' 'handoff review fresh-intake-only default'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md' 'resume.*BLOCKED_BY_ARTIFACT_MISMATCH' 'handoff review resume fail-closed rule'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md' 'design_pair_interaction_stage' 'handoff review interaction stage propagation'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md' 'waiting中はAdaptiveやverificationを次stepにしない' 'handoff review waiting downstream block'
 
 foreach ($id in 1..31) {
     $scenarioId = 'DP-VAL-{0:D3}' -f $id

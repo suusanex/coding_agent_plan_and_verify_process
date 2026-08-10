@@ -271,8 +271,8 @@ if ([string]::IsNullOrWhiteSpace($EvidenceRoot)) {
 
 $localProfilePath = Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\codex-agents\local-reviewer.toml'
 $plannerProfilePath = Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\codex-agents\review-planner.toml'
-$localContractPath = Join-Path $RepositoryRoot '.github\agents\local-reviewer.agent.md'
-$plannerContractPath = Join-Path $RepositoryRoot '.github\agents\review-planner.agent.md'
+$localContractPath = Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\.apm\agents\local-reviewer.agent.md'
+$plannerContractPath = Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\.apm\agents\review-planner.agent.md'
 $localTemplatePath = Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\.apm\skills\pr-review-remediation\templates\local-review-findings.md'
 $plannerTemplatePath = Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\.apm\skills\pr-review-remediation\templates\review-plan.md'
 $localPromptPath = Join-Path $fixtureRoot 'prompt-local-reviewer.txt'

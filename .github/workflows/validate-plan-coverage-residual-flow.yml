@@ -4,10 +4,6 @@ on:
   pull_request:
     paths:
       - '.github/workflows/validate-plan-coverage-residual-flow.yml'
-      - '.github/agents/**'
-      - '.github/instructions/plan-coverage-shared.instructions.md'
-      - '.codex/agents/**'
-      - '.agents/skills/plan-coverage-residual-flow/**'
       - 'apm-packages/plan-coverage-residual-flow/**'
       - 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1'
       - 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1'
@@ -22,10 +18,6 @@ on:
       - main
     paths:
       - '.github/workflows/validate-plan-coverage-residual-flow.yml'
-      - '.github/agents/**'
-      - '.github/instructions/plan-coverage-shared.instructions.md'
-      - '.codex/agents/**'
-      - '.agents/skills/plan-coverage-residual-flow/**'
       - 'apm-packages/plan-coverage-residual-flow/**'
       - 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1'
       - 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1'

@@ -61,9 +61,9 @@ function Read-Context([string]$OutputRoot) {
 }
 
 foreach ($path in @(
-    '.github/agents/local-reviewer.agent.md',
-    '.github/agents/purpose-reviewer.agent.md',
-    '.github/agents/review-planner.agent.md',
+    'apm-packages/pr-review-remediation/.apm/agents/local-reviewer.agent.md',
+    'apm-packages/pr-review-remediation/.apm/agents/purpose-reviewer.agent.md',
+    'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md',
     'apm-packages/pr-review-remediation/apm.yml',
     'apm-packages/pr-review-remediation/README.md',
     'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md',
@@ -131,9 +131,7 @@ foreach ($path in @(
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?m)^name:\s*pr-review-remediation\s*$' 'package name'
 Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?m)^version:\s*0\.5\.0\s*$' 'package version'
 Assert-NotContains 'apm-packages/pr-review-remediation/apm.yml' 'goal-context-authoring' 'Goal Context authoring-path dependency in canonical review package'
-Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*\.github/agents/local-reviewer\.agent\.md' 'canonical local reviewer dependency'
-Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*\.github/agents/purpose-reviewer\.agent\.md' 'canonical purpose reviewer dependency'
-Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*\.github/agents/review-planner\.agent\.md' 'canonical review planner dependency'
+Assert-NotContains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*\.github/agents/' 'no root .github/agents dependency'
 Assert-NotContains 'apm-packages/pr-review-remediation/apm.yml' 'adaptive-implementation-execution|high-implementation-starter|standard-implementation-completer' 'canonical package Adaptive dependency'
 
 foreach ($profile in @('local-reviewer.toml', 'purpose-reviewer.toml', 'review-planner.toml')) {
@@ -183,8 +181,8 @@ Assert-Contains $goalSkill 'completion-notification\.txt.*raw text.*最終assist
 Assert-Contains $goalSkill 'gh pr edit <number> --add-reviewer @copilot' 'canonical explicit Copilot review request'
 Assert-Contains $goalSkill 'reviewOnly.*reviewAndInline.*どちらも受理' 'collector-complete no-inline acceptance'
 Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/design.md' 'Canonical responsibility address' 'same-parent production address decision'
-Assert-Contains '.github/agents/purpose-reviewer.agent.md' '実装担当および`local-reviewer`から独立' 'purpose reviewer independence'
-Assert-Contains '.github/agents/purpose-reviewer.agent.md' 'コード上のbug.*`local-reviewer`' 'purpose and code quality separation'
+Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/purpose-reviewer.agent.md' '実装担当および`local-reviewer`から独立' 'purpose reviewer independence'
+Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/purpose-reviewer.agent.md' 'コード上のbug.*`local-reviewer`' 'purpose and code quality separation'
 $sameParentManager = 'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/scripts/manage-same-parent-review.cs'
 Assert-Contains $sameParentManager '(?m)^#:property TargetFramework=net10\.0\s*$' 'same-parent File-based App target framework'
 Assert-Contains $sameParentManager 'ResolveTargetReadyPullRequest' 'branch-aware Ready PR resolution'
@@ -280,9 +278,9 @@ Assert-Contains $reviewPlan '(?m)^\| LR-001 \| Local Codex' 'separate baseline l
 Assert-Contains $reviewPlan '(?m)^\| PUR-001 \| Purpose \(Goal Context mode only\)' 'separate optional purpose finding example'
 Assert-Contains $reviewPlan 'new / persistent / resolved / reopened' 'multi-round finding delta vocabulary'
 Assert-Contains $reviewPlan 'HUMAN_DECISION_REQUIRED.*Adaptive handoffも出しません' 'human decision no-handoff template guidance'
-Assert-Contains '.github/agents/review-planner.agent.md' 'READY_FOR_ADAPTIVE_IMPLEMENTATION \| REVIEW_COMPLETE \| HUMAN_DECISION_REQUIRED \| BLOCKED' 'multi-round planner verdict vocabulary'
-Assert-Contains '.github/agents/review-planner.agent.md' '空のAdaptive向けplanを生成しない' 'no empty Adaptive plan rule'
-Assert-Contains '.github/agents/review-planner.agent.md' 'HUMAN_DECISION_REQUIRED.*実行可能なreview plan.*Adaptive開始promptを出力しない' 'planner human decision handoff gate'
+Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'READY_FOR_ADAPTIVE_IMPLEMENTATION \| REVIEW_COMPLETE \| HUMAN_DECISION_REQUIRED \| BLOCKED' 'multi-round planner verdict vocabulary'
+Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' '空のAdaptive向けplanを生成しない' 'no empty Adaptive plan rule'
+Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'HUMAN_DECISION_REQUIRED.*実行可能なreview plan.*Adaptive開始promptを出力しない' 'planner human decision handoff gate'
 Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'deterministic-multi-round-replay' 'PRR-003 evidence mode'
 Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'HUMAN_DECISION_REQUIRED' 'PRR-003 maximum-round verdict'
 Assert-Contains 'tests/pr-review-remediation/PRR-003/scenarios.json' 'collector-realistic-convergence' 'PRR-003 real multi-round collector path'
@@ -304,9 +302,9 @@ Assert-Contains 'tests/pr-review-remediation/PRR-003/README.md' 'Issue #61 accep
 
 $legacyImplementationAgent = 'spark' + '-implementer'
 $runtimeFiles = @(
-    '.github/agents/local-reviewer.agent.md',
-    '.github/agents/purpose-reviewer.agent.md',
-    '.github/agents/review-planner.agent.md',
+    'apm-packages/pr-review-remediation/.apm/agents/local-reviewer.agent.md',
+    'apm-packages/pr-review-remediation/.apm/agents/purpose-reviewer.agent.md',
+    'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md',
     'apm-packages/pr-review-remediation/apm.yml',
     'apm-packages/pr-review-remediation/README.md',
     'apm-packages/pr-review-remediation/codex-agents/local-reviewer.toml',
@@ -351,7 +349,7 @@ Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' 'PACKAGE_
 Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' '(?s)checkout@v4.*ref:\s*\$\{\{\s*github\.event\.pull_request\.head\.sha \|\| github\.sha\s*\}\}' 'full PR head or push SHA checkout source'
 Assert-NotContains '.github/workflows/validate-pr-review-remediation.yml' 'github\.event\.pull_request\.head\.repo' 'fork repository package source'
 Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' '(?s)pull_request:.*tests/pr-review-remediation/\*\*.*push:.*tests/pr-review-remediation/\*\*' 'fixed evidence path filters for pull request and push events'
-Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' '(?s)pull_request:.*purpose-reviewer\.agent\.md.*push:.*purpose-reviewer\.agent\.md' 'purpose reviewer path filters for pull request and push events'
+    Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' '(?s)pull_request:.*apm-packages/pr-review-remediation/\*\*.*push:.*apm-packages/pr-review-remediation/\*\*' 'package path filters for pull request and push events'
 Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' '(?s)pull_request:.*apm-packages/goal-context-authoring/\*\*.*push:.*apm-packages/goal-context-authoring/\*\*' 'Goal Context Authoring package path filters for pull request and push events'
 Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' 'git diff --check origin/main\.\.\.HEAD' 'branch-range whitespace gate'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'apm install|@\(''install''' 'real remote APM install command'
@@ -779,11 +777,11 @@ try {
     if ($invalidAdaptiveCheck.Output -notmatch 'Usage:') { Add-Failure '--check-adaptive without --check did not fail with usage' }
 
     $scratchSkill = Join-Path $scratch '.agents\skills\adaptive-implementation-execution'
-    $scratchAgents = Join-Path $scratch '.github\agents'
-    New-Item -ItemType Directory -Path $scratchSkill, $scratchAgents -Force | Out-Null
+    $scratchApmAgents = Join-Path $scratch 'apm_modules\owner\repo\.apm\agents'
+    New-Item -ItemType Directory -Path $scratchSkill, $scratchApmAgents -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path $repoRoot 'apm-packages\adaptive-implementation-execution\.apm\skills\adaptive-implementation-execution\SKILL.md') -Destination (Join-Path $scratchSkill 'SKILL.md')
     foreach ($agent in @('high-implementation-starter.agent.md', 'standard-implementation-completer.agent.md')) {
-        Copy-Item -LiteralPath (Join-Path $repoRoot ".github\agents\$agent") -Destination (Join-Path $scratchAgents $agent)
+        Copy-Item -LiteralPath (Join-Path $repoRoot "apm-packages\adaptive-implementation-execution\.apm\agents\$agent") -Destination (Join-Path $scratchApmAgents $agent)
     }
     Invoke-Native $adaptiveSyncExe @($scratch, '--dry-run') 'Adaptive helper dry-run' | Out-Null
     Invoke-Native $adaptiveSyncExe @($scratch) 'Adaptive helper install' | Out-Null

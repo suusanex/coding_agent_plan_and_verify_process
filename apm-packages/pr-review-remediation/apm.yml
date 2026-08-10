@@ -8,10 +8,4 @@ targets:
 includes: auto
 
 dependencies:
-  apm:
-    - git: parent
-      path: .github/agents/local-reviewer.agent.md
-    - git: parent
-      path: .github/agents/review-planner.agent.md
-    - git: parent
-      path: .github/agents/purpose-reviewer.agent.md
+  apm: []
