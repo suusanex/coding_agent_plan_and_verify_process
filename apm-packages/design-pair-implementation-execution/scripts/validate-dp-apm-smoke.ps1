@@ -58,7 +58,7 @@ try {
     Assert-File $designPairSkill 'Design Pair Skill'
     Assert-File $designPairMap 'Design Pair Target Map reference'
     Assert-File $designPairHandoff 'Design Pair handoff reference'
-    Assert-Contains $designPairSkill '(?m)^disable-model-invocation:\s*true\s*$' 'deployed Design Pair skill explicit-only invocation'
+    Assert-Contains $designPairSkill '(?m)^name:\s*design-pair-implementation-execution\s*$' 'deployed Design Pair skill name'
     Assert-Contains $designPairSkill 'implementation_route:\s*design-pair' 'deployed Design Pair route metadata'
 
     $adaptiveSkill = Join-Path $scratch '.agents/skills/adaptive-implementation-execution/SKILL.md'

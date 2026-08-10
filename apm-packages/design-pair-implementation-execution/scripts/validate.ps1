@@ -520,6 +520,7 @@ Assert-FileExists $dpApmSmoke
 Assert-Contains $dpApmSmoke 'APM 0\.26\.0 is required' 'Design Pair APM smoke pins APM 0.26.0'
 Assert-Contains $dpApmSmoke 'copilot,codex,agent-skills' 'Design Pair APM smoke installs all targets'
 Assert-Contains $dpApmSmoke '\.agents/skills/design-pair-implementation-execution/SKILL\.md' 'Design Pair APM smoke verifies Design Pair Skill deployment'
+Assert-Contains $dpApmSmoke 'deployed Design Pair skill name' 'Design Pair APM smoke verifies deployed skill identity'
 Assert-Contains $dpApmSmoke '\.agents/skills/adaptive-implementation-execution/SKILL\.md' 'Design Pair APM smoke verifies transitive Adaptive Skill'
 Assert-Contains $dpApmSmoke '\.github/agents/high-implementation-starter\.agent\.md' 'Design Pair APM smoke verifies transitive HIGH agent'
 Assert-Contains $dpApmSmoke '\.github/agents/standard-implementation-completer\.agent\.md' 'Design Pair APM smoke verifies transitive STANDARD agent'
