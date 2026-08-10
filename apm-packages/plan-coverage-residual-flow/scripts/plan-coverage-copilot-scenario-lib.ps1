@@ -153,12 +153,6 @@ function Install-PlanCoverageInto([string]$TargetRoot) {
             New-Item -ItemType Directory -Path (Join-Path $stageRoot 'apm-packages') -Force | Out-Null
             Copy-DirectoryContents $packageRoot $stagePackage
             Copy-DirectoryContents (Join-Path $repoRoot 'apm-packages\adaptive-implementation-execution') $stageAdaptive
-            # plugin.json marks a packed plugin bundle to APM install. Qualification
-            # seed install must keep .apm authoring layout (Issue #107).
-            $stagedPluginJson = Join-Path $stagePackage 'plugin.json'
-            if (Test-Path -LiteralPath $stagedPluginJson -PathType Leaf) {
-                Remove-Item -LiteralPath $stagedPluginJson -Force
-            }
             $stageAdaptiveAgents = Join-Path $stageAdaptive '.apm\agents'
             New-Item -ItemType Directory -Path $stageAdaptiveAgents -Force | Out-Null
             foreach ($adaptiveAgent in @('high-implementation-starter.agent.md', 'standard-implementation-completer.agent.md')) {
@@ -1297,4 +1291,3 @@ Do not implement code.
     }
     return 'Continue.'
 }
-

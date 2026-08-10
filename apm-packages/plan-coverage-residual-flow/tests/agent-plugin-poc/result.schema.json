@@ -117,6 +117,7 @@
             "SUPPORTED",
             "UNSUPPORTED_CURRENT_CLIENT",
             "UNCONFIRMED",
+            "UNCONFIRMED_NO_LOCAL_DIRECT_LOAD_OBSERVED",
             "NOT_TESTED"
           ]
         },

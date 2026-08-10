@@ -1,7 +1,8 @@
 # Shared helpers for Agent Plugins PoC build/validate (Issue #107).
 # Dot-source only. Does not change Plan Coverage process semantics.
+# plugin.json is NOT a checked-in package-root artifact; pack stage synthesizes it.
 
-$script:PlanCoverageAgentPluginCommonVersion = 1
+$script:PlanCoverageAgentPluginCommonVersion = 2
 
 $script:PlanCoverageOwnedAgentNames = @(
     'plan-kernel',
@@ -24,6 +25,12 @@ $script:PlanCoverageOwnedAgentNames = @(
     'residual-decision-gate'
 )
 
+$script:AdaptiveRequiredLockMarkers = @(
+    'adaptive-implementation-execution/SKILL.md',
+    'high-implementation-starter.agent.md',
+    'standard-implementation-completer.agent.md'
+)
+
 $script:AgentPluginsV1SchemaId = 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json'
 $script:AgentPluginsV1AllowedTopLevel = @(
     '$schema',
@@ -37,6 +44,7 @@ $script:AgentPluginsV1AllowedTopLevel = @(
     'keywords',
     'extensions'
 )
+$script:DefaultPluginRepository = 'https://github.com/suusanex/coding_agent_plan_and_verify_process'
 
 function Get-ApNormalizedText([string]$Path) {
     return [System.IO.File]::ReadAllText($Path).Replace("`r`n", "`n").Replace("`r", "`n")
@@ -102,7 +110,6 @@ function Write-ApUtf8File([string]$Path, [string]$Content) {
 function Copy-ApDirectoryContents([string]$Source, [string]$Destination) {
     New-Item -ItemType Directory -Path $Destination -Force | Out-Null
     Copy-Item -Path (Join-Path $Source '*') -Destination $Destination -Recurse -Force
-    # Hidden / dot directories are not matched by '*' on Windows robocopy-less copy.
     Get-ChildItem -LiteralPath $Source -Force | Where-Object {
         $_.PSIsContainer -and $_.Name.StartsWith('.')
     } | ForEach-Object {
@@ -143,25 +150,65 @@ function Get-ApRepoRootFromPackage([string]$PackageRoot) {
     return (Resolve-Path (Join-Path $PackageRoot '../..')).Path
 }
 
+function New-ApPluginManifestObject {
+    param([Parameter(Mandatory = $true)]$PackageMeta)
+    return [ordered]@{
+        '$schema'    = $script:AgentPluginsV1SchemaId
+        name         = [string]$PackageMeta.name
+        version      = [string]$PackageMeta.version
+        description  = [string]$PackageMeta.description
+        repository   = $script:DefaultPluginRepository
+    }
+}
+
+function Write-ApPluginManifestJson {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)]$PackageMeta
+    )
+    $obj = New-ApPluginManifestObject -PackageMeta $PackageMeta
+    $json = ($obj | ConvertTo-Json -Depth 8)
+    # Stable LF, trailing newline
+    Write-ApUtf8File $Path (($json.Replace("`r`n", "`n").TrimEnd() + "`n"))
+}
+
 function Resolve-ApAdaptiveAgentSources([string]$RepoRoot) {
     $packageAgents = Join-Path $RepoRoot 'apm-packages/adaptive-implementation-execution/.apm/agents'
-    $rootAgents = Join-Path $RepoRoot '.github/agents'
     $names = @('high-implementation-starter.agent.md', 'standard-implementation-completer.agent.md')
     $resolved = @()
     foreach ($name in $names) {
         $pkgPath = Join-Path $packageAgents $name
-        $rootPath = Join-Path $rootAgents $name
-        if (Test-Path -LiteralPath $pkgPath -PathType Leaf) {
-            $resolved += [pscustomobject]@{ Name = $name; Path = $pkgPath; Source = 'package-canonical' }
+        if (-not (Test-Path -LiteralPath $pkgPath -PathType Leaf)) {
+            throw "Adaptive agent missing from package-owned canonical source (post-#111): $pkgPath"
         }
-        elseif (Test-Path -LiteralPath $rootPath -PathType Leaf) {
-            $resolved += [pscustomobject]@{ Name = $name; Path = $rootPath; Source = 'root-projection-fallback' }
-        }
-        else {
-            throw "Adaptive agent not found in package canonical or root projection: $name"
-        }
+        $resolved += [pscustomobject]@{ Name = $name; Path = $pkgPath; Source = 'package-canonical' }
     }
     return $resolved
+}
+
+function Test-ApAdaptiveAttestedInLock([string]$LockPath) {
+    if (-not (Test-Path -LiteralPath $LockPath -PathType Leaf)) {
+        throw "Lock path missing for Adaptive attestation: $LockPath"
+    }
+    $text = Get-ApNormalizedText $LockPath
+    $missing = @()
+    foreach ($marker in $script:AdaptiveRequiredLockMarkers) {
+        if ($text -notmatch [regex]::Escape($marker)) {
+            $missing += $marker
+        }
+    }
+    # Prefer deployed_files section presence for Adaptive package entry.
+    $hasAdaptivePackage = $text -match '(?m)^  name:\s*adaptive-implementation-execution\s*$' -or
+        $text -match 'adaptive-implementation-execution'
+    $hasDeployed = $text -match 'deployed_files:' -and $text -match 'deployed_file_hashes:'
+    return [pscustomobject]@{
+        Ok                = ($missing.Count -eq 0 -and $hasAdaptivePackage -and $hasDeployed)
+        MissingMarkers    = $missing
+        HasAdaptiveEntry  = [bool]$hasAdaptivePackage
+        HasDeployedFiles  = [bool]$hasDeployed
+        LockSha256        = (Get-ApSha256File $LockPath)
+        LockPath          = $LockPath
+    }
 }
 
 function New-ApDependencyStage {
@@ -181,10 +228,19 @@ function New-ApDependencyStage {
     Copy-ApDirectoryContents $PackageRoot $stagePackage
     Copy-ApDirectoryContents (Join-Path $RepoRoot 'apm-packages\adaptive-implementation-execution') $stageAdaptive
 
-    $stageAdaptiveAgents = Join-Path $stageAdaptive '.apm\agents'
-    New-Item -ItemType Directory -Path $stageAdaptiveAgents -Force | Out-Null
-    foreach ($agent in @(Resolve-ApAdaptiveAgentSources $RepoRoot)) {
-        Copy-Item -LiteralPath $agent.Path -Destination (Join-Path $stageAdaptiveAgents $agent.Name) -Force
+    # Source tree must not carry plugin.json; strip if a stale copy sneaks in.
+    $stalePlugin = Join-Path $stagePackage 'plugin.json'
+    if (Test-Path -LiteralPath $stalePlugin -PathType Leaf) {
+        Remove-Item -LiteralPath $stalePlugin -Force
+    }
+
+    $adaptiveAgents = @(Resolve-ApAdaptiveAgentSources $RepoRoot)
+    foreach ($agent in $adaptiveAgents) {
+        $dest = Join-Path $stageAdaptive ".apm\agents\$($agent.Name)"
+        if (-not (Test-Path -LiteralPath $dest -PathType Leaf)) {
+            New-Item -ItemType Directory -Path (Split-Path -Parent $dest) -Force | Out-Null
+            Copy-Item -LiteralPath $agent.Path -Destination $dest -Force
+        }
     }
 
     $stageAdaptiveResolved = (Resolve-Path -LiteralPath $stageAdaptive).Path
@@ -192,6 +248,7 @@ function New-ApDependencyStage {
     $adaptiveVersion = Get-ApPackageField -ManifestPath (Join-Path $RepoRoot 'apm-packages\adaptive-implementation-execution\apm.yml') -Field version
     $packageMeta = Get-ApYamlScalarMap (Join-Path $PackageRoot 'apm.yml')
 
+    # Adaptive is self-contained post-#111; keep standalone manifest for path install.
     $adaptiveManifest = @"
 name: adaptive-implementation-execution
 version: $adaptiveVersion
@@ -202,11 +259,19 @@ targets:
   - codex
   - agent-skills
 includes: auto
+
+dependencies:
+  apm: []
 "@
     Write-ApUtf8File (Join-Path $stageAdaptiveResolved 'apm.yml') ($adaptiveManifest.Replace("`r`n", "`n"))
 
-    # Install-stage manifest uses absolute path deps (same pattern as APM smoke / #106).
-    # Pack-stage keeps original git:parent apm.yml — local path deps are rejected by apm pack.
+    # Install-stage package: source layout (.apm), NO plugin.json, path dep on Adaptive.
+    $installPackage = Join-Path $StageRoot 'install-package'
+    Copy-ApDirectoryContents $stagePackageResolved $installPackage
+    $installPlugin = Join-Path $installPackage 'plugin.json'
+    if (Test-Path -LiteralPath $installPlugin -PathType Leaf) {
+        Remove-Item -LiteralPath $installPlugin -Force
+    }
     $installManifest = @"
 name: $($packageMeta.name)
 version: $($packageMeta.version)
@@ -222,29 +287,37 @@ dependencies:
   apm:
     - path: $stageAdaptiveResolved
 "@
-    $installPackage = Join-Path $StageRoot 'install-package'
-    Copy-ApDirectoryContents $stagePackageResolved $installPackage
     Write-ApUtf8File (Join-Path $installPackage 'apm.yml') ($installManifest.Replace("`r`n", "`n"))
-    # Lock-seed install keeps plugin.json so APM emits a pack-embeddable lock that does not
-    # pin ephemeral local dependency paths (those break `apm pack`). Full multi-target source
-    # install attestation remains validate-plan-coverage-residual-flow-apm-smoke.ps1 / #106.
-    $sourcePluginJson = Join-Path $PackageRoot 'plugin.json'
-    if (-not (Test-Path -LiteralPath $sourcePluginJson -PathType Leaf)) {
-        throw "Missing package plugin.json at $sourcePluginJson"
-    }
-    Copy-Item -LiteralPath $sourcePluginJson -Destination (Join-Path $installPackage 'plugin.json') -Force
 
-    # Ensure Agent Plugins manifest is present on pack source (from package root plugin.json).
-    Copy-Item -LiteralPath $sourcePluginJson -Destination (Join-Path $stagePackageResolved 'plugin.json') -Force
-    # Pack source must keep original apm.yml (git:parent), not path rewrite.
+    # Pack-stage package: original git:parent apm.yml + synthesized plugin.json only (no root source plugin.json).
     Copy-Item -LiteralPath (Join-Path $PackageRoot 'apm.yml') -Destination (Join-Path $stagePackageResolved 'apm.yml') -Force
+    Write-ApPluginManifestJson -Path (Join-Path $stagePackageResolved 'plugin.json') -PackageMeta $packageMeta
+
+    # Pack-lock seed package: package-owned only (no Adaptive path dep) so apm pack can embed lock.
+    $packLockSeed = Join-Path $StageRoot 'pack-lock-seed'
+    Copy-ApDirectoryContents $stagePackageResolved $packLockSeed
+    $seedMeta = $packageMeta
+    $seedManifest = @"
+name: $($seedMeta.name)
+version: $($seedMeta.version)
+description: $($seedMeta.description)
+type: hybrid
+targets:
+  - copilot
+  - codex
+  - agent-skills
+includes: auto
+"@
+    Write-ApUtf8File (Join-Path $packLockSeed 'apm.yml') ($seedManifest.Replace("`r`n", "`n"))
+    Write-ApPluginManifestJson -Path (Join-Path $packLockSeed 'plugin.json') -PackageMeta $seedMeta
 
     return [pscustomobject]@{
         StageRoot              = $StageRoot
         PackPackageRoot        = $stagePackageResolved
         InstallPackageRoot     = (Resolve-Path -LiteralPath $installPackage).Path
+        PackLockSeedRoot       = (Resolve-Path -LiteralPath $packLockSeed).Path
         AdaptivePackageRoot    = $stageAdaptiveResolved
-        AdaptiveAgentSources   = @(Resolve-ApAdaptiveAgentSources $RepoRoot)
+        AdaptiveAgentSources   = $adaptiveAgents
         PackageMeta            = $packageMeta
     }
 }
@@ -260,13 +333,37 @@ function Invoke-ApConsumerInstallForLock {
         $installLog = & apm @('install', $InstallPackageRoot, '--target', 'copilot,codex,agent-skills') 2>&1
         if ($LASTEXITCODE -ne 0) {
             $tail = ($installLog | ForEach-Object { [string]$_ }) -join "`n"
-            throw "apm install (lock attestation) failed with exit code $LASTEXITCODE`n$tail"
+            throw "apm install (Adaptive lock attestation) failed with exit code $LASTEXITCODE`n$tail"
         }
         $lockPath = Join-Path $ConsumerRoot 'apm.lock.yaml'
         if (-not (Test-Path -LiteralPath $lockPath -PathType Leaf)) {
-            throw 'apm install did not produce apm.lock.yaml for lock attestation.'
+            throw 'apm install did not produce apm.lock.yaml for Adaptive attestation.'
         }
-        # Emit path only via return; never leak apm stdout into the caller's assignment.
+        return , $lockPath
+    }
+    finally {
+        Pop-Location
+    }
+}
+
+function Invoke-ApPackLockSeed {
+    param(
+        [Parameter(Mandatory = $true)][string]$PackLockSeedRoot,
+        [Parameter(Mandatory = $true)][string]$SeedConsumerRoot
+    )
+    New-Item -ItemType Directory -Path $SeedConsumerRoot -Force | Out-Null
+    Push-Location $SeedConsumerRoot
+    try {
+        # With plugin.json present, APM treats this as a local plugin bundle and emits pack-embeddable lock.
+        $log = & apm @('install', $PackLockSeedRoot) 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            $tail = ($log | ForEach-Object { [string]$_ }) -join "`n"
+            throw "apm install (pack lock seed) failed with exit code $LASTEXITCODE`n$tail"
+        }
+        $lockPath = Join-Path $SeedConsumerRoot 'apm.lock.yaml'
+        if (-not (Test-Path -LiteralPath $lockPath -PathType Leaf)) {
+            throw 'Pack lock seed install did not produce apm.lock.yaml.'
+        }
         return , $lockPath
     }
     finally {
@@ -315,4 +412,30 @@ function Test-ApReparsePointUnder([string]$Root) {
 
 function ConvertTo-ApJson($Object) {
     return ($Object | ConvertTo-Json -Depth 100)
+}
+
+function Get-ApGitCandidateCommit([string]$RepoRoot, [switch]$AllowDirty) {
+    $sha = ((& git -C $RepoRoot rev-parse HEAD 2>$null | Out-String).Trim())
+    if ([string]::IsNullOrWhiteSpace($sha)) {
+        return 'UNOBSERVABLE'
+    }
+    if ($sha -notmatch '^[a-f0-9]{40}$') {
+        # allow abbreviated only when not requiring clean evidence
+        if (-not $AllowDirty -and $sha -notmatch '^[a-f0-9]{7,40}$') {
+            throw "Unexpected git SHA: $sha"
+        }
+    }
+    $dirty = @(& git -C $RepoRoot status --porcelain 2>$null)
+    if ($dirty.Count -gt 0) {
+        if (-not $AllowDirty) {
+            throw 'Working tree is dirty. Qualifying PoC evidence requires a clean commit (no -dirty candidate_commit).'
+        }
+        return "$sha-dirty"
+    }
+    if ($sha -match '^[a-f0-9]{40}$') {
+        return $sha
+    }
+    # expand to full sha
+    $full = ((& git -C $RepoRoot rev-parse HEAD 2>$null | Out-String).Trim())
+    return $full
 }

@@ -18,6 +18,7 @@ $apmYmlPath = Join-Path $packageRoot 'apm.yml'
 $pluginJsonSource = Join-Path $packageRoot 'plugin.json'
 $pocRoot = Join-Path $packageRoot 'tests/agent-plugin-poc'
 $schemaFixture = Join-Path $pocRoot 'fixtures/plugin.schema.1.0.0.json'
+$resultSchemaPath = Join-Path $pocRoot 'result.schema.json'
 $buildScript = Join-Path $PSScriptRoot 'build-plan-coverage-agent-plugin.ps1'
 $failures = [System.Collections.Generic.List[string]]::new()
 $tempParent = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
@@ -422,24 +423,123 @@ function Invoke-NegativeMutationTests {
     Write-Host 'OK negative (baseline-fingerprint-mismatch-parity-denied)'
 }
 
+function Test-PocResultInvariants($Result, [string]$Context) {
+    $local = [System.Collections.Generic.List[string]]::new()
+    if ([int]$Result.schema_version -ne 1) { $local.Add("$Context schema_version") | Out-Null }
+    if ([int]$Result.issue -ne 107) { $local.Add("$Context issue!=107") | Out-Null }
+    if (-not $Result.spec -or [string]$Result.spec.agent_plugins_version -cne '1.0.0') {
+        $local.Add("$Context spec.agent_plugins_version") | Out-Null
+    }
+    foreach ($req in @('source_run', 'environment', 'bundle', 'copilot_direct_load', 'codex_direct_load', 'boundary_inventory', 'comparison_to_apm', 'decision')) {
+        if (-not ($Result.PSObject.Properties.Name -contains $req)) {
+            $local.Add("$Context missing $req") | Out-Null
+        }
+    }
+    $fp = [string]$Result.source_run.canonical_fingerprint
+    if ($fp -notmatch '^[a-f0-9]{64}$') {
+        $local.Add("$Context canonical_fingerprint malformed") | Out-Null
+    }
+    $commit = [string]$Result.source_run.candidate_commit
+    $isLive = @('PASS', 'PARTIAL', 'BLOCKED', 'FAIL') -contains [string]$Result.copilot_direct_load.status
+    if ($isLive) {
+        if ($commit -match '-dirty$' -or $commit -notmatch '^[a-f0-9]{40}$') {
+            $local.Add("$Context live evidence candidate_commit must be clean 40-char SHA (got: $commit)") | Out-Null
+        }
+    }
+    $verdict = [string]$Result.decision.verdict
+    if (@('GO', 'HOLD', 'NO_GO') -notcontains $verdict) {
+        $local.Add("$Context decision.verdict invalid") | Out-Null
+    }
+    $parity = $false
+    if ($Result.comparison_to_apm -and ($Result.comparison_to_apm.PSObject.Properties.Name -contains 'semantic_parity_claimed')) {
+        $parity = [bool]$Result.comparison_to_apm.semantic_parity_claimed
+    }
+    $fpMatch = $true
+    if ($Result.comparison_to_apm -and ($Result.comparison_to_apm.PSObject.Properties.Name -contains 'fingerprint_match')) {
+        $fpMatch = [bool]$Result.comparison_to_apm.fingerprint_match
+    }
+    if ($parity -and -not $fpMatch) {
+        $local.Add("$Context semantic_parity_claimed=true with fingerprint_match=false") | Out-Null
+    }
+    if ($verdict -ceq 'GO') {
+        if (-not $fpMatch) { $local.Add("$Context GO requires fingerprint_match") | Out-Null }
+        if ([string]$Result.copilot_direct_load.authorization -cne 'PASS') {
+            $local.Add("$Context GO requires authorization PASS") | Out-Null
+        }
+        if ([string]$Result.copilot_direct_load.standard_slice -cne 'PASS') {
+            $local.Add("$Context GO requires standard_slice PASS") | Out-Null
+        }
+        if ([string]$Result.copilot_direct_load.full_coverage -cne 'PASS') {
+            $local.Add("$Context GO requires full_coverage PASS") | Out-Null
+        }
+        if ([string]$Result.copilot_direct_load.adaptive_connection -cne 'PASS') {
+            $local.Add("$Context GO requires adaptive_connection PASS") | Out-Null
+        }
+        if (-not $parity) {
+            $local.Add("$Context GO requires semantic_parity_claimed=true") | Out-Null
+        }
+    }
+    if ($Result.scenarios) {
+        $ids = @($Result.scenarios | ForEach-Object { [string]$_.id })
+        foreach ($need in @('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H')) {
+            if ($ids -notcontains $need -and $isLive -and [string]$Result.copilot_direct_load.authorization -ne 'NOT_RUN') {
+                $local.Add("$Context live authorization evidence missing scenario $need") | Out-Null
+            }
+        }
+    }
+    elseif ($isLive -and [string]$Result.copilot_direct_load.authorization -ne 'NOT_RUN') {
+        $local.Add("$Context live result missing scenarios array") | Out-Null
+    }
+    if (-not $Result.boundary_inventory -or @($Result.boundary_inventory).Count -lt 8) {
+        $local.Add("$Context boundary_inventory too small") | Out-Null
+    }
+    return @($local)
+}
+
+function Test-CommittedPocResults {
+    $resultsDir = Join-Path $pocRoot 'results'
+    if (-not (Test-Path -LiteralPath $resultsDir)) { return }
+    $files = @(Get-ChildItem -LiteralPath $resultsDir -Filter '*-copilot-plugin-poc.json' -File -ErrorAction SilentlyContinue)
+    foreach ($f in $files) {
+        Write-Host "Validating committed PoC result: $($f.Name)"
+        try {
+            $obj = Get-ManifestObject $f.FullName
+        }
+        catch {
+            Add-Fail "PoC result not valid JSON: $($f.Name)"
+            continue
+        }
+        foreach ($err in @(Test-PocResultInvariants $obj -Context $f.Name)) {
+            Add-Fail $err
+        }
+        # Lightweight schema required-field check (no external JSON Schema engine).
+        if (Test-Path -LiteralPath $resultSchemaPath -PathType Leaf) {
+            $schema = Get-ManifestObject $resultSchemaPath
+            foreach ($req in @($schema.required)) {
+                if (-not ($obj.PSObject.Properties.Name -contains $req)) {
+                    Add-Fail "$($f.Name) missing schema-required field: $req"
+                }
+            }
+        }
+    }
+}
+
 try {
     $packageMeta = Get-ApYamlScalarMap $apmYmlPath
-    Assert-True (Test-Path -LiteralPath $pluginJsonSource -PathType Leaf) 'Source plugin.json missing'
-    $sourceManifest = Get-ManifestObject $pluginJsonSource
-    foreach ($f in @(Test-AgentPluginsManifestConformance -Manifest $sourceManifest -PackageMeta $packageMeta -Context 'source-plugin.json')) {
-        Add-Fail $f
-    }
-    Test-OfficialSchemaIfPresent -ManifestPath $pluginJsonSource
+    Assert-True (-not (Test-Path -LiteralPath $pluginJsonSource -PathType Leaf)) `
+        'Checked-in package root plugin.json is forbidden (keeps APM local-source install semantics). Synthesize only in pack stage.'
     Test-SourceDuplicationGuard
 
     $builtHere = $false
+    $buildResult = $null
     if ([string]::IsNullOrWhiteSpace($BundleRoot)) {
         if ($SkipBuild) {
             throw 'BundleRoot is required when -SkipBuild is set.'
         }
         $out = New-OwnedTempDir 'ap-build-'
         Write-Host "Building bundle into $out ..."
-        $buildResult = & $buildScript -OutputDir $out -Force
+        # CI working trees are clean; local dirty trees may pass -AllowDirty for deterministic pack tests only.
+        $buildResult = & $buildScript -OutputDir $out -Force -AllowDirty
         if ($LASTEXITCODE -ne 0 -and $null -eq $buildResult) {
             throw "build-plan-coverage-agent-plugin.ps1 failed with exit code $LASTEXITCODE"
         }
@@ -455,7 +555,7 @@ try {
     Assert-True (Test-Path -LiteralPath $BundleRoot -PathType Container) "BundleRoot not found: $BundleRoot"
 
     $bundlePlugin = Join-Path $BundleRoot 'plugin.json'
-    Assert-True (Test-Path -LiteralPath $bundlePlugin -PathType Leaf) 'Bundle plugin.json missing'
+    Assert-True (Test-Path -LiteralPath $bundlePlugin -PathType Leaf) 'Bundle plugin.json missing (must be pack-stage synthesized)'
     $bundleManifest = Get-ManifestObject $bundlePlugin
     foreach ($f in @(Test-AgentPluginsManifestConformance -Manifest $bundleManifest -PackageMeta $packageMeta -Context 'bundle-plugin.json')) {
         Add-Fail $f
@@ -477,15 +577,29 @@ try {
     Test-CanonicalEquivalence $BundleRoot
     Test-LockIntegrity $BundleRoot
 
-    # Dependency inventory: Adaptive may be absent from pack output — record, do not invent.
-    $adaptiveSkill = Join-Path $BundleRoot 'skills/adaptive-implementation-execution/SKILL.md'
-    $highAgent = Join-Path $BundleRoot 'agents/high-implementation-starter.agent.md'
-    if (Test-Path -LiteralPath $adaptiveSkill) {
-        Write-Host 'INFO: Adaptive Skill present in bundle (transitive).'
-        Assert-True (Test-Path -LiteralPath $highAgent) 'Adaptive Skill present but HIGH agent missing'
+    # Adaptive packaging boundary: attestation must PASS and Plan Coverage bundle must not silently include Adaptive.
+    if ($buildResult -and $buildResult.adaptive_attestation) {
+        $att = $buildResult.adaptive_attestation
+        Assert-True ([string]$att.status -ceq 'PASS') 'Adaptive lock attestation status must be PASS'
+        Assert-True ([bool]$att.path_dep_pack_refused) 'Expected apm pack to refuse local path dependency'
+        Assert-True (-not [bool]$att.present_in_plan_coverage_bundle.skill) 'Plan Coverage plugin bundle unexpectedly contains Adaptive Skill'
+        Assert-True (-not [bool]$att.present_in_plan_coverage_bundle.high) 'Plan Coverage plugin bundle unexpectedly contains HIGH agent'
+        Assert-True (-not [bool]$att.present_in_plan_coverage_bundle.standard) 'Plan Coverage plugin bundle unexpectedly contains STANDARD agent'
+        Write-Host "OK Adaptive attestation: lock proves Skill/HIGH/STANDARD; pack does not inline them; path-dep pack refused."
+        if ($att.standalone_adaptive_bundle_root) {
+            $adSkill = Join-Path $att.standalone_adaptive_bundle_root 'skills/adaptive-implementation-execution/SKILL.md'
+            Assert-True (Test-Path -LiteralPath $adSkill -PathType Leaf) 'Adaptive standalone pack missing Skill'
+            Write-Host "OK Adaptive standalone plugin pack: $($att.standalone_adaptive_bundle_root)"
+        }
     }
     else {
-        Write-Host 'INFO: Adaptive Skill not present in apm pack plugin bundle (expected under APM 0.26.0; APM projection / separate package).'
+        $adaptiveSkill = Join-Path $BundleRoot 'skills/adaptive-implementation-execution/SKILL.md'
+        if (Test-Path -LiteralPath $adaptiveSkill) {
+            Write-Host 'INFO: Adaptive Skill present in provided bundle (external BundleRoot).'
+        }
+        else {
+            Write-Host 'INFO: Adaptive Skill absent from provided bundle (attestation details require build path).'
+        }
     }
 
     Test-BaselineFingerprintGate
@@ -494,11 +608,11 @@ try {
         Invoke-NegativeMutationTests -GoodBundle $BundleRoot -PackageMeta $packageMeta
     }
 
-    # Static PoC result schema presence
     foreach ($req in @('result.schema.json', 'result-template.json', 'README.md')) {
         $p = Join-Path $pocRoot $req
         Assert-True (Test-Path -LiteralPath $p -PathType Leaf) "PoC infrastructure missing: $req"
     }
+    Test-CommittedPocResults
 
     if ($failures.Count -gt 0) {
         Write-Host ""
@@ -510,6 +624,7 @@ try {
     Write-Host "bundle_root=$BundleRoot"
     Write-Host "canonical_fingerprint=$(Get-ApCanonicalFingerprint $canonicalRoot)"
     Write-Host "built_here=$builtHere"
+    Write-Host "source_plugin_json_checked_in=false"
     exit 0
 }
 finally {

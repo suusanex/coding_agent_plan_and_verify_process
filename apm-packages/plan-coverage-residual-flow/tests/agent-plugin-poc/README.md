@@ -33,10 +33,12 @@ This does **not** replace [#106 runtime qualification](../runtime-qualification/
 ## Forbidden
 
 - Editing `.apm/**` to hide plugin gaps
+- Checking in package-root `plugin.json` (breaks APM local-source install semantics; pack stage synthesizes it)
 - Duplicating Skill/agents as a second process implementation under source `skills/` or `agents/`
 - Seeding fixtures via `apm install` of Plan Coverage before plugin load
 - Hand-copying `.github/instructions/plan-coverage-shared.instructions.md` into plugin fixtures to force PASS
 - Rewriting #106 evidence files
+- Committing live PoC evidence with `-dirty` candidate_commit (requires clean 40-char SHA)
 
 ## Results
 

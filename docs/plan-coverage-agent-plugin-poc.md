@@ -28,10 +28,11 @@ This is a **PoC**, not a production distribution cutover.
 ```text
 apm-packages/plan-coverage-residual-flow/.apm/
 apm-packages/plan-coverage-residual-flow/apm.yml
-apm-packages/plan-coverage-residual-flow/plugin.json
 ```
 
-Canonical semantics remain `.apm/**` only. `plugin.json` is packaging metadata aligned with `apm.yml` name/version/description (drift fails validation).
+Canonical semantics remain `.apm/**` only.
+
+**`plugin.json` is not checked into the package root.** APM treats a directory with `plugin.json` as a plugin bundle install path; keeping it out of the source package preserves `apm install <package-path>` as a true local-source install (Issue #107 must not break APM distribution). The build script synthesizes Agent Plugins v1 `plugin.json` only inside the temporary pack stage from `apm.yml` (name/version/description + `$schema` + repository).
 
 ## Generated bundle structure
 
@@ -43,11 +44,15 @@ Produced by:
 
 Flow:
 
-1. Temporary stage (does not dirty the source package tree)
-2. Staged Adaptive dependency resolution using the same local-path install pattern as APM smoke / #106 (package-canonical Adaptive agents with root-projection fallback while PR #111 is unmerged)
-3. `apm install` into a consumer stage to attest lock content
-4. `apm pack --format plugin` (**target-neutral**; no `--target` pin) with original `git:parent` `apm.yml` (local path deps are rejected by pack)
-5. Cleanup unless `-KeepStage`
+1. Temporary stage (does not dirty the source package tree; no checked-in `plugin.json`)
+2. **Adaptive attestation install**: source-layout Plan Coverage + path dep on Adaptive (**no** `plugin.json`) → consumer `apm.lock.yaml` must list Adaptive Skill + HIGH + STANDARD under `deployed_files` / `deployed_file_hashes`
+3. Prove `apm pack` **refuses** local path dependencies (cannot pack Adaptive via path dep)
+4. Separate pack-lock seed (package-owned only) so pack can embed `apm.lock.yaml`
+5. Synthesize `plugin.json` in pack stage; `apm pack --format plugin` (**target-neutral**) with original `git:parent` `apm.yml`
+6. Assert Adaptive is **not** inlined into the Plan Coverage plugin bundle; optionally pack Adaptive standalone as its own plugin bundle
+7. Cleanup unless `-KeepStage`
+
+This separates “Adaptive is attested in APM install lock” from “APM pack of Plan Coverage inlines Adaptive” — the HOLD gap is a packaging/materialization boundary, not a missing attestation.
 
 Typical bundle layout:
 

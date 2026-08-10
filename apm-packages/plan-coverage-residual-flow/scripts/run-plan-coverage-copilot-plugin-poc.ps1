@@ -270,32 +270,49 @@ $(if (Test-Path -LiteralPath $sharePath) { Get-Content -LiteralPath $sharePath -
 
 function Test-CodexDirectPluginSupport {
     $evidence = [System.Collections.Generic.List[object]]::new()
-    $status = 'UNCONFIRMED'
+    $status = 'UNCONFIRMED_NO_LOCAL_DIRECT_LOAD_OBSERVED'
     try {
         $ver = ((& codex --version 2>&1 | Out-String).Trim())
         $evidence.Add([ordered]@{ kind = 'client_version'; value = $ver }) | Out-Null
         $help = ((& codex plugin --help 2>&1 | Out-String).Trim())
-        $evidence.Add([ordered]@{ kind = 'plugin_help'; value = ($help -replace '\s+', ' ').Substring(0, [Math]::Min(500, $help.Length)) }) | Out-Null
+        $evidence.Add([ordered]@{ kind = 'plugin_help'; value = ($help -replace '\s+', ' ').Substring(0, [Math]::Min(500, ($help.Length))) }) | Out-Null
         $addHelp = ((& codex plugin add --help 2>&1 | Out-String).Trim())
-        $evidence.Add([ordered]@{ kind = 'plugin_add_help'; value = ($addHelp -replace '\s+', ' ').Substring(0, [Math]::Min(500, $addHelp.Length)) }) | Out-Null
-        # Codex plugin add requires marketplace snapshot selector PLUGIN@MARKETPLACE — no local bundle path / --plugin-dir equivalent observed.
-        if ($addHelp -match 'MARKETPLACE' -and $addHelp -notmatch 'local path|plugin-dir|directory bundle') {
-            $status = 'UNSUPPORTED_CURRENT_CLIENT'
+        $evidence.Add([ordered]@{ kind = 'plugin_add_help'; value = ($addHelp -replace '\s+', ' ').Substring(0, [Math]::Min(500, ($addHelp.Length))) }) | Out-Null
+
+        # Probe actual CLI rejection of a local path (no hand-unpack into .codex/**).
+        $probeDir = Join-Path ([System.IO.Path]::GetTempPath()) ('codex-plugin-probe-' + [Guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $probeDir -Force | Out-Null
+        Write-ApUtf8File (Join-Path $probeDir 'plugin.json') "{`"name`":`"probe`",`"version`":`"0.0.0`"}`n"
+        try {
+            $probeOut = & codex @('plugin', 'add', $probeDir) 2>&1
+            $probeText = (($probeOut | ForEach-Object { [string]$_ }) -join "`n")
+            $probeExit = $LASTEXITCODE
             $evidence.Add([ordered]@{
-                    kind   = 'conclusion'
-                    value  = 'codex plugin add installs from configured marketplace snapshots only; no documented direct local Agent Plugins bundle load path on this client.'
+                    kind  = 'local_path_probe'
+                    value = "exit=$probeExit text=$(($probeText -replace '\s+', ' ').Substring(0, [Math]::Min(400, $probeText.Length)))"
                 }) | Out-Null
+            if ($probeExit -ne 0) {
+                $status = 'UNCONFIRMED_NO_LOCAL_DIRECT_LOAD_OBSERVED'
+                $evidence.Add([ordered]@{
+                        kind  = 'conclusion'
+                        value = 'codex plugin add rejected local path probe; marketplace-oriented help only. No confirmed local Agent Plugins bundle direct-load path.'
+                    }) | Out-Null
+            }
+            else {
+                $status = 'UNCONFIRMED'
+                $evidence.Add([ordered]@{ kind = 'conclusion'; value = 'local path probe unexpectedly succeeded; needs manual review' }) | Out-Null
+            }
         }
-        else {
-            $status = 'UNCONFIRMED'
+        finally {
+            Remove-Item -LiteralPath $probeDir -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
     catch {
-        $status = 'UNCONFIRMED'
+        $status = 'UNCONFIRMED_NO_LOCAL_DIRECT_LOAD_OBSERVED'
         $evidence.Add([ordered]@{ kind = 'error'; value = "$_" }) | Out-Null
     }
     return [ordered]@{
-        status = $status
+        status   = $status
         evidence = @($evidence)
     }
 }
@@ -322,10 +339,11 @@ $packageMeta = Get-ApYamlScalarMap $apmYmlPath
 $canonicalFingerprint = Get-CanonicalFingerprint $canonicalRoot
 $apmYmlSha = Get-Sha256File $apmYmlPath
 $packageVersion = Get-PackageVersion $apmYmlPath
-$candidateCommitRaw = & git -C $repoRoot rev-parse HEAD 2>$null
-if ($candidateCommitRaw) { $candidateCommit = ([string]$candidateCommitRaw).Trim() } else { $candidateCommit = 'UNOBSERVABLE' }
-$dirty = @(& git -C $repoRoot status --porcelain 2>$null)
-if ($dirty.Count -gt 0) { $candidateCommit = "$candidateCommit-dirty" }
+# Qualifying external-model evidence requires a clean full SHA (no -dirty).
+$candidateCommit = Get-ApGitCandidateCommit -RepoRoot $repoRoot
+if ($candidateCommit -notmatch '^[a-f0-9]{40}$') {
+    throw "candidate_commit must be a clean 40-char SHA for PoC evidence (got: $candidateCommit)"
+}
 
 $payload = @"
 Plan Coverage GitHub Copilot CLI Agent Plugins direct-load PoC (#107)
@@ -354,6 +372,9 @@ try {
         $ownedBuildOut = Join-Path $runRoot 'bundle-out'
         Write-Host 'Building plugin bundle...'
         $buildResult = & $buildScript -OutputDir $ownedBuildOut -Force
+        if (-not $buildResult -or -not $buildResult.bundle_root) {
+            throw 'build-plan-coverage-agent-plugin.ps1 did not return bundle_root'
+        }
         $BundleRoot = [string]$buildResult.bundle_root
     }
     $BundleRoot = [System.IO.Path]::GetFullPath($BundleRoot)

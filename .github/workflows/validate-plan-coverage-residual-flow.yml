@@ -49,14 +49,6 @@ jobs:
       - name: Validate runtime qualification evidence contract
         shell: pwsh
         run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-runtime-qualification.ps1
-      - name: Set up pinned APM CLI (agent plugin pack/validate)
-        uses: microsoft/apm-action@v1
-        with:
-          setup-only: 'true'
-          apm-version: '0.26.0'
-      - name: Validate Agent Plugins bundle build and conformance
-        shell: pwsh
-        run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-agent-plugin.ps1
       - name: Check branch or PR whitespace
         shell: pwsh
         env:
@@ -84,11 +76,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Set up pinned APM CLI
         uses: microsoft/apm-action@v1
         with:
           setup-only: 'true'
           apm-version: '0.26.0'
+      - name: Validate Agent Plugins bundle build, Adaptive attestation, and PoC result contracts
+        shell: pwsh
+        run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-agent-plugin.ps1
       - name: Validate fresh package installation and standalone lifecycle
         shell: pwsh
         env:

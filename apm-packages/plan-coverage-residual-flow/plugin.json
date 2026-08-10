@@ -1,7 +1,0 @@
-{
-  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
-  "name": "plan-coverage-residual-flow",
-  "version": "0.13.0",
-  "description": "Plan Coverage Check and Residual Decision Flow with durable Design Pair waiting state, full-coverage Slice Living Records, Architecture Slice Readiness, Guardrail Focus, and residual decision gating",
-  "repository": "https://github.com/suusanex/coding_agent_plan_and_verify_process"
-}
