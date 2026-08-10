@@ -314,6 +314,17 @@ Canonical Plan Coverage semantics remain runtime-neutral under `.apm/`. Distribu
 
 Current Copilot CLI status is recorded in that matrix document (GitHub Copilot CLI QUALIFIED for the fingerprint listed there). Do not treat VS Code Agent mode as qualified unless a separate runtime run says so.
 
+## Agent Plugins PoC (Issue #107)
+
+Same canonical `.apm` source can be packed with `apm pack --format plugin` into an Agent Plugins v1.0.0–aware bundle (`plugin.json` + `skills/` + optional client extension dirs). This is a **controlled experiment**, not a production distribution switch, and does **not** replace the #106 APM qualification baseline.
+
+- [Agent Plugins PoC document](../../docs/plan-coverage-agent-plugin-poc.md)
+- [PoC fixtures / results](tests/agent-plugin-poc/README.md)
+
+```powershell
+./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-agent-plugin.ps1
+```
+
 ## Documentation and validation
 
 - [Purpose and policy](../../docs/plan-coverage-purpose.md)
@@ -324,12 +335,14 @@ Current Copilot CLI status is recorded in that matrix document (GitHub Copilot C
 - [Change Risk Triage profile stability smoke](tests/change-risk-triage/README.md)
 - [Manual model smoke](tests/manual-model-smoke/README.md)
 - [Runtime qualification matrix](../../docs/plan-coverage-runtime-qualification.md)
+- [Agent Plugins PoC](../../docs/plan-coverage-agent-plugin-poc.md)
 
 ```powershell
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-runtime-qualification.ps1
+./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-agent-plugin.ps1
 ```
 
 standalone full-coverage E2Eは、currentまたはinstalled Living Record / close reference authorityからrequired sectionとtableを導出し、2-slice fixtureのowner境界、artifact budget、negative cases、ledger delta適用、production bindingを確認します。そのうえで2つのslice payloadを依存順に適用し、slice-local verification、production entrypoint経由のcross-slice verification、residual decisionまでをdeterministicに検証します。外部modelは実行しないため、CodexやCopilot等がlifecycleを自律実行した証拠ではありません。

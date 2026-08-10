@@ -100,6 +100,16 @@ Optional remote package source:
 
 External model invocation is **not** part of ordinary pull_request CI.
 
+## Related experiment — Agent Plugins direct-load (Issue #107)
+
+Issue #107 packs the **same** canonical `.apm` source into an Agent Plugins v1.0.0–aware plugin-format bundle and probes Copilot CLI direct plugin load **without** replacing this APM qualification matrix.
+
+- PoC document: [plan-coverage-agent-plugin-poc.md](./plan-coverage-agent-plugin-poc.md)
+- Deterministic validator: `apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-agent-plugin.ps1`
+- Live harness (opt-in external model): `run-plan-coverage-copilot-plugin-poc.ps1 -ConfirmExternalModelPayload`
+
+Do **not** rewrite #106 QUALIFIED rows from plugin PoC outcomes. Compare via fingerprint-matched evidence only.
+
 ## Runtime evidence — Codex
 
 | Item | Boundary |

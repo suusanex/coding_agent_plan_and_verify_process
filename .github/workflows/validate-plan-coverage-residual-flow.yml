@@ -10,6 +10,7 @@ on:
       - 'docs/plan-coverage-process-and-agents.md'
       - 'docs/plan-coverage-purpose.md'
       - 'docs/plan-coverage-runtime-qualification.md'
+      - 'docs/plan-coverage-agent-plugin-poc.md'
       - 'docs/token-aware-full-coverage-decomposition-flow.md'
       - 'docs/architecture-slice-readiness-validation.md'
       - 'docs/architecture-slice-readiness-validation-result.md'
@@ -24,6 +25,7 @@ on:
       - 'docs/plan-coverage-process-and-agents.md'
       - 'docs/plan-coverage-purpose.md'
       - 'docs/plan-coverage-runtime-qualification.md'
+      - 'docs/plan-coverage-agent-plugin-poc.md'
       - 'docs/token-aware-full-coverage-decomposition-flow.md'
       - 'docs/architecture-slice-readiness-validation.md'
       - 'docs/architecture-slice-readiness-validation-result.md'
@@ -47,6 +49,14 @@ jobs:
       - name: Validate runtime qualification evidence contract
         shell: pwsh
         run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-runtime-qualification.ps1
+      - name: Set up pinned APM CLI (agent plugin pack/validate)
+        uses: microsoft/apm-action@v1
+        with:
+          setup-only: 'true'
+          apm-version: '0.26.0'
+      - name: Validate Agent Plugins bundle build and conformance
+        shell: pwsh
+        run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-agent-plugin.ps1
       - name: Check branch or PR whitespace
         shell: pwsh
         env:

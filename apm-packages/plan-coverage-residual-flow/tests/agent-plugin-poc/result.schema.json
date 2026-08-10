@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Plan Coverage Agent Plugins direct-load PoC result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "issue",
+    "date",
+    "spec",
+    "source_run",
+    "environment",
+    "bundle",
+    "copilot_direct_load",
+    "codex_direct_load",
+    "boundary_inventory",
+    "comparison_to_apm",
+    "decision"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "issue": { "type": "integer", "const": 107 },
+    "date": { "type": "string", "minLength": 1 },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agent_plugins_version", "agent_plugins_schema"],
+      "properties": {
+        "agent_plugins_version": { "type": "string", "const": "1.0.0" },
+        "agent_plugins_schema": {
+          "type": "string",
+          "const": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+        }
+      }
+    },
+    "source_run": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "candidate_commit",
+        "canonical_fingerprint",
+        "package_version",
+        "plugin_manifest_sha256",
+        "bundle_lock_sha256"
+      ],
+      "properties": {
+        "candidate_commit": { "type": "string", "minLength": 1 },
+        "canonical_fingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "package_version": { "type": "string", "minLength": 1 },
+        "apm_yml_sha256": { "type": "string" },
+        "plugin_manifest_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "bundle_lock_sha256": { "type": "string", "minLength": 1 },
+        "bundle_root_recorded": { "type": "string" }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["apm_version", "copilot_cli_version"],
+      "properties": {
+        "apm_version": { "type": "string" },
+        "copilot_cli_version": { "type": "string" },
+        "platform": { "type": "string" },
+        "model_requested": { "type": ["string", "null"] },
+        "model_observed": { "type": "string" }
+      }
+    },
+    "bundle": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "status",
+        "manifest_conformance",
+        "canonical_skill_match",
+        "canonical_agent_match"
+      ],
+      "properties": {
+        "status": { "type": "string", "enum": ["PASS", "FAIL"] },
+        "manifest_conformance": { "type": "string", "enum": ["PASS", "FAIL"] },
+        "canonical_skill_match": { "type": "boolean" },
+        "canonical_agent_match": { "type": "boolean" },
+        "lock_embedded": { "type": "boolean" },
+        "adaptive_in_bundle": { "type": "boolean" }
+      }
+    },
+    "copilot_direct_load": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["status", "capability_gaps"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["PASS", "PARTIAL", "BLOCKED", "NOT_RUN", "FAIL"]
+        },
+        "plugin_discovery": { "type": "string" },
+        "plugin_install": { "type": "string" },
+        "plugin_load_mode": { "type": ["string", "null"] },
+        "authorization": { "type": "string" },
+        "standard_slice": { "type": "string" },
+        "full_coverage": { "type": "string" },
+        "adaptive_connection": { "type": "string" },
+        "shared_instruction": { "type": "string" },
+        "capability_gaps": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "codex_direct_load": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["status", "evidence"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "SUPPORTED",
+            "UNSUPPORTED_CURRENT_CLIENT",
+            "UNCONFIRMED",
+            "NOT_TESTED"
+          ]
+        },
+        "evidence": { "type": "array" }
+      }
+    },
+    "boundary_inventory": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["item", "classification"],
+        "properties": {
+          "item": { "type": "string" },
+          "classification": {
+            "type": "string",
+            "enum": [
+              "agent-plugins-portable",
+              "transitive-portable-dependency",
+              "copilot-plugin-extension",
+              "copilot-runtime-adapter",
+              "codex-runtime-adapter",
+              "apm-projection-materialization",
+              "apm-distribution-provenance",
+              "currently-unqualified"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "comparison_to_apm": { "type": "object" },
+    "scenarios": { "type": "array" },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verdict", "rationale", "next_steps"],
+      "properties": {
+        "verdict": { "type": "string", "enum": ["GO", "HOLD", "NO_GO"] },
+        "rationale": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "next_steps": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}
