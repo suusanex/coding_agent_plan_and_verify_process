@@ -515,6 +515,23 @@ Assert-Contains "$copilotEvidenceDir/conf.txt" 'HUMAN_DECISION_REQUIRED' 'confli
 Assert-Contains "$copilotEvidenceDir/conf.txt" 'DP-D01' 'conflict log Locked Decision id'
 Assert-Contains 'README.md' 'apm-packages/design-pair-implementation-execution' 'root Design Pair package link'
 
+$dpApmSmoke = 'apm-packages/design-pair-implementation-execution/scripts/validate-dp-apm-smoke.ps1'
+Assert-FileExists $dpApmSmoke
+Assert-Contains $dpApmSmoke 'APM 0\.26\.0 is required' 'Design Pair APM smoke pins APM 0.26.0'
+Assert-Contains $dpApmSmoke 'copilot,codex,agent-skills' 'Design Pair APM smoke installs all targets'
+Assert-Contains $dpApmSmoke '\.agents/skills/design-pair-implementation-execution/SKILL\.md' 'Design Pair APM smoke verifies Design Pair Skill deployment'
+Assert-Contains $dpApmSmoke '\.agents/skills/adaptive-implementation-execution/SKILL\.md' 'Design Pair APM smoke verifies transitive Adaptive Skill'
+Assert-Contains $dpApmSmoke '\.github/agents/high-implementation-starter\.agent\.md' 'Design Pair APM smoke verifies transitive HIGH agent'
+Assert-Contains $dpApmSmoke '\.github/agents/standard-implementation-completer\.agent\.md' 'Design Pair APM smoke verifies transitive STANDARD agent'
+Assert-Contains $dpApmSmoke '\.codex/agents/high-implementation-starter\.toml' 'Design Pair APM smoke verifies transitive Codex HIGH TOML'
+Assert-Contains $dpApmSmoke 'design-pair-implementation-execution.*0\.3\.1' 'Design Pair APM smoke verifies lock version'
+Assert-Contains $dpApmSmoke 'adaptive-implementation-execution.*0\.5\.0' 'Design Pair APM smoke verifies transitive Adaptive lock version'
+
+$dpWorkflow = '.github/workflows/validate-design-pair-implementation-execution.yml'
+Assert-Contains $dpWorkflow 'validate-dp-apm-smoke\.ps1' 'Design Pair workflow runs remote APM install smoke'
+Assert-Contains $dpWorkflow 'microsoft/apm-action@v1' 'Design Pair workflow sets up APM'
+Assert-Contains $dpWorkflow "apm-version:\s*'0\.26\.0'" 'Design Pair workflow pins APM 0.26.0'
+
 if ($failures.Count -gt 0) {
     Write-Error ("Design Pair Implementation validation failed:`n- " + ($failures -join "`n- "))
     exit 1

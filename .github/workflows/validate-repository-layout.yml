@@ -1,0 +1,19 @@
+name: Validate Repository Layout
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-layout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify no package runtime projections at source root
+        shell: pwsh
+        run: ./scripts/validate-no-root-projections.ps1

@@ -115,7 +115,10 @@ GitHub Copilot CLI runtime qualification (external model) is manual. See [Plan C
 
 ```powershell
 git diff --check
+./scripts/validate-no-root-projections.ps1
 ```
+
+`validate-no-root-projections.ps1`はsource repository rootにpackage runtime projection（`.github/agents/`、`.codex/agents/`、`.agents/skills/`、package-owned `.github/instructions/`）が再導入されていないことを全PRで検証します。CI workflow `.github/workflows/validate-repository-layout.yml`が全PRで無条件起動し、このcheckを実行します。
 
 READMEやMarkdown linkを変更した場合は、相対linkのtargetが存在することも確認します。local static validatorのPASSは、real model independence、real GitHub mutation、Windows packaged app、Codex callback、remote APM installの実行証拠を意味しません。
 

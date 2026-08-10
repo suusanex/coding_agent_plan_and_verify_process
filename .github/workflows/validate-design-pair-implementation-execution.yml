@@ -26,6 +26,20 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: microsoft/apm-action@v1
+        with:
+          apm-version: '0.26.0'
       - name: Validate Design Pair package and integrated contracts
         shell: pwsh
         run: ./apm-packages/design-pair-implementation-execution/scripts/validate.ps1
+      - name: Remote APM install smoke for Design Pair transitive closure
+        shell: pwsh
+        env:
+          PACKAGE_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          PACKAGE_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          ./apm-packages/design-pair-implementation-execution/scripts/validate-dp-apm-smoke.ps1 `
+            -Repository $env:PACKAGE_REPOSITORY `
+            -Ref $env:PACKAGE_REF

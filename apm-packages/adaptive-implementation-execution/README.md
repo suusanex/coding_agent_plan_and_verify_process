@@ -54,8 +54,8 @@ HIGH_MODELとSTANDARD_MODELのwrite-heavy workは並列化しません。非局�
 | Orchestration skill | `.apm/skills/adaptive-implementation-execution/SKILL.md` |
 | Implementation Intent reference | skill の `refs/intent.md` |
 | Completion Handoff reference | skill の `refs/handoff.md` |
-| Portable HIGH_MODEL agent | repository root `.github/agents/high-implementation-starter.agent.md` |
-| Portable STANDARD_MODEL agent | repository root `.github/agents/standard-implementation-completer.agent.md` |
+| Portable HIGH_MODEL agent | `.apm/agents/high-implementation-starter.agent.md` |
+| Portable STANDARD_MODEL agent | `.apm/agents/standard-implementation-completer.agent.md` |
 | Codex agent configuration sources | `codex-agents/*.toml` |
 | Compatibility installer | `scripts/install-adaptive-implementation-local.cs` |
 | Static validator | `scripts/validate-adaptive-implementation-execution.ps1` |
@@ -63,9 +63,9 @@ HIGH_MODELとSTANDARD_MODELのwrite-heavy workは並列化しません。非局�
 | Executable route scenarios A-J | `tests/routing-scenarios.json` + `tests/validate-routing-scenarios.ps1` |
 | Pre-Design-Pair resume fixture | `docs/examples/legacy-adaptive-handoff.md` |
 
-root `.github/agents/high-implementation-starter.agent.md` と `standard-implementation-completer.agent.md` がportable agent contractです。APM 0.26.0はこれらの root agent と package Skill を target ごとに導入し、Copilotでは`.agent.md`、Codexではmodel-less TOML stubを扱います。両agentは`disable-model-invocation: true`によりagent pickerからの明示選択を維持しつつ、他agentのmodel判断によるsubagent起動を禁止します。`tools`は省略してCopilotの全toolを許可し、Codex変換時のfrontmatter dropを防ぎます。
+package内の `.apm/agents/high-implementation-starter.agent.md` と `.apm/agents/standard-implementation-completer.agent.md` がportable agent contractのcanonical sourceです。APM 0.26.0はこれらの agent と package Skill を target ごとに導入し、install先でCopilotは`.github/agents/*.agent.md`、Codexは`.codex/agents/*.toml`としてprojectionします。両agentは`disable-model-invocation: true`によりagent pickerからの明示選択を維持しつつ、他agentのmodel判断によるsubagent起動を禁止します。`tools`は省略してCopilotの全toolを許可し、Codex変換時のfrontmatter dropを防ぎます。
 
-local installer は package の `codex-agents/high-implementation-starter.toml` と `standard-implementation-completer.toml` だけを source とし、target の `.codex/agents/*.toml` だけを書き込みます。root `.github/agents/*.agent.md`、Skill、その他の target file をコピーまたは更新しません。APM が Skill と root portable agents を導入し、local installer は Codex の concrete model 設定を補完します。
+local installer は package の `codex-agents/high-implementation-starter.toml` と `standard-implementation-completer.toml` だけを source とし、target の `.codex/agents/*.toml` だけを書き込みます。install先の `.github/agents/*.agent.md`、Skill、その他の target file をコピーまたは更新しません。APM が Skill と portable agents を install先へprojectionし、local installer は Codex の concrete model 設定を補完します。
 
 ## Quick start
 

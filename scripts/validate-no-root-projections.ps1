@@ -14,7 +14,7 @@ $prohibitedRootPatterns = @(
 foreach ($entry in $prohibitedRootPatterns) {
     $rootPath = Join-Path $repoRoot $entry.Path
     if (Test-Path -LiteralPath $rootPath -PathType Container) {
-        $children = Get-ChildItem -LiteralPath $rootPath -Recurse -File
+        $children = @(Get-ChildItem -LiteralPath $rootPath -Force -Recurse -File)
         if ($children.Count -gt 0) {
             $failures.Add("Prohibited $($entry.Description) directory exists at root: $($entry.Path) ($($children.Count) file(s))")
         }
@@ -23,13 +23,19 @@ foreach ($entry in $prohibitedRootPatterns) {
 
 $instructionsDir = Join-Path $repoRoot '.github/instructions'
 if (Test-Path -LiteralPath $instructionsDir -PathType Container) {
-    $packageOwnedInstructions = @(Get-ChildItem -LiteralPath $instructionsDir -File -Recurse | Where-Object {
-        $name = $_.Name
-        $knownPackageInstructions = @('plan-coverage-shared.instructions.md')
-        $name -in $knownPackageInstructions
+    $packageOwnedInstructionNames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    $apmInstructionFiles = @(Get-ChildItem -LiteralPath (Join-Path $repoRoot 'apm-packages') -Force -Recurse -File | Where-Object {
+        $_.FullName -match '[\\/]\.apm[\\/]instructions[\\/]'
     })
-    foreach ($file in $packageOwnedInstructions) {
-        $failures.Add("Prohibited package-owned instruction at root: $($file.FullName.Substring($repoRoot.Length + 1))")
+    foreach ($file in $apmInstructionFiles) {
+        [void]$packageOwnedInstructionNames.Add($file.Name)
+    }
+
+    $rootInstructionFiles = @(Get-ChildItem -LiteralPath $instructionsDir -Force -Recurse -File)
+    foreach ($file in $rootInstructionFiles) {
+        if ($packageOwnedInstructionNames.Contains($file.Name)) {
+            $failures.Add("Prohibited package-owned instruction at root: .github/instructions/$($file.Name)")
+        }
     }
 }
 
