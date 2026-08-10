@@ -30,7 +30,7 @@ dotnet run --file <installer.cs> -- <target> --check
 
 `scripts/provision-work-repo-agents.cs`は、Plan Coverage packageを`copilot,codex,agent-skills` targetで対象repositoryへ`apm install --update`し、APM変換後のHIGH / STANDARD Codex TOMLを補正します。Plan Coverage manifestはpackage-owned `.apm` primitivesを`includes: auto`で配布し、Adaptive Implementation package（`apm-packages/adaptive-implementation-execution`）へpackage boundary dependencyするため、この入口ではAdaptive packageを重ねてinstallしません。HIGH / STANDARD agentsとAdaptive SkillのownershipはAdaptive package側に残り、Codex concrete profile overlayだけがexisting provisioner ownershipです。Adaptive単独利用は専用packageのinstallerを使い、Design PairとPR Review Remediationは各package READMEの導入・同期手順を使います。
 
-Plan Coverageのcanonical authoring sourceは`apm-packages/plan-coverage-residual-flow/.apm/`です。`.github/agents/`、`.github/instructions/`、`.codex/agents/`、`.agents/skills/`はruntime / checked-in projectionであり、独立したsource of truthとして直接編集しません。canonical contractを修正するときは`.apm`を修正し、projection driftはPlan Coverage validatorとAPM install smokeで検出します。
+Plan Coverageのcanonical authoring sourceは`apm-packages/plan-coverage-residual-flow/.apm/`です。source repository rootにpackage runtime projection（`.github/agents/`、`.github/instructions/`、`.codex/agents/`、`.agents/skills/`）をchecked-inしません。canonical contractを修正するときは`.apm`を修正し、runtime projectionの正しさはAPM install smokeで検証します。
 
 ```powershell
 dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target --dry-run
@@ -115,7 +115,10 @@ GitHub Copilot CLI runtime qualification (external model) is manual. See [Plan C
 
 ```powershell
 git diff --check
+./scripts/validate-no-root-projections.ps1
 ```
+
+`validate-no-root-projections.ps1`はsource repository rootにpackage runtime projection（`.github/agents/`、`.codex/agents/`、`.agents/skills/`、package-owned `.github/instructions/`）が再導入されていないことを全PRで検証します。CI workflow `.github/workflows/validate-repository-layout.yml`が全PRで無条件起動し、このcheckを実行します。
 
 READMEやMarkdown linkを変更した場合は、相対linkのtargetが存在することも確認します。local static validatorのPASSは、real model independence、real GitHub mutation、Windows packaged app、Codex callback、remote APM installの実行証拠を意味しません。
 

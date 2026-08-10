@@ -53,8 +53,8 @@ function New-SmokeRun {
     $repo = Join-Path $root 'repo'
     New-Item -ItemType Directory -Path (Join-Path $repo '.github\agents') -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $repo 'docs') -Force | Out-Null
-    Copy-Item (Join-Path $RepositoryRoot '.github\agents\local-reviewer.agent.md') (Join-Path $repo '.github\agents\local-reviewer.agent.md')
-    Copy-Item (Join-Path $RepositoryRoot '.github\agents\purpose-reviewer.agent.md') (Join-Path $repo '.github\agents\purpose-reviewer.agent.md')
+    Copy-Item (Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\.apm\agents\local-reviewer.agent.md') (Join-Path $repo '.github\agents\local-reviewer.agent.md')
+    Copy-Item (Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\.apm\agents\purpose-reviewer.agent.md') (Join-Path $repo '.github\agents\purpose-reviewer.agent.md')
     # Intentionally omit Codex TOML profiles so Copilot-only installs are exercised.
     Set-Content (Join-Path $repo 'docs\goal-context-smoke.md') -Value "Goal: verify Copilot CLI reviewer adapter captures raw review text.`n"
     Push-Location $repo

@@ -229,10 +229,9 @@ static List<string> ValidateAdaptiveInstallation(string targetRoot)
         "standard-implementation-completer.agent.md"
     })
     {
-        var repositoryAgent = Path.Combine(targetRoot, ".github", "agents", fileName);
-        if (!File.Exists(repositoryAgent) && !HasApmCanonicalAgent(targetRoot, fileName))
+        if (!HasApmCanonicalAgent(targetRoot, fileName))
         {
-            problems.Add($"Adaptive canonical agent is missing: .github/agents/{fileName} or apm_modules/**/.apm/agents/{fileName}");
+            problems.Add($"Adaptive canonical agent is missing: apm_modules/**/.apm/agents/{fileName}");
         }
     }
 

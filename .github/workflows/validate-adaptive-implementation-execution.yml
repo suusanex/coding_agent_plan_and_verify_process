@@ -3,10 +3,6 @@ name: Validate Adaptive Implementation Contracts
 on:
   pull_request:
     paths:
-      - '.github/agents/high-implementation-starter.agent.md'
-      - '.github/agents/standard-implementation-completer.agent.md'
-      - '.github/agents/**'
-      - '.github/instructions/plan-coverage-shared.instructions.md'
       - '.github/workflows/validate-adaptive-implementation-execution.yml'
       - 'apm-packages/adaptive-implementation-execution/**'
       - 'apm-packages/design-pair-implementation-execution/**'
@@ -16,10 +12,6 @@ on:
       - 'README.md'
   push:
     paths:
-      - '.github/agents/high-implementation-starter.agent.md'
-      - '.github/agents/standard-implementation-completer.agent.md'
-      - '.github/agents/**'
-      - '.github/instructions/plan-coverage-shared.instructions.md'
       - '.github/workflows/validate-adaptive-implementation-execution.yml'
       - 'apm-packages/adaptive-implementation-execution/**'
       - 'apm-packages/design-pair-implementation-execution/**'

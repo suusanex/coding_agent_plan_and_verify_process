@@ -3,7 +3,6 @@ name: Validate Architecture Slice Readiness Contracts
 on:
   pull_request:
     paths:
-      - '.github/agents/**'
       - '.github/workflows/validate-architecture-slice-readiness.yml'
       - 'apm-packages/**'
       - 'docs/**'
@@ -12,7 +11,6 @@ on:
       - 'tests/architecture-slice-readiness/**'
   push:
     paths:
-      - '.github/agents/**'
       - '.github/workflows/validate-architecture-slice-readiness.yml'
       - 'apm-packages/**'
       - 'docs/**'

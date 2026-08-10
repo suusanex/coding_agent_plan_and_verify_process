@@ -28,14 +28,9 @@ function Find-OneFile([string]$Root, [string]$Leaf, [string]$Purpose) {
 }
 
 function Resolve-InstalledAgentAuthority([string]$Root, [string]$Leaf) {
-    $runtimeProjection = Join-Path $Root ".github/agents/$Leaf"
-    if (Test-Path -LiteralPath $runtimeProjection -PathType Leaf) {
-        return $runtimeProjection
-    }
-
     $apmModulesRoot = Join-Path $Root 'apm_modules'
     if (-not (Test-Path -LiteralPath $apmModulesRoot -PathType Container)) {
-        throw "installed agent $Leaf has no runtime projection under .github/agents and no apm_modules fallback root."
+        throw "installed agent $Leaf has no apm_modules root under $Root."
     }
 
     $canonicalCandidates = @(
@@ -47,7 +42,7 @@ function Resolve-InstalledAgentAuthority([string]$Root, [string]$Leaf) {
             ForEach-Object { $_.FullName }
     )
     if ($canonicalCandidates.Count -eq 0) {
-        throw "installed agent $Leaf could not be resolved from .github/agents or package-owned .apm/agents under apm_modules."
+        throw "installed agent $Leaf could not be resolved from package-owned .apm/agents under apm_modules."
     }
 
     $uniqueContents = @(

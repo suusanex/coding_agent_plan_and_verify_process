@@ -77,7 +77,7 @@ try {
             $stageAdaptiveAgents = Join-Path $stageAdaptive '.apm\agents'
             New-Item -ItemType Directory -Path $stageAdaptiveAgents -Force | Out-Null
             foreach ($adaptiveAgent in @('high-implementation-starter.agent.md', 'standard-implementation-completer.agent.md')) {
-                Copy-Item -LiteralPath (Join-Path $repoRoot ".github\agents\$adaptiveAgent") -Destination (Join-Path $stageAdaptiveAgents $adaptiveAgent) -Force
+                Copy-Item -LiteralPath (Join-Path $repoRoot "apm-packages\adaptive-implementation-execution\.apm\agents\$adaptiveAgent") -Destination (Join-Path $stageAdaptiveAgents $adaptiveAgent) -Force
             }
 
             $stageAdaptiveResolved = (Resolve-Path -LiteralPath $stageAdaptive).Path
@@ -168,7 +168,6 @@ dependencies:
         $canonicalAgentPath = Join-Path $repoRoot "apm-packages/plan-coverage-residual-flow/.apm/agents/$agentName.agent.md"
         $installedCopilotPath = Join-Path $tempRoot ".github/agents/$agentName.agent.md"
         $installedCodexPath = Join-Path $tempRoot ".codex/agents/$agentName.toml"
-        $checkedInCodexPath = Join-Path $repoRoot ".codex/agents/$agentName.toml"
 
         if (-not (Test-Path -LiteralPath $installedCopilotPath -PathType Leaf)) {
             throw "Fresh APM install missing Copilot agent projection: $agentName"
@@ -178,12 +177,6 @@ dependencies:
         }
         if (-not (Test-Path -LiteralPath $installedCodexPath -PathType Leaf)) {
             throw "Fresh APM install missing Codex agent projection: $agentName"
-        }
-        if (-not (Test-Path -LiteralPath $checkedInCodexPath -PathType Leaf)) {
-            throw "Checked-in Codex projection missing for Plan Coverage agent: $agentName"
-        }
-        if ((Get-NormalizedText $installedCodexPath) -cne (Get-NormalizedText $checkedInCodexPath)) {
-            throw "Checked-in Codex projection drifts from fresh APM oracle: $agentName"
         }
     }
 

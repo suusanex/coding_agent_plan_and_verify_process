@@ -9,8 +9,4 @@ targets:
 includes: auto
 
 dependencies:
-  apm:
-    - git: parent
-      path: .github/agents/high-implementation-starter.agent.md
-    - git: parent
-      path: .github/agents/standard-implementation-completer.agent.md
+  apm: []

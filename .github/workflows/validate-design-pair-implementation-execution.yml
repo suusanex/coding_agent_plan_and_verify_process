@@ -6,10 +6,6 @@ on:
       - 'apm-packages/design-pair-implementation-execution/**'
       - 'apm-packages/adaptive-implementation-execution/**'
       - 'apm-packages/plan-coverage-residual-flow/**'
-      - '.github/agents/high-implementation-starter.agent.md'
-      - '.github/agents/standard-implementation-completer.agent.md'
-      - '.github/agents/implementation-handoff-review.agent.md'
-      - '.github/instructions/plan-coverage-shared.instructions.md'
       - '.github/workflows/validate-design-pair-implementation-execution.yml'
       - 'README.md'
   push:
@@ -19,10 +15,6 @@ on:
       - 'apm-packages/design-pair-implementation-execution/**'
       - 'apm-packages/adaptive-implementation-execution/**'
       - 'apm-packages/plan-coverage-residual-flow/**'
-      - '.github/agents/high-implementation-starter.agent.md'
-      - '.github/agents/standard-implementation-completer.agent.md'
-      - '.github/agents/implementation-handoff-review.agent.md'
-      - '.github/instructions/plan-coverage-shared.instructions.md'
       - '.github/workflows/validate-design-pair-implementation-execution.yml'
       - 'README.md'
 
@@ -37,3 +29,25 @@ jobs:
       - name: Validate Design Pair package and integrated contracts
         shell: pwsh
         run: ./apm-packages/design-pair-implementation-execution/scripts/validate.ps1
+
+  validate-install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up pinned APM CLI
+        uses: microsoft/apm-action@v1
+        with:
+          setup-only: 'true'
+          apm-version: '0.26.0'
+      - name: Remote APM install smoke for Design Pair transitive closure
+        shell: pwsh
+        env:
+          PACKAGE_REPOSITORY: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+          PACKAGE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          GITHUB_APM_PAT: ${{ github.token }}
+        run: |
+          ./apm-packages/design-pair-implementation-execution/scripts/validate-dp-apm-smoke.ps1 `
+            -Repository $env:PACKAGE_REPOSITORY `
+            -Ref $env:PACKAGE_REF
