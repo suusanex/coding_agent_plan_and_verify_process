@@ -43,7 +43,7 @@ Implement durable producer publication and consumer startup/replay for this repo
   `standard-implementation-completer` after valid handoff, `verification-kernel`,
   `cross-slice-verification-kernel`, and `residual-decision-gate`.
 - Use canonical Slice Living Records (`plans/*-slice-SL-*.md`) for implementation-ready slices (at least two).
-- Connect each implementation-ready slice to Adaptive Implementation under the Adaptive package contract and keep HIGH before STANDARD.
+- Connect each implementation-ready slice to Adaptive Implementation under the Adaptive package contract. Start from HIGH; hand off to STANDARD only after `READY_FOR_STANDARD_COMPLETION`. `COMPLETED_BY_HIGH_MODEL` is a valid Adaptive terminal when no STANDARD remainder remains.
 - Do not weaken or rewrite `tests/verify-full-001.ps1` or the per-slice verifiers. They are external oracles.
 - No human product decision is required; stop only on true blocking residual.
 - Do not ask clarifying questions; execute until verifiers pass and residual close is possible.

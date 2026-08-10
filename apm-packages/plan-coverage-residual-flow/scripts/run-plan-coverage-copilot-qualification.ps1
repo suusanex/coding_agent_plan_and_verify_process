@@ -632,14 +632,10 @@ Read QUALIFICATION_PROMPT.md in this repository root and execute it completely w
         $args = @('--model', $ModelName) + $args
     }
 
-    $env:COPILOT_HOME = $copilotHome
-    $env:RQ_HOOK_LOG = $hookLog
-    $env:COPILOT_ALLOW_ALL = 'true'
-    $env:CI = 'true'  # disable auto-update noise
-
     $stdout = ''
     $stderr = ''
     $exitCode = -1
+    # Capture caller environment before any qualification overrides.
     $previousCopilotHome = $env:COPILOT_HOME
     $previousHookLog = $env:RQ_HOOK_LOG
     $previousAllowAll = $env:COPILOT_ALLOW_ALL

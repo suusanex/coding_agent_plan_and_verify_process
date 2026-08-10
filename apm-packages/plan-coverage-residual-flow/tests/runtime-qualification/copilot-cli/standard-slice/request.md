@@ -25,7 +25,7 @@ Implement a single-process configuration loader for this repository.
   4. after a valid `READY_FOR_STANDARD_COMPLETION` handoff, `standard-implementation-completer`
   5. `verification-kernel`
   6. `residual-decision-gate`
-- Do not skip Adaptive HIGH -> STANDARD handoff. Record handoff evidence under `plans/`.
+- Start Adaptive from HIGH. If HIGH returns `READY_FOR_STANDARD_COMPLETION`, hand off to STANDARD and record handoff evidence under `plans/`. `COMPLETED_BY_HIGH_MODEL` is a valid Adaptive terminal when no STANDARD remainder remains.
 - Leave Plan Coverage artifacts under `plans/` according to the canonical Plan Coverage contract.
 - Do not weaken or rewrite `tests/verify-std-001.ps1`. That verifier is the external oracle.
 - Do not ask clarifying questions; execute to close.
