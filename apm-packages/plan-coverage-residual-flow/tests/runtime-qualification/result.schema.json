@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Plan Coverage GitHub Copilot CLI runtime qualification result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "date",
+    "runtime",
+    "client_version",
+    "model_requested",
+    "model_observed",
+    "apm_version",
+    "candidate_commit",
+    "plan_coverage_package_version",
+    "canonical_fingerprint",
+    "install_targets",
+    "apm_lock_sha256",
+    "platform",
+    "distribution_smoke",
+    "overall_status",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "date": { "type": "string", "minLength": 1 },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surface", "qualified_client_surface", "other_surfaces"],
+      "properties": {
+        "surface": { "type": "string", "const": "github-copilot" },
+        "qualified_client_surface": { "type": "string", "const": "github-copilot-cli" },
+        "other_surfaces": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "client_version": { "type": "string", "minLength": 1 },
+    "model_requested": { "type": ["string", "null"] },
+    "model_observed": { "type": "string", "minLength": 1 },
+    "apm_version": { "type": "string", "minLength": 1 },
+    "candidate_commit": { "type": "string", "minLength": 1 },
+    "plan_coverage_package_version": { "type": "string", "minLength": 1 },
+    "canonical_fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "apm_yml_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "install_targets": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "string",
+        "enum": ["copilot", "codex", "agent-skills"]
+      }
+    },
+    "apm_lock_sha256": { "type": "string", "minLength": 1 },
+    "platform": { "type": "string", "minLength": 1 },
+    "distribution_smoke": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "command", "rationale"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["PASS", "FAIL", "NOT_RUN", "UNOBSERVABLE"]
+        },
+        "command": { "type": "string", "minLength": 1 },
+        "rationale": { "type": "string", "minLength": 1 }
+      }
+    },
+    "overall_status": {
+      "type": "string",
+      "enum": ["QUALIFIED", "PENDING", "FAIL"]
+    },
+    "qualification_matrix_notes": { "type": "string" },
+    "source_run": { "$ref": "#/$defs/source_run" },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/scenario" }
+    }
+  },
+  "$defs": {
+    "source_run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_run_id",
+        "candidate_commit",
+        "canonical_fingerprint",
+        "apm_yml_sha256",
+        "package_version",
+        "apm_lock_sha256",
+        "install_targets",
+        "client_version"
+      ],
+      "properties": {
+        "source_run_id": { "type": "string", "minLength": 1 },
+        "candidate_commit": { "type": "string", "minLength": 1 },
+        "canonical_fingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "apm_yml_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "package_version": { "type": "string", "minLength": 1 },
+        "apm_lock_sha256": { "type": "string", "minLength": 1 },
+        "install_targets": {
+          "type": "array",
+          "minItems": 3,
+          "items": { "type": "string", "enum": ["copilot", "codex", "agent-skills"] }
+        },
+        "client_version": { "type": "string", "minLength": 1 },
+        "apm_version": { "type": "string" },
+        "model_requested": { "type": ["string", "null"] },
+        "model_observed": { "type": "string" },
+        "platform": { "type": "string" },
+        "distribution_smoke": { "type": "object" }
+      }
+    },
+    "adaptive_phase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "OBSERVED_FROM_HOOK",
+            "OBSERVED_FROM_DURABLE_ARTIFACT",
+            "NOT_REQUIRED",
+            "NOT_OBSERVED",
+            "FAIL"
+          ]
+        },
+        "evidence": { "type": ["string", "null"] },
+        "sha256": { "type": ["string", "null"] },
+        "verdict": { "type": ["string", "null"] },
+        "reason": { "type": ["string", "null"] }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "exact_prompt",
+        "upstream_route_evidence",
+        "exit_code",
+        "skill_observation",
+        "agents_observed",
+        "created_artifacts",
+        "changed_artifacts",
+        "verifier_results",
+        "route_observed",
+        "verdict",
+        "stop_reason",
+        "status",
+        "rationale",
+        "transcript_sha256",
+        "hook_log_sha256"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "authorization-negative",
+            "authorization-positive",
+            "standard-slice-e2e",
+            "full-coverage-e2e"
+          ]
+        },
+        "exact_prompt": { "type": ["string", "null"] },
+        "upstream_route_evidence": { "type": ["object", "null"] },
+        "exit_code": { "type": ["integer", "null"] },
+        "skill_observation": {
+          "type": "string",
+          "enum": ["OBSERVED", "UNOBSERVABLE", "NOT_SELECTED", "SELECTED"]
+        },
+        "agents_observed": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Hook/session structured agent names only. Not inferred from free text."
+        },
+        "route_stage_evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["stage", "status"],
+            "properties": {
+              "stage": { "type": "string", "minLength": 1 },
+              "status": {
+                "type": "string",
+                "enum": ["OBSERVED_FROM_HOOK", "OBSERVED_FROM_DURABLE_ARTIFACT", "NOT_OBSERVED", "PASS", "FAIL"]
+              },
+              "evidence": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "created_artifacts": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "changed_artifacts": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "verifier_results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "status"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "status": {
+                "type": "string",
+                "enum": ["PASS", "FAIL", "NOT_RUN", "UNOBSERVABLE"]
+              },
+              "detail": { "type": "string" }
+            }
+          }
+        },
+        "route_observed": { "type": ["string", "null"] },
+        "verdict": { "type": ["string", "null"] },
+        "stop_reason": { "type": ["string", "null"] },
+        "status": {
+          "type": "string",
+          "enum": ["PASS", "FAIL", "NOT_RUN", "UNOBSERVABLE"]
+        },
+        "rationale": { "type": "string", "minLength": 1 },
+        "transcript_sha256": { "type": ["string", "null"] },
+        "hook_log_sha256": { "type": ["string", "null"] },
+        "adaptive_connection": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "high_execution": { "$ref": "#/$defs/adaptive_phase" },
+            "handoff": { "$ref": "#/$defs/adaptive_phase" },
+            "standard_execution": { "$ref": "#/$defs/adaptive_phase" },
+            "connection_satisfied": { "type": "boolean" },
+            "high_to_standard_handoff_satisfied": { "type": "boolean" },
+            "design_pair_auto_selected": { "type": "boolean" },
+            "high_observed": { "type": "boolean" },
+            "standard_observed": { "type": "boolean" },
+            "handoff_observed": { "type": "boolean" }
+          }
+        },
+        "evidence_boundary": { "type": "string" }
+      }
+    }
+  }
+}

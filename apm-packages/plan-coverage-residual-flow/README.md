@@ -305,6 +305,15 @@ residual decisionのclose verdictは次を含みます。
 - canonical Coverage LedgerとResidual Decision Ledgerを維持する
 - explicit decisionなしにresidualをaccepted扱いしない
 
+## Runtime qualification
+
+Canonical Plan Coverage semantics remain runtime-neutral under `.apm/`. Distribution projection for `copilot` / `codex` / `agent-skills` is checked by the fresh APM install smoke. GitHub Copilot CLI runtime qualification (authorization A–H, STD-001, FULL-001) is separate evidence:
+
+- [Runtime qualification matrix](../../docs/plan-coverage-runtime-qualification.md)
+- [Runtime qualification fixtures](tests/runtime-qualification/README.md)
+
+Current Copilot CLI status is recorded in that matrix document (GitHub Copilot CLI QUALIFIED for the fingerprint listed there). Do not treat VS Code Agent mode as qualified unless a separate runtime run says so.
+
 ## Documentation and validation
 
 - [Purpose and policy](../../docs/plan-coverage-purpose.md)
@@ -314,11 +323,13 @@ residual decisionのclose verdictは次を含みます。
 - [Standalone full-coverage E2E fixture](tests/full-coverage-standalone/PCF-001/README.md)
 - [Change Risk Triage profile stability smoke](tests/change-risk-triage/README.md)
 - [Manual model smoke](tests/manual-model-smoke/README.md)
+- [Runtime qualification matrix](../../docs/plan-coverage-runtime-qualification.md)
 
 ```powershell
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1
+./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-runtime-qualification.ps1
 ```
 
 standalone full-coverage E2Eは、currentまたはinstalled Living Record / close reference authorityからrequired sectionとtableを導出し、2-slice fixtureのowner境界、artifact budget、negative cases、ledger delta適用、production bindingを確認します。そのうえで2つのslice payloadを依存順に適用し、slice-local verification、production entrypoint経由のcross-slice verification、residual decisionまでをdeterministicに検証します。外部modelは実行しないため、CodexやCopilot等がlifecycleを自律実行した証拠ではありません。

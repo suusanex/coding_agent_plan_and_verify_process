@@ -13,6 +13,7 @@ on:
       - 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1'
       - 'docs/plan-coverage-process-and-agents.md'
       - 'docs/plan-coverage-purpose.md'
+      - 'docs/plan-coverage-runtime-qualification.md'
       - 'docs/token-aware-full-coverage-decomposition-flow.md'
       - 'docs/architecture-slice-readiness-validation.md'
       - 'docs/architecture-slice-readiness-validation-result.md'
@@ -30,6 +31,7 @@ on:
       - 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1'
       - 'docs/plan-coverage-process-and-agents.md'
       - 'docs/plan-coverage-purpose.md'
+      - 'docs/plan-coverage-runtime-qualification.md'
       - 'docs/token-aware-full-coverage-decomposition-flow.md'
       - 'docs/architecture-slice-readiness-validation.md'
       - 'docs/architecture-slice-readiness-validation-result.md'
@@ -50,6 +52,9 @@ jobs:
       - name: Validate standalone full-coverage lifecycle
         shell: pwsh
         run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1
+      - name: Validate runtime qualification evidence contract
+        shell: pwsh
+        run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-runtime-qualification.ps1
       - name: Check branch or PR whitespace
         shell: pwsh
         env:
