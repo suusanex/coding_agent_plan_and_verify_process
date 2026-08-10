@@ -105,8 +105,11 @@ repository rootから、変更したownership surfaceに対応するcheckを実�
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1
+./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-runtime-qualification.ps1
 ./scripts/validate-architecture-slice-readiness.ps1
 ```
+
+GitHub Copilot CLI runtime qualification (external model) is manual. See [Plan Coverage runtime qualification](plan-coverage-runtime-qualification.md). Do not add paid model invocation to ordinary pull_request CI.
 
 ### Common checks
 

@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Plan Coverage GitHub Copilot CLI runtime qualification result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "date",
+    "runtime",
+    "client_version",
+    "model_requested",
+    "model_observed",
+    "apm_version",
+    "candidate_commit",
+    "plan_coverage_package_version",
+    "canonical_fingerprint",
+    "install_targets",
+    "apm_lock_sha256",
+    "platform",
+    "distribution_smoke",
+    "overall_status",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "date": { "type": "string", "minLength": 1 },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surface", "qualified_client_surface", "other_surfaces"],
+      "properties": {
+        "surface": { "type": "string", "const": "github-copilot" },
+        "qualified_client_surface": { "type": "string", "const": "github-copilot-cli" },
+        "other_surfaces": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "client_version": { "type": "string", "minLength": 1 },
+    "model_requested": { "type": ["string", "null"] },
+    "model_observed": { "type": "string", "minLength": 1 },
+    "apm_version": { "type": "string", "minLength": 1 },
+    "candidate_commit": { "type": "string", "minLength": 1 },
+    "plan_coverage_package_version": { "type": "string", "minLength": 1 },
+    "canonical_fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "apm_yml_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "install_targets": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "string",
+        "enum": ["copilot", "codex", "agent-skills"]
+      }
+    },
+    "apm_lock_sha256": { "type": "string", "minLength": 1 },
+    "platform": { "type": "string", "minLength": 1 },
+    "distribution_smoke": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "command", "rationale"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["PASS", "FAIL", "NOT_RUN", "UNOBSERVABLE"]
+        },
+        "command": { "type": "string", "minLength": 1 },
+        "rationale": { "type": "string", "minLength": 1 }
+      }
+    },
+    "overall_status": {
+      "type": "string",
+      "enum": ["QUALIFIED", "PENDING", "FAIL"]
+    },
+    "qualification_matrix_notes": { "type": "string" },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/scenario" }
+    }
+  },
+  "$defs": {
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "exact_prompt",
+        "upstream_route_evidence",
+        "exit_code",
+        "skill_observation",
+        "agents_observed",
+        "created_artifacts",
+        "changed_artifacts",
+        "verifier_results",
+        "route_observed",
+        "verdict",
+        "stop_reason",
+        "status",
+        "rationale",
+        "transcript_sha256",
+        "hook_log_sha256"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "authorization-negative",
+            "authorization-positive",
+            "standard-slice-e2e",
+            "full-coverage-e2e"
+          ]
+        },
+        "exact_prompt": { "type": ["string", "null"] },
+        "upstream_route_evidence": { "type": ["object", "null"] },
+        "exit_code": { "type": ["integer", "null"] },
+        "skill_observation": {
+          "type": "string",
+          "enum": ["OBSERVED", "UNOBSERVABLE", "NOT_SELECTED", "SELECTED"]
+        },
+        "agents_observed": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "created_artifacts": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "changed_artifacts": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "verifier_results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "status"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "status": {
+                "type": "string",
+                "enum": ["PASS", "FAIL", "NOT_RUN", "UNOBSERVABLE"]
+              },
+              "detail": { "type": "string" }
+            }
+          }
+        },
+        "route_observed": { "type": ["string", "null"] },
+        "verdict": { "type": ["string", "null"] },
+        "stop_reason": { "type": ["string", "null"] },
+        "status": {
+          "type": "string",
+          "enum": ["PASS", "FAIL", "NOT_RUN", "UNOBSERVABLE"]
+        },
+        "rationale": { "type": "string", "minLength": 1 },
+        "transcript_sha256": { "type": ["string", "null"] },
+        "hook_log_sha256": { "type": ["string", "null"] },
+        "adaptive_connection": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "high_observed": { "type": "boolean" },
+            "standard_observed": { "type": "boolean" },
+            "handoff_observed": { "type": "boolean" },
+            "design_pair_auto_selected": { "type": "boolean" }
+          }
+        },
+        "evidence_boundary": { "type": "string" }
+      }
+    }
+  }
+}
