@@ -79,6 +79,7 @@
       "enum": ["QUALIFIED", "PENDING", "FAIL"]
     },
     "qualification_matrix_notes": { "type": "string" },
+    "source_run": { "$ref": "#/$defs/source_run" },
     "scenarios": {
       "type": "array",
       "minItems": 1,
@@ -86,6 +87,60 @@
     }
   },
   "$defs": {
+    "source_run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_run_id",
+        "candidate_commit",
+        "canonical_fingerprint",
+        "apm_yml_sha256",
+        "package_version",
+        "apm_lock_sha256",
+        "install_targets",
+        "client_version"
+      ],
+      "properties": {
+        "source_run_id": { "type": "string", "minLength": 1 },
+        "candidate_commit": { "type": "string", "minLength": 1 },
+        "canonical_fingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "apm_yml_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "package_version": { "type": "string", "minLength": 1 },
+        "apm_lock_sha256": { "type": "string", "minLength": 1 },
+        "install_targets": {
+          "type": "array",
+          "minItems": 3,
+          "items": { "type": "string", "enum": ["copilot", "codex", "agent-skills"] }
+        },
+        "client_version": { "type": "string", "minLength": 1 },
+        "apm_version": { "type": "string" },
+        "model_requested": { "type": ["string", "null"] },
+        "model_observed": { "type": "string" },
+        "platform": { "type": "string" },
+        "distribution_smoke": { "type": "object" }
+      }
+    },
+    "adaptive_phase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "OBSERVED_FROM_HOOK",
+            "OBSERVED_FROM_DURABLE_ARTIFACT",
+            "NOT_REQUIRED",
+            "NOT_OBSERVED",
+            "FAIL"
+          ]
+        },
+        "evidence": { "type": ["string", "null"] },
+        "sha256": { "type": ["string", "null"] },
+        "verdict": { "type": ["string", "null"] },
+        "reason": { "type": ["string", "null"] }
+      }
+    },
     "scenario": {
       "type": "object",
       "additionalProperties": false,
@@ -128,7 +183,24 @@
         },
         "agents_observed": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1 }
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Hook/session structured agent names only. Not inferred from free text."
+        },
+        "route_stage_evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["stage", "status"],
+            "properties": {
+              "stage": { "type": "string", "minLength": 1 },
+              "status": {
+                "type": "string",
+                "enum": ["OBSERVED_FROM_HOOK", "OBSERVED_FROM_DURABLE_ARTIFACT", "NOT_OBSERVED", "PASS", "FAIL"]
+              },
+              "evidence": { "type": ["string", "null"] }
+            }
+          }
         },
         "created_artifacts": {
           "type": "array",
@@ -168,10 +240,15 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
+            "high_execution": { "$ref": "#/$defs/adaptive_phase" },
+            "handoff": { "$ref": "#/$defs/adaptive_phase" },
+            "standard_execution": { "$ref": "#/$defs/adaptive_phase" },
+            "connection_satisfied": { "type": "boolean" },
+            "high_to_standard_handoff_satisfied": { "type": "boolean" },
+            "design_pair_auto_selected": { "type": "boolean" },
             "high_observed": { "type": "boolean" },
             "standard_observed": { "type": "boolean" },
-            "handoff_observed": { "type": "boolean" },
-            "design_pair_auto_selected": { "type": "boolean" }
+            "handoff_observed": { "type": "boolean" }
           }
         },
         "evidence_boundary": { "type": "string" }

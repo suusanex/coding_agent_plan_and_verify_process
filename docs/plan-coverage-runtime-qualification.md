@@ -57,8 +57,10 @@ Fresh install smoke also checks transitive Adaptive Implementation assets and, f
 | authorization A–H | PASS |
 | standard-slice STD-001 | PASS |
 | full-coverage FULL-001 | PASS |
-| Adaptive connection | PASS (HIGH/STANDARD evidence on STD-001 and/or FULL-001) |
+| Adaptive connection | PASS on FULL-001 via durable `COMPLETED_BY_HIGH_MODEL` + Implementation Self-Map + production binding + verifier (`connection_satisfied=true`) |
+| HIGH→STANDARD handoff | `NOT_REQUIRED` on FULL-001 (HIGH completed tiny-local remainder; no STANDARD remainder). Not claimed as false STANDARD observation |
 | Design Pair auto-selection | not observed |
+| source_run binding | frozen in `source_run` / kept-worktree `run-metadata.json` (no fingerprint re-bind on re-eval) |
 
 Update this table only when `run-plan-coverage-copilot-qualification.ps1` produces `overall_status: QUALIFIED` with a fingerprint matching the current `.apm` tree. After canonical `.apm` changes, re-run qualification; stale fingerprints must not remain QUALIFIED.
 
@@ -68,9 +70,13 @@ Update this table only when `run-plan-coverage-copilot-qualification.ps1` produc
 - A qualification-only user-level hook observer records `sessionStart`, `userPromptSubmitted`, `subagentStart`, `subagentStop`, `agentStop`/`sessionEnd`, and `errorOccurred` to JSONL under a temporary evidence directory.
 - Skill load events are often **UNOBSERVABLE** on Copilot CLI. Do not invent skill selection. Scenario PASS may still be justified from hooks, artifact deltas, verifiers, and final response.
 - Fixture verifiers run under **pwsh** (PowerShell 7+), not Windows PowerShell 5.1.
-- Raw transcripts and hook logs stay temporary unless debugging with `-KeepWorktree`. Committed evidence keeps metadata, prompts, observed agents, artifact deltas, and verdict rationale.
+- `agents_observed` is hook/session structured agent names only. Route stages inferred from durable artifacts are recorded separately as `route_stage_evidence`.
+- Adaptive evidence separates `high_execution` / `handoff` / `standard_execution`. `READY_FOR_STANDARD_COMPLETION` alone is never STANDARD execution. HIGH-only `COMPLETED_BY_HIGH_MODEL` may set handoff/standard to `NOT_REQUIRED` when Self-Map + production binding + verifier PASS.
+- Live runs write `run-metadata.json` under the temp run root, freezing candidate commit, canonical fingerprint, package version, lock hash, and client version.
 - Kept-worktree re-evaluation without new model calls:
   `run-plan-coverage-copilot-qualification.ps1 -ReevaluateFromRunRoot <temp-run-root>`
+  Re-eval **preserves** `run-metadata.json` identity fields and refuses to re-bind current-checkout fingerprints onto an older run. If source fingerprint ≠ current `.apm` fingerprint, overall status cannot be current `QUALIFIED` (at best `PENDING`).
+- Raw transcripts and hook logs stay temporary unless debugging with `-KeepWorktree`. Committed evidence keeps metadata, prompts, observed agents, artifact deltas, and verdict rationale.
 
 ### Manual run
 

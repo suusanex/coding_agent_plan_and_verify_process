@@ -710,7 +710,6 @@ Read QUALIFICATION_PROMPT.md in this repository root and execute it completely w
     $agents = [System.Collections.Generic.List[string]]::new()
     foreach ($a in @(Get-AgentsFromHookLog $hookLog)) { if (-not $agents.Contains($a)) { $agents.Add($a) } }
     foreach ($a in @(Get-AgentsFromSessionEvents $copilotHome)) { if (-not $agents.Contains($a)) { $agents.Add($a) } }
-    foreach ($a in @(Get-AgentsFromArtifactPaths (@($created) + @($changed)))) { if (-not $agents.Contains($a)) { $agents.Add($a) } }
     $combinedText = @"
 $stdout
 
@@ -972,35 +971,218 @@ function Evaluate-AuthScenario([object]$Scenario, $Run) {
     return $result
 }
 
+function Get-PlanFileEvidence([string]$Worktree) {
+    $plansDir = Join-Path $Worktree 'plans'
+    $items = [System.Collections.Generic.List[object]]::new()
+    if (-not (Test-Path -LiteralPath $plansDir -PathType Container)) {
+        return @()
+    }
+    foreach ($file in @(Get-ChildItem -LiteralPath $plansDir -Recurse -File -Filter '*.md')) {
+        $rel = $file.FullName.Substring((Resolve-Path -LiteralPath $Worktree).Path.Length).TrimStart('\', '/').Replace('\', '/')
+        $content = Get-NormalizedText $file.FullName
+        $items.Add([pscustomobject]@{
+                Path = $rel
+                Content = $content
+                Sha256 = Get-Sha256Text $content
+            })
+    }
+    return @($items)
+}
+
+function Test-ProductionBindingPresent([string]$Worktree, [string[]]$RelativePaths) {
+    foreach ($rel in $RelativePaths) {
+        $full = Join-Path $Worktree $rel
+        if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { continue }
+        $text = Get-NormalizedText $full
+        if ($text -notmatch 'not implemented' -and $text.Length -gt 80) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Get-AdaptiveConnectionEvidence([string]$Worktree, [string[]]$HookAgents, [bool]$VerifierPassed) {
+    $plans = @(Get-PlanFileEvidence $Worktree)
+    $highHook = $HookAgents -contains 'high-implementation-starter'
+    $stdHook = $HookAgents -contains 'standard-implementation-completer'
+
+    $completedByHighHit = $null
+    $readyForStandardHit = $null
+    $standardCompletedHit = $null
+    $selfMapHit = $null
+
+    foreach ($p in $plans) {
+        $c = $p.Content
+        if ($c -cmatch '(?m)^- Implementation route:.*high-implementation-starter.*COMPLETED_BY_HIGH_MODEL' -or
+            $c -cmatch '(?m)^- Model / owner sequence:.*high-implementation-starter \(HIGH\)' -or
+            $c -cmatch 'COMPLETED_BY_HIGH_MODEL') {
+            if (-not $completedByHighHit) { $completedByHighHit = $p }
+        }
+        if ($c -cmatch 'READY_FOR_STANDARD_COMPLETION' -and $c -cmatch '(?i)implementation-completion-handoff|Implementation Completion Handoff|READY_FOR_STANDARD') {
+            # Require handoff-ish context, not a random glossary mention.
+            if ($c -cmatch '(?m)^- Formal .*handoff' -or $c -cmatch 'implementation-completion-handoff' -or $c -cmatch '(?m)^- Handoff verdict:.*READY_FOR_STANDARD_COMPLETION' -or $c -cmatch 'READY_FOR_STANDARD_COMPLETION') {
+                if ($c -cmatch 'READY_FOR_STANDARD_COMPLETION' -and ($c -cmatch 'handoff' -or $c -cmatch 'Handoff' -or $p.Path -match 'handoff')) {
+                    if (-not $readyForStandardHit) { $readyForStandardHit = $p }
+                }
+            }
+        }
+        if ($c -cmatch '(?m)^- Implementation route:.*standard-implementation-completer' -or
+            $c -cmatch '(?m)^- Model / owner sequence:.*standard-implementation-completer' -or
+            $c -cmatch 'COMPLETED_BY_STANDARD_MODEL') {
+            if (-not $standardCompletedHit) { $standardCompletedHit = $p }
+        }
+        if ($c -cmatch '### Implementation Self-Map' -and $c -cmatch 'src/') {
+            if (-not $selfMapHit) { $selfMapHit = $p }
+        }
+    }
+
+    $prodOk = Test-ProductionBindingPresent $Worktree @(
+        'src/Load-AppConfig.ps1',
+        'src/ProducerState.ps1',
+        'src/ConsumerGate.ps1',
+        'src/StartupFlow.ps1'
+    )
+
+    $high = [ordered]@{ status = 'NOT_OBSERVED'; evidence = $null; sha256 = $null; verdict = $null; reason = $null }
+    if ($highHook) {
+        $high.status = 'OBSERVED_FROM_HOOK'
+        $high.evidence = 'hooks/session: agentName=high-implementation-starter'
+        $high.reason = 'structured hook/session agent observation'
+    }
+    elseif ($completedByHighHit -and $selfMapHit -and $prodOk -and $VerifierPassed) {
+        $high.status = 'OBSERVED_FROM_DURABLE_ARTIFACT'
+        $high.evidence = $completedByHighHit.Path
+        $high.sha256 = $completedByHighHit.Sha256
+        $high.verdict = 'COMPLETED_BY_HIGH_MODEL'
+        $high.reason = 'Living Record / plan records high-implementation-starter COMPLETED_BY_HIGH_MODEL with Implementation Self-Map and production binding; external verifier PASS'
+    }
+
+    $handoff = [ordered]@{ status = 'NOT_OBSERVED'; evidence = $null; sha256 = $null; verdict = $null; reason = $null }
+    $standard = [ordered]@{ status = 'NOT_OBSERVED'; evidence = $null; sha256 = $null; verdict = $null; reason = $null }
+
+    if ($readyForStandardHit) {
+        $handoff.status = 'OBSERVED_FROM_DURABLE_ARTIFACT'
+        $handoff.evidence = $readyForStandardHit.Path
+        $handoff.sha256 = $readyForStandardHit.Sha256
+        $handoff.verdict = 'READY_FOR_STANDARD_COMPLETION'
+        $handoff.reason = 'durable handoff artifact/section records READY_FOR_STANDARD_COMPLETION'
+        if ($stdHook) {
+            $standard.status = 'OBSERVED_FROM_HOOK'
+            $standard.evidence = 'hooks/session: agentName=standard-implementation-completer'
+        }
+        elseif ($standardCompletedHit -and $VerifierPassed) {
+            $standard.status = 'OBSERVED_FROM_DURABLE_ARTIFACT'
+            $standard.evidence = $standardCompletedHit.Path
+            $standard.sha256 = $standardCompletedHit.Sha256
+            $standard.reason = 'durable artifact records STANDARD completion after handoff; verifier PASS'
+        }
+        else {
+            $standard.status = 'NOT_OBSERVED'
+            $standard.reason = 'READY_FOR_STANDARD_COMPLETION present but STANDARD execution evidence missing'
+        }
+    }
+    elseif ($high.status -like 'OBSERVED_*' -and $completedByHighHit -and ($completedByHighHit.Content -cmatch 'no STANDARD' -or $completedByHighHit.Content -cmatch 'COMPLETED_BY_HIGH_MODEL' -or $completedByHighHit.Content -cmatch 'HIGH\) only')) {
+        $handoff.status = 'NOT_REQUIRED'
+        $handoff.evidence = $completedByHighHit.Path
+        $handoff.sha256 = $completedByHighHit.Sha256
+        $handoff.verdict = 'COMPLETED_BY_HIGH_MODEL'
+        $handoff.reason = 'HIGH completed the bounded remainder; STANDARD delegation not required'
+        $standard.status = 'NOT_REQUIRED'
+        $standard.evidence = $completedByHighHit.Path
+        $standard.sha256 = $completedByHighHit.Sha256
+        $standard.reason = 'no STANDARD remainder after HIGH completion'
+    }
+    elseif ($stdHook) {
+        $standard.status = 'OBSERVED_FROM_HOOK'
+        $standard.evidence = 'hooks/session: agentName=standard-implementation-completer'
+        $standard.reason = 'STANDARD observed without separate handoff artifact'
+    }
+
+    $highObserved = $high.status -like 'OBSERVED_*'
+    $stdObserved = $standard.status -like 'OBSERVED_*'
+    $handoffObserved = $handoff.status -like 'OBSERVED_*'
+    $highToStd = $handoffObserved -and $stdObserved -and $highObserved
+    # Adaptive package connection: HIGH executed with durable/hook evidence, and either
+    # HIGH->STANDARD handoff completed or HIGH-only completion was explicitly recorded.
+    $connectionOk = $highObserved -and (
+        $highToStd -or
+        ($handoff.status -ceq 'NOT_REQUIRED' -and $standard.status -ceq 'NOT_REQUIRED' -and $VerifierPassed)
+    )
+
+    $hasDesignPair = Test-DesignPairAutoSelected $HookAgents @() ''
+    # Also scan plan paths for design-pair artifacts
+    foreach ($p in $plans) {
+        if ($p.Path -match 'design-pair') { $hasDesignPair = $true }
+    }
+
+    return [ordered]@{
+        high_execution = $high
+        handoff = $handoff
+        standard_execution = $standard
+        connection_satisfied = [bool]$connectionOk
+        high_to_standard_handoff_satisfied = [bool]$highToStd
+        design_pair_auto_selected = [bool]$hasDesignPair
+        high_observed = [bool]$highObserved
+        standard_observed = [bool]$stdObserved
+        handoff_observed = [bool]$handoffObserved
+    }
+}
+
+function Get-RouteStageEvidence([string]$Worktree, [string[]]$HookAgents, [string[]]$Paths) {
+    $stages = @(
+        @{ name = 'plan-kernel'; path = 'plans/.+\.md|plan-coverage-lite|config-loader-plan|full-001-plan' },
+        @{ name = 'change-risk-triage'; path = 'change-risk-triage' },
+        @{ name = 'architecture-slice-readiness'; path = 'architecture-slice-readiness' },
+        @{ name = 'plan-slice-decomposition'; path = 'slice-decomposition|slice-SL-' },
+        @{ name = 'verification-kernel'; path = 'verification-kernel' },
+        @{ name = 'cross-slice-verification-kernel'; path = 'full-coverage-close|cross-slice' },
+        @{ name = 'residual-decision-gate'; path = 'residual-decision|full-coverage-close' },
+        @{ name = 'implementation-execution'; path = 'implementation-execution' }
+    )
+    $out = @()
+    foreach ($s in $stages) {
+        $fromHook = $HookAgents -contains $s.name
+        $pathHit = @($Paths | Where-Object { $_ -match $s.path }) | Select-Object -First 1
+        if ($fromHook) {
+            $out += [ordered]@{ stage = $s.name; status = 'OBSERVED_FROM_HOOK'; evidence = "agentName=$($s.name)" }
+        }
+        elseif ($pathHit) {
+            $out += [ordered]@{ stage = $s.name; status = 'OBSERVED_FROM_DURABLE_ARTIFACT'; evidence = [string]$pathHit }
+        }
+        else {
+            $out += [ordered]@{ stage = $s.name; status = 'NOT_OBSERVED'; evidence = $null }
+        }
+    }
+    return $out
+}
+
 function Evaluate-StdScenario($Run, [string]$Worktree, [string]$OracleMeta) {
     $oracleFailures = Assert-OracleIntact $Worktree $OracleMeta
     $verifier = Invoke-WorktreeVerifier $Worktree 'tests/verify-std-001.ps1'
-    $agents = @($Run.Agents)
-    $hasHigh = $agents -contains 'high-implementation-starter'
-    $hasStd = $agents -contains 'standard-implementation-completer'
-    $hasPlan = $agents -contains 'plan-kernel'
-    $hasRisk = $agents -contains 'change-risk-triage'
-    $hasVerify = $agents -contains 'verification-kernel'
-    $hasResidual = $agents -contains 'residual-decision-gate'
-    $hasDesignPair = Test-DesignPairAutoSelected $agents (@($Run.Created) + @($Run.Changed)) $Run.CombinedText
-    $pcArtifacts = Get-PlanCoverageArtifactDelta (@($Run.Created) + @($Run.Changed))
-    # When custom subagents are unobservable, accept durable artifact evidence for route stages.
-    $text = [string]$Run.CombinedText
-    if (-not $hasPlan -and ($pcArtifacts.Count -gt 0 -or $text -match 'plan-kernel|Plan readiness|documentation_level')) { $hasPlan = $true }
-    if (-not $hasRisk -and ($pcArtifacts -match 'change-risk-triage' -or $text -match 'selected_process:\s*standard-slice|recommended process path|Guardrail Focus')) { $hasRisk = $true }
-    if (-not $hasHigh -and ($text -match 'high-implementation-starter|HIGH_MODEL|READY_FOR_STANDARD_COMPLETION|implementation_route:\s*adaptive')) { $hasHigh = $true }
-    if (-not $hasStd -and ($text -match 'standard-implementation-completer|STANDARD_MODEL|READY_FOR_STANDARD_COMPLETION|Adaptive route used|implementation_route:\s*adaptive')) { $hasStd = $true }
-    if (-not $hasVerify -and ($pcArtifacts -match 'verification' -or $text -match 'verification-kernel|PARENT_PLAN_VERIFIED|Verification Summary|verify-std-001')) { $hasVerify = $true }
-    if (-not $hasResidual -and ($pcArtifacts -match 'residual' -or $text -match 'residual-decision|ReadyToClose|READY_TO_CLOSE|Close readiness')) { $hasResidual = $true }
-    if (-not $hasRisk -and ($text -match 'standard-slice|documentation_level:\s*lite|Why separate standard artifacts are not required')) { $hasRisk = $true }
+    $agents = @($Run.Agents) # hook/session only
+    $paths = @($Run.Created) + @($Run.Changed)
+    $pcArtifacts = Get-PlanCoverageArtifactDelta $paths
+    $stages = @(Get-RouteStageEvidence $Worktree $agents $paths)
+    $stageMap = @{}
+    foreach ($s in $stages) { $stageMap[$s.stage] = $s }
+
+    $adaptive = Get-AdaptiveConnectionEvidence $Worktree $agents ($verifier.status -ceq 'PASS')
+    $hasDesignPair = [bool]$adaptive.design_pair_auto_selected
+
+    $hasPlan = ($stageMap['plan-kernel'].status -ne 'NOT_OBSERVED') -or ($pcArtifacts.Count -gt 0)
+    $hasRisk = $stageMap['change-risk-triage'].status -ne 'NOT_OBSERVED'
+    $hasVerify = $stageMap['verification-kernel'].status -ne 'NOT_OBSERVED' -or ($paths -match 'verification')
+    $hasResidual = $stageMap['residual-decision-gate'].status -ne 'NOT_OBSERVED' -or ($paths -match 'residual')
+    # Adaptive connection check uses structured evidence, not free-text booleans.
+    $adaptiveOk = [bool]$adaptive.connection_satisfied
 
     $checks = @()
     $checks += $verifier
     $checks += [pscustomobject]@{ name = 'oracle-intact'; status = $(if ($oracleFailures.Count -eq 0) { 'PASS' } else { 'FAIL' }); detail = ($oracleFailures -join '; ') }
     $checks += [pscustomobject]@{ name = 'plan-kernel'; status = $(if ($hasPlan) { 'PASS' } else { 'FAIL' }) }
     $checks += [pscustomobject]@{ name = 'change-risk-triage'; status = $(if ($hasRisk) { 'PASS' } else { 'FAIL' }) }
-    $checks += [pscustomobject]@{ name = 'high-before-or-with-standard'; status = $(if ($hasHigh) { 'PASS' } else { 'FAIL' }) }
-    $checks += [pscustomobject]@{ name = 'standard-after-handoff'; status = $(if ($hasStd) { 'PASS' } else { 'FAIL' }) }
+    # Adaptive connection is suite-level (at least one E2E). STD records structured evidence without failing solely on HIGH-only absence.
+    $checks += [pscustomobject]@{ name = 'adaptive-connection-evidence'; status = 'PASS'; detail = "connection_satisfied=$adaptiveOk; high=$($adaptive.high_execution.status); handoff=$($adaptive.handoff.status); standard=$($adaptive.standard_execution.status); high_to_standard=$($adaptive.high_to_standard_handoff_satisfied)" }
     $checks += [pscustomobject]@{ name = 'verification-kernel'; status = $(if ($hasVerify) { 'PASS' } else { 'FAIL' }) }
     $checks += [pscustomobject]@{ name = 'residual-decision-gate'; status = $(if ($hasResidual) { 'PASS' } else { 'FAIL' }) }
     $checks += [pscustomobject]@{ name = 'no-design-pair-auto'; status = $(if (-not $hasDesignPair) { 'PASS' } else { 'FAIL' }) }
@@ -1017,6 +1199,7 @@ function Evaluate-StdScenario($Run, [string]$Worktree, [string]$OracleMeta) {
         exit_code = $Run.ExitCode
         skill_observation = 'UNOBSERVABLE'
         agents_observed = $agents
+        route_stage_evidence = $stages
         created_artifacts = @($Run.Created)
         changed_artifacts = @($Run.Changed)
         verifier_results = @($checks)
@@ -1025,19 +1208,14 @@ function Evaluate-StdScenario($Run, [string]$Worktree, [string]$OracleMeta) {
         stop_reason = $(if ($status -ceq 'PASS') { 'fixture-verified' } else { ($failed | ForEach-Object { $_.name }) -join ',' })
         status = $status
         rationale = $(if ($status -ceq 'PASS') {
-                'STD-001 fixture verifier passed; required agents and Adaptive HIGH->STANDARD connection observed; no Design Pair auto-selection.'
+                "STD-001 fixture verifier passed; Adaptive connection_satisfied=$($adaptive.connection_satisfied) high_to_standard_handoff=$($adaptive.high_to_standard_handoff_satisfied); no Design Pair auto-selection."
             } else {
                 "Failed checks: $((@($failed | ForEach-Object { $_.name })) -join ', ')"
             })
         transcript_sha256 = $Run.TranscriptSha
         hook_log_sha256 = $Run.HookSha
-        adaptive_connection = [ordered]@{
-            high_observed = [bool]$hasHigh
-            standard_observed = [bool]$hasStd
-            handoff_observed = [bool]($hasHigh -and $hasStd)
-            design_pair_auto_selected = [bool]$hasDesignPair
-        }
-        evidence_boundary = 'skill_observation=UNOBSERVABLE; route judged from hooks, artifacts, and external verifier.'
+        adaptive_connection = $adaptive
+        evidence_boundary = 'agents_observed=hook/session structured only; Adaptive HIGH/STANDARD/handoff separated into durable phases; free-text mention is not observation.'
     }
 }
 
@@ -1047,32 +1225,30 @@ function Evaluate-FullScenario($Run, [string]$Worktree, [string]$OracleMeta) {
     $v2 = Invoke-WorktreeVerifier $Worktree 'tests/verify-sl-002.ps1'
     $vx = Invoke-WorktreeVerifier $Worktree 'tests/verify-full-001.ps1'
     $agents = @($Run.Agents)
-    $hasArch = $agents -contains 'architecture-slice-readiness'
-    $hasDecomp = $agents -contains 'plan-slice-decomposition'
-    $hasCross = $agents -contains 'cross-slice-verification-kernel'
-    $hasResidual = $agents -contains 'residual-decision-gate'
-    $hasHigh = $agents -contains 'high-implementation-starter'
-    $hasStd = $agents -contains 'standard-implementation-completer'
-    $hasDesignPair = Test-DesignPairAutoSelected $agents (@($Run.Created) + @($Run.Changed)) $Run.CombinedText
-    $living = @($Run.Created + $Run.Changed | Where-Object { $_ -match 'slice-SL-' })
-    $hasPlan = @($Run.Created + $Run.Changed | Where-Object { $_ -match 'plans/.+\.md' }).Count -gt 0
-    $text = [string]$Run.CombinedText
     $paths = @($Run.Created) + @($Run.Changed)
-    if (-not $hasArch -and ($paths -match 'architecture-slice-readiness' -or $text -match 'architecture-slice-readiness|ReadyForSliceDecomposition|StandardSliceSufficient')) { $hasArch = $true }
-    if (-not $hasDecomp -and ($paths -match 'slice-decomposition|slice-SL-' -or $text -match 'plan-slice-decomposition')) { $hasDecomp = $true }
-    if (-not $hasCross -and ($paths -match 'cross-slice|full-coverage-close' -or $text -match 'cross-slice-verification|CROSS_SLICE_')) { $hasCross = $true }
-    if (-not $hasResidual -and ($paths -match 'residual' -or $text -match 'residual-decision|READY_TO_CLOSE|ReadyToClose')) { $hasResidual = $true }
-    if (-not $hasHigh -and ($text -match 'high-implementation-starter|HIGH_MODEL|READY_FOR_STANDARD_COMPLETION|Adaptive')) { $hasHigh = $true }
-    if (-not $hasStd -and ($text -match 'standard-implementation-completer|STANDARD_MODEL|READY_FOR_STANDARD_COMPLETION')) { $hasStd = $true }
+    $living = @($paths | Where-Object { $_ -match 'slice-SL-' })
+    $hasPlan = @($paths | Where-Object { $_ -match 'plans/.+\.md' }).Count -gt 0
+    $stages = @(Get-RouteStageEvidence $Worktree $agents $paths)
+    $stageMap = @{}
+    foreach ($s in $stages) { $stageMap[$s.stage] = $s }
+
+    $verifiersPass = ($v1.status -ceq 'PASS' -and $v2.status -ceq 'PASS' -and $vx.status -ceq 'PASS')
+    $adaptive = Get-AdaptiveConnectionEvidence $Worktree $agents $verifiersPass
+    $hasDesignPair = [bool]$adaptive.design_pair_auto_selected
+
+    $hasArch = $stageMap['architecture-slice-readiness'].status -ne 'NOT_OBSERVED'
+    $hasDecomp = $stageMap['plan-slice-decomposition'].status -ne 'NOT_OBSERVED' -or $living.Count -ge 2
+    $hasCross = $stageMap['cross-slice-verification-kernel'].status -ne 'NOT_OBSERVED' -or $vx.status -ceq 'PASS'
+    $hasResidual = $stageMap['residual-decision-gate'].status -ne 'NOT_OBSERVED' -or ($paths -match 'residual|full-coverage-close')
 
     $checks = @($v1, $v2, $vx)
     $checks += [pscustomobject]@{ name = 'oracle-intact'; status = $(if ($oracleFailures.Count -eq 0) { 'PASS' } else { 'FAIL' }); detail = ($oracleFailures -join '; ') }
     $checks += [pscustomobject]@{ name = 'architecture-slice-readiness'; status = $(if ($hasArch) { 'PASS' } else { 'FAIL' }) }
     $checks += [pscustomobject]@{ name = 'plan-slice-decomposition'; status = $(if ($hasDecomp) { 'PASS' } else { 'FAIL' }) }
     $checks += [pscustomobject]@{ name = 'living-records'; status = $(if ($living.Count -ge 2) { 'PASS' } else { 'FAIL' }); detail = ($living -join ',') }
-    $checks += [pscustomobject]@{ name = 'cross-slice-verification'; status = $(if ($hasCross -or $vx.status -ceq 'PASS') { 'PASS' } else { 'FAIL' }) }
+    $checks += [pscustomobject]@{ name = 'cross-slice-verification'; status = $(if ($hasCross) { 'PASS' } else { 'FAIL' }) }
     $checks += [pscustomobject]@{ name = 'residual-decision-gate'; status = $(if ($hasResidual) { 'PASS' } else { 'FAIL' }) }
-    $checks += [pscustomobject]@{ name = 'adaptive-connection'; status = $(if ($hasHigh) { 'PASS' } else { 'FAIL' }) }
+    $checks += [pscustomobject]@{ name = 'adaptive-connection'; status = $(if ($adaptive.connection_satisfied) { 'PASS' } else { 'FAIL' }); detail = "high=$($adaptive.high_execution.status); handoff=$($adaptive.handoff.status); standard=$($adaptive.standard_execution.status); high_to_standard=$($adaptive.high_to_standard_handoff_satisfied)" }
     $checks += [pscustomobject]@{ name = 'no-design-pair-auto'; status = $(if (-not $hasDesignPair) { 'PASS' } else { 'FAIL' }) }
     $checks += [pscustomobject]@{ name = 'plan-created'; status = $(if ($hasPlan) { 'PASS' } else { 'FAIL' }) }
 
@@ -1087,6 +1263,7 @@ function Evaluate-FullScenario($Run, [string]$Worktree, [string]$OracleMeta) {
         exit_code = $Run.ExitCode
         skill_observation = 'UNOBSERVABLE'
         agents_observed = $agents
+        route_stage_evidence = $stages
         created_artifacts = @($Run.Created)
         changed_artifacts = @($Run.Changed)
         verifier_results = @($checks)
@@ -1095,19 +1272,14 @@ function Evaluate-FullScenario($Run, [string]$Worktree, [string]$OracleMeta) {
         stop_reason = $(if ($status -ceq 'PASS') { 'fixture-verified' } else { ($failed | ForEach-Object { $_.name }) -join ',' })
         status = $status
         rationale = $(if ($status -ceq 'PASS') {
-                'FULL-001 verifiers passed; architecture/decomposition/living records/cross-slice/residual and Adaptive connection observed; no Design Pair auto-selection.'
+                "FULL-001 verifiers passed; Adaptive connection_satisfied=$($adaptive.connection_satisfied) high_to_standard_handoff=$($adaptive.high_to_standard_handoff_satisfied); no Design Pair auto-selection."
             } else {
                 "Failed checks: $((@($failed | ForEach-Object { $_.name })) -join ', ')"
             })
         transcript_sha256 = $Run.TranscriptSha
         hook_log_sha256 = $Run.HookSha
-        adaptive_connection = [ordered]@{
-            high_observed = [bool]$hasHigh
-            standard_observed = [bool]$hasStd
-            handoff_observed = [bool]($hasHigh -and $hasStd)
-            design_pair_auto_selected = [bool]$hasDesignPair
-        }
-        evidence_boundary = 'skill_observation=UNOBSERVABLE; route judged from hooks, artifacts, and external verifiers.'
+        adaptive_connection = $adaptive
+        evidence_boundary = 'agents_observed=hook/session structured only; Adaptive HIGH/STANDARD/handoff are separate durable phases; READY_FOR_STANDARD_COMPLETION alone is not STANDARD execution.'
     }
 }
 
@@ -1258,10 +1430,10 @@ $share
             }
         }
     }
+    # agents_observed: hook/session structured only (never artifact inference).
     $agents = [System.Collections.Generic.List[string]]::new()
     foreach ($a in @(Get-AgentsFromHookLog $hookLog)) { if (-not $agents.Contains($a)) { $agents.Add($a) } }
     foreach ($a in @(Get-AgentsFromSessionEvents $copilotHome)) { if (-not $agents.Contains($a)) { $agents.Add($a) } }
-    foreach ($a in @(Get-AgentsFromArtifactPaths (@($created) + @($changed)))) { if (-not $agents.Contains($a)) { $agents.Add($a) } }
     return [pscustomobject]@{
         ExitCode = 0
         Stdout = $stdout
@@ -1278,15 +1450,35 @@ $share
     }
 }
 
+function Write-RunMetadataFile([string]$RunRoot, [hashtable]$Meta) {
+    $path = Join-Path $RunRoot 'run-metadata.json'
+    Write-Utf8File $path (ConvertTo-JsonCompat ([ordered]@{} + $Meta))
+    return $path
+}
+
+function Read-RunMetadataFile([string]$RunRoot) {
+    $path = Join-Path $RunRoot 'run-metadata.json'
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        return $null
+    }
+    return (Get-Content -Raw -LiteralPath $path | ConvertFrom-Json)
+}
+
 if (-not [string]::IsNullOrWhiteSpace($ReevaluateFromRunRoot)) {
     $reevalRoot = [System.IO.Path]::GetFullPath($ReevaluateFromRunRoot)
     if (-not (Test-Path -LiteralPath $reevalRoot -PathType Container)) {
         throw "ReevaluateFromRunRoot not found: $reevalRoot"
     }
     Write-Host "Re-evaluating kept run without external model: $reevalRoot"
+    $meta = Read-RunMetadataFile $reevalRoot
+    if (-not $meta) {
+        throw "run-metadata.json missing under $reevalRoot. Refuse to re-bind fingerprints from the current checkout."
+    }
+
     $existingResultPath = Join-Path $ResultsDir "$(Get-Date -Format yyyy-MM-dd)-copilot-cli.json"
     if (-not (Test-Path -LiteralPath $existingResultPath)) {
-        $existingResultPath = @(Get-ChildItem -LiteralPath $ResultsDir -Filter '*-copilot-cli.json' | Sort-Object Name -Descending | Select-Object -First 1).FullName
+        $hit = @(Get-ChildItem -LiteralPath $ResultsDir -Filter '*-copilot-cli.json' -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1)
+        if ($hit.Count -gt 0) { $existingResultPath = $hit[0].FullName }
     }
     if (-not $existingResultPath -or -not (Test-Path -LiteralPath $existingResultPath)) {
         throw 'No existing result JSON to merge authorization scenarios from.'
@@ -1319,32 +1511,73 @@ if (-not [string]::IsNullOrWhiteSpace($ReevaluateFromRunRoot)) {
     $byId = @{}
     foreach ($s in $scenarioResults) { $byId[[string]$s.id] = $s }
     $requiredIds = @('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'STD-001', 'FULL-001')
-    $allPass = $true
+    $scenariosPass = $true
     foreach ($id in $requiredIds) {
-        if (-not $byId.ContainsKey($id) -or $byId[$id].status -cne 'PASS') { $allPass = $false }
+        if (-not $byId.ContainsKey($id) -or $byId[$id].status -cne 'PASS') { $scenariosPass = $false }
     }
-    $distStatus = $base.distribution_smoke.status
-    if ($distStatus -cne 'PASS') { $allPass = $false }
-    $overall = if ($allPass) { 'QUALIFIED' } else { 'FAIL' }
+    $distStatus = if ($meta.distribution_smoke -and $meta.distribution_smoke.status) { $meta.distribution_smoke.status } else { $base.distribution_smoke.status }
+    if ($distStatus -cne 'PASS') { $scenariosPass = $false }
 
+    $adaptiveOk = $false
+    $handoffOk = $false
+    foreach ($id in @('STD-001', 'FULL-001')) {
+        if (-not $byId.ContainsKey($id)) { continue }
+        $ac = $byId[$id].adaptive_connection
+        if ($ac -and $ac.connection_satisfied) { $adaptiveOk = $true }
+        if ($ac -and $ac.high_to_standard_handoff_satisfied) { $handoffOk = $true }
+    }
+    if (-not $adaptiveOk) { $scenariosPass = $false }
+
+    $sourceFp = [string]$meta.canonical_fingerprint
+    $fingerprintMatchesCurrent = ($sourceFp -ceq $canonicalFingerprint)
+    $packageMatches = ([string]$meta.package_version -ceq $packageVersion)
+    $canQualifyCurrent = $scenariosPass -and $fingerprintMatchesCurrent -and $packageMatches
+    $overall = if ($canQualifyCurrent) { 'QUALIFIED' } elseif ($scenariosPass -and -not $fingerprintMatchesCurrent) { 'PENDING' } else { 'FAIL' }
+
+    $notes = 'Re-evaluated from kept worktree without new external model calls. source_run identity frozen from run-metadata.json. '
+    if (-not $fingerprintMatchesCurrent) {
+        $notes += "source fingerprint $sourceFp != current $canonicalFingerprint; cannot promote to current QUALIFIED. "
+    }
+    if ($adaptiveOk -and -not $handoffOk) {
+        $notes += 'Adaptive connection satisfied via HIGH COMPLETED_BY_HIGH_MODEL durable evidence; HIGH->STANDARD handoff was NOT_REQUIRED (no STANDARD remainder). '
+    }
+    $notes += 'Qualified client surface is GitHub Copilot CLI only.'
+
+    $clientVersion = [string]$meta.client_version
     $result = [ordered]@{
         schema_version = 1
         date = (Get-Date -Format 'yyyy-MM-dd')
         runtime = $base.runtime
-        client_version = $base.client_version
-        model_requested = $base.model_requested
-        model_observed = $base.model_observed
-        apm_version = $base.apm_version
-        candidate_commit = $candidateCommit
-        plan_coverage_package_version = $packageVersion
-        canonical_fingerprint = $canonicalFingerprint
-        apm_yml_sha256 = $apmYmlSha
-        install_targets = @('copilot', 'codex', 'agent-skills')
-        apm_lock_sha256 = $base.apm_lock_sha256
-        platform = $base.platform
-        distribution_smoke = $base.distribution_smoke
+        client_version = $clientVersion
+        model_requested = $(if ($meta.psobject.Properties.Name -contains 'model_requested') { $meta.model_requested } else { $base.model_requested })
+        model_observed = $(if ($meta.model_observed) { $meta.model_observed } else { $base.model_observed })
+        apm_version = $(if ($meta.apm_version) { $meta.apm_version } else { $base.apm_version })
+        # Frozen to the original live run — never re-bind from current checkout.
+        candidate_commit = [string]$meta.candidate_commit
+        plan_coverage_package_version = [string]$meta.package_version
+        canonical_fingerprint = $sourceFp
+        apm_yml_sha256 = [string]$meta.apm_yml_sha256
+        install_targets = @($meta.install_targets)
+        apm_lock_sha256 = [string]$meta.apm_lock_sha256
+        platform = $(if ($meta.platform) { $meta.platform } else { $base.platform })
+        distribution_smoke = $(if ($meta.distribution_smoke) { $meta.distribution_smoke } else { $base.distribution_smoke })
         overall_status = $overall
-        qualification_matrix_notes = 'Re-evaluated from kept worktree without new external model calls. Qualified client surface is GitHub Copilot CLI only.'
+        qualification_matrix_notes = $notes
+        source_run = [ordered]@{
+            source_run_id = [string]$meta.source_run_id
+            candidate_commit = [string]$meta.candidate_commit
+            canonical_fingerprint = $sourceFp
+            apm_yml_sha256 = [string]$meta.apm_yml_sha256
+            package_version = [string]$meta.package_version
+            apm_lock_sha256 = [string]$meta.apm_lock_sha256
+            install_targets = @($meta.install_targets)
+            client_version = $clientVersion
+            apm_version = $(if ($meta.apm_version) { [string]$meta.apm_version } else { $null })
+            model_requested = $(if ($meta.psobject.Properties.Name -contains 'model_requested') { $meta.model_requested } else { $null })
+            model_observed = $(if ($meta.model_observed) { [string]$meta.model_observed } else { $null })
+            platform = $(if ($meta.platform) { [string]$meta.platform } else { $null })
+            distribution_smoke = $(if ($meta.distribution_smoke) { $meta.distribution_smoke } else { $null })
+        }
         scenarios = @($scenarioResults)
     }
 
@@ -1358,14 +1591,19 @@ if (-not [string]::IsNullOrWhiteSpace($ReevaluateFromRunRoot)) {
 - date: $($result.date)
 - overall_status: $overall
 - reevaluation: kept-worktree-no-new-model-calls
-- source_run: $reevalRoot
-- client_version: $($result.client_version)
+- source_run_id: $($meta.source_run_id)
+- source_run_root: $reevalRoot
+- client_version: $clientVersion
 - model_observed: $($result.model_observed)
 - apm_version: $($result.apm_version)
-- candidate_commit: $candidateCommit
-- plan_coverage_package_version: $packageVersion
-- canonical_fingerprint: $canonicalFingerprint
+- candidate_commit: $($meta.candidate_commit)
+- plan_coverage_package_version: $($meta.package_version)
+- canonical_fingerprint: $sourceFp
+- current_checkout_fingerprint: $canonicalFingerprint
+- fingerprint_matches_current: $fingerprintMatchesCurrent
 - distribution_smoke: $distStatus
+- adaptive_connection_satisfied: $adaptiveOk
+- high_to_standard_handoff_satisfied: $handoffOk
 
 ## Scenarios
 
@@ -1376,7 +1614,7 @@ $(($scenarioResults | ForEach-Object { "| $($_.id) | $($_.kind) | $($_.status) |
     Write-Utf8File $mdPath ($md.Replace("`r`n", "`n"))
     Write-Host "Wrote $jsonPath"
     Write-Host "Wrote $mdPath"
-    Write-Host "overall_status=$overall"
+    Write-Host "overall_status=$overall fingerprint_matches_current=$fingerprintMatchesCurrent"
     if ($overall -cne 'QUALIFIED') { exit 1 }
     exit 0
 }
@@ -1450,6 +1688,25 @@ try {
     $lockPath = Join-Path $installRoot 'apm.lock.yaml'
     $lockSha = if (Test-Path -LiteralPath $lockPath) { Get-Sha256File $lockPath } else { 'MISSING' }
 
+    $runId = Split-Path -Leaf $runRoot
+    $runMetadata = [ordered]@{
+        source_run_id = $runId
+        candidate_commit = $candidateCommit
+        canonical_fingerprint = $canonicalFingerprint
+        apm_yml_sha256 = $apmYmlSha
+        package_version = $packageVersion
+        apm_lock_sha256 = $lockSha
+        install_targets = @('copilot', 'codex', 'agent-skills')
+        client_version = ($copilotVersion -replace '[\r\n].*', '').Trim()
+        apm_version = $apmVersion
+        model_requested = $(if ($Model) { $Model } else { $null })
+        model_observed = $(if ($Model) { $Model } else { 'client-selected-or-unobserved' })
+        platform = $(if ($PSVersionTable.Platform) { [string]$PSVersionTable.Platform } else { 'win32' })
+        distribution_smoke = $distributionSmoke
+    }
+    Write-RunMetadataFile $runRoot $runMetadata
+    Write-Host "Wrote run-metadata.json for source_run_id=$runId"
+
     $scenarioResults = [System.Collections.Generic.List[object]]::new()
     $modelObservedGlobal = $(if ($Model) { $Model } else { 'client-selected-or-unobserved' })
 
@@ -1522,8 +1779,28 @@ try {
     if ($distributionSmoke.status -cne 'PASS' -and -not $SkipDistributionSmoke) {
         $allPass = $false
     }
+    $adaptiveOk = $false
+    $handoffOk = $false
+    foreach ($id in @('STD-001', 'FULL-001')) {
+        if (-not $byId.ContainsKey($id)) { continue }
+        $ac = $byId[$id].adaptive_connection
+        if ($ac -and $ac.connection_satisfied) { $adaptiveOk = $true }
+        if ($ac -and $ac.high_to_standard_handoff_satisfied) { $handoffOk = $true }
+    }
+    if (-not $selectedFilter -and -not $adaptiveOk) { $allPass = $false }
 
     $overall = if ($allPass -and (-not $selectedFilter)) { 'QUALIFIED' } elseif ($allPass) { 'PENDING' } else { 'FAIL' }
+
+    $runMetadata.model_observed = $modelObservedGlobal
+    $runMetadata.distribution_smoke = $distributionSmoke
+    Write-RunMetadataFile $runRoot $runMetadata
+
+    $clientVersionClean = ($copilotVersion -replace '[\r\n].*', '').Trim()
+    $notes = 'Qualified client surface is GitHub Copilot CLI only. Codex was not re-qualified in this run beyond existing static/historical evidence. VS Code Agent mode was not runtime-qualified. '
+    if ($adaptiveOk -and -not $handoffOk) {
+        $notes += 'Adaptive connection satisfied via HIGH COMPLETED_BY_HIGH_MODEL durable evidence where STANDARD remainder was not required. '
+    }
+    $notes += "source_run_id=$runId bound via run-metadata.json."
 
     $result = [ordered]@{
         schema_version = 1
@@ -1533,7 +1810,7 @@ try {
             qualified_client_surface = 'github-copilot-cli'
             other_surfaces = @('vscode-agent-mode: separate-runtime-qualification-not-performed')
         }
-        client_version = $copilotVersion
+        client_version = $clientVersionClean
         model_requested = $(if ($Model) { $Model } else { $null })
         model_observed = $modelObservedGlobal
         apm_version = $apmVersion
@@ -1546,7 +1823,22 @@ try {
         platform = $(if ($PSVersionTable.Platform) { [string]$PSVersionTable.Platform } else { 'win32' })
         distribution_smoke = $distributionSmoke
         overall_status = $overall
-        qualification_matrix_notes = 'Qualified client surface is GitHub Copilot CLI only. Codex was not re-qualified in this run beyond existing static/historical evidence. VS Code Agent mode was not runtime-qualified.'
+        qualification_matrix_notes = $notes
+        source_run = [ordered]@{
+            source_run_id = $runId
+            candidate_commit = $candidateCommit
+            canonical_fingerprint = $canonicalFingerprint
+            apm_yml_sha256 = $apmYmlSha
+            package_version = $packageVersion
+            apm_lock_sha256 = $lockSha
+            install_targets = @('copilot', 'codex', 'agent-skills')
+            client_version = $clientVersionClean
+            apm_version = $apmVersion
+            model_requested = $(if ($Model) { $Model } else { $null })
+            model_observed = $modelObservedGlobal
+            platform = $(if ($PSVersionTable.Platform) { [string]$PSVersionTable.Platform } else { 'win32' })
+            distribution_smoke = $distributionSmoke
+        }
         scenarios = @($scenarioResults)
     }
 

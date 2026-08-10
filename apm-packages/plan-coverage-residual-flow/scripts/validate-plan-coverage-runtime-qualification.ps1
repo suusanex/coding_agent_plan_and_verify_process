@@ -270,27 +270,82 @@ if ($result.overall_status -ceq 'QUALIFIED' -or $RequireQualified) {
     $std = $byId['STD-001']
     $full = $byId['FULL-001']
     $adaptiveOk = $false
+    $handoffOk = $false
     foreach ($s in @($std, $full)) {
         if ($null -eq $s) { continue }
-        if ($s.adaptive_connection -and $s.adaptive_connection.handoff_observed) {
-            $adaptiveOk = $true
+        $ac = $s.adaptive_connection
+        if (-not $ac) { continue }
+
+        # Reject weak boolean-only claims without structured phases when present on newer evidence.
+        if ($ac.psobject.Properties.Name -contains 'connection_satisfied') {
+            if ($ac.connection_satisfied) { $adaptiveOk = $true }
+            if ($ac.high_to_standard_handoff_satisfied) { $handoffOk = $true }
+
+            foreach ($phaseName in @('high_execution', 'handoff', 'standard_execution')) {
+                if (-not ($ac.psobject.Properties.Name -contains $phaseName)) {
+                    Add-Failure "$($s.id) adaptive_connection missing phase $phaseName"
+                    continue
+                }
+                $phase = $ac.$phaseName
+                $st = [string]$phase.status
+                if ($st -like 'OBSERVED_*' -and [string]::IsNullOrWhiteSpace([string]$phase.evidence)) {
+                    Add-Failure "$($s.id).$phaseName OBSERVED_* requires evidence path/ref"
+                }
+                # READY_FOR_STANDARD_COMPLETION alone must not imply STANDARD execution.
+                if ($phaseName -ceq 'standard_execution' -and $st -like 'OBSERVED_*') {
+                    if ([string]$phase.evidence -match 'READY_FOR_STANDARD_COMPLETION' -and [string]$phase.evidence -notmatch 'standard-implementation-completer|COMPLETED_BY_STANDARD|hooks/session') {
+                        Add-Failure "$($s.id).standard_execution must not treat READY_FOR_STANDARD_COMPLETION alone as STANDARD execution"
+                    }
+                }
+            }
+
+            if ($ac.high_observed -and $ac.high_execution.status -notlike 'OBSERVED_*') {
+                Add-Failure "$($s.id) high_observed=true but high_execution is not OBSERVED_*"
+            }
+            if ($ac.standard_observed -and $ac.standard_execution.status -notlike 'OBSERVED_*') {
+                Add-Failure "$($s.id) standard_observed=true but standard_execution is not OBSERVED_*"
+            }
+            if ($ac.handoff_observed -and $ac.handoff.status -notlike 'OBSERVED_*') {
+                Add-Failure "$($s.id) handoff_observed=true but handoff is not OBSERVED_*"
+            }
         }
-        elseif (@($s.agents_observed) -contains 'high-implementation-starter' -and @($s.agents_observed) -contains 'standard-implementation-completer') {
-            $adaptiveOk = $true
+        else {
+            # Legacy boolean-only shape is insufficient for QUALIFIED.
+            Add-Failure "$($s.id) adaptive_connection lacks structured phases required for QUALIFIED evidence"
+        }
+
+        if ($ac.design_pair_auto_selected) {
+            Add-Failure "Design Pair auto-selection evidence present in $($s.id)"
         }
     }
     if (-not $adaptiveOk) {
-        Add-Failure 'Adaptive HIGH -> STANDARD connection evidence missing from STD-001/FULL-001'
+        Add-Failure 'Adaptive connection_satisfied evidence missing from STD-001/FULL-001 (structured HIGH durable/hook evidence required)'
     }
 
-    foreach ($s in @($std, $full)) {
-        if ($null -eq $s) { continue }
-        if ($s.adaptive_connection -and $s.adaptive_connection.design_pair_auto_selected) {
-            Add-Failure "Design Pair auto-selection evidence present in $($s.id)"
+    if (-not ($result.psobject.Properties.Name -contains 'source_run') -or $null -eq $result.source_run) {
+        Add-Failure 'QUALIFIED result must include source_run frozen identity'
+    }
+    else {
+        $sr = $result.source_run
+        foreach ($field in @('source_run_id', 'candidate_commit', 'canonical_fingerprint', 'apm_yml_sha256', 'package_version', 'apm_lock_sha256', 'client_version')) {
+            if (-not ($sr.psobject.Properties.Name -contains $field) -or [string]::IsNullOrWhiteSpace([string]$sr.$field)) {
+                Add-Failure "source_run missing $field"
+            }
         }
-        $joined = (@($s.created_artifacts) + @($s.changed_artifacts) + @($s.agents_observed)) -join ' '
-        if ($joined -match 'design-pair' -and $joined -notmatch 'no-design-pair') {
-            # soft check already covered by adaptive_connection flag
+        if ([string]$sr.canonical_fingerprint -cne [string]$result.canonical_fingerprint) {
+            Add-Failure 'result.canonical_fingerprint must equal source_run.canonical_fingerprint (no re-bind)'
+        }
+        if ([string]$sr.candidate_commit -cne [string]$result.candidate_commit) {
+            Add-Failure 'result.candidate_commit must equal source_run.candidate_commit (no re-bind)'
+        }
+        if ([string]$sr.package_version -cne [string]$result.plan_coverage_package_version) {
+            Add-Failure 'result.plan_coverage_package_version must equal source_run.package_version'
+        }
+        if ([string]$sr.apm_yml_sha256 -cne [string]$result.apm_yml_sha256) {
+            Add-Failure 'result.apm_yml_sha256 must equal source_run.apm_yml_sha256'
+        }
+        if ([string]$sr.canonical_fingerprint -cne $currentFingerprint) {
+            Add-Failure "QUALIFIED source_run fingerprint must match current canonical source ($currentFingerprint)"
         }
     }
 

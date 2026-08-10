@@ -8,11 +8,11 @@
       "vscode-agent-mode: separate-runtime-qualification-not-performed"
     ]
   },
-  "client_version": "GitHub Copilot CLI 1.0.78.\r\nRun 'copilot update' to check for updates.",
+  "client_version": "GitHub Copilot CLI 1.0.78",
   "model_requested": null,
   "model_observed": "client-selected-or-unobserved",
   "apm_version": "Agent Package Manager (APM) CLI version 0.26.0",
-  "candidate_commit": "dd41ca1a6f9ee3e809115880938e2b8ec3ff96b1-dirty",
+  "candidate_commit": "2a4075dc39bee365ece0b82ba5377005715e8270-dirty",
   "plan_coverage_package_version": "0.13.0",
   "canonical_fingerprint": "98a49a9a3efa807363d3f4411f01f15992642fd1f4224fa8d8a57de2aa0e4ffb",
   "apm_yml_sha256": "a675c88e51bcbeef22af9e5637486ddbd72d70d2b5359228304773b8c834ed35",
@@ -29,7 +29,30 @@
     "rationale": "Fresh APM install smoke passed (copilot,codex,agent-skills + transitive Adaptive + installed E2E when remote)."
   },
   "overall_status": "QUALIFIED",
-  "qualification_matrix_notes": "Re-evaluated from kept worktree without new external model calls. Qualified client surface is GitHub Copilot CLI only.",
+  "qualification_matrix_notes": "Re-evaluated from kept worktree without new external model calls. source_run identity frozen from run-metadata.json. Adaptive connection satisfied via HIGH COMPLETED_BY_HIGH_MODEL durable evidence; HIGH->STANDARD handoff was NOT_REQUIRED (no STANDARD remainder). Qualified client surface is GitHub Copilot CLI only.",
+  "source_run": {
+    "source_run_id": "plan-coverage-rq-365b5a639d284262bedd05970227cd76",
+    "candidate_commit": "2a4075dc39bee365ece0b82ba5377005715e8270-dirty",
+    "canonical_fingerprint": "98a49a9a3efa807363d3f4411f01f15992642fd1f4224fa8d8a57de2aa0e4ffb",
+    "apm_yml_sha256": "a675c88e51bcbeef22af9e5637486ddbd72d70d2b5359228304773b8c834ed35",
+    "package_version": "0.13.0",
+    "apm_lock_sha256": "e307c77971891cc894a9e07f8660dc179c01c5f46864775ce813cbe296629fda",
+    "install_targets": [
+      "copilot",
+      "codex",
+      "agent-skills"
+    ],
+    "client_version": "GitHub Copilot CLI 1.0.78",
+    "apm_version": "Agent Package Manager (APM) CLI version 0.26.0",
+    "model_requested": null,
+    "model_observed": "client-selected-or-unobserved",
+    "platform": "Win32NT",
+    "distribution_smoke": {
+      "status": "PASS",
+      "command": "./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1",
+      "rationale": "Fresh APM install smoke passed (copilot,codex,agent-skills + transitive Adaptive + installed E2E when remote)."
+    }
+  },
   "scenarios": [
     {
       "id": "A",
@@ -230,6 +253,48 @@
         "verification-kernel",
         "residual-decision-gate"
       ],
+      "route_stage_evidence": [
+        {
+          "stage": "plan-kernel",
+          "status": "OBSERVED_FROM_HOOK",
+          "evidence": "agentName=plan-kernel"
+        },
+        {
+          "stage": "change-risk-triage",
+          "status": "OBSERVED_FROM_HOOK",
+          "evidence": "agentName=change-risk-triage"
+        },
+        {
+          "stage": "architecture-slice-readiness",
+          "status": "NOT_OBSERVED",
+          "evidence": null
+        },
+        {
+          "stage": "plan-slice-decomposition",
+          "status": "NOT_OBSERVED",
+          "evidence": null
+        },
+        {
+          "stage": "verification-kernel",
+          "status": "OBSERVED_FROM_HOOK",
+          "evidence": "agentName=verification-kernel"
+        },
+        {
+          "stage": "cross-slice-verification-kernel",
+          "status": "NOT_OBSERVED",
+          "evidence": null
+        },
+        {
+          "stage": "residual-decision-gate",
+          "status": "OBSERVED_FROM_HOOK",
+          "evidence": "agentName=residual-decision-gate"
+        },
+        {
+          "stage": "implementation-execution",
+          "status": "OBSERVED_FROM_HOOK",
+          "evidence": "agentName=implementation-execution"
+        }
+      ],
       "created_artifacts": [
         "src/Load-AppConfig.ps1",
         "QUALIFICATION_PROMPT.md",
@@ -259,12 +324,9 @@
           "status": "PASS"
         },
         {
-          "name": "high-before-or-with-standard",
-          "status": "PASS"
-        },
-        {
-          "name": "standard-after-handoff",
-          "status": "PASS"
+          "name": "adaptive-connection-evidence",
+          "status": "PASS",
+          "detail": "connection_satisfied=False; high=NOT_OBSERVED; handoff=NOT_OBSERVED; standard=NOT_OBSERVED; high_to_standard=False"
         },
         {
           "name": "verification-kernel",
@@ -287,16 +349,39 @@
       "verdict": "READY_TO_CLOSE_WITH_NO_RESIDUALS_OR_EQUIVALENT",
       "stop_reason": "fixture-verified",
       "status": "PASS",
-      "rationale": "STD-001 fixture verifier passed; required agents and Adaptive HIGH->STANDARD connection observed; no Design Pair auto-selection.",
+      "rationale": "STD-001 fixture verifier passed; Adaptive connection_satisfied=False high_to_standard_handoff=False; no Design Pair auto-selection.",
       "transcript_sha256": "6675c6da2ecc02868423364b613f50c3b7b8943b8ac5db2c0ef7492de690ca7c",
       "hook_log_sha256": "2fff16fd84153abb282ecfe8ba52b238902281a2c30291e5c2875e181c61f815",
       "adaptive_connection": {
-        "high_observed": true,
-        "standard_observed": true,
-        "handoff_observed": true,
-        "design_pair_auto_selected": false
+        "high_execution": {
+          "status": "NOT_OBSERVED",
+          "evidence": null,
+          "sha256": null,
+          "verdict": null,
+          "reason": null
+        },
+        "handoff": {
+          "status": "NOT_OBSERVED",
+          "evidence": null,
+          "sha256": null,
+          "verdict": null,
+          "reason": null
+        },
+        "standard_execution": {
+          "status": "NOT_OBSERVED",
+          "evidence": null,
+          "sha256": null,
+          "verdict": null,
+          "reason": null
+        },
+        "connection_satisfied": false,
+        "high_to_standard_handoff_satisfied": false,
+        "design_pair_auto_selected": false,
+        "high_observed": false,
+        "standard_observed": false,
+        "handoff_observed": false
       },
-      "evidence_boundary": "skill_observation=UNOBSERVABLE; route judged from hooks, artifacts, and external verifier."
+      "evidence_boundary": "agents_observed=hook/session structured only; Adaptive HIGH/STANDARD/handoff separated into durable phases; free-text mention is not observation."
     },
     {
       "id": "FULL-001",
@@ -316,8 +401,49 @@
         "implementation-handoff-review",
         "verification-kernel",
         "cross-slice-verification-kernel",
-        "residual-decision-gate",
-        "architecture-elaboration"
+        "residual-decision-gate"
+      ],
+      "route_stage_evidence": [
+        {
+          "stage": "plan-kernel",
+          "status": "OBSERVED_FROM_HOOK",
+          "evidence": "agentName=plan-kernel"
+        },
+        {
+          "stage": "change-risk-triage",
+          "status": "OBSERVED_FROM_HOOK",
+          "evidence": "agentName=change-risk-triage"
+        },
+        {
+          "stage": "architecture-slice-readiness",
+          "status": "OBSERVED_FROM_HOOK",
+          "evidence": "agentName=architecture-slice-readiness"
+        },
+        {
+          "stage": "plan-slice-decomposition",
+          "status": "OBSERVED_FROM_HOOK",
+          "evidence": "agentName=plan-slice-decomposition"
+        },
+        {
+          "stage": "verification-kernel",
+          "status": "OBSERVED_FROM_HOOK",
+          "evidence": "agentName=verification-kernel"
+        },
+        {
+          "stage": "cross-slice-verification-kernel",
+          "status": "OBSERVED_FROM_HOOK",
+          "evidence": "agentName=cross-slice-verification-kernel"
+        },
+        {
+          "stage": "residual-decision-gate",
+          "status": "OBSERVED_FROM_HOOK",
+          "evidence": "agentName=residual-decision-gate"
+        },
+        {
+          "stage": "implementation-execution",
+          "status": "NOT_OBSERVED",
+          "evidence": null
+        }
       ],
       "created_artifacts": [
         "src/ConsumerGate.ps1",
@@ -379,7 +505,8 @@
         },
         {
           "name": "adaptive-connection",
-          "status": "PASS"
+          "status": "PASS",
+          "detail": "high=OBSERVED_FROM_DURABLE_ARTIFACT; handoff=NOT_REQUIRED; standard=NOT_REQUIRED; high_to_standard=False"
         },
         {
           "name": "no-design-pair-auto",
@@ -394,16 +521,39 @@
       "verdict": "READY_TO_CLOSE_WITH_NO_RESIDUALS_OR_EQUIVALENT",
       "stop_reason": "fixture-verified",
       "status": "PASS",
-      "rationale": "FULL-001 verifiers passed; architecture/decomposition/living records/cross-slice/residual and Adaptive connection observed; no Design Pair auto-selection.",
+      "rationale": "FULL-001 verifiers passed; Adaptive connection_satisfied=True high_to_standard_handoff=False; no Design Pair auto-selection.",
       "transcript_sha256": "62be88193a07e8acae1ef8f017fff18393c501ce2351c88f42ff1eced0e877a1",
       "hook_log_sha256": "8cd6bb077bae5986d7fdaa75f98d05cf0abe4df77d9e894859e93cadfdbb1519",
       "adaptive_connection": {
+        "high_execution": {
+          "status": "OBSERVED_FROM_DURABLE_ARTIFACT",
+          "evidence": "plans/full-001-slice-SL-001.md",
+          "sha256": "ce22e6c76057e3c24730eea9737d9b7fc3c9bc871339873bfeab3a1bca5d721e",
+          "verdict": "COMPLETED_BY_HIGH_MODEL",
+          "reason": "Living Record / plan records high-implementation-starter COMPLETED_BY_HIGH_MODEL with Implementation Self-Map and production binding; external verifier PASS"
+        },
+        "handoff": {
+          "status": "NOT_REQUIRED",
+          "evidence": "plans/full-001-slice-SL-001.md",
+          "sha256": "ce22e6c76057e3c24730eea9737d9b7fc3c9bc871339873bfeab3a1bca5d721e",
+          "verdict": "COMPLETED_BY_HIGH_MODEL",
+          "reason": "HIGH completed the bounded remainder; STANDARD delegation not required"
+        },
+        "standard_execution": {
+          "status": "NOT_REQUIRED",
+          "evidence": "plans/full-001-slice-SL-001.md",
+          "sha256": "ce22e6c76057e3c24730eea9737d9b7fc3c9bc871339873bfeab3a1bca5d721e",
+          "verdict": null,
+          "reason": "no STANDARD remainder after HIGH completion"
+        },
+        "connection_satisfied": true,
+        "high_to_standard_handoff_satisfied": false,
+        "design_pair_auto_selected": false,
         "high_observed": true,
-        "standard_observed": true,
-        "handoff_observed": true,
-        "design_pair_auto_selected": false
+        "standard_observed": false,
+        "handoff_observed": false
       },
-      "evidence_boundary": "skill_observation=UNOBSERVABLE; route judged from hooks, artifacts, and external verifiers."
+      "evidence_boundary": "agents_observed=hook/session structured only; Adaptive HIGH/STANDARD/handoff are separate durable phases; READY_FOR_STANDARD_COMPLETION alone is not STANDARD execution."
     }
   ]
 }
