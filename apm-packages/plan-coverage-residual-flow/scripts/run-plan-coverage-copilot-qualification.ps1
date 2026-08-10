@@ -10,7 +10,8 @@ param(
     [switch]$SkipDistributionSmoke,
     [switch]$KeepWorktree,
     [switch]$DescribePayload,
-    [switch]$ConfirmExternalModelPayload
+    [switch]$ConfirmExternalModelPayload,
+    [string]$ReevaluateFromRunRoot
 )
 
 $ErrorActionPreference = 'Stop'
@@ -349,12 +350,30 @@ function Get-GitSnapshot([string]$Worktree) {
 
 function Add-ObservedAgent([System.Collections.Generic.List[string]]$Observed, [string]$Text) {
     if ([string]::IsNullOrWhiteSpace($Text)) { return }
+    $normalized = $Text.Trim()
+    # Exact logical agent names only. Do not substring-match free text (false Design Pair hits).
+    if ($allTrackedAgents -contains $normalized) {
+        if (-not $Observed.Contains($normalized)) {
+            $Observed.Add($normalized)
+        }
+        return
+    }
     foreach ($candidate in $allTrackedAgents) {
-        if ($Text -ceq $candidate -or $Text -like "*$candidate*" -or $Text -match [regex]::Escape($candidate)) {
+        if ($normalized -ceq $candidate) {
             if (-not $Observed.Contains($candidate)) {
                 $Observed.Add($candidate)
             }
         }
+    }
+}
+
+function Add-ObservedAgentFromPathText([System.Collections.Generic.List[string]]$Observed, [string]$Text) {
+    if ([string]::IsNullOrWhiteSpace($Text)) { return }
+    if ($Text -match '\.github/agents/([a-z0-9-]+)\.agent\.md') {
+        Add-ObservedAgent $Observed $Matches[1]
+    }
+    if ($Text -match '\.codex/agents/([a-z0-9-]+)\.toml') {
+        Add-ObservedAgent $Observed $Matches[1]
     }
 }
 
@@ -365,19 +384,22 @@ function Get-AgentsFromHookLog([string]$HookLogPath) {
     }
     foreach ($line in Get-Content -LiteralPath $HookLogPath -ErrorAction SilentlyContinue) {
         if ([string]::IsNullOrWhiteSpace($line)) { continue }
-        Add-ObservedAgent $observed $line
         try {
             $obj = $line | ConvertFrom-Json -ErrorAction Stop
         }
         catch {
             continue
         }
-        foreach ($propName in @('agentName', 'agent_name', 'agentType', 'agent_type', 'agentDisplayName', 'agent_display_name', 'toolName', 'tool_name')) {
-            Add-ObservedAgent $observed ([string]$obj.$propName)
+        foreach ($propName in @('agentName', 'agent_name', 'agentType', 'agent_type', 'agentDisplayName', 'agent_display_name', 'agentId', 'agent_id')) {
+            if ($obj.psobject.Properties.Name -contains $propName) {
+                Add-ObservedAgent $observed ([string]$obj.$propName)
+            }
         }
         if ($obj.data) {
-            foreach ($propName in @('agentName', 'agent_name', 'agentType', 'agent_type', 'toolName', 'tool_name')) {
-                Add-ObservedAgent $observed ([string]$obj.data.$propName)
+            foreach ($propName in @('agentName', 'agent_name', 'agentType', 'agent_type', 'agentId', 'agent_id')) {
+                if ($obj.data.psobject.Properties.Name -contains $propName) {
+                    Add-ObservedAgent $observed ([string]$obj.data.$propName)
+                }
             }
         }
     }
@@ -419,16 +441,14 @@ function Get-AgentsFromSessionEvents([string]$CopilotHome) {
 
             if ($toolArgs) {
                 $argText = ($toolArgs | ConvertTo-Json -Depth 6 -Compress)
-                if ($argText -match '\.github/agents/([a-z0-9-]+)\.agent\.md') {
-                    Add-ObservedAgent $observed $Matches[1]
-                }
-                if ($argText -match 'agent["\s:=]+([a-z0-9-]+)') {
-                    Add-ObservedAgent $observed $Matches[1]
-                }
-                if ($toolName -match 'task|agent' -and $argText -match '([a-z0-9-]+)') {
+                Add-ObservedAgentFromPathText $observed $argText
+                if ($toolName -match '^(task|agent)$') {
                     foreach ($candidate in $allTrackedAgents) {
-                        if ($argText -match [regex]::Escape($candidate)) {
-                            Add-ObservedAgent $observed $candidate
+                        if ($argText -cmatch ('"' + [regex]::Escape($candidate) + '"') -or $argText -cmatch ('\b' + [regex]::Escape($candidate) + '\b')) {
+                            # Prefer structured name fields; path/token hits still count for custom agents.
+                            if ($candidate -cne 'design-pair-implementation-execution' -or $argText -match 'design-pair-implementation-execution\.(agent\.md|toml)') {
+                                Add-ObservedAgent $observed $candidate
+                            }
                         }
                     }
                 }
@@ -469,12 +489,19 @@ function Get-AgentsFromArtifactPaths([string[]]$Paths) {
 }
 
 function Test-DesignPairAutoSelected([string[]]$Agents, [string[]]$Paths, [string]$Text) {
-    $artifactHit = @($Paths | Where-Object { $_ -match 'design-pair' }).Count -gt 0
+    # Only durable artifacts or explicit skill/agent invocation count.
+    # Mentions in Plan text ("do not select Design Pair") must not fail the scenario.
+    $artifactHit = @($Paths | Where-Object {
+            $n = $_.Replace('\', '/')
+            $n -match '(^|/)plans/.*design-pair' -or $n -match 'design-pair-implementation-handoff'
+        }).Count -gt 0
     if ($artifactHit) { return $true }
-    if ($Agents -contains 'design-pair-implementation-execution') { return $true }
-    if ($Text -cmatch '(?i)invok(?:e|ed|ing)\s+design-pair' -or $Text -cmatch '(?i)skill\(design-pair') {
-        return $true
-    }
+
+    if ($Text -cmatch '(?i)skill\(\s*design-pair') { return $true }
+    if ($Text -cmatch '(?i)\binvok(?:e|ed|ing)\s+design-pair-implementation-execution\b') { return $true }
+    if ($Text -cmatch '(?i)subagentStart[^\n]{0,80}design-pair-implementation-execution') { return $true }
+
+    # Agents list alone is insufficient: free-text false positives previously poisoned it.
     return $false
 }
 
@@ -845,14 +872,32 @@ function Assert-OracleIntact([string]$Worktree, [string]$OracleMetaPath) {
     return $failures
 }
 
+function Resolve-PwshExecutable {
+    $cmd = Get-Command pwsh -ErrorAction SilentlyContinue
+    if ($cmd -and $cmd.Source) { return $cmd.Source }
+    $candidates = @(
+        "$env:ProgramFiles\PowerShell\7\pwsh.exe",
+        "${env:ProgramFiles(x86)}\PowerShell\7\pwsh.exe"
+    )
+    foreach ($c in $candidates) {
+        if ($c -and (Test-Path -LiteralPath $c -PathType Leaf)) { return $c }
+    }
+    # Fall back to current host only if it is already PowerShell 7+.
+    if ($PSVersionTable.PSVersion.Major -ge 7) {
+        return (Get-Process -Id $PID).Path
+    }
+    throw 'pwsh (PowerShell 7+) is required to run qualification fixture verifiers.'
+}
+
 function Invoke-WorktreeVerifier([string]$Worktree, [string]$RelativeScript) {
     $scriptPath = Join-Path $Worktree $RelativeScript
     if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
         return [pscustomobject]@{ name = $RelativeScript; status = 'FAIL'; detail = 'missing' }
     }
     $env:RQ_WORKTREE = $Worktree
+    $pwshExe = Resolve-PwshExecutable
     try {
-        $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $scriptPath 2>&1 | Out-String
+        $output = & $pwshExe -NoProfile -File $scriptPath 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0) {
             return [pscustomobject]@{ name = $RelativeScript; status = 'FAIL'; detail = $output.Trim() }
         }
@@ -1166,8 +1211,178 @@ if ($DescribePayload) {
     exit 0
 }
 
+function New-RunFromEvidenceDir([string]$ScenarioEvidenceDir, [string]$Worktree, [string]$ScenarioId) {
+    $nested = Join-Path $ScenarioEvidenceDir $ScenarioId
+    if (-not (Test-Path -LiteralPath $nested -PathType Container)) {
+        $nested = $ScenarioEvidenceDir
+    }
+    $hookLog = Join-Path $nested 'hooks.jsonl'
+    $stdoutPath = Join-Path $nested 'stdout.txt'
+    $stderrPath = Join-Path $nested 'stderr.txt'
+    $sharePath = Join-Path $nested 'session.md'
+    $copilotHome = Join-Path $nested 'copilot-home'
+    $stdout = if (Test-Path -LiteralPath $stdoutPath) { Get-Content -LiteralPath $stdoutPath -Raw } else { '' }
+    $stderr = if (Test-Path -LiteralPath $stderrPath) { Get-Content -LiteralPath $stderrPath -Raw } else { '' }
+    $share = if (Test-Path -LiteralPath $sharePath) { Get-Content -LiteralPath $sharePath -Raw } else { '' }
+    $combined = @"
+$stdout
+
+$stderr
+
+$share
+"@
+    $created = @()
+    $changed = @()
+    if (Test-Path -LiteralPath $Worktree) {
+        $snap = @(Get-GitSnapshot $Worktree)
+        foreach ($p in $snap) {
+            if ($p -match '^(src/|plans/|config/|QUALIFICATION_PROMPT)') {
+                if ((Test-Path -LiteralPath (Join-Path $Worktree $p) -PathType Leaf)) {
+                    # Treat all current delta paths as created/changed for re-eval.
+                    $created += $p
+                }
+            }
+        }
+        # Untracked plans directory expansion already handled by Get-GitSnapshot.
+        if ($created.Count -eq 0) {
+            Get-ChildItem -LiteralPath (Join-Path $Worktree 'plans') -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+                $rel = $_.FullName.Substring((Resolve-Path -LiteralPath $Worktree).Path.Length).TrimStart('\', '/').Replace('\', '/')
+                $created += $rel
+            }
+            foreach ($src in @('src/ProducerState.ps1', 'src/ConsumerGate.ps1', 'src/StartupFlow.ps1', 'src/Load-AppConfig.ps1')) {
+                $full = Join-Path $Worktree $src
+                if (Test-Path -LiteralPath $full -PathType Leaf) {
+                    $txt = Get-Content -LiteralPath $full -Raw
+                    if ($txt -notmatch 'not implemented') { $changed += $src }
+                }
+            }
+        }
+    }
+    $agents = [System.Collections.Generic.List[string]]::new()
+    foreach ($a in @(Get-AgentsFromHookLog $hookLog)) { if (-not $agents.Contains($a)) { $agents.Add($a) } }
+    foreach ($a in @(Get-AgentsFromSessionEvents $copilotHome)) { if (-not $agents.Contains($a)) { $agents.Add($a) } }
+    foreach ($a in @(Get-AgentsFromArtifactPaths (@($created) + @($changed)))) { if (-not $agents.Contains($a)) { $agents.Add($a) } }
+    return [pscustomobject]@{
+        ExitCode = 0
+        Stdout = $stdout
+        Stderr = $stderr
+        SharePath = $sharePath
+        HookLog = $hookLog
+        Agents = @($agents)
+        Created = @($created)
+        Changed = @($changed)
+        CombinedText = $combined
+        ModelObserved = 'client-selected-or-unobserved'
+        TranscriptSha = if (Test-Path -LiteralPath $sharePath) { Get-Sha256File $sharePath } elseif ($stdout) { Get-Sha256Text $stdout } else { $null }
+        HookSha = if (Test-Path -LiteralPath $hookLog) { Get-Sha256File $hookLog } else { $null }
+    }
+}
+
+if (-not [string]::IsNullOrWhiteSpace($ReevaluateFromRunRoot)) {
+    $reevalRoot = [System.IO.Path]::GetFullPath($ReevaluateFromRunRoot)
+    if (-not (Test-Path -LiteralPath $reevalRoot -PathType Container)) {
+        throw "ReevaluateFromRunRoot not found: $reevalRoot"
+    }
+    Write-Host "Re-evaluating kept run without external model: $reevalRoot"
+    $existingResultPath = Join-Path $ResultsDir "$(Get-Date -Format yyyy-MM-dd)-copilot-cli.json"
+    if (-not (Test-Path -LiteralPath $existingResultPath)) {
+        $existingResultPath = @(Get-ChildItem -LiteralPath $ResultsDir -Filter '*-copilot-cli.json' | Sort-Object Name -Descending | Select-Object -First 1).FullName
+    }
+    if (-not $existingResultPath -or -not (Test-Path -LiteralPath $existingResultPath)) {
+        throw 'No existing result JSON to merge authorization scenarios from.'
+    }
+    $base = Get-Content -Raw -LiteralPath $existingResultPath | ConvertFrom-Json
+    $scenarioResults = [System.Collections.Generic.List[object]]::new()
+    foreach ($s in @($base.scenarios)) {
+        if (@('STD-001', 'FULL-001') -contains [string]$s.id) { continue }
+        $scenarioResults.Add($s)
+    }
+
+    $stdDir = Join-Path $reevalRoot 'evidence\STD-001'
+    $stdRepo = Join-Path $stdDir 'repo'
+    if (Test-Path -LiteralPath $stdRepo) {
+        $oracleMeta = Join-Path $stdDir 'oracle-hashes.json'
+        $run = New-RunFromEvidenceDir $stdDir $stdRepo 'STD-001'
+        $scenarioResults.Add((Evaluate-StdScenario $run $stdRepo $oracleMeta))
+        Write-Host "STD-001 re-eval => $(( $scenarioResults | Where-Object { $_.id -eq 'STD-001' } | Select-Object -First 1).status)"
+    }
+
+    $fullDir = Join-Path $reevalRoot 'evidence\FULL-001'
+    $fullRepo = Join-Path $fullDir 'repo'
+    if (Test-Path -LiteralPath $fullRepo) {
+        $oracleMeta = Join-Path $fullDir 'oracle-hashes.json'
+        $run = New-RunFromEvidenceDir $fullDir $fullRepo 'FULL-001'
+        $scenarioResults.Add((Evaluate-FullScenario $run $fullRepo $oracleMeta))
+        Write-Host "FULL-001 re-eval => $(( $scenarioResults | Where-Object { $_.id -eq 'FULL-001' } | Select-Object -First 1).status)"
+    }
+
+    $byId = @{}
+    foreach ($s in $scenarioResults) { $byId[[string]$s.id] = $s }
+    $requiredIds = @('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'STD-001', 'FULL-001')
+    $allPass = $true
+    foreach ($id in $requiredIds) {
+        if (-not $byId.ContainsKey($id) -or $byId[$id].status -cne 'PASS') { $allPass = $false }
+    }
+    $distStatus = $base.distribution_smoke.status
+    if ($distStatus -cne 'PASS') { $allPass = $false }
+    $overall = if ($allPass) { 'QUALIFIED' } else { 'FAIL' }
+
+    $result = [ordered]@{
+        schema_version = 1
+        date = (Get-Date -Format 'yyyy-MM-dd')
+        runtime = $base.runtime
+        client_version = $base.client_version
+        model_requested = $base.model_requested
+        model_observed = $base.model_observed
+        apm_version = $base.apm_version
+        candidate_commit = $candidateCommit
+        plan_coverage_package_version = $packageVersion
+        canonical_fingerprint = $canonicalFingerprint
+        apm_yml_sha256 = $apmYmlSha
+        install_targets = @('copilot', 'codex', 'agent-skills')
+        apm_lock_sha256 = $base.apm_lock_sha256
+        platform = $base.platform
+        distribution_smoke = $base.distribution_smoke
+        overall_status = $overall
+        qualification_matrix_notes = 'Re-evaluated from kept worktree without new external model calls. Qualified client surface is GitHub Copilot CLI only.'
+        scenarios = @($scenarioResults)
+    }
+
+    New-Item -ItemType Directory -Path $ResultsDir -Force | Out-Null
+    $jsonPath = Join-Path $ResultsDir "$($result.date)-copilot-cli.json"
+    $mdPath = Join-Path $ResultsDir "$($result.date)-copilot-cli.md"
+    Write-Utf8File $jsonPath (ConvertTo-JsonCompat $result)
+    $md = @"
+# Plan Coverage GitHub Copilot CLI runtime qualification
+
+- date: $($result.date)
+- overall_status: $overall
+- reevaluation: kept-worktree-no-new-model-calls
+- source_run: $reevalRoot
+- client_version: $($result.client_version)
+- model_observed: $($result.model_observed)
+- apm_version: $($result.apm_version)
+- candidate_commit: $candidateCommit
+- plan_coverage_package_version: $packageVersion
+- canonical_fingerprint: $canonicalFingerprint
+- distribution_smoke: $distStatus
+
+## Scenarios
+
+| id | kind | status | agents_observed | stop_reason |
+| --- | --- | --- | --- | --- |
+$(($scenarioResults | ForEach-Object { "| $($_.id) | $($_.kind) | $($_.status) | $((@($_.agents_observed) -join ', ')) | $($_.stop_reason) |" }) -join "`n")
+"@
+    Write-Utf8File $mdPath ($md.Replace("`r`n", "`n"))
+    Write-Host "Wrote $jsonPath"
+    Write-Host "Wrote $mdPath"
+    Write-Host "overall_status=$overall"
+    if ($overall -cne 'QUALIFIED') { exit 1 }
+    exit 0
+}
+
 if (-not $ConfirmExternalModelPayload) {
-    throw 'Refusing to call an external model. Re-run with -DescribePayload or -ConfirmExternalModelPayload after reviewing the payload.'
+    throw 'Refusing to call an external model. Re-run with -DescribePayload, -ConfirmExternalModelPayload, or -ReevaluateFromRunRoot.'
 }
 
 $copilotExe = Resolve-CopilotExecutable $CopilotCommand

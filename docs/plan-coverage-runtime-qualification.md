@@ -46,27 +46,31 @@ Fresh install smoke also checks transitive Adaptive Implementation assets and, f
 
 | Item | Status |
 | --- | --- |
-| overall_status | **PENDING (not QUALIFIED)** |
-| client_version | pending real run |
-| model | pending real run |
-| APM version | pending real run |
-| package version | `0.13.0` (see `apm.yml`) |
-| candidate commit | pending real run |
-| canonical fingerprint | computed at validation/run time |
-| result file | none committed as QUALIFIED yet |
-| authorization A–H | pending real run |
-| standard-slice STD-001 | pending real run |
-| full-coverage FULL-001 | pending real run |
-| Adaptive connection | pending real run |
+| overall_status | **QUALIFIED** |
+| client_version | GitHub Copilot CLI 1.0.78 |
+| model | client-selected-or-unobserved |
+| APM version | 0.26.0 |
+| package version | `0.13.0` |
+| candidate commit | recorded in result file (worktree dirty at evidence time) |
+| canonical fingerprint | `98a49a9a3efa807363d3f4411f01f15992642fd1f4224fa8d8a57de2aa0e4ffb` |
+| result file | `tests/runtime-qualification/results/2026-08-10-copilot-cli.json` |
+| authorization A–H | PASS |
+| standard-slice STD-001 | PASS |
+| full-coverage FULL-001 | PASS |
+| Adaptive connection | PASS (HIGH/STANDARD evidence on STD-001 and/or FULL-001) |
+| Design Pair auto-selection | not observed |
 
-Update this table only when `run-plan-coverage-copilot-qualification.ps1` produces `overall_status: QUALIFIED` with a fingerprint matching the current `.apm` tree.
+Update this table only when `run-plan-coverage-copilot-qualification.ps1` produces `overall_status: QUALIFIED` with a fingerprint matching the current `.apm` tree. After canonical `.apm` changes, re-run qualification; stale fingerprints must not remain QUALIFIED.
 
 ### Isolation and observation
 
 - Each qualification scenario uses a temporary `COPILOT_HOME` so personal skills, agents, instructions, hooks, plugins, and saved permissions are not loaded.
 - A qualification-only user-level hook observer records `sessionStart`, `userPromptSubmitted`, `subagentStart`, `subagentStop`, `agentStop`/`sessionEnd`, and `errorOccurred` to JSONL under a temporary evidence directory.
 - Skill load events are often **UNOBSERVABLE** on Copilot CLI. Do not invent skill selection. Scenario PASS may still be justified from hooks, artifact deltas, verifiers, and final response.
+- Fixture verifiers run under **pwsh** (PowerShell 7+), not Windows PowerShell 5.1.
 - Raw transcripts and hook logs stay temporary unless debugging with `-KeepWorktree`. Committed evidence keeps metadata, prompts, observed agents, artifact deltas, and verdict rationale.
+- Kept-worktree re-evaluation without new model calls:
+  `run-plan-coverage-copilot-qualification.ps1 -ReevaluateFromRunRoot <temp-run-root>`
 
 ### Manual run
 

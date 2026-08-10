@@ -312,7 +312,7 @@ Canonical Plan Coverage semantics remain runtime-neutral under `.apm/`. Distribu
 - [Runtime qualification matrix](../../docs/plan-coverage-runtime-qualification.md)
 - [Runtime qualification fixtures](tests/runtime-qualification/README.md)
 
-Current Copilot CLI status is recorded in that matrix document. Do not treat VS Code Agent mode as qualified unless a separate runtime run says so.
+Current Copilot CLI status is recorded in that matrix document (GitHub Copilot CLI QUALIFIED for the fingerprint listed there). Do not treat VS Code Agent mode as qualified unless a separate runtime run says so.
 
 ## Documentation and validation
 
