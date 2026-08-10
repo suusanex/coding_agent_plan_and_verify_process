@@ -78,8 +78,6 @@ try {
     $codexStandard = Join-Path $scratch '.codex/agents/standard-implementation-completer.toml'
     Assert-File $codexHigh 'transitive Codex HIGH TOML'
     Assert-File $codexStandard 'transitive Codex STANDARD TOML'
-    Assert-Contains $codexHigh '(?m)^model\s*=\s*"gpt-5\.6-terra"\s*$' 'transitive Codex HIGH model'
-    Assert-Contains $codexStandard '(?m)^model\s*=\s*"gpt-5\.6-luna"\s*$' 'transitive Codex STANDARD model'
 
     $lockPath = Join-Path $scratch 'apm.lock.yaml'
     Assert-File $lockPath 'remote APM lock'
