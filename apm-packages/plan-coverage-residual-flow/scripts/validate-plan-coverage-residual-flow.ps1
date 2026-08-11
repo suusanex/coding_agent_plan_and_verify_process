@@ -726,6 +726,7 @@ if ($failures.Count -eq 0) {
     }
 
     $standaloneE2E = Get-NormalizedText (Join-Path $repoRoot $standaloneE2ERelativePath)
+    $copilotQualification = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/plan-coverage-residual-flow/scripts/run-plan-coverage-copilot-qualification.ps1')
     $standaloneFixtureReadme = Get-NormalizedText (Join-Path $repoRoot $standaloneFixtureReadmeRelativePath)
     $standaloneFixtureExpected = Get-NormalizedText (Join-Path $repoRoot $standaloneFixtureExpectedRelativePath)
     $apmSmoke = Get-NormalizedText (Join-Path $repoRoot $apmSmokeRelativePath)
@@ -741,6 +742,9 @@ if ($failures.Count -eq 0) {
     foreach ($authorityCheck in @('Get-MarkdownTemplate', 'Add-TemplateShapeErrors', 'SliceLivingRecord', 'FullCoverageClose')) {
         Assert-Matches $standaloneE2E ([regex]::Escape($authorityCheck)) "standalone E2E validator must enforce current artifact authority through $authorityCheck"
     }
+    Assert-Matches $copilotQualification "'### Decision Ownership Gate'" 'Slice Living Record qualification oracle must require the agent-defined heading level'
+    Assert-Matches $copilotQualification '\$decisionOutputText = \[string\]\$Run\.Stdout' 'decision ownership verdicts must be read from model output, not the loaded agent contract'
+    Assert-Matches $copilotQualification '(?s)decision-ownership-\$sid.*Evaluate-DecisionOwnershipScenario' 'kept qualification evidence must re-evaluate decision ownership scenarios'
     foreach ($negativeCase in @('missing-required-section', 'owner-outside-section', 'missing-independent-verification', 'missing-production-binding', 'fake-only-evidence', 'xc-field-continuity-missing', 'mapping-missing', 'pending-before-verification', 'pending-before-close', 'ledger-contradiction', 'ungated-separate-artifact', 'artifact-budget-exceeded', 'required-slice-unverified', 'residual-before-cross', 'forced-legacy-migration', 'mixed-artifact-mode', 'removed-three-layer-semantics')) {
         Assert-Matches $standaloneE2E ([regex]::Escape($negativeCase)) "standalone E2E validator must fail closed for $negativeCase"
     }

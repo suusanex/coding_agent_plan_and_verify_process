@@ -229,16 +229,18 @@ Read `UPSTREAM.md` as the authoritative upstream decision record. Do not create 
 }
 
 function Evaluate-DecisionOwnershipScenario([object]$Scenario, $Run) {
-    $text = [string]$Run.CombinedText
-    $observedVerdicts = @([regex]::Matches($text, '\b(?:READY_FOR_RUNTIME_CONTRACT|READY_FOR_IMPLEMENTATION|BLOCKED_BY_DEPENDENCY_MISSING|BLOCKED_BY_API_SURFACE_UNKNOWN|BLOCKED_BY_UNJUSTIFIED_SUBSTITUTION|BLOCKED_BY_SOURCE_OF_TRUTH_DRIFT|NEEDS_HUMAN_DECISION)\b') | ForEach-Object { $_.Value } | Select-Object -Unique)
+    # CombinedText には agent contract と session transcript が含まれるため、
+    # documented status token を観測済み verdict と誤認しないようモデル出力だけを判定する。
+    $decisionOutputText = [string]$Run.Stdout
+    $observedVerdicts = @([regex]::Matches($decisionOutputText, '\b(?:READY_FOR_RUNTIME_CONTRACT|READY_FOR_IMPLEMENTATION|BLOCKED_BY_DEPENDENCY_MISSING|BLOCKED_BY_API_SURFACE_UNKNOWN|BLOCKED_BY_UNJUSTIFIED_SUBSTITUTION|BLOCKED_BY_SOURCE_OF_TRUTH_DRIFT|NEEDS_HUMAN_DECISION)\b') | ForEach-Object { $_.Value } | Select-Object -Unique)
     $failures = [System.Collections.Generic.List[string]]::new()
     $agentObserved = @($Run.Agents) -contains 'implementation-contract-kernel'
-    if (-not $agentObserved -and $text -notmatch 'implementation-contract-kernel') { $failures.Add('implementation-contract-kernel was not observed.') }
+    if (-not $agentObserved -and $decisionOutputText -notmatch 'implementation-contract-kernel') { $failures.Add('implementation-contract-kernel was not observed.') }
     foreach ($marker in @($Scenario.required_markers)) {
-        if ($text -notmatch [regex]::Escape([string]$marker)) { $failures.Add("Required marker missing: $marker") }
+        if ($decisionOutputText -notmatch [regex]::Escape([string]$marker)) { $failures.Add("Required marker missing: $marker") }
     }
     foreach ($request in @($Scenario.forbidden_human_requests)) {
-        if ($text -match [regex]::Escape([string]$request)) { $failures.Add("Forbidden human request observed: $request") }
+        if ($decisionOutputText -match [regex]::Escape([string]$request)) { $failures.Add("Forbidden human request observed: $request") }
     }
     $expected = @($Scenario.expected_verdicts | ForEach-Object { [string]$_ })
     if (-not (@($observedVerdicts | Where-Object { $expected -contains $_ }).Count -gt 0)) {
@@ -247,7 +249,7 @@ function Evaluate-DecisionOwnershipScenario([object]$Scenario, $Run) {
     if ($expected -notcontains 'NEEDS_HUMAN_DECISION' -and $observedVerdicts -contains 'NEEDS_HUMAN_DECISION') {
         $failures.Add('NeedsHumanDecision was observed for a design-owned or ManualOnly scenario.')
     }
-    if ($Scenario.id -eq 'DO-003' -and $text -notmatch '(?i)commit identity') {
+    if ($Scenario.id -eq 'DO-003' -and $decisionOutputText -notmatch '(?i)commit identity') {
         $failures.Add('DO-003 must isolate the commit identity policy.')
     }
     if ([string]$Scenario.artifact_mode -ceq 'slice-living-record') {
@@ -257,10 +259,10 @@ function Evaluate-DecisionOwnershipScenario([object]$Scenario, $Run) {
             'Target section: Implementation Contract Decisions',
             'Semantic owner: implementation-contract-kernel',
             '## Implementation Contract Decisions',
-            '## Decision Ownership Gate',
+            '### Decision Ownership Gate',
             '## Coverage Ledger Delta'
         )) {
-            if ($text -notmatch [regex]::Escape($requiredSectionDeltaEvidence)) {
+            if ($decisionOutputText -notmatch [regex]::Escape($requiredSectionDeltaEvidence)) {
                 $failures.Add("Slice Living Record section-delta evidence missing: $requiredSectionDeltaEvidence")
             }
         }
@@ -309,8 +311,20 @@ if (-not [string]::IsNullOrWhiteSpace($ReevaluateFromRunRoot)) {
     $base = Get-Content -Raw -LiteralPath $existingResultPath | ConvertFrom-Json
     $scenarioResults = [System.Collections.Generic.List[object]]::new()
     foreach ($s in @($base.scenarios)) {
-        if (@('STD-001', 'FULL-001') -contains [string]$s.id) { continue }
+        if (@('DO-001', 'DO-002', 'DO-003', 'STD-001', 'FULL-001') -contains [string]$s.id) { continue }
         $scenarioResults.Add($s)
+    }
+
+    $decisionOwnershipScenarios = Get-Content -Raw -LiteralPath $decisionOwnershipScenarioPath | ConvertFrom-Json
+    foreach ($scenario in @($decisionOwnershipScenarios)) {
+        $sid = [string]$scenario.id
+        $decisionDir = Join-Path $reevalRoot "evidence\decision-ownership-$sid"
+        $decisionRepo = Join-Path $decisionDir 'repo'
+        if (Test-Path -LiteralPath $decisionRepo) {
+            $run = New-RunFromEvidenceDir $decisionDir $decisionRepo $sid
+            $scenarioResults.Add((Evaluate-DecisionOwnershipScenario $scenario $run))
+            Write-Host "$sid re-eval => $(( $scenarioResults | Where-Object { $_.id -eq $sid } | Select-Object -Last 1).status)"
+        }
     }
 
     $stdDir = Join-Path $reevalRoot 'evidence\STD-001'

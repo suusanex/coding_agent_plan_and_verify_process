@@ -47,15 +47,15 @@ Fresh install smoke also checks transitive Adaptive Implementation assets and, f
 | Item | Status |
 | --- | --- |
 | overall_status | **PENDING** |
-| client_version | GitHub Copilot CLI 1.0.78 |
+| client_version | GitHub Copilot CLI 1.0.79 |
 | model | client-selected-or-unobserved |
 | APM version | 0.26.0 |
 | package version | `0.14.0` |
-| candidate commit | current source change; no fresh external-model run yet |
+| candidate commit | `1981dc9…-dirty` targeted external-model run |
 | canonical fingerprint | recorded in the current PENDING result |
 | result file | `tests/runtime-qualification/results/2026-08-11-copilot-cli-pending.json` |
 | authorization A–H | historical PASS under 0.13.0; current run pending |
-| decision ownership DO-001〜DO-003 | `NOT_RUN`; required before current QUALIFIED |
+| decision ownership DO-001〜DO-003 | targeted external-model run: **PASS**; full qualification remains pending |
 | standard-slice STD-001 | historical PASS under 0.13.0; current run pending |
 | full-coverage FULL-001 | historical PASS under 0.13.0; current run pending |
 | Adaptive connection | historical PASS under 0.13.0; current run pending |
@@ -63,7 +63,7 @@ Fresh install smoke also checks transitive Adaptive Implementation assets and, f
 | Design Pair auto-selection | not observed |
 | source_run binding | frozen in `source_run` / kept-worktree `run-metadata.json` (no fingerprint re-bind on re-eval) |
 
-Update this table only when `run-plan-coverage-copilot-qualification.ps1` produces `overall_status: QUALIFIED` with a fingerprint matching the current `.apm` tree and PASS for DO-001〜DO-003. After canonical `.apm` changes, re-run qualification; stale fingerprints must not remain QUALIFIED. The 0.13.0 result remains historical evidence and is not rewritten.
+Update this table when current external-model evidence changes a recorded scenario status. Promote it to `QUALIFIED` only when `run-plan-coverage-copilot-qualification.ps1` produces `overall_status: QUALIFIED` with a fingerprint matching the current `.apm` tree and PASS for A-H, DO-001〜DO-003, STD-001, and FULL-001. After canonical `.apm` changes, re-run qualification; stale fingerprints must not remain QUALIFIED. The 0.13.0 result remains historical evidence and is not rewritten.
 
 ### Isolation and observation
 
