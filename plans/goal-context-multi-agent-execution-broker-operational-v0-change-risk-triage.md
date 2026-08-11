@@ -6,26 +6,26 @@
 | --- | --- | --- |
 | Expansion decision exists? | Yes | Plan は `Expansion required: Yes` |
 | Behavior spec exists when required? | Yes | `plans/goal-context-multi-agent-execution-broker-operational-v0-black-box-behavior-spec.md` |
-| Relevant source requirements have Case IDs? | Yes | `CASE-BRK-001`〜`015` |
-| Relevant Case IDs are mapped to FR / AC or explicit disposition? | Yes | 001〜014 は `MappedToPlan`、015 は `DeferredWithSource` |
+| Relevant source requirements have Case IDs? | Yes | `CASE-BRK-001`〜`016` |
+| Relevant Case IDs are mapped to FR / AC or explicit disposition? | Yes | 001〜014と016は`MappedToPlan`、015は`DeferredWithSource` |
 | Negative expectations are represented? | Yes | identity偽装、fake-only、sync-only、semantic-success推論、scope拡張をFR/AC/NGへ接続 |
 | Blocking requirement ambiguity remains? | No | exact provider/store/transportはevidence-backed contract decisionとして残るが、期待behaviorは確定 |
 | Plan readiness status | ReadyForRiskTriage | risk/profile分類へ進行可 |
-| Documentation level | standard | separate behavior、architecture、runtime、production-binding guardrailが必要 |
+| Documentation level | standard | separate behavior、implementation contract、runtime contract、test design、production-binding guardrailが必要 |
 
 ## 推奨プロファイル
 
-`full-coverage`
+`standard-slice`
 
 - Recommendation confidence: High
-- Evidence that would lower the profile: production facade、execution owner、durable store、provider adapter、terminal event projection、Inbox consumerが既に一つのproduction componentと一つの検証entrypointへ統合され、同じrun identity/state authorityを単一passで検証できる証拠。
-- Evidence that would raise the profile: 複数provider同時対応、remote Broker、multi-user authorization、persistent queue/retry orchestrationをcurrent v0へ追加するsource change。
+- Evidence that would lower the profile: durable execution owner、provider adapter、terminal event projectionが既存production pathとして揃い、選択RCを1〜3件のnarrow contractだけで閉じられる証拠。
+- Evidence that would raise the profile: Broker serviceの独立製品化、remote Broker、複数provider同時正式対応、独立daemon / persistent queue、notification schemaの独立migrationなど、単一vertical sequenceへ収束しないsource change。
 
 ## 理由
 
-この変更は単なるcross-process riskの多さではなく、少なくとも三つの独立したproduction sequenceを持つ。(1) Codex App facadeから長寿命Broker ownerへのcontrol sequence、(2) Brokerからprovider workerへのexecution/persistence/cancel/recovery sequence、(3) terminal factからnotification plane/Inbox/result retrievalへのobservation sequenceである。それぞれ独立して実装・検証可能だが、Broker run identity、terminal state authority、observed factとreported resultの分離、terminal event identityを共有する。
+この変更は、実Codex App→facade→durable Broker owner/store→non-Control-UI provider worker→terminal state→notification plane→Codex App result retrievalという一つのbounded production vertical sequenceとして説明できる。control、execution/persistence、notification/consumerは独立機能ではなく、同じrun identityとterminal authorityを受け渡す連続したhopである。
 
-具体的なstandard-slice候補として三sequenceを一つのparent passで順に実装する案を検討した。しかし、provider capability gateが未確定のままfacade/storeを先行するとfake adapter前提の契約が固定され、notification schemaを先行するとCodex identity偽装または後戻りが生じる。逆に全surfaceを同時に変更すると、どのproduction entrypointがrun authorityを持つか、restart/cancel/terminal dedupをどのevidenceで閉じるかが一つのhandoffに混在する。shared semanticsをarchitecture gateで固定してから独立sliceへ分解する必要がある。
+provider、store、transport、notification schemaの未確定事項はimplementation-realization riskであり、単一passを不可能にする根拠ではない。`implementation-contract-kernel.agent.md`でproduction address、provider capability、store、Codex App integration、schema boundaryを先に固定し、その後runtime contract / test design / handoff reviewを通せば、fake contractの固定、Codex identity偽装、fake-only completionを同じbounded pass内で防げる。よってguardrail depthは維持しつつ、process breadthは`standard-slice`に留める。
 
 ## High-risk boundaries
 
@@ -33,7 +33,7 @@
 | --- | --- | --- | --- | --- |
 | HB-BRK-001 | Codex App / parent agent | local Broker facade | MCPまたは同等local tool invocation | production address、permissions、request/admission contract |
 | HB-BRK-002 | Broker facade | long-lived execution owner | local IPC / service endpoint | lifetime separation、run ID authority、startup/reconnect |
-| HB-BRK-003 | execution owner | provider-specific adapter / worker CLI | child processまたはprovider protocol | invocation、credentials、stdout/stderr、exit observation |
+| HB-BRK-003 | execution owner | non-Control-UI provider adapter / worker CLI | child processまたはprovider protocol | invocation、credentials、available execution output/diagnostics、exit observation |
 | HB-BRK-004 | execution owner | durable run/output store | durable writes / recovery reads | atomicity、single writer、crash recovery、state monotonicity |
 | HB-BRK-005 | cancel request owner | running worker process tree | provider/process termination | accepted vs observed termination、race、terminal reconciliation |
 | HB-BRK-006 | terminal run owner | notification runtime / Local Spool | provider-neutral terminal event | schema、event ID、fail-open、dedup、source identity |
@@ -43,10 +43,10 @@
 
 | Contract ID | Boundary | What is at risk | Why selected | Triage status | Next action |
 | --- | --- | --- | --- | --- | --- |
-| RC-BRK-001 | Control UI facade → long-lived Broker owner | request validation、run ID authority、lifetime分離、reconnect/startup | startが同期process handleへ退化するとv0価値を失う | Deferred | `architecture-slice-readiness.agent.md` でcontrol/execution境界とauthority completenessを判定 |
-| RC-BRK-002 | Broker owner → provider adapter/worker process | capability gate、cwd/prompt、output/exit/cancel、credential inheritance | nearest-provider substitutionとfake-only成功が最も起きやすい | Deferred | readinessでadapter ownershipとproduction evidence境界を判定 |
-| RC-BRK-003 | Broker owner ↔ durable run/output store | state machine、atomicity、restart recovery、single-writer、terminal monotonicity | Broker memory-onlyまたはraceでhistory/stateを失う | Deferred | readinessでdurable authorityとcrash/reconciliation semanticsを判定 |
-| RC-BRK-004 | terminal run → notification plane → Inbox/result retrieval | event/source/run identity、schema evolution、dedup、fail-open、safe locator | Codex偽装または通知だけ成功するfalse completionを防ぐ | Deferred | readinessでproducer/consumer schemaとcross-slice invariantを判定 |
+| RC-BRK-001 | actual Codex App / production facade → long-lived Broker owner | request validation、run ID authority、lifetime分離、reconnect/startup、actual App evidence | test clientだけでstart/retrievalを完了扱いする危険 | Deferred | implementation contractでCodex App integration surface、production address、manual evidence方法を固定 |
+| RC-BRK-002 | Broker owner → non-Control-UI provider adapter/worker process | capability gate、cwd/prompt、available output/diagnostics、exit/cancel、credential inheritance | Codex CLIのみ、nearest-provider substitution、fake-only成功を防ぐ | Deferred | implementation contractでprovider/version/invocation/output capability/production addressを固定 |
+| RC-BRK-003 | Broker owner ↔ durable run/output store | state machine、atomicity、restart recovery、single-writer、terminal monotonicity | Broker memory-onlyまたはraceでhistory/stateを失う | Deferred | implementation contractでstore/address/ownershipを固定しruntime contractでcrash/reconciliationを定義 |
+| RC-BRK-004 | terminal run → notification plane → Codex App/Inbox result retrieval | event/source/run identity、schema evolution、dedup、fail-open、safe locator、Issue #70境界 | Codex偽装、standalone adapter scope混入、通知だけ成功するfalse completionを防ぐ | Deferred | implementation contractでBroker-owned eventとIssue #70境界を固定しruntime contractへ渡す |
 
 ## 選択されなかった候補 runtime contracts
 
@@ -64,9 +64,9 @@
 | 2 | facade → long-lived Broker owner | local IPC / service activation | Cross-process IPC | Broker ownerがrun admissionとregistry authority | FR-002〜005 |
 | 3 | Broker owner → durable store | atomic durable write/read | Cross-process durable-state observation | run state/output locator/terminal fact | FR-003〜008 |
 | 4 | Broker owner → provider adapter → worker | process/protocol invocation | Independent background worker | provider session/process IDはsecondary identity | FR-010〜012 |
-| 5 | worker → Broker owner/store | stdout/stderr、exit/cancel observation | Cross-process IPC + durable observation | observed factとreported resultを分離 | FR-006,007,009 |
+| 5 | worker → Broker owner/store | providerから取得可能なexecution output/diagnostics、exit/cancel observation | Cross-process IPC + durable observation | observed factとreported resultを分離 | FR-006,007,009 |
 | 6 | terminal owner → notification plane/spool | versioned terminal event | Persistent event/file handoff | stable event ID、run/result locator | FR-013,014 |
-| 7 | Inbox/facade → store/output | later query/open | Cross-process durable-state observation | Broker run IDへ戻る | FR-008,014〜016 |
+| 7 | actual Codex App / Inbox → store/output | later query/open | Cross-process durable-state observation | Broker run IDへ戻る | FR-008,014〜017; AC-015,018 |
 
 ## Execution-model boundary classification
 
@@ -97,66 +97,53 @@
 
 | Trigger | Status | Evidence | Required next step |
 | --- | --- | --- | --- |
-| Plan names a specific external SDK or API | Unclear | MCPが有力だがexact SDK未確定 | architecture readiness後、implementation contractでproduction APIを確認 |
+| Plan names a specific external SDK or API | Unclear | MCPが有力だがexact SDK未確定 | implementation contractでproduction APIとactual Codex App evidence方法を確認 |
 | Plan names a package, release, binary artifact, or local lib folder | Present | provider CLI binary/versionがproduction adapterを決める | capability evidence、version、installation addressを固定 |
-| Plan names a namespace, type, method, extension method, provider ID, or config section | Unclear | exact code surface未作成 | slice-local implementation contractで確認 |
+| Plan names a namespace, type, method, extension method, provider ID, or config section | Unclear | exact code surface未作成 | implementation contractで確認 |
 | Existing code contains a similar but different implementation path | Present | Codex notification runtime/Spoolはorchestratorではない | nearest-neighbor reuseを禁止し境界を明示 |
-| Implementation requires DI/startup/configuration wiring | Present | long-lived owner、facade、adapter registry、notification | production wiringを各sliceで検証 |
-| The affected production address is not known from current evidence | Present | Broker projects/transport/store/provider未確定 | architecture readiness / elaborationでaddress ownershipを固定 |
-| Plan contains remaining work about API surface inspection or dependency confirmation | Present | IR-BRK-001〜005 | architecture後にimplementation-contract branch必須 |
+| Implementation requires DI/startup/configuration wiring | Present | long-lived owner、facade、adapter registry、notification | implementation contractでentrypointを固定しproduction wiringを検証 |
+| The affected production address is not known from current evidence | Present | Broker projects/transport/store/provider未確定 | implementation contractでaddress ownershipを固定 |
+| Plan contains remaining work about API surface inspection or dependency confirmation | Present | IR-BRK-001〜005 | immediate next agentをimplementation-contract branchとする |
 
 ## 推奨する次の agent
 
-Immediate next agent は `architecture-slice-readiness.agent.md`。
+Immediate next agent は `implementation-contract-kernel.agent.md`。
 
-入力は Parent Plan、Black-box Behavior Spec、本 triage、Goal Context、既存 Local Spool/Inbox boundaries。readiness は shared identity/state authority、facade/Broker lifetime、durable owner、adapter capability gate、terminal event schema、production entrypointを current source から確定できるか判定する。readiness verdict なしで decomposition へ進めない。
+入力はParent Plan、Black-box Behavior Spec、本triage、Goal Context、既存Local Spool/Inbox boundaries。implementation contractはactual Codex App integration、long-lived Broker production address/lifetime、non-Control-UI provider/version/invocation/output capability、durable store、Broker-owned terminal event schema、Issue #70 standalone adapter境界、Early Operational Trial gateを固定する。
 
 Minimum required flow:
 
-1. `architecture-slice-readiness.agent.md`
-2. `NeedsArchitectureElaboration` なら `architecture-elaboration.agent.md` と readiness再実行
-3. `StandardSliceSufficient` なら `selected_process: standard-slice` へ戻す
-4. `ReadyForSliceDecomposition` または `ArchitectureNotRequired` の場合だけ `plan-slice-decomposition.agent.md`
-5. 各sliceで必要な implementation contract、runtime contract、test design、handoff review、Adaptive implementation、independent verification
-6. `cross-slice-verification-kernel.agent.md`
-7. 必要なら gap triage/resolution
-8. `residual-decision-gate.agent.md`
+1. `implementation-contract-kernel.agent.md`
+2. 非自明またはunresolvedなself-checkが残る場合だけ`implementation-contract-review-kernel.agent.md`
+3. `runtime-contract-kernel.agent.md`
+4. `test-design-kernel.agent.md`
+5. `implementation-handoff-review.agent.md`
+6. `high-implementation-starter.agent.md`から始まるAdaptive implementation
+7. first usable vertical slice gate成立時にEarly Operational Trialを行い、残りのhardeningへevidenceを戻す
+8. formal parent Plan実装後に`verification-kernel.agent.md`
+9. 必要ならgap triage/resolution
+10. `residual-decision-gate.agent.md`
 
 ## Architecture-readiness triggers
 
-| Trigger | Status | Evidence | Readinessで確認する事項 |
-| --- | --- | --- | --- |
-| multiple runtime participants / services / agents | Present | facade、Broker、adapter、worker、notification、Inbox | ownershipとlifetime |
-| durable state と derived observation の混在 | Present | registry/output authorityとInbox projection | canonical state vs projection |
-| state / artifact / field authority の競合 | Present | Broker run ID、provider session、event ID、Codex IDs | field authority table |
-| cross-run / cross-process identity continuity | Present | restart、notification dedup、result retrieval | stable identity lifecycle |
-| async / retry / resume / replay / cleanup | Present | detached run、cancel、event dedup。resume/retryは一部non-goal | required vs deferred semantics |
-| lane / lock / reservation / shared capacity | Unclear | concurrent runsとsingle writer/store lock | v0 concurrency policy |
-| producer / consumer schema または temporal protocol | Present | terminal event→Spool→Inbox | versioningとordering |
-| Control Plane / Execution Plane separation | Present | facade/control request vs long-lived worker owner | concrete process/IPC、startup |
-| production entrypoint / wiring の共有 | Present | install/service/facade/adapter/notification config | one production route perslice |
-| cross-slice invariant / forbidden state | Present | terminal monotonicity、identity偽装禁止、fake-only禁止 | XC候補を固定 |
+該当なし。`standard-slice`を選択したためArchitecture Slice Readinessへrouteしない。participant ownership、state authority、schema、entrypointはimplementation/runtime contractで同じbounded sequenceに対して固定する。
 
 ## Why standard-slice is insufficient
 
-- Candidate bounded sequence: Codex App→facade→Broker/store→provider worker→terminal state→notification plane→Inbox/result retrievalを一parent passで順次実装・検証する。
-- Independent implementation slices required: (A) facade/service lifecycleとrun control、(B) durable execution owner/provider adapter/output/cancel、(C) terminal event schema/notification/Inbox projection。少なくとも三つ。
-- Shared semantics that must remain fixed before decomposition: Broker run ID authority、state monotonicity、observed fact/reported result分離、provider capability gate、terminal event ID、result locator、fake-only禁止。
-- Why one bounded parent pass is insufficient: 各sequenceのproduction entrypointとfailure oracleが異なり、adapter未確定のままA/Cを作るとfake contractが固定される。全surface同時変更ではrestart/cancel/dedup/schema compatibilityの責任と検証evidenceが混在し、独立verificationを保てない。
-- Failure mode that decomposition prevents: facadeだけ動くprocess-start-only完成、in-memory/fake adapterのみ成功、再起動でrun消失、Codex identity偽装、notification成功をsemantic completionと誤認、terminal eventとInbox schemaの不一致。
-- Escalation gate result: Satisfied
+- Candidate bounded sequence: actual Codex App→production facade→durable Broker owner/store→non-Control-UI provider worker→terminal state→notification plane→actual Codex App/Inbox result retrievalを一parent passで順次実装・検証する。
+- Independent implementation slices required: No。複数componentは同じrun identityとterminal authorityを順に受け渡す一つのvertical featureであり、独立したruntime sequenceではない。
+- Shared semantics that must remain fixed before decomposition: Broker run ID authority、state monotonicity、observed fact/reported result分離、non-Control-UI provider gate、terminal event ID、result locator、Issue #70境界、fake-only禁止。decomposition前architectureではなくimplementation/runtime contractで固定できる。
+- Why one bounded parent pass is insufficient: N/A。一つのbounded parent passでimplementation contract→runtime contract→test design→handoff review→Adaptive implementation→Early Operational Trial→hardening→verificationの安全な順序を作れる。
+- Failure mode that decomposition prevents: N/A。fake contract、memory-only store、Codex identity偽装、test-client-only evidenceは同じpassのcontract/test/production-binding guardrailsで防ぐ。
+- Escalation gate result: NotSatisfied
 
 ## full-coverage 時の分割方針
 
-- Parent-level acceptance conditions `AC-001`〜`017` と Case mapping を分割後もsource of truthとして保持する。
-- cross-slice contract候補は run identity/state authority、provider-neutral request/result、durable terminal transition、terminal event/result locator。
-- 候補順序は architecture baseline → control/service slice → execution/persistence/adapter slice → notification/Inbox slice。実際のslice数と依存はreadiness/decompositionが確定する。
-- provider adapter eligibility と production evidence はexecution sliceからfake-onlyで先送りしない。
-- notification sliceはCodex callback固有schemaを他providerへ流用する前提を置かない。
+該当なし。`standard-slice`の一つのproduction vertical passとして扱う。
 
 ## 今回の triage の対象外
 
-- MCP SDK、各provider CLI、SQLite等store candidateの詳細比較。Architecture / implementation contractの責務。
+- MCP SDK、各provider CLI、SQLite等store candidateの詳細比較。implementation contractの責務。
 - class/interface/project layout、test seam。implementation agentの責務。
 - worktree manager、common resume、usage/cost、自動provider選択、ACP。Plan non-goals。
 - private provider credentialsを使う実機smoke。triageではprivate dataへアクセスしない。
@@ -167,17 +154,17 @@ Minimum required flow:
 - Plan readiness: ReadyForRiskTriage
 - Documentation level: standard
 - Behavior spec artifact: `plans/goal-context-multi-agent-execution-broker-operational-v0-black-box-behavior-spec.md`
-- Recommended process profile: full-coverage
+- Recommended process profile: standard-slice
 - Recommendation confidence: High
-- Full-coverage escalation gate: Satisfied
-- Source artifacts: Goal Context、Parent Plan、Black-box Behavior Spec、existing Local Spool interface、Inbox Goal Context、root README boundaries。
-- Selected contracts / IDs: `RC-BRK-001`〜`RC-BRK-004`（parent-level candidates）
+- Full-coverage escalation gate: NotSatisfied
+- Source artifacts: Goal Context、Parent Plan、Black-box Behavior Spec、review attachment、existing Local Spool interface、Inbox Goal Context、root README boundaries。
+- Selected contracts / IDs: `RC-BRK-001`〜`RC-BRK-004`
 - Files inspected: `plans/goal-context-multi-agent-execution-broker-operational-v0.md`、同`-plan.md`、同`-black-box-behavior-spec.md`、`scripts/codex-notification-runtime/local-spool-interface.md`、`scripts/codex-notification-runtime/README.md`、`apps/CodexLocalInbox/README.md`、`docs/goal-context-local-spool-winui-inbox.md`、root `README.md`関連箇所。
 - Files intentionally not inspected: provider CLI internals、MCP SDK、全repository source/tests。triage classificationに不要。
-- Decisions made: 三つの独立sequenceと共有semanticsを特定し、具体的standard-slice候補を棄却、escalation gateをSatisfiedとした。
-- Implementation realization risk summary: Present/Unclear。provider/API、production address、store、startup、schema、cancel semanticsが未確定で、各sliceにimplementation-contract branchが必要。
-- Do not redo unless new evidence appears: bounded sequence、execution-model classification、RC-BRK-001〜004、standard-slice insufficiency。
-- Remaining work: Architecture Slice Readinessでbaseline completeness、watch paths、shared authority、sliceabilityを判定する。実装・test designは未開始。
-- Recommended next step: `architecture-slice-readiness.agent.md`。readiness verdictなしでdecompositionしない。
+- Decisions made: control、execution/persistence、notification/result retrievalを一つのbounded vertical sequenceとして再分類し、component数やimplementation-realization riskだけではfull-coverage gateを満たさないと判断した。actual Codex App、non-Control-UI provider、Early Operational Trial、provider-capability-aware output、Issue #70境界をguardrailへ追加した。
+- Implementation realization risk summary: Present/Unclear。provider/API、actual Codex App production address、store、startup、schema、cancel semanticsが未確定で、`implementation-contract-kernel.agent.md`が必要。
+- Do not redo unless new evidence appears: bounded sequence、execution-model classification、RC-BRK-001〜004、`standard-slice`判定、full-coverage escalation gate `NotSatisfied`。
+- Remaining work: implementation contractでproduction addresses/capabilities/boundariesを固定し、その後runtime contract/test design/handoff reviewへ進む。実装は未開始。
+- Recommended next step: `implementation-contract-kernel.agent.md`。
 - Required downstream guardrails: 各RCについてruntime contract identification、participant/boundary mapping、test point mapping、stub/fake/in-memory check、production implementation binding、production wiring/entrypoint verification、未完了のexplicit statusを保持する。
-- Full-coverage handling: `architecture-slice-readiness.agent.md` へ進める。readiness verdict なしで decomposition へ進めない。
+- Full-coverage handling: N/A。escalation gateは`NotSatisfied`であり、Architecture Slice Readiness / decompositionへ進めない。
