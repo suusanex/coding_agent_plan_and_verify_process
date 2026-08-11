@@ -2,6 +2,8 @@
 
 Agent Execution Brokerは、Codex Appのstdio MCP facadeからGitHub Copilot CLIを非同期実行するWindows向けlocal Brokerである。MCP processはworkerを所有せず、別processのHostがnamed pipe、durable run registry、output、terminal eventを所有する。
 
+Named pipeは同一PCのlocal endpointとしてOS default ACLを使う。v0ではsame-user-only ACLを保証せず、remote transportも提供しない。
+
 ## Build
 
 ```powershell
@@ -24,7 +26,7 @@ codex mcp add agent-execution-broker -- <absolute-path-to-AgentExecutionBroker.M
 - `coding-v1`: Copilot CLIへ `read,write,shell` だけを明示許可する。raw CLI flags、URL、MCP、memory、`--allow-all*`は受け付けない。
 - `get_run` / `list_runs`: durable stateを返す。`list_runs`はdefault 50、maximum 100件でopaque cursorを使う。
 - `get_output`: `after_sequence`とrecord/byte boundを使う。defaultは200 records / 256 KiB、maximumは500 records / 1 MiBである。
-- `cancel_run`: cancel request、delivery、terminal observationを別に保存する。request受理だけをterminationとして扱わない。
+- `cancel_run`: cancel request、delivery、terminal observationを別に保存する。request受理だけをterminationとして扱わない。worker開始前は`CancelledBeforeStart`としてCopilotを起動しない。
 
 ## Lifecycle and recovery
 
@@ -40,4 +42,10 @@ terminal時にHostは既存local spoolへ`agent-execution-terminal-v1`をatomic 
 
 ## Operational trial
 
-人手での作業が必要: credentialを露出させず、low-risk real issueでCodex Appから`start_run`し、Copilot output、terminal event、Inbox表示、`get_output` cursor、cancel behaviorを記録する。これをEarly Operational Trialとする。provider/wiring/profile/transportがmaterialに変わった場合だけformal E2Eを再実行する。
+## Trial procedure and evidence policy
+
+人手での作業が必要: Trial前にMCPとHostをpublishし、`AGENT_EXECUTION_BROKER_HOST_PATH`へHost executableのabsolute pathを設定し、`codex mcp add agent-execution-broker -- <absolute-path-to-AgentExecutionBroker.Mcp.exe>`でproduction MCPを登録する。Inboxはproduction `CODEX_NOTIFICATION_SPOOL_HOME`を読む状態にする。
+
+通常runは、低リスクな実IssueをCodex Appから起動し、非同期return、Copilot正常終了、terminal notification、Inbox表示、同じrun IDの`get_run`/bounded `get_output`、diff/validation確認まで通す。別のdisposable worktree/runでcancel smokeを行い、Copilot process起動後に`cancel_run`し、request、delivery、terminationを確認する。通常runとcancel smokeを同じrunで兼ねない。
+
+証跡にはrun ID、対象Issue、provider/version、開始・終了時刻、terminal state/exit code、`source_event_id`、Inbox確認、`get_output`のcursor/`has_more`、結果diffとvalidation概要、摩擦、残件だけをsanitized recordとして残す。credential、full prompt、raw Copilot output、ユーザー固有absolute pathはcommitしない。これをEarly Operational Trialとする。provider/wiring/profile/transportがmaterialに変わった場合だけformal E2Eを再実行する。

@@ -118,12 +118,12 @@ public sealed class BrokerService : IAsyncDisposable
     private readonly WorkerJob _workerJob = new();
     private readonly object _gate = new();
     private readonly Dictionary<Guid, RunningWorker> _workers = [];
+    private readonly string _hostInstanceId = Guid.NewGuid().ToString();
     private readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
-
     public BrokerService(string? root = null)
     {
         _store = new BrokerStore(root);
@@ -162,6 +162,8 @@ public sealed class BrokerService : IAsyncDisposable
         var run = new RunRecord(Guid.NewGuid(), request.ProviderId, Path.GetFullPath(request.WorkingDirectory),
             request.Prompt, request.ExecutionProfile, request.Repository, "Accepted", DateTimeOffset.UtcNow,
             null, null, null, false, null, null, null);
+        run = run.WithExecutionIdentity(_hostInstanceId, _workerJob.JobId, run.RunId.ToString(),
+            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(request.Prompt))));
         _store.WriteRun(run);
         var worker = new RunningWorker(run.RunId);
         lock (_gate)
@@ -206,28 +208,30 @@ public sealed class BrokerService : IAsyncDisposable
 
     private async Task<RunRecord> CancelAsync(RunQuery query, CancellationToken cancellationToken)
     {
-        var run = GetRun(query);
-        if (IsTerminal(run.State))
-        {
-            return run;
-        }
-
-        run = run with { State = "CancelRequested", CancelRequested = true, CancelDelivery = "Pending" };
-        _store.WriteRun(run);
+        RunRecord run;
         RunningWorker? worker;
         lock (_gate)
         {
-            _workers.TryGetValue(query.RunId, out worker);
-        }
+            run = GetRun(query);
+            if (IsTerminal(run.State))
+            {
+                return run;
+            }
 
-        if (worker?.Process is null || worker.Process.HasExited)
-        {
-            return run;
+            run = Transition(run with { CancelRequested = true, CancelDelivery = "Pending" }, "CancelRequested");
+            _store.WriteRun(run);
+            _workers.TryGetValue(query.RunId, out worker);
+
+            if (worker?.Process is null || worker.Process.HasExited)
+            {
+                return run;
+            }
         }
 
         try
         {
             worker.Process.Kill(entireProcessTree: true);
+            run = GetRun(query);
             run = run with { CancelDelivery = "Delivered" };
             _store.WriteRun(run);
         }
@@ -245,21 +249,34 @@ public sealed class BrokerService : IAsyncDisposable
 
     private async Task ExecuteAsync(RunRecord accepted, RunningWorker worker, CancellationToken cancellationToken)
     {
-        var run = accepted with { State = "Starting", StartedAt = DateTimeOffset.UtcNow };
-        _store.WriteRun(run);
+        var run = accepted;
+        Process process = null!;
         try
         {
-            var startInfo = CopilotCliAdapter.CreateStartInfo(run);
-            using var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
-            if (!process.Start())
+            lock (_gate)
             {
-                throw new InvalidOperationException("Copilot CLI did not start.");
-            }
+                run = _store.ReadRun(accepted.RunId) ?? accepted;
+                run = PrepareWorkerStart(run, _hostInstanceId);
+                if (run.State == "CancelledBeforeStart")
+                {
+                    _store.WriteRun(run);
+                    _store.PublishTerminal(run);
+                    return;
+                }
 
-            worker.Process = process;
-            _workerJob.Assign(process);
-            run = run with { State = "Running" };
-            _store.WriteRun(run);
+                _store.WriteRun(run);
+                var startInfo = CopilotCliAdapter.CreateStartInfo(run);
+                process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
+                if (!process.Start())
+                {
+                    throw new InvalidOperationException("Copilot CLI did not start.");
+                }
+
+                worker.Process = process;
+                _workerJob.Assign(process);
+                run = Transition(run with { ProviderProcessId = process.Id }, "Running");
+                _store.WriteRun(run);
+            }
             var stdout = OutputCopy.CopyOutputAsync(process.StandardOutput, run.RunId, "structured", _store, cancellationToken);
             var stderr = OutputCopy.CopyOutputAsync(process.StandardError, run.RunId, "stderr", _store, cancellationToken);
             await Task.WhenAll(process.WaitForExitAsync(cancellationToken), stdout, stderr);
@@ -268,22 +285,28 @@ public sealed class BrokerService : IAsyncDisposable
             var state = current.CancelRequested
                 ? current.CancelDelivery == "Delivered" ? "CancelledByBroker" : current.CancelDelivery == "Failed" ? "ExitedAfterFailedCancel" : "Exited"
                 : "Exited";
-            run = current with { State = state, CompletedAt = DateTimeOffset.UtcNow, ExitCode = process.ExitCode };
+            run = Transition(current with { CompletedAt = DateTimeOffset.UtcNow, ExitCode = process.ExitCode }, state);
             _store.WriteRun(run);
             _store.PublishTerminal(run);
         }
         catch (OperationCanceledException ex)
         {
             Trace.WriteLine(ex.ToString());
+            StopUnownedWorker(worker);
             FinalizeFailure(run, "HostStopping", ex.Message);
         }
         catch (Exception ex)
         {
             Trace.WriteLine(ex.ToString());
+            StopUnownedWorker(worker);
             FinalizeFailure(run, "StartFailed", ex.Message);
         }
         finally
         {
+            if (worker.Process is not null)
+            {
+                worker.Process.Dispose();
+            }
             lock (_gate)
             {
                 _workers.Remove(accepted.RunId);
@@ -299,22 +322,38 @@ public sealed class BrokerService : IAsyncDisposable
             return;
         }
 
-        var final = current with { State = state, CompletedAt = DateTimeOffset.UtcNow, Diagnostic = diagnostic };
+        var final = Transition(current with { CompletedAt = DateTimeOffset.UtcNow, Diagnostic = diagnostic }, state);
         _store.WriteRun(final);
         _store.AppendOutput(final.RunId, "diagnostic", diagnostic);
         _store.PublishTerminal(final);
+    }
+
+    private static void StopUnownedWorker(RunningWorker worker)
+    {
+        if (worker.Process is not { HasExited: false } process)
+        {
+            return;
+        }
+
+        try
+        {
+            process.Kill(entireProcessTree: true);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            Trace.WriteLine(ex.ToString());
+        }
     }
 
     private void ReconcileInheritedRuns()
     {
         foreach (var run in _store.EnumerateRuns().Where(run => !IsTerminal(run.State)))
         {
-            var reconciled = run with
+            var reconciled = Transition(run with
             {
-                State = "HostLostWorkerTreeTerminated",
                 CompletedAt = DateTimeOffset.UtcNow,
                 Diagnostic = "The previous Host lost authority. Its worker Job Object was closed."
-            };
+            }, "HostLostWorkerTreeTerminated");
             _store.WriteRun(reconciled);
             _store.PublishTerminal(reconciled);
         }
@@ -347,7 +386,26 @@ public sealed class BrokerService : IAsyncDisposable
         }
     }
 
-    private static bool IsTerminal(string state) => state is "Exited" or "CancelledByBroker" or "ExitedAfterFailedCancel" or "StartFailed" or "HostStopping" or "HostLostWorkerTreeTerminated";
+    private RunRecord Transition(RunRecord run, string state)
+    {
+        return AppendTransition(run, state, _hostInstanceId, DateTimeOffset.UtcNow);
+    }
+
+    internal static RunRecord PrepareWorkerStart(RunRecord run, string authority)
+    {
+        return run.CancelRequested
+            ? AppendTransition(run with { CancelDelivery = "NotStarted", CompletedAt = DateTimeOffset.UtcNow }, "CancelledBeforeStart", authority, DateTimeOffset.UtcNow)
+            : AppendTransition(run with { StartedAt = DateTimeOffset.UtcNow }, "Starting", authority, DateTimeOffset.UtcNow);
+    }
+
+    private static RunRecord AppendTransition(RunRecord run, string state, string authority, DateTimeOffset observedAt)
+    {
+        var transitions = run.StateTransitions.ToList();
+        transitions.Add(new RunStateTransition(transitions.Count + 1, state, observedAt, authority));
+        return run with { State = state, StateTransitions = transitions };
+    }
+
+    private static bool IsTerminal(string state) => state is "Exited" or "CancelledByBroker" or "CancelledBeforeStart" or "ExitedAfterFailedCancel" or "StartFailed" or "HostStopping" or "HostLostWorkerTreeTerminated";
 
     public ValueTask DisposeAsync()
     {
@@ -377,6 +435,10 @@ public sealed class BrokerStore
         WriteIndented = true,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
+    private readonly JsonSerializerOptions _runJson = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true
+    };
     private readonly object _writeGate = new();
 
     public BrokerStore(string? root = null)
@@ -394,7 +456,7 @@ public sealed class BrokerStore
         {
             var directory = RunDirectory(run.RunId);
             Directory.CreateDirectory(directory);
-            WriteAtomic(Path.Combine(directory, "run.json"), JsonSerializer.Serialize(run, _json));
+            WriteAtomic(Path.Combine(directory, "run.json"), JsonSerializer.Serialize(run, _runJson));
         }
     }
 
@@ -406,7 +468,7 @@ public sealed class BrokerStore
             return null;
         }
 
-        return JsonSerializer.Deserialize<RunRecord>(File.ReadAllText(path), _json);
+        return JsonSerializer.Deserialize<RunRecord>(File.ReadAllText(path), _runJson);
     }
 
     public IEnumerable<RunRecord> EnumerateRuns()
@@ -416,7 +478,7 @@ public sealed class BrokerStore
             return [];
         }
         return Directory.EnumerateFiles(_runsRoot, "run.json", SearchOption.AllDirectories)
-            .Select(path => JsonSerializer.Deserialize<RunRecord>(File.ReadAllText(path), _json))
+            .Select(path => JsonSerializer.Deserialize<RunRecord>(File.ReadAllText(path), _runJson))
             .OfType<RunRecord>();
     }
 
@@ -624,6 +686,7 @@ internal static class OutputCopy
 internal sealed class WorkerJob : IDisposable
 {
     private readonly Microsoft.Win32.SafeHandles.SafeFileHandle _handle;
+    public Guid JobId { get; } = Guid.NewGuid();
     public WorkerJob()
     {
         _handle = Native.CreateKillOnCloseJob();

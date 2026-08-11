@@ -55,7 +55,7 @@ N/A - route is not a code fix. Fixture-only evidence is explicitly prohibited.
 
 | Residual ID | Question | Why human decision is required | Safe default |
 | --- | --- | --- | --- |
-| `RES-BRK-001` | May the authenticated local Copilot CLI and a specified low-risk real issue be used for the Early Operational Trial? | This accesses private credentials and working data, and selects a real issue. | Do not run the Trial; preserve the current worktree and keep the residual open. |
+| `RES-BRK-001` | May the authenticated local Copilot CLI and a specified low-risk real issue be used for the Early Operational Trial, using the documented normal-run plus separate disposable-worktree cancel-smoke procedure? | This accesses private credentials and working data, and selects a real issue. | Do not run the Trial; preserve the current worktree and keep the residual open. |
 
 ## Verdict
 
@@ -72,4 +72,4 @@ N/A - route is not a code fix. Fixture-only evidence is explicitly prohibited.
 - Manual verification handoff: blocked pending explicit human decision。
 - Re-plan required: No。
 - Remaining blocking items: `RES-BRK-001`。
-- Recommended next step: obtain explicit approval with the target low-risk issue and evidence handling boundary, then run `TP-BRK-017` once as the Early Operational Trial.
+- Recommended next step: obtain explicit approval naming the target low-risk issue and confirming the documented sanitized evidence policy, then run `TP-BRK-017` as one normal run plus one separate disposable-worktree cancel smoke. Do not commit credentials, full prompt, raw output, or user-specific absolute paths.

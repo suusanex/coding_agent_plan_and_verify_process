@@ -34,9 +34,9 @@
 | design_pair_interaction_stage | N/A |
 | design_pair_user_evidence | N/A |
 | Implementation allowed | Yes — bounded implementation may start with `high-implementation-starter.agent.md`; this is not production binding or close readiness. |
-| Close readiness | No — implementation、tests、production wiring、actual Codex App E2E、Early Operational Trial are unperformed. |
+| Close readiness | No — bounded implementation、tests、production wiringは確認済みだが、actual Codex App E2E / Early Operational Trialは未実行。 |
 
-effective scope はfull-coverage sliceではない `standard-slice` の一つのbounded parent Plan passである。Guardrail Focus は `RC-BRK-001`〜`RC-BRK-004`、test points は `TP-BRK-001`〜`TP-BRK-017`。no-orphan invariant、cancel race、required `coding-v1`、bounded retrieval、deterministic event identityはpre-implementation contractへ昇格済みである。`TP-BRK-017` の `ManualOnly` real-issue E2E / Early Operational Trialと実装後のproduction bindingだけがdeclared residual risksであり、実装開始前の `NeedsHumanDecision` はない。
+effective scope はfull-coverage sliceではない `standard-slice` の一つのbounded parent Plan passである。Guardrail Focus は `RC-BRK-001`〜`RC-BRK-004`、test points は `TP-BRK-001`〜`TP-BRK-017`。no-orphan invariant、cancel race、required `coding-v1`、bounded retrieval、deterministic event identity、execution identity/transition history、same-machine OS default ACL policyはcontractとproduction sourceへ反映済みである。レビューfix pass後の残余は`TP-BRK-017`の`ManualOnly` real-issue E2E / Early Operational Trialだけであり、実装開始前の`NeedsHumanDecision`はない。
 
 ## Review checks
 
@@ -149,8 +149,8 @@ N/A - full Parent Plan Coverage Ledger created in this artifact
 | Residual ID | Source | Status | Decision / evidence | Implementation blocking? | Downstream owner |
 | --- | --- | --- | --- | --- | --- |
 | `RISK-BRK-001` | `TP-BRK-017`, `CASE-BRK-011`, `CASE-BRK-014`, `CASE-BRK-016` | `ManualOnly` | actual Codex App + authenticated Copilot CLI + low-risk real issue E2E is the first Early Operational Trial; fake-only evidence is prohibited. | No | implementation verification / residual-decision gate |
-| `RISK-BRK-002` | Implementation Contract | `NotImplementedOrMismatch` | exact `ModelContextProtocol` API binding is resolved during restore/build without changing the chosen package/transport boundary. | No | `high-implementation-starter.agent.md` |
-| `RISK-BRK-003` | `FR-015`,`AC-014` | `NotImplementedOrMismatch` | operational docs, `coding-v1`, no-orphan lifecycle and bounded retrieval are implemented in the bounded pass. | No | `high-implementation-starter.agent.md` |
+| `RISK-BRK-002` | Implementation Contract | `Resolved` | `ModelContextProtocol` 1.4.1のAPI bindingをrestore/buildで確認し、選択済みのstdio MCP boundaryを維持した。 | No | verification kernel |
+| `RISK-BRK-003` | `FR-015`,`AC-014` | `Resolved` | operational docs、`coding-v1`、no-orphan lifecycle、bounded retrievalを実装・自動検証した。 | No | verification kernel |
 
 ## 欠落または不一致のマッピング
 
@@ -181,5 +181,6 @@ None
 - Files intentionally not inspected: production/test source、provider internals、installed credentials。documents-only review policyにより上流artifactのevidenceを使用した。
 - Decisions made: `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS`。Parent Plan/Behavior Case ledgerはcomplete、Guardrail Focusはready、no-orphan/profile/bounded retrieval/event identityのreview指摘はcontractへ反映済みで、blocking/human decision/artifact mismatchはない。
 - Do not redo unless new evidence appears: Plan→RC→TP mapping、all TP production binding requirement、no-orphan/cancel rule、`coding-v1`、bounded retrieval、event identity、prohibited substitutions、ManualOnly boundary、adaptive route metadata。
-- Remaining work: `NotImplementedOrMismatch`: production code/tests/docs/wiring。`ManualOnly`: actual Codex App/Copilot real-issue E2E兼Early Operational Trial。production binding/wiringとclose readinessは未確認。
-- Recommended next step: `high-implementation-starter.agent.md`。`adaptive / default` routeでbounded implementationを開始する。implementation開始前のflow workは完了している。
+- Remaining work: `ManualOnly`: actual Codex App/Copilot real-issue E2E兼Early Operational Trial。通常runと別disposable worktreeのcancel smokeを実施するまでclose readinessはNo。
+- Post-implementation review: cancel/start state race、RunRecordのexecution identity・transition history・agent-reported result separation、same-machine OS default ACL policy、generated output除外を追加確認した。自動検証済みの残余はなく、actual credentials / real Issueを要する`TP-BRK-017`だけを人手判断へ渡す。
+- Recommended next step: residual-decision gateで対象Issueと資格情報使用を明示承認し、README記載のsanitized evidence policyで`TP-BRK-017`を実行する。

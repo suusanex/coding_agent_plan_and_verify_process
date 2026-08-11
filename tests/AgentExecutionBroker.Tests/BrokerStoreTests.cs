@@ -14,12 +14,69 @@ public sealed class BrokerStoreTests
     {
         _root = Path.Combine(Path.GetTempPath(), "AgentExecutionBrokerTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
+        Environment.SetEnvironmentVariable("CODEX_NOTIFICATION_SPOOL_HOME", Path.Combine(_root, "spool"));
     }
 
     [TestCleanup]
     public void Cleanup()
     {
+        Environment.SetEnvironmentVariable("CODEX_NOTIFICATION_SPOOL_HOME", null);
         try { Directory.Delete(_root, true); } catch { }
+    }
+
+    [TestMethod]
+    public void RunRecordKeepsExecutionIdentityAndTransitionEvidenceSeparate()
+    {
+        var run = RunRecordFor(Guid.NewGuid()).WithExecutionIdentity(
+            "host-1", Guid.NewGuid(), "provider-session-1", "digest");
+
+        Assert.AreEqual("host-1", run.HostInstanceId);
+        Assert.IsNotNull(run.JobId);
+        Assert.AreEqual("provider-session-1", run.ProviderSessionId);
+        Assert.AreEqual("digest", run.PromptDigest);
+        Assert.AreEqual(1, run.StateTransitions.Count);
+        Assert.AreEqual("Accepted", run.StateTransitions[0].State);
+        Assert.IsNull(run.AgentReportedResult);
+    }
+
+    [TestMethod]
+    public async Task CancelRequestIsDurableBeforeWorkerObservation()
+    {
+        var store = new BrokerStore(_root);
+        var run = RunRecordFor(Guid.NewGuid());
+        await using var service = new BrokerService(_root);
+        store.WriteRun(run);
+        var json = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
+        var request = new BrokerRequest("cancel_run", System.Text.Json.JsonSerializer.SerializeToElement(new RunQuery(run.RunId), json));
+
+        var response = await service.HandleAsync(request, json, CancellationToken.None);
+        var saved = store.ReadRun(run.RunId);
+
+        Assert.IsTrue(response.Succeeded);
+        Assert.IsNotNull(saved);
+        Assert.AreEqual("CancelRequested", saved.State);
+        Assert.IsTrue(saved.CancelRequested);
+        Assert.AreEqual("Pending", saved.CancelDelivery);
+        Assert.AreEqual("CancelRequested", saved.StateTransitions[^1].State);
+    }
+
+    [TestMethod]
+    public void WorkerStartGuardDoesNotStartAWorkerAfterCancelRequest()
+    {
+        var run = RunRecordFor(Guid.NewGuid()) with
+        {
+            State = "CancelRequested",
+            CancelRequested = true,
+            CancelDelivery = "Pending",
+            StateTransitions = [new RunStateTransition(1, "Accepted", DateTimeOffset.UtcNow, "host-1"), new RunStateTransition(2, "CancelRequested", DateTimeOffset.UtcNow, "host-1")]
+        };
+
+        var prepared = BrokerService.PrepareWorkerStart(run, "host-1");
+
+        Assert.AreEqual("CancelledBeforeStart", prepared.State);
+        Assert.AreEqual("NotStarted", prepared.CancelDelivery);
+        Assert.AreEqual("CancelledBeforeStart", prepared.StateTransitions[^1].State);
+        Assert.IsFalse(prepared.StateTransitions.Any(transition => transition.State == "Starting"));
     }
 
     [TestMethod]

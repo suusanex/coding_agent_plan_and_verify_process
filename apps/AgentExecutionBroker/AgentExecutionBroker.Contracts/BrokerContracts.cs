@@ -33,7 +33,7 @@ public sealed record RunQuery(Guid RunId);
 public sealed record ListRunsRequest(int? Limit, string? Cursor);
 public sealed record OutputQuery(Guid RunId, long? AfterSequence, int? MaxRecords, int? MaxBytes);
 
-public sealed record RunRecord(
+public sealed partial record RunRecord(
     Guid RunId,
     string ProviderId,
     string WorkingDirectory,
@@ -48,7 +48,36 @@ public sealed record RunRecord(
     bool CancelRequested,
     string? CancelDelivery,
     string? Diagnostic,
-    string? NotificationDisposition);
+    string? NotificationDisposition)
+{
+    public string? HostInstanceId { get; init; }
+    public Guid? JobId { get; init; }
+    public string? ProviderSessionId { get; init; }
+    public int? ProviderProcessId { get; init; }
+    public string? PromptDigest { get; init; }
+    public string? AgentReportedResult { get; init; }
+    public IReadOnlyList<RunStateTransition> StateTransitions { get; init; } = [];
+}
+
+public sealed record RunStateTransition(long Sequence, string State, DateTimeOffset ObservedAt, string Authority);
+
+public static class RunRecordExtensions
+{
+    public static RunRecord WithExecutionIdentity(
+        this RunRecord run,
+        string hostInstanceId,
+        Guid jobId,
+        string providerSessionId,
+        string promptDigest) => run with
+        {
+            HostInstanceId = hostInstanceId,
+            JobId = jobId,
+            ProviderSessionId = providerSessionId,
+            PromptDigest = promptDigest,
+            StateTransitions = [new RunStateTransition(1, run.State, run.AcceptedAt, hostInstanceId)]
+        };
+}
+
 
 public sealed record OutputRecord(long Sequence, DateTimeOffset OccurredAt, string Stream, string Text);
 public sealed record OutputPage(

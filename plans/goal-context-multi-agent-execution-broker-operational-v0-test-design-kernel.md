@@ -77,5 +77,5 @@ Runtime Contract Kernel の `RC-BRK-001`〜`RC-BRK-004` に対し、observable b
 - Decisions made: all TP production binding required、no-orphan/cancel race、required `coding-v1`、bounded retrieval、deterministic event identity、side-by-side spool regression、single ManualOnly E2E/trial、no fake-only completionを固定した。
 - Behavior case coverage: `CASE-BRK-001`〜`014`はGuardrail Focus、`015`はParent Plan docs pass、`016`は`TP-BRK-017`のManualOnly early trial。
 - Do not redo unless new evidence appears: TP mapping、substitute policy、production binding requirement、no-orphan/cancel rule、bounded retrieval、manual evidence boundary。
-- Remaining work: `NotImplementedOrMismatch`: tests/code/wiring。`ManualOnly`: TP-BRK-017。
-- Recommended next step: `implementation-handoff-review.agent.md` に全artifactを渡し、Parent Plan/Behavior Case coverageとimplementation authorizationを判定する。
+- Remaining work: 自動テスト、production binding、wiringのbounded verificationは完了。`ManualOnly`: TP-BRK-017（通常runと、別disposable worktreeでのcancel smoke）。
+- Recommended next step: verification kernelで自動証跡を確定し、資格情報と対象Issueの人手承認後にTP-BRK-017を実行する。

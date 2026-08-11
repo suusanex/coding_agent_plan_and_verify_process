@@ -14,15 +14,15 @@
 
 ## Verification summary
 
-production source、startup/wiring、MCP package restore、Host/Inbox build、MSTestを確認した。automated evidenceはHost/store/profile/recovery/event/Inbox consumerまでであり、actual Codex Appおよびauthenticated Copilot CLIを通す`TP-BRK-017`は未実行である。fake-only completionは主張しない。
+production source、startup/wiring、MCP package restore、Host/Inbox build、MSTestを確認した。レビューfix passでcancel/start state lock、開始前cancel guard、RunRecordのexecution identity・transition history・nullable agent result field、OS default ACL方針を再確認した。automated evidenceはHost/store/profile/recovery/event/Inbox consumerまでであり、actual Codex Appおよびauthenticated Copilot CLIを通す`TP-BRK-017`は未実行である。fake-only completionは主張しない。
 
 ## Runtime contract verification
 
 | Runtime Contract ID | Production implementation / wiring evidence | Automated evidence | Status | Remaining work |
 | --- | --- | --- | --- | --- |
-| `RC-BRK-001` | `AgentExecutionBroker.Mcp` stdio tools → named pipe → `BrokerHost`、single mutex | profile/admission unit test、solution build | Done | actual App registration is ManualOnly |
-| `RC-BRK-002` | Host-owned store、`CopilotCliAdapter`、`WorkerJob` | exact allowlist、output frame、Host-loss reconciliation tests | Done | actual authenticated Copilot execution is ManualOnly |
-| `RC-BRK-003` | durable run records、list cursor/output cursor、cancel path | list/output cursor and terminal preservation source/test evidence | Done | actual process cancel race is included in Trial evidence |
+| `RC-BRK-001` | `AgentExecutionBroker.Mcp` stdio tools → named pipe → `BrokerHost`、single mutex、OS default local pipe ACL | profile/admission unit test、solution build | Done | actual App registration is ManualOnly |
+| `RC-BRK-002` | Host-owned store、`CopilotCliAdapter`、`WorkerJob` | exact allowlist、output frame、Host-loss reconciliation、execution identity/history tests | Done | actual authenticated Copilot execution is ManualOnly |
+| `RC-BRK-003` | durable run records、list cursor/output cursor、cancel path | list/output cursor、start/cancel lock guard、terminal preservation source/test evidence | Done | actual process cancel smoke remains ManualOnly |
 | `RC-BRK-004` | terminal schema/publisher、Inbox parser/view model | deterministic event、side-by-side parse/dedup tests | Done | resolved production spool/App path is ManualOnly |
 
 ## Test observation
@@ -30,8 +30,8 @@ production source、startup/wiring、MCP package restore、Host/Inbox build、MS
 | Test Point ID | Evidence | Substitute used? | Production binding / wiring checked? | Status |
 | --- | --- | --- | --- | --- |
 | `TP-BRK-001`〜`003` | Host/MCP build、admission rejection test、mutex/pipe implementation inspection | Yes | Yes | Done |
-| `TP-BRK-004`〜`008` | fixed profile、framed JSONL、Host-loss reconciliation tests | Yes | Yes | Done |
-| `TP-BRK-009`〜`012` | durable list/output cursor and terminal-state source/tests | Yes | Yes | Done |
+| `TP-BRK-004`〜`008` | fixed profile、framed JSONL、Host-loss reconciliation、RunRecord identity/history tests | Yes | Yes | Done |
+| `TP-BRK-009`〜`012` | durable list/output cursor、cancel request persistence、worker-start guard、terminal-state source/tests | Yes | Yes | Done |
 | `TP-BRK-013`〜`016` | schema、atomic publisher source、Inbox parse/dedup/copy-only tests | Yes | Yes | Done |
 | `TP-BRK-017` | none; actual App/Copilot/real issue requires credential and working data | No | No | ManualVerificationRequired |
 
@@ -49,7 +49,7 @@ production source、startup/wiring、MCP package restore、Host/Inbox build、MS
 
 | ID | Type | Source | Status | Reason |
 | --- | --- | --- | --- | --- |
-| `RES-BRK-001` | ManualVerificationRequired | `TP-BRK-017`, `FR-016`,`FR-017`,`AC-015`,`AC-016`,`AC-018` | unresolved | actual Codex App→MCP→Host→authenticated Copilot→spool→Inbox/get_output on a low-risk real issue has not been authorized or performed. |
+| `RES-BRK-001` | ManualVerificationRequired | `TP-BRK-017`, `FR-016`,`FR-017`,`AC-015`,`AC-016`,`AC-018` | unresolved | actual Codex App→MCP→Host→authenticated Copilot→spool→Inbox/get_output on a low-risk real issue has not been authorized or performed. Trial must include a normal run and a separate disposable-worktree cancel smoke. |
 
 ## Direct FixNow selectors
 

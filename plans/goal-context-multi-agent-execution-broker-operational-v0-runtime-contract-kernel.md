@@ -18,7 +18,7 @@ Change Risk Triage が選択した `RC-BRK-001`〜`RC-BRK-004` を対象とし�
 | Runtime Contract ID | Plan requirement | Implementation contract decision | Runtime contract address | Conformance |
 | --- | --- | --- | --- | --- |
 | `RC-BRK-001` | `FR-001`,`FR-002`,`FR-012`; `AC-001`,`AC-009` | stdio MCP facade + detached named-pipe Host + required `coding-v1` | five-tool facade and `start_run` admission | Conformant |
-| `RC-BRK-002` | `FR-003`〜`FR-007`,`FR-010`,`FR-011`; `AC-002`〜`AC-005`,`AC-008` | Copilot CLI adapter, Job Object no-orphan owner, file durable store, observed/reported separation | provider process and per-run records | Conformant |
+| `RC-BRK-002` | `FR-003`〜`FR-007`,`FR-010`,`FR-011`; `AC-002`〜`AC-005`,`AC-008` | Copilot CLI adapter, Job Object no-orphan owner, file durable store, observed/reported separation | provider process and per-run records including host/session/process/job IDs, prompt digest, transition history and nullable agent-reported result | Conformant |
 | `RC-BRK-003` | `FR-003`〜`FR-009`; `AC-002`,`AC-003`,`AC-006`,`AC-007` | Host single writer, atomic state, bounded cursor/limit read surface | registry/output/cancel lifecycle | Conformant |
 | `RC-BRK-004` | `FR-013`,`FR-014`; `AC-010`〜`AC-013`,`AC-015`,`AC-018` | deterministic side-by-side terminal event and Inbox dispatch | terminal event / bounded result retrieval | Conformant |
 
@@ -26,7 +26,7 @@ Change Risk Triage が選択した `RC-BRK-001`〜`RC-BRK-004` を対象とし�
 
 - `ModelContextProtocol` の具体的attribute/APIは restore/build時に確認する `NotImplementedOrMismatch` だが、stdio MCP + named pipeという boundary decisionは確定している。
 - Copilot CLI credential、actual Codex App tool discovery、実Issueへの権限は `ManualOnly`。設計段階で実行はしない。
-- HostはworkerをJob Objectへassignしてから`Running`へ遷移する。Host loss後に無観測workerを残すことは許可しない。recovery時の`HostLostWorkerTreeTerminated`はjob enforcementを示し、worker exit code/semantic resultの推測ではない。
+- HostはworkerをJob Objectへassignしてから`Running`へ遷移する。Host loss後に無観測workerを残すことは許可しない。recovery時の`HostLostWorkerTreeTerminated`はjob enforcementを示し、worker exit code/semantic resultの推測ではない。cancel requestがworker開始前に入った場合は`CancelledBeforeStart`へ遷移し、Copilotを起動しない。Named pipeは同一PCのOS default ACLを使い、same-user-only invariantはv0の契約から除外する。
 - `repository`はoptional display metadataで、requestが渡さない場合はcwdやGit remoteから推測しない。event identityはrun UUIDから決定論的に生成する。
 - v0はautomatic retentionもmanual cleanup commandも持たない。
 - selected contracts は一つのvertical runtime sequenceであり、詳細sequence diagram、rollback/replay architecture、full-coverage decompositionは不要。full-coverage escalation recommendation: なし。
@@ -40,5 +40,6 @@ Change Risk Triage が選択した `RC-BRK-001`〜`RC-BRK-004` を対象とし�
 - Files intentionally not inspected: future Broker source、provider internals、repository-wide test suite。まだ存在しない/selected scope外のため。
 - Decisions made: Producer/Consumer、named pipe、Job Object no-orphan ownership、`coding-v1`、cancel ordering、bounded cursor/limit、deterministic event identity、side-by-side terminal event、result locatorの非launch性を固定した。
 - Do not redo unless new evidence appears: RC participant、field、no-orphan/cancel rule、bounded retrieval、event identity、production address、Plan適合性。
-- Remaining work: `NotImplementedOrMismatch`: contractsを実装しproduction binding/wiringを確認する。`ManualOnly`: actual Codex App/Copilot real-issue Early Operational Trial。
-- Recommended next step: `test-design-kernel.agent.md` に本artifact、Implementation Contract、Plan、Behavior Specを渡し、`TP-BRK-001`〜`017`を設計する。
+- Remaining work: contractに対応するproduction binding/wiring、build、自動テストは確認済み。`ManualOnly`: actual Codex App/Copilot real-issue Early Operational Trial（通常runと別disposable worktreeのcancel smoke）。
+- Implementation follow-up evidence: Host-owned durable state、Job Object no-orphan、cancel/start lock、`CancelledBeforeStart`、bounded cursor/limit、deterministic event identity、execution identity/transition history、same-machine OS default ACLをproduction sourceで確認した。
+- Recommended next step: verification kernelで残余を`TP-BRK-017`へ限定し、人手承認後に実環境証跡を取得する。

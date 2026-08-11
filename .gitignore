@@ -14,3 +14,7 @@ scripts/codex-notification-runtime/artifacts/
 .github/instructions/*
 .codex/agents/*
 .agents/*
+
+# .NET build outputs and restore artifacts
+**/bin/
+**/obj/
