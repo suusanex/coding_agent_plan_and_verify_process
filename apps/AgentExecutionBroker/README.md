@@ -2,7 +2,7 @@
 
 Agent Execution Brokerは、Codex Appのstdio MCP facadeからGitHub Copilot CLIを非同期実行するWindows向けlocal Brokerである。MCP processはworkerを所有せず、別processのHostがnamed pipe、durable run registry、output、terminal eventを所有する。
 
-Named pipeは同一PCのlocal endpointとしてOS default ACLを使う。v0ではsame-user-only ACLを保証せず、remote transportも提供しない。
+Named pipeは同一PCのlocal endpointとしてserver/client双方に`PipeOptions.CurrentUserOnly`を指定する。remote transportは提供しない。
 
 ## Build
 

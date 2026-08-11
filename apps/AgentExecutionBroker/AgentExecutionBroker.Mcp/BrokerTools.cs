@@ -56,7 +56,7 @@ public sealed class BrokerPipeClient
 
     private static async Task<NamedPipeClientStream> ConnectAsync(CancellationToken cancellationToken)
     {
-        var pipe = new NamedPipeClientStream(".", BrokerProtocol.PipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+        var pipe = new NamedPipeClientStream(".", BrokerProtocol.PipeName, PipeDirection.InOut, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
         try
         {
             await pipe.ConnectAsync(TimeSpan.FromMilliseconds(500), cancellationToken);
@@ -66,7 +66,7 @@ public sealed class BrokerPipeClient
         {
             pipe.Dispose();
             LaunchHost();
-            var launched = new NamedPipeClientStream(".", BrokerProtocol.PipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+            var launched = new NamedPipeClientStream(".", BrokerProtocol.PipeName, PipeDirection.InOut, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
             try
             {
                 await launched.ConnectAsync(TimeSpan.FromSeconds(10), cancellationToken);

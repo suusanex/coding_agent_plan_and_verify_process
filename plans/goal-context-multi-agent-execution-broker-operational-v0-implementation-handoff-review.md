@@ -36,7 +36,7 @@
 | Implementation allowed | Yes — bounded implementation may start with `high-implementation-starter.agent.md`; this is not production binding or close readiness. |
 | Close readiness | No — bounded implementation、tests、production wiringは確認済みだが、actual Codex App E2E / Early Operational Trialは未実行。 |
 
-effective scope はfull-coverage sliceではない `standard-slice` の一つのbounded parent Plan passである。Guardrail Focus は `RC-BRK-001`〜`RC-BRK-004`、test points は `TP-BRK-001`〜`TP-BRK-017`。no-orphan invariant、cancel race、required `coding-v1`、bounded retrieval、deterministic event identity、execution identity/transition history、same-machine OS default ACL policyはcontractとproduction sourceへ反映済みである。レビューfix pass後の残余は`TP-BRK-017`の`ManualOnly` real-issue E2E / Early Operational Trialだけであり、実装開始前の`NeedsHumanDecision`はない。
+effective scope はfull-coverage sliceではない `standard-slice` の一つのbounded parent Plan passである。Guardrail Focus は `RC-BRK-001`〜`RC-BRK-004`、test points は `TP-BRK-001`〜`TP-BRK-017`。no-orphan invariant、cancel race、required `coding-v1`、bounded retrieval、deterministic event identity、execution identity/transition history、same-machine `CurrentUserOnly` pipe policyはcontractとproduction sourceへ反映済みである。レビューfix pass後の残余は`TP-BRK-017`の`ManualOnly` real-issue E2E / Early Operational Trialだけであり、実装開始前の`NeedsHumanDecision`はない。
 
 ## Review checks
 
@@ -182,5 +182,5 @@ None
 - Decisions made: `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS`。Parent Plan/Behavior Case ledgerはcomplete、Guardrail Focusはready、no-orphan/profile/bounded retrieval/event identityのreview指摘はcontractへ反映済みで、blocking/human decision/artifact mismatchはない。
 - Do not redo unless new evidence appears: Plan→RC→TP mapping、all TP production binding requirement、no-orphan/cancel rule、`coding-v1`、bounded retrieval、event identity、prohibited substitutions、ManualOnly boundary、adaptive route metadata。
 - Remaining work: `ManualOnly`: actual Codex App/Copilot real-issue E2E兼Early Operational Trial。通常runと別disposable worktreeのcancel smokeを実施するまでclose readinessはNo。
-- Post-implementation review: cancel/start state race、RunRecordのexecution identity・transition history・agent-reported result separation、same-machine OS default ACL policy、generated output除外を追加確認した。自動検証済みの残余はなく、actual credentials / real Issueを要する`TP-BRK-017`だけを人手判断へ渡す。
+- Post-implementation review: cancel/startおよびprocess exit/cancel deliveryのterminalization race、RunRecordのexecution identity・transition history・agent-reported result separation、same-machine `CurrentUserOnly` pipe policy、generated output除外を追加確認した。自動検証済みの残余はなく、actual credentials / real Issueを要する`TP-BRK-017`だけを人手判断へ渡す。
 - Recommended next step: residual-decision gateで対象Issueと資格情報使用を明示承認し、README記載のsanitized evidence policyで`TP-BRK-017`を実行する。

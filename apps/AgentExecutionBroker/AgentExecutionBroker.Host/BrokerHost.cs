@@ -30,7 +30,7 @@ public sealed class BrokerHost : IAsyncDisposable
         while (!cancellationToken.IsCancellationRequested)
         {
             var pipe = new NamedPipeServerStream(BrokerProtocol.PipeName, PipeDirection.InOut, 16,
-                PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+                PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
             try
             {
                 await pipe.WaitForConnectionAsync(cancellationToken);
@@ -209,7 +209,6 @@ public sealed class BrokerService : IAsyncDisposable
     private async Task<RunRecord> CancelAsync(RunQuery query, CancellationToken cancellationToken)
     {
         RunRecord run;
-        RunningWorker? worker;
         lock (_gate)
         {
             run = GetRun(query);
@@ -220,27 +219,39 @@ public sealed class BrokerService : IAsyncDisposable
 
             run = Transition(run with { CancelRequested = true, CancelDelivery = "Pending" }, "CancelRequested");
             _store.WriteRun(run);
-            _workers.TryGetValue(query.RunId, out worker);
+            _workers.TryGetValue(query.RunId, out var worker);
+            var process = worker?.Process;
 
-            if (worker?.Process is null || worker.Process.HasExited)
+            if (process is null || process.HasExited)
             {
                 return run;
             }
-        }
 
-        try
-        {
-            worker.Process.Kill(entireProcessTree: true);
-            run = GetRun(query);
-            run = run with { CancelDelivery = "Delivered" };
-            _store.WriteRun(run);
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
-        {
-            Trace.WriteLine(ex.ToString());
-            run = run with { CancelDelivery = "Failed", Diagnostic = ex.Message };
-            _store.WriteRun(run);
-            _store.AppendOutput(run.RunId, "diagnostic", $"Cancellation delivery failed: {ex.Message}");
+            try
+            {
+                process.Kill(entireProcessTree: true);
+                run = _store.ReadRun(query.RunId) ?? run;
+                if (IsTerminal(run.State))
+                {
+                    return run;
+                }
+
+                run = run with { CancelDelivery = "Delivered" };
+                _store.WriteRun(run);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+            {
+                Trace.WriteLine(ex.ToString());
+                run = _store.ReadRun(query.RunId) ?? run;
+                if (IsTerminal(run.State))
+                {
+                    return run;
+                }
+
+                run = run with { CancelDelivery = "Failed", Diagnostic = ex.Message };
+                _store.WriteRun(run);
+                _store.AppendOutput(run.RunId, "diagnostic", $"Cancellation delivery failed: {ex.Message}");
+            }
         }
 
         await Task.CompletedTask;
@@ -281,13 +292,18 @@ public sealed class BrokerService : IAsyncDisposable
             var stderr = OutputCopy.CopyOutputAsync(process.StandardError, run.RunId, "stderr", _store, cancellationToken);
             await Task.WhenAll(process.WaitForExitAsync(cancellationToken), stdout, stderr);
 
-            var current = _store.ReadRun(run.RunId) ?? run;
-            var state = current.CancelRequested
-                ? current.CancelDelivery == "Delivered" ? "CancelledByBroker" : current.CancelDelivery == "Failed" ? "ExitedAfterFailedCancel" : "Exited"
-                : "Exited";
-            run = Transition(current with { CompletedAt = DateTimeOffset.UtcNow, ExitCode = process.ExitCode }, state);
-            _store.WriteRun(run);
-            _store.PublishTerminal(run);
+            lock (_gate)
+            {
+                var current = _store.ReadRun(run.RunId) ?? run;
+                if (IsTerminal(current.State))
+                {
+                    return;
+                }
+
+                run = ObserveProcessExit(current, process.ExitCode, _hostInstanceId, DateTimeOffset.UtcNow);
+                _store.WriteRun(run);
+                _store.PublishTerminal(run);
+            }
         }
         catch (OperationCanceledException ex)
         {
@@ -316,16 +332,19 @@ public sealed class BrokerService : IAsyncDisposable
 
     private void FinalizeFailure(RunRecord run, string state, string diagnostic)
     {
-        var current = _store.ReadRun(run.RunId) ?? run;
-        if (IsTerminal(current.State))
+        lock (_gate)
         {
-            return;
-        }
+            var current = _store.ReadRun(run.RunId) ?? run;
+            if (IsTerminal(current.State))
+            {
+                return;
+            }
 
-        var final = Transition(current with { CompletedAt = DateTimeOffset.UtcNow, Diagnostic = diagnostic }, state);
-        _store.WriteRun(final);
-        _store.AppendOutput(final.RunId, "diagnostic", diagnostic);
-        _store.PublishTerminal(final);
+            var final = Transition(current with { CompletedAt = DateTimeOffset.UtcNow, Diagnostic = diagnostic }, state);
+            _store.WriteRun(final);
+            _store.AppendOutput(final.RunId, "diagnostic", diagnostic);
+            _store.PublishTerminal(final);
+        }
     }
 
     private static void StopUnownedWorker(RunningWorker worker)
@@ -396,6 +415,25 @@ public sealed class BrokerService : IAsyncDisposable
         return run.CancelRequested
             ? AppendTransition(run with { CancelDelivery = "NotStarted", CompletedAt = DateTimeOffset.UtcNow }, "CancelledBeforeStart", authority, DateTimeOffset.UtcNow)
             : AppendTransition(run with { StartedAt = DateTimeOffset.UtcNow }, "Starting", authority, DateTimeOffset.UtcNow);
+    }
+
+    internal static string DetermineProcessExitState(bool cancelRequested, string? cancelDelivery) =>
+        cancelRequested
+            ? cancelDelivery == "Delivered" ? "CancelledByBroker" : cancelDelivery == "Failed" ? "ExitedAfterFailedCancel" : "Exited"
+            : "Exited";
+
+    internal static RunRecord ObserveProcessExit(RunRecord run, int exitCode, string authority, DateTimeOffset observedAt)
+    {
+        if (IsTerminal(run.State))
+        {
+            return run;
+        }
+
+        return AppendTransition(run with
+        {
+            CompletedAt = observedAt,
+            ExitCode = exitCode
+        }, DetermineProcessExitState(run.CancelRequested, run.CancelDelivery), authority, observedAt);
     }
 
     private static RunRecord AppendTransition(RunRecord run, string state, string authority, DateTimeOffset observedAt)

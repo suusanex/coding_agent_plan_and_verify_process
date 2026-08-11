@@ -80,6 +80,58 @@ public sealed class BrokerStoreTests
     }
 
     [TestMethod]
+    public void ProcessExitStateUsesTheLatestCancelDeliveryObservation()
+    {
+        var cases = new[]
+        {
+            (CancelRequested: false, CancelDelivery: (string?)null, Expected: "Exited"),
+            (CancelRequested: true, CancelDelivery: "Pending", Expected: "Exited"),
+            (CancelRequested: true, CancelDelivery: "Delivered", Expected: "CancelledByBroker"),
+            (CancelRequested: true, CancelDelivery: "Failed", Expected: "ExitedAfterFailedCancel")
+        };
+
+        foreach (var item in cases)
+        {
+            Assert.AreEqual(item.Expected, BrokerService.DetermineProcessExitState(item.CancelRequested, item.CancelDelivery));
+        }
+    }
+
+    [TestMethod]
+    public void ProcessExitObservationMapsDeliveredAndFailedCancelToDistinctTerminalStates()
+    {
+        var delivered = RunRecordFor(Guid.NewGuid()) with
+        {
+            State = "Running",
+            CancelRequested = true,
+            CancelDelivery = "Delivered"
+        };
+        var failed = delivered with { RunId = Guid.NewGuid(), CancelDelivery = "Failed" };
+
+        var deliveredExit = BrokerService.ObserveProcessExit(delivered, 137, "host-1", DateTimeOffset.UtcNow);
+        var failedExit = BrokerService.ObserveProcessExit(failed, 1, "host-1", DateTimeOffset.UtcNow);
+
+        Assert.AreEqual("CancelledByBroker", deliveredExit.State);
+        Assert.AreEqual(137, deliveredExit.ExitCode);
+        Assert.AreEqual("ExitedAfterFailedCancel", failedExit.State);
+        Assert.AreEqual(1, failedExit.ExitCode);
+    }
+
+    [TestMethod]
+    public void ProcessExitObservationDoesNotRegressAnAlreadyTerminalRun()
+    {
+        var run = RunRecordFor(Guid.NewGuid()) with
+        {
+            State = "Exited",
+            CompletedAt = DateTimeOffset.UtcNow,
+            ExitCode = 0
+        };
+
+        var observed = BrokerService.ObserveProcessExit(run, 1, "host-1", DateTimeOffset.UtcNow.AddSeconds(1));
+
+        Assert.AreEqual(run, observed);
+    }
+
+    [TestMethod]
     public void CodingProfileBuildsOnlyTheFixedAllowlist()
     {
         var run = RunRecordFor(Guid.NewGuid());

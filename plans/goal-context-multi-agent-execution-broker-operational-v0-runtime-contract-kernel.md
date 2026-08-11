@@ -26,7 +26,7 @@ Change Risk Triage が選択した `RC-BRK-001`〜`RC-BRK-004` を対象とし�
 
 - `ModelContextProtocol` の具体的attribute/APIは restore/build時に確認する `NotImplementedOrMismatch` だが、stdio MCP + named pipeという boundary decisionは確定している。
 - Copilot CLI credential、actual Codex App tool discovery、実Issueへの権限は `ManualOnly`。設計段階で実行はしない。
-- HostはworkerをJob Objectへassignしてから`Running`へ遷移する。Host loss後に無観測workerを残すことは許可しない。recovery時の`HostLostWorkerTreeTerminated`はjob enforcementを示し、worker exit code/semantic resultの推測ではない。cancel requestがworker開始前に入った場合は`CancelledBeforeStart`へ遷移し、Copilotを起動しない。Named pipeは同一PCのOS default ACLを使い、same-user-only invariantはv0の契約から除外する。
+- HostはworkerをJob Objectへassignしてから`Running`へ遷移する。Host loss後に無観測workerを残すことは許可しない。recovery時の`HostLostWorkerTreeTerminated`はjob enforcementを示し、worker exit code/semantic resultの推測ではない。cancel requestがworker開始前に入った場合は`CancelledBeforeStart`へ遷移し、Copilotを起動しない。process exit observationとcancel deliveryのterminalizationは同じstate lock下で最新recordを再読込して行う。Named pipeは同一PCのserver/client双方に`PipeOptions.CurrentUserOnly`を指定し、remote transportは提供しない。
 - `repository`はoptional display metadataで、requestが渡さない場合はcwdやGit remoteから推測しない。event identityはrun UUIDから決定論的に生成する。
 - v0はautomatic retentionもmanual cleanup commandも持たない。
 - selected contracts は一つのvertical runtime sequenceであり、詳細sequence diagram、rollback/replay architecture、full-coverage decompositionは不要。full-coverage escalation recommendation: なし。
@@ -41,5 +41,5 @@ Change Risk Triage が選択した `RC-BRK-001`〜`RC-BRK-004` を対象とし�
 - Decisions made: Producer/Consumer、named pipe、Job Object no-orphan ownership、`coding-v1`、cancel ordering、bounded cursor/limit、deterministic event identity、side-by-side terminal event、result locatorの非launch性を固定した。
 - Do not redo unless new evidence appears: RC participant、field、no-orphan/cancel rule、bounded retrieval、event identity、production address、Plan適合性。
 - Remaining work: contractに対応するproduction binding/wiring、build、自動テストは確認済み。`ManualOnly`: actual Codex App/Copilot real-issue Early Operational Trial（通常runと別disposable worktreeのcancel smoke）。
-- Implementation follow-up evidence: Host-owned durable state、Job Object no-orphan、cancel/start lock、`CancelledBeforeStart`、bounded cursor/limit、deterministic event identity、execution identity/transition history、same-machine OS default ACLをproduction sourceで確認した。
+- Implementation follow-up evidence: Host-owned durable state、Job Object no-orphan、cancel/start lock、process exit/cancel terminalization lock、`CancelledBeforeStart`、bounded cursor/limit、deterministic event identity、execution identity/transition history、same-machine `CurrentUserOnly` pipeをproduction sourceで確認した。
 - Recommended next step: verification kernelで残余を`TP-BRK-017`へ限定し、人手承認後に実環境証跡を取得する。
