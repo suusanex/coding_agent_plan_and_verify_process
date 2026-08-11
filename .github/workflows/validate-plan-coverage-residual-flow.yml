@@ -10,6 +10,7 @@ on:
       - 'docs/plan-coverage-process-and-agents.md'
       - 'docs/plan-coverage-purpose.md'
       - 'docs/plan-coverage-runtime-qualification.md'
+      - 'docs/plan-coverage-agent-plugin-poc.md'
       - 'docs/token-aware-full-coverage-decomposition-flow.md'
       - 'docs/architecture-slice-readiness-validation.md'
       - 'docs/architecture-slice-readiness-validation-result.md'
@@ -24,6 +25,7 @@ on:
       - 'docs/plan-coverage-process-and-agents.md'
       - 'docs/plan-coverage-purpose.md'
       - 'docs/plan-coverage-runtime-qualification.md'
+      - 'docs/plan-coverage-agent-plugin-poc.md'
       - 'docs/token-aware-full-coverage-decomposition-flow.md'
       - 'docs/architecture-slice-readiness-validation.md'
       - 'docs/architecture-slice-readiness-validation-result.md'
@@ -74,11 +76,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Set up pinned APM CLI
         uses: microsoft/apm-action@v1
         with:
           setup-only: 'true'
           apm-version: '0.26.0'
+      - name: Validate Agent Plugins bundle build, Adaptive attestation, and PoC result contracts
+        shell: pwsh
+        run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-agent-plugin.ps1
       - name: Validate fresh package installation and standalone lifecycle
         shell: pwsh
         env:

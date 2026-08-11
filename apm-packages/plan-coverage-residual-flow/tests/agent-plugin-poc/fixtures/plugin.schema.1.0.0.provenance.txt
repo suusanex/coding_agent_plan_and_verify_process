@@ -1,0 +1,5 @@
+source: https://agent-plugins.org/schemas/1.0.0/plugin.schema.json
+spec_version: 1.0.0
+retrieved: 2026-08-10
+sha256: 0a4aad95ce337878ad38802ebf0daa3fde76abe3f65400c86bcbb1ec0b3ab883
+note: Pinned fixture for offline CI validation. Do not treat as a second process implementation.

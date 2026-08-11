@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "issue": 107,
+  "date": "YYYY-MM-DD",
+  "spec": {
+    "agent_plugins_version": "1.0.0",
+    "agent_plugins_schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+  },
+  "source_run": {
+    "candidate_commit": "",
+    "canonical_fingerprint": "",
+    "package_version": "0.13.0",
+    "apm_yml_sha256": "",
+    "plugin_manifest_sha256": "",
+    "bundle_lock_sha256": "",
+    "bundle_root_recorded": "(ephemeral)"
+  },
+  "environment": {
+    "apm_version": "",
+    "copilot_cli_version": "",
+    "platform": "",
+    "model_requested": null,
+    "model_observed": "client-selected-or-unobserved"
+  },
+  "bundle": {
+    "status": "PASS",
+    "manifest_conformance": "PASS",
+    "canonical_skill_match": true,
+    "canonical_agent_match": true,
+    "lock_embedded": true,
+    "adaptive_in_bundle": false
+  },
+  "copilot_direct_load": {
+    "status": "NOT_RUN",
+    "plugin_discovery": "NOT_RUN",
+    "plugin_install": "NOT_RUN",
+    "plugin_load_mode": null,
+    "authorization": "NOT_RUN",
+    "standard_slice": "NOT_RUN",
+    "full_coverage": "NOT_RUN",
+    "adaptive_connection": "NOT_RUN",
+    "shared_instruction": "NOT_PROBED",
+    "capability_gaps": []
+  },
+  "codex_direct_load": {
+    "status": "NOT_TESTED",
+    "evidence": []
+  },
+  "boundary_inventory": [],
+  "comparison_to_apm": {},
+  "scenarios": [],
+  "decision": {
+    "verdict": "HOLD",
+    "rationale": [
+      "Template only — replace by running run-plan-coverage-copilot-plugin-poc.ps1"
+    ],
+    "next_steps": []
+  }
+}
