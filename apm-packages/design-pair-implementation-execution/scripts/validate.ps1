@@ -17,7 +17,6 @@ function Assert-FileExists {
         Add-Failure "Missing file: $RelativePath"
     }
 }
-
 function Assert-Contains {
     param(
         [string]$RelativePath,
@@ -78,7 +77,11 @@ $requiredFiles = @(
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md',
     'apm-packages/adaptive-implementation-execution/docs/examples/legacy-adaptive-handoff.md',
     'apm-packages/adaptive-implementation-execution/docs/install-guide.md',
-    'apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs',
+    'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json',
+    'apm-packages/codex-profile-finalizer/apm.yml',
+    'apm-packages/codex-profile-finalizer/.apm/.gitkeep',
+    'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs',
+    'apm-packages/codex-profile-finalizer/tests/validate-finalizer.ps1',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md',
@@ -221,193 +224,7 @@ foreach ($field in @(
 }
 Assert-Contains $handoff 'Decision ID.*Target ID.*Decision.*Affected files / symbols.*Rationale.*Validation expectations.*Conflict conditions.*User message / turn reference.*Confirmed content quote or faithful summary.*Confirmation occurred after Target Map presentation' 'complete Locked Decision schema'
 Assert-Contains $handoff 'section に Decision ID、presented Target ID、実際の user message / turn reference、確認内容.*Confirmation occurred after Target Map presentation: Yes.*binding' 'explicit post-map binding rule'
-Assert-Contains $handoff '(?s)## Target Disposition Evidence.*Target ID.*Final disposition.*User message / turn reference.*Confirmed content quote or faithful summary.*Confirmation after Target Map' 'Target disposition evidence schema'
-Assert-Contains $handoff '(?s)`Locked`、`Discussed-Unlocked`、`Adaptive-Owned`の各Targetに一件だけrow.*actual user message / turn reference.*Confirmation after Target Map: Yes.*複数Target委任またはall-Adaptive委任.*Targetごとのrowは省略しない' 'Target disposition evidence cardinality and multi-target rule'
-Assert-Contains $handoff 'allowed edit surface ではない' 'handoff non-allowlist rule'
-Assert-Contains $handoff '(?s)Readiness Check.*Target Map was presented to the user.*Target selection was requested and optional initial positions were invited.*A user response occurred after Target Map presentation.*Non-empty user participation or explicit all-Adaptive delegation exists.*User-selected discussion targets have final dispositions.*No pending human-owned Target remains' 'non-empty post-map readiness checks'
-Assert-Contains $handoff 'Target が一件も選択されず.*Adaptive delegation.*空集合として PASS にしない' 'handoff empty-selection failure rule'
-Assert-Contains $handoff 'Selected Target IDs: Pending / None / <DP-Txx list>' 'formal None value for selected Targets'
-Assert-Contains $handoff '(?s)Target Map IDs are unique and every summary ID exists in the Target Map.*Summary Target sets are pairwise disjoint and exactly cover the Target Map.*Summary classifications match every Target Map row Disposition.*Locked Decision Target IDs are selected and their Target Map rows are Locked.*Explicit all-Adaptive delegation has None selected/pending, no Locked Decisions, and every Target is Adaptive-Owned' 'handoff set invariant readiness checks'
-Assert-Contains $handoff 'Every Locked, Discussed-Unlocked, and Adaptive-Owned Target has matching post-map Target Disposition Evidence' 'handoff Target disposition evidence readiness check'
-Assert-Contains $handoff '(?s)READY前に、`Locked` / `Discussed-Unlocked` / `Adaptive-Owned`のTarget集合.*完全一致.*欠落、架空ID、重複Target、row / evidence不一致、pre-map evidence、AI summary.*FAIL' 'handoff Target disposition evidence fail-closed rule'
-Assert-Contains $handoff '5集合を Target Map と照合し、架空 ID、重複 ID、未分類 Target、row / summary 不一致を一件でも許可しない' 'handoff set invariant failure rule'
-Assert-Contains $handoff '(?s)Target Mapに実在するTarget IDだけ.*選択成立.*User response occurred after Target Map presentation: Yes.*Interaction stage: disposition-confirmation.*初期案は任意.*同じTargetの選択を再要求しない.*未選択Target.*pending' 'handoff Target-only selection representation'
-Assert-Contains $handoff '(?s)`design-discussion`等の独自stageを作ってはいけない.*headerとReadiness Check.*Yes / No、PASS / FAIL、user referenceを矛盾させない' 'handoff mirrored evidence consistency'
-Assert-Contains $handoff 'Interaction stage: target-map-building / target-selection / disposition-confirmation / upstream-decision / complete / artifact-repair' 'handoff closed stage schema'
-Assert-NotContains $handoff '(?m)^- Interaction stage:.*design-discussion' 'deprecated design-discussion stage in handoff schema'
-Assert-Contains $handoff '(?s)`target-map-building`はTarget Map提示前の`DRAFT`だけ.*`artifact-repair`は.*`BLOCKED`だけ.*Target Map提示後の通常経路.*`target-selection`、`disposition-confirmation`、`upstream-decision`、`complete`以外へ遷移しない' 'handoff stage applicability rules'
-Assert-Contains $handoff '(?s)## Selected Target Discussion Evidence.*Target ID.*Assistant turn reference.*Concrete file / symbol / line evidence.*Current responsibility / invariant.*Caller / wiring / lifecycle / test-seam evidence.*Alternatives and trade-offs.*Non-binding AI proposal or No proposal reason.*Validation expectation.*Open questions' 'selected Target discussion evidence schema'
-Assert-Contains $handoff '(?s)Selected Targets have concrete user-facing discussion evidence.*Target IDs, assistant turn references, code locations, trade-offs, proposal, validation' 'selected Target discussion readiness check'
-Assert-Contains $handoff '(?s)`Target Map presentation evidence`は.*各TargetについてTarget ID、具体的file / symbol、current responsibility / invariant、requested changeとの関係、内部設計判断候補、expected modification or verification、relevant evidence、open question.*artifact linkまたはTarget IDと論点名だけの要約はpresentation evidenceにならない' 'handoff concrete Target Map presentation rule'
-Assert-Contains $handoff 'Target Map presentation includes concrete code structure for every Target' 'concrete Target Map readiness check'
-Assert-Contains $handoff '(?s)user-facing responseは`Design Pair Target Map`の7列Markdown table、Coverage evidence、Selection request.*final responseがTarget名と論点の短い箇条書きだけ.*PASSにしてはいけない' 'handoff initial response structure rule'
-Assert-Contains $handoff '(?s)Target IDだけの選択でも.*具体的file / symbol.*current responsibility / invariant.*caller / wiring / lifecycle / test seam.*alternatives / trade-offs.*proposalまたはNo proposal理由.*validation expectation.*論点名だけの応答はFAIL' 'Target-only selection concrete handoff evidence rule'
-Assert-Contains $handoff '(?s)`<DP-Txx> Internal design discussion` block.*Code location.*Current responsibility / invariant.*Callers / wiring / lifecycle / state / test seam.*Internal design decision needed.*Alternatives and trade-offs.*Non-binding AI proposal.*Validation expectations.*Open questions' 'handoff selected Target response structure rule'
-Assert-Contains $handoff 'Plan / Issue / acceptance criteria / repository policy / public contract.*Design Pair Decision ID を付けず' 'handoff upstream constraint separation'
-
-$adaptiveSkill = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md'
-Assert-Contains $adaptiveSkill 'Design Pair Implementation Handoff' 'Design Pair input support'
-Assert-Contains $adaptiveSkill '(?s)binding なのは.*Locked Decisions.*だけ' 'Adaptive binding-only rule'
-Assert-Contains $adaptiveSkill 'Affected files / symbols.*Allowed edit surface.*扱いません' 'Adaptive non-allowlist rule'
-Assert-Contains $adaptiveSkill 'Design Pair Decision ID' 'Design Pair Decision ID propagation'
-Assert-Contains $adaptiveSkill 'automatic Design Pair re-entry' 'Adaptive no automatic re-entry rule'
-Assert-Contains $adaptiveSkill 'Locked Decision conflict' 'Adaptive conflict stop report'
-Assert-Contains $adaptiveSkill '(?s)Target Map ID が一意.*summary の全 Target ID が Target Map に実在.*5集合が互いに素.*和集合が Target Map 全体と完全一致.*summary 集合が Target Map row.*一致' 'Adaptive Target set reconciliation gate'
-Assert-Contains $adaptiveSkill '(?s)Locked Decision Target ID が `Selected Target IDs` に含まれ.*Target Map row が `Locked`.*all-Adaptive delegation.*selected / pending が `None`.*全 Target row が `Adaptive-Owned`.*delegated集合と完全一致' 'Adaptive Locked and all-Adaptive invariants'
-Assert-Contains $adaptiveSkill '架空 ID、重複 ID、未分類 Target、row / summary 不一致.*も拒否' 'Adaptive malformed Target set rejection'
-Assert-Contains $adaptiveSkill '(?s)`Selected Target IDs`と`Delegated-to-Adaptive Target IDs`の各Targetに一件だけ`Target Disposition Evidence`.*Target Map rowと一致.*actual user message / turn reference.*post-map confirmation `Yes`' 'Adaptive Target disposition evidence gate'
-Assert-Contains $adaptiveSkill '(?s)未選択Targetを自己判断で`Adaptive-Owned`.*利用者の最終応答なしに`Discussed-Unlocked`.*拒否' 'Adaptive rejects AI-owned disposition assignment'
-Assert-Contains $adaptiveSkill '(?s)selected Targetごとに`Selected Target Discussion Evidence`.*user-facing assistant turn reference.*具体的code location.*current invariant.*alternatives / trade-offs.*proposalまたはNo proposal理由.*validation expectation' 'Adaptive selected Target discussion evidence gate'
-Assert-Contains $adaptiveSkill '抽象的な論点名だけで具体的なSelected Target discussion evidenceがないartifactも拒否' 'Adaptive abstract discussion rejection'
-Assert-Contains $adaptiveSkill '(?s)Target Map presentation evidenceが.*全Targetのuser-facingな具体的file / symbol.*current invariant.*内部設計判断候補.*relevant evidence.*artifact linkまたは論点名だけの要約ではない' 'Adaptive concrete Target Map presentation gate'
-Assert-Contains $adaptiveSkill '新規 intake と resume を分けます' 'fresh intake and resume distinction'
-Assert-Contains $adaptiveSkill '欠落や矛盾を Adaptive へ補完しません' 'resume fail-closed route metadata'
-Assert-Contains $adaptiveSkill 'route_metadata_normalization: legacy-adaptive-handoff' 'legacy Adaptive handoff normalization marker'
-Assert-Contains $adaptiveSkill '(?s)```yaml.*implementation_route: adaptive.*implementation_route_source: default.*design_pair_handoff: N/A.*```' 'fresh Adaptive route identity initialization'
-Assert-Contains $adaptiveSkill '(?s)## Step 2: Start with HIGH_MODEL.*渡すもの:.*- `implementation_route`.*- `implementation_route_source`.*HIGH_MODELはactual code' 'Adaptive HIGH explicit route input payload'
-Assert-Contains $adaptiveSkill 'Delegation basis: non-local-decisions-closed' 'Adaptive decision-closed delegation basis'
-Assert-Contains $adaptiveSkill 'HIGH_MODEL code changes: Yes / No' 'Adaptive zero-code HIGH handoff state'
-Assert-Contains $adaptiveSkill 'locked non-local decisionを変更する必要' 'Adaptive structural re-entry semantics'
-Assert-Contains $adaptiveSkill 'Design Pair Implementation Handoff path（`adaptive / default`では明示的な`N/A`、`design-pair / explicit-user-selection`ではcurrent tracked path）' 'Adaptive HIGH explicit default N/A path payload'
-Assert-Contains $adaptiveSkill '(?s)通常はすべてのHIGH_MODEL result.*唯一の例外.*`Verdict: BLOCKED`.*BlockedByInvalidCompletionHandoff.*raw observed value.*`<missing>`.*artifact repair evidence' 'Adaptive parent HIGH invalid route exception'
-Assert-Contains $adaptiveSkill '(?s)通常はすべてのSTANDARD_MODEL result.*唯一の例外.*`Verdict: BLOCKED`.*BlockedByInvalidCompletionHandoff.*raw observed value.*`<missing>`.*artifact repair evidence' 'Adaptive parent STANDARD invalid route exception'
-Assert-Contains $adaptiveSkill 'previous Implementation Completion Handoff と High-model Re-entry Handoff' 'Adaptive HIGH re-entry dual handoff payload'
-Assert-Contains $adaptiveSkill '(?s)### NEEDS_HIGH_MODEL_REENTRY.*元の(?:tracked )?`Implementation Completion Handoff`.*両handoffの`implementation_route`、`implementation_route_source`、Design Pair handoff pathが一致' 'Adaptive HIGH re-entry route identity validation'
-
-$adaptiveHandoff = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md'
-Assert-Contains $adaptiveHandoff 'Origin.*Decision ID.*Decision.*Affected files / symbols.*Compliance evidence' 'consolidated Locked Decision schema'
-Assert-Contains $adaptiveHandoff 'Design Pair handoff' 'Design Pair handoff reference'
-Assert-Contains $adaptiveHandoff 'Legacy Adaptive handoff normalization' 'legacy Adaptive handoff normalization contract'
-Assert-Contains $adaptiveHandoff '## Decision closure' 'Adaptive decision closure schema'
-Assert-Contains $adaptiveHandoff 'Responsibility.*Authorized surface.*Locked boundaries.*Local freedom' 'Adaptive Work Package schema'
-Assert-Contains $adaptiveHandoff 'LEGACY-HIGH-D01' 'deterministic legacy Decision ID rule'
-Assert-Contains $adaptiveHandoff '(?s)# Implementation Completion Handoff.*- implementation_route: adaptive / design-pair.*- implementation_route_source: default / explicit-user-selection.*## Acceptance status' 'current completion handoff route metadata'
-
-$legacyFixture = 'apm-packages/adaptive-implementation-execution/docs/examples/legacy-adaptive-handoff.md'
-Assert-Contains $legacyFixture 'Verdict: READY_FOR_STANDARD_COMPLETION' 'legacy handoff READY verdict'
-Assert-Contains $legacyFixture '## Locked decisions\s*\r?\n\s*- ' 'legacy bullet-form Locked decisions'
-Assert-NotContains $legacyFixture 'Design Pair handoff|Design Pair Decision compliance|\| Origin \| Decision ID \|' 'new Design Pair fields in legacy fixture'
-foreach ($legacyField in @(
-    'Plan reference',
-    'Validation performed',
-    'Acceptance status',
-    'Applicability evidence',
-    'Implemented',
-    'Remaining work',
-    'Allowed edit surface',
-    'Validation commands',
-    'High-model re-entry triggers',
-    'reentry_count',
-    'previous_reentry_trigger',
-    'delegation_surface_reduced',
-    'Known assumptions / unresolved observations'
-)) {
-    Assert-Contains $legacyFixture ([regex]::Escape($legacyField)) "legacy handoff former required field $legacyField"
-}
-
-$highAgent = 'apm-packages/adaptive-implementation-execution/.apm/agents/high-implementation-starter.agent.md'
-Assert-Contains $highAgent 'Design Pair Implementation Handoff' 'HIGH Design Pair input support'
-Assert-Contains $highAgent 'Decision ID' 'HIGH Decision ID propagation'
-Assert-Contains $highAgent 'Locked Decision conflict' 'HIGH conflict stop report'
-Assert-Contains $highAgent 'Target Map.*allowed edit surface' 'HIGH non-allowlist rule'
-Assert-Contains $highAgent '(?s)Target Map IDは一意.*全summary IDはTarget Mapに実在.*5集合は互いに素かつTarget Map全体を完全被覆.*各summary分類はrow Dispositionと一致' 'HIGH Target set reconciliation gate'
-Assert-Contains $highAgent '(?s)Locked Decision TargetはSelectedかつrowがLocked.*all-AdaptiveではSelected / PendingがNone.*全Target rowがAdaptive-OwnedかつDelegated集合と完全一致' 'HIGH Locked and all-Adaptive invariants'
-Assert-Contains $highAgent '架空ID、重複ID、未分類Target、row / summary不一致' 'HIGH malformed Target set rejection'
-Assert-Contains $highAgent '(?s)Selected / Delegated-to-Adaptiveの各Targetに一件だけ`Target Disposition Evidence`.*actual post-map user turn reference.*all-Adaptive.*全Targetに個別evidence row' 'HIGH Target disposition evidence gate'
-Assert-Contains $highAgent '(?s)AIが未選択Targetを`Adaptive-Owned`.*最終user responseなしに`Discussed-Unlocked`.*許可しません' 'HIGH rejects AI-owned disposition assignment'
-Assert-Contains $highAgent '(?s)selected Targetにはuser-facing assistant turn reference.*具体的code location.*current invariant.*alternatives / trade-offs.*非binding proposalまたはNo proposal理由.*validation expectation.*`Selected Target Discussion Evidence`' 'HIGH selected Target discussion evidence gate'
-Assert-Contains $highAgent '抽象的なTarget Mapまたはdiscussion evidence' 'HIGH abstract discussion rejection'
-Assert-Contains $highAgent 'locked boundary、cross-file responsibility、public / shared internal contract、dependency direction、wiring architecture、state semantics、またはtest architectureに影響する複数の妥当な案' 'HIGH non-local alternatives boundary'
-Assert-Contains $highAgent 'public / shared internal contract、schema、serialized format、config surface が変わり得る' 'HIGH shared-contract continuation boundary'
-Assert-NotContains $highAgent 'public / internal API、schema、serialized format、config surface が変わり得る' 'overbroad HIGH internal API continuation boundary'
-Assert-NotContains $highAgent '(?m)^- 複数の妥当な実装案から trade-off 判断が必要$' 'unbounded HIGH alternatives retention rule'
-Assert-Contains $highAgent '(?s)Target Map presentation evidenceは全Targetのuser-facingな具体的file / symbol.*current invariant.*内部設計判断候補.*relevant evidence.*artifact linkまたは論点名だけの要約ではない' 'HIGH concrete Target Map presentation gate'
-Assert-Contains $highAgent '(?s)## Required inputs.*- implementation_route.*- implementation_route_source.*- Design Pair Implementation Handoff path または `N/A`.*`BLOCKED`.*BlockedByInvalidCompletionHandoff' 'HIGH required route input validation'
-Assert-Contains $highAgent '(?s)`Implementation Completion Handoff` には次を含めます。.*- implementation_route.*- implementation_route_source.*- Validation performed' 'HIGH completion handoff route propagation'
-Assert-Contains $highAgent 're-entry handoffと元のImplementation Completion Handoffから`implementation_route`、`implementation_route_source`、Design Pair handoff pathを読み.*一致' 'HIGH re-entry route identity input'
-Assert-Contains $highAgent '(?s)## Output.*通常はすべてのverdict.*唯一の例外.*`Verdict: BLOCKED`.*BlockedByInvalidCompletionHandoff.*raw observed value.*`<missing>`.*外部blocker.*完全なunchanged identity.*- implementation_route.*- implementation_route_source.*- Design Pair handoff path または `N/A`' 'HIGH conditional route identity output'
-Assert-NotContains $highAgent '(?m)^すべてのverdictでincoming route identityを変更せず返します。$' 'unconditional HIGH route identity output'
-
-$standardAgent = 'apm-packages/adaptive-implementation-execution/.apm/agents/standard-implementation-completer.agent.md'
-Assert-Contains $standardAgent 'Origin.*Decision ID' 'STANDARD consolidated decision authorization'
-Assert-Contains $standardAgent 'Design Pair Decision IDs' 'STANDARD Decision ID reporting'
-Assert-Contains $standardAgent 'Legacy Adaptive handoff normalization' 'STANDARD legacy handoff normalization'
-Assert-Contains $standardAgent 'LEGACY-HIGH-D01' 'STANDARD deterministic legacy Decision IDs'
-Assert-Contains $standardAgent 'Design Pair evidenceがあるresume.*使用しません' 'STANDARD normalization exclusion for Design Pair resumes'
-Assert-Contains $standardAgent '(?s)条件を満たす場合、production code / testsを編集する前に.*`implementation_route: adaptive`.*`implementation_route_source: default`.*`route_metadata_normalization: legacy-adaptive-handoff`' 'STANDARD legacy route metadata persistence'
-Assert-Contains $standardAgent '(?s)## Required authorization.*- implementation_route.*- implementation_route_source.*- Validation performed' 'STANDARD route metadata authorization'
-Assert-Contains $standardAgent '(?s)## High-model Re-entry Handoff.*- implementation_route:.*- implementation_route_source:.*- Design Pair handoff: N/A / plans/<slug>-design-pair-implementation-handoff\.md.*```' 'STANDARD re-entry route identity fields'
-Assert-Contains $standardAgent '`implementation_route`、`implementation_route_source`、Design Pair handoff pathはincoming Implementation Completion Handoffの値を変更せず維持' 'STANDARD re-entry route identity propagation'
-Assert-Contains $standardAgent 'この tracked handoff、incoming tracked Implementation Completion Handoff、元の Implementation Intent' 'STANDARD re-entry original completion handoff retention'
-Assert-Contains $standardAgent '(?s)片方が欠ける、矛盾する、またはevidenceと一致しないcurrent-schema handoff.*`BLOCKED`.*BlockedByInvalidCompletionHandoff' 'STANDARD invalid current route classification'
-Assert-Contains $standardAgent '(?s)`NEEDS_HIGH_MODEL_REENTRY`は.*Required authorizationを通過.*locked non-local decision.*invalid.*re-entry handoffを作成しません' 'STANDARD locked non-local re-entry boundary'
-Assert-Contains $standardAgent 'locked済みsignatureと配置を持つclass/interface' 'STANDARD locked class and interface implementation authority'
-Assert-Contains $standardAgent 'DI / factory / entrypoint wiringの実コード作成' 'STANDARD locked wiring implementation authority'
-Assert-Contains $standardAgent '複数案からの選択によってlocked non-local decisionを新設または変更すること' 'STANDARD prohibited alternatives boundary'
-Assert-Contains $standardAgent '複数案からの選択によってlocked non-local decisionを新設または変更する必要がある' 'STANDARD alternatives re-entry boundary'
-Assert-NotContains $standardAgent '(?m)^- 複数の設計案からの選択$|(?m)^- 複数の妥当な設計案から選択する必要がある$' 'unbounded STANDARD alternatives prohibition'
-Assert-Contains $standardAgent '(?s)## Output.*通常はすべてのverdict.*唯一の例外.*`Verdict: BLOCKED`.*BlockedByInvalidCompletionHandoff.*raw observed value.*`<missing>`.*外部blocker.*完全なunchanged identity.*- implementation_route.*- implementation_route_source.*- Design Pair handoff path または `N/A`' 'STANDARD conditional route identity output'
-Assert-NotContains $standardAgent '(?m)^すべてのverdictでincoming route identityを変更せず返します。$' 'unconditional STANDARD route identity output'
-
-$adaptiveHighToml = 'apm-packages/adaptive-implementation-execution/codex-agents/high-implementation-starter.toml'
-$adaptiveStandardToml = 'apm-packages/adaptive-implementation-execution/codex-agents/standard-implementation-completer.toml'
-foreach ($toml in @($adaptiveHighToml)) {
-    Assert-Contains $toml 'Accept only implementation_route: adaptive with implementation_route_source: default and an explicit N/A path, or implementation_route: design-pair with implementation_route_source: explicit-user-selection and the current tracked path' 'portable HIGH exact route identity tuples'
-    Assert-Contains $toml 'Stop before editing and return BLOCKED with Stop reason: BlockedByInvalidCompletionHandoff when any route identity field is missing.*raw observed field value or <missing> plus repair evidence; never infer or fabricate' 'portable HIGH invalid route classification and raw output'
-    Assert-Contains $toml 'Normally return unchanged implementation_route, implementation_route_source, and the Design Pair Implementation Handoff path or N/A.*only exception is BLOCKED with Stop reason: BlockedByInvalidCompletionHandoff.*raw observed values or <missing>.*Other BLOCKED results still require the complete unchanged identity' 'portable HIGH conditional route output'
-    Assert-Contains $toml 'require unique Target Map IDs; every summary Target ID to exist in the map; Selected, Delegated-to-Adaptive, No-Change, Upstream-Decision-Required, and Pending sets to be pairwise disjoint and exactly cover the map; and each set to match its row Disposition' 'portable HIGH Target set reconciliation gate'
-    Assert-Contains $toml 'Require every Locked Decision Target to be Selected with a Locked row.*explicit all-Adaptive delegation.*Selected and Pending to be None.*every Target row to be Adaptive-Owned and present in the Delegated set' 'portable HIGH Locked and all-Adaptive invariants'
-    Assert-Contains $toml 'Reject invented IDs, overlaps, unclassified Targets, or row/summary mismatches with BlockedByInvalidCompletionHandoff' 'portable HIGH malformed Target set rejection'
-    Assert-Contains $toml 'For every Selected or Delegated-to-Adaptive Target, require exactly one Target Disposition Evidence row.*actual post-map user message or turn reference.*confirmation Yes' 'portable HIGH Target disposition evidence gate'
-    Assert-Contains $toml 'Reject missing or duplicate evidence, invented Target IDs, row/evidence disposition mismatches, pre-map references, AI-generated confirmation, undelegated Adaptive-Owned Targets, and Discussed-Unlocked Targets without a final user response' 'portable HIGH invalid disposition evidence rejection'
-    Assert-Contains $toml 'For every selected Target, require Selected Target Discussion Evidence with a user-facing assistant turn reference, concrete code location, current invariant, alternatives and trade-offs, a non-binding proposal or an evidence-backed No proposal reason, and validation expectations' 'portable HIGH selected Target discussion evidence gate'
-    Assert-Contains $toml 'A topic label, artifact link, or abstract option list alone is invalid' 'portable HIGH abstract discussion rejection'
-    Assert-Contains $toml "Require Target Map presentation evidence to reference a user-facing turn that presented every Target's concrete file and symbol, current invariant, internal design decision candidate, and relevant evidence" 'portable HIGH concrete Target Map presentation gate'
-    Assert-Contains $toml 'An artifact link, Target ID, or topic summary alone is invalid presentation evidence' 'portable HIGH abstract Target Map rejection'
-    Assert-Contains $toml 'Do not retain implementation merely because multiple local alternatives exist.*only when choosing among alternatives affects a locked boundary' 'portable HIGH non-local alternatives boundary'
-}
-foreach ($toml in @($adaptiveStandardToml)) {
-    Assert-Contains $toml 'accept only implementation_route: adaptive with implementation_route_source: default, or implementation_route: design-pair with implementation_route_source: explicit-user-selection' 'portable STANDARD exact route pairs'
-    Assert-Contains $toml 'Reject a missing, contradictory, or evidence-inconsistent current-schema route identity before editing.*raw observed field value or <missing> plus repair evidence.*explicit N/A Design Pair Implementation Handoff path for implementation_route: adaptive.*current tracked path' 'portable STANDARD route identity fail-closed rule'
-    Assert-Contains $toml 'High-model Re-entry Handoff.*unchanged implementation_route and implementation_route_source.*unchanged Design Pair Implementation Handoff path or N/A' 'portable STANDARD re-entry route identity propagation'
-    Assert-Contains $toml 'Reject a missing, contradictory, or evidence-inconsistent current-schema route identity before editing by returning BLOCKED with Stop reason: BlockedByInvalidCompletionHandoff; return each raw observed field value or <missing> plus repair evidence' 'portable STANDARD invalid route classification'
-    Assert-Contains $toml 'Normally return unchanged implementation_route, implementation_route_source, and the Design Pair Implementation Handoff path or N/A.*only exception is BLOCKED with Stop reason: BlockedByInvalidCompletionHandoff.*raw observed values or <missing>.*Other BLOCKED results still require the complete unchanged identity' 'portable STANDARD conditional route output'
-    Assert-Contains $toml 'Reserve NEEDS_HIGH_MODEL_REENTRY for evidence that a locked non-local decision must change' 'portable STANDARD locked non-local re-entry boundary'
-    Assert-Contains $toml 'Do not re-enter merely because implementation creates a new file, a locked class or interface, or locked DI or entrypoint wiring' 'portable STANDARD edit-type-only re-entry rejection'
-    Assert-Contains $toml "Keep an exact legacy handoff's former narrow Remaining work and Allowed edit surface authority; do not infer 0\.5 fields.*0\.4 current-schema handoff missing 0\.5 fields requires HIGH_MODEL to reissue" 'portable STANDARD legacy and 0.4 current-schema boundary'
-    Assert-Contains $toml 'Do not re-enter merely because multiple local implementation alternatives exist.*only when it requires creating or changing a locked non-local decision' 'portable STANDARD alternatives re-entry boundary'
-}
-
-Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' 'DP-VAL-012: Portable agent route contract' 'portable Design Pair route validation scenario'
-Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' 'invalid artifactを`NEEDS_HIGH_MODEL_REENTRY`として扱わない' 'invalid artifact is not re-entry scenario'
-Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' '`design_pair_handoff: N/A`' 'fresh default N/A scenario'
-Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' 'invalid-artifact `BLOCKED`だけはraw observed valueまたは`<missing>`とrepair evidenceを返す' 'invalid-artifact BLOCKED route output exception scenario'
-
-$planCoverageSkill = 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md'
-Assert-Contains $planCoverageSkill 'implementation_route:\s*adaptive' 'Plan Coverage default Adaptive route'
-Assert-Contains $planCoverageSkill 'implementation_route_source:\s*default' 'Plan Coverage default route source'
-Assert-Contains $planCoverageSkill 'design-pair-implementation-execution' 'Plan Coverage explicit Design Pair route'
-Assert-Contains $planCoverageSkill 'Do not automatically select, recommend, or propose Design Pair' 'Plan Coverage no automatic Design Pair selection'
-Assert-Contains $planCoverageSkill 'Missing or contradictory route metadata.*must not be inferred during resume' 'Plan Coverage resume fail-closed rule'
-Assert-Contains $planCoverageSkill 'design_pair_interaction_stage' 'Plan Coverage interaction stage propagation'
-Assert-Contains $planCoverageSkill '(?s)first turn must present.*AWAITING_USER_INPUT / target-selection.*stop.*AWAITING_USER_INPUT / disposition-confirmation.*stop again' 'Plan Coverage mandatory Design Pair turn boundaries'
-Assert-Contains $planCoverageSkill 'While Design Pair is waiting.*Do not treat waiting as completion.*verification / residual' 'Plan Coverage waiting blocks downstream flow'
-
-foreach ($statePath in @(
-    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md',
-    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md'
-)) {
-    Assert-Contains $statePath 'implementation_route' 'implementation route state field'
-    Assert-Contains $statePath 'implementation_route_source' 'implementation route source state field'
-    Assert-Contains $statePath 'design_pair_handoff' 'Design Pair handoff state field'
-    Assert-Contains $statePath 'design_pair_interaction_stage' 'Design Pair interaction stage state field'
-    Assert-Contains $statePath 'design_pair_user_evidence' 'Design Pair user evidence state field'
-}
-
-Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md' 'implementation_route' 'handoff review route propagation'
-Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md' 'design-pair-implementation-execution' 'handoff review explicit next route'
-Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md' '新規 intake.*だけ `adaptive / default` を初期化' 'handoff review fresh-intake-only default'
-Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md' 'resume.*BLOCKED_BY_ARTIFACT_MISMATCH' 'handoff review resume fail-closed rule'
+Assert-Contains $handoff '(?s)## Target Disposition Evidence.*Target ID.*Final disposition.*User message / turn reference.*Confirmed content quote or faithful summary.*Confirmation after Target Map' 'Target disposition evidence schema…7603 tokens truncated…ow/.apm/agents/implementation-handoff-review.agent.md' '新規 intake.*だけ `adaptive / default` を初期化' 'handoff review fresh-intake-only default'
 Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md' 'design_pair_interaction_stage' 'handoff review interaction stage propagation'
 Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md' 'waiting中はAdaptiveやverificationを次stepにしない' 'handoff review waiting downstream block'
 
@@ -420,7 +237,7 @@ Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' '�
 Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'adaptive-implementation-execution --target copilot,agent-skills' 'fresh install Adaptive Copilot co-install command'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'design-pair-implementation-execution --target copilot,agent-skills' 'fresh install Design Pair Copilot co-install command'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'adaptive-implementation-execution --target codex,agent-skills' 'fresh install Adaptive Codex co-install command'
-Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'install-adaptive-implementation-local\.cs.*--check' 'fresh install Adaptive profile check'
+Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'finalize-codex-agent-profiles\.cs' 'fresh install Adaptive profile finalizer'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'package単体のinstallだけでは.*model mapping' 'incomplete single-package install warning'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' 'AWAITING_USER_INPUT / target-selection.*その turn を終了' 'README mandatory initial stop'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' '--agent high-implementation-starter' 'README Copilot Adaptive agent entry after READY'
@@ -524,7 +341,7 @@ Assert-Contains $dpApmSmoke 'deployed Design Pair skill name' 'Design Pair APM s
 Assert-Contains $dpApmSmoke '\.agents/skills/adaptive-implementation-execution/SKILL\.md' 'Design Pair APM smoke verifies transitive Adaptive Skill'
 Assert-Contains $dpApmSmoke '\.github/agents/high-implementation-starter\.agent\.md' 'Design Pair APM smoke verifies transitive HIGH agent'
 Assert-Contains $dpApmSmoke '\.github/agents/standard-implementation-completer\.agent\.md' 'Design Pair APM smoke verifies transitive STANDARD agent'
-Assert-Contains $dpApmSmoke '\.codex/agents/high-implementation-starter\.toml' 'Design Pair APM smoke verifies transitive Codex HIGH TOML'
+Assert-Contains $dpApmSmoke 'finalize-codex-agent-profiles\.cs' 'Design Pair APM smoke verifies installed profile finalizer'
 Assert-Contains $dpApmSmoke 'design-pair-implementation-execution.*0\.3\.1' 'Design Pair APM smoke verifies lock version'
 Assert-Contains $dpApmSmoke 'adaptive-implementation-execution.*0\.5\.0' 'Design Pair APM smoke verifies transitive Adaptive lock version'
 
@@ -533,9 +350,17 @@ Assert-Contains $dpWorkflow 'validate-dp-apm-smoke\.ps1' 'Design Pair workflow r
 Assert-Contains $dpWorkflow 'microsoft/apm-action@v1' 'Design Pair workflow sets up APM'
 Assert-Contains $dpWorkflow "apm-version:\s*'0\.26\.0'" 'Design Pair workflow pins APM 0.26.0'
 
+$adaptiveHighAgent = 'apm-packages/adaptive-implementation-execution/.apm/agents/high-implementation-starter.agent.md'
+$adaptiveStandardAgent = 'apm-packages/adaptive-implementation-execution/.apm/agents/standard-implementation-completer.agent.md'
+Assert-Contains $adaptiveHighAgent '(?m)^name:\s*high-implementation-starter\s*$' 'portable HIGH agent identity'
+Assert-Contains $adaptiveHighAgent '(?m)^description:' 'portable HIGH description'
+Assert-Contains $adaptiveStandardAgent '(?m)^name:\s*standard-implementation-completer\s*$' 'portable STANDARD agent identity'
+Assert-Contains $adaptiveStandardAgent '(?m)^description:' 'portable STANDARD description'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json' 'high-implementation-starter' 'Adaptive HIGH profile overlay'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json' 'standard-implementation-completer' 'Adaptive STANDARD profile overlay'
+
 if ($failures.Count -gt 0) {
     Write-Error ("Design Pair Implementation validation failed:`n- " + ($failures -join "`n- "))
     exit 1
 }
-
 Write-Output 'Design Pair Implementation validation: PASS'

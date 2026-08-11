@@ -40,9 +40,10 @@ function New-FixtureRepo {
         Copy-Item -LiteralPath (Join-Path $packageRoot '.apm\agents\purpose-reviewer.agent.md') -Destination (Join-Path $root '.github\agents\purpose-reviewer.agent.md')
     }
     if ($IncludeCodexProfiles) {
-        New-Item -ItemType Directory -Path (Join-Path $root 'apm-packages\pr-review-remediation\codex-agents') | Out-Null
-        Copy-Item -LiteralPath (Join-Path $packageRoot 'codex-agents\local-reviewer.toml') -Destination (Join-Path $root 'apm-packages\pr-review-remediation\codex-agents\local-reviewer.toml')
-        Copy-Item -LiteralPath (Join-Path $packageRoot 'codex-agents\purpose-reviewer.toml') -Destination (Join-Path $root 'apm-packages\pr-review-remediation\codex-agents\purpose-reviewer.toml')
+        $codexDir = Join-Path $root '.codex\agents'
+        New-Item -ItemType Directory -Path $codexDir -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $codexDir 'local-reviewer.toml') -Value ('name = "local-reviewer"' + [Environment]::NewLine + 'description = "fixture"' + [Environment]::NewLine + 'developer_instructions = "fixture"' + [Environment]::NewLine)
+        Set-Content -LiteralPath (Join-Path $codexDir 'purpose-reviewer.toml') -Value ('name = "purpose-reviewer"' + [Environment]::NewLine + 'description = "fixture"' + [Environment]::NewLine + 'developer_instructions = "fixture"' + [Environment]::NewLine)
     }
     Set-Content -LiteralPath (Join-Path $root 'docs\goal-context-fixture.md') -Value "Goal: keep reviewer execution deterministic.`n"
     return $root

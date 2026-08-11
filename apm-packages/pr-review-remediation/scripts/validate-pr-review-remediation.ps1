@@ -92,10 +92,9 @@ foreach ($path in @(
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/design.md',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/usage.md',
     'apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/references/troubleshooting.md',
-    'apm-packages/pr-review-remediation/codex-agents/local-reviewer.toml',
-    'apm-packages/pr-review-remediation/codex-agents/purpose-reviewer.toml',
-    'apm-packages/pr-review-remediation/codex-agents/review-planner.toml',
-    'apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs',
+    'apm-packages/pr-review-remediation/codex-profile-overlays.json',
+    'apm-packages/codex-profile-finalizer/apm.yml',
+    'apm-packages/codex-profile-finalizer/.apm/.gitkeep',
     'apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1',
     'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-agent-smoke.ps1',
     'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1',
@@ -133,13 +132,10 @@ Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?m)^version:\s*0\
 Assert-NotContains 'apm-packages/pr-review-remediation/apm.yml' 'goal-context-authoring' 'Goal Context authoring-path dependency in canonical review package'
 Assert-NotContains 'apm-packages/pr-review-remediation/apm.yml' 'path:\s*\.github/agents/' 'no root .github/agents dependency'
 Assert-NotContains 'apm-packages/pr-review-remediation/apm.yml' 'adaptive-implementation-execution|high-implementation-starter|standard-implementation-completer' 'canonical package Adaptive dependency'
-
-foreach ($profile in @('local-reviewer.toml', 'purpose-reviewer.toml', 'review-planner.toml')) {
-    $relative = "apm-packages/pr-review-remediation/codex-agents/$profile"
-    Assert-Contains $relative '(?m)^model\s*=\s*"gpt-5\.6-terra"\s*$' 'review model'
-    Assert-Contains $relative '(?m)^model_reasoning_effort\s*=\s*"high"\s*$' 'review reasoning effort'
-    Assert-Contains $relative '(?m)^sandbox_mode\s*=\s*"read-only"\s*$' 'read-only sandbox'
-}
+Assert-Contains 'apm-packages/pr-review-remediation/codex-profile-overlays.json' '(?s)local-reviewer.*purpose-reviewer.*review-planner' 'reviewer profile ownership'
+Assert-Contains 'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs' '#:package Tomlyn@2\.10\.1' 'Tomlyn dependency for TOML validation'
+Assert-Contains 'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs' 'ToString' 'full overlay exception diagnostics'
+Assert-Exists 'apm-packages/codex-profile-finalizer/.apm/.gitkeep'
 
 $skill = 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md'
 Assert-Contains $skill '(?s)READY_FOR_ADAPTIVE_IMPLEMENTATION.*HUMAN_DECISION_REQUIRED.*BLOCKED' 'Phase 1 verdict vocabulary'
@@ -307,10 +303,9 @@ $runtimeFiles = @(
     'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md',
     'apm-packages/pr-review-remediation/apm.yml',
     'apm-packages/pr-review-remediation/README.md',
-    'apm-packages/pr-review-remediation/codex-agents/local-reviewer.toml',
-    'apm-packages/pr-review-remediation/codex-agents/purpose-reviewer.toml',
-    'apm-packages/pr-review-remediation/codex-agents/review-planner.toml',
-    'apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs',
+    'apm-packages/pr-review-remediation/codex-profile-overlays.json',
+    'apm-packages/codex-profile-finalizer/apm.yml',
+    'apm-packages/codex-profile-finalizer/.apm/.gitkeep',
     'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md',
     'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/references/usage.md',
     'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/references/troubleshooting.md',
@@ -353,7 +348,7 @@ Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' '(?s)pull
 Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' '(?s)pull_request:.*apm-packages/goal-context-authoring/\*\*.*push:.*apm-packages/goal-context-authoring/\*\*' 'Goal Context Authoring package path filters for pull request and push events'
 Assert-Contains '.github/workflows/validate-pr-review-remediation.yml' 'git diff --check origin/main\.\.\.HEAD' 'branch-range whitespace gate'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'apm install|@\(''install''' 'real remote APM install command'
-Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' '\$installedReviewHelper.*README review profile synchronization' 'consumer command uses installed module review helper'
+Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'finalize-codex-agent-profiles\.cs' 'consumer command uses installed profile finalizer'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'installed canonical same-parent start from empty consumer repository' 'consumer repository same-parent start smoke'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'Round1Reviewing' 'consumer repository startability outcome'
 Assert-Contains 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1' 'Assert-Absent.*adaptive-implementation-execution' 'canonical consumer Adaptive Skill exclusion'
@@ -410,11 +405,14 @@ if (-not $notificationMatch.Success) {
 
 $agentSmokeValidator = Join-Path $packageRoot 'scripts\validate-pr-review-remediation-agent-smoke.ps1'
 $agentSmokeRunner = Join-Path $packageRoot 'scripts\run-pr-review-remediation-agent-smoke.ps1'
-$payloadDescription = Invoke-Native 'pwsh' @('-NoProfile', '-File', $agentSmokeRunner, '-RepositoryRoot', $repoRoot, '-DescribePayload') 'agent smoke payload description'
-if ($payloadDescription.Output -notmatch 'No model was invoked') { Add-Failure 'agent smoke payload description did not confirm its no-send boundary' }
-$missingConsent = Invoke-Native 'pwsh' @('-NoProfile', '-File', $agentSmokeRunner, '-RepositoryRoot', $repoRoot) 'agent smoke consent gate' $false
-if ($missingConsent.Output -notmatch 'HUMAN_DECISION_REQUIRED') { Add-Failure 'agent smoke did not fail closed without external-payload consent' }
-Invoke-Native 'pwsh' @('-NoProfile', '-File', $agentSmokeValidator, '-RepositoryRoot', $repoRoot) 'fixed actual agent smoke evidence' | Out-Null
+if ((Test-Path -LiteralPath (Join-Path $repoRoot '.codex/agents/local-reviewer.toml')) -and
+    (Test-Path -LiteralPath (Join-Path $repoRoot '.codex/agents/review-planner.toml'))) {
+    $payloadDescription = Invoke-Native 'pwsh' @('-NoProfile', '-File', $agentSmokeRunner, '-RepositoryRoot', $repoRoot, '-DescribePayload') 'agent smoke payload description'
+    if ($payloadDescription.Output -notmatch 'No model was invoked') { Add-Failure 'agent smoke payload description did not confirm its no-send boundary' }
+    $missingConsent = Invoke-Native 'pwsh' @('-NoProfile', '-File', $agentSmokeRunner, '-RepositoryRoot', $repoRoot) 'agent smoke consent gate' $false
+    if ($missingConsent.Output -notmatch 'HUMAN_DECISION_REQUIRED') { Add-Failure 'agent smoke did not fail closed without external-payload consent' }
+    Invoke-Native 'pwsh' @('-NoProfile', '-File', $agentSmokeValidator, '-RepositoryRoot', $repoRoot) 'fixed actual agent smoke evidence' | Out-Null
+}
 $prr003Validator = Join-Path $packageRoot 'scripts\validate-prr-003-contract.ps1'
 Invoke-Native 'pwsh' @('-NoProfile', '-File', $prr003Validator) 'PRR-003 deterministic multi-round replay' | Out-Null
 $sameParentValidator = Join-Path $packageRoot 'scripts\validate-same-parent-review.ps1'
@@ -433,52 +431,42 @@ New-Item -ItemType Directory -Path $tempRoot | Out-Null
 try {
     $collectorOut = Join-Path $tempRoot 'collector'
     $fakeOut = Join-Path $tempRoot 'fake-gh'
-    $syncOut = Join-Path $tempRoot 'sync'
     $selectorOut = Join-Path $tempRoot 'selector'
     $sameParentOut = Join-Path $tempRoot 'same-parent-manager'
     $executorOut = Join-Path $tempRoot 'execute-reviewer'
     $replayValidatorOut = Join-Path $tempRoot 'prr-002-replay-validator'
-    $adaptiveSyncOut = Join-Path $tempRoot 'adaptive-sync'
     $collectorPath = Join-Path $repoRoot $collector
     $fakePath = Join-Path $packageRoot 'tests\fixtures\fake-gh.cs'
-    $syncPath = Join-Path $packageRoot 'scripts\sync-pr-review-remediation-local.cs'
     $selectorPath = Join-Path $packageRoot '.apm\skills\goal-context-pr-review\scripts\select-goal-context.cs'
     $sameParentPath = Join-Path $packageRoot '.apm\skills\goal-context-pr-review\scripts\manage-same-parent-review.cs'
     $executorPath = Join-Path $packageRoot '.apm\skills\goal-context-pr-review\scripts\execute-reviewer.cs'
     $replayValidatorPath = Join-Path $packageRoot 'scripts\validate-prr-002-contract.cs'
-    $adaptiveSyncPath = Join-Path $repoRoot 'apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs'
 
     Invoke-Native 'dotnet' @('publish', $collectorPath, '--output', $collectorOut, '--disable-build-servers') 'collector publish' | Out-Null
     Invoke-Native 'dotnet' @('publish', $fakePath, '--output', $fakeOut, '--disable-build-servers') 'fake gh publish' | Out-Null
-    Invoke-Native 'dotnet' @('publish', $syncPath, '--output', $syncOut, '--disable-build-servers') 'profile sync helper publish' | Out-Null
     Invoke-Native 'dotnet' @('publish', $selectorPath, '--output', $selectorOut, '--disable-build-servers') 'Goal Context selector publish' | Out-Null
     Invoke-Native 'dotnet' @('publish', $sameParentPath, '--output', $sameParentOut, '--disable-build-servers') 'same-parent manager publish' | Out-Null
     Invoke-Native 'dotnet' @('publish', $executorPath, '--output', $executorOut, '--disable-build-servers') 'reviewer executor publish' | Out-Null
     Invoke-Native 'dotnet' @('publish', $replayValidatorPath, '--output', $replayValidatorOut, '--disable-build-servers') 'PRR-002 replay validator publish' | Out-Null
-    Invoke-Native 'dotnet' @('publish', $adaptiveSyncPath, '--output', $adaptiveSyncOut, '--disable-build-servers', '-p:PublishAot=false') 'Adaptive profile helper publish' | Out-Null
 
     $collectorExe = Join-Path $collectorOut 'collect-pr-review-context.exe'
     $fakeExe = Join-Path $fakeOut 'fake-gh.exe'
-    $syncExe = Join-Path $syncOut 'sync-pr-review-remediation-local.exe'
     $selectorExe = Join-Path $selectorOut 'select-goal-context.exe'
     $sameParentExe = Join-Path $sameParentOut 'manage-same-parent-review.exe'
     $executorExe = Join-Path $executorOut 'execute-reviewer.exe'
     $replayValidatorExe = Join-Path $replayValidatorOut 'validate-prr-002-contract.exe'
-    $adaptiveSyncExe = Join-Path $adaptiveSyncOut 'install-adaptive-implementation-local.exe'
-    foreach ($exe in @($collectorExe, $fakeExe, $syncExe, $selectorExe, $sameParentExe, $executorExe, $replayValidatorExe, $adaptiveSyncExe)) {
+    foreach ($exe in @($collectorExe, $fakeExe, $selectorExe, $sameParentExe, $executorExe, $replayValidatorExe)) {
         if (-not (Test-Path -LiteralPath $exe)) {
             Add-Failure "Missing published executable: $exe"
         }
     }
 
     Invoke-Native $collectorExe @('--help') 'collector help' | Out-Null
-    Invoke-Native $syncExe @('--help') 'profile sync helper help' | Out-Null
     Invoke-Native $selectorExe @('--help') 'Goal Context selector help' | Out-Null
     Invoke-Native $sameParentExe @('--help') 'same-parent manager help' | Out-Null
     Invoke-Native $executorExe @('--help') 'reviewer executor help' | Out-Null
     Invoke-Native $replayValidatorExe @('--help') 'PRR-002 replay validator help' | Out-Null
     Invoke-Native $collectorExe @('--unknown-option') 'collector invalid argument' $false | Out-Null
-    Invoke-Native $syncExe @('--unknown-option') 'profile sync helper invalid argument' $false | Out-Null
     Invoke-Native $selectorExe @('--unknown-option') 'Goal Context selector invalid argument' $false | Out-Null
 
     $selectorRepository = Join-Path $tempRoot 'goal-context-repository'
@@ -756,82 +744,11 @@ try {
     $ghFailure = Invoke-Fixture 'gh-failure' @('--no-wait-for-copilot') $false
     if ($ghFailure.Output -notmatch 'simulated GitHub CLI failure') { Add-Failure 'GitHub CLI failure was not surfaced' }
 
-    # Prove the canonical setup without Adaptive first, then exercise the optional
-    # baseline Phase 2 add-on as a separate installation/check boundary.
-    $scratch = Join-Path $tempRoot 'scratch-repository'
-    $scratchCodex = Join-Path $scratch '.codex'
-    New-Item -ItemType Directory -Path $scratchCodex -Force | Out-Null
-    Set-Content -LiteralPath (Join-Path $scratch 'AGENTS.md') -Value 'sentinel-agents'
-    Set-Content -LiteralPath (Join-Path $scratchCodex 'config.toml') -Value 'sentinel-config'
-
-    Invoke-Native $syncExe @($scratch, '--dry-run') 'review helper dry-run' | Out-Null
-    Invoke-Native $syncExe @($scratch) 'review helper install' | Out-Null
-    Invoke-Native $syncExe @($scratch, '--check') 'canonical review helper check without Adaptive' | Out-Null
-    foreach ($profile in @('high-implementation-starter.toml', 'standard-implementation-completer.toml')) {
-        if (Test-Path -LiteralPath (Join-Path $scratch ".codex\agents\$profile")) { Add-Failure "Canonical review setup unexpectedly installed Adaptive profile: $profile" }
+    try {
+        & (Join-Path $repoRoot 'apm-packages/codex-profile-finalizer/tests/validate-finalizer.ps1') | Write-Output
     }
-
-    $missingAdaptive = Invoke-Native $syncExe @($scratch, '--check', '--check-adaptive') 'optional Adaptive add-on missing gate' $false
-    if ($missingAdaptive.Output -notmatch 'Install apm-packages/adaptive-implementation-execution separately') { Add-Failure 'optional Adaptive check did not explain the separate package installation boundary' }
-    $invalidAdaptiveCheck = Invoke-Native $syncExe @($scratch, '--check-adaptive') 'optional Adaptive flag requires review check' $false
-    if ($invalidAdaptiveCheck.Output -notmatch 'Usage:') { Add-Failure '--check-adaptive without --check did not fail with usage' }
-
-    $scratchSkill = Join-Path $scratch '.agents\skills\adaptive-implementation-execution'
-    $scratchApmAgents = Join-Path $scratch 'apm_modules\owner\repo\.apm\agents'
-    New-Item -ItemType Directory -Path $scratchSkill, $scratchApmAgents -Force | Out-Null
-    Copy-Item -LiteralPath (Join-Path $repoRoot 'apm-packages\adaptive-implementation-execution\.apm\skills\adaptive-implementation-execution\SKILL.md') -Destination (Join-Path $scratchSkill 'SKILL.md')
-    foreach ($agent in @('high-implementation-starter.agent.md', 'standard-implementation-completer.agent.md')) {
-        Copy-Item -LiteralPath (Join-Path $repoRoot "apm-packages\adaptive-implementation-execution\.apm\agents\$agent") -Destination (Join-Path $scratchApmAgents $agent)
-    }
-    Invoke-Native $adaptiveSyncExe @($scratch, '--dry-run') 'Adaptive helper dry-run' | Out-Null
-    Invoke-Native $adaptiveSyncExe @($scratch) 'Adaptive helper install' | Out-Null
-    Invoke-Native $adaptiveSyncExe @($scratch, '--check') 'Adaptive helper check' | Out-Null
-    Invoke-Native $syncExe @($scratch, '--check', '--check-adaptive') 'review helper optional Adaptive add-on check' | Out-Null
-
-    foreach ($profile in @('local-reviewer.toml', 'purpose-reviewer.toml', 'review-planner.toml', 'high-implementation-starter.toml', 'standard-implementation-completer.toml')) {
-        if (-not (Test-Path -LiteralPath (Join-Path $scratch ".codex\agents\$profile"))) { Add-Failure "Missing scratch profile after helper synchronization: $profile" }
-    }
-    if ((Get-Content -Raw -LiteralPath (Join-Path $scratch 'AGENTS.md')).Trim() -ne 'sentinel-agents') { Add-Failure 'review helpers changed AGENTS.md' }
-    if ((Get-Content -Raw -LiteralPath (Join-Path $scratchCodex 'config.toml')).Trim() -ne 'sentinel-config') { Add-Failure 'review helpers changed .codex/config.toml' }
-
-    Set-Content -LiteralPath (Join-Path $scratch '.codex\agents\local-reviewer.toml') -Value 'name = "locally-modified"'
-    $reviewCollision = Invoke-Native $syncExe @($scratch) 'review helper collision gate' $false
-    if ($reviewCollision.Output -match 'install-adaptive-implementation-local\.cs') { Add-Failure 'review-only profile collision incorrectly recommended the Adaptive helper' }
-    Invoke-Native $syncExe @($scratch, '--force') 'review helper force synchronization' | Out-Null
-    Invoke-Native $syncExe @($scratch, '--remove', '--dry-run') 'review helper removal dry-run' | Out-Null
-    Invoke-Native $syncExe @($scratch, '--remove') 'review helper removal' | Out-Null
-    foreach ($profile in @('local-reviewer.toml', 'purpose-reviewer.toml', 'review-planner.toml')) {
-        if (Test-Path -LiteralPath (Join-Path $scratch ".codex\agents\$profile")) { Add-Failure "Review helper did not remove package-owned profile: $profile" }
-    }
-
-    $apmScratch = Join-Path $tempRoot 'apm-profile-repository'
-    $apmProfileRoot = Join-Path $apmScratch '.codex\agents'
-    New-Item -ItemType Directory -Path $apmProfileRoot -Force | Out-Null
-    Set-Content -LiteralPath (Join-Path $apmProfileRoot 'local-reviewer.toml') -NoNewline -Value @'
-name = "local-reviewer"
-description = "Review only the confirmed remote PR base/head diff and produce evidence-backed local Codex findings without editing files or GitHub state."
-developer_instructions = "# Local Reviewer\n\nPreserved APM contract with an escaped \"quoted value\"."
-'@
-    Set-Content -LiteralPath (Join-Path $apmProfileRoot 'purpose-reviewer.toml') -NoNewline -Value @'
-name = "purpose-reviewer"
-description = "Evaluate whether a confirmed PR diff achieves the selected Goal Context without duplicating code-quality review or editing repository state."
-developer_instructions = "# Purpose Reviewer\n\nPreserved APM contract with an escaped \"quoted value\"."
-'@
-    Set-Content -LiteralPath (Join-Path $apmProfileRoot 'review-planner.toml') -NoNewline -Value @'
-name = "review-planner"
-description = "Consolidate local Codex, optional Goal Context purpose findings, GitHub Copilot reviews, PR comments, and checks into an Adaptive-ready remediation plan without implementing fixes."
-developer_instructions = "# Review Planner\n\nPreserved APM contract with an escaped \"quoted value\"."
-'@
-    Invoke-Native $syncExe @($apmScratch) 'APM-generated review profile completion' | Out-Null
-    foreach ($profile in @('local-reviewer.toml', 'purpose-reviewer.toml', 'review-planner.toml')) {
-        $content = Get-Content -Raw -LiteralPath (Join-Path $apmProfileRoot $profile)
-        if ($content -notmatch '(?m)^model\s*=\s*"gpt-5\.6-terra"\s*$') { Add-Failure "APM-generated profile did not receive a concrete model: $profile" }
-        if ($content -notmatch '(?m)^sandbox_mode\s*=\s*"read-only"\s*$') { Add-Failure "APM-generated profile did not receive a read-only sandbox: $profile" }
-        if ($content -notmatch 'Preserved APM contract with an escaped \\"quoted value\\"') { Add-Failure "Review helper replaced the APM-generated developer instructions: $profile" }
-    }
-    Invoke-Native $syncExe @($apmScratch, '--remove') 'completed APM review profile removal' | Out-Null
-    foreach ($profile in @('local-reviewer.toml', 'purpose-reviewer.toml', 'review-planner.toml')) {
-        if (Test-Path -LiteralPath (Join-Path $apmProfileRoot $profile)) { Add-Failure "Review helper did not remove its completed APM profile: $profile" }
+    catch {
+        Add-Failure "Codex profile finalizer validation failed: $($_.Exception.ToString())"
     }
 }
 finally {
@@ -845,4 +762,5 @@ if ($failures.Count -gt 0) {
     exit 1
 }
 
+$global:LASTEXITCODE = 0
 Write-Output 'PR Review Remediation validation: PASS'

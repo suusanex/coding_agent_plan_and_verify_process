@@ -65,15 +65,13 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target codex,agent-skills
 ```
 
-APM が concrete model / reasoning / sandbox 設定を持たない custom agent TOML を生成する環境では、source repository checkout にある Adaptive 補助スクリプトで HIGH / STANDARD profile を完成させます。
+APM が concrete model / reasoning / sandbox 設定を持たない custom agent TOML を生成する環境では、導入済みmoduleの共通 finalizer で HIGH / STANDARD profile を補完します。
 
 ```powershell
-dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs -- . --dry-run
-dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs -- .
-dotnet run --file C:\path\to\coding_agent_plan_and_verify_process\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs -- . --check
+dotnet run --file .\apm_modules\suusanex\coding_agent_plan_and_verify_process\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs -- .
 ```
 
-`--check` は HIGH / STANDARD が別agent・別model mappingを持ち、reasoning と `workspace-write` sandbox が設定済みであることを確認します。APM が同等のconcrete設定を直接生成した場合、write stepは不要ですが `--check` は実行します。詳細は Adaptive package の `docs/install-guide.md` を参照してください。
+Copilot-only導入ではCodex profileが不要なため、finalizerの実行も不要です。`--dry-run`、`--check`、`--force`の保守手順は Adaptive package の `docs/install-guide.md` を参照してください。
 
 通常 Plan Mode 後の起動例:
 
@@ -105,7 +103,7 @@ Plan Coverage Flow で使う場合は、この package と Plan Coverage package
 ```powershell
 ./apm-packages/design-pair-implementation-execution/scripts/validate.ps1
 ./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1
-dotnet publish ./apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs
+dotnet publish ./apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs
 git diff --check
 ```
 

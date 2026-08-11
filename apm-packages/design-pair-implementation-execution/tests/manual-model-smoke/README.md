@@ -48,7 +48,8 @@ Confirm:
 apm install <source>/apm-packages/adaptive-implementation-execution#<full-sha> --target codex,agent-skills
 apm install <source>/apm-packages/design-pair-implementation-execution#<full-sha> --target codex,agent-skills
 # complete Codex HIGH/STANDARD models when APM emits model-less TOML stubs
-dotnet run --file <source>/apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs -- . --check
+dotnet run --file <moduleRoot>/apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs -- .
+dotnet run --file <moduleRoot>/apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs -- . --check
 ```
 
 ## Turn 1: mandatory target-selection stop

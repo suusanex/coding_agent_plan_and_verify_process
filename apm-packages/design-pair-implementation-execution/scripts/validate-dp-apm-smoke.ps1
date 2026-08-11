@@ -74,10 +74,16 @@ try {
     Assert-Contains $copilotStandard '(?m)^model:\s*GPT-5\.6 Luna \(copilot\)\s*$' 'transitive Copilot STANDARD model'
     Assert-Contains $copilotStandard '(?m)^disable-model-invocation:\s*true\s*$' 'transitive Copilot STANDARD explicit-only invocation'
 
+    $finalizer = @(Get-ChildItem -LiteralPath (Join-Path $scratch 'apm_modules') -Recurse -File -Filter 'finalize-codex-agent-profiles.cs' | Select-Object -First 1).FullName
+    Assert-File $finalizer 'installed Codex profile finalizer'
+    Invoke-Native 'dotnet' @('run', '--file', $finalizer, '--', $scratch) 'Codex profile completion'
+    Invoke-Native 'dotnet' @('run', '--file', $finalizer, '--', $scratch, '--check') 'Codex profile check'
     $codexHigh = Join-Path $scratch '.codex/agents/high-implementation-starter.toml'
     $codexStandard = Join-Path $scratch '.codex/agents/standard-implementation-completer.toml'
-    Assert-File $codexHigh 'transitive Codex HIGH TOML'
-    Assert-File $codexStandard 'transitive Codex STANDARD TOML'
+    Assert-File $codexHigh 'transitive Codex HIGH profile'
+    Assert-File $codexStandard 'transitive Codex STANDARD profile'
+    Assert-Contains $codexHigh '(?m)^model\s*=\s*"gpt-5\.6-terra"\s*$' 'Codex HIGH model'
+    Assert-Contains $codexStandard '(?m)^model\s*=\s*"gpt-5\.6-luna"\s*$' 'Codex STANDARD model'
 
     $lockPath = Join-Path $scratch 'apm.lock.yaml'
     Assert-File $lockPath 'remote APM lock'

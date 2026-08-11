@@ -8,4 +8,6 @@ targets:
 includes: auto
 
 dependencies:
-  apm: []
+  apm:
+    - git: parent
+      path: apm-packages/codex-profile-finalizer

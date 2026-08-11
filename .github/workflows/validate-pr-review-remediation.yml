@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/validate-pr-review-remediation.yml'
       - 'apm-packages/pr-review-remediation/**'
+      - 'apm-packages/codex-profile-finalizer/**'
+      - 'apm-packages/pr-review-remediation/codex-profile-overlays.json'
       - 'apm-packages/goal-context-authoring/**'
       - 'apm-packages/adaptive-implementation-execution/**'
       - 'tests/pr-review-remediation/**'
@@ -13,6 +15,8 @@ on:
     paths:
       - '.github/workflows/validate-pr-review-remediation.yml'
       - 'apm-packages/pr-review-remediation/**'
+      - 'apm-packages/codex-profile-finalizer/**'
+      - 'apm-packages/pr-review-remediation/codex-profile-overlays.json'
       - 'apm-packages/goal-context-authoring/**'
       - 'apm-packages/adaptive-implementation-execution/**'
       - 'tests/pr-review-remediation/**'

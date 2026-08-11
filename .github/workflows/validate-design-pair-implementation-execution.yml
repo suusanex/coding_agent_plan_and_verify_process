@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'apm-packages/design-pair-implementation-execution/**'
+      - 'apm-packages/codex-profile-finalizer/**'
+      - 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json'
       - 'apm-packages/adaptive-implementation-execution/**'
       - 'apm-packages/plan-coverage-residual-flow/**'
       - '.github/workflows/validate-design-pair-implementation-execution.yml'
@@ -13,6 +15,8 @@ on:
       - main
     paths:
       - 'apm-packages/design-pair-implementation-execution/**'
+      - 'apm-packages/codex-profile-finalizer/**'
+      - 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json'
       - 'apm-packages/adaptive-implementation-execution/**'
       - 'apm-packages/plan-coverage-residual-flow/**'
       - '.github/workflows/validate-design-pair-implementation-execution.yml'

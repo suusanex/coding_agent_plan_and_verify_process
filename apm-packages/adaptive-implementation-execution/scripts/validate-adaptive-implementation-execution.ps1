@@ -133,8 +133,12 @@ $requiredFiles = @(
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md',
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/intent.md',
     'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md',
-    'apm-packages/adaptive-implementation-execution/codex-agents/high-implementation-starter.toml',
-    'apm-packages/adaptive-implementation-execution/codex-agents/standard-implementation-completer.toml',
+    'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json',
+    'apm-packages/codex-profile-finalizer/apm.yml',
+    'apm-packages/codex-profile-finalizer/.apm/.gitkeep',
+    'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs',
+    'apm-packages/codex-profile-finalizer/tests/validate-finalizer.ps1',
+    'apm-packages/codex-profile-finalizer/tests/validate-apm-install.ps1',
     'apm-packages/adaptive-implementation-execution/docs/install-guide.md',
     'apm-packages/adaptive-implementation-execution/docs/usage-guide.md',
     'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md',
@@ -144,15 +148,13 @@ $requiredFiles = @(
     'apm-packages/adaptive-implementation-execution/docs/examples/legacy-adaptive-handoff.md',
     'apm-packages/adaptive-implementation-execution/tests/routing-scenarios.json',
     'apm-packages/adaptive-implementation-execution/tests/validate-routing-scenarios.ps1',
-    'apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs',
     'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-apm-smoke.ps1',
     'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1',
     'apm-packages/design-pair-implementation-execution/apm.yml',
     'apm-packages/design-pair-implementation-execution/.apm/skills/design-pair-implementation-execution/SKILL.md',
     'apm-packages/design-pair-implementation-execution/.apm/skills/design-pair-implementation-execution/handoff.md',
     'apm-packages/plan-coverage-residual-flow/apm.yml',
-    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md',
-    'scripts/provision-work-repo-agents.cs'
+    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md'
 )
 
 foreach ($file in $requiredFiles) {
@@ -471,107 +473,6 @@ foreach ($legacyField in @(
     Assert-Contains $legacyFixture ([regex]::Escape($legacyField)) "legacy handoff former required field $legacyField"
 }
 
-$highToml = 'apm-packages/adaptive-implementation-execution/codex-agents/high-implementation-starter.toml'
-$standardToml = 'apm-packages/adaptive-implementation-execution/codex-agents/standard-implementation-completer.toml'
-foreach ($toml in @($highToml, $standardToml)) {
-    Assert-Contains $toml '(?m)^model\s*=\s*"[^"]+"\s*$' 'top-level model'
-    Assert-Contains $toml '(?m)^model_reasoning_effort\s*=\s*"[^"]+"\s*$' 'top-level reasoning effort'
-    Assert-Contains $toml '(?m)^sandbox_mode\s*=\s*"workspace-write"\s*$' 'workspace-write sandbox'
-}
-
-$highAgentName = Get-TomlString $highToml 'name'
-$standardAgentName = Get-TomlString $standardToml 'name'
-$highModel = Get-TomlString $highToml 'model'
-$standardModel = Get-TomlString $standardToml 'model'
-$highConfigDescription = Get-TomlString $highToml 'description'
-$standardConfigDescription = Get-TomlString $standardToml 'description'
-$highPortableDescription = Get-FrontmatterString $highAgent 'description'
-$standardPortableDescription = Get-FrontmatterString $standardAgent 'description'
-if ($highAgentName -ne 'high-implementation-starter') {
-    Add-Failure "$highToml has an unexpected agent name: $highAgentName"
-}
-if ($standardAgentName -ne 'standard-implementation-completer') {
-    Add-Failure "$standardToml has an unexpected agent name: $standardAgentName"
-}
-if ($highAgentName -eq $standardAgentName) {
-    Add-Failure 'HIGH_MODEL and STANDARD_MODEL must reference different custom agents'
-}
-if ($highModel -eq $standardModel) {
-    Add-Failure 'HIGH_MODEL and STANDARD_MODEL must use distinct model mappings'
-}
-if ($highConfigDescription -ne $highPortableDescription) {
-    Add-Failure 'HIGH_MODEL TOML and portable agent descriptions must match for APM stub recognition'
-}
-if ($standardConfigDescription -ne $standardPortableDescription) {
-    Add-Failure 'STANDARD_MODEL TOML and portable agent descriptions must match for APM stub recognition'
-}
-
-foreach ($toml in @($highToml)) {
-    Assert-Contains $toml 'Return READY_FOR_STANDARD_COMPLETION when all non-local decisions are Locked or evidence-backed N/A' 'portable HIGH decision-closed delegation gate'
-    Assert-Contains $toml 'HIGH production or test edits, representative path completion, wiring edits, and focused feature tests are not delegation prerequisites' 'portable HIGH zero-edit delegation rule'
-    Assert-Contains $toml 'Direct completion reason plus evidence.*tiny-local-change.*post-reentry-high-ownership' 'portable HIGH direct completion exception gate'
-    Assert-Contains $toml 'Accept only implementation_route: adaptive with implementation_route_source: default and an explicit N/A path, or implementation_route: design-pair with implementation_route_source: explicit-user-selection and the current tracked path' 'portable HIGH exact route identity tuples'
-    Assert-Contains $toml 'Stop before editing and return BLOCKED with Stop reason: BlockedByInvalidCompletionHandoff when any route identity field is missing.*raw observed field value or <missing> plus repair evidence; never infer or fabricate' 'portable HIGH invalid route classification and raw output'
-    Assert-Contains $toml 'Normally return unchanged implementation_route, implementation_route_source, and the Design Pair Implementation Handoff path or N/A with every implementation result and completion handoff.*only exception is BLOCKED with Stop reason: BlockedByInvalidCompletionHandoff.*raw observed values or <missing>.*Other BLOCKED results still require the complete unchanged identity' 'portable HIGH conditional route output continuity'
-    Assert-Contains $toml 'require READY_FOR_ADAPTIVE_IMPLEMENTATION, interaction stage complete, Target Map presentation and selection-request evidence, an actual post-map user response, non-empty selected Targets or explicit all-Adaptive delegation, no pending human-owned Target' 'portable HIGH complete post-map authorization gate'
-    Assert-Contains $toml 'require unique Target Map IDs; every summary Target ID to exist in the map; Selected, Delegated-to-Adaptive, No-Change, Upstream-Decision-Required, and Pending sets to be pairwise disjoint and exactly cover the map; and each set to match its row Disposition' 'portable HIGH Target set reconciliation gate'
-    Assert-Contains $toml 'Require every Locked Decision Target to be Selected with a Locked row.*explicit all-Adaptive delegation.*Selected and Pending to be None.*every Target row to be Adaptive-Owned and present in the Delegated set' 'portable HIGH Locked and all-Adaptive invariants'
-    Assert-Contains $toml 'Reject invented IDs, overlaps, unclassified Targets, or row/summary mismatches with BlockedByInvalidCompletionHandoff' 'portable HIGH malformed Target set rejection'
-    Assert-Contains $toml 'For every Selected or Delegated-to-Adaptive Target, require exactly one Target Disposition Evidence row.*actual post-map user message or turn reference.*confirmation Yes' 'portable HIGH Target disposition evidence gate'
-    Assert-Contains $toml 'Reject missing or duplicate evidence, invented Target IDs, row/evidence disposition mismatches, pre-map references, AI-generated confirmation, undelegated Adaptive-Owned Targets, and Discussed-Unlocked Targets without a final user response' 'portable HIGH invalid disposition evidence rejection'
-    Assert-Contains $toml 'For every selected Target, require Selected Target Discussion Evidence with a user-facing assistant turn reference, concrete code location, current invariant, alternatives and trade-offs, a non-binding proposal or an evidence-backed No proposal reason, and validation expectations' 'portable HIGH selected Target discussion evidence gate'
-    Assert-Contains $toml 'A topic label, artifact link, or abstract option list alone is invalid' 'portable HIGH abstract discussion rejection'
-    Assert-Contains $toml "Require Target Map presentation evidence to reference a user-facing turn that presented every Target's concrete file and symbol, current invariant, internal design decision candidate, and relevant evidence" 'portable HIGH concrete Target Map presentation gate'
-    Assert-Contains $toml 'An artifact link, Target ID, or topic summary alone is invalid presentation evidence' 'portable HIGH abstract Target Map rejection'
-    Assert-Contains $toml 'keep the original Plan and Upstream Binding Constraints as separate binding inputs without Design Pair Decision IDs' 'portable HIGH upstream binding separation'
-    Assert-Contains $toml 'Do not retain implementation merely because multiple local alternatives exist.*only when choosing among alternatives affects a locked boundary.*cross-file responsibility.*shared contract.*dependency direction.*wiring architecture.*state semantics.*test architecture' 'portable HIGH non-local alternatives boundary'
-}
-foreach ($toml in @($standardToml)) {
-    Assert-Contains $toml 'including implementation_route and implementation_route_source, before editing' 'portable STANDARD route authorization'
-    Assert-Contains $toml 'accept only implementation_route: adaptive with implementation_route_source: default, or implementation_route: design-pair with implementation_route_source: explicit-user-selection' 'portable STANDARD exact route pairs'
-    Assert-Contains $toml 'Reject a missing, contradictory, or evidence-inconsistent current-schema route identity before editing.*raw observed field value or <missing> plus repair evidence.*explicit N/A Design Pair Implementation Handoff path for implementation_route: adaptive.*current tracked path' 'portable STANDARD route identity fail-closed rule'
-    Assert-Contains $toml 'Persist implementation_route: adaptive, implementation_route_source: default.*legacy-adaptive-handoff normalization record' 'portable STANDARD legacy route persistence'
-    Assert-Contains $toml 'High-model Re-entry Handoff.*unchanged implementation_route and implementation_route_source.*unchanged Design Pair Implementation Handoff path or N/A' 'portable STANDARD re-entry route identity propagation'
-    Assert-Contains $toml 'Normally return unchanged implementation_route, implementation_route_source, and the Design Pair Implementation Handoff path or N/A with every completion or re-entry result.*only exception is BLOCKED with Stop reason: BlockedByInvalidCompletionHandoff.*raw observed values or <missing>.*Other BLOCKED results still require the complete unchanged identity' 'portable STANDARD conditional route output continuity'
-    Assert-Contains $toml 'Reject a missing, contradictory, or evidence-inconsistent current-schema route identity before editing by returning BLOCKED with Stop reason: BlockedByInvalidCompletionHandoff; return each raw observed field value or <missing> plus repair evidence' 'portable STANDARD invalid route classification'
-    Assert-Contains $toml 'Reserve NEEDS_HIGH_MODEL_REENTRY for evidence that a locked non-local decision must change' 'portable STANDARD locked non-local re-entry boundary'
-    Assert-Contains $toml 'Do not re-enter merely because implementation creates a new file, a locked class or interface, or locked DI or entrypoint wiring' 'portable STANDARD edit-type-only re-entry rejection'
-    Assert-Contains $toml "Keep an exact legacy handoff's former narrow Remaining work and Allowed edit surface authority; do not infer 0\.5 fields.*0\.4 current-schema handoff missing 0\.5 fields requires HIGH_MODEL to reissue" 'portable STANDARD legacy and 0.4 current-schema boundary'
-    Assert-Contains $toml 'autonomously choose method-body algorithms.*private helpers.*fixtures.*test builders' 'portable STANDARD local implementation autonomy'
-    Assert-Contains $toml 'Do not re-enter merely because multiple local implementation alternatives exist.*only when it requires creating or changing a locked non-local decision' 'portable STANDARD alternatives re-entry boundary'
-}
-
-Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'VAL-012: Portable agent route validation' 'portable route validation scenario'
-Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'missing, contradictory, or evidence-inconsistent current-schema handoff returns `BLOCKED` with `BlockedByInvalidCompletionHandoff` and does not emit `NEEDS_HIGH_MODEL_REENTRY`' 'invalid handoff validation scenario'
-Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'fresh `adaptive / default` intake initializes `design_pair_handoff: N/A`' 'fresh default N/A validation scenario'
-Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'invalid-artifact `BLOCKED` returns raw observed values or `<missing>` for each identity field plus repair evidence; parent accepts this stop result without requiring a complete pair' 'invalid-artifact BLOCKED output exception scenario'
-$provisioner = 'scripts/provision-work-repo-agents.cs'
-$highReasoningEffort = Get-TomlString $highToml 'model_reasoning_effort'
-$standardReasoningEffort = Get-TomlString $standardToml 'model_reasoning_effort'
-$highSandboxMode = Get-TomlString $highToml 'sandbox_mode'
-$standardSandboxMode = Get-TomlString $standardToml 'sandbox_mode'
-Assert-Contains $provisioner ([regex]::Escape('private const string HighImplementationStarterFileName = "high-implementation-starter.toml";')) 'canonical HIGH provision target'
-Assert-Contains $provisioner ([regex]::Escape('private const string StandardImplementationCompleterFileName = "standard-implementation-completer.toml";')) 'canonical STANDARD provision target'
-Assert-Contains $provisioner ([regex]::Escape('private const string HighImplementationModel = "' + $highModel + '";')) 'canonical HIGH provision model mapping'
-Assert-Contains $provisioner ([regex]::Escape('private const string StandardImplementationModel = "' + $standardModel + '";')) 'canonical STANDARD provision model mapping'
-if ($highReasoningEffort -ne $standardReasoningEffort) {
-    Add-Failure 'Adaptive HIGH_MODEL and STANDARD_MODEL reasoning effort must share the provisioner constant'
-}
-else {
-    Assert-Contains $provisioner ([regex]::Escape('private const string AdaptiveImplementationReasoningEffort = "' + $highReasoningEffort + '";')) 'Adaptive provision reasoning effort'
-}
-if ($highSandboxMode -ne $standardSandboxMode) {
-    Add-Failure 'Adaptive HIGH_MODEL and STANDARD_MODEL sandbox mode must share the provisioner constant'
-}
-else {
-    Assert-Contains $provisioner ([regex]::Escape('private const string AdaptiveImplementationSandboxMode = "' + $highSandboxMode + '";')) 'Adaptive provision sandbox mode'
-}
-Assert-Contains $provisioner '(?s)HighImplementationStarterDefaults\s*=.*?\["model"\]\s*=\s*HighImplementationModel.*?\["model_reasoning_effort"\]\s*=\s*AdaptiveImplementationReasoningEffort.*?\["sandbox_mode"\]\s*=\s*AdaptiveImplementationSandboxMode' 'canonical HIGH provision defaults'
-Assert-Contains $provisioner '(?s)StandardImplementationCompleterDefaults\s*=.*?\["model"\]\s*=\s*StandardImplementationModel.*?\["model_reasoning_effort"\]\s*=\s*AdaptiveImplementationReasoningEffort.*?\["sandbox_mode"\]\s*=\s*AdaptiveImplementationSandboxMode' 'canonical STANDARD provision defaults'
-Assert-Contains $provisioner '(?s)HighImplementationStarterFileName,\s*AdaptiveAgentOrder,\s*HighImplementationStarterDefaults,\s*options\.Force,\s*true,' 'canonical HIGH expected-value enforcement'
-Assert-Contains $provisioner '(?s)StandardImplementationCompleterFileName,\s*AdaptiveAgentOrder,\s*StandardImplementationCompleterDefaults,\s*options\.Force,\s*true,' 'canonical STANDARD expected-value enforcement'
-Assert-Contains $provisioner 'mismatch; use --force to overwrite' 'canonical mapping mismatch guidance'
-
 foreach ($sharedMarker in @(
     'READY_FOR_STANDARD_COMPLETION',
     'Original Implementation Intent',
@@ -647,19 +548,21 @@ catch {
     Add-Failure "Executable routing scenario validation failed: $($_.Exception.Message)"
 }
 
-$installer = 'apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs'
-Assert-Contains $installer '(?m)^#:property TargetFramework=net10\.0\s*$' 'File-based app target framework'
-Assert-Contains $installer '--dry-run' 'dry-run option'
-Assert-Contains $installer '--check' 'check option'
-Assert-Contains $installer '--remove' 'remove option'
-Assert-Contains $installer 'ValidateAgentConfiguration' 'custom agent configuration validation'
-Assert-Contains $installer 'must use distinct model mappings' 'distinct model mapping check'
-Assert-Contains $installer 'must reference different custom agents' 'distinct custom agent check'
-Assert-Contains $installer 'IsApmGeneratedAgentStub' 'APM-generated model-less agent completion gate'
-Assert-Contains $installer 'allowedKeys\.All\(values\.ContainsKey\)' 'exact APM-generated stub key validation'
-Assert-Contains $installer 'apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local\.cs' 'repo-root usage path'
-Assert-Contains $installer 'Path\.Combine\(packageRoot, "codex-agents"\)' 'custom agent source directory'
-Assert-NotContains $installer 'AGENTS\.md|adaptive-implementation-execution:start|PlanManagedInstructions' 'AGENTS.md access or managed marker logic'
+$finalizer = 'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs'
+Assert-Contains $finalizer '#:package Tomlyn@2\.10\.1' 'Tomlyn dependency for lossless TOML validation'
+Assert-Contains $finalizer 'ToString' 'full overlay exception diagnostics'
+Assert-Contains $finalizer 'PortableContract' 'portable projection ownership contract'
+Assert-Contains $finalizer 'options' 'check-mode missing module failure'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json' 'high-implementation-starter' 'Adaptive HIGH profile overlay ownership'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json' 'standard-implementation-completer' 'Adaptive STANDARD profile overlay ownership'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json' '(?s)gpt-5\.6-terra.*gpt-5\.6-luna' 'distinct Adaptive model mappings'
+Assert-FileExists 'apm-packages/codex-profile-finalizer/.apm/.gitkeep'
+try {
+    & (Join-Path $repoRoot 'apm-packages/codex-profile-finalizer/tests/validate-finalizer.ps1') | Write-Output
+}
+catch {
+    Add-Failure "Codex profile finalizer validation failed: $($_.Exception.ToString())"
+}
 
 $apmSmoke = 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-apm-smoke.ps1'
 Assert-Contains $apmSmoke 'APM 0\.26\.0 is required' 'pinned APM 0.26.0 requirement'
@@ -759,7 +662,8 @@ Assert-Contains $workflow 'github\.event\.pull_request\.head\.sha.*github\.sha' 
 foreach ($pathFilter in @(
     'apm-packages/design-pair-implementation-execution/\*\*',
     'apm-packages/plan-coverage-residual-flow/\*\*',
-    'scripts/provision-work-repo-agents\.cs',
+    'apm-packages/codex-profile-finalizer/\*\*',
+    'apm-packages/adaptive-implementation-execution/codex-profile-overlays\.json',
     'docs/\*\*'
 )) {
     Assert-Contains $workflow $pathFilter "CI path filter $pathFilter"
@@ -775,4 +679,5 @@ if ($failures.Count -gt 0) {
     exit 1
 }
 
+$global:LASTEXITCODE = 0
 Write-Output 'Adaptive Implementation validation: PASS'

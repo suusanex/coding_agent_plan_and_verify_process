@@ -20,7 +20,7 @@
 
 APM install で skill と portable custom agents を導入します。この skill は、利用者が `/adaptive-implementation-execution` で slash 起動した場合だけ選択します。通常の「実装して」「このPlanを実装して」、および「Adaptive Implementationを使って」などの自然文での名前言及だけでは選択しません。導入されているだけで repository 内の実装作業へ自動適用しません。skill frontmatter は `disable-model-invocation: true` と `user-invocable: true` とし、model 判断による暗黙起動を禁止したまま利用者の slash 明示起動を維持します。
 
-現行 APM が model 未設定の custom agent TOML を生成した場合は、補助スクリプトで concrete model 設定を補完し、`--check` で確認します。この補完は runtime configuration の互換処理であり、skill の選択や使用を強制しません。
+現行 APM が model 未設定の custom agent TOML を生成した場合は、導入済みmoduleの共通 finalizerで concrete model 設定を補完し、`--check` で確認します。この補完は runtime configuration の互換処理であり、skill の選択や使用を強制しません。
 
 ## Start in GitHub Copilot Chat in VS Code
 
@@ -184,10 +184,10 @@ HIGH_MODEL と STANDARD_MODEL は、それぞれの変更に関連する build�
 
 ## Changing model assignment
 
-Codexの抽象tierと具体的modelの対応は`codex-agents/*.toml`で変更します。
+Codexの抽象tierと具体的modelの対応は`codex-profile-overlays.json`で変更します。
 
 - `model`: runtime で利用可能な model
 - `model_reasoning_effort`: role に必要な reasoning
 - `sandbox_mode`: implementation agent では `workspace-write`
 
-Copilotのconcrete modelはroot `.github/agents/*.agent.md`のfrontmatterで指定します。local package installer は package の `codex-agents/*.toml` を source として target の `.codex/agents/*.toml` だけを同期し、root agent files や Skill を配布しません。Skill と root portable agents の導入は APM の責務であり、skill選択後の実行契約は`SKILL.md`とroot agentsをsource of truthとします。
+Copilotのconcrete modelはroot `.github/agents/*.agent.md`のfrontmatterで指定します。共通 finalizerは package-owned overlay を source として target の `.codex/agents/*.toml` の profile fields だけを補完し、root agent files や Skill を配布しません。Skill と root portable agents の導入は APM の責務であり、skill選択後の実行契約は`SKILL.md`とroot agentsをsource of truthとします。

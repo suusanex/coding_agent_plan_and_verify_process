@@ -5,18 +5,20 @@ on:
     paths:
       - '.github/workflows/validate-adaptive-implementation-execution.yml'
       - 'apm-packages/adaptive-implementation-execution/**'
+      - 'apm-packages/codex-profile-finalizer/**'
+      - 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json'
       - 'apm-packages/design-pair-implementation-execution/**'
       - 'apm-packages/plan-coverage-residual-flow/**'
-      - 'scripts/provision-work-repo-agents.cs'
       - 'docs/**'
       - 'README.md'
   push:
     paths:
       - '.github/workflows/validate-adaptive-implementation-execution.yml'
       - 'apm-packages/adaptive-implementation-execution/**'
+      - 'apm-packages/codex-profile-finalizer/**'
+      - 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json'
       - 'apm-packages/design-pair-implementation-execution/**'
       - 'apm-packages/plan-coverage-residual-flow/**'
-      - 'scripts/provision-work-repo-agents.cs'
       - 'docs/**'
       - 'README.md'
 

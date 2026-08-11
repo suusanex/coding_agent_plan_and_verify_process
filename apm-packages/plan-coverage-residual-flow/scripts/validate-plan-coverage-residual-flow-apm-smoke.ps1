@@ -40,6 +40,13 @@ function Get-NormalizedText([string]$Path) {
     return [System.IO.File]::ReadAllText($Path).Replace("`r`n", "`n").Replace("`r", "`n")
 }
 
+function Invoke-Native([string]$FilePath, [string[]]$Arguments, [string]$Description) {
+    & $FilePath @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Description failed with exit code $LASTEXITCODE."
+    }
+}
+
 function Get-NormalizedTextSha256([string]$Path) {
     $content = Get-NormalizedText $Path
     $bytes = [System.Text.UTF8Encoding]::new($false).GetBytes($content)
@@ -69,19 +76,22 @@ try {
             # place Adaptive HIGH/STANDARD agents under staged Adaptive .apm/agents so
             # includes:auto can distribute them without monorepo parent context.
             $stageRoot = Join-Path $tempParent ('plan-coverage-residual-flow-stage-' + [Guid]::NewGuid().ToString('N'))
-            $stagePackage = Join-Path $stageRoot 'apm-packages\plan-coverage-residual-flow'
-            $stageAdaptive = Join-Path $stageRoot 'apm-packages\adaptive-implementation-execution'
-            New-Item -ItemType Directory -Path (Join-Path $stageRoot 'apm-packages') -Force | Out-Null
-            Copy-DirectoryContents $packageRoot $stagePackage
-            Copy-DirectoryContents (Join-Path $repoRoot 'apm-packages\adaptive-implementation-execution') $stageAdaptive
+           $stagePackage = Join-Path $stageRoot 'apm-packages\plan-coverage-residual-flow'
+           $stageAdaptive = Join-Path $stageRoot 'apm-packages\adaptive-implementation-execution'
+            $stageFinalizer = Join-Path $stageRoot 'apm-packages\codex-profile-finalizer'
+           New-Item -ItemType Directory -Path (Join-Path $stageRoot 'apm-packages') -Force | Out-Null
+           Copy-DirectoryContents $packageRoot $stagePackage
+           Copy-DirectoryContents (Join-Path $repoRoot 'apm-packages\adaptive-implementation-execution') $stageAdaptive
+            Copy-DirectoryContents (Join-Path $repoRoot 'apm-packages\codex-profile-finalizer') $stageFinalizer
             $stageAdaptiveAgents = Join-Path $stageAdaptive '.apm\agents'
             New-Item -ItemType Directory -Path $stageAdaptiveAgents -Force | Out-Null
             foreach ($adaptiveAgent in @('high-implementation-starter.agent.md', 'standard-implementation-completer.agent.md')) {
                 Copy-Item -LiteralPath (Join-Path $repoRoot "apm-packages\adaptive-implementation-execution\.apm\agents\$adaptiveAgent") -Destination (Join-Path $stageAdaptiveAgents $adaptiveAgent) -Force
             }
 
-            $stageAdaptiveResolved = (Resolve-Path -LiteralPath $stageAdaptive).Path
-            $stagePackageResolved = (Resolve-Path -LiteralPath $stagePackage).Path
+           $stageAdaptiveResolved = (Resolve-Path -LiteralPath $stageAdaptive).Path
+           $stagePackageResolved = (Resolve-Path -LiteralPath $stagePackage).Path
+            $stageFinalizerResolved = (Resolve-Path -LiteralPath $stageFinalizer).Path
             $adaptiveManifest = @"
 name: adaptive-implementation-execution
 version: 0.5.0
@@ -92,6 +102,10 @@ targets:
   - codex
   - agent-skills
 includes: auto
+
+dependencies:
+  apm:
+    - path: $stageFinalizerResolved
 "@
             [System.IO.File]::WriteAllText((Join-Path $stageAdaptiveResolved 'apm.yml'), $adaptiveManifest.Replace("`r`n", "`n"))
 
@@ -167,7 +181,6 @@ dependencies:
     foreach ($agentName in $planCoverageOwnedAgentNames) {
         $canonicalAgentPath = Join-Path $repoRoot "apm-packages/plan-coverage-residual-flow/.apm/agents/$agentName.agent.md"
         $installedCopilotPath = Join-Path $tempRoot ".github/agents/$agentName.agent.md"
-        $installedCodexPath = Join-Path $tempRoot ".codex/agents/$agentName.toml"
 
         if (-not (Test-Path -LiteralPath $installedCopilotPath -PathType Leaf)) {
             throw "Fresh APM install missing Copilot agent projection: $agentName"
@@ -175,10 +188,14 @@ dependencies:
         if ((Get-NormalizedText $canonicalAgentPath) -cne (Get-NormalizedText $installedCopilotPath)) {
             throw "Fresh Copilot agent projection differs from canonical: $agentName"
         }
-        if (-not (Test-Path -LiteralPath $installedCodexPath -PathType Leaf)) {
-            throw "Fresh APM install missing Codex agent projection: $agentName"
-        }
     }
+
+    $finalizer = @(Get-ChildItem -LiteralPath (Join-Path $tempRoot 'apm_modules') -Recurse -File -Filter 'finalize-codex-agent-profiles.cs' | Select-Object -First 1).FullName
+    if ([string]::IsNullOrWhiteSpace($finalizer) -or -not (Test-Path -LiteralPath $finalizer -PathType Leaf)) {
+        throw 'Fresh Plan Coverage install did not deploy the transitive Codex profile finalizer.'
+    }
+    Invoke-Native 'dotnet' @('run', '--file', $finalizer, '--', $tempRoot) 'Plan Coverage Codex profile finalizer'
+    Invoke-Native 'dotnet' @('run', '--file', $finalizer, '--', $tempRoot, '--check') 'Plan Coverage Codex profile check'
 
     $adaptiveRequired = @(
         '.agents/skills/adaptive-implementation-execution/SKILL.md',

@@ -170,19 +170,20 @@ try {
     }
     Assert-Hashes $beforeReinstall
 
-    $adaptiveHelper = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'install-adaptive-implementation-local.cs'))
-    Invoke-Native 'dotnet' @('run', '--file', $adaptiveHelper, '--', $scratch) 'Codex profile completion'
-    Invoke-Native 'dotnet' @('run', '--file', $adaptiveHelper, '--', $scratch, '--check') 'Codex profile check'
+    $finalizer = @(Get-ChildItem -LiteralPath (Join-Path $scratch 'apm_modules') -Recurse -File -Filter 'finalize-codex-agent-profiles.cs' | Select-Object -First 1).FullName
+    Assert-File $finalizer 'installed Codex profile finalizer'
+    Invoke-Native 'dotnet' @('run', '--file', $finalizer, '--', $scratch) 'Codex profile completion'
+    Invoke-Native 'dotnet' @('run', '--file', $finalizer, '--', $scratch, '--check') 'Codex profile check'
     Assert-Contains $codexHigh '(?m)^model\s*=\s*"gpt-5\.6-terra"\s*$' 'Codex HIGH model'
     Assert-Contains $codexStandard '(?m)^model\s*=\s*"gpt-5\.6-luna"\s*$' 'Codex STANDARD model'
     Assert-Contains $codexHigh 'non-local-decisions-closed' 'Codex HIGH decision-closure delegation basis'
-    Assert-Contains $codexStandard 'autonomously choose method-body algorithms' 'Codex STANDARD local implementation autonomy'
+    Assert-Contains $codexStandard 'method bodyのアルゴリズム' 'Codex STANDARD local implementation autonomy'
 
     if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch 'AGENTS.md')).Hash -ne $agentsHash) {
-        throw 'Remote APM install or Codex helper changed AGENTS.md.'
+        throw 'Remote APM install or Codex finalizer changed AGENTS.md.'
     }
     if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch '.codex/config.toml')).Hash -ne $configHash) {
-        throw 'Remote APM install or Codex helper changed .codex/config.toml.'
+        throw 'Remote APM install or Codex finalizer changed .codex/config.toml.'
     }
 
     $collisionAgentDir = Join-Path $collision '.github/agents'

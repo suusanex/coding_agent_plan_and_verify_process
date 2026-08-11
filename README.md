@@ -25,12 +25,10 @@ APM process packageは基本的に利用するwork repositoryごとに導入し�
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target copilot,codex,agent-skills
 $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
-dotnet run --file "$moduleRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- . --dry-run
-dotnet run --file "$moduleRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- .
-dotnet run --file "$moduleRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- . --check
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
 ```
 
-APM installがSkillとportable agentsを導入します。後半のhelperは、Codex用TOMLにconcrete model / reasoning / sandbox profileが生成されない環境でだけ設定を補完します。APMが同等の設定を生成済みでも`--check`は利用できます。collision、update、removeは[Adaptive install guide](apm-packages/adaptive-implementation-execution/docs/install-guide.md)を参照してください。
+APM installがSkillとportable agentsを導入し、finalizerがCodex用TOMLのconcrete model / reasoning / sandbox profileだけを補完します。APMが同等の設定を生成済みならfinalizerはno-opになります。dry-run、check、force、更新・削除は[Adaptive install guide](apm-packages/adaptive-implementation-execution/docs/install-guide.md)を参照してください。
 
 ### 実装前に内部設計も対話して決めたい
 
@@ -40,12 +38,10 @@ APM installがSkillとportable agentsを導入します。後半のhelperは、C
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target copilot,codex,agent-skills
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target copilot,codex,agent-skills
 $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
-dotnet run --file "$moduleRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- . --dry-run
-dotnet run --file "$moduleRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- .
-dotnet run --file "$moduleRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- . --check
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
 ```
 
-Design Pair manifestもAdaptive Skillとcanonical agentsをdependencyとして導入しますが、上の用途別QuickstartはAdaptive本体とhelperを明示的に利用できる構成に揃えています。
+Design Pair manifestもAdaptive Skillとcanonical agentsをdependencyとして導入します。上の用途別Quickstartは、必要なpackageをAPMで導入してから共通finalizerを一度実行する構成です。
 
 ### PRレビューと修正を改善したい
 
@@ -54,9 +50,7 @@ Design Pair manifestもAdaptive Skillとcanonical agentsをdependencyとして�
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills
 $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
-dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --dry-run
-dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- .
-dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --check
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
 ```
 
 Goal Contextはfree-form textであり、`goal-context-authoring` packageへの依存を意味しません。baseline flowのreview planを別turnのAdaptiveで修正する場合だけ、Adaptive Implementationをoptional add-onとして導入します。canonical same-parent flowには不要です。
@@ -67,15 +61,15 @@ Goal Contextはfree-form textであり、`goal-context-authoring` packageへの�
 
 Plan Coverageの現時点のsupported installationはAPM経由です。Agent Plugins bundleは同じcanonical sourceから継続的に生成・検証する将来のdeployment candidateであり、direct plugin installを通常導入方法として扱いません。[Agent Plugins採用方針](docs/agent-plugin-adoption-strategy.md)で、APM・runtime qualification・direct deploymentの境界と昇格条件を定義しています。
 
-このrepositoryのcheckout rootから、推奨provisionerを実行します。
+導入先repositoryのrootで、必要なpackageをAPMから導入します。
 
 ```powershell
-dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target --dry-run
-dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target
-dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target --check
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow --target copilot,codex,agent-skills
+$moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
 ```
 
-apply時はPlan Coverage packageを`copilot,codex,agent-skills` targetへAPM install / updateし、HIGH / STANDARD Codex agent TOMLを補正します。Plan Coverage manifestはAdaptive Skillとcanonical HIGH / STANDARD agentsをdependencyとして持つため、Adaptiveを別途installする必要はありません。implementation stageでDesign Pairを使う場合だけDesign Pair packageを追加します。
+APM installがportable agentsとSkillを導入し、finalizerが必要なCodex profile fieldだけを補完します。Plan Coverage manifestはAdaptiveと共通finalizerをdependencyとして持つため、Adaptiveやfinalizer packageを別途installする必要はありません。implementation stageでDesign Pairを使う場合だけDesign Pair packageを追加します。
 
 ## Processの関係
 
@@ -88,31 +82,24 @@ apply時はPlan Coverage packageを`copilot,codex,agent-skills` targetへAPM ins
 
 ## 通常使うprocessを一通り入れる
 
-通常セットはAdaptive Implementation、Design Pair、PR Review Remediation、Plan Coverageです。Plan Coverage provisionerがAdaptiveの共有artifactとCodex profileを導入するため、全部入りではAdaptive packageを重ねてinstallしません。
+通常セットはAdaptive Implementation、Design Pair、PR Review Remediation、Plan Coverageです。Plan CoverageがAdaptiveと共通finalizerをdependencyとして導入するため、全部入りではAdaptive packageやfinalizer packageを重ねてinstallしません。
 
-1. このrepositoryのcheckout rootからPlan Coverageをprovisionします。
+1. 導入先repositoryのrootでPlan Coverageをinstallします。
 
    ```powershell
-   dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target --dry-run
-   dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target
-   dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target --check
+   apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow --target copilot,codex,agent-skills
    ```
 
-2. 導入先repositoryのrootでDesign PairとPR Review Remediationを追加します。共有Adaptive agentsに触れるAPM installをすべて終えてから、Adaptive profileを補正・検証し、reviewer profilesを同期します。
+2. 同じ導入先repositoryでDesign PairとPR Review Remediationを追加します。必要なAPM installをすべて終えてから、共通finalizerを一度実行します。
 
    ```powershell
    apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target copilot,codex,agent-skills
    apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills
-   $sourceRoot = "C:\path\to\coding_agent_plan_and_verify_process"
-   dotnet run --file "$sourceRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- .
-   dotnet run --file "$sourceRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- . --check
    $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
-   dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --dry-run
-   dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- .
-   dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --check
+   dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
    ```
 
-各用途のQuickstartを個別に実行する場合も、package固有installerのcollision policyに従って停止または同一内容を維持します。異なる同名TOMLを確認せず`--force`で上書きしないでください。
+各用途のQuickstartを個別に実行する場合も、APMの導入結果を確認してからfinalizerを実行します。異なる明示済みprofileを更新する場合だけ、保守文書の手順に従って`--force`を使います。
 
 ## 開発支援ツール
 

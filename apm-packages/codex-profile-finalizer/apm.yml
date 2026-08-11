@@ -1,0 +1,10 @@
+name: codex-profile-finalizer
+version: 0.1.0
+description: Shared compatibility finalizer for Codex concrete agent profiles projected by APM
+type: hybrid
+targets:
+  - codex
+includes: auto
+
+dependencies:
+  apm: []

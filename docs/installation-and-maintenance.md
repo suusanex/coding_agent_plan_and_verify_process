@@ -7,10 +7,9 @@
 | Entrypoint | Use when | Installs or verifies |
 | --- | --- | --- |
 | `scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs` | always-on Codex callback runtimeをuser-level設定へ導入する | canonical runtime、Local Spool provider、user-level `notify` |
-| `apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs` | PR Review Remediation導入後にconcrete Codex reviewer profilesを同期する | `.codex/agents/local-reviewer.toml`、`purpose-reviewer.toml`、`review-planner.toml` |
+| `apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs` | APM導入後にpackage-owned concrete Codex profilesを補完する | `.codex/agents/*.toml`のprofile fields |
 | Goal Context Skill `scripts/execute-reviewer.cs` | typed設定でCodex exec / GitHub Copilot CLI reviewerを決定的に起動・待機・raw保存する | `round-NNN/{role}.raw.md`、`{role}.execution.json` |
-| `apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs` | APM導入後にAdaptive Implementationのconcrete Codex profilesを補完する | `.codex/agents/high-implementation-starter.toml`、`standard-implementation-completer.toml` |
-| `scripts/provision-work-repo-agents.cs` | 既存のPlan Coverage packageをAPM経由で導入し、Codex向け配置を補正する | `apm install`、HIGH / STANDARD agent TOML補正 |
+| `apm-packages/*/codex-profile-overlays.json` | owning packageごとのprofile推奨値を宣言する | agent、model、reasoning、sandbox |
 | Goal Context validators | Goal Context authoring packageやfree-form文書を確認する | readability、package structure、APM install smoke |
 | `scripts/validate-architecture-slice-readiness.ps1` | architecture readinessのagents、manifest、templates、routingを確認する | ASR contractとfixture evidence |
 
@@ -26,16 +25,17 @@ dotnet run --file <installer.cs> -- <target> --check
 
 同名fileの上書きが必要な場合だけ、内容とownershipを確認して`--force`を使います。installerごとの対象file、collision policy、`AGENTS.md`へのアクセス有無は各package READMEを参照してください。
 
-## Existing APM provisioning helper
+## APM installation and Codex profile finalizer
 
-`scripts/provision-work-repo-agents.cs`は、Plan Coverage packageを`copilot,codex,agent-skills` targetで対象repositoryへ`apm install --update`し、APM変換後のHIGH / STANDARD Codex TOMLを補正します。Plan Coverage manifestはpackage-owned `.apm` primitivesを`includes: auto`で配布し、Adaptive Implementation package（`apm-packages/adaptive-implementation-execution`）へpackage boundary dependencyするため、この入口ではAdaptive packageを重ねてinstallしません。HIGH / STANDARD agentsとAdaptive SkillのownershipはAdaptive package側に残り、Codex concrete profile overlayだけがexisting provisioner ownershipです。Adaptive単独利用は専用packageのinstallerを使い、Design PairとPR Review Remediationは各package READMEの導入・同期手順を使います。
+各 package は `apm install` を導入本体とします。Adaptive と PR Review Remediation は共通 finalizer packageへ依存し、Plan Coverage と Design Pairは既存のAdaptive Implementation package boundary dependencyを通じて同じ finalizerを利用します。source repository checkoutは通常導入に不要です。
 
 Plan Coverageのcanonical authoring sourceは`apm-packages/plan-coverage-residual-flow/.apm/`です。source repository rootにpackage runtime projection（`.github/agents/`、`.github/instructions/`、`.codex/agents/`、`.agents/skills/`）をchecked-inしません。canonical contractを修正するときは`.apm`を修正し、runtime projectionの正しさはAPM install smokeで検証します。
 
 ```powershell
-dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target --dry-run
-dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target
-dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target --check
+$moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- C:\path\to\target --dry-run
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- C:\path\to\target
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- C:\path\to\target --check
 ```
 
 `--dry-run`と`--check`はAPM実行やfile書き込みを行いません。canonical Adaptive agentのmodel mapping不一致など、既存値の補正を明示的に許可する場合だけ`--force`を使用します。

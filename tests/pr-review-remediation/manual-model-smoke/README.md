@@ -9,7 +9,7 @@
 ## Preconditions
 
 - process packageの対象refを固定してAPM install済み
-- `sync-pr-review-remediation-local.cs --check`がPASS
+- `finalize-codex-agent-profiles.cs --check`がPASS
 - GitHub CLI認証が対象PRへreviewerを要求でき、対象organization/repositoryでCopilot code reviewが利用可能
 - current branchにReady PR、またはrepository全体にunique Ready PR。複数なら開始promptでPR番号/URLを短く指定
 - readable non-empty Goal Context。形式、filename、拡張子、作成元は任意。discoveryが曖昧なら開始promptでexact pathを選択

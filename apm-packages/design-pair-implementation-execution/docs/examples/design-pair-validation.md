@@ -129,7 +129,7 @@ Input: Design PairとAdaptive Implementationをcanonical packageの導入手順�
 Expected:
 
 - Design Pairは自身のAPM manifestとAdaptive package dependencyだけを使う
-- Adaptive profile補完は`install-adaptive-implementation-local.cs`で行う
+- Adaptive profile補完は共通`finalize-codex-agent-profiles.cs`で行う
 - 独立したpackage manifest、canonical Adaptive installer、tracked handoff artifactだけで導入が成立し、追加のaggregate routing surfaceを要求しない
 
 ## DP-VAL-011: Fresh Codex install
@@ -139,8 +139,8 @@ Input: Design Pairを未導入のCodex targetへインストールする。
 Expected:
 
 - Adaptive packageとDesign Pair packageをco-installする
-- APMがmodel-less TOMLを生成する場合は`install-adaptive-implementation-local.cs`で補完する
-- helperの`--check`がHIGH / STANDARDの別agent・別model mapping、reasoning、sandboxを検証する
+- APMがmodel-less TOMLを生成する場合は`finalize-codex-agent-profiles.cs`で補完する
+- finalizerの`--check`がHIGH / STANDARDの別agent・別model mapping、reasoning、sandboxを検証する
 - Design Pair package単体のinstallを完成済みCodex execution profileと表現しない
 
 ## DP-VAL-012: Portable agent route contract
@@ -398,7 +398,7 @@ Expected:
 ```powershell
 ./apm-packages/design-pair-implementation-execution/scripts/validate.ps1
 ./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1
-dotnet publish ./apm-packages/adaptive-implementation-execution/scripts/install-adaptive-implementation-local.cs
+dotnet publish ./apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs
 git diff --check
 ```
 
