@@ -50,12 +50,9 @@ function New-SmokeRun {
     $root = Join-Path ([IO.Path]::GetTempPath()) ("execute-reviewer-codex-smoke-" + [guid]::NewGuid().ToString('N'))
     $repo = Join-Path $root 'repo'
     New-Item -ItemType Directory -Path (Join-Path $repo '.github\agents') -Force | Out-Null
-    New-Item -ItemType Directory -Path (Join-Path $repo 'apm-packages\pr-review-remediation\codex-agents') -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $repo 'docs') -Force | Out-Null
     Copy-Item (Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\.apm\agents\local-reviewer.agent.md') (Join-Path $repo '.github\agents\local-reviewer.agent.md')
     Copy-Item (Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\.apm\agents\purpose-reviewer.agent.md') (Join-Path $repo '.github\agents\purpose-reviewer.agent.md')
-    Copy-Item (Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\codex-agents\local-reviewer.toml') (Join-Path $repo 'apm-packages\pr-review-remediation\codex-agents\local-reviewer.toml')
-    Copy-Item (Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\codex-agents\purpose-reviewer.toml') (Join-Path $repo 'apm-packages\pr-review-remediation\codex-agents\purpose-reviewer.toml')
     Set-Content (Join-Path $repo 'docs\goal-context-smoke.md') -Value "Goal: verify deterministic reviewer executor captures raw review text.`n"
     Push-Location $repo
     try {

@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/validate-plan-coverage-residual-flow.yml'
       - 'apm-packages/plan-coverage-residual-flow/**'
+      - 'apm-packages/codex-profile-finalizer/**'
       - 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1'
       - 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1'
       - 'docs/plan-coverage-process-and-agents.md'
@@ -21,6 +22,7 @@ on:
     paths:
       - '.github/workflows/validate-plan-coverage-residual-flow.yml'
       - 'apm-packages/plan-coverage-residual-flow/**'
+      - 'apm-packages/codex-profile-finalizer/**'
       - 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1'
       - 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1'
       - 'docs/plan-coverage-process-and-agents.md'

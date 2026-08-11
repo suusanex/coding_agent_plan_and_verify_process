@@ -14,23 +14,23 @@ bounded Planを実装・検証のsource of truthとして維持し、通常可�
 
 ## Install
 
-推奨入口はrepository rootの[`scripts/provision-work-repo-agents.cs`](../../scripts/provision-work-repo-agents.cs)です。このFile-based appは、対象repositoryへPlan Coverage packageを`copilot,codex,agent-skills` targetでAPM install / updateし、Codex用の`high-implementation-starter.toml`と`standard-implementation-completer.toml`へconcrete model / reasoning / sandbox profileを補正します。
+導入先repository rootで`apm install`を実行し、共通 finalizerを必要に応じて一度適用します。Plan Coverage packageはAdaptive Implementationと共通 finalizerをdependencyとして導入し、source repository checkoutを要求しません。
 
-このrepositoryのcheckout rootから、dry-run、apply、checkの順で実行します。
+Codex targetでは、APM install後に導入済みmoduleの共通finalizerを一度実行します。
 
 ```powershell
-dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target --dry-run
-dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target
-dotnet run --file .\scripts\provision-work-repo-agents.cs -- C:\path\to\target --check
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow --target copilot,codex,agent-skills
+$moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- C:\path\to\target
 ```
 
-`--dry-run`と`--check`はAPM commandやfile書き込みを行いません。applyは内部で次のremote packageを`apm install --update`します。
+保守時の`--dry-run`、`--check`、`--force`は[Installation and Maintenance](../../docs/installation-and-maintenance.md)を参照します。
 
 ```text
 suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
 ```
 
-manifestはPlan Coverage package-owned `.apm` primitivesを`includes: auto`で配布し、Adaptive Implementationはseparate package boundary（`apm-packages/adaptive-implementation-execution`）へのdependencyだけで解決します。HIGH / STANDARD agentsとAdaptive Implementation SkillのownershipはAdaptive package側に残り、Plan Coverageへ複製しません。このprovisionerがCodex向けHIGH / STANDARD concrete profile補正も行うため、Plan Coverageの通常導入でAdaptive packageを別途installする必要はありません。implementation stageでDesign Pairを使う場合だけ、[Design Pair Implementation Execution](../design-pair-implementation-execution/README.md)も対象repositoryへ導入し、flow開始時に明示選択します。
+manifestはPlan Coverage package-owned `.apm` primitivesを`includes: auto`で配布し、Adaptive Implementationはseparate package boundary（`apm-packages/adaptive-implementation-execution`）へのdependencyで解決します。HIGH / STANDARD agentsとAdaptive Implementation SkillのownershipはAdaptive package側に残り、Plan Coverageへ複製しません。共通finalizerがpackage-owned overlayを検証してCodex concrete profileを補完するため、Plan Coverageの通常導入でAdaptive packageやfinalizer packageを別途installする必要はありません。implementation stageでDesign Pairを使う場合だけ、[Design Pair Implementation Execution](../design-pair-implementation-execution/README.md)も対象repositoryへ導入し、flow開始時に明示選択します。
 
 ## Canonical source and runtime projections
 
@@ -51,9 +51,9 @@ Runtime / checked-in projections:
 - root runtime files（`.github` / `.codex` / `.agents`）をsource of truthとして直接編集しない
 - projection driftはstatic validatorとAPM install smokeで検出する
 - Adaptive Implementationは別package ownership
-- Codex concrete HIGH / STANDARD profile overlayはexisting provisioner ownership
+- Codex concrete HIGH / STANDARD profile overlayはAdaptive package-owned `codex-profile-overlays.json`で管理し、共通finalizerが適用する
 
-既存の異なるmodel mappingをpackage既定値へ変更する場合だけ、内容とownershipを確認して`--force`を使います。cross-package installerの詳細とvalidationは[Installation and Maintenance](../../docs/installation-and-maintenance.md#existing-apm-provisioning-helper)を参照してください。
+既存の異なるmodel mappingをpackage既定値へ変更する場合だけ、内容とownershipを確認して`--force`を使います。cross-package installerの詳細とvalidationは[Installation and Maintenance](../../docs/installation-and-maintenance.md#apm-installation-and-codex-profile-finalizer)を参照してください。
 
 ## Core model
 

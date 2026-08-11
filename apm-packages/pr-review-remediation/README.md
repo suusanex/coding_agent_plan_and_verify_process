@@ -23,19 +23,19 @@ original implementation parent
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills
 $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
-dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --dry-run
-dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- .
-dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --check
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- . --dry-run
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- . --check
 ```
 
-APMはreview Skillsとcanonical reviewer agentsだけを導入し、sync helperは`.codex/agents/local-reviewer.toml`、`purpose-reviewer.toml`、`review-planner.toml`を同期します。`review-planner`は基礎版とhistorical compatibility用です。Goal Context canonical same-parent pathのround decision/write ownershipは元の親agentが持ちます。helperは`AGENTS.md`と`.codex/config.toml`を操作しません。
+APMはreview Skillsとcanonical reviewer agentsを導入し、共通 finalizerは`codex-profile-overlays.json`に定義された3つのCodex concrete profileだけを補完します。`review-planner`は基礎版とhistorical compatibility用です。Goal Context canonical same-parent pathのround decision/write ownershipは元の親agentが持ちます。finalizerは`AGENTS.md`と`.codex/config.toml`を操作しません。
 
 基礎版`$pr-review-remediation`のreview planを別turnのAdaptive Phase 2で実装する場合だけ、optional add-onを別途導入します。canonical same-parent flowには不要です。
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
-dotnet run --file "$moduleRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- .
-dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --check --check-adaptive
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- . --check
 ```
 
 ## Usage
@@ -66,8 +66,8 @@ Terminal projectionはschema/process/status/safe title/current concrete PR URI�
 | Historical fixed two-task validator | Goal Context Skillの`scripts/manage-review-cycle.cs` |
 | Assessment example | Goal Context Skillの`templates/round-assessment.example.json` |
 | Collector | Baseline Skillの`scripts/collect-pr-review-context.cs` |
-| Review profiles | `codex-agents/*.toml` |
-| Profile sync helper | `scripts/sync-pr-review-remediation-local.cs` |
+| Codex profile metadata | `codex-profile-overlays.json` |
+| Shared profile finalizer | `../codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs` |
 | Package validator | `scripts/validate-pr-review-remediation.ps1` |
 | Same-parent deterministic validator | `scripts/validate-same-parent-review.ps1` |
 | Reviewer executor deterministic validator | `scripts/validate-execute-reviewer.ps1` |

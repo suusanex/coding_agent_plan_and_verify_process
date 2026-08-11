@@ -163,7 +163,7 @@ Steps:
 1. Install the package with APM 0.26.0 for `copilot,codex,agent-skills`.
 2. Confirm skill and both reference templates are deployed.
 3. Confirm both portable agents are available to Codex and GitHub Copilot Chat in VS Code.
-4. If APM leaves model-less custom agent TOMLs, complete their settings with `install-adaptive-implementation-local.cs`.
+4. If APM leaves model-less custom agent TOMLs, complete their settings with `finalize-codex-agent-profiles.cs`.
 5. Run installer `--check`.
 6. Confirm Codex can select the skill and both custom agents; confirm Copilot agent frontmatter requests Terra for HIGH / re-entry and Luna for STANDARD.
 7. Confirm the installer does not access an existing `AGENTS.md`, and review collision behavior with same-name TOML.
@@ -175,7 +175,7 @@ Expected:
 - installed skill refs are available under `.agents/skills/adaptive-implementation-execution/refs`
 - concrete agent TOMLs contain model, reasoning effort, and workspace-write sandbox fields
 - HIGH_MODEL and STANDARD_MODEL use different custom agent names and different model mappings
-- the local installer sources only the two package `codex-agents/*.toml` files and writes only target `.codex/agents/*.toml` files
+- the finalizer sources package-owned `codex-profile-overlays.json` and writes only target `.codex/agents/*.toml` profile fields
 - the local installer does not copy or update root `.github/agents/*.agent.md` files or the Skill
 - the installer does not create, read, update, or remove `AGENTS.md`
 - APM-generated model-less stubs with matching package metadata are completed without `--force`
@@ -268,7 +268,7 @@ Expected:
 - STANDARD direct start is rejected without a valid tracked `READY_FOR_STANDARD_COMPLETION`
 - `COMPLETED_BY_HIGH_MODEL` and stop verdicts do not route to another agent
 - Copilot model / agent transitions use tracked completion and re-entry artifacts containing original Implementation Intent, unchanged route identity, Locked Decisions, Design Pair Decision IDs when present, and current worktree state
-- the local installer sources the two package `codex-agents/*.toml` files and writes only target `.codex/agents/*.toml` files; APM installs the Skill and root `.github/agents` files
+- the finalizer sources package-owned `codex-profile-overlays.json` and writes only target `.codex/agents/*.toml` profile fields; APM installs the Skill and root `.github/agents` files
 - executable scenarios A-J in `tests/routing-scenarios.json` are interpreted by `tests/validate-routing-scenarios.ps1`; negative mutations reject invalid HIGH completion, incomplete handoff acceptance, ambiguous or missing reference handoffs, unknown Decision closure concerns, unsupported acceptance status, duplicate Work IDs, empty required Work Package fields, asymmetric acceptance / Work ID edges, edit-type-only re-entry with otherwise valid tracked state, incomplete re-entry state, repeated delegation without surface reduction, implicit route defaulting, and locked Design Pair decision changes
 - GitHub Copilot CLI real-model execution is `PASS` for Terra direct completion, Terra-to-Luna bounded completion, Luna-to-Terra structural re-entry, invalid handoff rejection, selected agent / model evidence, files, checks, terminal verdicts, and absence of unexpected automatic transitions; see `copilot-cli-real-model-e2e-2026-07-31.md`
 - VS Code-specific `target` filtering and handoff-button behavior remain `NOT RUN` and use the manual smoke template
@@ -325,7 +325,7 @@ Expected:
 
 ```powershell
 ./scripts/validate-adaptive-implementation-execution.ps1
-dotnet publish ./scripts/install-adaptive-implementation-local.cs
+dotnet publish ./apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs
 git diff --check
 ```
 
@@ -340,7 +340,7 @@ The historical Codex checks below were first recorded with APM 0.18.0. The Copil
 | Static package contract | PASS | `validate-adaptive-implementation-execution.ps1` |
 | Static validator CI wiring | PASS | `validate-adaptive-implementation-execution.yml` invokes the package validator for relevant agent, package, workflow, and README changes |
 | Full package local-path dry-run | PASS | APM accepted the package manifest and listed the local package install plan |
-| File-based app publish | PASS | `dotnet publish install-adaptive-implementation-local.cs` |
+| File-based app publish | PASS | `dotnet publish finalize-codex-agent-profiles.cs` |
 | Skill local install | PASS | APM deployed `SKILL.md` and both `refs/*.md` files under `.agents/skills/adaptive-implementation-execution` |
 | Custom agent dry-run / install / check | PASS | installer completed both `.codex/agents/*.toml` files without accessing `AGENTS.md`, then `--check` returned OK |
 | APM-generated stub completion | PASS | fresh APM 0.18.0 Codex TOMLs containing only `name`, `description`, and `developer_instructions` were completed without `--force`; both model mappings were written and `--check` returned OK |
@@ -351,7 +351,7 @@ The historical Codex checks below were first recorded with APM 0.18.0. The Copil
 | Remote rollback | PASS | `apm uninstall` removed the direct package and skill, custom agent removal deleted package-owned TOMLs, and `apm prune` removed both orphaned portable agent packages; no integrated skill, agent, or package files remained |
 | Agent discovery contract | PASS | remote install created both named `.codex/agents` entries and the static validator confirmed that the skill routes to those names |
 | Copilot frontmatter and executable scenarios | PASS | the validator checks canonical agents, tracked projections, and the package local installer, then executes the schema-v3 A-J state machine and negative mutations |
-| APM 0.26.0 local package-configuration install | PASS | a temporary dependency composed from the root agents and packaged Skill deployed Copilot agents, Codex stubs, and the shared Skill; frozen reinstall preserved hashes, the Codex helper completed and checked both model mappings, and an unmanaged same-name Copilot agent was preserved without `--force` |
+| APM 0.26.0 local package-configuration install | PASS | a temporary dependency composed from the root agents and packaged Skill deployed Copilot agents, Codex stubs, and the shared Skill; frozen reinstall preserved hashes, the Codex finalizer completed and checked both model mappings, and an unmanaged same-name Copilot agent was preserved without `--force` |
 | APM 0.26.0 pinned remote install smoke | PASS | the disposable Copilot CLI E2E installed the package from full commit `816268eea12ae4e61a40f045de9448d180ef4a2c`; CI also runs `validate-adaptive-implementation-apm-smoke.ps1` |
 | Historical GitHub Copilot CLI real-model orchestration for 0.4.0 | PASS | `copilot-cli-real-model-e2e-2026-07-31.md` records the former representative-path-first contract and remains historical evidence only |
 | GitHub Copilot CLI real-model orchestration for 0.5.0 | NOT RUN | `copilot-cli-real-model-e2e-2026-08-09.md` requires a candidate remote ref and must observe zero/minimal HIGH implementation, STANDARD implementation ownership, local autonomy, and locked-boundary re-entry |

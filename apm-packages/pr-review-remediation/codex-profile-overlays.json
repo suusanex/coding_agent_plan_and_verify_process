@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "package": "pr-review-remediation",
+  "profiles": [
+    {
+      "agent": "local-reviewer",
+      "model": "gpt-5.6-terra",
+      "model_reasoning_effort": "high",
+      "sandbox_mode": "read-only"
+    },
+    {
+      "agent": "purpose-reviewer",
+      "model": "gpt-5.6-terra",
+      "model_reasoning_effort": "high",
+      "sandbox_mode": "read-only"
+    },
+    {
+      "agent": "review-planner",
+      "model": "gpt-5.6-terra",
+      "model_reasoning_effort": "high",
+      "sandbox_mode": "read-only"
+    }
+  ]
+}

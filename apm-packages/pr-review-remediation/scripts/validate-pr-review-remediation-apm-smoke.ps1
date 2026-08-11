@@ -151,13 +151,14 @@ try {
     )) {
         Assert-ApmCanonicalAgent (Join-Path $scratch 'apm_modules') $agent
     }
-    $installedReviewHelper = Join-Path $repositoryModule 'apm-packages/pr-review-remediation/scripts/sync-pr-review-remediation-local.cs'
+    $installedFinalizer = Join-Path $repositoryModule 'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs'
     $installedFakeGh = Join-Path $repositoryModule 'apm-packages/pr-review-remediation/tests/fixtures/fake-gh.cs'
-    Assert-File $installedReviewHelper 'installed review profile helper'
+    Assert-File $installedFinalizer 'installed Codex profile finalizer'
+    Assert-File (Join-Path $repositoryModule 'apm-packages/pr-review-remediation/codex-profile-overlays.json') 'installed review profile overlay'
     Assert-File $installedFakeGh 'installed fake GitHub fixture'
 
-    Invoke-Native 'dotnet' @('run', '--file', $installedReviewHelper, '--', $scratch) 'README review profile synchronization'
-    Invoke-Native 'dotnet' @('run', '--file', $installedReviewHelper, '--', $scratch, '--check') 'README review profile check'
+    Invoke-Native 'dotnet' @('run', '--file', $installedFinalizer, '--', $scratch) 'Codex profile finalization'
+    Invoke-Native 'dotnet' @('run', '--file', $installedFinalizer, '--', $scratch, '--check') 'Codex profile finalizer check'
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedReviewSkill 'scripts/collect-pr-review-context.cs'), '--', '--help') 'deployed relative collector help'
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedGoalReviewSkill 'scripts/select-goal-context.cs'), '--', '--help') 'deployed Goal Context selector help'
     Invoke-Native 'dotnet' @('run', '--file', (Join-Path $deployedGoalReviewSkill 'scripts/manage-same-parent-review.cs'), '--', '--help') 'deployed canonical same-parent manager help'
@@ -227,10 +228,10 @@ try {
     Assert-Absent (Join-Path $profileRoot 'standard-implementation-completer.toml') 'Adaptive STANDARD profile in canonical same-parent installation'
 
     if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch 'AGENTS.md')).Hash -ne $agentsHash) {
-        throw 'Remote APM install or profile helpers changed AGENTS.md.'
+        throw 'Remote APM install or Codex finalizer changed AGENTS.md.'
     }
     if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch '.codex/config.toml')).Hash -ne $configHash) {
-        throw 'Remote APM install or profile helpers changed .codex/config.toml.'
+        throw 'Remote APM install or Codex finalizer changed .codex/config.toml.'
     }
 
     Assert-Contains (Join-Path $scratch 'apm.lock.yaml') 'pr-review-remediation' 'APM lock direct package entry'

@@ -56,8 +56,8 @@ HIGH_MODELとSTANDARD_MODELのwrite-heavy workは並列化しません。非局�
 | Completion Handoff reference | skill の `refs/handoff.md` |
 | Portable HIGH_MODEL agent | `.apm/agents/high-implementation-starter.agent.md` |
 | Portable STANDARD_MODEL agent | `.apm/agents/standard-implementation-completer.agent.md` |
-| Codex agent configuration sources | `codex-agents/*.toml` |
-| Compatibility installer | `scripts/install-adaptive-implementation-local.cs` |
+| Codex profile metadata | `codex-profile-overlays.json` |
+| Shared compatibility finalizer | `../codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs` |
 | Static validator | `scripts/validate-adaptive-implementation-execution.ps1` |
 | APM 0.26.0 remote install smoke | `scripts/validate-adaptive-implementation-apm-smoke.ps1` |
 | Executable route scenarios A-J | `tests/routing-scenarios.json` + `tests/validate-routing-scenarios.ps1` |
@@ -65,7 +65,7 @@ HIGH_MODELとSTANDARD_MODELのwrite-heavy workは並列化しません。非局�
 
 package内の `.apm/agents/high-implementation-starter.agent.md` と `.apm/agents/standard-implementation-completer.agent.md` がportable agent contractのcanonical sourceです。APM 0.26.0はこれらの agent と package Skill を target ごとに導入し、install先でCopilotは`.github/agents/*.agent.md`、Codexは`.codex/agents/*.toml`としてprojectionします。両agentは`disable-model-invocation: true`によりagent pickerからの明示選択を維持しつつ、他agentのmodel判断によるsubagent起動を禁止します。`tools`は省略してCopilotの全toolを許可し、Codex変換時のfrontmatter dropを防ぎます。
 
-local installer は package の `codex-agents/high-implementation-starter.toml` と `standard-implementation-completer.toml` だけを source とし、target の `.codex/agents/*.toml` だけを書き込みます。install先の `.github/agents/*.agent.md`、Skill、その他の target file をコピーまたは更新しません。APM が Skill と portable agents を install先へprojectionし、local installer は Codex の concrete model 設定を補完します。
+共通 finalizer は package-owned `codex-profile-overlays.json` と `.apm/agents/*.agent.md` を照合し、target の `.codex/agents/*.toml` の concrete profile field だけを書き込みます。install先の `.github/agents/*.agent.md`、Skill、portable contract は変更しません。
 
 ## Quick start
 
@@ -77,19 +77,20 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-
 
 片方だけ使う場合は、Codexを`codex,agent-skills`、Copilotを`copilot,agent-skills`に絞れます。APM 0.26.0では`vscode`指定も`copilot`へ正規化されますが、manifestと文書ではcanonical target名`copilot`を使用します。`github-copilot`はAPM target名ではありません。
 
-APM install が skill と portable custom agents を導入する本体です。現行 APM が `.codex/agents/*.toml` に concrete model 設定を生成しない場合だけ、互換処理として package 付属の設定を同期し、検証します。
+APM install が skill と portable custom agents を導入する本体です。現行 APM が `.codex/agents/*.toml` に concrete model 設定を生成しない場合だけ、導入済みmoduleの共通 finalizer が package-owned overlay から補完し、検証します。
 
 CopilotではVS CodeのChat viewでagent pickerから`high-implementation-starter`を選びます。`standard-implementation-completer`から直接開始しません。model mappingはHIGH decision closure / re-entryが`GPT-5.6 Terra (copilot)`、valid `READY_FOR_STANDARD_COMPLETION`後のSTANDARD implementation ownershipが`GPT-5.6 Luna (copilot)`です。Terra -> Luna -> Terraの遷移ではtracked handoff pathを渡し、会話履歴だけにstateを置きません。
 
 ```powershell
-dotnet run --file .\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --dry-run
-dotnet run --file .\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target
-dotnet run --file .\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --check
+$moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- C:\path\to\target --dry-run
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- C:\path\to\target
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- C:\path\to\target --check
 ```
 
-installer は File-based app であり、`.csproj` は不要です。APM が生成した model 未設定の同名 custom agent は、既知の APM stub shape と package metadata が一致する場合だけ `--force` なしで補完します。それ以外の異なる同名 TOML は衝突として停止するため、内容を確認して package-owned file と判断できる場合だけ `--force` を指定します。
+finalizer は File-based app であり、`.csproj` は不要です。APM が生成した model 未設定の同名 custom agent は package ownership を確認したうえで補完します。異なる concrete profile は衝突として停止し、明示的な `--force` の場合だけ package 推奨値へ更新します。
 
-補助スクリプトがアクセスする導入先ファイルは2つの `.codex/agents/*.toml` だけです。`AGENTS.md` を作成・変更・削除せず、実行しても skill の使用や自動選択を意味しません。`--check` は model / reasoning / workspace-write 設定、role ごとの agent 名、HIGH_MODEL と STANDARD_MODEL の異なる model mapping を検証します。APM が必要な設定を直接生成できるようになれば、この互換処理は不要になる可能性があります。
+finalizer がアクセスする導入先ファイルは package-owned profile に対応する `.codex/agents/*.toml` だけです。`AGENTS.md` を作成・変更・削除せず、実行しても skill の使用や自動選択を意味しません。`--check` は model / reasoning / sandbox 設定、agent ownership、overlay conflict を検証します。APM が必要な設定を直接生成できるようになれば、この互換処理は no-op になります。
 
 skill の選択条件と、選択後の実行順序、handoff、re-entry、verification boundary の source of truth は `.apm/skills/adaptive-implementation-execution/SKILL.md` です。この package は repository 内のすべての Plan や実装作業へ skill を強制しません。skill は利用者が `/adaptive-implementation-execution` で slash 起動した場合だけ起動し、通常の「実装して」や自然文での名前言及だけでは自動選択しません。frontmatter は `disable-model-invocation: true` と `user-invocable: true` です。
 

@@ -27,7 +27,7 @@ APM install が skill と portable custom agents を導入する本体です。�
 - `.github/agents/standard-implementation-completer.agent.md`
 - Codex が生成した `high-implementation-starter` と `standard-implementation-completer` の custom agent entry
 
-現行 APM が生成した Codex TOML に concrete model、reasoning、sandbox 設定がない場合だけ、次節の互換スクリプトで package 付属設定を補完します。
+現行 APM が生成した Codex TOML に concrete model、reasoning、sandbox 設定がない場合だけ、導入済みmoduleの共通 finalizerで package-owned overlay を補完します。
 
 ### Local package validation on APM 0.26.0
 
@@ -37,7 +37,7 @@ APM install が skill と portable custom agents を導入する本体です。�
 
 ```powershell
 apm install C:\path\to\adaptive-implementation-execution\.apm\skills\adaptive-implementation-execution --target agent-skills
-dotnet run --file C:\path\to\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs -- . --dry-run
+dotnet run --file C:\path\to\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs -- . --dry-run
 ```
 
 portable agent の `git: parent` dependency は static validator で path existence を確認します。repository URL と branch ref を使った remote install / rollback の実証結果は [Adaptive Routing Validation](examples/adaptive-routing-validation.md) に記録しています。
@@ -62,22 +62,22 @@ Design Pair Implementation HandoffはAdaptiveへのvalid inputとして保持さ
 
 ## Complete missing Codex custom agent settings
 
-package の `codex-agents` には concrete model mapping の初期値があります。補助スクリプトは、現行 APM が model 未設定の custom agent TOML を生成する制約を補う互換処理です。APM が必要な設定を直接生成できる環境では実行不要です。
+package の `codex-profile-overlays.json` には concrete model mapping の初期値があります。共通 finalizerは、現行 APM が model 未設定の custom agent TOML を生成する制約を補う互換処理です。APM が必要な設定を直接生成できる環境では no-op になります。
 
 - `high-implementation-starter`: HIGH_MODEL mapping、high reasoning、workspace-write
 - `standard-implementation-completer`: STANDARD_MODEL mapping、high reasoning、workspace-write
 
-実モデル名は skill の意味ではありません。組織の契約、利用枠、品質要求に合わせて package source の TOML を fork し、top-level `model` と `model_reasoning_effort` を変更できます。ただし HIGH_MODEL と STANDARD_MODEL には異なる model mapping が必要です。
+実モデル名は skill の意味ではありません。組織の契約、利用枠、品質要求に合わせて owning package の `codex-profile-overlays.json` を変更し、top-level `model` と `model_reasoning_effort` を変更できます。ただし HIGH_MODEL と STANDARD_MODEL には異なる model mapping が必要です。
 
-補助スクリプトは2つのTOMLだけを `.codex/agents` に同期します。導入先の `AGENTS.md` を読み書きせず、skillの使用や自動選択を設定しません。
+finalizerはoverlayに対応するTOMLの `model`、`model_reasoning_effort`、`sandbox_mode` だけを補完します。導入先の `AGENTS.md` を読み書きせず、skillの使用や自動選択を設定しません。
 
 ```powershell
-dotnet run --file C:\path\to\package\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --dry-run
-dotnet run --file C:\path\to\package\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target
-dotnet run --file C:\path\to\package\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --check
+dotnet run --file C:\path\to\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs -- C:\path\to\target --dry-run
+dotnet run --file C:\path\to\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs -- C:\path\to\target
+dotnet run --file C:\path\to\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs -- C:\path\to\target --check
 ```
 
-APM が生成した model 未設定の同名 TOML は、`name`、`description`、`developer_instructions` だけを持つ既知の APM-generated model-less stub shape と package metadata が一致する場合、初回導入の中間状態として `--force` なしで補完します。model field を持つ、未知の key がある、metadata が異なるなど、APM stub と証明できない同名 TOML は既定で停止します。
+APM が生成した model 未設定の同名 TOML は、top-level `name` が package-owned agent と一致する場合、初回導入の中間状態として `--force` なしで補完します。明示済み profile field が推奨値と異なる場合は既定で停止し、`--force` のときだけ更新します。
 
 衝突内容を確認し、package-owned file と判断できる場合だけ `--force` を指定します。利用者が変更した可能性のあるTOMLを無条件に上書きしません。
 
@@ -92,12 +92,12 @@ skill と bundled refs、portable agent dependency は package static validator 
 
 ## Collision and merge policy
 
-- `.codex/agents/*.toml`: 内容が同一なら変更しない
-- APM-generated model-less stub: 既知の3 key shape、package metadata、agent instruction opening が一致する場合だけ自動補完する
-- その他の異なる同名 TOML: 既定では停止し、`--force` の明示がある場合だけ置換する
-- skill: APM の ownership に従う。補助スクリプトは skill を読み書きしない
+- `.codex/agents/*.toml`: 3つの profile field が同一なら変更しない
+- APM-generated model-less stub: top-level `name` と package-owned agent の一致を確認して自動補完する
+- 明示済み profile field が異なる同名 TOML: 既定では停止し、`--force` の明示がある場合だけ対象fieldを更新する
+- skill: APM の ownership に従う。finalizerは skill を読み書きしない
 - `.github/agents/*.agent.md`: 初回APM install時に異なる未管理同名fileがある場合は`--force`なしで保持される。内容を確認せず`--force`を使わない
-- `AGENTS.md`: 補助スクリプトは存在確認を含めてアクセスしない
+- `AGENTS.md`: finalizerは存在確認を含めてアクセスしない
 
 ## Verify
 
@@ -106,14 +106,14 @@ package source repository では次を実行します。
 ```powershell
 ./scripts/validate-adaptive-implementation-execution.ps1
 ./scripts/validate-adaptive-implementation-apm-smoke.ps1 -Repository suusanex/coding_agent_plan_and_verify_process -Ref <full-commit-sha>
-dotnet publish ./scripts/install-adaptive-implementation-local.cs
+dotnet publish ./../codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs
 git diff --check
 ```
 
 導入先では次を実行します。
 
 ```powershell
-dotnet run --file C:\path\to\package\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --check
+dotnet run --file C:\path\to\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs -- C:\path\to\target --check
 ```
 
 ## Update
@@ -123,7 +123,7 @@ apm update suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-i
 apm update suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --yes
 ```
 
-update 後、APM が concrete model 設定を生成しない場合は source TOML の差分を確認し、補助スクリプトを `--dry-run`、必要に応じた `--force`、`--check` の順で再実行します。
+update 後、APM が concrete model 設定を生成しない場合は overlay の差分を確認し、共通 finalizerを `--dry-run`、必要に応じた `--force`、`--check` の順で再実行します。
 
 ## Remove or rollback
 
@@ -134,12 +134,11 @@ apm uninstall suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptiv
 apm uninstall suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution
 ```
 
-次に、補助スクリプトが配置したTOMLを確認して削除します。TOMLがpackage sourceと一致しない場合、既定では削除しません。
+次に、finalizerが補完したTOMLを確認して削除します。明示変更されたprofile fieldは、内容を確認してから人手で扱います。
 
 ```powershell
-dotnet run --file C:\path\to\package\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --remove --dry-run
-dotnet run --file C:\path\to\package\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --remove
-dotnet run --file C:\path\to\package\scripts\install-adaptive-implementation-local.cs -- C:\path\to\target --remove --check
+apm uninstall suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --dry-run
+apm uninstall suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution
 ```
 
 最後にorphanとなったportable agent packagesをdry-runで確認してpruneします。
@@ -151,7 +150,7 @@ apm prune
 
 ## Migration from the former managed section
 
-旧versionのinstallerがroot `AGENTS.md`へ追加したmanaged sectionは、現在の補助スクリプトでは削除しません。通常のinstall、update、check、removeが `AGENTS.md` へアクセスしないことを優先し、専用cleanup機能も追加していません。
+旧versionのinstallerがroot `AGENTS.md`へ追加したmanaged sectionは、finalizerでは削除しません。通常のinstall、update、check、removeが `AGENTS.md` へアクセスしないことを優先し、専用cleanup機能も追加していません。
 
 旧sectionが残っている場合は、`<!-- adaptive-implementation-execution:start -->` から対応するend markerまでのpackage-owned sectionだけを人手で削除してください。marker外のrepository固有ルールは保持します。
 
@@ -159,4 +158,4 @@ apm prune
 
 ## Skill selection
 
-補助スクリプトの実行はskillの使用を強制しません。skillは利用者が `/adaptive-implementation-execution` で slash 起動した場合だけ選択され、通常の「実装して」「このPlanを実装して」、および「Adaptive Implementationを使って」などの自然文での名前言及だけでは選択されません。frontmatter の `disable-model-invocation: true` により model 判断での暗黙起動を禁止し、`user-invocable: true` により利用者の slash 明示起動は維持します。選択後の実行順序、HIGH_MODELとSTANDARD_MODELの役割、handoff、re-entry、verification boundaryは `SKILL.md` がsource of truthです。
+finalizerの実行はskillの使用を強制しません。skillは利用者が `/adaptive-implementation-execution` で slash 起動した場合だけ選択され、通常の「実装して」「このPlanを実装して」、および「Adaptive Implementationを使って」などの自然文での名前言及だけでは選択されません。frontmatter の `disable-model-invocation: true` により model 判断での暗黙起動を禁止し、`user-invocable: true` により利用者の slash 明示起動は維持します。選択後の実行順序、HIGH_MODELとSTANDARD_MODELの役割、handoff、re-entry、verification boundaryは `SKILL.md` がsource of truthです。

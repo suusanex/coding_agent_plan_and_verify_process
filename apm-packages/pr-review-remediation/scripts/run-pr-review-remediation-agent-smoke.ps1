@@ -269,8 +269,8 @@ if ([string]::IsNullOrWhiteSpace($EvidenceRoot)) {
     $EvidenceRoot = [IO.Path]::GetFullPath($EvidenceRoot)
 }
 
-$localProfilePath = Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\codex-agents\local-reviewer.toml'
-$plannerProfilePath = Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\codex-agents\review-planner.toml'
+$localProfilePath = Join-Path $RepositoryRoot '.codex\agents\local-reviewer.toml'
+$plannerProfilePath = Join-Path $RepositoryRoot '.codex\agents\review-planner.toml'
 $localContractPath = Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\.apm\agents\local-reviewer.agent.md'
 $plannerContractPath = Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\.apm\agents\review-planner.agent.md'
 $localTemplatePath = Join-Path $RepositoryRoot 'apm-packages\pr-review-remediation\.apm\skills\pr-review-remediation\templates\local-review-findings.md'
