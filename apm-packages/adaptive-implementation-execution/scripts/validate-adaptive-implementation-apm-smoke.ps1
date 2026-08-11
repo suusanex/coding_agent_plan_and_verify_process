@@ -177,7 +177,7 @@ try {
     Assert-Contains $codexHigh '(?m)^model\s*=\s*"gpt-5\.6-terra"\s*$' 'Codex HIGH model'
     Assert-Contains $codexStandard '(?m)^model\s*=\s*"gpt-5\.6-luna"\s*$' 'Codex STANDARD model'
     Assert-Contains $codexHigh 'non-local-decisions-closed' 'Codex HIGH decision-closure delegation basis'
-    Assert-Contains $codexStandard 'autonomously choose method-body algorithms' 'Codex STANDARD local implementation autonomy'
+    Assert-Contains $codexStandard 'method bodyのアルゴリズム' 'Codex STANDARD local implementation autonomy'
 
     if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch 'AGENTS.md')).Hash -ne $agentsHash) {
         throw 'Remote APM install or Codex finalizer changed AGENTS.md.'
