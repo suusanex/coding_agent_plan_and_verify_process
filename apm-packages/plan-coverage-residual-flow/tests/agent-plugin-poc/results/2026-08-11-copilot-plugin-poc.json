@@ -115,7 +115,7 @@
       "bundle_representation": "absent-from-PC-bundle",
       "direct_plugin": "no-in-PC-bundle",
       "apm_path": "yes",
-      "reason": "attested; separate Adaptive plugin"
+      "reason": "package-owned canonical post-#111; separate Adaptive plugin or APM materialization"
     },
     {
       "item": "Adaptive STANDARD agent",
@@ -124,7 +124,7 @@
       "bundle_representation": "absent-from-PC-bundle",
       "direct_plugin": "no-in-PC-bundle",
       "apm_path": "yes",
-      "reason": "attested; separate Adaptive plugin"
+      "reason": "package-owned canonical post-#111; separate Adaptive plugin or APM materialization"
     },
     {
       "item": "concrete model selection",

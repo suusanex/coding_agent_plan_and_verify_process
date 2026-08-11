@@ -151,7 +151,7 @@ None of these authorize rewriting `.apm/**` inside this PoC.
 
 **HOLD**
 
-Evidence: `apm-packages/plan-coverage-residual-flow/tests/agent-plugin-poc/results/2026-08-11-copilot-plugin-poc.json`  
+Evidence: `apm-packages/plan-coverage-residual-flow/tests/agent-plugin-poc/results/2026-08-11-copilot-plugin-poc.json`
 `candidate_commit`: `e3928cd95aa7afc3830fc75d37715f61d1e69722` (clean 40-char SHA)
 
 | Gate | Result |

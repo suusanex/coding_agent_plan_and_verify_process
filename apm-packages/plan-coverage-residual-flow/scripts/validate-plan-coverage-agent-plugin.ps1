@@ -24,9 +24,12 @@ $failures = [System.Collections.Generic.List[string]]::new()
 $tempParent = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
 $ownedTemps = [System.Collections.Generic.List[string]]::new()
 
+$script:SuppressFailHost = $false
 function Add-Fail([string]$Message) {
     $failures.Add($Message)
-    Write-Host "FAIL: $Message"
+    if (-not $script:SuppressFailHost) {
+        Write-Host "FAIL: $Message"
+    }
 }
 
 function Assert-True([bool]$Condition, [string]$Message) {
@@ -228,15 +231,68 @@ function Test-LockIntegrity([string]$Bundle) {
     }
 }
 
-function Test-SourceDuplicationGuard {
+function Get-SourceDuplicationFailures([string]$PackageRootPath, [string]$RepoRootPath) {
+    $fails = [System.Collections.Generic.List[string]]::new()
     foreach ($dup in @(
-            (Join-Path $packageRoot 'skills'),
-            (Join-Path $packageRoot 'agents'),
-            (Join-Path $repoRoot 'skills/plan-coverage-residual-flow'),
-            (Join-Path $repoRoot 'agent-plugin')
+            (Join-Path $PackageRootPath 'skills'),
+            (Join-Path $PackageRootPath 'agents'),
+            (Join-Path $RepoRootPath 'skills/plan-coverage-residual-flow'),
+            (Join-Path $RepoRootPath 'agent-plugin')
         )) {
-        Assert-True (-not (Test-Path -LiteralPath $dup)) "Forbidden Agent Plugins duplicate source path present: $dup"
+        if (Test-Path -LiteralPath $dup) {
+            $fails.Add("Forbidden Agent Plugins duplicate source path present: $dup") | Out-Null
+        }
     }
+    return @($fails)
+}
+
+function Test-SourceDuplicationGuard {
+    foreach ($msg in @(Get-SourceDuplicationFailures -PackageRootPath $packageRoot -RepoRootPath $repoRoot)) {
+        Add-Fail $msg
+    }
+}
+
+function Invoke-ProductionChecksOnBundle {
+    param(
+        [Parameter(Mandatory = $true)][string]$BundlePath,
+        [Parameter(Mandatory = $true)]$PackageMeta,
+        [ValidateSet('manifest', 'equivalence', 'lock', 'all')][string]$Mode = 'all'
+    )
+    $prevSuppress = $script:SuppressFailHost
+    $script:SuppressFailHost = $true
+    $before = $failures.Count
+    if ($Mode -ceq 'manifest' -or $Mode -ceq 'all') {
+        $manifestPath = Join-Path $BundlePath 'plugin.json'
+        if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+            Add-Fail "production-check: missing plugin.json under $BundlePath"
+        }
+        else {
+            try {
+                $m = Get-ManifestObject $manifestPath
+                foreach ($f in @(Test-AgentPluginsManifestConformance -Manifest $m -PackageMeta $PackageMeta -Context 'production-check')) {
+                    Add-Fail $f
+                }
+            }
+            catch {
+                Add-Fail "production-check: manifest unreadable: $_"
+            }
+        }
+    }
+    if ($Mode -ceq 'equivalence' -or $Mode -ceq 'all') {
+        Test-CanonicalEquivalence $BundlePath
+    }
+    if ($Mode -ceq 'lock' -or $Mode -ceq 'all') {
+        Test-LockIntegrity $BundlePath
+    }
+    $added = $failures.Count - $before
+    # Pop intentional failures so the overall validator can still PASS.
+    if ($added -gt 0) {
+        for ($i = 0; $i -lt $added; $i++) {
+            $failures.RemoveAt($failures.Count - 1)
+        }
+    }
+    $script:SuppressFailHost = $prevSuppress
+    return $added
 }
 
 function Test-BaselineFingerprintGate {
@@ -285,110 +341,84 @@ function Test-BaselineFingerprintGate {
 function Invoke-NegativeMutationTests {
     param([string]$GoodBundle, $PackageMeta)
 
-    Write-Host 'Running negative mutation tests on temp copies...'
+    Write-Host 'Running negative mutation tests on temp copies (production validator path)...'
 
-    function Assert-MutationFails([string]$Name, [scriptblock]$MutateManifestOrBundle) {
+    function Assert-MutationFailsProduction {
+        param(
+            [string]$Name,
+            [scriptblock]$Mutate,
+            [ValidateSet('manifest', 'equivalence', 'lock')][string]$Mode
+        )
         $tmp = New-OwnedTempDir 'ap-neg-'
         $copy = Join-Path $tmp 'bundle'
         Copy-ApDirectoryContents $GoodBundle $copy
-        & $MutateManifestOrBundle $copy
-        $manifestPath = Join-Path $copy 'plugin.json'
-        $pkgMeta = $PackageMeta
-        $m = $null
-        try {
-            $m = Get-ManifestObject $manifestPath
-        }
-        catch {
-            Write-Host "OK negative ($Name): manifest unreadable after mutation"
-            return
-        }
-        $fails = @(Test-AgentPluginsManifestConformance -Manifest $m -PackageMeta $pkgMeta -Context "neg:$Name")
-        $extraFail = $false
-        # Content mutations beyond manifest
-        if ($Name -eq 'skill-drift') {
-            $skill = Join-Path $copy 'skills/plan-coverage-residual-flow/SKILL.md'
-            if ((Get-ApNormalizedText $skill) -cne (Get-ApNormalizedText (Join-Path $canonicalRoot 'skills/plan-coverage-residual-flow/SKILL.md'))) {
-                $extraFail = $true
-            }
-        }
-        if ($Name -eq 'missing-skill-ref') {
-            $ref = Join-Path $copy 'skills/plan-coverage-residual-flow/references/coverage-ledger.md'
-            if (-not (Test-Path -LiteralPath $ref)) { $extraFail = $true }
-        }
-        if ($Name -eq 'agent-drift') {
-            $agent = Join-Path $copy 'agents/plan-kernel.agent.md'
-            if ((Get-ApNormalizedText $agent) -cne (Get-ApNormalizedText (Join-Path $canonicalRoot 'agents/plan-kernel.agent.md'))) {
-                $extraFail = $true
-            }
-        }
-        if ($Name -eq 'hash-mismatch') {
-            $extraFail = $true
-        }
-        if ($fails.Count -eq 0 -and -not $extraFail) {
-            Add-Fail "Negative mutation '$Name' did not fail conformance"
+        & $Mutate $copy
+        $detected = Invoke-ProductionChecksOnBundle -BundlePath $copy -PackageMeta $PackageMeta -Mode $Mode
+        if ($detected -le 0) {
+            Add-Fail "Negative mutation '$Name' did not fail production validator mode=$Mode"
         }
         else {
-            Write-Host "OK negative ($Name)"
+            Write-Host "OK negative ($Name) via production $Mode checks (failures=$detected)"
         }
     }
 
-    Assert-MutationFails 'schema-missing' {
+    Assert-MutationFailsProduction -Name 'schema-missing' -Mode manifest -Mutate {
         param($b)
         $p = Join-Path $b 'plugin.json'
         $o = Get-ManifestObject $p
         $o.PSObject.Properties.Remove('$schema')
         Write-ApUtf8File $p (($o | ConvertTo-Json -Depth 10))
     }
-    Assert-MutationFails 'schema-wrong' {
+    Assert-MutationFailsProduction -Name 'schema-wrong' -Mode manifest -Mutate {
         param($b)
         $p = Join-Path $b 'plugin.json'
         $o = Get-ManifestObject $p
         $o | Add-Member -NotePropertyName '$schema' -NotePropertyValue 'https://example.invalid/schema.json' -Force
         Write-ApUtf8File $p (($o | ConvertTo-Json -Depth 10))
     }
-    Assert-MutationFails 'name-drift' {
+    Assert-MutationFailsProduction -Name 'name-drift' -Mode manifest -Mutate {
         param($b)
         $p = Join-Path $b 'plugin.json'
         $o = Get-ManifestObject $p
         $o.name = 'not-plan-coverage'
         Write-ApUtf8File $p (($o | ConvertTo-Json -Depth 10))
     }
-    Assert-MutationFails 'version-drift' {
+    Assert-MutationFailsProduction -Name 'version-drift' -Mode manifest -Mutate {
         param($b)
         $p = Join-Path $b 'plugin.json'
         $o = Get-ManifestObject $p
         $o.version = '9.9.9'
         Write-ApUtf8File $p (($o | ConvertTo-Json -Depth 10))
     }
-    Assert-MutationFails 'description-drift' {
+    Assert-MutationFailsProduction -Name 'description-drift' -Mode manifest -Mutate {
         param($b)
         $p = Join-Path $b 'plugin.json'
         $o = Get-ManifestObject $p
         $o.description = 'mutated description'
         Write-ApUtf8File $p (($o | ConvertTo-Json -Depth 10))
     }
-    Assert-MutationFails 'disallowed-top-level' {
+    Assert-MutationFailsProduction -Name 'disallowed-top-level' -Mode manifest -Mutate {
         param($b)
         $p = Join-Path $b 'plugin.json'
         $o = Get-ManifestObject $p
         $o | Add-Member -NotePropertyName 'agents' -NotePropertyValue './agents' -Force
         Write-ApUtf8File $p (($o | ConvertTo-Json -Depth 10))
     }
-    Assert-MutationFails 'skill-drift' {
+    Assert-MutationFailsProduction -Name 'skill-drift' -Mode equivalence -Mutate {
         param($b)
         $skill = Join-Path $b 'skills/plan-coverage-residual-flow/SKILL.md'
         Add-Content -LiteralPath $skill -Value "`n# mutated`n" -Encoding utf8
     }
-    Assert-MutationFails 'missing-skill-ref' {
+    Assert-MutationFailsProduction -Name 'missing-skill-ref' -Mode equivalence -Mutate {
         param($b)
         Remove-Item -LiteralPath (Join-Path $b 'skills/plan-coverage-residual-flow/references/coverage-ledger.md') -Force
     }
-    Assert-MutationFails 'agent-drift' {
+    Assert-MutationFailsProduction -Name 'agent-drift' -Mode equivalence -Mutate {
         param($b)
         $agent = Join-Path $b 'agents/plan-kernel.agent.md'
         Add-Content -LiteralPath $agent -Value "`n# mutated agent`n" -Encoding utf8
     }
-    Assert-MutationFails 'hash-mismatch' {
+    Assert-MutationFailsProduction -Name 'hash-mismatch' -Mode lock -Mutate {
         param($b)
         $lockPath = Join-Path $b 'apm.lock.yaml'
         $text = Get-ApNormalizedText $lockPath
@@ -402,20 +432,21 @@ function Invoke-NegativeMutationTests {
         }
     }
 
-    # Source-tree duplicate Skill injection (temp package copy, not real source).
+    # Source-tree duplicate Skill: production duplication guard must FAIL on mutated package copy.
     $dupStage = New-OwnedTempDir 'ap-dup-src-'
     $dupPkg = Join-Path $dupStage 'pkg'
     Copy-ApDirectoryContents $packageRoot $dupPkg
     New-Item -ItemType Directory -Path (Join-Path $dupPkg 'skills/plan-coverage-residual-flow') -Force | Out-Null
     Write-ApUtf8File (Join-Path $dupPkg 'skills/plan-coverage-residual-flow/SKILL.md') "# duplicate`n"
-    if (Test-Path -LiteralPath (Join-Path $dupPkg 'skills')) {
-        Write-Host 'OK negative (source-duplicate-skill-path-detectable)'
+    $dupFails = @(Get-SourceDuplicationFailures -PackageRootPath $dupPkg -RepoRootPath $repoRoot)
+    if ($dupFails.Count -eq 0) {
+        Add-Fail 'Negative source-duplicate-skill: production duplication guard did not fail on mutated package copy'
     }
     else {
-        Add-Fail 'Negative source duplicate path was not created for detection probe'
+        Write-Host "OK negative (source-duplicate-skill) via production guard (failures=$($dupFails.Count))"
     }
 
-    # Fingerprint mismatch parity gate
+    # Fingerprint mismatch parity gate (synthetic)
     $currentFp = Get-ApCanonicalFingerprint $canonicalRoot
     $otherFp = Get-ApSha256Text 'not-the-fingerprint'
     $parityPassIllegal = ($currentFp -ceq $otherFp)
