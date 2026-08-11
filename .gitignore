@@ -5,3 +5,12 @@ apm_modules/
 # File-based app publish output
 apm-packages/adaptive-implementation-execution/scripts/artifacts/
 scripts/codex-notification-runtime/artifacts/
+
+# apm modules
+# このリポジトリ自体にapmでインストールを行うと開発対象と誤認し得るため、gitignore対象とした上で、ワークツリーごとにその都度導入する
+/apm.yml
+/apm.lock.yaml
+.github/agents/*
+.github/instructions/*
+.codex/agents/*
+.agents/*
