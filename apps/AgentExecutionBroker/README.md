@@ -42,6 +42,8 @@ terminal時にHostは既存local spoolへ`agent-execution-terminal-v1`をatomic 
 
 ## Operational trial
 
+独立した実施手順は [ManualOnly Trial Guide](MANUAL-ONLY-TRIAL.md) にまとめている。以下の要約だけでなく、承認条件、準備、通常run、cancel smoke、証跡、停止基準、後片付けを同ガイドに従う。
+
 ## Trial procedure and evidence policy
 
 人手での作業が必要: Trial前にMCPとHostをpublishし、`AGENT_EXECUTION_BROKER_HOST_PATH`へHost executableのabsolute pathを設定し、`codex mcp add agent-execution-broker -- <absolute-path-to-AgentExecutionBroker.Mcp.exe>`でproduction MCPを登録する。Inboxはproduction `CODEX_NOTIFICATION_SPOOL_HOME`を読む状態にする。
