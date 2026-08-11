@@ -314,11 +314,12 @@ Canonical Plan Coverage semantics remain runtime-neutral under `.apm/`. Distribu
 
 Current Copilot CLI status is recorded in that matrix document (GitHub Copilot CLI QUALIFIED for the fingerprint listed there). Do not treat VS Code Agent mode as qualified unless a separate runtime run says so.
 
-## Agent Plugins PoC (Issue #107)
+## Agent Plugins PoC and adoption policy (Issue #107 / #113)
 
-Same canonical `.apm` source can be packed with `apm pack --format plugin` into an Agent Plugins v1.0.0–aware bundle (`plugin.json` + `skills/` + optional client extension dirs). This is a **controlled experiment**, not a production distribution switch, and does **not** replace the #106 APM qualification baseline.
+Same canonical `.apm` source can be packed with `apm pack --format plugin` into an Agent Plugins v1.0.0–aware bundle (`plugin.json` + `skills/` + optional client extension dirs). This remains a **continuously validated future deployment candidate**, not a production distribution switch, and does **not** replace the #106 APM qualification baseline. The current supported installation and materialization path is APM; do not install an Agent Plugin and the APM projection into the same runtime/project as normal operation.
 
 - [Agent Plugins PoC document](../../docs/plan-coverage-agent-plugin-poc.md)
+- [Agent Plugins adoption policy](../../docs/agent-plugin-adoption-strategy.md)
 - [PoC fixtures / results](tests/agent-plugin-poc/README.md)
 
 ```powershell

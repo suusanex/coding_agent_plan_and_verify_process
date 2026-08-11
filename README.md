@@ -65,6 +65,8 @@ Goal Contextはfree-form textであり、`goal-context-authoring` packageへの�
 
 [Plan Coverage Check and Residual Decision Flow](apm-packages/plan-coverage-residual-flow/README.md)は、bounded Planをsource of truthとしてcoverageを追跡し、必要なimplementation / runtime / test design guardrail、Adaptive Implementation、verification、Residual Decisionをつなぎます。広い要求も`full-coverage` routeでArchitecture Slice ReadinessからResidual Decisionまで扱います。
 
+Plan Coverageの現時点のsupported installationはAPM経由です。Agent Plugins bundleは同じcanonical sourceから継続的に生成・検証する将来のdeployment candidateであり、direct plugin installを通常導入方法として扱いません。[Agent Plugins採用方針](docs/agent-plugin-adoption-strategy.md)で、APM・runtime qualification・direct deploymentの境界と昇格条件を定義しています。
+
 このrepositoryのcheckout rootから、推奨provisionerを実行します。
 
 ```powershell
