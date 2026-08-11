@@ -471,7 +471,7 @@ internal static class CodexProfileFinalizer
                 case "--force": force = true; break;
                 case "--help": case "-h": throw new ArgumentException("help");
                 default:
-                    if (arg.StartsWith('-', StringComparison.Ordinal) || targetSet)
+                    if (arg.StartsWith("-", StringComparison.Ordinal) || targetSet)
                     {
                         throw new ArgumentException($"Unknown or duplicate argument: {arg}");
                     }
