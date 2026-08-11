@@ -762,4 +762,5 @@ if ($failures.Count -gt 0) {
     exit 1
 }
 
+$global:LASTEXITCODE = 0
 Write-Output 'PR Review Remediation validation: PASS'

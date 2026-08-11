@@ -679,4 +679,5 @@ if ($failures.Count -gt 0) {
     exit 1
 }
 
+$global:LASTEXITCODE = 0
 Write-Output 'Adaptive Implementation validation: PASS'
