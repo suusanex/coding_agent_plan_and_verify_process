@@ -1,0 +1,567 @@
+{
+  "schema_version": 1,
+  "issue": 107,
+  "date": "2026-08-11",
+  "spec": {
+    "agent_plugins_version": "1.0.0",
+    "agent_plugins_schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+  },
+  "source_run": {
+    "candidate_commit": "e3928cd95aa7afc3830fc75d37715f61d1e69722",
+    "canonical_fingerprint": "98a49a9a3efa807363d3f4411f01f15992642fd1f4224fa8d8a57de2aa0e4ffb",
+    "package_version": "0.13.0",
+    "apm_yml_sha256": "a675c88e51bcbeef22af9e5637486ddbd72d70d2b5359228304773b8c834ed35",
+    "plugin_manifest_sha256": "91be9b6233cdf98b86e960bb004deefc768785267dcec2b384f42cdfa55649ab",
+    "bundle_lock_sha256": "311fe6a652fe672a8b1928f6f431721607ad0a4962e509327c26dff2317c5176",
+    "bundle_root_recorded": "(ephemeral)",
+    "source_run_id": "plan-coverage-plugin-poc-de50f7942d994110882b56944f14eece",
+    "adaptive_attestation_lock_sha256": "3944e241668efd7b801c192c456293c91137ffc7b513f0148db1ebb07795d4ce",
+    "evidence_note": "Live A-H + STD direct-load on clean commit; STD residual incomplete after session time bound; FULL skipped; no fabricated outcomes"
+  },
+  "environment": {
+    "apm_version": "Agent Package Manager (APM) CLI version 0.26.0",
+    "copilot_cli_version": "GitHub Copilot CLI 1.0.78.",
+    "platform": "Win32NT",
+    "model_requested": null,
+    "model_observed": "client-selected-or-unobserved"
+  },
+  "bundle": {
+    "status": "PASS",
+    "manifest_conformance": "PASS",
+    "canonical_skill_match": true,
+    "canonical_agent_match": true,
+    "lock_embedded": true,
+    "adaptive_in_bundle": false,
+    "plugin_json_synthesis": "pack-stage-from-apm.yml",
+    "source_plugin_json_checked_in": false
+  },
+  "copilot_direct_load": {
+    "status": "PARTIAL",
+    "plugin_discovery": "PASS",
+    "plugin_install": "PASS",
+    "plugin_load_mode": "plugin-dir",
+    "authorization": "PASS",
+    "standard_slice": "FAIL",
+    "full_coverage": "NOT_RUN",
+    "adaptive_connection": "FAIL",
+    "shared_instruction": "NOT_MATERIALIZED_IN_FIXTURE",
+    "capability_gaps": [
+      "Adaptive Skill/HIGH/STANDARD attested in source-install lock deployed_files/hashes but not inlined by apm pack of Plan Coverage (path-dep pack refused; Adaptive packs standalone)",
+      "Shared instruction not materialized to .github/instructions under direct plugin fixture",
+      "FULL-001 NOT_RUN (time/cost; skipped by flag)",
+      "STD residual-decision-gate incomplete vs #106 close criteria (session time-bound; oracle STD_001_VERIFIED)",
+      "adaptive_connection.connection_satisfied=false under #106 Adaptive observation rules (HIGH/STANDARD not in Plan Coverage plugin bundle)"
+    ]
+  },
+  "codex_direct_load": {
+    "status": "UNCONFIRMED_NO_LOCAL_DIRECT_LOAD_OBSERVED",
+    "evidence": [
+      {
+        "kind": "local_path_probe",
+        "value": "codex plugin add <local-dir> rejected; marketplace-oriented help only"
+      }
+    ]
+  },
+  "boundary_inventory": [
+    {
+      "item": "Plan Coverage SKILL.md",
+      "classification": "agent-plugins-portable",
+      "canonical_owner": ".apm/skills",
+      "bundle_representation": "skills/...",
+      "direct_plugin": "yes",
+      "apm_path": "yes",
+      "reason": "1:1 pack"
+    },
+    {
+      "item": "Skill references",
+      "classification": "agent-plugins-portable",
+      "canonical_owner": ".apm/skills/references",
+      "bundle_representation": "skills/.../references",
+      "direct_plugin": "yes",
+      "apm_path": "yes",
+      "reason": "packed with Skill"
+    },
+    {
+      "item": "Plan Coverage custom agents",
+      "classification": "copilot-plugin-extension",
+      "canonical_owner": ".apm/agents",
+      "bundle_representation": "agents/*.agent.md",
+      "direct_plugin": "yes-on-copilot",
+      "apm_path": "yes",
+      "reason": "not AP v1 portable core"
+    },
+    {
+      "item": "Plan Coverage shared instruction",
+      "classification": "apm-projection-materialization",
+      "canonical_owner": ".apm/instructions",
+      "bundle_representation": "instructions/",
+      "direct_plugin": "path-gap",
+      "apm_path": "yes",
+      "reason": ".github/instructions not seeded"
+    },
+    {
+      "item": "Adaptive Implementation Skill",
+      "classification": "transitive-portable-dependency",
+      "canonical_owner": "adaptive package",
+      "bundle_representation": "absent-from-PC-bundle; standalone-pack-ok",
+      "direct_plugin": "separate-bundle",
+      "apm_path": "yes",
+      "reason": "attested in install lock; not inlined by PC pack"
+    },
+    {
+      "item": "Adaptive HIGH agent",
+      "classification": "copilot-plugin-extension",
+      "canonical_owner": "adaptive .apm/agents",
+      "bundle_representation": "absent-from-PC-bundle",
+      "direct_plugin": "no-in-PC-bundle",
+      "apm_path": "yes",
+      "reason": "attested; separate Adaptive plugin"
+    },
+    {
+      "item": "Adaptive STANDARD agent",
+      "classification": "copilot-plugin-extension",
+      "canonical_owner": "adaptive .apm/agents",
+      "bundle_representation": "absent-from-PC-bundle",
+      "direct_plugin": "no-in-PC-bundle",
+      "apm_path": "yes",
+      "reason": "attested; separate Adaptive plugin"
+    },
+    {
+      "item": "concrete model selection",
+      "classification": "codex-runtime-adapter",
+      "canonical_owner": "provisioner",
+      "bundle_representation": "absent",
+      "direct_plugin": "n/a",
+      "apm_path": "partial",
+      "reason": "runtime-specific"
+    },
+    {
+      "item": "explicit invocation authorization",
+      "classification": "agent-plugins-portable",
+      "canonical_owner": "SKILL.md",
+      "bundle_representation": "Skill text",
+      "direct_plugin": "yes",
+      "apm_path": "yes",
+      "reason": "A-H PASS"
+    },
+    {
+      "item": "handoff state",
+      "classification": "currently-unqualified",
+      "canonical_owner": "process artifacts",
+      "bundle_representation": "n/a",
+      "direct_plugin": "process",
+      "apm_path": "yes",
+      "reason": "artifact contract"
+    },
+    {
+      "item": "APM lock/provenance",
+      "classification": "apm-distribution-provenance",
+      "canonical_owner": "apm pack/install",
+      "bundle_representation": "apm.lock.yaml + attestation lock",
+      "direct_plugin": "embedded",
+      "apm_path": "yes",
+      "reason": "pack lock + adaptive attestation lock"
+    },
+    {
+      "item": "Codex TOML projection",
+      "classification": "codex-runtime-adapter",
+      "canonical_owner": "APM codex target",
+      "bundle_representation": "absent",
+      "direct_plugin": "no",
+      "apm_path": "yes",
+      "reason": "not AP portable"
+    },
+    {
+      "item": "Copilot runtime custom agents",
+      "classification": "copilot-runtime-adapter",
+      "canonical_owner": "plugin agents/ / APM copilot",
+      "bundle_representation": "agents/",
+      "direct_plugin": "yes",
+      "apm_path": "yes",
+      "reason": "Copilot extension surface"
+    }
+  ],
+  "comparison_to_apm": {
+    "baseline_result": "tests/runtime-qualification/results/2026-08-10-copilot-cli.json",
+    "baseline_canonical_fingerprint": "98a49a9a3efa807363d3f4411f01f15992642fd1f4224fa8d8a57de2aa0e4ffb",
+    "current_canonical_fingerprint": "98a49a9a3efa807363d3f4411f01f15992642fd1f4224fa8d8a57de2aa0e4ffb",
+    "fingerprint_match": true,
+    "semantic_parity_claimed": false,
+    "install_discovery_method": {
+      "baseline": "apm install -> projections",
+      "poc": "apm pack (synthesized plugin.json) -> copilot plugin install|--plugin-dir; no PC apm install into fixture"
+    },
+    "shared_instruction": {
+      "baseline": "APM materializes .github/instructions",
+      "poc": "NOT_MATERIALIZED_IN_FIXTURE"
+    },
+    "authorization": {
+      "baseline": "A-H PASS",
+      "poc": "PASS"
+    },
+    "standard_slice": {
+      "baseline": "STD-001 PASS",
+      "poc": "FAIL"
+    },
+    "full_coverage": {
+      "baseline": "FULL-001 PASS",
+      "poc": "NOT_RUN"
+    },
+    "adaptive_connection": {
+      "baseline": "PASS",
+      "poc": "FAIL"
+    },
+    "adaptive_packaging": {
+      "install_lock_attests_skill_high_standard": true,
+      "path_dep_pack_refused": true,
+      "plan_coverage_bundle_includes_adaptive": false,
+      "adaptive_standalone_pack_ok": true
+    }
+  },
+  "scenarios": [
+    {
+      "id": "A",
+      "kind": "authorization-negative",
+      "exact_prompt": "実装して",
+      "upstream_route_evidence": null,
+      "exit_code": 0,
+      "skill_observation": "UNOBSERVABLE",
+      "agents_observed": [],
+      "created_artifacts": [
+        "QUALIFICATION_PROMPT.md"
+      ],
+      "changed_artifacts": [],
+      "verifier_results": [],
+      "route_observed": null,
+      "verdict": "caller-or-normal-route",
+      "stop_reason": null,
+      "status": "PASS",
+      "rationale": "No Plan Coverage agents, artifact writes, or route recommendations observed.",
+      "transcript_sha256": "88e4e2d00e671a2e9ab5d50e29f0dddd3d305b98383e375d99da6690fd0d633f",
+      "hook_log_sha256": "e34c64cb0b7755eaf9d7c640cc9d9ad928ed8c04c4d6893866ee3977b7e346af",
+      "evidence_boundary": "skill_observation=UNOBSERVABLE; judged from hooks/agents, artifact delta, and final response."
+    },
+    {
+      "id": "B",
+      "kind": "authorization-negative",
+      "exact_prompt": "実装して",
+      "upstream_route_evidence": null,
+      "exit_code": 0,
+      "skill_observation": "UNOBSERVABLE",
+      "agents_observed": [],
+      "created_artifacts": [
+        "QUALIFICATION_PROMPT.md"
+      ],
+      "changed_artifacts": [],
+      "verifier_results": [],
+      "route_observed": null,
+      "verdict": "caller-or-normal-route",
+      "stop_reason": null,
+      "status": "PASS",
+      "rationale": "No Plan Coverage agents, artifact writes, or route recommendations observed.",
+      "transcript_sha256": "225424c5deb103c22fcf21bf9c032ef6913f59199282cb761e4b930053fd7ddf",
+      "hook_log_sha256": "daa3535f9b1a16edee00606d4bfa7843b9cac8c22a438bc2d408e809a0f77543",
+      "evidence_boundary": "skill_observation=UNOBSERVABLE; judged from hooks/agents, artifact delta, and final response."
+    },
+    {
+      "id": "C",
+      "kind": "authorization-negative",
+      "exact_prompt": "この変更を続けて",
+      "upstream_route_evidence": null,
+      "exit_code": 0,
+      "skill_observation": "UNOBSERVABLE",
+      "agents_observed": [],
+      "created_artifacts": [
+        "QUALIFICATION_PROMPT.md"
+      ],
+      "changed_artifacts": [],
+      "verifier_results": [],
+      "route_observed": null,
+      "verdict": "caller-or-normal-route",
+      "stop_reason": null,
+      "status": "PASS",
+      "rationale": "No Plan Coverage agents, artifact writes, or route recommendations observed.",
+      "transcript_sha256": "f43baf4cbbbb538df2126b406f9192d3611662df44f09a222d289a7cf5311365",
+      "hook_log_sha256": "e346942883563958489b74cf79c4b096749d4aaf5f31a8475a8211277eec2f8f",
+      "evidence_boundary": "skill_observation=UNOBSERVABLE; judged from hooks/agents, artifact delta, and final response."
+    },
+    {
+      "id": "D",
+      "kind": "authorization-positive",
+      "exact_prompt": "plan-coverage-residual-flowを使って実装して",
+      "upstream_route_evidence": null,
+      "exit_code": 0,
+      "skill_observation": "UNOBSERVABLE",
+      "agents_observed": [
+        "plan-kernel"
+      ],
+      "created_artifacts": [
+        "QUALIFICATION_PROMPT.md"
+      ],
+      "changed_artifacts": [],
+      "verifier_results": [],
+      "route_observed": null,
+      "verdict": "authorized-flow",
+      "stop_reason": "authorized-progress",
+      "status": "PASS",
+      "rationale": "Authorization acceptance observed. agents=plan-kernel; artifacts_written=0.",
+      "transcript_sha256": "3da21c014b933d431b1a38cbc58d8ab4e15fcd08a63e55504ffb87136e5ae67a",
+      "hook_log_sha256": "d0c3a4d63dcca51d15585c072f71c4268ff11e14dd386942a673e64e49bb12d5",
+      "evidence_boundary": "skill_observation=UNOBSERVABLE; judged from hooks/agents, artifact delta, and final response."
+    },
+    {
+      "id": "E",
+      "kind": "authorization-negative",
+      "exact_prompt": null,
+      "upstream_route_evidence": {
+        "process_route": "plan-coverage-residual-flow"
+      },
+      "exit_code": 0,
+      "skill_observation": "UNOBSERVABLE",
+      "agents_observed": [],
+      "created_artifacts": [
+        "QUALIFICATION_PROMPT.md"
+      ],
+      "changed_artifacts": [],
+      "verifier_results": [],
+      "route_observed": null,
+      "verdict": "caller-or-normal-route",
+      "stop_reason": null,
+      "status": "PASS",
+      "rationale": "No Plan Coverage agents, artifact writes, or route recommendations observed.",
+      "transcript_sha256": "266a8f45a4a9cbc325cc295b25a69d404a8415cd39c6c78b8dced343913ec296",
+      "hook_log_sha256": "b9d80426a015d56884b30755e560ca01199e2e0f2dae675f89d04b73285c9586",
+      "evidence_boundary": "skill_observation=UNOBSERVABLE; judged from hooks/agents, artifact delta, and final response."
+    },
+    {
+      "id": "F",
+      "kind": "authorization-positive",
+      "exact_prompt": null,
+      "upstream_route_evidence": {
+        "process_route": "plan-coverage-residual-flow",
+        "process_route_source": "explicit-user-selection",
+        "user_selection_evidence": "user-turn:42"
+      },
+      "exit_code": 0,
+      "skill_observation": "UNOBSERVABLE",
+      "agents_observed": [],
+      "created_artifacts": [
+        "QUALIFICATION_PROMPT.md"
+      ],
+      "changed_artifacts": [],
+      "verifier_results": [],
+      "route_observed": null,
+      "verdict": "authorized-flow",
+      "stop_reason": "intake-stop-or-authorization-only",
+      "status": "PASS",
+      "rationale": "Authorization acceptance observed. agents=; artifacts_written=0.",
+      "transcript_sha256": "5cf3675667a734089aabb3b1cba5dbf955dbdc69f25403fa98b860c0d293a59b",
+      "hook_log_sha256": "01127f77146f205f80af398b2a4cb0ebbad13e3d63132fd39ce3559d7741d96b",
+      "evidence_boundary": "skill_observation=UNOBSERVABLE; judged from hooks/agents, artifact delta, and final response."
+    },
+    {
+      "id": "G",
+      "kind": "authorization-negative",
+      "exact_prompt": "plan-coverage-residual-flowは使わず、通常の実装ルートで進めて",
+      "upstream_route_evidence": null,
+      "exit_code": 0,
+      "skill_observation": "UNOBSERVABLE",
+      "agents_observed": [],
+      "created_artifacts": [
+        "QUALIFICATION_PROMPT.md"
+      ],
+      "changed_artifacts": [],
+      "verifier_results": [],
+      "route_observed": null,
+      "verdict": "caller-or-normal-route",
+      "stop_reason": null,
+      "status": "PASS",
+      "rationale": "No Plan Coverage agents, artifact writes, or route recommendations observed.",
+      "transcript_sha256": "57287fed61611f36b2524c3c6507929fe91fc59cee79c17833cd8ba5d90b1e42",
+      "hook_log_sha256": "e6172fb9ed5930cadd036dba4dbb16c61e29fd2ff1fa11d92c093db8a245cc74",
+      "evidence_boundary": "skill_observation=UNOBSERVABLE; judged from hooks/agents, artifact delta, and final response."
+    },
+    {
+      "id": "H",
+      "kind": "authorization-negative",
+      "exact_prompt": "plan-coverage-residual-flowが自動選択された理由を説明して",
+      "upstream_route_evidence": null,
+      "exit_code": 0,
+      "skill_observation": "UNOBSERVABLE",
+      "agents_observed": [],
+      "created_artifacts": [
+        "QUALIFICATION_PROMPT.md"
+      ],
+      "changed_artifacts": [],
+      "verifier_results": [],
+      "route_observed": null,
+      "verdict": "caller-or-normal-route",
+      "stop_reason": null,
+      "status": "PASS",
+      "rationale": "No Plan Coverage agents, artifact writes, or route recommendations observed.",
+      "transcript_sha256": "4931205bfa6a91aab4e29563c93492c364a0589d69bbe6774d683c5862bcd771",
+      "hook_log_sha256": "e0ada5bd29cfbd8a82309b820ad7e1c93664f40255ef079174fe7c974cc0f14c",
+      "evidence_boundary": "skill_observation=UNOBSERVABLE; judged from hooks/agents, artifact delta, and final response."
+    },
+    {
+      "id": "STD-001",
+      "kind": "standard-slice-e2e",
+      "exact_prompt": "# STD-001 request\n\nUse `plan-coverage-residual-flow` for this task.\n\n## Source requirement\n\nImplement a single-process configuration loader for this repository.\n\n### Behavior\n\n1. Load `config/appsettings.json` through the production entrypoint `src/Load-AppConfig.ps1`.\n2. Required keys: `AppName` (non-empty string), `Port` (integer 1..65535), `EnableFeatureX` (boolean).\n3. Missing file, invalid JSON, missing key, empty `AppName`, or out-of-range `Port` must throw a clear error and must not return a partial config object.\n4. Valid config returns a PowerShell object with exactly those three properties and the parsed values.\n5. Do not invent extra product settings. Do not ask the human for decisions.\n\n### Constraints\n\n- Keep the change bounded to one standard-slice sequence.\n- Do not select Design Pair.\n- You MUST drive the route by invoking repository custom agents (`.github/agents/*.agent.md`) via the task/agent tool when available, in this observable order:\n  1. `plan-kernel` (or equivalent lite Plan Coverage artifact creation owned by plan-kernel semantics)\n  2. `change-risk-triage` (must select standard-slice)\n  3. `high-implementation-starter` first for non-local decisions / initial implementation ownership\n  4. after a valid `READY_FOR_STANDARD_COMPLETION` handoff, `standard-implementation-completer`\n  5. `verification-kernel`\n  6. `residual-decision-gate`\n- Start Adaptive from HIGH. If HIGH returns `READY_FOR_STANDARD_COMPLETION`, hand off to STANDARD and record handoff evidence under `plans/`. `COMPLETED_BY_HIGH_MODEL` is a valid Adaptive terminal when no STANDARD remainder remains.\n- Leave Plan Coverage artifacts under `plans/` according to the canonical Plan Coverage contract.\n- Do not weaken or rewrite `tests/verify-std-001.ps1`. That verifier is the external oracle.\n- Do not ask clarifying questions; execute to close.\n\n### Done when\n\n- `tests/verify-std-001.ps1` exits 0\n- Plan Coverage residual decision can close without blocking residual\n- No Design Pair artifacts were created\n",
+      "upstream_route_evidence": null,
+      "exit_code": 0,
+      "skill_observation": "UNOBSERVABLE",
+      "agents_observed": [
+        "plan-kernel",
+        "change-risk-triage",
+        "verification-kernel"
+      ],
+      "route_stage_evidence": [
+        {
+          "stage": "plan-kernel",
+          "status": "OBSERVED_FROM_HOOK",
+          "evidence": "agentName=plan-kernel"
+        },
+        {
+          "stage": "change-risk-triage",
+          "status": "OBSERVED_FROM_HOOK",
+          "evidence": "agentName=change-risk-triage"
+        },
+        {
+          "stage": "architecture-slice-readiness",
+          "status": "NOT_OBSERVED",
+          "evidence": null
+        },
+        {
+          "stage": "plan-slice-decomposition",
+          "status": "NOT_OBSERVED",
+          "evidence": null
+        },
+        {
+          "stage": "verification-kernel",
+          "status": "OBSERVED_FROM_HOOK",
+          "evidence": "agentName=verification-kernel"
+        },
+        {
+          "stage": "cross-slice-verification-kernel",
+          "status": "NOT_OBSERVED",
+          "evidence": null
+        },
+        {
+          "stage": "residual-decision-gate",
+          "status": "NOT_OBSERVED",
+          "evidence": null
+        },
+        {
+          "stage": "implementation-execution",
+          "status": "NOT_OBSERVED",
+          "evidence": null
+        }
+      ],
+      "created_artifacts": [
+        "QUALIFICATION_PROMPT.md",
+        "REQUEST.md",
+        "plans/std-001-config-loader-change-risk-triage.md",
+        "plans/std-001-config-loader-plan.md",
+        "src/Load-AppConfig.ps1"
+      ],
+      "changed_artifacts": [],
+      "verifier_results": [
+        {
+          "name": "tests/verify-std-001.ps1",
+          "status": "PASS",
+          "detail": "{\"verdict\":\"STD_001_VERIFIED\",\"production_entrypoint\":\"src/Load-AppConfig.ps1\",\"valid_config_ok\":true,\"negative_cases\":[\"missing-file\",\"invalid-json\",\"missing-key\",\"empty-appname\",\"bad-port\"]}"
+        },
+        {
+          "name": "oracle-intact",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "plan-kernel",
+          "status": "PASS"
+        },
+        {
+          "name": "change-risk-triage",
+          "status": "PASS"
+        },
+        {
+          "name": "adaptive-connection-evidence",
+          "status": "PASS",
+          "detail": "connection_satisfied=False; high=NOT_OBSERVED; handoff=NOT_OBSERVED; standard=NOT_OBSERVED; high_to_standard=False"
+        },
+        {
+          "name": "verification-kernel",
+          "status": "PASS"
+        },
+        {
+          "name": "residual-decision-gate",
+          "status": "FAIL"
+        },
+        {
+          "name": "no-design-pair-auto",
+          "status": "PASS"
+        },
+        {
+          "name": "plan-artifacts-present",
+          "status": "PASS"
+        }
+      ],
+      "route_observed": "standard-slice",
+      "verdict": "INCOMPLETE",
+      "stop_reason": "residual-decision-gate",
+      "status": "FAIL",
+      "rationale": "Failed checks: residual-decision-gate",
+      "transcript_sha256": null,
+      "hook_log_sha256": "0c18910bd4afce4f049a8faee2bd0ebcc8b3765e2ebb26f36572ea167f41b359",
+      "adaptive_connection": {
+        "high_execution": {
+          "status": "NOT_OBSERVED",
+          "evidence": null,
+          "sha256": null,
+          "verdict": null,
+          "reason": null
+        },
+        "handoff": {
+          "status": "NOT_OBSERVED",
+          "evidence": null,
+          "sha256": null,
+          "verdict": null,
+          "reason": null
+        },
+        "standard_execution": {
+          "status": "NOT_OBSERVED",
+          "evidence": null,
+          "sha256": null,
+          "verdict": null,
+          "reason": null
+        },
+        "connection_satisfied": false,
+        "high_to_standard_handoff_satisfied": false,
+        "design_pair_auto_selected": false,
+        "high_observed": false,
+        "standard_observed": false,
+        "handoff_observed": false
+      },
+      "evidence_boundary": "agents_observed=hook/session structured only; Adaptive HIGH/STANDARD/handoff separated into durable phases; free-text mention is not observation."
+    }
+  ],
+  "decision": {
+    "verdict": "HOLD",
+    "rationale": [
+      "Strict Agent Plugins v1 bundle synthesized at pack stage (no checked-in package-root plugin.json); APM local-source install semantics preserved",
+      "Adaptive Skill/HIGH/STANDARD attested in source-install lock deployed_files/hashes; apm pack refuses path deps; Plan Coverage pack does not inline Adaptive; Adaptive standalone pack succeeds",
+      "Copilot direct plugin install/discovery PASS on clean commit",
+      "Authorization A-H PASS (explicit-invocation-only)",
+      "STD-001 status=FAIL (oracle STD_001_VERIFIED; residual close incomplete vs #106)",
+      "FULL-001 NOT_RUN",
+      "Codex: UNCONFIRMED_NO_LOCAL_DIRECT_LOAD_OBSERVED (local path probe rejected)",
+      "Fingerprint matches #106 baseline; semantic_parity_claimed=false"
+    ],
+    "next_steps": [
+      "Compose Adaptive via separate plugin bundle or APM materialization adapter",
+      "Optional FULL-001 re-run after Adaptive composition",
+      "Keep APM as multi-target projection + dependency materialization",
+      "No package version bump for PoC-only packaging"
+    ]
+  }
+}

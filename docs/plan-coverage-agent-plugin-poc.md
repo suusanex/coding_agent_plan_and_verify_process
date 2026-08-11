@@ -147,26 +147,32 @@ None of these authorize rewriting `.apm/**` inside this PoC.
 | **HOLD** | Bundle/portable Skill OK but shared instruction / agents / Adaptive / client limits block full parity — **PoC success if gaps are evidenced** |
 | **NO_GO** | Requires duplicate semantic source, canonical rewrite, broken explicit-invocation safety, or a custom packager instead of `apm pack` |
 
-### Current decision (2026-08-10 evidence)
+### Current decision (2026-08-11 clean-commit evidence)
 
 **HOLD**
 
-Evidence: `apm-packages/plan-coverage-residual-flow/tests/agent-plugin-poc/results/2026-08-10-copilot-plugin-poc.json`
+Evidence: `apm-packages/plan-coverage-residual-flow/tests/agent-plugin-poc/results/2026-08-11-copilot-plugin-poc.json`  
+`candidate_commit`: `e3928cd95aa7afc3830fc75d37715f61d1e69722` (clean 40-char SHA)
 
 | Gate | Result |
 | --- | --- |
-| Bundle / AP v1 conformance | PASS (`apm pack`, closed `plugin.json`, Skill/agent equivalence, lock inventory) |
+| Bundle / AP v1 conformance | PASS (`apm pack`, pack-stage synthesized closed `plugin.json`, Skill/agent equivalence, lock inventory) |
+| Package-root `plugin.json` | **Absent** (APM local-source install semantics preserved) |
+| Adaptive install-lock attestation | PASS (Skill + HIGH + STANDARD in `deployed_files` / hashes) |
+| `apm pack` + local path dep | **Refused** (expected) |
+| Adaptive in Plan Coverage plugin bundle | **Absent** |
+| Adaptive standalone plugin pack | PASS |
 | Duplicate process source | None |
 | Canonical fingerprint vs #106 | Match (`98a49a9a…`) |
 | Copilot plugin install/discovery | PASS (`plugin install` + `--plugin-dir`) |
 | Authorization A–H | PASS |
-| STD-001 | FAIL on residual-decision-gate completion (oracle `STD_001_VERIFIED`; plan-kernel / change-risk-triage / verification-kernel observed from plugin agents; route incomplete vs #106 close criteria) |
+| STD-001 | FAIL on residual-decision-gate (oracle `STD_001_VERIFIED`; plan/risk/verify stages observed) |
 | FULL-001 | NOT_RUN |
-| Adaptive connection (strict #106 rules) | FAIL (HIGH/STANDARD not in bundle; handoff documents driving-session substitute) |
-| Codex direct local bundle | UNSUPPORTED_CURRENT_CLIENT |
-| Semantic parity claimed | **false** (FULL/Adaptive/residual gaps) |
+| Adaptive connection (strict #106 rules) | FAIL (not in PC bundle) |
+| Codex local direct-load | `UNCONFIRMED_NO_LOCAL_DIRECT_LOAD_OBSERVED` |
+| Semantic parity claimed | **false** |
 
-This HOLD is a successful PoC outcome: portable packaging works; remaining surfaces are identified adapters/projections, not a forced GO.
+This HOLD is a successful PoC outcome: portable packaging works; Adaptive gap is an evidenced APM materialization / separate-plugin boundary, not a missing attestation.
 
 ## Recommended next steps
 
