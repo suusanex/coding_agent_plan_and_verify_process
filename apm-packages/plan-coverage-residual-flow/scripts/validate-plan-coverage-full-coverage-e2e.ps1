@@ -316,6 +316,9 @@ function Get-FixtureErrors([string]$Root, [System.Collections.IDictionary]$Autho
     if ($record1 -cnotmatch '\| `AR-001` \| producer atomic publication address \| `SliceLocalContract` \| implementation-contract \| No \| No \| Implementation Contract \|') {
         $errors.Add('SL-001 must preserve classification, owner, human-input, blocking, and resolution-phase evidence for AR-001.')
     }
+    if ($record1 -cnotmatch '(?s)## Implementation Contract Decisions.*### Decision Ownership Gate.*\| `AR-001` \| `SliceLocalContract` / implementation-contract \| No / No \| Implementation Contract \|.*READY_FOR_RUNTIME_CONTRACT') {
+        $errors.Add('SL-001 must retain the implementation-contract Decision Ownership Gate and a non-human readiness verdict.')
+    }
 
     foreach ($id in $allIds) {
         if ($ledger -cnotmatch [regex]::Escape("``$id``")) { $errors.Add("Canonical ledger does not classify $id.") }
@@ -474,6 +477,7 @@ try {
     Assert-NegativeMutationFails 'decision-ownership-missing' { param($r) & $script:ReplaceText (Join-Path $r $record1) '### Unresolved Decision Ownership' '### Omitted Decision Ownership' } $authority
     Assert-NegativeMutationFails 'decision-ownership-owner-lost' { param($r) & $script:ReplaceText (Join-Path $r $record1) '| `AR-001` | producer atomic publication address | `SliceLocalContract` | implementation-contract | No | No | Implementation Contract |' '| `AR-001` | producer atomic publication address | `SliceLocalContract` | none | No | No | Implementation Contract |' } $authority
     Assert-NegativeMutationFails 'decision-ownership-human-input-lost' { param($r) & $script:ReplaceText (Join-Path $r $record1) '| `AR-001` | producer atomic publication address | `SliceLocalContract` | implementation-contract | No | No | Implementation Contract |' '| `AR-001` | producer atomic publication address | `SliceLocalContract` | implementation-contract | unknown | No | Implementation Contract |' } $authority
+    Assert-NegativeMutationFails 'implementation-contract-decision-gate-missing' { param($r) & $script:ReplaceText (Join-Path $r $record1) '### Decision Ownership Gate' '### Omitted Decision Ownership Gate' } $authority
     Assert-NegativeMutationFails 'mapping-missing' { param($r) & $script:ReplaceText (Join-Path $r $record1) 'CASE-001' 'CASE-MISSING' } $authority
     Assert-NegativeMutationFails 'pending-before-verification' { param($r) & $script:ReplaceText (Join-Path $r $record1) '| Yes |' '| No |' } $authority
     Assert-NegativeMutationFails 'pending-before-close' { param($r) & $script:ReplaceText (Join-Path $r $closePath) '- Pending Coverage Ledger Delta count: 0' '- Pending Coverage Ledger Delta count: 1' } $authority

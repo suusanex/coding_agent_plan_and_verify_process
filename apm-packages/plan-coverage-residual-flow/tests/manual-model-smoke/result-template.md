@@ -25,7 +25,7 @@
 - Package commit:
 - Plan Coverage package version:
 
-| Scenario | Status (`PASS` / `FAIL` / `NOT RUN` / `UNOBSERVABLE`) | Terminal verdict | Decision Ownership Gate evidence | Human escalation scope | Evidence |
+| Scenario | Status (`PASS` / `FAIL` / `NOT RUN` / `UNOBSERVABLE`) | Terminal verdict | Section-delta / Decision Ownership Gate evidence | Human escalation scope | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | DO-001 | NOT RUN |  |  |  |  |
 | DO-002 | NOT RUN |  |  |  |  |

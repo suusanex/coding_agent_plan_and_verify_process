@@ -72,7 +72,21 @@
 
 ## Implementation Contract Decisions
 
-N/A - the approved production path and API surface are explicit in the Slice Architecture and decomposition.
+- Plan-required implementation path: publish the producer recovery result through the selected atomic publication boundary.
+- Dependency / API surface evidence: `src/ProducerState.ps1` is the selected producer implementation boundary.
+- Selected implementation approach: keep the current producer-only state authority and publish `correlation_id`, `generation`, and `published` atomically.
+- Required code changes: preserve the producer publication sequence; do not introduce a consumer-owned publication path.
+- Prohibited substitutions: a consumer startup path is not a producer publication substitute.
+- Verification hooks: `TP-001` and `XC-001`.
+- Unresolved implementation-realization items: none.
+
+### Decision Ownership Gate
+
+| Item ID | Upstream classification / owner | Human input required / Blocking | Resolution phase | Current evidence | This pass disposition |
+| --- | --- | --- | --- | --- | --- |
+| `AR-001` | `SliceLocalContract` / implementation-contract | No / No | Implementation Contract | `src/ProducerState.ps1`; current Slice Architecture and decomposition | Selected the producer atomic-publication approach; no human escalation. |
+
+- Self-check / Readiness verdict: `READY_FOR_RUNTIME_CONTRACT`.
 
 ### Independent Review
 

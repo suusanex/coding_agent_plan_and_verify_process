@@ -121,6 +121,20 @@ repository artifactを作成・編集せず、owned sectionとstable-ID ledger d
 - Prohibited substitutions:
 - Verification hooks:
 - Unresolved implementation-realization items:
+
+### Decision Ownership Gate
+
+各未解決 item について、Living Record の `Unresolved Decision Ownership` と `Human decision blockers` を確認し、次を表で記録してください。
+
+| Item ID | Upstream classification / owner | Human input required / Blocking | Resolution phase | Current evidence | This pass disposition |
+| --- | --- | --- | --- | --- | --- |
+
+1. `SliceLocalContract`、`ImplementationDetail`、または implementation-contract owner に委譲された item は、この slice 内で repository / provider evidence を調べ、minimum implementation approach を選択する。
+2. concrete production address が未実装・未確定であるだけの greenfield item は `NeedsHumanDecision` にしない。approach を選べない技術的理由が確認できた場合だけ `DependencyMissing`、`ApiSurfaceUnknown`、または `MissingButRequired` を使う。
+3. credential mechanism、lookup、preflight、fail-closed behavior は implementation/runtime contract の設計対象である。token / PAT / secret の具体値は `ManualOnly` / deployment input として残し、secret 未provisionだけで設計全体を停止しない。
+4. commit identity 等が本当に policy choice である場合だけ `NeedsHumanDecision` を使う。その場合は新しい source evidence、agent が決められない具体的選択肢、影響範囲を同じ row に記録し、無関係な technical item をまとめて human-owned にしてはいけない。
+5. upstream が `Human decision blockers: none` であることを覆す場合は、上記の新 evidence がない限り escalation してはいけない。
+
 - Self-check / Readiness verdict:
 
 ## Coverage Ledger Delta

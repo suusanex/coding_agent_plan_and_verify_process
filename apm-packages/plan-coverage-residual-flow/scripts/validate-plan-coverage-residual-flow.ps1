@@ -419,6 +419,8 @@ if ($failures.Count -eq 0) {
     Assert-Matches $sharedInstructions 'Decision ownership is durable.*SliceLocalContract.*NeedsHumanDecision' 'shared guardrails must preserve upstream decision ownership'
     Assert-Matches $decomposition '(?s)Unresolved Decision Ownership.*Classification.*Decision owner.*Human input required.*Resolution phase' 'decomposition must project decision ownership into every executable slice'
     Assert-Matches $implementationContract '(?m)^## Decision Ownership Gate\s*$' 'implementation contract must define the Decision Ownership Gate'
+    $implementationContractLivingMode = [regex]::Match($implementationContract, '(?ms)^### Slice Living Record mode\s*$.*?(?=^### Normal mode\s*$)').Value
+    Assert-Matches $implementationContractLivingMode '(?s)Implementation Contract Decisions.*Decision Ownership Gate.*Upstream classification / owner.*Coverage Ledger Delta' 'Slice Living Record implementation-contract output must include the Decision Ownership Gate and ledger delta'
     Assert-Matches $implementationContract 'greenfield item.*`NeedsHumanDecision` にしない' 'implementation contract must not escalate a missing greenfield address by itself'
     Assert-Matches $implementationContract 'credential mechanism.*ManualOnly.*secret' 'implementation contract must separate credential mechanism from the secret value'
     Assert-Matches $handoffReview 'Decision Ownership Gate.*SliceLocalContract.*Blocking として差し戻す' 'handoff review must reject unjustified human escalation'
@@ -696,6 +698,15 @@ if ($failures.Count -eq 0) {
             Assert-True ($scenario.psobject.Properties.Name -contains $field) "Decision ownership scenario $($scenario.id) missing field: $field"
         }
     }
+    $do001 = @($decisionOwnershipScenarios | Where-Object { $_.id -eq 'DO-001' } | Select-Object -First 1)
+    Assert-True ($do001.Count -eq 1) 'DO-001 must exist exactly once'
+    if ($do001.Count -eq 1) {
+        foreach ($field in @('artifact_mode', 'living_record_path', 'canonical_coverage_ledger', 'output_contract')) {
+            Assert-True ($do001[0].psobject.Properties.Name -contains $field) "DO-001 missing Slice Living Record field: $field"
+        }
+        Assert-True ($do001[0].artifact_mode -ceq 'slice-living-record') 'DO-001 must execute the Slice Living Record path'
+        Assert-True ($do001[0].output_contract -ceq 'section-delta') 'DO-001 must require a section-delta output'
+    }
     Assert-True (-not (@($decisionOwnershipScenarios | Where-Object { $_.id -eq 'DO-001' }).expected_verdicts -contains 'NEEDS_HUMAN_DECISION')) 'DO-001 must not expect NeedsHumanDecision'
     Assert-True (-not (@($decisionOwnershipScenarios | Where-Object { $_.id -eq 'DO-002' }).expected_verdicts -contains 'NEEDS_HUMAN_DECISION')) 'DO-002 must not expect NeedsHumanDecision'
     Assert-True ((@($decisionOwnershipScenarios | Where-Object { $_.id -eq 'DO-003' }).expected_verdicts -contains 'NEEDS_HUMAN_DECISION')) 'DO-003 must require an isolated NeedsHumanDecision'
@@ -706,6 +717,7 @@ if ($failures.Count -eq 0) {
     Assert-Matches $manualReadme 'Scenarios D and F.*accepts.*existing flow can proceed' 'manual smoke must define authorized observations'
     Assert-Matches $manualReadme '`NOT RUN`.*`UNOBSERVABLE`.*Neither status counts as a pass' 'manual smoke must keep unexecuted or unobservable evidence separate'
     Assert-Matches $manualReadme '(?s)Decision ownership regression smoke.*Codex.*GitHub Copilot CLI.*ManualOnly' 'manual smoke must define the cross-client decision ownership regression boundary'
+    Assert-Matches $manualReadme 'DO-001.*Slice Living Record.*section-delta' 'manual smoke must exercise decision ownership through the Slice Living Record path'
     foreach ($scenarioId in 'A'..'H') {
         Assert-Matches $manualTemplate "(?m)^\| $scenarioId \| NOT RUN \|" "manual result template must include Scenario $scenarioId"
     }

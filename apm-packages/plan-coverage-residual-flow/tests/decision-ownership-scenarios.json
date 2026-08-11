@@ -2,10 +2,14 @@
   {
     "id": "DO-001",
     "name": "SliceLocalContract entrypoint remains design-owned",
+    "artifact_mode": "slice-living-record",
+    "living_record_path": "plans/do-001-slice-SL-001.md",
+    "canonical_coverage_ledger": "plans/do-001-coverage-ledger.md",
+    "output_contract": "section-delta",
     "upstream_artifact_markdown": "# Upstream decision authority\n\n| Item ID | Item | Classification | Decision owner | Human input required | Blocking | Resolution phase | Source evidence / next action |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| `AR-001` | exact Reconcile worker entrypoint | `SliceLocalContract` | implementation-contract | No | No | Implementation Contract | Select and record the minimum production entrypoint from current repository/provider evidence. |\n\n- Human decision blockers: none\n- Repository has no existing production Reconcile entrypoint. This is a greenfield implementation item.\n",
-    "task": "Use `plan-coverage-residual-flow` and invoke `implementation-contract-kernel`. Inspect the supplied upstream authority and the disposable repository. Design the minimum production Reconcile entrypoint approach. Return the Implementation Contract output, including `Decision Ownership Gate`; do not ask the user to specify an entrypoint.",
+    "task": "Use `plan-coverage-residual-flow` and invoke `implementation-contract-kernel` with `artifact_mode: slice-living-record`, `living_record_path: plans/do-001-slice-SL-001.md`, `canonical_coverage_ledger: plans/do-001-coverage-ledger.md`, and `output_contract: section-delta`. Inspect the supplied upstream authority, the Slice Living Record, canonical ledger, and disposable repository. Design the minimum production Reconcile entrypoint approach. Return only the owned `Implementation Contract Decisions` Section Delta, including `Decision Ownership Gate`, `Coverage Ledger Delta`, and the terminal verdict; do not ask the user to specify an entrypoint.",
     "expected_verdicts": ["READY_FOR_RUNTIME_CONTRACT", "BLOCKED_BY_API_SURFACE_UNKNOWN", "BLOCKED_BY_DEPENDENCY_MISSING"],
-    "required_markers": ["Decision Ownership Gate", "SliceLocalContract", "implementation-contract"],
+    "required_markers": ["Section Delta", "Implementation Contract Decisions", "Decision Ownership Gate", "Coverage Ledger Delta", "SliceLocalContract", "implementation-contract"],
     "forbidden_human_requests": ["entrypointをユーザーが指定", "fixed entrypointを指定", "固定entrypointを指定"],
     "manual_acceptance": "A concrete minimum approach or a specific technical blocker is recorded. Mere absence of a production address is not treated as NeedsHumanDecision."
   },

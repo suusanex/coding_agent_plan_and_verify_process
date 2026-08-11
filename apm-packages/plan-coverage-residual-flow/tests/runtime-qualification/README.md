@@ -28,6 +28,8 @@ tests/decision-ownership-scenarios.json
 
 They require `implementation-contract-kernel` to keep SliceLocalContract design-owned items in scope, separate credential mechanism from ManualOnly secret provisioning, and isolate a genuine commit-identity policy escalation. A current `QUALIFIED` result requires all three scenarios to PASS.
 
+`DO-001` is the full-coverage regression path: the harness creates its Slice Living Record and canonical ledger, invokes the kernel with `artifact_mode: slice-living-record` and `output_contract: section-delta`, then requires the emitted `Implementation Contract Decisions`, `Decision Ownership Gate`, `Coverage Ledger Delta`, and terminal verdict.
+
 ## Fixtures
 
 - `copilot-cli/standard-slice/` — STD-001 bounded standard-slice E2E seed + external oracle
@@ -41,6 +43,13 @@ They require `implementation-contract-kernel` to keep SliceLocalContract design-
 # Manual GitHub Copilot CLI qualification (calls external model)
 ./apm-packages/plan-coverage-residual-flow/scripts/run-plan-coverage-copilot-qualification.ps1 `
   -ConfirmExternalModelPayload `
+  -Model <available-copilot-model>
+
+# Targeted Issue #117 behavior smoke (calls external model; ManualOnly)
+./apm-packages/plan-coverage-residual-flow/scripts/run-plan-coverage-copilot-qualification.ps1 `
+  -ConfirmExternalModelPayload `
+  -ScenarioIds DO-001,DO-002,DO-003 `
+  -KeepWorktree `
   -Model <available-copilot-model>
 
 # Optional remote package source

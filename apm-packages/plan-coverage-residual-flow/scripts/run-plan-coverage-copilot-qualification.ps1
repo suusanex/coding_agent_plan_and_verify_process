@@ -189,6 +189,33 @@ function New-DecisionOwnershipWorktree([string]$BaseInstallRoot, [object]$Scenar
     }
     Write-Utf8File (Join-Path $worktree 'README.md') "# Disposable decision ownership qualification repository`n"
     Write-Utf8File (Join-Path $worktree 'UPSTREAM.md') ([string]$Scenario.upstream_artifact_markdown)
+    if ([string]$Scenario.artifact_mode -ceq 'slice-living-record') {
+        $livingRecordPath = Join-Path $worktree ([string]$Scenario.living_record_path)
+        $ledgerPath = Join-Path $worktree ([string]$Scenario.canonical_coverage_ledger)
+        $livingRecord = @"
+# $($Scenario.id): Slice Living Record
+
+- artifact_mode: slice-living-record
+- Canonical Coverage Ledger: `$($Scenario.canonical_coverage_ledger)`
+
+## Cross-Slice Contracts / Field Continuity
+
+$($Scenario.upstream_artifact_markdown)
+
+## Implementation Contract Decisions
+
+Pending section-delta from `implementation-contract-kernel`.
+"@
+        $ledger = @"
+# $($Scenario.id): Canonical Coverage Ledger
+
+| Item ID | Current status | Source evidence |
+| --- | --- | --- |
+| `AR-001` | Unresolved | `UPSTREAM.md` |
+"@
+        Write-Utf8File $livingRecordPath $livingRecord
+        Write-Utf8File $ledgerPath $ledger
+    }
     $request = @"
 # $($Scenario.id): $($Scenario.name)
 
@@ -223,11 +250,26 @@ function Evaluate-DecisionOwnershipScenario([object]$Scenario, $Run) {
     if ($Scenario.id -eq 'DO-003' -and $text -notmatch '(?i)commit identity') {
         $failures.Add('DO-003 must isolate the commit identity policy.')
     }
+    if ([string]$Scenario.artifact_mode -ceq 'slice-living-record') {
+        foreach ($requiredSectionDeltaEvidence in @(
+            '## Section Delta',
+            "Target record: $($Scenario.living_record_path)",
+            'Target section: Implementation Contract Decisions',
+            'Semantic owner: implementation-contract-kernel',
+            '## Implementation Contract Decisions',
+            '## Decision Ownership Gate',
+            '## Coverage Ledger Delta'
+        )) {
+            if ($text -notmatch [regex]::Escape($requiredSectionDeltaEvidence)) {
+                $failures.Add("Slice Living Record section-delta evidence missing: $requiredSectionDeltaEvidence")
+            }
+        }
+    }
     return [ordered]@{
         id = [string]$Scenario.id
         kind = 'decision-ownership'
         exact_prompt = [string]$Scenario.task
-        upstream_route_evidence = [ordered]@{ scenario_id = [string]$Scenario.id; source = 'UPSTREAM.md' }
+        upstream_route_evidence = [ordered]@{ scenario_id = [string]$Scenario.id; source = 'UPSTREAM.md'; artifact_mode = [string]$Scenario.artifact_mode; living_record_path = [string]$Scenario.living_record_path; canonical_coverage_ledger = [string]$Scenario.canonical_coverage_ledger; output_contract = [string]$Scenario.output_contract }
         exit_code = $Run.ExitCode
         skill_observation = 'UNOBSERVABLE'
         agents_observed = @($Run.Agents)
@@ -241,7 +283,7 @@ function Evaluate-DecisionOwnershipScenario([object]$Scenario, $Run) {
         rationale = $(if ($failures.Count -eq 0) { [string]$Scenario.manual_acceptance } else { $failures -join '; ' })
         transcript_sha256 = $Run.TranscriptSha
         hook_log_sha256 = $Run.HookSha
-        evidence_boundary = 'skill_observation=UNOBSERVABLE; judged from hooks/agents and the emitted Decision Ownership Gate / terminal verdict.'
+        evidence_boundary = 'skill_observation=UNOBSERVABLE; judged from hooks/agents and the emitted Decision Ownership Gate / terminal verdict. Slice Living Record scenarios also require the owned section-delta envelope and canonical-ledger reference.'
     }
 }
 
