@@ -1,0 +1,36 @@
+[
+  {
+    "id": "DO-001",
+    "name": "SliceLocalContract entrypoint remains design-owned",
+    "artifact_mode": "slice-living-record",
+    "living_record_path": "plans/do-001-slice-SL-001.md",
+    "canonical_coverage_ledger": "plans/do-001-coverage-ledger.md",
+    "output_contract": "section-delta",
+    "upstream_artifact_markdown": "# Upstream decision authority\n\n| Item ID | Item | Classification | Decision owner | Human input required | Blocking | Resolution phase | Source evidence / next action |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| `AR-001` | exact Reconcile worker entrypoint | `SliceLocalContract` | implementation-contract | No | No | Implementation Contract | Select and record the minimum production entrypoint from current repository/provider evidence. |\n\n- Human decision blockers: none\n- Repository has no existing production Reconcile entrypoint. This is a greenfield implementation item.\n",
+    "task": "Use `plan-coverage-residual-flow` and invoke `implementation-contract-kernel` with `artifact_mode: slice-living-record`, `living_record_path: plans/do-001-slice-SL-001.md`, `canonical_coverage_ledger: plans/do-001-coverage-ledger.md`, and `output_contract: section-delta`. Inspect the supplied upstream authority, the Slice Living Record, canonical ledger, and disposable repository. Design the minimum production Reconcile entrypoint approach. Return only the owned `Implementation Contract Decisions` Section Delta, including `Decision Ownership Gate`, `Coverage Ledger Delta`, and the terminal verdict; do not ask the user to specify an entrypoint.",
+    "expected_verdicts": ["READY_FOR_RUNTIME_CONTRACT", "BLOCKED_BY_API_SURFACE_UNKNOWN", "BLOCKED_BY_DEPENDENCY_MISSING"],
+    "required_markers": ["Section Delta", "Implementation Contract Decisions", "Decision Ownership Gate", "Coverage Ledger Delta", "SliceLocalContract", "implementation-contract"],
+    "forbidden_human_requests": ["entrypointをユーザーが指定", "fixed entrypointを指定", "固定entrypointを指定"],
+    "manual_acceptance": "A concrete minimum approach or a specific technical blocker is recorded. Mere absence of a production address is not treated as NeedsHumanDecision."
+  },
+  {
+    "id": "DO-002",
+    "name": "Credential mechanism is separate from a secret value",
+    "upstream_artifact_markdown": "# Upstream decision authority\n\n| Item ID | Item | Classification | Decision owner | Human input required | Blocking | Resolution phase | Source evidence / next action |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| `AR-002` | GitHub credential lookup, preflight, and fail-closed behavior | `SliceLocalContract` | implementation-contract | No | No | Implementation Contract | Design the credential mechanism without storing a secret. |\n| `DEP-001` | token or PAT concrete value | `ManualOnly` | deployment/human | Yes, at provisioning only | No for design | Deployment | Provision outside the repository and verify via preflight. |\n\n- Human decision blockers: none\n- No token, PAT, or credential value is available in this fixture.\n",
+    "task": "Use `plan-coverage-residual-flow` and invoke `implementation-contract-kernel`. Design credential lookup, preflight, and fail-closed behavior without inventing or storing a secret value. Return the Implementation Contract output, including `Decision Ownership Gate`.",
+    "expected_verdicts": ["READY_FOR_RUNTIME_CONTRACT", "BLOCKED_BY_API_SURFACE_UNKNOWN", "BLOCKED_BY_DEPENDENCY_MISSING"],
+    "required_markers": ["Decision Ownership Gate", "ManualOnly", "preflight"],
+    "forbidden_human_requests": ["credential関連の全設計を指定", "tokenをrepositoryへ保存"],
+    "manual_acceptance": "Credential mechanism is designed, while only the secret instance is ManualOnly / deployment input. Missing secret provisioning alone does not stop design."
+  },
+  {
+    "id": "DO-003",
+    "name": "Commit identity is an isolated genuine policy decision",
+    "upstream_artifact_markdown": "# Upstream decision authority\n\n| Item ID | Item | Classification | Decision owner | Human input required | Blocking | Resolution phase | Source evidence / next action |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| `AR-003` | Reconcile entrypoint and checkout lifecycle | `SliceLocalContract` | implementation-contract | No | No | Implementation Contract | Select the minimum technical approach. |\n| `POL-001` | Commit identity: existing user identity or automation-only identity | `NeedsHumanDecision` | product/policy authority | Yes | Yes | Implementation Contract | Choose the audit identity policy before writes are enabled. |\n\n- Human decision blockers: `POL-001` only\n- The two identity choices have different audit and attribution semantics.\n",
+    "task": "Use `plan-coverage-residual-flow` and invoke `implementation-contract-kernel`. Keep the Reconcile entrypoint and checkout lifecycle as design-owned technical work. Stop only for the commit identity policy, state the two choices and their audit impact, and return the Implementation Contract output including `Decision Ownership Gate`.",
+    "expected_verdicts": ["NEEDS_HUMAN_DECISION"],
+    "required_markers": ["Decision Ownership Gate", "commit identity", "policy"],
+    "forbidden_human_requests": ["entrypointをユーザーが指定", "checkout strategyをユーザーが指定", "credential mechanismをユーザーが指定"],
+    "manual_acceptance": "NeedsHumanDecision is limited to the stated commit identity policy. Technical design-owned items are not bundled into the escalation."
+  }
+]

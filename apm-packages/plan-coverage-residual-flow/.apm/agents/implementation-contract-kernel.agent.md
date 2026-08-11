@@ -37,7 +37,7 @@ You are the "Implementation Contract Kernel" agent.
 この agent は実行時に `docs/` への依存を持ってはいけません。共通の Plan source-of-truth、No fake-only completion、Residual explicit decision、bounded reading、Handoff Packet discipline は `.github/instructions/plan-coverage-shared.instructions.md` に従います。
 
 - **No nearest-neighbor substitution**: Plan-required path `X` が未確認なとき、既存の類似 path `Y` を production address として採用してはいけない。`Y` は `RejectedSubstitute` または明示的 `AllowedReuse` として記録する。
-- **Unknown stays visible**: dependency / API / symbol / wiring point を確認できない場合は `MissingButRequired`、`DependencyMissing`、`ApiSurfaceUnknown`、`NeedsHumanDecision`、`OutOfScopeForThisPass` を使って可視化する。
+- **Unknown stays visible**: dependency / API / symbol / wiring point を確認できない場合は `MissingButRequired`、`DependencyMissing`、`ApiSurfaceUnknown`、`NeedsHumanDecision`、`OutOfScopeForThisPass` を使って可視化する。`NeedsHumanDecision` は真正な product / architecture / policy / risk 判断に限定し、implementation-owned な greenfield design item や ManualOnly secret value の代用にしてはいけない。
 - **No implementation**: production code を実装しない。tests を実装しない。broad redesign に進まない。
 - **Self-check in the same artifact**: implementation contract と readiness self-check verdict は 1 つの artifact にまとめる。separate review artifact は通常必須ではなく、explicit review-only fallback が必要な場合だけ使う。
 
@@ -121,6 +121,20 @@ repository artifactを作成・編集せず、owned sectionとstable-ID ledger d
 - Prohibited substitutions:
 - Verification hooks:
 - Unresolved implementation-realization items:
+
+### Decision Ownership Gate
+
+各未解決 item について、Living Record の `Unresolved Decision Ownership` と `Human decision blockers` を確認し、次を表で記録してください。
+
+| Item ID | Upstream classification / owner | Human input required / Blocking | Resolution phase | Current evidence | This pass disposition |
+| --- | --- | --- | --- | --- | --- |
+
+1. `SliceLocalContract`、`ImplementationDetail`、または implementation-contract owner に委譲された item は、この slice 内で repository / provider evidence を調べ、minimum implementation approach を選択する。
+2. concrete production address が未実装・未確定であるだけの greenfield item は `NeedsHumanDecision` にしない。approach を選べない技術的理由が確認できた場合だけ `DependencyMissing`、`ApiSurfaceUnknown`、または `MissingButRequired` を使う。
+3. credential mechanism、lookup、preflight、fail-closed behavior は implementation/runtime contract の設計対象である。token / PAT / secret の具体値は `ManualOnly` / deployment input として残し、secret 未provisionだけで設計全体を停止しない。
+4. commit identity 等が本当に policy choice である場合だけ `NeedsHumanDecision` を使う。その場合は新しい source evidence、agent が決められない具体的選択肢、影響範囲を同じ row に記録し、無関係な technical item をまとめて human-owned にしてはいけない。
+5. upstream が `Human decision blockers: none` であることを覆す場合は、上記の新 evidence がない限り escalation してはいけない。
+
 - Self-check / Readiness verdict:
 
 ## Coverage Ledger Delta
@@ -160,6 +174,21 @@ Slice Plan、XC mapping、architecture baseline、または別sectionを再解�
 ## 検証フック
 
 ## 未解決の実装実現性項目
+
+## Decision Ownership Gate
+
+各未解決 item について、upstream Plan / Architecture / Slice Living Record の `Unresolved Decision Ownership` と `Human decision blockers` を確認し、次を表で記録してください。
+
+| Item ID | Upstream classification / owner | Human input required / Blocking | Resolution phase | Current evidence | This pass disposition |
+| --- | --- | --- | --- | --- | --- |
+
+次の順で判断してください。
+
+1. `SliceLocalContract`、`ImplementationDetail`、または implementation-contract owner に委譲された item は、この slice 内で repository / provider evidence を調べ、minimum implementation approach を選択する。
+2. concrete production address が未実装・未確定であるだけの greenfield item は `NeedsHumanDecision` にしない。approach を選べない技術的理由が確認できた場合だけ `DependencyMissing`、`ApiSurfaceUnknown`、または `MissingButRequired` を使う。
+3. credential mechanism、lookup、preflight、fail-closed behavior は implementation/runtime contract の設計対象である。token / PAT / secret の具体値は `ManualOnly` / deployment input として残し、secret 未provisionだけで設計全体を停止しない。
+4. commit identity 等が本当に policy choice である場合だけ `NeedsHumanDecision` を使う。その場合は新しい source evidence、agent が決められない具体的選択肢、影響範囲を同じ row に記録し、無関係な technical item をまとめて human-owned にしてはいけない。
+5. upstream が `Human decision blockers: none` であることを覆す場合は、上記の新 evidence がない限り escalation してはいけない。
 
 ## Self-check / Readiness verdict
 
@@ -202,7 +231,7 @@ Slice Plan、XC mapping、architecture baseline、または別sectionを再解�
 | `BLOCKED_BY_API_SURFACE_UNKNOWN` | Plan-required namespace / type / method / provider ID / configuration key が未確認 |
 | `BLOCKED_BY_UNJUSTIFIED_SUBSTITUTION` | Plan-required path の代わりに nearby path が正当化なく使われている、または使われようとしている |
 | `BLOCKED_BY_SOURCE_OF_TRUTH_DRIFT` | Plan、triage、implementation contract decision の間に source-of-truth drift がある |
-| `NEEDS_HUMAN_DECISION` | product、architecture、policy、risk、または external dependency に関する human decision が必要 |
+| `NEEDS_HUMAN_DECISION` | product、architecture、policy、risk、または agent が選択できない external dependency に関する human decision が必要。Decision Ownership Gate の new evidence と具体的選択肢が必須 |
 
 Ready verdict は、unresolved implementation-realization item が downstream で安全に扱える形で明示され、実装者が guessed production address を作らずに進める場合だけ出してください。
 

@@ -227,6 +227,7 @@ $changeRiskResultSchemaRelativePath = 'apm-packages/plan-coverage-residual-flow/
 $changeRiskResultSummaryRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/results/2026-08-09.md'
 $changeRiskHashRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/change-risk-triage/agent.sha256'
 $scenarioRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/invocation-authorization-scenarios.json'
+$decisionOwnershipScenarioRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/decision-ownership-scenarios.json'
 $manualReadmeRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/manual-model-smoke/README.md'
 $manualTemplateRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/manual-model-smoke/result-template.md'
 $standaloneE2ERelativePath = 'apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1'
@@ -258,6 +259,7 @@ $requiredFiles = @(
     $changeRiskResultSummaryRelativePath,
     $changeRiskHashRelativePath,
     $scenarioRelativePath,
+    $decisionOwnershipScenarioRelativePath,
     $manualReadmeRelativePath,
     $manualTemplateRelativePath,
     $standaloneE2ERelativePath,
@@ -337,7 +339,7 @@ if ($failures.Count -eq 0) {
 
     $manifest = Get-NormalizedText (Join-Path $repoRoot $manifestRelativePath)
     Assert-Matches $manifest '(?m)^name:\s*plan-coverage-residual-flow\s*$' 'package name must remain stable'
-    Assert-Matches $manifest '(?m)^version:\s*0\.13\.0\s*$' 'package version must be 0.13.0'
+    Assert-Matches $manifest '(?m)^version:\s*0\.14\.0\s*$' 'package version must be 0.14.0'
     Assert-Matches $manifest '(?m)^includes:\s*auto\s*$' 'package must distribute package-owned .apm primitives via includes: auto'
     Assert-Matches $manifest '(?ms)dependencies:\s*\n\s*apm:\s*\n(?:\s*#[^\n]*\n)*\s*-\s*git:\s*parent\s*\n\s*path:\s*apm-packages/adaptive-implementation-execution\s*$' 'Adaptive dependency must use the Adaptive package boundary only'
     Assert-NotMatches $manifest '\.github/agents/' 'Plan Coverage manifest must not re-own agents via root .github/agents dependencies'
@@ -355,8 +357,8 @@ if ($failures.Count -eq 0) {
 
     $adaptiveValidator = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1')
     $designPairValidator = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1')
-    Assert-Matches $adaptiveValidator "plan-coverage-residual-flow/apm\.yml'; Version = '0\\\.13\\\.0'" 'Adaptive validator package version pin must be 0.13.0'
-    Assert-Matches $designPairValidator 'Plan Coverage package version 0\.13\.0' 'Design Pair validator package version pin must be 0.13.0'
+    Assert-Matches $adaptiveValidator "plan-coverage-residual-flow/apm\.yml'; Version = '0\\\.14\\\.0'" 'Adaptive validator package version pin must be 0.14.0'
+    Assert-Matches $designPairValidator 'Plan Coverage package version 0\.14\.0' 'Design Pair validator package version pin must be 0.14.0'
 
     Assert-Matches $skill 'package-owned canonical agent definitions' 'Skill must identify package-owned canonical agents as the contract authority'
     Assert-Matches $skill 'Do not treat `\.github/agents` or `\.codex/agents` as independent contract authorities' 'Skill must reject runtime projections as independent contract authorities'
@@ -374,6 +376,7 @@ if ($failures.Count -eq 0) {
     $architectureReadiness = Get-NormalizedText (Join-Path $repoRoot $architectureReadinessRelativePath)
     $decomposition = Get-NormalizedText (Join-Path $repoRoot $decompositionRelativePath)
     $sharedInstructions = Get-NormalizedText (Join-Path $repoRoot $sharedInstructionsRelativePath)
+    $implementationContract = Get-NormalizedText (Join-Path $repoRoot "$canonicalAgentsRelativeRoot/implementation-contract-kernel.agent.md")
     $handoffReview = Get-NormalizedText (Join-Path $repoRoot "$canonicalAgentsRelativeRoot/implementation-handoff-review.agent.md")
     $verificationKernel = Get-NormalizedText (Join-Path $repoRoot "$canonicalAgentsRelativeRoot/verification-kernel.agent.md")
     $gapResolution = Get-NormalizedText (Join-Path $repoRoot "$canonicalAgentsRelativeRoot/coverage-gap-resolution-slice.agent.md")
@@ -413,6 +416,14 @@ if ($failures.Count -eq 0) {
     Assert-Matches $handoffReview '(?m)^#### Check 11\. Architecture baseline compatibility\s*$' 'implementation handoff review must own the architecture compatibility gate'
     Assert-Matches $handoffReview '\| Slice ID \| Readiness verdict \| Baseline authority \| Baseline identity \| Observed semantics \| Match / Drift / Unclear \| Required action \|' 'implementation handoff review must emit architecture compatibility evidence'
     Assert-Matches $handoffReview '`ArchitectureNotRequired`.*Lightweight architecture baseline' 'ArchitectureNotRequired must retain baseline comparison'
+    Assert-Matches $sharedInstructions 'Decision ownership is durable.*SliceLocalContract.*NeedsHumanDecision' 'shared guardrails must preserve upstream decision ownership'
+    Assert-Matches $decomposition '(?s)Unresolved Decision Ownership.*Classification.*Decision owner.*Human input required.*Resolution phase' 'decomposition must project decision ownership into every executable slice'
+    Assert-Matches $implementationContract '(?m)^## Decision Ownership Gate\s*$' 'implementation contract must define the Decision Ownership Gate'
+    $implementationContractLivingMode = [regex]::Match($implementationContract, '(?ms)^### Slice Living Record mode\s*$.*?(?=^### Normal mode\s*$)').Value
+    Assert-Matches $implementationContractLivingMode '(?s)Implementation Contract Decisions.*Decision Ownership Gate.*Upstream classification / owner.*Coverage Ledger Delta' 'Slice Living Record implementation-contract output must include the Decision Ownership Gate and ledger delta'
+    Assert-Matches $implementationContract 'greenfield item.*`NeedsHumanDecision` にしない' 'implementation contract must not escalate a missing greenfield address by itself'
+    Assert-Matches $implementationContract 'credential mechanism.*ManualOnly.*secret' 'implementation contract must separate credential mechanism from the secret value'
+    Assert-Matches $handoffReview 'Decision Ownership Gate.*SliceLocalContract.*Blocking として差し戻す' 'handoff review must reject unjustified human escalation'
     Assert-NotMatches $processDocumentation 'Slice preparation and parent review return `Match`' 'active docs must not assign architecture compatibility to removed 3-layer owners'
 
     Assert-Matches $changeRisk '(?m)^## Bounded runtime sequence\s*$' 'Change Risk Triage must emit a bounded runtime sequence before profile selection'
@@ -679,16 +690,43 @@ if ($failures.Count -eq 0) {
         }
     }
 
+    $decisionOwnershipScenarios = @(Get-Content -Raw -LiteralPath (Join-Path $repoRoot $decisionOwnershipScenarioRelativePath) | ConvertFrom-Json)
+    Assert-True ($decisionOwnershipScenarios.Count -eq 3) 'Decision ownership fixture must contain exactly DO-001 through DO-003'
+    Assert-True ((@($decisionOwnershipScenarios.id) -join ',') -ceq 'DO-001,DO-002,DO-003') 'Decision ownership scenario IDs must be ordered DO-001 through DO-003'
+    foreach ($scenario in $decisionOwnershipScenarios) {
+        foreach ($field in @('name', 'upstream_artifact_markdown', 'task', 'expected_verdicts', 'required_markers', 'forbidden_human_requests', 'manual_acceptance')) {
+            Assert-True ($scenario.psobject.Properties.Name -contains $field) "Decision ownership scenario $($scenario.id) missing field: $field"
+        }
+    }
+    $do001 = @($decisionOwnershipScenarios | Where-Object { $_.id -eq 'DO-001' } | Select-Object -First 1)
+    Assert-True ($do001.Count -eq 1) 'DO-001 must exist exactly once'
+    if ($do001.Count -eq 1) {
+        foreach ($field in @('artifact_mode', 'living_record_path', 'canonical_coverage_ledger', 'output_contract')) {
+            Assert-True ($do001[0].psobject.Properties.Name -contains $field) "DO-001 missing Slice Living Record field: $field"
+        }
+        Assert-True ($do001[0].artifact_mode -ceq 'slice-living-record') 'DO-001 must execute the Slice Living Record path'
+        Assert-True ($do001[0].output_contract -ceq 'section-delta') 'DO-001 must require a section-delta output'
+    }
+    Assert-True (-not (@($decisionOwnershipScenarios | Where-Object { $_.id -eq 'DO-001' }).expected_verdicts -contains 'NEEDS_HUMAN_DECISION')) 'DO-001 must not expect NeedsHumanDecision'
+    Assert-True (-not (@($decisionOwnershipScenarios | Where-Object { $_.id -eq 'DO-002' }).expected_verdicts -contains 'NEEDS_HUMAN_DECISION')) 'DO-002 must not expect NeedsHumanDecision'
+    Assert-True ((@($decisionOwnershipScenarios | Where-Object { $_.id -eq 'DO-003' }).expected_verdicts -contains 'NEEDS_HUMAN_DECISION')) 'DO-003 must require an isolated NeedsHumanDecision'
+
     $manualReadme = Get-NormalizedText (Join-Path $repoRoot $manualReadmeRelativePath)
     $manualTemplate = Get-NormalizedText (Join-Path $repoRoot $manualTemplateRelativePath)
     Assert-Matches $manualReadme 'Scenarios A, B, C, E, G, and H.*not selected.*no Plan Coverage artifact.*no Plan Coverage agent' 'manual smoke must define unauthorized observations'
     Assert-Matches $manualReadme 'Scenarios D and F.*accepts.*existing flow can proceed' 'manual smoke must define authorized observations'
     Assert-Matches $manualReadme '`NOT RUN`.*`UNOBSERVABLE`.*Neither status counts as a pass' 'manual smoke must keep unexecuted or unobservable evidence separate'
+    Assert-Matches $manualReadme '(?s)Decision ownership regression smoke.*Codex.*GitHub Copilot CLI.*ManualOnly' 'manual smoke must define the cross-client decision ownership regression boundary'
+    Assert-Matches $manualReadme 'DO-001.*Slice Living Record.*section-delta' 'manual smoke must exercise decision ownership through the Slice Living Record path'
     foreach ($scenarioId in 'A'..'H') {
         Assert-Matches $manualTemplate "(?m)^\| $scenarioId \| NOT RUN \|" "manual result template must include Scenario $scenarioId"
     }
+    foreach ($scenarioId in @('DO-001', 'DO-002', 'DO-003')) {
+        Assert-Matches $manualTemplate "(?m)^\| $scenarioId \| NOT RUN \|" "manual result template must include decision ownership scenario $scenarioId"
+    }
 
     $standaloneE2E = Get-NormalizedText (Join-Path $repoRoot $standaloneE2ERelativePath)
+    $copilotQualification = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/plan-coverage-residual-flow/scripts/run-plan-coverage-copilot-qualification.ps1')
     $standaloneFixtureReadme = Get-NormalizedText (Join-Path $repoRoot $standaloneFixtureReadmeRelativePath)
     $standaloneFixtureExpected = Get-NormalizedText (Join-Path $repoRoot $standaloneFixtureExpectedRelativePath)
     $apmSmoke = Get-NormalizedText (Join-Path $repoRoot $apmSmokeRelativePath)
@@ -704,6 +742,13 @@ if ($failures.Count -eq 0) {
     foreach ($authorityCheck in @('Get-MarkdownTemplate', 'Add-TemplateShapeErrors', 'SliceLivingRecord', 'FullCoverageClose')) {
         Assert-Matches $standaloneE2E ([regex]::Escape($authorityCheck)) "standalone E2E validator must enforce current artifact authority through $authorityCheck"
     }
+    Assert-Matches $copilotQualification "'### Decision Ownership Gate'" 'Slice Living Record qualification oracle must require the agent-defined heading level'
+    Assert-Matches $copilotQualification '\$decisionOutputText = \[string\]\$Run\.Stdout' 'decision ownership verdicts must be read from model output, not the loaded agent contract'
+    Assert-Matches $copilotQualification '(?s)\[int\]\$Run\.ExitCode -ne 0.*\$failures\.Add' 'decision ownership oracle must fail closed on Copilot CLI errors'
+    Assert-Matches $copilotQualification '(?s)terminalVerdictPattern.*Self-check / Readiness verdict.*terminalVerdictMatches\.Count -ne 1' 'decision ownership oracle must compare one explicit terminal verdict'
+    Assert-Matches $copilotQualification '(?s)function New-RunFromEvidenceDir.*\[int\]\$ExitCode.*ExitCode = \$ExitCode' 'kept evidence re-evaluation must preserve the recorded Copilot exit code'
+    Assert-Matches $copilotQualification '(?s)\$priorExitCode.*exit_code.*New-RunFromEvidenceDir.*\$priorExitCode' 'decision ownership re-evaluation must pass the recorded exit code into the oracle'
+    Assert-Matches $copilotQualification '(?s)decision-ownership-\$sid.*Evaluate-DecisionOwnershipScenario' 'kept qualification evidence must re-evaluate decision ownership scenarios'
     foreach ($negativeCase in @('missing-required-section', 'owner-outside-section', 'missing-independent-verification', 'missing-production-binding', 'fake-only-evidence', 'xc-field-continuity-missing', 'mapping-missing', 'pending-before-verification', 'pending-before-close', 'ledger-contradiction', 'ungated-separate-artifact', 'artifact-budget-exceeded', 'required-slice-unverified', 'residual-before-cross', 'forced-legacy-migration', 'mixed-artifact-mode', 'removed-three-layer-semantics')) {
         Assert-Matches $standaloneE2E ([regex]::Escape($negativeCase)) "standalone E2E validator must fail closed for $negativeCase"
     }

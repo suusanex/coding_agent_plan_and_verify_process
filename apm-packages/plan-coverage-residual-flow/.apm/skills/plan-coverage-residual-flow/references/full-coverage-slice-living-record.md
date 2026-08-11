@@ -47,6 +47,11 @@ The Plan Coverage parent/router is the only repository writer for this record an
 - Source authority:
 - Deferred / unresolved items:
 
+### Unresolved Decision Ownership
+
+| Item ID | Item | Classification | Decision owner | Human input required | Blocking | Resolution phase | Source evidence / next action |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+
 ## Slice Risk / Guardrail Selection
 
 - Inherited parent risks:
@@ -144,7 +149,7 @@ N/A when no Test Design Kernel is required.
 | Record Metadata | Plan Coverage parent | Plan Coverage parent |
 | Slice Plan / Scope | `plan-slice-decomposition` | Plan Coverage parent |
 | Parent / Behavior Mapping | `plan-slice-decomposition` | Plan Coverage parent |
-| Cross-Slice Contracts / Field Continuity | `plan-slice-decomposition` | Plan Coverage parent |
+| Cross-Slice Contracts / Field Continuity, including Unresolved Decision Ownership | `plan-slice-decomposition` | Plan Coverage parent |
 | Slice Risk / Guardrail Selection | `change-risk-triage` slice-local delta mode | Plan Coverage parent |
 | Implementation Contract Decisions, excluding Independent Review | `implementation-contract-kernel` | Plan Coverage parent |
 | Implementation Contract Decisions / Independent Review | `implementation-contract-review-kernel` | Plan Coverage parent |

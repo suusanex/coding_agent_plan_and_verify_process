@@ -201,7 +201,7 @@ full-coverage
      -> residual-decision-gate
 ```
 
-新規full-coverage runは`documentation_level: standard`と`artifact_mode: slice-living-record`を別々に記録します。`plan-slice-decomposition`が作る各`plans/<slug>-slice-SL-xxx.md`はbounded Slice Planを兼ねるcanonical Living Recordです。risk、implementation contract、runtime contract、test design、Inline Ready Gate、Adaptive evidence、independent verification、coverage delta、residual handoffを同じrecordから追跡できます。
+新規full-coverage runは`documentation_level: standard`と`artifact_mode: slice-living-record`を別々に記録します。`plan-slice-decomposition`が作る各`plans/<slug>-slice-SL-xxx.md`はbounded Slice Planを兼ねるcanonical Living Recordです。risk、implementation contract、runtime contract、test design、Inline Ready Gate、Adaptive evidence、independent verification、coverage delta、residual handoffを同じrecordから追跡できます。`Unresolved Decision Ownership`は、Architecture / Planから引き継ぐitem ID、classification、decision owner、human input requirement、blocking、resolution phase、source evidenceを保持する。`SliceLocalContract`またはimplementation-contract ownerのgreenfield itemは、concrete addressが未実装という理由だけで`NeedsHumanDecision`へ昇格しない。
 
 agent semanticsとverdict vocabularyは維持されますが、各agentはowned section deltaだけを返し、Plan Coverage parent/routerだけがLiving Recordとcanonical Coverage Ledgerをrepositoryへ書きます。`StandardSliceSufficient`はdecomposition不要の成功verdictであり、original triageを監査証跡として残したまま`selected_process: standard-slice`へ戻します。`ArchitectureNotRequired`は複数sliceが必要だが独立architecture artifactが不要な場合だけ維持します。implementation-contract review-only fallbackは`Implementation Contract Decisions / Independent Review`へ、gap repairは`Gap Repair Evidence`へ投影します。implementation-realization gapでcurrent `Implementation Contract Decisions`が不足する場合、repair agentは別artifactやsectionを作成せず、parentへ`implementation-contract-kernel`のsection-delta実行を要求し、parent適用後にrepairを再開します。current architecture baselineとのcompatibilityが`Match`の場合だけAdaptive Implementationへ進み、`Drift`はArchitecture Slice Readiness / Elaborationへ戻し、`Unclear`はfail closedしてreadinessを再実行します。`ArchitectureNotRequired`でもLightweight architecture baselineとの比較を省略しません。全sliceのindependent verificationとpending ledger delta 0の後、`plans/<slug>-full-coverage-close.md`へCross-Slice Verificationを適用し、FixNow候補がある場合は対象sliceのtriage / repair / re-verificationとcross-slice rerunを完了してからResidual Decisionへ進みます。
 
@@ -307,12 +307,12 @@ residual decisionのclose verdictは次を含みます。
 
 ## Runtime qualification
 
-Canonical Plan Coverage semantics remain runtime-neutral under `.apm/`. Distribution projection for `copilot` / `codex` / `agent-skills` is checked by the fresh APM install smoke. GitHub Copilot CLI runtime qualification (authorization A–H, STD-001, FULL-001) is separate evidence:
+Canonical Plan Coverage semantics remain runtime-neutral under `.apm/`. Distribution projection for `copilot` / `codex` / `agent-skills` is checked by the fresh APM install smoke. GitHub Copilot CLI runtime qualification (authorization A–H, decision ownership DO-001〜DO-003, STD-001, FULL-001) is separate evidence:
 
 - [Runtime qualification matrix](../../docs/plan-coverage-runtime-qualification.md)
 - [Runtime qualification fixtures](tests/runtime-qualification/README.md)
 
-Current Copilot CLI status is recorded in that matrix document (GitHub Copilot CLI QUALIFIED for the fingerprint listed there). Do not treat VS Code Agent mode as qualified unless a separate runtime run says so.
+Current Copilot CLI status is recorded in that matrix document. The targeted current run passed DO-001〜DO-003; the status remains `PENDING` until a fresh run also passes A-H, STD-001, and FULL-001. Do not treat VS Code Agent mode as qualified unless a separate runtime run says so.
 
 ## Agent Plugins PoC and adoption policy (Issue #107 / #113)
 
@@ -346,7 +346,7 @@ Same canonical `.apm` source can be packed with `apm pack --format plugin` into 
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-agent-plugin.ps1
 ```
 
-standalone full-coverage E2Eは、currentまたはinstalled Living Record / close reference authorityからrequired sectionとtableを導出し、2-slice fixtureのowner境界、artifact budget、negative cases、ledger delta適用、production bindingを確認します。そのうえで2つのslice payloadを依存順に適用し、slice-local verification、production entrypoint経由のcross-slice verification、residual decisionまでをdeterministicに検証します。外部modelは実行しないため、CodexやCopilot等がlifecycleを自律実行した証拠ではありません。
+standalone full-coverage E2Eは、currentまたはinstalled Living Record / close reference authorityからrequired sectionとtableを導出し、2-slice fixtureのowner境界、decision ownership伝播、artifact budget、negative cases、ledger delta適用、production bindingを確認します。そのうえで2つのslice payloadを依存順に適用し、slice-local verification、production entrypoint経由のcross-slice verification、residual decisionまでをdeterministicに検証します。外部modelは実行しないため、CodexやCopilot等がlifecycleを自律実行した証拠ではありません。
 
 Change Risk Triage smokeはchange-facts inputとCI-only oracleを分離し、result schemaとagent hashもCIで検証します。外部modelにはoracleを渡さず、`CRT-001`〜`CRT-003`各3回のfresh-session一致確認をmanual evidenceとして分離し、`NOT RUN`や`UNOBSERVABLE`をPASSにしません。
 

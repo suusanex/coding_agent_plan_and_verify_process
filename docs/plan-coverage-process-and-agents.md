@@ -64,7 +64,7 @@ This is not a `full-coverage` trigger.
 
 - `NeedsPlanBehaviorExpansion` routes to `black-box-behavior-spec-kernel.agent.md` when source-to-case expansion is missing.
 - `NeedsPlanBehaviorExpansion` routes back to `plan-kernel.agent.md` when Case IDs exist but are not mapped to Plan FR / AC or explicit disposition.
-- `NeedsHumanDecision` stops when product semantics or policy is undecided.
+- `NeedsHumanDecision` stops when a product, architecture, policy, or risk choice is genuinely undecided. An implementation-owned greenfield address or ManualOnly secret value is not, by itself, a human decision.
 - `full-coverage` is available only after `Plan readiness: ReadyForRiskTriage`.
 
 ## Process profiles
@@ -203,8 +203,9 @@ This is the canonical Plan Coverage route.
 6. If needed, run `architecture-elaboration.agent.md` and rerun readiness; stop on human decision or blocking architecture residual
 7. For `StandardSliceSufficient`, rejoin the normal `standard-slice` route; run `plan-slice-decomposition.agent.md` only for `ReadyForSliceDecomposition` or `ArchitectureNotRequired` and only while the triage escalation gate remains `Satisfied`
 8. For each executable slice, use its canonical Slice Living Record instead of re-entering a fresh bounded Plan Coverage run. Existing semantic agents return owned section deltas; the Plan Coverage parent/router alone applies Living Record and canonical Coverage Ledger changes:
+   - preserve every assigned unresolved item's stable ID, classification, decision owner, human-input requirement, blocking state, resolution phase, and source-backed next action in `Unresolved Decision Ownership`
    - slice-local `change-risk-triage.agent.md`
-   - `implementation-contract-kernel.agent.md` when implementation-realization risk is present, with `implementation-contract-review-kernel.agent.md` only as an explicit `Implementation Contract Decisions / Independent Review` fallback
+   - `implementation-contract-kernel.agent.md` when implementation-realization risk is present; its Decision Ownership Gate resolves slice-owned greenfield design, separates credential mechanism from ManualOnly secret provisioning, and requires new evidence before an upstream non-blocking item becomes `NeedsHumanDecision`; `implementation-contract-review-kernel.agent.md` remains an explicit `Implementation Contract Decisions / Independent Review` fallback
    - `runtime-contract-kernel.agent.md`, `test-design-kernel.agent.md`, and `implementation-handoff-review.agent.md` as selected by slice risk
    - when explicitly selected, Design Pair Target Map presentation and mandatory `AWAITING_USER_INPUT` boundary
    - Adaptive implementation by the canonical HIGH -> optional STANDARD -> HIGH route, with tracked completion handoff creation gated by a pre-applied `Artifact Exceptions` row
@@ -678,7 +679,7 @@ Use these statuses consistently unless an existing artifact has a stronger conve
 | `PartiallyDone` | Some useful progress was made, but the item is not complete |
 | `Deferred` | Intentionally not handled in this pass |
 | `ManualOnly` | Requires manual or real-environment validation |
-| `NeedsHumanDecision` | Cannot safely proceed without a product, architecture, policy, or risk decision |
+| `NeedsHumanDecision` | Cannot safely proceed without a product, architecture, policy, or risk decision; it does not represent a design-owned greenfield address or ManualOnly provisioned value |
 | `NotImplementedOrMismatch` | Implementation is missing, mismatched, or only test-side / fake-side exists |
 | `OutOfScopeForThisPass` | Valid work, but outside the bounded parent Plan pass or Guardrail Focus coverage |
 | `Bound` | Production interface, production implementation, production wiring / entrypoint, and post-wiring behavior against the parent acceptance condition runtime postcondition have been confirmed for a test substitute |

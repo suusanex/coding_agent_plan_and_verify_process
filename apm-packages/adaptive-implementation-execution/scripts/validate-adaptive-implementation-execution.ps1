@@ -206,7 +206,7 @@ if (Test-Path -LiteralPath $manifestPath) {
 }
 
 $integratedManifests = @(
-    @{ Path = 'apm-packages/plan-coverage-residual-flow/apm.yml'; Version = '0\.13\.0' }
+    @{ Path = 'apm-packages/plan-coverage-residual-flow/apm.yml'; Version = '0\.14\.0' }
 )
 
 foreach ($integratedManifest in $integratedManifests) {
