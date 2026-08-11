@@ -191,5 +191,6 @@ This HOLD is a successful PoC outcome: portable packaging works; Adaptive gap is
 ## Related
 
 - Package README: `apm-packages/plan-coverage-residual-flow/README.md`
+- Adoption policy: [agent-plugin-adoption-strategy.md](./agent-plugin-adoption-strategy.md)
 - Runtime qualification matrix: [plan-coverage-runtime-qualification.md](./plan-coverage-runtime-qualification.md)
 - PoC harness/tests: `apm-packages/plan-coverage-residual-flow/tests/agent-plugin-poc/`
