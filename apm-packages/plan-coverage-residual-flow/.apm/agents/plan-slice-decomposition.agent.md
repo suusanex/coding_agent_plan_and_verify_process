@@ -198,6 +198,8 @@ cross-slice contract の required fields / state / identifiers は、単に名�
 
 各 slice artifact は、後続 agent がその slice の bounded Plan として読める内容にしてください。少なくとも Goal、Non-goals、Parent requirements covered、Parent acceptance conditions covered、Affected components / modules、Expected implementation scope、Cross-slice dependencies、Related Cross-slice Contract IDs、Stop condition を含めます。
 
+Architecture residual または parent Plan が unresolved item の `Classification`、`Owner`、`Blocking`、`Next action` を持つ場合、slice へ射影する際にその意味を弱めてはいけません。各 item を stable ID で `Unresolved Decision Ownership` に記録し、`Human input required` と `Resolution phase` を追加してください。`SliceLocalContract` / implementation-contract owner / `Blocking: No` の item は downstream が設計する事項であり、単なる `Deferred` / `Unclear` として外部前提に再解釈してはいけません。該当 item がない場合も `none` と明記してください。
+
 parent Plan が `Black-box behavior coverage` を持つ場合、各 executable slice artifact は次の section も必ず含めます。
 
 ```md
@@ -326,6 +328,15 @@ slice が小さすぎる場合は統合してください。delegation overhead 
 - Architecture source IDs / sections:
 - Shared invariants consumed:
 - Architecture residuals assigned to this slice:
+- Unresolved Decision Ownership:
+  - Item ID:
+  - Item:
+  - Classification:
+  - Decision owner:
+  - Human input required: Yes / No
+  - Blocking: Yes / No
+  - Resolution phase:
+  - Source evidence / next action:
 - Black-box behavior coverage:
   - Parent behavior spec artifact:
   - Expansion required:
@@ -573,6 +584,15 @@ caller が明示的に path を指定した場合はそれに従ってよいで�
 - Architecture source IDs / sections:
 - Shared invariants consumed:
 - Architecture residuals assigned to this slice:
+- Unresolved Decision Ownership:
+  - Item ID:
+  - Item:
+  - Classification:
+  - Decision owner:
+  - Human input required: Yes / No
+  - Blocking: Yes / No
+  - Resolution phase:
+  - Source evidence / next action:
 - Black-box behavior coverage:
   - Parent behavior spec artifact:
   - Expansion required:
@@ -684,6 +704,7 @@ Handoff Packet の `Required downstream guardrails` には、少なくとも次�
 - slice 内の selected runtime contract について、runtime contract identification / participant mapping / test point mapping / stub usage identification / production implementation binding / production wiring verification / explicit unresolved status を保持すること
 - cross-slice contract は slice 内で勝手に完了扱いにせず、最後に `cross-slice-verification-kernel.agent.md` で確認すること
 - cross-slice field continuity は slice 内で勝手に補完・推測・空文字化して完了扱いにせず、source artifact または producer contract から traceable でない field は `Deferred` / `NeedsHumanDecision` として保持すること
+- Architecture residual の `Classification` / `Owner` / `Blocking` / `Next action` を `Unresolved Decision Ownership` へ射影し、`SliceLocalContract` または implementation-contract-owned item を concrete address 未確定だけで `NeedsHumanDecision` に変えないこと
 - production binding が slice 間にまたがる場合は `Bound` として扱わず、cross-slice verification まで `Deferred` または `PartiallyDone` とすること
 - `merge-candidate`、`too-small-to-delegate`、`coalesce-with-SL-xxx` の候補は executable slice として downstream Plan Coverage execution に渡さないこと
 - 少数 slice で parent acceptance condition と cross-slice contract を保持できる場合、slice 数を増やすこと自体を安全性として扱わないこと

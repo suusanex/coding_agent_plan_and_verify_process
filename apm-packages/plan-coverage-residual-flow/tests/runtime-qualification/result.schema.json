@@ -170,6 +170,7 @@
           "enum": [
             "authorization-negative",
             "authorization-positive",
+            "decision-ownership",
             "standard-slice-e2e",
             "full-coverage-e2e"
           ]

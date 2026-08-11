@@ -280,6 +280,10 @@ function Get-FixtureErrors([string]$Root, [System.Collections.IDictionary]$Autho
     foreach ($slice in @($expected.slices)) {
         $record = Get-NormalizedText (Join-Path $Root ([string]$slice.living_record))
         Add-TemplateShapeErrors $errors $record $livingTemplate "$($slice.id) Living Record"
+        $ownershipHeader = '| Item ID | Item | Classification | Decision owner | Human input required | Blocking | Resolution phase | Source evidence / next action |'
+        if ($record -cnotmatch [regex]::Escape($ownershipHeader)) {
+            $errors.Add("$($slice.id) must preserve the Unresolved Decision Ownership table.")
+        }
         if ($record -cnotmatch '(?m)^- artifact_mode: slice-living-record$' -or $record -cnotmatch '(?m)^- documentation_level: standard$') {
             $errors.Add("$($slice.id) does not use the canonical artifact/documentation metadata.")
         }
@@ -306,6 +310,11 @@ function Get-FixtureErrors([string]$Root, [System.Collections.IDictionary]$Autho
                 $errors.Add("$($slice.id) lost required FR / AC / CASE / XC mapping for $id.")
             }
         }
+    }
+
+    $record1 = Get-NormalizedText (Join-Path $Root 'plans/pcf-001-slice-SL-001.md')
+    if ($record1 -cnotmatch '\| `AR-001` \| producer atomic publication address \| `SliceLocalContract` \| implementation-contract \| No \| No \| Implementation Contract \|') {
+        $errors.Add('SL-001 must preserve classification, owner, human-input, blocking, and resolution-phase evidence for AR-001.')
     }
 
     foreach ($id in $allIds) {
@@ -462,6 +471,9 @@ try {
     Assert-NegativeMutationFails 'missing-production-binding' { param($r) & $script:ReplaceText (Join-Path $r 'expected.json') 'src/StartupFlow.ps1' 'src/MissingStartupFlow.ps1' } $authority
     Assert-NegativeMutationFails 'fake-only-evidence' { param($r) & $script:ReplaceText (Join-Path $r $record1) '- Fake / stub / mock assessment: no substitute used.' '- Fake / stub / mock assessment: fake-only evidence.' } $authority
     Assert-NegativeMutationFails 'xc-field-continuity-missing' { param($r) & $script:ReplaceText (Join-Path $r $record1) 'XC-001' 'XC-MISSING' } $authority
+    Assert-NegativeMutationFails 'decision-ownership-missing' { param($r) & $script:ReplaceText (Join-Path $r $record1) '### Unresolved Decision Ownership' '### Omitted Decision Ownership' } $authority
+    Assert-NegativeMutationFails 'decision-ownership-owner-lost' { param($r) & $script:ReplaceText (Join-Path $r $record1) '| `AR-001` | producer atomic publication address | `SliceLocalContract` | implementation-contract | No | No | Implementation Contract |' '| `AR-001` | producer atomic publication address | `SliceLocalContract` | none | No | No | Implementation Contract |' } $authority
+    Assert-NegativeMutationFails 'decision-ownership-human-input-lost' { param($r) & $script:ReplaceText (Join-Path $r $record1) '| `AR-001` | producer atomic publication address | `SliceLocalContract` | implementation-contract | No | No | Implementation Contract |' '| `AR-001` | producer atomic publication address | `SliceLocalContract` | implementation-contract | unknown | No | Implementation Contract |' } $authority
     Assert-NegativeMutationFails 'mapping-missing' { param($r) & $script:ReplaceText (Join-Path $r $record1) 'CASE-001' 'CASE-MISSING' } $authority
     Assert-NegativeMutationFails 'pending-before-verification' { param($r) & $script:ReplaceText (Join-Path $r $record1) '| Yes |' '| No |' } $authority
     Assert-NegativeMutationFails 'pending-before-close' { param($r) & $script:ReplaceText (Join-Path $r $closePath) '- Pending Coverage Ledger Delta count: 0' '- Pending Coverage Ledger Delta count: 1' } $authority

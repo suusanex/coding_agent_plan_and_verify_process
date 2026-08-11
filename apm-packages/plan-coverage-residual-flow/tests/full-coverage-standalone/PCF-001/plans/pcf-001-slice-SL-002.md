@@ -55,6 +55,12 @@
 - Source authority: `plans/pcf-001-slice-decomposition.md`, `plans/pcf-001-slice-architecture.md`, verified `SL-001` record.
 - Deferred / unresolved items: parent production postcondition remains for final cross-slice verification.
 
+### Unresolved Decision Ownership
+
+| Item ID | Item | Classification | Decision owner | Human input required | Blocking | Resolution phase | Source evidence / next action |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| none | none | none | none | No | No | none | No unresolved decision ownership is assigned to this slice. |
+
 ## Slice Risk / Guardrail Selection
 
 - Inherited parent risks: startup wiring, positive/negative state handling, cross-slice field continuity, no fake-only completion.

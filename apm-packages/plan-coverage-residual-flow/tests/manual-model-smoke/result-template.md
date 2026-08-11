@@ -18,6 +18,19 @@
 | G | NOT RUN |  |  |  |  |  |
 | H | NOT RUN |  |  |  |  |  |
 
+## Decision ownership regression smoke
+
+- Client:
+- Model:
+- Package commit:
+- Plan Coverage package version:
+
+| Scenario | Status (`PASS` / `FAIL` / `NOT RUN` / `UNOBSERVABLE`) | Terminal verdict | Decision Ownership Gate evidence | Human escalation scope | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| DO-001 | NOT RUN |  |  |  |  |
+| DO-002 | NOT RUN |  |  |  |  |
+| DO-003 | NOT RUN |  |  |  |  |
+
 ## Notes and limitations
 
 - Record environment limits, unavailable observations, and follow-up evidence here.

@@ -11,3 +11,11 @@ For Scenarios D and F, pass only when the invocation authorization gate accepts 
 Use `NOT RUN` when a scenario was not executed. Use `UNOBSERVABLE` when the client cannot expose Skill or agent selection evidence. Neither status counts as a pass.
 
 The latest observed A-H run is recorded in `results/20260801-99e88a8.md`. Its evidence uses the model's final routing response together with JSONL command/artifact deltas; Codex CLI does not expose a separate internal Skill-router event.
+
+## Decision ownership regression smoke
+
+Run `../decision-ownership-scenarios.json` in a fresh disposable repository for both Codex and GitHub Copilot CLI. Each scenario supplies the upstream decision authority through `UPSTREAM.md`; do not add a secret, token, PAT, credential value, or private repository content.
+
+For every `DO-001` through `DO-003`, record the exact client, model, prompt, observed agent evidence, terminal verdict, and the `Decision Ownership Gate` evidence. Use the scenario's `manual_acceptance` field as the pass criterion. `NOT RUN` and `UNOBSERVABLE` are not PASS, and a result for one client does not stand in for the other client.
+
+This is ManualOnly regression evidence. It is not an ordinary CI requirement and it does not replace the deterministic package validator, standalone fixture, or Copilot qualification harness.

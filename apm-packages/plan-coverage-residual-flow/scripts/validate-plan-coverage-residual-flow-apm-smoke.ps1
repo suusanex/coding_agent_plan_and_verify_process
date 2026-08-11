@@ -111,7 +111,7 @@ dependencies:
 
             $packageManifest = @"
 name: plan-coverage-residual-flow
-version: 0.13.0
+version: 0.14.0
 description: Plan Coverage Check and Residual Decision Flow with durable Design Pair waiting state, full-coverage Slice Living Records, Architecture Slice Readiness, Guardrail Focus, and residual decision gating
 type: hybrid
 targets:
@@ -218,8 +218,8 @@ dependencies:
         }
 
         $block = $lockBlock.Groups['block'].Value
-        if ($block -cnotmatch '(?m)^  version:\s*0\.13\.0\s*$') {
-            throw 'Fresh APM lock does not contain Plan Coverage package version 0.13.0.'
+        if ($block -cnotmatch '(?m)^  version:\s*0\.14\.0\s*$') {
+            throw 'Fresh APM lock does not contain Plan Coverage package version 0.14.0.'
         }
 
         $installedHash = Get-NormalizedTextSha256 $installedSkillPath

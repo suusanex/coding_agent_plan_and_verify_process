@@ -296,6 +296,8 @@ required artifacts（base + 条件付き）に `NeedsHumanDecision` または同
 - `NeedsHumanDecision` が記録されている場合は、その内容が実装前に必要な決定かを判断する
 - 実装前に必要な決定が残っている場合は Blocking として記録する
 - 実装後でも解決できる事項であれば Note として記録する
+- implementation-contract が存在する場合は `Decision Ownership Gate` を確認する。`SliceLocalContract` / implementation-contract-owned item、greenfield production address、またはManualOnly secret valueを理由にした `NeedsHumanDecision` は、new source evidence と具体的な product / architecture / policy / risk choice がなければ Blocking として差し戻す
+- upstream が `Human decision blockers: none` だった場合、その覆しに new evidence、agentが決められない理由、影響範囲がない `NeedsHumanDecision` は Blocking として差し戻す
 
 #### Check 9. Implementation-realization precondition
 

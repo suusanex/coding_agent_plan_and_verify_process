@@ -15,6 +15,7 @@ $apmYmlPath = Join-Path $packageRoot 'apm.yml'
 $canonicalRoot = Join-Path $packageRoot '.apm'
 $docsPath = Join-Path $repoRoot 'docs/plan-coverage-runtime-qualification.md'
 $authPath = Join-Path $packageRoot 'tests/invocation-authorization-scenarios.json'
+$decisionOwnershipPath = Join-Path $packageRoot 'tests/decision-ownership-scenarios.json'
 $failures = [System.Collections.Generic.List[string]]::new()
 
 function Add-Failure([string]$Message) {
@@ -138,7 +139,8 @@ function Assert-InfrastructurePresent {
         (Join-Path $rqRoot 'copilot-cli/full-coverage/seed/src/StartupFlow.ps1'),
         (Join-Path $packageRoot 'scripts/run-plan-coverage-copilot-qualification.ps1'),
         $docsPath,
-        $authPath
+        $authPath,
+        $decisionOwnershipPath
     )
     foreach ($path in $requiredPaths) {
         if (-not (Test-Path -LiteralPath $path)) {
@@ -152,6 +154,14 @@ function Assert-InfrastructurePresent {
     foreach ($id in @('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H')) {
         if ($ids -cnotcontains $id) {
             Add-Failure "Canonical authorization scenarios missing $id"
+        }
+    }
+
+    $decisionOwnership = Get-Content -Raw -LiteralPath $decisionOwnershipPath | ConvertFrom-Json
+    $decisionOwnershipIds = @($decisionOwnership | ForEach-Object { $_.id })
+    foreach ($id in @('DO-001', 'DO-002', 'DO-003')) {
+        if ($decisionOwnershipIds -cnotcontains $id) {
+            Add-Failure "Decision ownership scenarios missing $id"
         }
     }
 
@@ -172,7 +182,7 @@ function Resolve-ResultPath {
     if (-not (Test-Path -LiteralPath $resultsDir -PathType Container)) {
         return $null
     }
-    $files = @(Get-ChildItem -LiteralPath $resultsDir -File -Filter '*-copilot-cli.json' | Sort-Object Name -Descending)
+    $files = @(Get-ChildItem -LiteralPath $resultsDir -File -Filter '*-copilot-cli*.json' | Sort-Object -Property LastWriteTime, Name -Descending)
     if ($files.Count -eq 0) {
         return $null
     }
@@ -237,7 +247,7 @@ foreach ($s in @($result.scenarios)) {
     $byId[[string]$s.id] = $s
 }
 
-$requiredIds = @('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'STD-001', 'FULL-001')
+$requiredIds = @('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'DO-001', 'DO-002', 'DO-003', 'STD-001', 'FULL-001')
 foreach ($id in $requiredIds) {
     if (-not $byId.ContainsKey($id)) {
         if ($result.overall_status -ceq 'QUALIFIED' -or $RequireQualified) {

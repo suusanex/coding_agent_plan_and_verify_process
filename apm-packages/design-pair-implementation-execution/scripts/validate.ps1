@@ -108,7 +108,7 @@ Assert-NotContains $manifest '(?m)^\s*-\s+vscode\s*$' 'invalid bare vscode targe
 Assert-Contains $manifest 'path:\s*apm-packages/adaptive-implementation-execution\s*$' 'Adaptive package boundary dependency'
 Assert-NotContains $manifest '\.github/agents/' 'no root .github/agents dependency'
 Assert-NotContains $manifest 'implementation-execution\.agent\.md' 'legacy implementation orchestration dependency'
-Assert-Contains 'apm-packages/plan-coverage-residual-flow/apm.yml' '(?m)^version:\s*0\.13\.0\s*$' 'Plan Coverage package version 0.13.0'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/apm.yml' '(?m)^version:\s*0\.14\.0\s*$' 'Plan Coverage package version 0.14.0'
 Assert-Contains 'apm-packages/adaptive-implementation-execution/apm.yml' '(?m)^version:\s*0\.5\.0\s*$' 'Adaptive package version 0.5.0'
 
 $maxWindowsPackagePathLength = 112

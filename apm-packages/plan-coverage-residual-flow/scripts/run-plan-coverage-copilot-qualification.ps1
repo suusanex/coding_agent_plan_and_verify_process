@@ -25,6 +25,7 @@ $packageRoot = Split-Path -Parent $PSScriptRoot
 $repoRoot = (Resolve-Path (Join-Path $packageRoot '../..')).Path
 $rqRoot = Join-Path $packageRoot 'tests/runtime-qualification'
 $authScenarioPath = Join-Path $packageRoot 'tests/invocation-authorization-scenarios.json'
+$decisionOwnershipScenarioPath = Join-Path $packageRoot 'tests/decision-ownership-scenarios.json'
 $schemaPath = Join-Path $rqRoot 'result.schema.json'
 $templatePath = Join-Path $rqRoot 'result-template.json'
 $stdFixtureRoot = Join-Path $rqRoot 'copilot-cli/standard-slice'
@@ -84,7 +85,7 @@ Plan Coverage GitHub Copilot CLI runtime qualification
 - candidate: $candidateCommit
 - canonical_fingerprint: $canonicalFingerprint
 - model: $(if ($Model) { $Model } else { 'client-selected' })
-- scenarios: A-H authorization + STD-001 + FULL-001
+- scenarios: A-H authorization + DO-001..DO-003 decision ownership + STD-001 + FULL-001
 - isolation: temporary COPILOT_HOME per scenario (no personal skills/agents/hooks/plugins)
 - external model: yes
 - secrets on argv: none
@@ -176,6 +177,74 @@ function Read-RunMetadataFile([string]$RunRoot) {
     return (Get-Content -Raw -LiteralPath $path | ConvertFrom-Json)
 }
 
+function New-DecisionOwnershipWorktree([string]$BaseInstallRoot, [object]$Scenario, [string]$ScenarioDir) {
+    $worktree = Join-Path $ScenarioDir 'repo'
+    New-Item -ItemType Directory -Path $worktree -Force | Out-Null
+    foreach ($rel in @('.agents', '.github', '.codex', 'apm.lock.yaml')) {
+        $src = Join-Path $BaseInstallRoot $rel
+        if (-not (Test-Path -LiteralPath $src)) { continue }
+        $dest = Join-Path $worktree $rel
+        if ((Get-Item -LiteralPath $src).PSIsContainer) { Copy-DirectoryContents $src $dest }
+        else { Copy-Item -LiteralPath $src -Destination $dest -Force }
+    }
+    Write-Utf8File (Join-Path $worktree 'README.md') "# Disposable decision ownership qualification repository`n"
+    Write-Utf8File (Join-Path $worktree 'UPSTREAM.md') ([string]$Scenario.upstream_artifact_markdown)
+    $request = @"
+# $($Scenario.id): $($Scenario.name)
+
+$($Scenario.task)
+
+Read `UPSTREAM.md` as the authoritative upstream decision record. Do not create or request any secret value.
+"@
+    Write-Utf8File (Join-Path $worktree 'REQUEST.md') $request
+    Initialize-GitFixture $worktree 'decision ownership qualification fixture'
+    return $worktree
+}
+
+function Evaluate-DecisionOwnershipScenario([object]$Scenario, $Run) {
+    $text = [string]$Run.CombinedText
+    $observedVerdicts = @([regex]::Matches($text, '\b(?:READY_FOR_RUNTIME_CONTRACT|READY_FOR_IMPLEMENTATION|BLOCKED_BY_DEPENDENCY_MISSING|BLOCKED_BY_API_SURFACE_UNKNOWN|BLOCKED_BY_UNJUSTIFIED_SUBSTITUTION|BLOCKED_BY_SOURCE_OF_TRUTH_DRIFT|NEEDS_HUMAN_DECISION)\b') | ForEach-Object { $_.Value } | Select-Object -Unique)
+    $failures = [System.Collections.Generic.List[string]]::new()
+    $agentObserved = @($Run.Agents) -contains 'implementation-contract-kernel'
+    if (-not $agentObserved -and $text -notmatch 'implementation-contract-kernel') { $failures.Add('implementation-contract-kernel was not observed.') }
+    foreach ($marker in @($Scenario.required_markers)) {
+        if ($text -notmatch [regex]::Escape([string]$marker)) { $failures.Add("Required marker missing: $marker") }
+    }
+    foreach ($request in @($Scenario.forbidden_human_requests)) {
+        if ($text -match [regex]::Escape([string]$request)) { $failures.Add("Forbidden human request observed: $request") }
+    }
+    $expected = @($Scenario.expected_verdicts | ForEach-Object { [string]$_ })
+    if (-not (@($observedVerdicts | Where-Object { $expected -contains $_ }).Count -gt 0)) {
+        $failures.Add("Expected terminal verdict was not observed: $($expected -join ', ')")
+    }
+    if ($expected -notcontains 'NEEDS_HUMAN_DECISION' -and $observedVerdicts -contains 'NEEDS_HUMAN_DECISION') {
+        $failures.Add('NeedsHumanDecision was observed for a design-owned or ManualOnly scenario.')
+    }
+    if ($Scenario.id -eq 'DO-003' -and $text -notmatch '(?i)commit identity') {
+        $failures.Add('DO-003 must isolate the commit identity policy.')
+    }
+    return [ordered]@{
+        id = [string]$Scenario.id
+        kind = 'decision-ownership'
+        exact_prompt = [string]$Scenario.task
+        upstream_route_evidence = [ordered]@{ scenario_id = [string]$Scenario.id; source = 'UPSTREAM.md' }
+        exit_code = $Run.ExitCode
+        skill_observation = 'UNOBSERVABLE'
+        agents_observed = @($Run.Agents)
+        created_artifacts = @($Run.Created)
+        changed_artifacts = @($Run.Changed)
+        verifier_results = @([ordered]@{ name = 'decision-ownership-oracle'; status = $(if ($failures.Count -eq 0) { 'PASS' } else { 'FAIL' }); detail = $(if ($failures.Count -eq 0) { [string]$Scenario.manual_acceptance } else { $failures -join '; ' }) })
+        route_observed = $(if ($agentObserved) { 'implementation-contract-kernel' } else { $null })
+        verdict = $(if ($observedVerdicts.Count -gt 0) { $observedVerdicts[-1] } else { $null })
+        stop_reason = $(if ($failures.Count -eq 0) { 'decision-ownership-oracle-satisfied' } else { 'decision-ownership-oracle-failed' })
+        status = $(if ($failures.Count -eq 0) { 'PASS' } else { 'FAIL' })
+        rationale = $(if ($failures.Count -eq 0) { [string]$Scenario.manual_acceptance } else { $failures -join '; ' })
+        transcript_sha256 = $Run.TranscriptSha
+        hook_log_sha256 = $Run.HookSha
+        evidence_boundary = 'skill_observation=UNOBSERVABLE; judged from hooks/agents and the emitted Decision Ownership Gate / terminal verdict.'
+    }
+}
+
 if (-not [string]::IsNullOrWhiteSpace($ReevaluateFromRunRoot)) {
     $reevalRoot = [System.IO.Path]::GetFullPath($ReevaluateFromRunRoot)
     if (-not (Test-Path -LiteralPath $reevalRoot -PathType Container)) {
@@ -222,7 +291,7 @@ if (-not [string]::IsNullOrWhiteSpace($ReevaluateFromRunRoot)) {
 
     $byId = @{}
     foreach ($s in $scenarioResults) { $byId[[string]$s.id] = $s }
-    $requiredIds = @('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'STD-001', 'FULL-001')
+    $requiredIds = @('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'DO-001', 'DO-002', 'DO-003', 'STD-001', 'FULL-001')
     $scenariosPass = $true
     foreach ($id in $requiredIds) {
         if (-not $byId.ContainsKey($id) -or $byId[$id].status -cne 'PASS') { $scenariosPass = $false }
@@ -354,6 +423,7 @@ Write-Host $payload
 Write-Host "Run root: $runRoot"
 
 $authScenarios = Get-Content -Raw -LiteralPath $authScenarioPath | ConvertFrom-Json
+$decisionOwnershipScenarios = Get-Content -Raw -LiteralPath $decisionOwnershipScenarioPath | ConvertFrom-Json
 $selectedFilter = $null
 if ($ScenarioIds -and @($ScenarioIds).Count -gt 0) {
     $expandedIds = [System.Collections.Generic.List[string]]::new()
@@ -440,6 +510,23 @@ try {
         Write-Host "Scenario $sid => $($evaluated.status)"
     }
 
+    foreach ($scenario in $decisionOwnershipScenarios) {
+        $sid = [string]$scenario.id
+        if ($selectedFilter -and -not $selectedFilter.ContainsKey($sid.ToUpperInvariant())) { continue }
+        Write-Host "=== Decision ownership scenario $sid ==="
+        $scenarioDir = Join-Path $evidenceRoot "decision-ownership-$sid"
+        New-Item -ItemType Directory -Path $scenarioDir -Force | Out-Null
+        $worktree = New-DecisionOwnershipWorktree -BaseInstallRoot $installRoot -Scenario $scenario -ScenarioDir $scenarioDir
+        $prompt = Get-NormalizedText (Join-Path $worktree 'REQUEST.md')
+        $run = Invoke-CopilotScenario -Worktree $worktree -Prompt $prompt -ScenarioId $sid -EvidenceDir $scenarioDir -CopilotExe $copilotExe -ModelName $Model -TimeoutSec $TimeoutSeconds
+        if ($run.ModelObserved -and $run.ModelObserved -cne 'client-selected-or-unobserved') {
+            $modelObservedGlobal = $run.ModelObserved
+        }
+        $evaluated = Evaluate-DecisionOwnershipScenario $scenario $run
+        $scenarioResults.Add($evaluated)
+        Write-Host "Scenario $sid => $($evaluated.status)"
+    }
+
     if (-not $selectedFilter -or $selectedFilter.ContainsKey('STD-001')) {
         Write-Host '=== STD-001 standard-slice E2E ==='
         $scenarioDir = Join-Path $evidenceRoot 'STD-001'
@@ -476,7 +563,7 @@ try {
         Write-Host "FULL-001 => $($evaluated.status)"
     }
 
-    $requiredIds = @('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'STD-001', 'FULL-001')
+    $requiredIds = @('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'DO-001', 'DO-002', 'DO-003', 'STD-001', 'FULL-001')
     $byId = @{}
     foreach ($s in $scenarioResults) { $byId[$s.id] = $s }
     $allPass = $true

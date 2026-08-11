@@ -20,6 +20,14 @@ tests/invocation-authorization-scenarios.json
 
 Do not duplicate A–H expected semantics into another authority JSON.
 
+Decision ownership scenarios DO-001〜DO-003 are loaded from the separate package-canonical file:
+
+```text
+tests/decision-ownership-scenarios.json
+```
+
+They require `implementation-contract-kernel` to keep SliceLocalContract design-owned items in scope, separate credential mechanism from ManualOnly secret provisioning, and isolate a genuine commit-identity policy escalation. A current `QUALIFIED` result requires all three scenarios to PASS.
+
 ## Fixtures
 
 - `copilot-cli/standard-slice/` — STD-001 bounded standard-slice E2E seed + external oracle

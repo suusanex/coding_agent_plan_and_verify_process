@@ -53,6 +53,12 @@
 - Source authority: `plans/pcf-001-slice-decomposition.md`, `plans/pcf-001-slice-architecture.md`
 - Deferred / unresolved items: consumer and startup binding remain with `SL-002` and final cross-slice verification.
 
+### Unresolved Decision Ownership
+
+| Item ID | Item | Classification | Decision owner | Human input required | Blocking | Resolution phase | Source evidence / next action |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `AR-001` | producer atomic publication address | `SliceLocalContract` | implementation-contract | No | No | Implementation Contract | `src/ProducerState.ps1` is the selected implementation address; its contract is already confirmed. |
+
 ## Slice Risk / Guardrail Selection
 
 - Inherited parent risks: cross-slice state and identifier continuity; no fake-only completion.
