@@ -88,6 +88,7 @@
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <Grid ColumnSpacing="12">
                                     <Grid.ColumnDefinitions>
@@ -110,11 +111,16 @@
                                            Text="{x:Bind ObservedStatus}"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <TextBlock Grid.Row="3"
+                                           Text="{x:Bind ResultLocator}"
+                                           TextWrapping="Wrap"
+                                           Visibility="{x:Bind local:MainPage.BoolToVisibility(HasResultLocator), Mode=OneTime}"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="4"
                                            Text="{x:Bind DisplayError}"
                                            TextWrapping="Wrap"
                                            Visibility="{x:Bind local:MainPage.BoolToVisibility(IsError), Mode=OneTime}"
                                            Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
-                                <StackPanel Grid.Row="4"
+                                <StackPanel Grid.Row="5"
                                             Orientation="Horizontal"
                                             Spacing="8"
                                             Margin="0,8,0,0">
@@ -131,6 +137,12 @@
                                             Visibility="{x:Bind local:MainPage.BoolToVisibility(HasResult), Mode=OneTime}"
                                             AutomationProperties.AutomationId="{x:Bind ResultAutomationId, Mode=OneTime}"
                                             AutomationProperties.Name="{x:Bind local:MainPage.ActionName('Open result', Title), Mode=OneTime}" />
+                                    <Button Content="Copy run locator"
+                                            Command="{Binding DataContext.CopyLocatorCommand, ElementName=RootPage}"
+                                            CommandParameter="{x:Bind}"
+                                            Visibility="{x:Bind local:MainPage.BoolToVisibility(HasResultLocator), Mode=OneTime}"
+                                            AutomationProperties.AutomationId="{x:Bind CopyLocatorAutomationId, Mode=OneTime}"
+                                            AutomationProperties.Name="{x:Bind local:MainPage.ActionName('Copy run locator', Title), Mode=OneTime}" />
                                     <Button Content="Delete"
                                             Command="{Binding DataContext.DeleteCommand, ElementName=RootPage}"
                                             CommandParameter="{x:Bind}"

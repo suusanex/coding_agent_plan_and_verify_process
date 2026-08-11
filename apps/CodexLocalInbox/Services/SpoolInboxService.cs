@@ -67,7 +67,7 @@ public sealed class SpoolInboxService
 
         var canonicalBySourceEventId = entries
             .Where(entry => !entry.IsError)
-            .GroupBy(entry => entry.Item!.SourceEventId, StringComparer.Ordinal)
+            .GroupBy(entry => entry.SourceEventId, StringComparer.Ordinal)
             .ToDictionary(
                 group => group.Key,
                 group => group
@@ -83,7 +83,7 @@ public sealed class SpoolInboxService
                 return entry;
             }
 
-            var sourceEventId = entry.Item!.SourceEventId;
+            var sourceEventId = entry.SourceEventId;
             var canonical = canonicalBySourceEventId[sourceEventId];
             if (ReferenceEquals(entry, canonical))
             {

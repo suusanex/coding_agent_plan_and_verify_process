@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="AgentExecutionBroker.Contracts/AgentExecutionBroker.Contracts.csproj" />
+  <Project Path="AgentExecutionBroker.Host/AgentExecutionBroker.Host.csproj" />
+  <Project Path="AgentExecutionBroker.Mcp/AgentExecutionBroker.Mcp.csproj" />
+  <Project Path="../../tests/AgentExecutionBroker.Tests/AgentExecutionBroker.Tests.csproj" />
+</Solution>

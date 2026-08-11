@@ -73,6 +73,60 @@ public sealed class SpoolInboxTests
     }
 
     [TestMethod]
+    public void ParserAcceptsBrokerTerminalEventWithoutCreatingLaunchUris()
+    {
+        var runId = Guid.NewGuid();
+        var json = $$"""
+        {
+          "schema_version": 1,
+          "source": "agent-execution-broker.run-terminal",
+          "source_event_id": "agent-execution-broker:run:{{runId}}:terminal",
+          "run_id": "{{runId}}",
+          "provider_id": "github-copilot-cli",
+          "observed_status": "Exited",
+          "occurred_at": "2026-08-02T10:00:00Z",
+          "title": "github-copilot-cli run Exited",
+          "result_locator": "broker-run:{{runId}}"
+        }
+        """;
+
+        var entry = new SpoolItemParser().Parse("broker.json", json);
+
+        Assert.IsFalse(entry.IsError);
+        Assert.IsNull(entry.Item);
+        Assert.AreEqual(runId, entry.BrokerItem!.RunId);
+        Assert.AreEqual($"broker-run:{runId}", entry.ResultLocator);
+        Assert.IsNull(entry.ResumeUri);
+        Assert.IsNull(entry.ResultUri);
+    }
+
+    [TestMethod]
+    public void ScanDeduplicatesBrokerTerminalEventsByDeterministicIdentity()
+    {
+        var runId = Guid.NewGuid();
+        var item = $$"""
+        {
+          "schema_version": 1,
+          "source": "agent-execution-broker.run-terminal",
+          "source_event_id": "agent-execution-broker:run:{{runId}}:terminal",
+          "run_id": "{{runId}}",
+          "provider_id": "github-copilot-cli",
+          "observed_status": "Exited",
+          "occurred_at": "2026-08-02T10:00:00Z",
+          "title": "Broker run",
+          "result_locator": "broker-run:{{runId}}"
+        }
+        """;
+        File.WriteAllText(Path.Combine(_root, "a.json"), item);
+        File.WriteAllText(Path.Combine(_root, "b.json"), item);
+
+        var entries = new SpoolInboxService().Scan();
+
+        Assert.AreEqual(1, entries.Count(entry => !entry.IsError));
+        Assert.AreEqual(1, entries.Count(entry => entry.IsError));
+    }
+
+    [TestMethod]
     public async Task MonitorPublishesStartupSnapshot()
     {
         File.WriteAllText(Path.Combine(_root, "startup.json"), Item("event-monitor", "2026-08-02T10:00:00Z"));

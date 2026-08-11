@@ -6,6 +6,16 @@ This document is the interface contract between the Codex completion callback pr
 
 This release provides the producer side only. It does not provide an Inbox, consumer worker, user interface, notification delivery, acknowledgement store, search index, forwarding, or retention policy.
 
+## Agent Execution Broker terminal event v1
+
+`agent-execution-terminal-v1` は `spool-item-v1` と並存するBroker専用terminal eventである。既存のCodex callback producerは `spool-item-v1` を継続して使用し、Broker eventをそのsourceやURIへ偽装してはならない。
+
+- schema: `agent-execution-terminal-v1.schema.json`
+- source: `agent-execution-broker.run-terminal`
+- identity: `agent-execution-broker:run:<run-id>:terminal`
+- locator: `broker-run:<run-id>`。URIではなく、Inboxでの表示・コピーだけを許可する。
+- publication: producerは同じspool directory内へtemporary fileを書き、final `.json` へatomic moveする。一runにつきterminal eventは一つだけである。
+
 ## Spool folder
 
 The default folder is:

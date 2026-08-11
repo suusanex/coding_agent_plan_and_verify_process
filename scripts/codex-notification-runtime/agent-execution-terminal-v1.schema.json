@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "agent-execution-terminal-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source", "source_event_id", "run_id", "provider_id", "observed_status", "occurred_at", "title", "result_locator"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "source": { "const": "agent-execution-broker.run-terminal" },
+    "source_event_id": { "type": "string", "pattern": "^agent-execution-broker:run:[0-9a-fA-F-]{36}:terminal$" },
+    "run_id": { "type": "string", "format": "uuid" },
+    "provider_id": { "type": "string", "minLength": 1 },
+    "observed_status": { "type": "string", "minLength": 1 },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "title": { "type": "string", "minLength": 1 },
+    "result_locator": { "type": "string", "pattern": "^broker-run:[0-9a-fA-F-]{36}$" },
+    "repository": { "type": "string", "minLength": 1 }
+  }
+}

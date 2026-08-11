@@ -109,6 +109,20 @@ public partial class InboxViewModel : ObservableObject, IAsyncDisposable
     }
 
     [RelayCommand]
+    private void CopyLocator(InboxEntry? entry)
+    {
+        if (entry?.ResultLocator is null)
+        {
+            ShowError("This notification has no Broker result locator.");
+            return;
+        }
+
+        var data = new Windows.ApplicationModel.DataTransfer.DataPackage();
+        data.SetText(entry.ResultLocator);
+        Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(data);
+    }
+
+    [RelayCommand]
     private async Task DeleteAsync(InboxEntry? entry)
     {
         if (entry is null)
