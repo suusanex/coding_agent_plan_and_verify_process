@@ -1,10 +1,13 @@
 #!/usr/bin/env dotnet
 //#:property TargetFramework=net10.0
+#:package Tomlyn@2.10.1
 
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Tomlyn;
+using Tomlyn.Model;
 
 return await CodexProfileFinalizer.RunAsync(args);
 
@@ -17,7 +20,7 @@ internal static class CodexProfileFinalizer
     private static readonly Regex ManifestName = new(@"(?m)^name:\s*(?<value>[^\r\n#]+)", RegexOptions.Compiled);
     private static readonly Regex AgentName = new(@"(?m)^name:\s*(?<value>[^\r\n#]+)", RegexOptions.Compiled);
     private static readonly Regex SafeAgentIdentifier = new("^[A-Za-z0-9][A-Za-z0-9._-]*$", RegexOptions.Compiled);
-    private static readonly Regex TopLevelTomlKey = new("^(?<indent>\\s*)(?<key>[A-Za-z0-9_-]+)\\s*=\\s*\\\"(?<value>(?:\\\\.|[^\\\"\\\\])*)\\\"\\s*$", RegexOptions.Compiled);
+    private static readonly Regex TopLevelTomlAssignment = new("^(?<indent>\\s*)(?<key>[A-Za-z0-9_-]+)\\s*=\\s*(?<value>.*)$", RegexOptions.Compiled);
     private static readonly Regex Section = new(@"^\s*\[[^\]]+\]\s*$", RegexOptions.Compiled);
 
     public static async Task<int> RunAsync(string[] args)
@@ -49,16 +52,19 @@ internal static class CodexProfileFinalizer
         var overlaysRoot = Path.Combine(options.TargetRoot, "apm_modules");
         if (!Directory.Exists(overlaysRoot))
         {
-            Console.WriteLine("No apm_modules directory found; no Codex profile overlays are available.");
-            return 0;
+            Console.WriteLine(options.Check
+                ? "Codex profile check: FAILED (apm_modules directory is missing)."
+                : "No apm_modules directory found; no Codex profile overlays are available.");
+            return options.Check ? 1 : 0;
         }
 
         var failures = new List<string>();
         var overlays = new Dictionary<string, Profile>(StringComparer.Ordinal);
         var sources = new Dictionary<string, string>(StringComparer.Ordinal);
+        var contracts = new Dictionary<string, PortableContract>(StringComparer.Ordinal);
         foreach (var metadataPath in Directory.EnumerateFiles(overlaysRoot, "codex-profile-overlays.json", SearchOption.AllDirectories))
         {
-            await ReadOverlayAsync(metadataPath, overlays, sources, failures);
+            await ReadOverlayAsync(metadataPath, overlays, sources, contracts, failures);
         }
 
         if (failures.Count > 0)
@@ -69,14 +75,16 @@ internal static class CodexProfileFinalizer
 
         if (overlays.Count == 0)
         {
-            Console.WriteLine("No Codex profile overlays found.");
-            return 0;
+            Console.WriteLine(options.Check
+                ? "Codex profile check: FAILED (no Codex profile overlays found)."
+                : "No Codex profile overlays found.");
+            return options.Check ? 1 : 0;
         }
 
         var operations = new List<Operation>();
         foreach (var pair in overlays.OrderBy(x => x.Key, StringComparer.Ordinal))
         {
-            await InspectTargetAsync(options.TargetRoot, pair.Key, pair.Value, sources[pair.Key], options.Force, operations, failures);
+            await InspectTargetAsync(options.TargetRoot, pair.Key, pair.Value, contracts[pair.Key], sources[pair.Key], options.Force, operations, failures);
         }
 
         if (failures.Count > 0)
@@ -123,6 +131,7 @@ internal static class CodexProfileFinalizer
         string metadataPath,
         IDictionary<string, Profile> overlays,
         IDictionary<string, string> sources,
+        IDictionary<string, PortableContract> contracts,
         ICollection<string> failures)
     {
         OverlayDocument? document;
@@ -132,7 +141,7 @@ internal static class CodexProfileFinalizer
         }
         catch (Exception ex)
         {
-            failures.Add($"Invalid overlay {metadataPath}: {ex.Message}");
+            failures.Add($"Invalid overlay {metadataPath}: {ex.ToString()}");
             return;
         }
 
@@ -145,6 +154,17 @@ internal static class CodexProfileFinalizer
         {
             failures.Add($"Overlay {metadataPath} has an invalid schema or package ownership declaration.");
             return;
+        }
+
+        if (string.Equals(document.Package, "adaptive-implementation-execution", StringComparison.Ordinal))
+        {
+            var high = document.Profiles.SingleOrDefault(x => string.Equals(x.Agent, "high-implementation-starter", StringComparison.Ordinal));
+            var standard = document.Profiles.SingleOrDefault(x => string.Equals(x.Agent, "standard-implementation-completer", StringComparison.Ordinal));
+            if (high is null || standard is null || string.Equals(high.Model, standard.Model, StringComparison.Ordinal))
+            {
+                failures.Add($"Adaptive overlay {metadataPath} must define distinct HIGH and STANDARD models.");
+                return;
+            }
         }
 
         foreach (var entry in document.Profiles)
@@ -163,15 +183,24 @@ internal static class CodexProfileFinalizer
                 continue;
             }
 
-            var agentText = await File.ReadAllTextAsync(agentPath);
-            var agentMatch = AgentName.Match(agentText);
-            if (!agentMatch.Success || !string.Equals(agentMatch.Groups["value"].Value.Trim(), entry.Agent, StringComparison.Ordinal))
+            PortableContract contract;
+            try
+            {
+                contract = ParsePortableContract(await File.ReadAllTextAsync(agentPath), entry.Agent);
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"Invalid package-owned agent {agentPath}: {ex.ToString()}");
+                continue;
+            }
+
+            if (!string.Equals(contract.Name, entry.Agent, StringComparison.Ordinal))
             {
                 failures.Add($"Overlay {metadataPath} agent ownership does not match {agentPath}.");
                 continue;
             }
 
-            var profile = new Profile(entry.Model, entry.Reasoning, entry.Sandbox);
+            var profile = new Profile(entry.Model, entry.Reasoning, entry.Sandbox, contract);
             if (overlays.TryGetValue(entry.Agent, out var existing) && existing != profile)
             {
                 failures.Add($"Conflicting Codex profile overlays target agent {entry.Agent}: {sources[entry.Agent]} and {metadataPath}.");
@@ -180,6 +209,7 @@ internal static class CodexProfileFinalizer
 
             overlays[entry.Agent] = profile;
             sources[entry.Agent] = metadataPath;
+            contracts[entry.Agent] = contract;
         }
     }
 
@@ -227,6 +257,7 @@ internal static class CodexProfileFinalizer
         string targetRoot,
         string agent,
         Profile profile,
+        PortableContract contract,
         string source,
         bool force,
         ICollection<Operation> operations,
@@ -240,57 +271,47 @@ internal static class CodexProfileFinalizer
         }
 
         var original = await File.ReadAllTextAsync(targetPath);
+        TomlTable model;
+        try
+        {
+            model = TomlSerializer.Deserialize<TomlTable>(original)
+                ?? throw new InvalidDataException("TOML document produced no model.");
+        }
+        catch (Exception ex)
+        {
+            failures.Add($"Invalid Codex projection {targetPath}: {ex.ToString()}");
+            return;
+        }
+
+        var portableValues = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var key in new[] { "name", "description", "developer_instructions" })
+        {
+            if (!model.TryGetValue(key, out var value) || value is not string stringValue)
+            {
+                failures.Add($"Codex projection ownership mismatch for {agent}: {targetPath} is missing top-level string field '{key}'.");
+                continue;
+            }
+
+            portableValues[key] = stringValue;
+        }
+
+        if (!portableValues.TryGetValue("name", out var projectedAgentName) ||
+            !string.Equals(projectedAgentName, contract.Name, StringComparison.Ordinal) ||
+            !portableValues.TryGetValue("description", out var description) ||
+            !string.Equals(description, contract.Description, StringComparison.Ordinal) ||
+            !portableValues.TryGetValue("developer_instructions", out var developerInstructions) ||
+            !string.Equals(developerInstructions, contract.DeveloperInstructions, StringComparison.Ordinal))
+        {
+            failures.Add($"Codex projection ownership mismatch for {agent}: {targetPath} does not match package-owned portable contract.");
+            return;
+        }
+
         var newline = original.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
         var hadTrailingNewline = original.EndsWith("\r\n", StringComparison.Ordinal) || original.EndsWith("\n", StringComparison.Ordinal);
         var normalized = original.Replace("\r\n", "\n").Replace('\r', '\n');
         var lines = normalized.Split('\n').ToList();
         var firstSection = lines.FindIndex(line => Section.IsMatch(line));
-        var values = new Dictionary<string, (int Index, string Value)>(StringComparer.Ordinal);
-        string? projectedAgentName = null;
-        for (var i = 0; i < lines.Count; i++)
-        {
-            if (firstSection >= 0 && i >= firstSection)
-            {
-                break;
-            }
-
-            var match = TopLevelTomlKey.Match(lines[i]);
-            if (!match.Success)
-            {
-                continue;
-            }
-
-            var key = match.Groups["key"].Value;
-            if (string.Equals(key, "name", StringComparison.Ordinal))
-            {
-                if (projectedAgentName is not null)
-                {
-                    failures.Add($"Duplicate top-level name field in {targetPath}.");
-                    continue;
-                }
-
-                projectedAgentName = UnescapeToml(match.Groups["value"].Value);
-                continue;
-            }
-
-            if (!ProfileKeys.Contains(key, StringComparer.Ordinal))
-            {
-                continue;
-            }
-            if (values.ContainsKey(key))
-            {
-                failures.Add($"Duplicate top-level profile field {key} in {targetPath}.");
-                continue;
-            }
-
-            values[key] = (i, UnescapeToml(match.Groups["value"].Value));
-        }
-
-        if (!string.Equals(projectedAgentName, agent, StringComparison.Ordinal))
-        {
-            failures.Add($"Codex projection ownership mismatch for {agent}: {targetPath} has name '{projectedAgentName ?? "<missing>"}'.");
-            return;
-        }
+        var values = FindTopLevelAssignments(lines, firstSection, targetPath, failures);
 
         var expected = new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -307,7 +328,13 @@ internal static class CodexProfileFinalizer
                 continue;
             }
 
-            if (!string.Equals(value.Value, expected[key], StringComparison.Ordinal))
+            if (!model.TryGetValue(key, out var modelValue) || modelValue is not string currentValue)
+            {
+                failures.Add($"Codex projection profile field {key} in {targetPath} is not a top-level string.");
+                continue;
+            }
+
+            if (!string.Equals(currentValue, expected[key], StringComparison.Ordinal))
             {
                 if (!force)
                 {
@@ -332,7 +359,7 @@ internal static class CodexProfileFinalizer
             {
                 if (values.TryGetValue(key, out var existing))
                 {
-                    lines[existing.Index] = $"{key} = {QuoteToml(value)}";
+                    lines[existing.Index] = ReplaceTomlAssignmentValue(lines[existing.Index], QuoteToml(value));
                 }
                 else
                 {
@@ -346,7 +373,86 @@ internal static class CodexProfileFinalizer
         {
             fixedText += newline;
         }
+        try
+        {
+            _ = TomlSerializer.Deserialize<TomlTable>(fixedText)
+                ?? throw new InvalidDataException("rewritten TOML document produced no model");
+        }
+        catch (Exception ex)
+        {
+            failures.Add($"Finalizer produced invalid TOML for {targetPath}: {ex.ToString()}");
+            return;
+        }
         operations.Add(new Operation(OperationKind.Update, targetPath, fixedText));
+    }
+
+    private static Dictionary<string, (int Index, string Value)> FindTopLevelAssignments(
+        IReadOnlyList<string> lines,
+        int firstSection,
+        string targetPath,
+        ICollection<string> failures)
+    {
+        var values = new Dictionary<string, (int Index, string Value)>(StringComparer.Ordinal);
+        for (var i = 0; i < lines.Count; i++)
+        {
+            if (firstSection >= 0 && i >= firstSection) break;
+            var match = TopLevelTomlAssignment.Match(lines[i]);
+            if (!match.Success) continue;
+            var key = match.Groups["key"].Value;
+            if (!ProfileKeys.Contains(key, StringComparer.Ordinal)) continue;
+            if (values.ContainsKey(key))
+            {
+                failures.Add($"Duplicate top-level profile field {key} in {targetPath}.");
+                continue;
+            }
+
+            var comment = FindInlineCommentStart(match.Groups["value"].Value);
+            var rawValue = comment >= 0 ? match.Groups["value"].Value[..comment].TrimEnd() : match.Groups["value"].Value.Trim();
+            values[key] = (i, rawValue);
+        }
+
+        return values;
+    }
+
+    private static string ReplaceTomlAssignmentValue(string line, string replacement)
+    {
+        var match = TopLevelTomlAssignment.Match(line);
+        if (!match.Success) return line;
+        var raw = match.Groups["value"].Value;
+        var comment = FindInlineCommentStart(raw);
+        if (comment >= 0)
+        {
+            while (comment > 0 && char.IsWhiteSpace(raw[comment - 1])) comment--;
+        }
+        var suffix = comment >= 0 ? raw[comment..] : string.Empty;
+        return $"{match.Groups["indent"].Value}{match.Groups["key"].Value} = {replacement}{suffix}";
+    }
+
+    private static int FindInlineCommentStart(string value)
+    {
+        var inBasic = false;
+        var inLiteral = false;
+        var escaped = false;
+        for (var i = 0; i < value.Length; i++)
+        {
+            var current = value[i];
+            if (inBasic)
+            {
+                if (escaped) escaped = false;
+                else if (current == '\\') escaped = true;
+                else if (current == '"') inBasic = false;
+                continue;
+            }
+            if (inLiteral)
+            {
+                if (current == '\'') inLiteral = false;
+                continue;
+            }
+            if (current == '"') inBasic = true;
+            else if (current == '\'') inLiteral = true;
+            else if (current == '#') return i;
+        }
+        return -1;
     }
 
     private static Options Parse(string[] args)
@@ -388,6 +494,41 @@ internal static class CodexProfileFinalizer
 
     private static string QuoteToml(string value) => "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 
+    private static PortableContract ParsePortableContract(string text, string expectedAgent)
+    {
+        var lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        if (lines.Length < 3 || !string.Equals(lines[0].Trim(), "---", StringComparison.Ordinal))
+            throw new InvalidDataException("agent frontmatter is missing");
+
+        var end = Array.FindIndex(lines, 1, line => string.Equals(line.Trim(), "---", StringComparison.Ordinal));
+        if (end < 0) throw new InvalidDataException("agent frontmatter is unterminated");
+
+        var frontmatter = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var line in lines[1..end])
+        {
+            var separator = line.IndexOf(':');
+            if (separator <= 0) continue;
+            var key = line[..separator].Trim();
+            var value = line[(separator + 1)..].Trim();
+            if (key is "name" or "description") frontmatter[key] = UnquoteYaml(value);
+        }
+
+        if (!frontmatter.TryGetValue("name", out var name) || !string.Equals(name, expectedAgent, StringComparison.Ordinal) ||
+            !frontmatter.TryGetValue("description", out var description))
+            throw new InvalidDataException("agent frontmatter does not contain the expected name and description");
+
+        var instructions = string.Join("\n", lines[(end + 1)..]).Trim();
+        if (string.IsNullOrWhiteSpace(instructions)) throw new InvalidDataException("agent developer instructions are empty");
+        return new PortableContract(name, description, instructions);
+    }
+
+    private static string UnquoteYaml(string value)
+    {
+        if (value.Length >= 2 && ((value[0] == '"' && value[^1] == '"') || (value[0] == '\'' && value[^1] == '\'')))
+            return value[1..^1];
+        return value;
+    }
+
     private static void PrintFailures(IEnumerable<string> failures)
     {
         foreach (var failure in failures)
@@ -399,7 +540,8 @@ internal static class CodexProfileFinalizer
     private static void PrintUsage() => Console.WriteLine("Usage: dotnet run --file finalize-codex-agent-profiles.cs -- [target-repository] [--dry-run | --check] [--force]");
 
     private sealed record Options(string TargetRoot, bool DryRun, bool Check, bool Force);
-    private sealed record Profile(string Model, string Reasoning, string Sandbox);
+    private sealed record Profile(string Model, string Reasoning, string Sandbox, PortableContract Contract);
+    private sealed record PortableContract(string Name, string Description, string DeveloperInstructions);
     private sealed record Operation(OperationKind Kind, string Path, string? Content);
     private sealed record OverlayDocument(
         [property: JsonPropertyName("schemaVersion")] int SchemaVersion,

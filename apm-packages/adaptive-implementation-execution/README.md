@@ -83,12 +83,10 @@ CopilotではVS CodeのChat viewでagent pickerから`high-implementation-starte
 
 ```powershell
 $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
-dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- C:\path\to\target --dry-run
 dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- C:\path\to\target
-dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- C:\path\to\target --check
 ```
 
-finalizer は File-based app であり、`.csproj` は不要です。APM が生成した model 未設定の同名 custom agent は package ownership を確認したうえで補完します。異なる concrete profile は衝突として停止し、明示的な `--force` の場合だけ package 推奨値へ更新します。
+Copilot-only導入ではCodex profileが不要なため、finalizerの実行も不要です。finalizer は File-based app であり、`.csproj` は不要です。APM が生成した model 未設定の同名 custom agent は package ownership を確認したうえで補完します。異なる concrete profile は衝突として停止し、明示的な `--force` の場合だけ package 推奨値へ更新します。
 
 finalizer がアクセスする導入先ファイルは package-owned profile に対応する `.codex/agents/*.toml` だけです。`AGENTS.md` を作成・変更・削除せず、実行しても skill の使用や自動選択を意味しません。`--check` は model / reasoning / sandbox 設定、agent ownership、overlay conflict を検証します。APM が必要な設定を直接生成できるようになれば、この互換処理は no-op になります。
 

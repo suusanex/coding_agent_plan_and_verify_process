@@ -68,12 +68,10 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pa
 APM が concrete model / reasoning / sandbox 設定を持たない custom agent TOML を生成する環境では、導入済みmoduleの共通 finalizer で HIGH / STANDARD profile を補完します。
 
 ```powershell
-dotnet run --file .\apm_modules\suusanex\coding_agent_plan_and_verify_process\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs -- . --dry-run
 dotnet run --file .\apm_modules\suusanex\coding_agent_plan_and_verify_process\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs -- .
-dotnet run --file .\apm_modules\suusanex\coding_agent_plan_and_verify_process\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs -- . --check
 ```
 
-`--check` は HIGH / STANDARD が別agent・別model mappingを持ち、reasoning と `workspace-write` sandbox が設定済みであることを確認します。APM が同等のconcrete設定を直接生成した場合、write stepは不要ですが `--check` は実行します。詳細は Adaptive package の `docs/install-guide.md` を参照してください。
+Copilot-only導入ではCodex profileが不要なため、finalizerの実行も不要です。`--dry-run`、`--check`、`--force`の保守手順は Adaptive package の `docs/install-guide.md` を参照してください。
 
 通常 Plan Mode 後の起動例:
 

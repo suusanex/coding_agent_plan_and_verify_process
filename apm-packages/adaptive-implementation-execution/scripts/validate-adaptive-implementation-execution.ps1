@@ -2,120 +2,680 @@
 param()
 
 $ErrorActionPreference = 'Stop'
-$repoRoot = (Get-Location).Path
+$packageRoot = Split-Path -Parent $PSScriptRoot
+$repoRoot = (Resolve-Path (Join-Path $packageRoot '../..')).Path
 $failures = [System.Collections.Generic.List[string]]::new()
 
-function Read-RepoText([string] $RelativePath) {
+function Add-Failure {
+    param([string]$Message)
+    $failures.Add($Message)
+}
+
+function Assert-FileExists {
+    param([string]$RelativePath)
     $path = Join-Path $repoRoot $RelativePath
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
-        $failures.Add("Missing file: $RelativePath")
-        return ''
-    }
-    return Get-Content -LiteralPath $path -Raw
-}
-
-function Require-File([string] $RelativePath) {
-    if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $RelativePath) -PathType Leaf)) {
-        $failures.Add("Missing file: $RelativePath")
+        Add-Failure "Missing file: $RelativePath"
     }
 }
 
-function Require-Text([string] $RelativePath, [string] $Pattern, [string] $Description) {
-    $text = Read-RepoText $RelativePath
-    if ($text -and $text -notmatch $Pattern) {
-        $failures.Add("Missing $Description in $RelativePath")
+function Assert-FileNotExists {
+    param([string]$RelativePath)
+    $path = Join-Path $repoRoot $RelativePath
+    if (Test-Path -LiteralPath $path) {
+        Add-Failure "Obsolete duplicate file must not exist: $RelativePath"
     }
 }
 
-function Forbid-Text([string] $RelativePath, [string] $Pattern, [string] $Description) {
-    $text = Read-RepoText $RelativePath
-    if ($text -and $text -match $Pattern) {
-        $failures.Add("Found obsolete $Description in $RelativePath")
+function Assert-Contains {
+    param(
+        [string]$RelativePath,
+        [string]$Pattern,
+        [string]$Description
+    )
+
+    $path = Join-Path $repoRoot $RelativePath
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        Add-Failure "Cannot check $Description because file is missing: $RelativePath"
+        return
+    }
+
+    $content = Get-Content -Raw -LiteralPath $path
+    if ($content -notmatch $Pattern) {
+        Add-Failure "$RelativePath does not contain $Description"
     }
 }
 
-$required = @(
+function Assert-NotContains {
+    param(
+        [string]$RelativePath,
+        [string]$Pattern,
+        [string]$Description
+    )
+
+    $path = Join-Path $repoRoot $RelativePath
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        Add-Failure "Cannot check $Description because file is missing: $RelativePath"
+        return
+    }
+
+    $content = Get-Content -Raw -LiteralPath $path
+    if ($content -match $Pattern) {
+        Add-Failure "$RelativePath contains forbidden $Description"
+    }
+}
+
+function Assert-NormalizedEqual {
+    param(
+        [string]$ExpectedRelativePath,
+        [string]$ActualRelativePath,
+        [string]$Description
+    )
+
+    $expectedPath = Join-Path $repoRoot $ExpectedRelativePath
+    $actualPath = Join-Path $repoRoot $ActualRelativePath
+    if (-not (Test-Path -LiteralPath $expectedPath -PathType Leaf) -or -not (Test-Path -LiteralPath $actualPath -PathType Leaf)) {
+        Add-Failure "Cannot compare $Description because one or both files are missing"
+        return
+    }
+    $expected = [System.IO.File]::ReadAllText($expectedPath).Replace("`r`n", "`n").Replace("`r", "`n")
+    $actual = [System.IO.File]::ReadAllText($actualPath).Replace("`r`n", "`n").Replace("`r", "`n")
+    if ($expected -cne $actual) {
+        Add-Failure "$ActualRelativePath is not synchronized with canonical $ExpectedRelativePath ($Description)"
+    }
+}
+
+function Get-TomlString {
+    param(
+        [string]$RelativePath,
+        [string]$Key
+    )
+
+    $path = Join-Path $repoRoot $RelativePath
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        return $null
+    }
+
+    $match = Select-String -LiteralPath $path -Pattern ("^\s*" + [regex]::Escape($Key) + '\s*=\s*"([^"]+)"\s*$') | Select-Object -First 1
+    if ($null -eq $match) {
+        return $null
+    }
+
+    return $match.Matches[0].Groups[1].Value
+}
+
+function Get-FrontmatterString {
+    param(
+        [string]$RelativePath,
+        [string]$Key
+    )
+
+    $path = Join-Path $repoRoot $RelativePath
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        return $null
+    }
+
+    $match = Select-String -LiteralPath $path -Pattern ("^" + [regex]::Escape($Key) + ':\s*(.+?)\s*$') | Select-Object -First 1
+    if ($null -eq $match) {
+        return $null
+    }
+
+    return $match.Matches[0].Groups[1].Value
+}
+
+$requiredFiles = @(
     'apm-packages/adaptive-implementation-execution/.apm/agents/high-implementation-starter.agent.md',
     'apm-packages/adaptive-implementation-execution/.apm/agents/standard-implementation-completer.agent.md',
+    '.github/workflows/validate-adaptive-implementation-execution.yml',
+    '.github/workflows/validate-design-pair-implementation-execution.yml',
     'apm-packages/adaptive-implementation-execution/apm.yml',
+    'apm-packages/adaptive-implementation-execution/README.md',
+    'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md',
+    'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/intent.md',
+    'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md',
     'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json',
     'apm-packages/codex-profile-finalizer/apm.yml',
+    'apm-packages/codex-profile-finalizer/.apm/.gitkeep',
     'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs',
     'apm-packages/codex-profile-finalizer/tests/validate-finalizer.ps1',
     'apm-packages/codex-profile-finalizer/tests/validate-apm-install.ps1',
-    'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-apm-smoke.ps1',
+    'apm-packages/adaptive-implementation-execution/docs/install-guide.md',
+    'apm-packages/adaptive-implementation-execution/docs/usage-guide.md',
+    'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md',
+    'apm-packages/adaptive-implementation-execution/docs/examples/copilot-manual-smoke.md',
+    'apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-07-31.md',
+    'apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-08-09.md',
+    'apm-packages/adaptive-implementation-execution/docs/examples/legacy-adaptive-handoff.md',
     'apm-packages/adaptive-implementation-execution/tests/routing-scenarios.json',
-    'apm-packages/adaptive-implementation-execution/tests/validate-routing-scenarios.ps1'
+    'apm-packages/adaptive-implementation-execution/tests/validate-routing-scenarios.ps1',
+    'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-apm-smoke.ps1',
+    'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1',
+    'apm-packages/design-pair-implementation-execution/apm.yml',
+    'apm-packages/design-pair-implementation-execution/.apm/skills/design-pair-implementation-execution/SKILL.md',
+    'apm-packages/design-pair-implementation-execution/.apm/skills/design-pair-implementation-execution/handoff.md',
+    'apm-packages/plan-coverage-residual-flow/apm.yml',
+    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md'
 )
-foreach ($path in $required) { Require-File $path }
+
+foreach ($file in $requiredFiles) {
+    Assert-FileExists $file
+}
+
+$packageAgentsFiles = @(Get-ChildItem -LiteralPath (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution') -Filter 'AGENTS.md' -File -Recurse)
+if ($packageAgentsFiles.Count -gt 0) {
+    Add-Failure ('Package must not contain AGENTS.md guidance: ' + (($packageAgentsFiles.FullName) -join ', '))
+}
+
+$manifest = 'apm-packages/adaptive-implementation-execution/apm.yml'
+Assert-Contains $manifest '(?m)^name:\s*adaptive-implementation-execution\s*$' 'package name'
+Assert-Contains $manifest '(?m)^version:\s*0\.5\.0\s*$' 'package version 0.5.0'
+Assert-Contains $manifest '(?m)^\s*-\s+copilot\s*$' 'Copilot target'
+Assert-Contains $manifest '(?m)^\s*-\s+codex\s*$' 'codex target'
+Assert-Contains $manifest '(?m)^\s*-\s+agent-skills\s*$' 'agent-skills target'
+Assert-NotContains $manifest '(?m)^\s*-\s+(?:github-copilot|vscode)\s*$' 'non-canonical Copilot target alias'
+Assert-NotContains $manifest 'token-aware|codex-first|copilot-fallback|plan-coverage' 'aggregate process dependency'
+Assert-NotContains $manifest 'path:\s+.*(?:implementation-intent|implementation-completion-handoff)\.md' 'standalone template dependency'
+
+# APM remote install materializes the complete package below a deep Git cache prefix on Windows.
+# Keep every repository-relative package path bounded instead of checking only deployed skill files.
+$maxWindowsPackagePathLength = 110
+$packageRelativeRoot = 'apm-packages/adaptive-implementation-execution'
+$packageFiles = @(& git -C $repoRoot ls-files --cached --others --exclude-standard -- $packageRelativeRoot)
+if ($LASTEXITCODE -ne 0) {
+    Add-Failure 'Cannot enumerate Git package payload for Windows path compatibility validation'
+}
+foreach ($relativePath in $packageFiles) {
+    if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $relativePath) -PathType Leaf)) {
+        continue
+    }
+    if ($relativePath.Length -gt $maxWindowsPackagePathLength) {
+        Add-Failure "APM package path exceeds Windows compatibility budget ($($relativePath.Length) > $maxWindowsPackagePathLength): $relativePath"
+    }
+}
+
+$manifestPath = Join-Path $repoRoot $manifest
+if (Test-Path -LiteralPath $manifestPath) {
+    $dependencyPaths = Select-String -LiteralPath $manifestPath -Pattern '^\s*path:\s*(.+?)\s*$' | ForEach-Object {
+        $_.Matches[0].Groups[1].Value.Trim()
+    }
+    foreach ($dependencyPath in $dependencyPaths) {
+        if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $dependencyPath))) {
+            Add-Failure "Manifest dependency does not exist: $dependencyPath"
+        }
+    }
+}
 
 $integratedManifests = @(
     @{ Path = 'apm-packages/plan-coverage-residual-flow/apm.yml'; Version = '0\.13\.0' }
 )
+
 foreach ($integratedManifest in $integratedManifests) {
-    Require-Text $integratedManifest.Path ("(?m)^version:\s*" + $integratedManifest.Version + '\s*$') "integrated package version $($integratedManifest.Version -replace '\\', '')"
-}
+    $integratedManifestPath = $integratedManifest.Path
+    Assert-Contains $integratedManifestPath ("(?m)^version:\s*" + $integratedManifest.Version + '\s*$') "expected package version $($integratedManifest.Version -replace '\\', '')"
 
-$overlayPath = Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json'
-if (Test-Path -LiteralPath $overlayPath) {
-    try {
-        $overlay = Get-Content -LiteralPath $overlayPath -Raw | ConvertFrom-Json
-        if ($overlay.schemaVersion -ne 1 -or $overlay.package -ne 'adaptive-implementation-execution') {
-            $failures.Add('Adaptive profile overlay schema or package ownership is invalid')
-        }
-        $allowedFields = @('agent', 'model', 'model_reasoning_effort', 'sandbox_mode')
-        foreach ($entry in $overlay.profiles) {
-            $unknownFields = @($entry.PSObject.Properties.Name | Where-Object { $_ -notin $allowedFields })
-            if ($unknownFields.Count -gt 0) {
-                $failures.Add("Adaptive overlay has unsupported fields: $($unknownFields -join ', ')")
-            }
-            $agent = Join-Path $repoRoot ("apm-packages/adaptive-implementation-execution/.apm/agents/{0}.agent.md" -f $entry.agent)
-            if (-not (Test-Path -LiteralPath $agent -PathType Leaf)) {
-                $failures.Add("Adaptive overlay agent is not package-owned: $($entry.agent)")
-            }
-            foreach ($field in @('model', 'model_reasoning_effort', 'sandbox_mode')) {
-                if ([string]::IsNullOrWhiteSpace([string]$entry.$field)) {
-                    $failures.Add("Adaptive overlay field is missing: $($entry.agent).$field")
-                }
-            }
-        }
+    $absoluteManifestPath = Join-Path $repoRoot $integratedManifestPath
+    if (-not (Test-Path -LiteralPath $absoluteManifestPath)) {
+        continue
     }
-    catch {
-        $failures.Add("Adaptive overlay JSON is invalid: $($_.Exception.Message)")
+
+    $dependencyPaths = Select-String -LiteralPath $absoluteManifestPath -Pattern '^\s*path:\s*(.+?)\s*$' | ForEach-Object {
+        $_.Matches[0].Groups[1].Value.Trim()
+    }
+    foreach ($dependencyPath in $dependencyPaths) {
+        if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $dependencyPath))) {
+            Add-Failure "$integratedManifestPath dependency does not exist: $dependencyPath"
+        }
     }
 }
 
-Require-Text 'apm-packages/adaptive-implementation-execution/apm.yml' 'path:\s*apm-packages/codex-profile-finalizer' 'finalizer dependency'
-Require-Text 'apm-packages/codex-profile-finalizer/apm.yml' 'name:\s*codex-profile-finalizer' 'finalizer package name'
-Require-Text 'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs' 'codex-profile-overlays\.json' 'overlay discovery'
-Require-Text 'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs' '--dry-run|--check|--force' 'finalizer options'
-Forbid-Text 'README.md' 'provision-work-repo-agents|install-adaptive-implementation-local|sync-pr-review-remediation-local' 'legacy installer reference'
-Forbid-Text 'apm-packages/adaptive-implementation-execution/README.md' 'codex-agents/.*\.toml|install-adaptive-implementation-local' 'legacy Adaptive profile source'
+foreach ($integratedManifestPath in @(
+    'apm-packages/plan-coverage-residual-flow/apm.yml'
+)) {
+    Assert-Contains $integratedManifestPath '(?m)^\s*path:\s*apm-packages/adaptive-implementation-execution\s*$' 'Adaptive Implementation package boundary dependency'
+    Assert-NotContains $integratedManifestPath 'apm-packages/adaptive-implementation-execution/\.apm/skills/adaptive-implementation-execution' 'Adaptive Implementation internal skill path must not be re-owned'
+    Assert-NotContains $integratedManifestPath '\.github/agents/high-implementation-starter\.agent\.md' 'HIGH agent must remain Adaptive package ownership'
+    Assert-NotContains $integratedManifestPath '\.github/agents/standard-implementation-completer\.agent\.md' 'STANDARD agent must remain Adaptive package ownership'
+    Assert-NotContains $integratedManifestPath '\.github/agents/implementation-execution\.agent\.md' 'legacy implementation must not be re-imported from root .github'
+}
+Assert-FileExists 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-execution.agent.md'
 
+$planCoveragePackageName = 'plan-coverage-residual-flow'
+$planCoveragePackageRoot = "apm-packages/$planCoveragePackageName"
+$planCoverageManifest = "$planCoveragePackageRoot/apm.yml"
+$planCoverageSkill = "$planCoveragePackageRoot/.apm/skills/$planCoveragePackageName/SKILL.md"
+Assert-Contains $planCoverageManifest "(?m)^name:\s*$planCoveragePackageName\s*$" 'Plan Coverage package directory and manifest name alignment'
+Assert-Contains $planCoverageSkill "(?m)^name:\s*$planCoveragePackageName\s*$" 'Plan Coverage package and primary skill name alignment'
+Assert-Contains $planCoverageSkill 'Every non-trivial pass starts with `high-implementation-starter\.agent\.md` on `HIGH_MODEL`' 'Plan Coverage HIGH_MODEL start'
+Assert-Contains $planCoverageSkill '`READY_FOR_STANDARD_COMPLETION`.*`standard-implementation-completer\.agent\.md`' 'Plan Coverage bounded STANDARD completion'
+Assert-Contains $planCoverageSkill '`NEEDS_HIGH_MODEL_REENTRY`.*`high-implementation-starter\.agent\.md`' 'Plan Coverage HIGH_MODEL re-entry'
+Assert-Contains $planCoverageSkill 'plans/<slug>-implementation-execution\.md' 'stable implementation result artifact name'
+Assert-Contains $planCoverageSkill 'completion handoff inline unless resume, another thread/model, or another worker requires a tracked' 'inline completion handoff default'
+Assert-Contains $planCoverageSkill 'Implementation Self-Map Delta' 'per-phase implementation traceability delta'
+Assert-Contains $planCoverageSkill 'Related Plan item.*Related Behavior Case IDs.*Related SL / XC / RC / TP / IC / Gap item.*Assumption made.*Review hint' 'complete Self-Map traceability schema'
+Assert-Contains $planCoverageSkill 'orchestrator is the single aggregation owner' 'Self-Map aggregation ownership'
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/change-risk-triage.agent.md' 'implementation-internal.*implementation phase' 'risk triage shape boundary'
+
+$handoffReviewAgent = 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md'
+Assert-Contains $handoffReviewAgent 'Plan網羅チェック・残件判定フロー.*mandatory pre-implementation review gate' 'handoff review Plan Coverage placement'
+Assert-Contains $handoffReviewAgent 'standalone Adaptive.*呼び出さず' 'handoff review standalone Adaptive exclusion'
+
+Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-execution.agent.md' 'Compatibility status: legacy' 'legacy Plan Coverage implementation notice'
+
+$skill = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md'
+Assert-Contains $skill '(?m)^disable-model-invocation:\s*true\s*$' 'skill explicit-only model invocation'
+Assert-Contains $skill '(?m)^user-invocable:\s*true\s*$' 'skill remains user-invocable'
+Assert-Contains $skill '(?m)^description:\s*Use only when the user explicitly invokes this skill with /adaptive-implementation-execution' 'skill description slash-invocation-only contract'
+Assert-Contains $skill 'Do not select for ordinary implement-this-plan requests' 'skill description rejects plain implementation requests'
+Assert-Contains $skill 'do not select from natural-language mentions' 'skill description rejects natural-language name mentions'
+Assert-NotContains $skill 'or when the task clearly requires' 'obsolete task-requires auto-selection description'
+Assert-NotContains $skill '\$adaptive-implementation-execution' 'obsolete dollar-prefix skill invocation example'
+Assert-Contains $skill '利用者が `/adaptive-implementation-execution` で明示起動した場合だけ使用する' 'skill body slash-invocation-only rule'
+Assert-Contains $skill '「実装して」「このPlanを実装して」などの実装依頼、および「Adaptive Implementationを使って」などの自然文での名前言及だけでは選択しない' 'skill body rejects plain and natural-language requests'
+Assert-Contains $skill 'high-implementation-starter' 'HIGH_MODEL start route'
+Assert-Contains $skill 'standard-implementation-completer' 'STANDARD_MODEL completion route'
+Assert-Contains $skill 'READY_FOR_STANDARD_COMPLETION' 'standard delegation gate'
+Assert-Contains $skill 'NEEDS_HIGH_MODEL_REENTRY' 'HIGH_MODEL re-entry route'
+Assert-Contains $skill 'write-heavy agent を並列に起動しません' 'write-heavy serial execution rule'
+Assert-Contains $skill 'Plan Coverage artifacts が存在しないことは blocker ではありません' 'Plan Coverage independence'
+Assert-Contains $skill 'Final review status' 'final review boundary'
+Assert-Contains $skill 'Validation expectation: inferred from repository' 'validation inference reporting'
+Assert-Contains $skill 'acceptance status table' 'acceptance evidence output'
+Assert-Contains $skill 'delegation_surface_reduced' 'bounded re-delegation evidence'
+Assert-Contains $skill '理由付き`N/A`' 'evidence-backed applicability N/A'
+Assert-Contains $skill 'incoming value \+ 1' 're-entry count increment rule'
+Assert-Contains $skill '双方向に一致' 'bidirectional acceptance mapping gate'
+Assert-Contains $skill 'existing code から scope を狭めない' 'safe non-goal inference rule'
+Assert-Contains $skill 'package が導入されているだけで.*自動適用しない' 'non-automatic skill selection rule'
+Assert-Contains $skill 'Design Pair Implementation Handoff' 'Design Pair handoff input support'
+Assert-Contains $skill '(?s)binding なのは.*Locked Decisions.*だけ' 'Design Pair binding-only rule'
+Assert-Contains $skill '(?s)verdict が `READY_FOR_ADAPTIVE_IMPLEMENTATION`.*`Interaction stage: complete`.*Target Map presentation evidence.*actual user response reference.*explicit all-Adaptive delegation.*pending human-owned Target がない' 'complete post-map Design Pair readiness validation'
+Assert-Contains $skill 'Target 未選択を空集合として PASS にせず.*HIGH_MODELを起動しません' 'empty Target selection fail-closed rule'
+Assert-Contains $skill '(?s)Target Map ID が一意.*summary の全 Target ID が Target Map に実在.*5集合が互いに素.*和集合が Target Map 全体と完全一致.*summary 集合が Target Map row.*一致' 'Design Pair Target set reconciliation gate'
+Assert-Contains $skill '(?s)Locked Decision Target ID が `Selected Target IDs` に含まれ.*Target Map row が `Locked`.*all-Adaptive delegation.*selected / pending が `None`.*全 Target row が `Adaptive-Owned`.*delegated集合と完全一致' 'Design Pair Locked and all-Adaptive invariants'
+Assert-Contains $skill '架空 ID、重複 ID、未分類 Target、row / summary 不一致.*も拒否' 'Design Pair malformed Target set rejection'
+Assert-Contains $skill '(?s)`Selected Target IDs`と`Delegated-to-Adaptive Target IDs`の各Targetに一件だけ`Target Disposition Evidence`.*Target Map rowと一致.*actual user message / turn reference.*post-map confirmation `Yes`' 'Design Pair Target disposition evidence gate'
+Assert-Contains $skill '(?s)未選択Targetを自己判断で`Adaptive-Owned`.*利用者の最終応答なしに`Discussed-Unlocked`.*拒否' 'Design Pair AI-owned disposition rejection'
+Assert-Contains $skill '(?s)selected Targetごとに`Selected Target Discussion Evidence`.*user-facing assistant turn reference.*具体的code location.*current invariant.*alternatives / trade-offs.*proposalまたはNo proposal理由.*validation expectation' 'Design Pair selected Target discussion evidence gate'
+Assert-Contains $skill '抽象的な論点名だけで具体的なSelected Target discussion evidenceがないartifactも拒否' 'Design Pair abstract discussion rejection'
+Assert-Contains $skill '(?s)Target Map presentation evidenceが.*全Targetのuser-facingな具体的file / symbol.*current invariant.*内部設計判断候補.*relevant evidence.*artifact linkまたは論点名だけの要約ではない' 'Design Pair concrete Target Map presentation gate'
+Assert-Contains $skill 'Upstream Binding Constraints.*Design Pair Decision ID を持たない既存の binding input' 'upstream binding separation rule'
+Assert-Contains $skill 'Affected files / symbols.*Allowed edit surface.*扱いません' 'Design Pair file-symbol non-allowlist rule'
+Assert-Contains $skill 'automatic Design Pair re-entry' 'no automatic Design Pair re-entry'
+Assert-Contains $skill '新規 intake と resume を分けます' 'fresh intake and resume distinction'
+Assert-Contains $skill '欠落や矛盾を Adaptive へ補完しません' 'resume route fail-closed rule'
+Assert-Contains $skill 'route_metadata_normalization: legacy-adaptive-handoff' 'legacy handoff normalization marker'
+Assert-Contains $skill '(?s)```yaml.*implementation_route: adaptive.*implementation_route_source: default.*design_pair_handoff: N/A.*```' 'fresh Adaptive route identity initialization'
+Assert-Contains $skill '(?s)## Step 2: Start with HIGH_MODEL.*渡すもの:.*- `implementation_route`.*- `implementation_route_source`.*HIGH_MODELはactual code' 'HIGH_MODEL explicit route input payload'
+Assert-Contains $skill 'Design Pair Implementation Handoff path（`adaptive / default`では明示的な`N/A`、`design-pair / explicit-user-selection`ではcurrent tracked path）' 'HIGH_MODEL explicit default N/A path payload'
+Assert-Contains $skill '`adaptive / default`ではpathが明示的な`N/A`' 'parent default route path validation'
+Assert-Contains $skill 'previous Implementation Completion Handoff と High-model Re-entry Handoff' 'HIGH_MODEL re-entry dual handoff payload'
+Assert-Contains $skill '(?s)### NEEDS_HIGH_MODEL_REENTRY.*元の(?:tracked )?`Implementation Completion Handoff`.*両handoffの`implementation_route`、`implementation_route_source`、Design Pair handoff pathが一致' 'HIGH_MODEL re-entry route identity validation'
+Assert-Contains $skill '(?s)通常はすべてのHIGH_MODEL result.*incoming durable route identityと完全一致.*唯一の例外.*`Verdict: BLOCKED`.*`Stop reason: BlockedByInvalidCompletionHandoff`.*raw observed value.*`<missing>`.*artifact repair evidence' 'parent HIGH invalid-artifact BLOCKED route exception'
+Assert-Contains $skill '(?s)通常はすべてのSTANDARD_MODEL result.*incoming Implementation Completion Handoffと完全一致.*唯一の例外.*`Verdict: BLOCKED`.*`Stop reason: BlockedByInvalidCompletionHandoff`.*raw observed value.*`<missing>`.*artifact repair evidence' 'parent STANDARD invalid-artifact BLOCKED route exception'
+Assert-Contains $skill '(?s)### COMPLETED_BY_HIGH_MODEL.*検証済みroute identity' 'parent validates HIGH_MODEL completion route identity'
+Assert-Contains $skill '(?s)### COMPLETED.*検証済みroute identity' 'parent validates STANDARD_MODEL completion route identity'
+Assert-Contains $skill '(?s)### NEEDS_HIGH_MODEL_REENTRY.*有効なImplementation Completion Handoff.*locked non-local decision.*欠落または不一致.*`BLOCKED`.*BlockedByInvalidCompletionHandoff' 'parent separates locked non-local re-entry from invalid handoff'
+Assert-Contains $skill 'GitHub Copilot Chat in VS Code.*GPT-5\.6 Terra \(copilot\).*GPT-5\.6 Luna \(copilot\).*re-entry.*Terra' 'Copilot model route mapping'
+Assert-Contains $skill 'handoff button.*手動遷移候補.*verdictを検証するrouterではありません' 'Copilot handoff UI authorization boundary'
+Assert-Contains $skill 'Copilot.*tracked handoff.*会話履歴だけを唯一のstate保持手段にしません' 'Copilot tracked handoff state boundary'
+Assert-Contains $skill '`COMPLETED_BY_HIGH_MODEL`とstop verdictでは次agentを起動しません' 'Copilot stop verdict routing boundary'
+
+$highAgent = 'apm-packages/adaptive-implementation-execution/.apm/agents/high-implementation-starter.agent.md'
+Assert-NotContains $highAgent '(?m)^tools:' 'explicit Copilot HIGH tools frontmatter that APM drops for Codex'
+Assert-Contains $highAgent '(?m)^model:\s*GPT-5\.6 Terra \(copilot\)\s*$' 'Copilot HIGH model frontmatter'
+Assert-Contains $highAgent '(?m)^target:\s*vscode\s*$' 'Copilot HIGH VS Code target'
+Assert-Contains $highAgent '(?m)^disable-model-invocation:\s*true\s*$' 'Copilot HIGH explicit-only invocation'
+Assert-Contains $highAgent '(?s)handoffs:.*agent:\s*standard-implementation-completer.*model:\s*GPT-5\.6 Luna \(copilot\)' 'Copilot HIGH bounded completion handoff'
+Assert-Contains $highAgent '第一目的は.*implementation を可能な限り完成させることではありません' 'HIGH_MODEL decision-closure primary objective'
+Assert-Contains $highAgent 'code inspectionだけでdecision closureを証明できる場合.*変更せずに委譲' 'zero-code HIGH delegation'
+Assert-Contains $highAgent 'locked boundary、cross-file responsibility、public / shared internal contract、dependency direction、wiring architecture、state semantics、またはtest architectureに影響する複数の妥当な案' 'HIGH_MODEL non-local alternatives boundary'
+Assert-Contains $highAgent 'public / shared internal contract、schema、serialized format、config surface が変わり得る' 'HIGH_MODEL shared-contract continuation boundary'
+Assert-NotContains $highAgent 'public / internal API、schema、serialized format、config surface が変わり得る' 'overbroad HIGH_MODEL internal API continuation boundary'
+Assert-NotContains $highAgent '(?m)^- 複数の妥当な実装案から trade-off 判断が必要$' 'unbounded HIGH_MODEL alternatives retention rule'
+Assert-Contains $highAgent 'CONTINUE_HIGH_IMPLEMENTATION' 'continue-high verdict'
+Assert-Contains $highAgent 'COMPLETED_BY_HIGH_MODEL' 'high completion verdict'
+Assert-Contains $highAgent 'Allowed edit surface' 'handoff allowed surface'
+Assert-Contains $highAgent 'Delegation basis.*non-local-decisions-closed' 'non-local decision closure delegation basis'
+Assert-Contains $highAgent 'HIGH_MODEL code changes.*Yes.*No' 'HIGH_MODEL code-change state'
+Assert-Contains $highAgent 'Decision closure' 'decision closure handoff section'
+Assert-Contains $highAgent 'Direct completion reason' 'HIGH_MODEL direct completion exception reason'
+Assert-Contains $highAgent 'tiny-local-change.*design-implementation-inseparable.*standard-model-unavailable.*delegation-materially-increases-risk-or-cost.*post-reentry-high-ownership' 'complete direct completion reason vocabulary'
+Assert-Contains $highAgent 'acceptance status table' 'high-model acceptance evidence output'
+Assert-Contains $highAgent '一度 re-entry した後' 'high-model re-entry ownership'
+Assert-Contains $highAgent 'すべての `Incomplete` acceptance item' 'high-model incomplete acceptance mapping gate'
+Assert-Contains $highAgent 'scope 内の全 acceptance item.*`Acceptance status`' 'high-model complete acceptance enumeration gate'
+Assert-Contains $highAgent 're-entry handoff の `reentry_count` を維持' 'high-model re-entry count propagation'
+Assert-Contains $highAgent 'You are the "High Implementation Starter" agent\.' 'APM stub high-agent opening'
+Assert-Contains $highAgent 'Implementation Self-Map Delta' 'HIGH_MODEL Self-Map delta output'
+Assert-Contains $highAgent 'Related Plan item.*Related Behavior Case IDs.*Related SL / XC / RC / TP / IC / Gap item.*Assumption made.*Review hint' 'HIGH_MODEL Self-Map schema'
+Assert-Contains $highAgent 'Design Pair Implementation Handoff' 'HIGH_MODEL Design Pair input support'
+Assert-Contains $highAgent 'Locked Decision conflict' 'HIGH_MODEL Locked Decision conflict stop'
+Assert-Contains $highAgent '(?s)`design-pair / explicit-user-selection`では.*`Interaction stage: complete`.*post-map user response evidence.*explicit all-Adaptive delegation.*pending human-owned Targetなし.*空集合PASS.*BlockedByInvalidCompletionHandoff' 'HIGH_MODEL complete post-map authorization gate'
+Assert-Contains $highAgent 'Upstream Binding Constraints.*Design Pair Decision IDを持たない既存のbinding input' 'HIGH_MODEL upstream binding separation'
+Assert-Contains $highAgent '(?s)## Required inputs.*- implementation_route.*- implementation_route_source.*- Design Pair Implementation Handoff path または `N/A`.*`BLOCKED`.*BlockedByInvalidCompletionHandoff' 'HIGH_MODEL required route input validation'
+Assert-Contains $highAgent '(?s)`Implementation Completion Handoff` には次を含めます。.*- implementation_route.*- implementation_route_source.*- Validation performed' 'HIGH_MODEL required handoff route metadata'
+Assert-Contains $highAgent 're-entry handoffと元のImplementation Completion Handoffから`implementation_route`、`implementation_route_source`、Design Pair handoff pathを読み.*一致' 'HIGH_MODEL re-entry route identity input'
+Assert-Contains $highAgent '(?s)## Output.*通常はすべてのverdict.*唯一の例外.*`Verdict: BLOCKED`.*`Stop reason: BlockedByInvalidCompletionHandoff`.*raw observed value.*`<missing>`.*外部blocker.*完全なunchanged identity.*- implementation_route.*- implementation_route_source.*- Design Pair handoff path または `N/A`' 'HIGH_MODEL conditional route identity output'
+Assert-NotContains $highAgent '(?m)^すべてのverdictでincoming route identityを変更せず返します。$' 'unconditional HIGH_MODEL route identity output'
+Assert-Contains $highAgent '(?s)fieldの欠落、組み合わせ矛盾、またはevidence不一致.*`BLOCKED`.*BlockedByInvalidCompletionHandoff.*raw observed value.*`<missing>`.*推測または補完してはいけません' 'HIGH_MODEL invalid route classification and raw output'
+Assert-Contains $highAgent 'Original Implementation Intent.*goal / scope / acceptance / constraints / validation' 'HIGH_MODEL original intent persistence'
+Assert-Contains $highAgent 'GitHub Copilot Chat in VS Code.*必ずtracked artifact.*会話履歴だけを唯一の状態保持手段' 'Copilot HIGH tracked handoff requirement'
+Assert-NotContains $highAgent 'agent:\s*copilot-standard-verifier' 'Copilot HIGH stop/completion verification handoff'
+
+$standardAgent = 'apm-packages/adaptive-implementation-execution/.apm/agents/standard-implementation-completer.agent.md'
+Assert-NotContains $standardAgent '(?m)^tools:' 'explicit Copilot STANDARD tools frontmatter that APM drops for Codex'
+Assert-Contains $standardAgent '(?m)^model:\s*GPT-5\.6 Luna \(copilot\)\s*$' 'Copilot STANDARD model frontmatter'
+Assert-Contains $standardAgent '(?m)^target:\s*vscode\s*$' 'Copilot STANDARD VS Code target'
+Assert-Contains $standardAgent '(?m)^disable-model-invocation:\s*true\s*$' 'Copilot STANDARD explicit-only invocation'
+Assert-Contains $standardAgent '(?s)handoffs:.*agent:\s*high-implementation-starter.*model:\s*GPT-5\.6 Terra \(copilot\)' 'Copilot STANDARD HIGH re-entry handoff'
+Assert-Contains $standardAgent 'NEEDS_HIGH_MODEL_REENTRY' 're-entry verdict'
+Assert-Contains $standardAgent 'Locked decisions' 'locked decision boundary'
+Assert-Contains $standardAgent 'Allowed edit surface' 'allowed edit boundary'
+Assert-Contains $standardAgent '通常のimplementation owner' 'STANDARD implementation ownership'
+Assert-Contains $standardAgent 'locked済みsignatureと配置を持つclass/interface' 'STANDARD locked class and interface implementation authority'
+Assert-Contains $standardAgent 'DI / factory / entrypoint wiringの実コード作成' 'STANDARD locked wiring implementation authority'
+Assert-Contains $standardAgent '複数案からの選択によってlocked non-local decisionを新設または変更すること' 'STANDARD prohibited alternatives boundary'
+Assert-Contains $standardAgent '複数案からの選択によってlocked non-local decisionを新設または変更する必要がある' 'STANDARD alternatives re-entry boundary'
+Assert-NotContains $standardAgent '(?m)^- 複数の設計案からの選択$|(?m)^- 複数の妥当な設計案から選択する必要がある$' 'unbounded STANDARD alternatives prohibition'
+Assert-Contains $standardAgent 'Final code review performed|final review status' 'review boundary'
+Assert-Contains $standardAgent 'acceptance status table' 'standard-model acceptance evidence output'
+Assert-Contains $standardAgent '一度 re-entry した後' 'standard-model re-entry ownership'
+Assert-Contains $standardAgent 'incoming Implementation Completion Handoff の値に1を加える' 'standard-model re-entry count increment'
+Assert-Contains $standardAgent '双方向に一致' 'standard-model acceptance mapping authorization'
+Assert-Contains $standardAgent 'You are the "Standard Implementation Completer" agent\.' 'APM stub standard-agent opening'
+Assert-Contains $standardAgent 'Implementation Self-Map Delta' 'STANDARD_MODEL Self-Map delta output'
+Assert-Contains $standardAgent 'Related Plan item.*Related Behavior Case IDs.*Related SL / XC / RC / TP / IC / Gap item.*Assumption made.*Review hint' 'STANDARD_MODEL Self-Map schema'
+Assert-Contains $standardAgent 'Design Pair Decision IDs' 'STANDARD_MODEL Design Pair Decision propagation'
+Assert-Contains $standardAgent 'Legacy Adaptive handoff normalization' 'STANDARD_MODEL legacy handoff normalization'
+Assert-Contains $standardAgent 'LEGACY-HIGH-D01' 'STANDARD_MODEL deterministic legacy Decision IDs'
+Assert-Contains $standardAgent 'Design Pair evidenceがあるresume.*使用しません' 'legacy normalization excludes Design Pair resumes'
+Assert-Contains $standardAgent '(?s)条件を満たす場合、production code / testsを編集する前に.*`implementation_route: adaptive`.*`implementation_route_source: default`.*`route_metadata_normalization: legacy-adaptive-handoff`' 'STANDARD_MODEL legacy route metadata persistence'
+Assert-Contains $standardAgent '(?s)## Required authorization.*- implementation_route.*- implementation_route_source.*- Validation performed' 'STANDARD_MODEL required authorization route metadata'
+Assert-Contains $standardAgent '(?s)## High-model Re-entry Handoff.*- implementation_route:.*- implementation_route_source:.*- Design Pair handoff: N/A / plans/<slug>-design-pair-implementation-handoff\.md.*```' 'STANDARD_MODEL re-entry route identity fields'
+Assert-Contains $standardAgent '`implementation_route`、`implementation_route_source`、Design Pair handoff pathはincoming Implementation Completion Handoffの値を変更せず維持' 'STANDARD_MODEL re-entry route identity propagation'
+Assert-Contains $standardAgent 'この tracked handoff、incoming tracked Implementation Completion Handoff、元の Implementation Intent' 'STANDARD_MODEL re-entry original completion handoff retention'
+Assert-Contains $standardAgent '(?s)部分的な新schema、不完全な旧schema、矛盾するevidence.*`BLOCKED`.*BlockedByInvalidCompletionHandoff' 'STANDARD_MODEL invalid legacy artifact classification'
+Assert-Contains $standardAgent '(?s)片方が欠ける、矛盾する、またはevidenceと一致しないcurrent-schema handoff.*`BLOCKED`.*BlockedByInvalidCompletionHandoff' 'STANDARD_MODEL invalid current route classification'
+Assert-Contains $standardAgent '(?s)`NEEDS_HIGH_MODEL_REENTRY`は.*Required authorizationを通過.*locked non-local decision.*invalid.*re-entry handoffを作成しません' 'STANDARD_MODEL locked non-local re-entry boundary'
+Assert-Contains $standardAgent '(?s)## Output.*通常はすべてのverdict.*唯一の例外.*`Verdict: BLOCKED`.*`Stop reason: BlockedByInvalidCompletionHandoff`.*raw observed value.*`<missing>`.*外部blocker.*完全なunchanged identity.*- implementation_route.*- implementation_route_source.*- Design Pair handoff path または `N/A`' 'STANDARD_MODEL conditional route identity output'
+Assert-NotContains $standardAgent '(?m)^すべてのverdictでincoming route identityを変更せず返します。$' 'unconditional STANDARD_MODEL route identity output'
+Assert-Contains $standardAgent 'fresh intake.*直接選択.*編集せず.*tracked `READY_FOR_STANDARD_COMPLETION` handoff' 'STANDARD direct-start prohibition'
+Assert-Contains $standardAgent '(?s)High-model Re-entry Handoff.*Verdict: NEEDS_HIGH_MODEL_REENTRY.*Handoff persistence: tracked.*Original Implementation Intent:.*Worktree state:' 'complete tracked re-entry metadata'
+Assert-Contains $standardAgent 'state ownership、error、cancellation、retry' 'STANDARD policy decision re-entry trigger'
+Assert-Contains $standardAgent '(?s)## High-model re-entry.*locked non-local decision.*public / shared internal API、schema、serialized format、config surface.*locked済みDI lifetime、factory、entrypoint、production wiring architecture.*state ownership / error / cancellation / retry' 'STANDARD locked non-local re-entry trigger set'
+Assert-Contains $standardAgent 'ある種類のcode edit、新規file、class/interface作成、wiring edit.*だけではre-entryしません' 'STANDARD edit-type-only re-entry rejection'
+Assert-Contains $standardAgent '会話履歴だけを唯一の状態保持手段にしてはいけません' 'Copilot STANDARD tracked handoff requirement'
+Assert-NotContains $standardAgent 'agent:\s*copilot-standard-verifier' 'Copilot STANDARD verification handoff'
+
+$handoff = 'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md'
+foreach ($field in @(
+    'Verdict',
+    'Handoff persistence',
+    'Original Implementation Intent',
+    'Plan reference',
+    'implementation_route',
+    'implementation_route_source',
+    'Delegation basis',
+    'HIGH_MODEL code changes',
+    'Validation performed',
+    'Acceptance status',
+    'Decision closure',
+    'Applicability evidence',
+    'Implemented',
+    'Locked decisions',
+    'Remaining work',
+    'Allowed edit surface',
+    'Validation commands',
+    'High-model re-entry triggers',
+    'reentry_count',
+    'previous_reentry_trigger',
+    'delegation_surface_reduced',
+    'Known assumptions / unresolved observations',
+    'Design Pair handoff',
+    'Design Pair Decision compliance'
+)) {
+    Assert-Contains $handoff ([regex]::Escape($field)) "handoff field $field"
+}
+Assert-Contains $handoff 'Remaining work mapping \(Work ID\)' 'acceptance-to-work mapping column'
+Assert-Contains $handoff 'Work ID.*Acceptance item\(s\)' 'work-to-acceptance mapping columns'
+Assert-Contains $handoff 'Responsibility.*Authorized surface.*Expected behavior.*Locked boundaries.*Local freedom.*Completion check' 'decision-closed Work Package schema'
+Assert-Contains $handoff '`Unresolved`が1件でもあるhandoff.*受理しない' 'unresolved decision closure rejection'
+Assert-Contains $handoff '`HIGH_MODEL code changes: No`の場合は`None \(inspection-only\)`' 'inspection-only Implemented representation'
+Assert-Contains $handoff '複数案からの選択によってlocked non-local decisionを新設または変更する必要がある' 'handoff alternatives re-entry boundary'
+Assert-Contains $handoff '編集許可envelope' 'Allowed edit surface envelope semantics'
+Assert-Contains $handoff '`Blocked` を許可しない' 'blocked acceptance rejection'
+Assert-Contains $handoff 'Origin.*Decision ID.*Decision.*Affected files / symbols.*Validation expectation.*Compliance evidence' 'consolidated locked decision schema'
+Assert-Contains $handoff 'Legacy Adaptive handoff normalization' 'legacy Adaptive handoff normalization contract'
+Assert-Contains $handoff 'LEGACY-HIGH-D01' 'deterministic legacy Decision ID rule'
+Assert-Contains $handoff '(?s)# Implementation Completion Handoff.*- implementation_route: adaptive / design-pair.*- implementation_route_source: default / explicit-user-selection.*## Acceptance status' 'current handoff header route metadata'
+Assert-Contains $handoff 'current-schema handoff.*`BLOCKED` / `BlockedByInvalidCompletionHandoff`.*legacy normalizationで補完しない' 'current handoff invalid route classification'
+Assert-Contains $handoff 'GitHub Copilot Chat in VS Code.*必ず`tracked`.*会話履歴だけをdurable stateにしない' 'Copilot handoff persistence contract'
+
+$legacyFixture = 'apm-packages/adaptive-implementation-execution/docs/examples/legacy-adaptive-handoff.md'
+Assert-Contains $legacyFixture 'Verdict: READY_FOR_STANDARD_COMPLETION' 'legacy handoff READY verdict'
+Assert-Contains $legacyFixture '## Locked decisions\s*\r?\n\s*- ' 'legacy bullet-form Locked decisions'
+Assert-NotContains $legacyFixture 'Design Pair handoff|Design Pair Decision compliance|\| Origin \| Decision ID \|' 'new Design Pair fields in legacy fixture'
+foreach ($legacyField in @(
+    'Plan reference',
+    'Validation performed',
+    'Acceptance status',
+    'Applicability evidence',
+    'Implemented',
+    'Remaining work',
+    'Allowed edit surface',
+    'Validation commands',
+    'High-model re-entry triggers',
+    'reentry_count',
+    'previous_reentry_trigger',
+    'delegation_surface_reduced',
+    'Known assumptions / unresolved observations'
+)) {
+    Assert-Contains $legacyFixture ([regex]::Escape($legacyField)) "legacy handoff former required field $legacyField"
+}
+
+foreach ($sharedMarker in @(
+    'READY_FOR_STANDARD_COMPLETION',
+    'Original Implementation Intent',
+    'implementation_route',
+    'implementation_route_source',
+    'Design Pair handoff',
+    'Decision ID',
+    'Allowed edit surface',
+    'Implementation Self-Map Delta'
+)) {
+    Assert-Contains $highAgent ([regex]::Escape($sharedMarker)) "canonical HIGH shared marker $sharedMarker"
+}
+
+foreach ($sharedMarker in @(
+    'NEEDS_HIGH_MODEL_REENTRY',
+    'Original Implementation Intent',
+    'implementation_route',
+    'implementation_route_source',
+    'Design Pair handoff',
+    'Decision ID',
+    'Allowed edit surface',
+    'Implementation Self-Map Delta'
+)) {
+    Assert-Contains $standardAgent ([regex]::Escape($sharedMarker)) "canonical STANDARD shared marker $sharedMarker"
+}
+$validation = 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md'
+foreach ($id in 1..10) {
+    $scenarioId = 'VAL-{0:D3}' -f $id
+    Assert-Contains $validation $scenarioId "validation scenario $scenarioId"
+}
+foreach ($id in 1..5) {
+    Assert-Contains $validation ("INT-00$id") "integration validation scenario INT-00$id"
+}
+Assert-Contains $validation '新規 service \+ DI \+ tests' 'new service integration scenario'
+Assert-Contains $validation '大きな class からの責務分離' 'responsibility extraction integration scenario'
+Assert-Contains $validation 'async \+ retry \+ cancellation' 'async retry cancellation integration scenario'
+Assert-Contains $validation '既存 pattern が明確な早期 STANDARD 委譲' 'early STANDARD delegation integration scenario'
+Assert-Contains $validation 'locked non-local decisionの無効化と HIGH re-entry' 'HIGH re-entry integration scenario'
+Assert-Contains $validation '実モデル run.*NOT RUN' 'manual runtime run status'
+Assert-Contains $validation 'VAL-013: GitHub Copilot VS Code package configuration' 'Copilot package configuration validation scenario'
+Assert-Contains $validation 'Copilot CLI real-model orchestration.*PASS' 'Copilot CLI real-model validation status'
+Assert-Contains $validation 'GitHub Copilot CLI real-model orchestration for 0\.5\.0.*NOT RUN' 'new-contract real-model evidence remains explicit until executed'
+Assert-Contains $validation 'copilot-cli-real-model-e2e-2026-08-09\.md' 'new-contract real-model evidence path'
+Assert-Contains $validation 'omits `tools` so Copilot uses its default tool set' 'Copilot default tool-set contract'
+
+$routingScenarios = 'apm-packages/adaptive-implementation-execution/tests/routing-scenarios.json'
+$routingValidator = 'apm-packages/adaptive-implementation-execution/tests/validate-routing-scenarios.ps1'
+Assert-Contains $routingScenarios '"schema_version": 3' 'routing fixture schema v3'
+foreach ($scenarioName in @('zero-high-code-edits-delegation', 'standard-local-choice', 'locked-wiring-implementation', 'locked-boundary-invalidated', 'initial-high-completion-without-reason', 'valid-tiny-direct-completion', 'unresolved-decision-closure', 'reentry-redelegation-without-reduction', 'invalid-route-identity', 'design-pair-preservation')) {
+    Assert-Contains $routingScenarios ([regex]::Escape($scenarioName)) "routing scenario $scenarioName"
+}
+Assert-Contains $routingValidator 'Get-ScenarioErrors' 'routing state-machine validator'
+Assert-Contains $routingValidator 'Assert-RejectedMutation' 'negative routing mutation checks'
+Assert-Contains $routingValidator 'allowedDirectCompletionReasons' 'direct completion reason validation'
+Assert-Contains $routingValidator 'locked_non_local_decision_change_required' 'locked non-local re-entry validation'
+Assert-Contains $routingValidator '(?s)function Get-ReferenceHandoff.*events\.Count -ne 1.*return \$null' 'reference handoff exact-single fail-closed validation'
+Assert-Contains $routingValidator 'handoff override references unknown decision concern' 'unknown decision concern readable failure'
+Assert-Contains $routingValidator "status -cnotin @\('Complete', 'Incomplete'\)" 'complete acceptance status enum validation'
+Assert-Contains $routingValidator 'duplicate Work ID' 'unique Work ID validation'
+Assert-Contains $routingValidator 'does not declare the acceptance item' 'acceptance row to Work Package reverse-edge validation'
+Assert-Contains $routingValidator "(?s)C-edit-type-only-reentry.*tracked_state_ref.*'D'.*HighReentryReady" 'edit-type-only mutation uses otherwise valid re-entry state'
+Assert-Contains $routingValidator 'rejected for the wrong reason' 'negative mutation rejection-reason isolation'
+foreach ($mutation in @('G-ambiguous-reference-handoff', 'G-missing-reference-handoff', 'G-unknown-decision-concern', 'G-unsupported-acceptance-status', 'G-duplicate-work-id', 'G-empty-work-package-responsibility', 'G-asymmetric-acceptance-edge')) {
+    Assert-Contains $routingValidator ([regex]::Escape($mutation)) "routing negative mutation $mutation"
+}
+Assert-Contains $routingValidator 'no evidence or N/A reason' 'decision closure evidence validation'
+Assert-Contains $routingValidator 'bidirectionally mapped' 'acceptance and Work ID bidirectional mapping validation'
+Assert-Contains $routingValidator 'A-incomplete-work-package' 'incomplete Work Package mutation'
 try {
-    & (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution/tests/validate-routing-scenarios.ps1') -FixturePath (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution/tests/routing-scenarios.json') | Write-Output
+    & (Join-Path $repoRoot $routingValidator) -FixturePath (Join-Path $repoRoot $routingScenarios) | Write-Output
 }
 catch {
-    $failures.Add("Adaptive routing scenario validation failed: $($_.Exception.Message)")
+    Add-Failure "Executable routing scenario validation failed: $($_.Exception.Message)"
 }
 
+$finalizer = 'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs'
+Assert-Contains $finalizer '#:package Tomlyn@2\.10\.1' 'Tomlyn dependency for lossless TOML validation'
+Assert-Contains $finalizer 'ToString' 'full overlay exception diagnostics'
+Assert-Contains $finalizer 'PortableContract' 'portable projection ownership contract'
+Assert-Contains $finalizer 'options' 'check-mode missing module failure'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json' 'high-implementation-starter' 'Adaptive HIGH profile overlay ownership'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json' 'standard-implementation-completer' 'Adaptive STANDARD profile overlay ownership'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json' '(?s)gpt-5\.6-terra.*gpt-5\.6-luna' 'distinct Adaptive model mappings'
+Assert-FileExists 'apm-packages/codex-profile-finalizer/.apm/.gitkeep'
 try {
     & (Join-Path $repoRoot 'apm-packages/codex-profile-finalizer/tests/validate-finalizer.ps1') | Write-Output
 }
 catch {
-    $failures.Add("Codex profile finalizer validation failed: $($_.Exception.Message)")
+    Add-Failure "Codex profile finalizer validation failed: $($_.Exception.ToString())"
 }
 
-try {
-    & (Join-Path $repoRoot 'apm-packages/codex-profile-finalizer/tests/validate-apm-install.ps1') | Write-Output
+$apmSmoke = 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-apm-smoke.ps1'
+Assert-Contains $apmSmoke 'APM 0\.26\.0 is required' 'pinned APM 0.26.0 requirement'
+Assert-Contains $apmSmoke 'copilot,codex,agent-skills' 'combined Copilot Codex Skill install target'
+Assert-Contains $apmSmoke 'apm-packages/adaptive-implementation-execution#\$Ref' 'commit or ref pinned package spec'
+Assert-Contains $apmSmoke 'Adaptive package version 0\.5\.0' 'remote APM lock version assertion'
+Assert-Contains $apmSmoke "'install', '--frozen'" 'idempotent frozen reinstall'
+Assert-Contains $apmSmoke 'USER_CUSTOM_HIGH_AGENT' 'existing Copilot customization collision fixture'
+Assert-Contains $apmSmoke 'without --force' 'default collision protection assertion'
+Assert-Contains $apmSmoke '(?s)Copilot HIGH model.*Copilot STANDARD model' 'Copilot model deployment assertions'
+Assert-Contains $apmSmoke '(?s)Copilot HIGH explicit-only invocation.*Copilot STANDARD explicit-only invocation' 'deployed Copilot explicit-only invocation assertions'
+Assert-Contains $apmSmoke 'deployed skill explicit-only model invocation' 'deployed skill disable-model-invocation assertion'
+Assert-Contains $apmSmoke 'deployed skill rejects plain implementation requests' 'deployed skill plain-request rejection assertion'
+Assert-Contains $apmSmoke 'deployed skill decision-closure delegation basis' 'deployed skill decision-closure assertion'
+Assert-Contains $apmSmoke 'Copilot HIGH zero-code decision closure' 'deployed Copilot HIGH ownership assertion'
+Assert-Contains $apmSmoke 'Copilot STANDARD locked wiring ownership' 'deployed Copilot STANDARD ownership assertion'
+Assert-Contains $apmSmoke 'Codex STANDARD local implementation autonomy' 'deployed Codex STANDARD ownership assertion'
+Assert-Contains $apmSmoke '(?s)Codex HIGH model.*Codex STANDARD model' 'Codex model compatibility assertions'
+Assert-Contains $apmSmoke 'lossy agent compilation warnings' 'lossy APM compilation rejection'
+Assert-Contains $apmSmoke 'frontmatter field' 'dropped APM frontmatter rejection'
+Assert-Contains $apmSmoke 'Assert-NotContains.*Copilot HIGH explicit tools frontmatter' 'deployed Copilot tools omission assertion'
+
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' 'APM install が skill と portable custom agents を導入する本体' 'APM-first quick start'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '`AGENTS\.md` を作成・変更・削除せず' 'documented AGENTS.md non-access'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '`disable-model-invocation: true`.*明示選択.*subagent起動を禁止' 'documented explicit-only Copilot agents'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '`/adaptive-implementation-execution` で slash 起動した場合だけ起動' 'documented skill slash-invocation-only selection'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '「実装して」や自然文での名前言及だけでは自動選択しません' 'documented plain and natural-language non-selection'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' 'frontmatter は `disable-model-invocation: true` と `user-invocable: true`' 'documented skill invocation frontmatter'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '/adaptive-implementation-execution この Plan を実装してください' 'documented Copilot slash invocation example'
+Assert-NotContains 'apm-packages/adaptive-implementation-execution/README.md' '\$adaptive-implementation-execution' 'obsolete README dollar-prefix skill invocation'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' 'route_metadata_normalization: legacy-adaptive-handoff' 'documented legacy resume normalization marker'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' '--check.*次を検証' 'documented installer checks'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' 'APM-generated model-less stub' 'documented APM stub completion policy'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' 'Migration from the former managed section' 'legacy managed section migration note'
+
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' '導入されているだけで.*自動適用しません' 'documented non-automatic skill selection'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' '`/adaptive-implementation-execution` で slash 起動した場合だけ選択' 'documented slash-invocation-only skill selection'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' '「実装して」「このPlanを実装して」、および「Adaptive Implementationを使って」などの自然文での名前言及だけでは選択しません' 'documented plain and natural-language non-selection'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' '`disable-model-invocation: true`.*`user-invocable: true`' 'documented skill invocation frontmatter'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' '/adaptive-implementation-execution 直前の Plan を実装してください' 'usage-guide Copilot slash invocation example'
+Assert-NotContains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' '\$adaptive-implementation-execution' 'obsolete usage-guide dollar-prefix skill invocation'
+Assert-NotContains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' 'または現在の task がこの package の HIGH_MODEL → STANDARD_MODEL 直列 workflow を明確に必要とする場合に選択' 'obsolete usage-guide task-requires auto-selection'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' '`/adaptive-implementation-execution` で slash 起動した場合だけ選択' 'install-guide slash-invocation-only skill selection'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' '「実装して」「このPlanを実装して」、および「Adaptive Implementationを使って」などの自然文での名前言及だけでは選択されません' 'install-guide plain and natural-language non-selection'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' '`disable-model-invocation: true`' 'install-guide skill disable-model-invocation'
+Assert-NotContains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' '\$adaptive-implementation-execution' 'obsolete install-guide dollar-prefix skill invocation'
+Assert-NotContains 'apm-packages/adaptive-implementation-execution/docs/install-guide.md' 'またはtaskがこのpackageの直列workflowを明確に必要とする場合に選択' 'obsolete install-guide task-requires auto-selection'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' 'legacy-adaptive-handoff\.md' 'documented legacy resume fixture'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/examples/adaptive-routing-validation.md' 'installer does not create, read, update, or remove `AGENTS\.md`' 'validation scenario for AGENTS.md non-access'
+
+$copilotManualSmoke = 'apm-packages/adaptive-implementation-execution/docs/examples/copilot-manual-smoke.md'
+Assert-Contains $copilotManualSmoke '(?s)VS Code version.*GitHub Copilot / Copilot Chat extension version' 'manual Copilot environment record'
+Assert-Contains $copilotManualSmoke 'Selected agent.*Requested model.*Observed model.*Files changed.*Validation commands / results.*Terminal verdict.*Unexpected automatic handoff' 'manual Copilot phase evidence schema'
+Assert-Contains $copilotManualSmoke '(?s)このPlanを実装して.*adaptive-implementation-execution.*暗黙選択' 'manual plain implementation non-auto-select check'
+Assert-Contains $copilotManualSmoke '(?s)Adaptive Implementationを使ってこのPlanを実装して.*自動ロードにならない' 'manual natural-language name non-auto-select check'
+Assert-Contains $copilotManualSmoke '(?s)/adaptive-implementation-execution この Plan を実装してください.*slash 明示起動' 'manual explicit Adaptive slash invocation check'
+Assert-Contains $copilotManualSmoke 'plain implementation request did not auto-select Adaptive skill' 'manual completion decision for plain request'
+Assert-Contains $copilotManualSmoke 'natural-language "Adaptive Implementationを使って" did not auto-select Adaptive skill' 'manual completion decision for natural-language name'
+Assert-Contains $copilotManualSmoke 'explicit `/adaptive-implementation-execution` slash invocation still works' 'manual completion decision for slash invocation'
+Assert-NotContains $copilotManualSmoke '\$adaptive-implementation-execution' 'obsolete manual-smoke dollar-prefix skill invocation'
+Assert-Contains $copilotManualSmoke '(?s)HIGH_MODEL code changes: No.*READY_FOR_STANDARD_COMPLETION' 'manual zero-code HIGH delegation check'
+Assert-Contains $copilotManualSmoke '(?s)STANDARD.*class/interface、method body、DI registration、tests.*COMPLETED' 'manual STANDARD implementation ownership check'
+Assert-Contains $copilotManualSmoke 'Direct completion reason.*COMPLETED_BY_HIGH_MODEL.*拒否' 'manual direct HIGH completion reason check'
+Assert-Contains $copilotManualSmoke '(?is)NEEDS_HIGH_MODEL_REENTRY.*original Implementation Intent|original Implementation Intent.*NEEDS_HIGH_MODEL_REENTRY' 'manual structural re-entry state check'
+Assert-Contains $copilotManualSmoke '利用可否はCopilot planとorganization policyに依存' 'Copilot model availability caveat'
+Assert-Contains $copilotManualSmoke 'NOT RUN' 'manual smoke unexecuted disclosure'
+Assert-Contains $copilotManualSmoke 'GitHub Copilot CLI.*copilot-cli-real-model-e2e-2026-08-09.md' 'Copilot CLI 0.5 automation evidence target'
+
+$copilotCliEvidence = 'apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-07-31.md'
+Assert-Contains $copilotCliEvidence '816268eea12ae4e61a40f045de9448d180ef4a2c' 'real-model source commit'
+Assert-Contains $copilotCliEvidence 'gpt-5\.6-terra -> gpt-5\.6-luna -> gpt-5\.6-terra' 'observed Terra Luna Terra route'
+Assert-Contains $copilotCliEvidence 'COMPLETED_BY_HIGH_MODEL' 'real-model HIGH completion verdict'
+Assert-Contains $copilotCliEvidence 'READY_FOR_STANDARD_COMPLETION' 'real-model bounded handoff verdict'
+Assert-Contains $copilotCliEvidence 'NEEDS_HIGH_MODEL_REENTRY' 'real-model structural re-entry verdict'
+Assert-Contains $copilotCliEvidence 'BlockedByInvalidCompletionHandoff' 'real-model invalid handoff rejection'
+Assert-Contains $copilotCliEvidence 'unknown fields ignored: target, handoffs' 'Copilot CLI VS Code field limitation'
+
+$newContractCliEvidence = 'apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-08-09.md'
+Assert-Contains $newContractCliEvidence 'Adaptive 0\.5\.0' 'new-contract real-model evidence identity'
+Assert-Contains $newContractCliEvidence 'Zero/minimal HIGH implementation.*NOT RUN' 'zero-edit HIGH runtime scenario remains explicit'
+Assert-Contains $newContractCliEvidence 'STANDARD implementation ownership.*NOT RUN' 'STANDARD ownership runtime scenario remains explicit'
+Assert-Contains $newContractCliEvidence 'locked non-local decision change triggered re-entry: NOT RUN' 'structural re-entry runtime status'
+foreach ($metric in @('eligible_for_standard_delegation', 'standard_started', 'HIGH direct completion reason', 'HIGH changed LOC / test LOC', 'STANDARD changed LOC / test LOC', 'handoff size / token estimate', 'model input / output token', 're-entry count / trigger category', 'acceptance miss', 'review findings')) {
+    Assert-Contains $newContractCliEvidence ([regex]::Escape($metric)) "new-contract runtime metric $metric"
 }
-catch {
-    $failures.Add("Codex profile finalizer local APM smoke failed: $($_.Exception.Message)")
+
+$workflow = '.github/workflows/validate-adaptive-implementation-execution.yml'
+Assert-Contains $workflow 'validate-adaptive-implementation-execution\.ps1' 'Adaptive Implementation CI validator invocation'
+Assert-Contains $workflow '(?m)^\s*runs-on:\s*ubuntu-latest\s*$' 'APM-supported Linux runner'
+Assert-Contains $workflow 'actions/setup-dotnet@v5' '.NET setup action'
+Assert-Contains $workflow "dotnet-version: '10\.0\.x'" '.NET 10 SDK for File-based app smoke'
+Assert-Contains $workflow 'microsoft/apm-action@v1' 'APM setup action'
+Assert-Contains $workflow "apm-version: '0\.26\.0'" 'pinned APM workflow version'
+Assert-Contains $workflow 'validate-adaptive-implementation-apm-smoke\.ps1' 'remote APM install smoke invocation'
+Assert-Contains $workflow 'github\.event\.pull_request\.head\.repo\.full_name.*github\.repository' 'fork-safe remote smoke repository'
+Assert-Contains $workflow 'github\.event\.pull_request\.head\.sha.*github\.sha' 'commit SHA pinned smoke ref'
+foreach ($pathFilter in @(
+    'apm-packages/design-pair-implementation-execution/\*\*',
+    'apm-packages/plan-coverage-residual-flow/\*\*',
+    'apm-packages/codex-profile-finalizer/\*\*',
+    'apm-packages/adaptive-implementation-execution/codex-profile-overlays\.json',
+    'docs/\*\*'
+)) {
+    Assert-Contains $workflow $pathFilter "CI path filter $pathFilter"
 }
+
+Assert-Contains 'README.md' 'apm-packages/adaptive-implementation-execution' 'root package link'
+Assert-Contains 'README.md' 'apm-packages/design-pair-implementation-execution' 'root Design Pair package link'
+Assert-Contains 'apm-packages/adaptive-implementation-execution/README.md' '`AGENTS\.md` を作成・変更・削除せず' 'Adaptive helper AGENTS.md non-access statement'
+Assert-NotContains 'apm-packages/adaptive-implementation-execution/README.md' 'install-adaptive-implementation-local\.cs[^\r\n]*`AGENTS\.md` の managed section' 'obsolete Adaptive helper AGENTS.md managed-section claim'
 
 if ($failures.Count -gt 0) {
-    $message = "Adaptive Implementation validation failed:" + [Environment]::NewLine + "- " + ($failures -join ([Environment]::NewLine + "- "))
-    Write-Error $message
+    Write-Error ("Adaptive Implementation validation failed:`n- " + ($failures -join "`n- "))
     exit 1
 }
 

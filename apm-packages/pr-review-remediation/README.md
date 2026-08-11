@@ -23,19 +23,16 @@ original implementation parent
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills
 $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
-dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- . --dry-run
 dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
-dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- . --check
 ```
 
-APMはreview Skillsとcanonical reviewer agentsを導入し、共通 finalizerは`codex-profile-overlays.json`に定義された3つのCodex concrete profileだけを補完します。`review-planner`は基礎版とhistorical compatibility用です。Goal Context canonical same-parent pathのround decision/write ownershipは元の親agentが持ちます。finalizerは`AGENTS.md`と`.codex/config.toml`を操作しません。
+Copilot-only導入ではCodex profileが不要なため、finalizerの実行も不要です。APMはreview Skillsとcanonical reviewer agentsを導入し、共通 finalizerは`codex-profile-overlays.json`に定義された3つのCodex concrete profileだけを補完します。`review-planner`は基礎版とhistorical compatibility用です。Goal Context canonical same-parent pathのround decision/write ownershipは元の親agentが持ちます。finalizerは`AGENTS.md`と`.codex/config.toml`を操作しません。
 
 基礎版`$pr-review-remediation`のreview planを別turnのAdaptive Phase 2で実装する場合だけ、optional add-onを別途導入します。canonical same-parent flowには不要です。
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
 dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
-dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- . --check
 ```
 
 ## Usage
