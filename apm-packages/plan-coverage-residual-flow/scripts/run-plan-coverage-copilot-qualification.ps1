@@ -96,7 +96,7 @@ if ($DescribePayload) {
     exit 0
 }
 
-function New-RunFromEvidenceDir([string]$ScenarioEvidenceDir, [string]$Worktree, [string]$ScenarioId) {
+function New-RunFromEvidenceDir([string]$ScenarioEvidenceDir, [string]$Worktree, [string]$ScenarioId, [int]$ExitCode = 0) {
     $nested = Join-Path $ScenarioEvidenceDir $ScenarioId
     if (-not (Test-Path -LiteralPath $nested -PathType Container)) {
         $nested = $ScenarioEvidenceDir
@@ -148,7 +148,7 @@ $share
     foreach ($a in @(Get-AgentsFromHookLog $hookLog)) { if (-not $agents.Contains($a)) { $agents.Add($a) } }
     foreach ($a in @(Get-AgentsFromSessionEvents $copilotHome)) { if (-not $agents.Contains($a)) { $agents.Add($a) } }
     return [pscustomobject]@{
-        ExitCode = 0
+        ExitCode = $ExitCode
         Stdout = $stdout
         Stderr = $stderr
         SharePath = $sharePath
@@ -232,8 +232,30 @@ function Evaluate-DecisionOwnershipScenario([object]$Scenario, $Run) {
     # CombinedText には agent contract と session transcript が含まれるため、
     # documented status token を観測済み verdict と誤認しないようモデル出力だけを判定する。
     $decisionOutputText = [string]$Run.Stdout
-    $observedVerdicts = @([regex]::Matches($decisionOutputText, '\b(?:READY_FOR_RUNTIME_CONTRACT|READY_FOR_IMPLEMENTATION|BLOCKED_BY_DEPENDENCY_MISSING|BLOCKED_BY_API_SURFACE_UNKNOWN|BLOCKED_BY_UNJUSTIFIED_SUBSTITUTION|BLOCKED_BY_SOURCE_OF_TRUTH_DRIFT|NEEDS_HUMAN_DECISION)\b') | ForEach-Object { $_.Value } | Select-Object -Unique)
     $failures = [System.Collections.Generic.List[string]]::new()
+    if ([int]$Run.ExitCode -ne 0) {
+        $failures.Add("Copilot CLI exited with non-zero exit code: $($Run.ExitCode)")
+    }
+
+    $verdictToken = '(?<verdict>READY_FOR_RUNTIME_CONTRACT|READY_FOR_IMPLEMENTATION|BLOCKED_BY_DEPENDENCY_MISSING|BLOCKED_BY_API_SURFACE_UNKNOWN|BLOCKED_BY_UNJUSTIFIED_SUBSTITUTION|BLOCKED_BY_SOURCE_OF_TRUTH_DRIFT|NEEDS_HUMAN_DECISION)'
+    $terminalVerdictPatterns = @(
+        ('(?im)^\s*-\s*(?:[`* ]*)Self-check / Readiness verdict\s*:\s*(?:[`* ]*)' + $verdictToken + '\b')
+        ('(?im)^\s*-\s*(?:[`* ]*)Readiness verdict(?:[`* ]*)\s*:\s*(?:[`* ]*)' + $verdictToken + '\b')
+        ('(?im)^\s*##\s*Self-check / Readiness verdict\s*\r?\n\s*(?:[`* ]*)' + $verdictToken + '\b')
+    )
+    $terminalVerdictMatches = @(
+        foreach ($pattern in $terminalVerdictPatterns) {
+            [regex]::Matches($decisionOutputText, $pattern)
+        }
+    )
+    if ($terminalVerdictMatches.Count -ne 1) {
+        $failures.Add("Expected exactly one terminal Self-check / Readiness verdict, observed $($terminalVerdictMatches.Count).")
+        $terminalVerdict = $null
+    }
+    else {
+        $terminalVerdict = $terminalVerdictMatches[0].Groups['verdict'].Value
+    }
+
     $agentObserved = @($Run.Agents) -contains 'implementation-contract-kernel'
     if (-not $agentObserved -and $decisionOutputText -notmatch 'implementation-contract-kernel') { $failures.Add('implementation-contract-kernel was not observed.') }
     foreach ($marker in @($Scenario.required_markers)) {
@@ -243,10 +265,10 @@ function Evaluate-DecisionOwnershipScenario([object]$Scenario, $Run) {
         if ($decisionOutputText -match [regex]::Escape([string]$request)) { $failures.Add("Forbidden human request observed: $request") }
     }
     $expected = @($Scenario.expected_verdicts | ForEach-Object { [string]$_ })
-    if (-not (@($observedVerdicts | Where-Object { $expected -contains $_ }).Count -gt 0)) {
-        $failures.Add("Expected terminal verdict was not observed: $($expected -join ', ')")
+    if ($null -eq $terminalVerdict -or $expected -notcontains $terminalVerdict) {
+        $failures.Add("Expected terminal verdict was not observed: expected $($expected -join ', '), actual $terminalVerdict")
     }
-    if ($expected -notcontains 'NEEDS_HUMAN_DECISION' -and $observedVerdicts -contains 'NEEDS_HUMAN_DECISION') {
+    if ($expected -notcontains 'NEEDS_HUMAN_DECISION' -and $terminalVerdict -eq 'NEEDS_HUMAN_DECISION') {
         $failures.Add('NeedsHumanDecision was observed for a design-owned or ManualOnly scenario.')
     }
     if ($Scenario.id -eq 'DO-003' -and $decisionOutputText -notmatch '(?i)commit identity') {
@@ -279,7 +301,7 @@ function Evaluate-DecisionOwnershipScenario([object]$Scenario, $Run) {
         changed_artifacts = @($Run.Changed)
         verifier_results = @([ordered]@{ name = 'decision-ownership-oracle'; status = $(if ($failures.Count -eq 0) { 'PASS' } else { 'FAIL' }); detail = $(if ($failures.Count -eq 0) { [string]$Scenario.manual_acceptance } else { $failures -join '; ' }) })
         route_observed = $(if ($agentObserved) { 'implementation-contract-kernel' } else { $null })
-        verdict = $(if ($observedVerdicts.Count -gt 0) { $observedVerdicts[-1] } else { $null })
+        verdict = $terminalVerdict
         stop_reason = $(if ($failures.Count -eq 0) { 'decision-ownership-oracle-satisfied' } else { 'decision-ownership-oracle-failed' })
         status = $(if ($failures.Count -eq 0) { 'PASS' } else { 'FAIL' })
         rationale = $(if ($failures.Count -eq 0) { [string]$Scenario.manual_acceptance } else { $failures -join '; ' })
@@ -321,7 +343,9 @@ if (-not [string]::IsNullOrWhiteSpace($ReevaluateFromRunRoot)) {
         $decisionDir = Join-Path $reevalRoot "evidence\decision-ownership-$sid"
         $decisionRepo = Join-Path $decisionDir 'repo'
         if (Test-Path -LiteralPath $decisionRepo) {
-            $run = New-RunFromEvidenceDir $decisionDir $decisionRepo $sid
+            $prior = @($base.scenarios | Where-Object { [string]$_.id -eq $sid } | Select-Object -First 1)
+            $priorExitCode = if ($prior.Count -eq 1 -and $null -ne $prior[0].exit_code) { [int]$prior[0].exit_code } else { 0 }
+            $run = New-RunFromEvidenceDir $decisionDir $decisionRepo $sid $priorExitCode
             $scenarioResults.Add((Evaluate-DecisionOwnershipScenario $scenario $run))
             Write-Host "$sid re-eval => $(( $scenarioResults | Where-Object { $_.id -eq $sid } | Select-Object -Last 1).status)"
         }

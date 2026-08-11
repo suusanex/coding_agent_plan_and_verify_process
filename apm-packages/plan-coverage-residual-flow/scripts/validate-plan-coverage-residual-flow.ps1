@@ -744,6 +744,10 @@ if ($failures.Count -eq 0) {
     }
     Assert-Matches $copilotQualification "'### Decision Ownership Gate'" 'Slice Living Record qualification oracle must require the agent-defined heading level'
     Assert-Matches $copilotQualification '\$decisionOutputText = \[string\]\$Run\.Stdout' 'decision ownership verdicts must be read from model output, not the loaded agent contract'
+    Assert-Matches $copilotQualification '(?s)\[int\]\$Run\.ExitCode -ne 0.*\$failures\.Add' 'decision ownership oracle must fail closed on Copilot CLI errors'
+    Assert-Matches $copilotQualification '(?s)terminalVerdictPattern.*Self-check / Readiness verdict.*terminalVerdictMatches\.Count -ne 1' 'decision ownership oracle must compare one explicit terminal verdict'
+    Assert-Matches $copilotQualification '(?s)function New-RunFromEvidenceDir.*\[int\]\$ExitCode.*ExitCode = \$ExitCode' 'kept evidence re-evaluation must preserve the recorded Copilot exit code'
+    Assert-Matches $copilotQualification '(?s)\$priorExitCode.*exit_code.*New-RunFromEvidenceDir.*\$priorExitCode' 'decision ownership re-evaluation must pass the recorded exit code into the oracle'
     Assert-Matches $copilotQualification '(?s)decision-ownership-\$sid.*Evaluate-DecisionOwnershipScenario' 'kept qualification evidence must re-evaluate decision ownership scenarios'
     foreach ($negativeCase in @('missing-required-section', 'owner-outside-section', 'missing-independent-verification', 'missing-production-binding', 'fake-only-evidence', 'xc-field-continuity-missing', 'mapping-missing', 'pending-before-verification', 'pending-before-close', 'ledger-contradiction', 'ungated-separate-artifact', 'artifact-budget-exceeded', 'required-slice-unverified', 'residual-before-cross', 'forced-legacy-migration', 'mixed-artifact-mode', 'removed-three-layer-semantics')) {
         Assert-Matches $standaloneE2E ([regex]::Escape($negativeCase)) "standalone E2E validator must fail closed for $negativeCase"
