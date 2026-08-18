@@ -1,0 +1,14 @@
+{
+  "round": 2,
+  "cli": "grok",
+  "session_hash": "057dd4d83ed7",
+  "command_shape": "grok --cwd <EXPERIMENT_ROOT> --no-memory --no-subagents --permission-mode plan --sandbox read-only --disable-web-search --tools=read,view,grep --disallowed-tools=write,shell,task,edit_file,run_shell_command --system-prompt-override=<SAFE_REVIEWER_ROLE> --resume <SESSION_ID_REDACTED> --output-format plain --verbatim --single <PROMPT_FROM_MANIFEST>",
+  "result": {
+    "started_at_utc": "2026-08-18T23:23:44.0892007+00:00",
+    "completed_at_utc": "2026-08-18T23:24:06.9682812+00:00",
+    "exit_code": 0,
+    "timed_out": false,
+    "stdout": "```text\nBEGIN_PURPOSE_REVIEW\nprior_finding_resolution: FAIL\nreopened_or_persistent_finding:\n  id: PUR-1\n  status: active\n  statement: 未知の v1 値を保留/明示エラーにせず、CreateDefault() へ丸めて Success のまま完了している。warning と「安全な fallback」という名前に変わっただけで、黙った default 置換は解消されていない。\n  evidence: var safeFallback = V2Settings.CreateDefault(); ... LogWarning(...); ValidateV2Schema(safeFallback); return MigrationResult.Success(safeFallback);\nunknown_handling_assertion: FAIL\ndata_preservation_assertion: FAIL\nvisible_failure_assertion: FAIL\nmapping_assertion: PASS\nmvp_boundary_assertion: PASS\npriority_assertion: FAIL\nproduction_changes: NO\nproduction_change_assertion: PASS\nEND_PURPOSE_REVIEW\n```\n",
+    "stderr": ""
+  }
+}

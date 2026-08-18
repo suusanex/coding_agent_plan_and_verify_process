@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "round": 1,
+  "role": "persistent-purpose-reviewer",
+  "prompt_file": "prompts/round-1.md",
+  "input_files": [
+    {
+      "file": "prompts/round-1.md",
+      "sha256": "608203890e3fe4c80394da44d26f31446f675d19e8191ffe3787f72c43b948de",
+      "bytes": 2159
+    },
+    {
+      "file": "fixtures/purpose-context.md",
+      "sha256": "d42b0ac73726be5136463ce254b03bf30b96a02397d4467355904d2308ae1f3d",
+      "bytes": 4777
+    },
+    {
+      "file": "fixtures/round-1-candidate.md",
+      "sha256": "219bea6296687f05fda9887fd6b41fc106a22acab6b14090865374609b5a73fd",
+      "bytes": 1141
+    }
+  ],
+  "goal_context_full_sent": true,
+  "goal_context_replayed": false,
+  "prior_reviewer_output_replayed": false,
+  "prior_reviewer_output_full_sent": false,
+  "semantic_secret_replayed": false,
+  "minimal_follow_up": "",
+  "external_model_input_boundary": "fixed prompt plus listed fixture files only"
+}

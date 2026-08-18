@@ -1,0 +1,1 @@
+production_changed_outside_allowed_evidence=True baseline_outside_allowed_evidence_count=47 final_outside_allowed_evidence_count=51 allowed_write_root=experiments/persistent-purpose-reviewer/evidence/codex production_change_assertion=FAIL

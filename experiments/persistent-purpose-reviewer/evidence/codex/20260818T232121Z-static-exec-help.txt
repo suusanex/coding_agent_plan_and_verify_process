@@ -1,0 +1,9 @@
+System.Management.Automation.MethodInvocationException: Exception calling "Start" with "0" argument(s): "An error occurred trying to start process 'codex' with working directory 'D:\Data\git\coding_agent_plan_and_verify_process'. 指定されたファイルが見つかりません。"
+ ---> System.ComponentModel.Win32Exception (2): An error occurred trying to start process 'codex' with working directory 'D:\Data\git\coding_agent_plan_and_verify_process'. 指定されたファイルが見つかりません。
+   at System.Diagnostics.Process.StartWithCreateProcess(ProcessStartInfo startInfo)
+   at CallSite.Target(Closure, CallSite, Object)
+   --- End of inner exception stack trace ---
+   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)
+   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)
+   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)
+   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)

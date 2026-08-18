@@ -1,0 +1,8 @@
+{
+  "round": 1,
+  "classification": "non-zero",
+  "exit_code": 1,
+  "sanitized_stderr": "Failed to read prompt from stdin: input is not valid UTF-8 (invalid byte at offset 49). Convert it to UTF-8 and retry (e.g., `iconv -f <ENC> -t UTF-8 prompt.txt`).",
+  "recovery_attempt": "none; one-shot run stopped without replaying context or duplicating a session",
+  "conclusion": "Round did not produce a verified successful evidence record."
+}

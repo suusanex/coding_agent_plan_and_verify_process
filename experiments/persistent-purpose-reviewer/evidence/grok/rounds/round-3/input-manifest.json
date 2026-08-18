@@ -1,0 +1,18 @@
+{
+  "round": 3,
+  "role": "purpose-reviewer",
+  "files": [
+    {
+      "path": "prompts\\round-3.md",
+      "sha256": "afd1e6c8a788c2f2dc7a107b9cab886ccee4862de6d498472a8ed19093539926"
+    },
+    {
+      "path": "fixtures\\round-3-remediation.md",
+      "sha256": "07e2c126ef3fb953ae673f1757c0acf55e2c828c70dad5021099b0cd5ebeab0c"
+    }
+  ],
+  "goal_context_replayed": false,
+  "prior_reviewer_output_replayed": false,
+  "semantic_secret_replayed": false,
+  "external_model_input_boundary": "prompt file plus listed fixture files only"
+}

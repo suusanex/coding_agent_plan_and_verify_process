@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "cli": "codex",
+  "version": "0.147.0",
+  "model": "gpt-5.6-luna",
+  "experiment_root": "experiments/persistent-purpose-reviewer",
+  "allowed_write_root": "experiments/persistent-purpose-reviewer/evidence/codex",
+  "sandbox_requested": "read-only",
+  "rounds_requested": 3,
+  "rounds_completed": 3,
+  "all_rounds_verified": true,
+  "session_id_sha256_12": "979423350a76",
+  "session_identity_full_id_saved": false,
+  "initial_process_exited_before_resume": true,
+  "started_at_utc": "2026-08-18T23:26:47.0226083+00:00",
+  "completed_at_utc": "2026-08-18T23:28:54.0424780+00:00",
+  "production_changed_outside_experiment": false,
+  "input_boundary": "fixture files and fixed prompts only; repository documents and git metadata were not included in constructed prompts",
+  "network_payload_audit": "not performed",
+  "native_child_experiment": "not performed",
+  "rounds": [
+    {
+      "round": 1,
+      "success": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "response_sha256": "92b71d1a0697fb610c8020bb8632f01843a14693c83dfcae31a82e4480352ed1",
+      "session_id_sha256_12": "979423350a76",
+      "production_change_outside_experiment": false,
+      "assertions": {
+        "purpose_assertion": "FAIL",
+        "rejected_approach_assertion": "FAIL",
+        "formal_but_goal_failure_assertion": "PASS",
+        "mapping_assertion": "PASS",
+        "unknown_handling_assertion": "FAIL",
+        "data_preservation_assertion": "MISSING",
+        "visible_failure_assertion": "MISSING",
+        "mvp_boundary_assertion": "PASS",
+        "priority_assertion": "FAIL",
+        "prior_finding_resolution": "MISSING",
+        "production_change_assertion": "PASS"
+      },
+      "finding_ids": [
+        "PUR-001",
+        "PUR-002"
+      ],
+      "raw_path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\raw\\20260818T232647Z-round-01-purpose-reviewer-codex-session-979423350a76.raw.md",
+      "sanitized_path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\sanitized\\20260818T232647Z-round-01-purpose-reviewer-codex-session-979423350a76.md"
+    },
+    {
+      "round": 2,
+      "success": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "response_sha256": "dd80c064793296f9774c1d7d8adbab1afae8db90bc4ef86e5f1c8a74327ad6bf",
+      "session_id_sha256_12": "979423350a76",
+      "production_change_outside_experiment": false,
+      "assertions": {
+        "purpose_assertion": "MISSING",
+        "rejected_approach_assertion": "MISSING",
+        "formal_but_goal_failure_assertion": "MISSING",
+        "mapping_assertion": "PASS",
+        "unknown_handling_assertion": "FAIL",
+        "data_preservation_assertion": "FAIL",
+        "visible_failure_assertion": "FAIL",
+        "mvp_boundary_assertion": "PASS",
+        "priority_assertion": "FAIL",
+        "prior_finding_resolution": "FAIL",
+        "production_change_assertion": "PASS"
+      },
+      "finding_ids": "PUR-001",
+      "raw_path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\raw\\20260818T232647Z-round-02-purpose-reviewer-codex-session-979423350a76.raw.md",
+      "sanitized_path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\sanitized\\20260818T232647Z-round-02-purpose-reviewer-codex-session-979423350a76.md"
+    },
+    {
+      "round": 3,
+      "success": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "response_sha256": "e9851f1b220d110d26f486aecd845a072df447fd6d484ba4cbecaefdbf217ec9",
+      "session_id_sha256_12": "979423350a76",
+      "production_change_outside_experiment": false,
+      "assertions": {
+        "purpose_assertion": "MISSING",
+        "rejected_approach_assertion": "MISSING",
+        "formal_but_goal_failure_assertion": "MISSING",
+        "mapping_assertion": "PASS",
+        "unknown_handling_assertion": "PASS",
+        "data_preservation_assertion": "PASS",
+        "visible_failure_assertion": "PASS",
+        "mvp_boundary_assertion": "PASS",
+        "priority_assertion": "PASS",
+        "prior_finding_resolution": "PASS",
+        "production_change_assertion": "PASS"
+      },
+      "finding_ids": null,
+      "raw_path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\raw\\20260818T232647Z-round-03-purpose-reviewer-codex-session-979423350a76.raw.md",
+      "sanitized_path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\sanitized\\20260818T232647Z-round-03-purpose-reviewer-codex-session-979423350a76.md"
+    }
+  ],
+  "failures": []
+}

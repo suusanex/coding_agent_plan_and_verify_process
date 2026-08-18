@@ -1,0 +1,6 @@
+verified_at_utc=2026-08-18T23:30:20.7851949+00:00
+git_diff_check_exit=0
+git_diff_check_output=
+production_outside_experiment_count=2
+production_outside_experiment_status=?? .wt/plain-coyote/coding_agent_plan_and_verify_process/ | ?? .wt/sheer-cliff/coding_agent_plan_and_verify_process/
+production_change_assertion=PASS
