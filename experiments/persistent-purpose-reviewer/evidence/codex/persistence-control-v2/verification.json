@@ -1,0 +1,24 @@
+{
+  "schema_version": 2,
+  "classification": "Yes",
+  "semantic_yes": true,
+  "persistent_r2_specific_ppr001": true,
+  "fresh_r2_materially_weaker": true,
+  "persistent_r3_resolved": true,
+  "same_persistent_session": true,
+  "different_fresh_session": true,
+  "exact_r2_composition_equal": true,
+  "production_unchanged": true,
+  "status_changes_outside_codex_allowed_paths": [
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/final-diff-check.txt",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/post-git-status.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/raw-response.txt",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/run-metadata.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/semantic-form.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/post-experiment-git-status.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/production-unchanged.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/run-metadata.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/summary.md"
+  ],
+  "git_diff_check_exit": 0
+}

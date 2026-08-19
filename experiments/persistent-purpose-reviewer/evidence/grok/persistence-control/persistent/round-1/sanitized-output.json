@@ -1,0 +1,31 @@
+{
+  "label": "sanitized-provider-output",
+  "provider": "grok",
+  "run_label": "persistent-round-1",
+  "stdout": {
+    "label": "sanitized-stdout",
+    "content": "BEGIN_PERSISTENCE_REVIEW\n{\n  \"finding_id\": \"PPR-001\",\n  \"finding_status\": \"active\",\n  \"decision_contract_assertion\": \"fail\",\n  \"evidence\": [\n    \"context: lantern-pulse の mode wire token は必ず quick-check として送る固定契約である\",\n    \"context: focus-mode は過去の product decision で明示的に棄却され、旧外部 consumer の wire contract がその token を受理しない\",\n    \"candidate: GetWireMode は lantern-pulse に対して focus-mode を返す\",\n    \"candidate JSON: integrationSource が lantern-pulse のとき mode が focus-mode である\"\n  ],\n  \"information_sufficiency\": \"sufficient\"\n}\nEND_PERSISTENCE_REVIEW\n",
+    "utf8_sha256": "62002e56f78870067a64d909b2795a3e519cd04eb76526b0c791c6ad4917c657"
+  },
+  "stderr": {
+    "label": "sanitized-stderr",
+    "content": "",
+    "utf8_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "raw": {
+    "label": "raw-provider-output-bytes",
+    "content_saved": false,
+    "stdout_bytes": 661,
+    "stderr_bytes": 0,
+    "stdout_bytes_sha256": "62002e56f78870067a64d909b2795a3e519cd04eb76526b0c791c6ad4917c657",
+    "stderr_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "combined_bytes_sha256": "62002e56f78870067a64d909b2795a3e519cd04eb76526b0c791c6ad4917c657"
+  },
+  "process": {
+    "started_at_utc": "2026-08-19T09:08:33.6245196+00:00",
+    "completed_at_utc": "2026-08-19T09:08:58.9271843+00:00",
+    "process_exited": true,
+    "timed_out": false,
+    "exit_code": 0
+  }
+}

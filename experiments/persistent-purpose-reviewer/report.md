@@ -1,312 +1,327 @@
 # Persistent Purpose Reviewer 最終統合レポート
 
-## 1. Scope・版・日付・安全境界
+## 1. 最終判定
 
-| 項目 | 内容 |
+本改訂では、旧 baseline、v1 persistence-control、v2 persistence-control、Codex の訂正監査、
+current harness native の証跡、ならびに現行の per-round-new-reviewer lifecycle を分離して再評価した。
+このレポート作成では外部モデル・ネットワークを使用していない。変更したファイルは本ファイルだけであり、
+production package、Skill、agent、script、config、template、README と既存 evidence は変更・削除・revert していない。
+
+| 判定項目 | 最終判定 |
 | --- | --- |
-| 対象 | `Persistent Purpose Reviewer` の persistent context 実機実験 |
-| レポート版 | 最終統合版 |
-| レポート作成日 | 2026-08-19（JST） |
-| 実験証跡の時刻 | 2026-08-18T23:19Z–23:30Z（JST 2026-08-19） |
-| 実行場所 | `experiments/persistent-purpose-reviewer` |
-| production tree | 実験前後で変更なし |
-| 外部モデル・ネットワーク | このレポート作成では未使用。保存済み実験証跡には、実験時の CLI 実行結果が含まれる |
+| 全体 architecture feasibility | **PASS (capability-gated)** |
+| security qualification | **Partial** |
+| v2 semantic persistence | Codex **Yes**、Grok **Yes**、Copilot CLI **No**、Current harness native **Partial** |
+| overall terminal | **HumanDecisionRequired にはしない**。architecture の実現性と qualification の残件を分離する |
 
-このレポート作成で新規作成・更新したのは本ファイルだけである。実験自体も、入力 fixture、固定 prompt、証跡保存先を
-`experiments/persistent-purpose-reviewer` 配下に隔離した。production package、Skill、agent、script、config、template、
-README は変更していない。実験前後の production 外差分は、既存の `.wt/` 状態を除き 0 件として記録されている
-（[Codex production-change check](evidence/codex/20260818T232647Z-production-change-check.txt)、
-[Copilot final change check](evidence/copilot/final-change-check.md)、
-[Grok final change check](evidence/grok/final-change-check.md)）。
-既存の未追跡 evidence は revert していない。
+ここで **Yes** は「session の継続」だけでなく、同一入力の fresh control と区別できる semantic
+state 利用まで確認できた経路に限る。**No** は persistence が存在しないという証明ではなく、
+fresh control が判別力を失ったため semantic qualification を与えないという意味である。
 
-判定は、証跡に明記された **実測**、そこからの限定的な **推測**、実施していない **未実施** を分離する。
-実験境界と sanitization 規約は [evidence/README.md](evidence/README.md)、準備時点の契約は
-[実験 README](README.md) を参照する。
+## 2. 判定方法と evidence の扱い
 
-## 2. 使用 CLI・model・session 証跡
+- **実測**: manifest、raw response、semantic JSON、session hash、入力 composition hash、pre/post snapshot
+  に直接記録された事実。
+- **推測**: 実測から architecture 設計へ限定的に一般化したもの。provider の未監査内部を推測しない。
+- **未実施**: parent restart、TTL、handle loss、OS/network/credential/payload の独立監査、token/billing
+  計測など。未実施を自動的に architecture failure へ変換しない。
 
-| 実行経路 | CLI / version | model | headless / resume 形 | cwd | session 識別子 |
+旧 R1-R3 は、full context を R1 にだけ渡し、R2/R3 に reviewer output 全文を再送しないことを確認した
+**予備証拠**に過ぎない。negative-control がなく、そこで semantic persistence を Yes とした旧評価は不十分である
+（[旧 Codex summary](evidence/codex/persistence-control/summary.md)、
+[旧 Copilot summary](evidence/copilot/persistence-control/summary.md)、
+[旧 Grok summary](evidence/grok/persistence-control/summary.md)、
+[旧 Current harness native summary](evidence/current-harness-native/persistence-control/summary.md)）。
+
+## 3. v1 の隔離と v2 の設計
+
+### 3.1 v1 は invalid/inconclusive
+
+v1 の R2/R3 prompt は、同時に次を要求していた。
+
+1. 「前回までに理解した目的、採用・棄却判断、自分の finding に照らす」
+2. 「この入力だけを使い、入力にない具体的な前提を補わない」
+
+これは persistent reviewer には state を使わせ、fresh reviewer には state を使わせないという目的と
+矛盾する。したがって v1 の結果を semantic persistence の有効な判定には使わない
+（[v1 fixture design](evidence/persistence-control/fixture-design.md)、
+[v1 prompt README](prompts/persistence-control/README.md)、
+[v1 native summary](evidence/current-harness-native/persistence-control/summary.md)）。
+
+これは恣意的な成功のために fixture を繰り返し変更したものではない。v1 の prompt 矛盾という客観的な
+設計不備を分離し、v1 の source bytes/hash を保全したまま、v2 を別 directory として作成した
+（[v2 fixture design](evidence/persistence-control-v2/fixture-design.md)、
+[v2 prompt README](prompts/persistence-control-v2/README.md)）。
+
+### 3.2 v2 の固定 wire contract と入力境界
+
+Round 1 の decision source だけに次を置いた。
+
+- `lantern-pulse` の `mode` wire token は `quick-check` に固定する。
+- 意味的には自然な `focus-mode` は、旧外部 consumer wire contract が受理しないため棄却済みである。
+
+R1 candidate は `focus-mode` 違反、R2 candidate は同じ違反、R3 candidate は `quick-check` への修正版である。
+具体的な mapping、棄却理由、finding 本文は R2/R3/fresh の prompt に再掲していない
+（[R1 context](fixtures/persistence-control-v2/round-1-context.md)、
+[R1 candidate](fixtures/persistence-control-v2/round-1-candidate.md)、
+[R2 candidate](fixtures/persistence-control-v2/round-2-candidate.md)、
+[R3 candidate](fixtures/persistence-control-v2/round-3-candidate.md)）。
+
+v2 の contract は次のとおりである。
+
+- R1 だけが full context を読む。
+- Persistent R2/R3 は同じ reviewer の保持 state と current prompt/candidate を使う。
+- Fresh R2 は persistent R2 と同じ prompt/candidate bytes だが state を持たない。
+- R2/R3/fresh に full context、previous output 全文、specific decision、mapping、finding 本文を再送しない。
+- Persistent R2/Fresh R2 の composition は prompt bytes + candidate bytes の区切りなし連結で同一。
+  composition SHA-256 は `0c5be9a59873938331d8a0b96e2842174837b145d676d6023489d9a53079e357`。
+
+## 4. v2 の実測結果
+
+| Path | R1 | Persistent R2 | Fresh R2 | Persistent R3 | 解釈 |
 | --- | --- | --- | --- | --- | --- |
-| Codex | `codex` 0.147.0（[version](evidence/codex/20260818T232647Z-static-version.txt)） | `gpt-5.6-luna` | `codex exec ... -` → `codex exec resume <session-id> --json -` | 実験フォルダ | `979423350a76` |
-| GitHub Copilot CLI | 1.0.80（[static help/version](evidence/copilot/setup/static-help-and-version.json)） | CLI default。runtime model 名は独立取得できず | `--session-id=<id> -p ...` → `--resume=<id> -p ...` | 実験フォルダ | `b3f6796ce180` |
-| Grok Build CLI | 1.0.4 `d846eb93d9` stable（[static help/version](evidence/grok/setup/static-help-and-version.json)） | CLI default は `grok-4.6`。runtime 選択は独立取得できず | `--session-id <id> --single ...` → `--resume <id> --single ...` | 実験フォルダ | `057dd4d83ed7` |
-| native child | GPT-5.6 Luna | GPT-5.6 Luna | task API で create、同じ handle へ follow-up | 親 task harness | role label のみ |
+| Codex CLI | `PPR-001` active/fail | `PPR-001` active/fail。`quick-check` と `focus-mode`、棄却理由を specific に出力 | `unknown`/`insufficient` | `PPR-001` resolved/pass | **Yes** |
+| Copilot CLI | `PPR-001` active/fail | `PPR-001` active/fail | exact violation を特定 | resolved/pass | **No**。persistence 不存在の証明ではなく、control が判別力を示せなかった |
+| Grok CLI | `PPR-001` active/fail | `PPR-001` active/fail。fixed token、棄却理由、current violation を specific に出力 | `unknown`/`insufficient` | resolved/pass | **Yes** |
+| Current harness native | `PPR-001` active/fail | `PPR-001` active/fail | `unknown`/`insufficient` | finding none/pass。ただし `prior_finding_status=active` | **Partial**。R2 discrimination は PASS、R3 schema-status は不整合 |
 
-CLI の実行形は、入力本文ではなく manifest の fixture/prompt path を参照する形で保存されている。
-Codex は [command shapes](evidence/codex/20260818T232647Z-command-shapes.txt) と
-[exec help](evidence/codex/20260818T232647Z-static-exec-help.txt)、
-[resume help](evidence/codex/20260818T232647Z-static-exec-resume-help.txt)、
-Copilot は [run metadata](evidence/copilot/run-metadata.json)、
-Grok は [run metadata](evidence/grok/run-metadata.json) が根拠である。
+### 4.1 Codex CLI
 
-完全な session ID、private handle、credential、authorization header、cookie、環境変数値は保存していない。
-保存した session 識別子は上表の SHA-256 短縮値だけであり、native も private session ID ではなく role label だけを
-証跡に記録した。
+v2 の run metadata は、R1/R2/R3 の persistent session hash が同一、fresh R2 が別 hash、
+R1 process 終了後に specific session を resume、R2 composition equality、no-replay を記録している
+（[summary](evidence/codex/persistence-control-v2/summary.md)、
+[run metadata](evidence/codex/persistence-control-v2/run-metadata.json)、
+[R2 equality](evidence/codex/persistence-control-v2/r2-composition-equality.json)）。
 
-## 3. Fixture と semantic test
+R1 は `PPR-001` を作成し、R2 は保持 state から `quick-check` 固定契約と `focus-mode` 棄却を復元して
+違反を specific に検出した。Fresh R2 は `unknown`/`insufficient`、R3 は `resolved/pass` だった
+（[R1 manifest/raw](evidence/codex/persistence-control-v2/persistent/round-1/input-manifest.json)、
+[R1 raw](evidence/codex/persistence-control-v2/persistent/round-1/raw-response.md)、
+[R2 manifest/semantic/raw](evidence/codex/persistence-control-v2/persistent/round-2/input-manifest.json)、
+[R2 semantic](evidence/codex/persistence-control-v2/persistent/round-2/semantic.json)、
+[R2 raw](evidence/codex/persistence-control-v2/persistent/round-2/raw-response.md)、
+[R3 raw](evidence/codex/persistence-control-v2/persistent/round-3/raw-response.md)、
+[fresh R2 semantic](evidence/codex/persistence-control-v2/fresh/round-2/semantic.json)）。
 
-目的は、legacy 設定値を利用者の手入力・作り直しなしに安全に移行し、明示 mapping 以外の unknown を
-default に丸めず、保留または明示 error として元値を保持することである
-（[purpose context](fixtures/purpose-context.md)）。
+### 4.2 Copilot CLI
 
-| Round | 入力 | semantic 契約 | 実測結果 |
-| --- | --- | --- | --- |
-| R1 | [round-1 candidate](fixtures/round-1-candidate.md) | active finding を出す。形式的 schema success と目的未達を分ける | unknown を default `"steady"` に丸め、成功扱いにする finding が出た |
-| R2 | [deceptive remediation](fixtures/round-2-remediation.md) | `CreateDefault()`、warning、schema success だけで安全としない | R1 の finding が persistent/reopened。warning のみの default mapping を棄却 |
-| R3 | [resolved remediation](fixtures/round-3-remediation.md) | 3 既知値の明示 mapping、unknown の Pending/error、元値保持 | active finding なし。mapping、data preservation、visible failure、MVP 境界が PASS |
+session resume architecture、同一 persistent session、別 fresh session、R2 composition equality、
+tool allow/deny と pre/post snapshot は実測できた。しかし v2 の fresh R2 が同一 input bytes から
+exact violation を特定したため、negative-control の期待である `unknown`/`insufficient` を満たさなかった。
+fixture は変更せず、この run を semantic qualification **No** として記録した
+（[summary](evidence/copilot/persistence-control-v2/summary.md)、
+[run metadata](evidence/copilot/persistence-control-v2/run-metadata.json)、
+[R2 persistent manifest](evidence/copilot/persistence-control-v2/persistent/round-2/input-manifest.json)、
+[R2 persistent raw](evidence/copilot/persistence-control-v2/persistent/round-2/raw-response.txt)、
+[fresh R2 manifest](evidence/copilot/persistence-control-v2/fresh/round-2/input-manifest.json)、
+[fresh R2 raw](evidence/copilot/persistence-control-v2/fresh/round-2/raw-response.txt)）。
 
-R2/R3 は Goal Context 全文および previous reviewer output 全文を再送していない。これは prompt の主張ではなく、
-各 provider の input manifest の実測値である。
+これは「Copilot に persistence がない」ことの証明ではない。persistent R2 が state を利用した可能性と、
+fresh R2 が入力だけで偶然または別の推論により exact violation を特定した可能性を、この control は分離できなかった。
+Copilot の fresh-control failure と security qualification は別問題として扱う。
 
-- Codex: [R1](evidence/codex/20260818T232647Z-round-01-input-manifest.json)、
-  [R2](evidence/codex/20260818T232647Z-round-02-input-manifest.json)、
-  [R3](evidence/codex/20260818T232647Z-round-03-input-manifest.json)
-- Copilot: [R1](evidence/copilot/rounds/round-1/input-manifest.json)、
-  [R2](evidence/copilot/rounds/round-2/input-manifest.json)、
-  [R3](evidence/copilot/rounds/round-3/input-manifest.json)
-- Grok: [R1](evidence/grok/rounds/round-1/input-manifest.json)、
-  [R2](evidence/grok/rounds/round-2/input-manifest.json)、
-  [R3](evidence/grok/rounds/round-3/input-manifest.json)
-- native: [general-purpose manifest](evidence/native/input-manifest.md)、
-  [code-review manifest](evidence/native-readonly/input-manifest.md)
+### 4.3 Grok CLI
 
-### Semantic transition の provider 別実測
+Grok は persistent R1/R2/R3 で同一 session hash、fresh R2 で別 hash、R2 exact composition equality、
+full context/previous output/decision/mapping/finding の no-replay を記録した
+（[summary](evidence/grok/persistence-control-v2/summary.md)、
+[session/composition comparison](evidence/grok/persistence-control-v2/session-and-composition-comparison.json)、
+[R2 persistent manifest](evidence/grok/persistence-control-v2/runs/persistent-r2/input-manifest.json)、
+[fresh R2 manifest](evidence/grok/persistence-control-v2/runs/fresh-r2/input-manifest.json)）。
 
-- **Copilot CLI**: R1 `PUR-001`/`PUR-002` active、R2 `PUR-001` active、R3 resolved。
-  [summary](evidence/copilot/summary.md) と各 round の [R1 output](evidence/copilot/rounds/round-1/sanitized-raw-output.json)、
-  [R2 output](evidence/copilot/rounds/round-2/sanitized-raw-output.json)、
-  [R3 output](evidence/copilot/rounds/round-3/sanitized-raw-output.json) が一致する。
-- **Grok Build CLI**: R1 `PUR-1`〜`PUR-3` active、R2 `PUR-1` active、R3 resolved。
-  [summary](evidence/grok/summary.md) と [R1 output](evidence/grok/rounds/round-1/sanitized-raw-output.json)、
-  [R2 output](evidence/grok/rounds/round-2/sanitized-raw-output.json)、
-  [R3 output](evidence/grok/rounds/round-3/sanitized-raw-output.json) が根拠である。
-- **Codex CLI**: run metadata/summary は R1 active、R2 persistent、R3 resolved と記録している
-  （[run metadata](evidence/codex/20260818T232647Z-run-metadata.json)、
-  [summary](evidence/codex/summary.md)）。ただし、最終 run の raw filename と本文の round 対応を直接読むと、
-  `round-01` は R2 形式（`prior_finding_resolution: FAIL`）、`round-02` は R3 形式
-  （`prior_finding_resolution: PASS` / `id: none`）、`round-03` は R1 形式
-  （`purpose_restatement`）となり、R1/R2/R3 の本文が循環して見える。したがって、session resume と
-  machine assertion は実測として保持するが、
-  round 別 raw traceability は **未解決の証跡品質 blocker** として扱う。保存済み raw は
-  [raw-01](evidence/codex/raw/20260818T232647Z-round-01-purpose-reviewer-codex-session-979423350a76.raw.md)、
-  [raw-02](evidence/codex/raw/20260818T232647Z-round-02-purpose-reviewer-codex-session-979423350a76.raw.md)、
-  [raw-03](evidence/codex/raw/20260818T232647Z-round-03-purpose-reviewer-codex-session-979423350a76.raw.md) である。
-- **native general-purpose**: 同一 child の Turn 0/1/2 で R1 active、R2 persistent、R3 resolved。
-  [R1](evidence/native/round-001.raw.md)、[R2](evidence/native/round-002.raw.md)、
-  [R3](evidence/native/round-003.raw.md)。
-- **native code-review**: harness-defined read-only child でも同じ semantic transition。
-  [R1](evidence/native-readonly/round-001.raw.md)、[R2](evidence/native-readonly/round-002.raw.md)、
-  [R3](evidence/native-readonly/round-003.raw.md)。
+Persistent R2 は `quick-check` 固定、`focus-mode` の棄却理由、current candidate の違反を specific に
+出力し、fresh R2 は `unknown`/`insufficient`、R3 は `resolved/pass` だった
+（[R1 raw](evidence/grok/persistence-control-v2/runs/persistent-r1/raw-response.txt)、
+[R2 raw](evidence/grok/persistence-control-v2/runs/persistent-r2/raw-response.txt)、
+[R3 raw](evidence/grok/persistence-control-v2/runs/persistent-r3/raw-response.txt)、
+[fresh R2 raw](evidence/grok/persistence-control-v2/runs/fresh-r2/raw-response.txt)）。
 
-## 4. Capability Matrix
+### 4.4 Current harness native
 
-値は `Yes`、`Partial`、`No`、`Not tested` のいずれかに限定した。リンクは対応する証跡である。
+この行は provider 名に帰属させず、必ず **Current harness native** と呼ぶ。v2 input manifest は、
+全 child が `general-purpose` で、read-only、shell/network/write 不使用を prompt で指示しただけであり、
+API read-only enforcement はないことを明記している
+（[input manifest](evidence/current-harness-native/persistence-control-v2/input-manifest.md)）。
 
-| Provider | Agent/Harness | Native persistent child | Native same-child follow-up | CLI headless | CLI resume | Context persistence verified | Read-only | Recovery | Recommended path |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Codex | Not tested（[native未実施](evidence/codex/summary.md)） | Not tested（[native child 未実施](evidence/codex/20260818T232647Z-run-metadata.json)） | Not tested（同左） | Yes（[static exec help](evidence/codex/20260818T232647Z-static-exec-help.txt)） | Yes（[resume help](evidence/codex/20260818T232647Z-static-exec-resume-help.txt)、[run metadata](evidence/codex/20260818T232647Z-run-metadata.json)） | Partial（machine assertion は Yes だが [raw round traceability](evidence/codex/raw/20260818T232647Z-round-03-purpose-reviewer-codex-session-979423350a76.raw.md) に不整合） | Partial（`read-only` sandbox + pre/post snapshot、低レベル監査なし） | Partial（process 終了後 resume は実測、parent restart/expiry は未実施） | Partial（条件付き CLI fallback） |
-| GitHub Copilot | Yes（[native general-purpose](evidence/native/summary.md)、[native code-review](evidence/native-readonly/summary.md)） | Partial（idle child は継続、durability は未実施） | Yes（[native manifest](evidence/native/input-manifest.md)、[code-review manifest](evidence/native-readonly/input-manifest.md)） | Yes（[static help/version](evidence/copilot/setup/static-help-and-version.json)） | Yes（[run metadata](evidence/copilot/run-metadata.json)） | Yes（[summary](evidence/copilot/summary.md)、[R2](evidence/copilot/rounds/round-2/sanitized-raw-output.json)、[R3](evidence/copilot/rounds/round-3/sanitized-raw-output.json)） | Partial（CLI tool allow/deny、native code-review は harness 定義、OS/network 独立監査なし） | Partial（CLI process 終了後 resume は実測、native parent restart は未実施） | Yes（native preferred、CLI fallback） |
-| Grok Build | Not tested（[native未実施](evidence/grok/summary.md)） | Not tested（同左） | Not tested（同左） | Yes（[static help/version](evidence/grok/setup/static-help-and-version.json)） | Yes（[run metadata](evidence/grok/run-metadata.json)） | Yes（[summary](evidence/grok/summary.md)、[R2](evidence/grok/rounds/round-2/sanitized-raw-output.json)、[R3](evidence/grok/rounds/round-3/sanitized-raw-output.json)） | Partial（plan/read-only sandbox、tool disallow、snapshot、低レベル監査なし） | Partial（process 終了後 resume は実測、leader/session durability は未実施） | Partial（HumanDecisionRequired 付き CLI fallback） |
+Persistent R2 は `PPR-001` active/fail、同一 R2 bytes の fresh R2 は `unknown`/`insufficient` だった。
+したがって R2 discrimination は PASS である。Persistent R3 は finding none、decision contract pass、
+sufficient だが、`prior_finding_status=active` のままであり、finding none と status assertion が不整合である。
+「decision contract の解消」は pass とするが、「prior finding が resolved/closed」とは主張しない
+（[R2 composition equality](evidence/current-harness-native/persistence-control-v2/r2-composition-equality.md)、
+[persistent R1 raw](evidence/current-harness-native/persistence-control-v2/persistent/round-1.raw.md)、
+[persistent R2 raw](evidence/current-harness-native/persistence-control-v2/persistent/round-2.raw.md)、
+[fresh R2 raw](evidence/current-harness-native/persistence-control-v2/fresh/round-2.raw.md)、
+[persistent R3 raw](evidence/current-harness-native/persistence-control-v2/persistent/round-3.raw.md)、
+[native summary](evidence/current-harness-native/persistence-control-v2/summary.md)）。
 
-ここでいう **GitHub Copilot native** は Copilot CLI ではなく、この現在の task harness における native child
-実測を指す。`functions.task` で GPT-5.6 Luna の `general-purpose` child と `code-review` child をそれぞれ一度作成し、
-idle 後に同じ handle へ follow-up を送った。これは native same-child follow-up の実測であり、
-provider の永続 session API や parent process 跨ぎの復旧を意味しない。
+## 5. Codex 旧 evidence の訂正
 
-## 5. Native path と parent-context independence
+旧 report にあった Codex の「R1/R2/R3 raw が循環している」「semantic traceability blocker」という記述は撤回する。
+最終 success run の metadata にある **exact `raw_path`** を直接読み直すと、次の順で整合している。
 
-### 5.1 実測できたこと
-
-- child は fresh fixture-only reviewer として指示した。R1 は purpose context 全文と R1 candidate、
-  R2/R3 は candidate と最小 follow-up のみを入力にした（[general-purpose input manifest](evidence/native/input-manifest.md)、
-  [code-review input manifest](evidence/native-readonly/input-manifest.md)）。
-- child が idle になった後、同一 handle への R2/R3 follow-up は成功した。
-- R1 の active、R2 の persistent、R3 の resolved という semantic transition が、同一 child conversation の
-  Turn 0/1/2 として返った。
-
-### 5.2 言えないこと
-
-fresh fixture-only 指示を出したことは実測だが、親 conversation が暗黙に fork されないことを
-task API レベルで証明したわけではない。したがって **native parent-context independence は Partial** である。
-idle child の同一 parent 内 follow-up は確認したが、parent process 終了後の復旧、永続 session ID による再接続、
-API handle の durability は未実施である。
-
-`general-purpose` child には read-only permission parameter がなく、shell/network/write を禁止する prompt は
-技術的 enforcement ではない。`code-review` type は harness-defined read-only review type だが、
-OS sandbox、ファイル権限、ネットワーク遮断の独立監査ではない
-（[native summary](evidence/native/summary.md)、[native-readonly summary](evidence/native-readonly/summary.md)）。
-
-## 6. Read-only と非変更の境界
-
-prompt の「書かない」という禁止だけを read-only 保証とは扱わない。
-
-| 経路 | 実測した制約 | 分離して残る限界 |
+| Round | semantic form | 判定 |
 | --- | --- | --- |
-| Codex CLI | `-s read-only`、実験 cwd、各 round の git pre/post snapshot | sandbox backend、OS syscall、network payload、credential provider の完全監査は未実施 |
-| Copilot CLI | `view,grep` の allow、write/shell/task/edit の deny、pre/post snapshot | この run で別途 OS sandbox を有効化していない。CLI payload と低レベル network/OS enforcement は未監査 |
-| Grok Build CLI | `--permission-mode plan`、`--sandbox read-only`、`read,view,grep` の allow、write/shell/task/edit 系の disallow、snapshot | sandbox backend、global rules/system prompt の送信内容、低レベル network/OS enforcement は未監査 |
-| native `code-review` | harness が read-only review type と定義 | harness-defined semantics であり、独立した OS sandbox 監査ではない |
-| native `general-purpose` | fixture-only/prompt prohibition と観測結果 | API に read-only permission がなく、技術的保証ではない |
+| R1 | initial finding (`purpose_restatement`) | PASS |
+| R2 | prior FAIL | PASS |
+| R3 | prior PASS | PASS |
 
-全 provider で production source/Skill/agent/script/config の変更は検出されなかったが、
-worktree snapshot 不変だけでは外部 payload の完全な fixture-only 性までは証明しない。
+根拠は [traceability audit](evidence/audits/codex-final-run-traceability.md)、
+[correction note](evidence/audits/codex-final-run-traceability-correction-20260819T1755.md)、
+[audit JSON](evidence/audits/codex-final-run-traceability.json) である。
 
-## 7. Lifetime、recovery、model/permission、効率
+一方、metadata の response hash と stored raw/sanitized bytes の hash は一致しない。これは
+`Set-Content` 保存時に末尾 CRLF が付加され、metadata が保存前 text bytes を hash していたためである。
+したがって残件は **hash provenance/recording issue** に限定し、semantic round traceability や architecture blocker
+とは扱わない。v2 では [actual saved-byte hash を含む machine metadata](evidence/codex/persistence-control-v2/persistent/round-2/machine-metadata.json)
+と [verification](evidence/codex/persistence-control-v2/verification.json) が保存されている。
 
-### 7.1 Lifetime と recovery
+## 6. 必須 capability matrix
 
-- Codex、Copilot CLI、Grok CLI は、R1 の process 終了後に **特定 session ID** を指定して R2/R3 を別 process で
-  resume した。session hash の一致と semantic transition は実測した。
-- native は parent session 内の idle child follow-up だけを実測した。parent restart、期限切れ、
-  provider 側 session store の消失、別 parent からの再接続は未実施である。
-- したがって「process 終了後の CLI resume」と「永続的な native child durability」を同一視しない。
+値は指定された意味を保ち、各行の summary/manifest/raw へリンクした。
 
-### 7.2 Model・permission の persistence
+| Path | Session persistence | Same reviewer continuation | Semantic persistence | Fresh-control discrimination | Provider read-only restriction | Observed non-mutation | Recovery | Recommended |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Codex CLI | Yes（[v2 metadata](evidence/codex/persistence-control-v2/run-metadata.json)） | Yes（[R1/R2/R3 manifests](evidence/codex/persistence-control-v2/persistent/round-1/input-manifest.json)） | Yes（[v2 summary](evidence/codex/persistence-control-v2/summary.md)） | Yes（[fresh R2 semantic](evidence/codex/persistence-control-v2/fresh/round-2/semantic.json)） | Yes(Level A read-only sandbox)（[metadata](evidence/codex/persistence-control-v2/run-metadata.json)） | Yes(Level B)（[verification](evidence/codex/persistence-control-v2/verification.json)） | Partial(process-exit specific-ID only) | Yes conditional CLI fallback |
+| Copilot CLI | Yes（[v2 run metadata](evidence/copilot/persistence-control-v2/run-metadata.json)） | Yes（[persistent R2 manifest](evidence/copilot/persistence-control-v2/persistent/round-2/input-manifest.json)） | No（[v2 summary](evidence/copilot/persistence-control-v2/summary.md)） | No（[fresh R2 semantic form](evidence/copilot/persistence-control-v2/fresh/round-2/semantic-form.json)） | Yes(Level A tool allow/deny)（[run metadata](evidence/copilot/persistence-control-v2/run-metadata.json)） | Yes(Level B)（[production unchanged](evidence/copilot/persistence-control-v2/production-unchanged.json)） | Partial | Not semantic-qualified; retain as CLI capability but repeat only with stronger isolation if needed |
+| Grok CLI | Yes（[session comparison](evidence/grok/persistence-control-v2/session-and-composition-comparison.json)） | Yes（[persistent R2/R3 manifests](evidence/grok/persistence-control-v2/runs/persistent-r2/input-manifest.json)） | Yes（[v2 summary](evidence/grok/persistence-control-v2/summary.md)） | Yes（[fresh R2 raw/semantic](evidence/grok/persistence-control-v2/runs/fresh-r2/raw-response.txt)） | Yes(Level A plan/read-only/tool restriction)（[setup metadata](evidence/grok/persistence-control-v2/setup/static-help-version-model.json)） | Yes(Level B)（[final snapshot](evidence/grok/persistence-control-v2/final-post-git-snapshot.json)） | Partial | Yes conditional CLI fallback |
+| Current harness native | Yes(same parent task)（[input manifest](evidence/current-harness-native/persistence-control-v2/input-manifest.md)） | Yes（[R2 equality](evidence/current-harness-native/persistence-control-v2/r2-composition-equality.md)） | Partial（[native summary](evidence/current-harness-native/persistence-control-v2/summary.md)） | Yes(R2)（[fresh R2 raw](evidence/current-harness-native/persistence-control-v2/fresh/round-2.raw.md)） | Partial(separate harness code-review evidence; v2 semantic child general-purposeはprompt-only)（[input manifest](evidence/current-harness-native/persistence-control-v2/input-manifest.md)） | Yes(observed snapshots)（[production check](evidence/current-harness-native/persistence-control-v2/production-change-check.md)） | Not tested parent restart | Conditional fast path only after structured-result/read-only qualification |
 
-Codex は R1 の model と sandbox/cwd を metadata に記録し、resume help では R2/R3 に model/sandbox の再指定を
-要求しない形を確認した。しかし、version/config 変更、権限変更、session expiry 後も同じ model・permission が
-保持されることは独立検証していない。Copilot は runtime model 名を取得できず、Grok も default model 以外の
-runtime selection を独立取得できない。よって model/permission persistence は **未証明** とする。
+## 7. Architecture feasibility
 
-### 7.3 Cache/token efficiency
+### 7.1 Provider 別
 
-R2/R3 で full Goal Context と previous output を再送していないことは manifest で実測したが、
-token 数、cache hit、請求量、latency の差は計測していない。したがって「効率が改善した」とは結論しない。
+- **Codex CLI: PASS**。specific session の process-exit resume、同一 session hash、R2 byte equality、
+  state-dependent semantic response、R3 resolved が揃っている。
+- **Grok CLI: PASS**。同一 session resume、fresh 別 session、exact composition equality、
+  state-dependent R2/R3 と fresh unknown/insufficient が揃っている。
+- **Copilot CLI: architecture feasible**。session/resume、same-session、fresh 別 session、input control は
+ 成立している。ただし fresh が exact violation を返したため semantic control は No であり、architecture feasibility と
+  semantic qualification を混同しない。
+- **Current harness native: Partial**。same-parent task の同一 child continuation と R2 discrimination は成立したが、
+  v2 semantic child は general-purpose の prompt-only restriction であり、R3 structured-result status が不整合である。
 
-### 7.4 Zed
+### 7.2 全体
 
-この環境で `zed --help` を静的確認したところ、表示されたのは workspace/file を開く、diff、foreground、
-dev-container 等の editor CLI option であり、agent session の create/resume API は示されなかった。
-これは **observed unsupported/not exposed** という static observation であって、Zed 全体の機能不存在を証明するものではない。
-Zed の agent session は本実験では **Not tested** であり、利用できないと断定しない。
+全体 architecture feasibility は **PASS (capability-gated)** とする。normal path に採用できるのは、
+portable contract の必須 witness を満たす provider capability だけである。未実施の parent restart、TTL、
+handle loss、cache 効率は recovery/optimization qualification であり、normal architecture の terminal blocker
+にはしない。
 
-## 8. 失敗、回復、HumanDecisionRequired
+## 8. Security qualification
 
-### 8.1 Codex の先行失敗と workaround
+security qualification は architecture feasibility とは独立に **Partial** である。
 
-最終 run の前に、Codex では次の失敗を隠さず記録した。
+| Level | 要件 | 今回の観測 |
+| --- | --- | --- |
+| Level A | provider 側の read-only/restriction boundary | Codex は read-only sandbox、Copilot は tool allow/deny、Grok は plan/read-only/tool restriction。Current harness v2 semantic child は prompt-only。 |
+| Level B | 実行前後の非変更 witness | 各経路で pre/post Git snapshot または production-unchanged を保存し、production mutation は観測しなかった。 |
+| Level C | OS/network/credential/payload、sandbox/relay の独立監査 | **未実施**。global rule/system prompt の統合、network payload、credential provider、OS syscall、sandbox backend 内部を証明していない。 |
 
-1. Windows `codex` shim を `ProcessStartInfo` で直接起動できず、process 未作成
-   （[failure](evidence/codex/20260818T232129Z-failures.json)）。
-2. Windows shim 経由の stdin pipe が終了
-   （[failure](evidence/codex/20260818T232201Z-failures.json)）。
-3. `codex exec` に存在しない `-a` を渡し exit code 2
-   （[failure](evidence/codex/20260818T232219Z-failures.json)）。
-4. stdin が UTF-8 でなく exit code 1
-   （[failure](evidence/codex/20260818T232227Z-failures.json)）。
+今回、実際の mutation、secret/credential leak、restriction bypass は観測していない。ただし Level C 未実施を
+「安全である」と読み替えない。特に Copilot の fresh-control failure は semantic discrimination の問題であり、
+security summary の原因として扱わない。security qualification が Partial であることだけを理由に、architecture の
+最終状態を HumanDecisionRequired へ落とさない。
 
-workaround は、実在する Node launcher（`@openai/codex/bin/codex.js`）を使用し、
-`StandardInputEncoding=UTF-8` を明示し、`exec --help` に一致する引数だけを渡すことだった。
-失敗 run を成功扱いにせず、不要な session 作成や context 重複 replay も行っていない。
+## 9. Portable contract
 
-### 8.2 Grok の HumanDecisionRequired
+`create / continue / close` だけでは、どの状態を再開し、どの入力境界・権限・結果を検証したかが不足する。
+provider 非依存の state は少なくとも次を含める。
 
-Grok は semantic transition と非変更自体は PASS だったが、最終判定を `HumanDecisionRequired` とした。
-理由は、global rule/system prompt の外部 payload への含有を監査していないこと、`--sandbox read-only` の
-低レベル enforcement を監査していないこと、shared leader の process isolation を確認していないことである
-（[Grok summary](evidence/grok/summary.md)、[local metadata note](evidence/grok/setup/local-metadata-note.md)）。
-これは semantic failure ではなく、安全境界の未証明による判断保留である。
-
-### 8.3 Codex raw traceability blocker
-
-Codex の [run metadata](evidence/codex/20260818T232647Z-run-metadata.json) は round ごとの response hash、
-assertion、raw path を保持している一方、保存済み raw 本文を直接読むと filename の round label と本文の semantic
-形式が一致しない。これは provider の session resume 失敗と断定する証拠ではないが、round-specific raw evidence
-の監査可能性を下げる。再実験または保存処理の修正なしに、この不整合を解消済みとは扱わない。
-
-## 9. Portable contract の提案
-
-`create / continue / close` だけでは不十分である。continue がどの session を、どの model・permission・cwd・入力
-境界で再開したかを検証できず、close も raw output と非変更 witness を伴わなければ terminal claim にならない。
-最低限、次の状態を provider 非依存の contract にする必要がある。
-
-| 必須状態 | 役割 |
+| State | 必須内容 |
 | --- | --- |
-| opaque handle | provider の raw session ID を利用者向け artifact に出さず、再開対象を一意に参照する |
-| durability / lifetime | handle の保存場所、TTL、失効、parent process 終了後の可否、expiry 検知を明示する |
-| model / sandbox / permission / cwd binding | create 時の実行条件と continue 時に継承・再検証された条件を固定する |
-| input manifest | prompt/fixture path、hash、full context replay、prior output replay、semantic secret replay の flags |
-| raw output | sanitization 前後の扱い、round、status、response hash、保存失敗を含める |
-| mutation witness | pre/post git status、production tree 判定、許可された evidence root を含める |
-| capability limitations | native follow-up、CLI resume、read-only enforcement、network/payload audit の未実施範囲 |
-| active findings | finding ID、severity、状態、直前 round、recovery に必要な最小状態 |
+| opaque handle | provider の raw session ID を利用者向け artifact に露出せず、再開対象を一意に参照する |
+| session/lifetime | same-session witness、保存場所、TTL、失効、parent process 終了後の可否、expiry 検知 |
+| execution binding | model + permission + sandbox + cwd の binding と continue 時の再検証 |
+| input composition manifest | prompt/fixture path、個別 hash、composition hash、bytes、full-context/previous-output/decision/finding replay flags |
+| raw output witness | round、structured result、保存成否、**actual saved-byte hash**、sanitization provenance |
+| active findings/status | finding ID、severity、active/resolved/unknown、`prior_finding_status`、decision assertion、information sufficiency |
+| mutation witness | pre/post Git status、production tree 判定、許可された evidence root、observed non-mutation |
+| capability qualification | Level A/B/C、native follow-up、CLI resume、read-only enforcement、network/payload audit の qualification |
+| close/recovery state | close は terminal result と witness を伴い、session loss 時は recovery-only replay として別扱いにする |
 
-session loss 時の **recovery only** は、保存済み full transcript、raw evidence、active findings を使った
-full replay とする。通常の continue と同じ扱いにせず、再作成した opaque handle、入力 manifest、実行条件、
-mutation witness を再検証してから再開する。full replay の証跡が揃わない場合は finding 解消や Complete を
-推測せず、明示的な失敗にする。
+Recovery は通常の continue ではない。handle loss/expiry/capability mismatch の場合だけ、保存済み full transcript、
+raw evidence、active findings、execution binding、input manifest を使って新しい opaque handle を作り、再度
+non-mutation と structured result を検証する。evidence が不足する場合は finding 解消や Complete を推測せず、
+明示的な失敗にする。
 
-## 10. Fast path・fallback・recovery path
+## 10. Normal path、fast path、fallback と現行 lifecycle
 
-1. **Preferred fast path**: harness が explicit same-child follow-up と read-only enforcement を提供する場合、
-   native persistent child を使う。parent は active findings と current fixture boundary だけを渡し、同じ child handle、
-   capability witness、raw output を保存する。
-2. **CLI fallback**: native capability がない場合、headless CLI の create/resume を使う。opaque handle を永続化し、
-   resume 後に session identity、model/sandbox/permission/cwd、input manifest、execution state を検証する。
-3. **Recovery only**: session loss、expiry、handle 不明、capability mismatch の場合だけ、
-   full transcript + raw evidence + active findings を replay して新しい handle を作る。これは通常の R2/R3
-   入力経路ではない。
+### 10.1 推奨経路
 
-## 11. current `goal-context-pr-review` への影響
+1. **Qualified native fast path**: explicit same-child follow-up、structured result、Level A read-only、
+   same-session witness が揃う harness だけに限定する。Current harness は現時点ではこの条件を満たし切っていない。
+2. **Qualified CLI normal/fallback**: Codex または Grok のように、specific session resume、fresh discrimination、
+   no-replay、actual-byte raw hash、Level A/B witness を満たす CLI を capability-gated に採用する。
+3. **Current new-reviewer fallback**: persistent capability がない、security qualification が不足する、または
+   session loss/recovery が必要な場合は、round ごとに新しい purpose reviewer を起動する現行方式を残す。
 
-現行 package README は、Round 1 を Copilot source + local reviewer + purpose reviewer、
-Round 2/3 を **新しい purpose reviewer** とする canonical flow を定義している
-（[package README](../../apm-packages/pr-review-remediation/README.md)）。
-現行 Skill も同じく、R2/R3 で新しい purpose reviewer を executor から起動する
-（[goal-context-pr-review Skill](../../apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/SKILL.md)）。
-root の運用境界は [AGENTS.md](../../AGENTS.md) に従う。
+### 10.2 現行 `goal-context-pr-review`
 
-今回の実験はこの方式を変更していない。新規 reviewer 方式をただちに削除せず、
-native persistent child を利用できない harness、read-only enforcement を証明できない経路、
-session loss 後の recovery path の fallback として残す。portable contract の実装、Skill の変更、
-production package の再設計はこのレポートの提案を超えて実施していない。
+現行 README と Skill は、Round 1 に Copilot source、local reviewer、purpose reviewerを集め、
+Round 2/3 は新しい read-only purpose reviewerだけを実行する per-round-new-reviewer lifecycle を定義している
+（[package README](../../apm-packages/pr-review-remediation/README.md)、
+[Goal Context Skill](../../apm-packages/pr-review-remediation/.apm/skills/goal-context-pr-review/SKILL.md)）。
 
-## 12. Remaining blockers
+今回の結論はこの production flow を直ちに変更するものではない。今すぐ production implementation は不要であり、
+実験は capability-gated persistent normal path、current new-reviewer fallback、session loss 時の recovery-only replay
+を後続設計する根拠として残す。package、Skill、executor、script、config、template、README は変更していない。
 
-- native child の parent process/restart recovery、session ID/API durability、TTL/expiry が未実施。
-- child が親 conversation を暗黙 fork しないことを API レベルで証明していない。
-- native `general-purpose` の read-only は prompt prohibition だけで、`code-review` も harness-defined semantics に
-  とどまる。
-- CLI の read-only は各経路で異なる。OS、network、credential、payload の低レベル監査は未実施。
-- Copilot/Grok の runtime model 名を独立取得できていない。model/permission persistence も未証明。
-- Codex は process 終了後の specific-ID resume 自体は実測したが、保存済み raw の round label と本文対応に不整合がある。
-- Grok は global rule/system prompt、shared leader isolation、sandbox backend の監査不足により HumanDecisionRequired。
-- cache/token efficiency の計測がなく、full context 非再送による費用・速度効果は未判定。
-- Zed は `zed --help` に agent session create/resume API が現れなかっただけで、正式な external-agent capability の
-  実験は未実施。
-- provider 横断の portable contract、opaque handle、mutation witness、recovery replay の実装・検証は未実施。
+## 11. Blocker と未実施の分類
 
-## 13. 回答と結論
+| 分類 | 状態 | 扱い |
+| --- | --- | --- |
+| Architecture | Codex/Grok PASS、Copilot session/resume feasible、Current harness native Partial | capability-gated 採用条件であり、全体 terminal blocker ではない |
+| Product | v2 の decision source は `quick-check` 固定。production product decision の変更は要求されていない | production変更なし |
+| Harness | Current native の structured-result/status 不整合、general-purpose read-only enforcement不足。Copilot は semantic control No | fast path の qualification blocker。Copilot persistence 不存在の証明とはしない |
+| Security | Level C の OS/network/credential/payload/sandbox/relay 独立監査が未実施 | security qualification は Partial。実測 mutation/leak/bypass はなし |
+| Recovery | native parent restart、TTL、provider store 消失、handle loss、別 parent 再接続が未実施 | recovery qualification。normal path の terminal blocker ではない |
+| Optimization | cache hit、token、billing、latency 未計測 | optimization 未実施。architecture blocker にはしない |
+| Evidence quality | 旧 Codex の hash provenance/recording issue、v1 invalid/inconclusive。v2 は actual saved-byte hash を保存 | semantic traceability blocker ではない。保存形式の改善残件 |
 
-### Core feasibility
+Zed は今回の scope 外であり、matrix と blocker の評価対象に含めない。Zed の agent session を実験していない
+こと以外は評価しない。
 
-**条件付きで実現可能。** Copilot CLI、Grok Build CLI、native child は、full Goal Context と previous output を
-R2/R3 に全文再送しなくても、R2 の deceptive default mapping を棄却し、R3 の Pending/error 解決版を受理した。
-これは semantic persistence の実用的な証拠である。ただし Codex は raw round traceability の不整合を解消するまで、
-provider-independent な完全証拠とは扱わない。
+## 12. Required answers A-E
 
-### Native path
+### A. Normal path contract は採用可能か
 
-native は、同一 child への明示 follow-up と read-only enforcement が harness によって実際に提供される場合に
-最短経路である。本実験では同一 parent 内 idle child follow-up は実測したが、durability、parent restart recovery、
-API-level isolation は未実施である。
+**可能。ただし provider capability-gated である。** Codex/Grok は、同一 session continuation、fresh-control
+discrimination、no-replay、structured semantic result、Level A/B witness が揃っており、normal path contract
+の evidence は sufficient である。Copilot は session/resume architecture は feasible だが semantic control No
+なので、同じ semantic qualification は与えない。
 
-### CLI fallback
+### B. Native fast path の価値と不足は何か
 
-CLI は、Copilot、Grok、Codex すべてで process 終了後の specific session ID resume を実測できた。
-ただし model/permission binding、低レベル read-only、payload 監査、raw traceability を contract として検証する必要がある。
+**価値はある。** Current harness native は同じ parent task 内の same-child continuation と R2 discrimination を
+実測できた。**不足は output contract と read-only enforcement** であり、R3 の `finding none`/`decision pass` と
+`prior_finding_status=active` の不整合を修正し、prompt-only ではなく structured result と技術的 read-only witness
+を提供する必要がある。
 
-### 最終 recommendation
+### C. CLI portable fallback は証明されたか
 
-**結論は「条件付きで価値あり」** とする。
+**qualified Codex/Grok については証明された。** Copilot は CLI capability と session/resume architecture を
+保持するが、fresh control failure のため semantic proof にはならない。必要なら stronger isolation で再試験する。
 
-- Preferred: harness が explicit same-child follow-up と read-only enforcement を持つ場合は native persistent child。
-- Fallback: persisted opaque session handle を使う resumable CLI。resume 後に execution state と証跡を必ず検証する。
-- Recovery only: session loss 時の full replay（full transcript + raw evidence + active findings）。
+### D. 現行 goal-context process は直ちに変更すべきか
 
-現行の round ごとに新しい purpose reviewer を起動する方式は、unsupported harness と recovery の fallback として
-残す。今回の実測だけを根拠に、production package、Skill、agent、script、config、template を削除・変更しない。
+**変更しない。** 現行の per-round-new-reviewer lifecycle を fallback として保持し、capability-gated persistent
+normal path と recovery-only replay を後続設計する根拠にする。今回の実験だけで production package/Skill/agent/script/
+config/template/README を変更しない。
 
-総合状態は、semantic feasibility は確認できたが、安全境界と証跡 traceability に人手判断を要するため
-**HumanDecisionRequired** である。
+### E. 残る blocker は何か
+
+architecture、product、harness、security、recovery、optimization、evidence quality に分類した。
+全体の architecture feasibility は **PASS (capability-gated)**、security qualification は **Partial** であり、
+未実施の qualification だけで全体を HumanDecisionRequired にしない。
+
+## 13. 最終 recommendation
+
+- Codex CLI または Grok CLI を、portable contract と Level A/B qualification を満たす **conditional CLI fallback/
+  normal path** として採用可能とする。
+- Current harness native は、structured result、status整合、technical read-only enforcement が追加されるまで
+  **conditional fast path** に留める。
+- Copilot CLI は session/resume capability として保持するが、今回の v2 では **semantic-qualified ではない**。
+- 現行の per-round-new-reviewer を安全な fallback と recovery path として維持する。
+- cache/token/billing、native restart/TTL/handle-loss、Level C security audit は、別の qualification として実施する。
+
+最終結論は **architecture feasibility: PASS (capability-gated)**、**security qualification: Partial** である。

@@ -1,0 +1,29 @@
+# Round 2 persistence-control v2 review
+
+あなたは、Round 1 を完了した同じ persistent purpose reviewer の継続 round として動作する。persistent reviewer は Round 1 で形成した目的、採否判断、自分の finding を reviewer state として保持し、その state と current candidate を照らして評価する。保持した state を、current prompt に全文がないことを理由に破棄してはならない。
+
+この round の外部入力には Round 1 context と previous output 全文を再送しない。fresh reviewer には reviewer state がない。fresh reviewer が current input だけでは decision contract を確認できない場合は `unknown` と `insufficient` を返し、一般常識や候補の自然さから補わない。
+
+この prompt と candidate は persistent R2 と fresh R2 で一字一句同じ bytes を使う。実行者は persistent/fresh の state 有無だけを変え、入力ファイルを変えてはならない。
+
+次のブロックだけを返す。JSON の文字列値は指定された enum を使い、根拠は保持 state または current input から説明できる範囲に限る。
+
+BEGIN_PERSISTENCE_REVIEW
+{
+  "finding_id": "PPR-001 または none",
+  "prior_finding_status": "active または resolved または unknown",
+  "decision_contract_assertion": "pass または fail または unknown",
+  "evidence": ["保持 state または current input の具体的な根拠、または []"],
+  "information_sufficiency": "sufficient または insufficient"
+}
+END_PERSISTENCE_REVIEW
+# Lantern Pulse adapter settings
+
+```json
+{
+  "integrationSource": "lantern-pulse",
+  "mode": "focus-mode",
+  "timeoutSeconds": 15,
+  "retryLimit": 2
+}
+```

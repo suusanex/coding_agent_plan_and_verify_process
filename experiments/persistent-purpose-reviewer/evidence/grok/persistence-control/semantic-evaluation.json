@@ -1,0 +1,17 @@
+{
+  "semantic_persistence_qualification": "No",
+  "architecture_feasibility": "Feasible",
+  "round_1_detected_ppr_001": true,
+  "persistent_round_2_exact_unhinted_violation": false,
+  "persistent_round_2_exactness_note": "active/fail/sufficient was returned, but the evidence omitted quick-check and the wire-contract rationale; the strict exact criterion therefore remains false.",
+  "fresh_round_2_exact_violation": false,
+  "fresh_round_2_materially_weaker": true,
+  "persistent_round_3_resolved": true,
+  "prompt_candidate_leakage": {
+    "round_2_payload_contains_decision_token": false,
+    "round_2_payload_contains_rejection_rationale": false,
+    "conclusion": "no explicit fixture leakage detected"
+  },
+  "provider_run_failures": [],
+  "note": "OS/network audit absence is not classified as architecture failure."
+}

@@ -1,0 +1,30 @@
+{
+  "run_label": "persistent-r2",
+  "round": 2,
+  "channel": "persistent",
+  "round_label_verified": true,
+  "semantic_source": "exact saved response bytes from this invocation",
+  "response_path": "evidence\\grok\\persistence-control-v2\\runs\\persistent-r2\\raw-response.txt",
+  "response_bytes": 563,
+  "response_sha256": "82ece49f03ddc79cbf2ce56523907228e34526852c3c25e8548d2c3bff0396ba",
+  "response_hash_method": "SHA-256 over exact saved UTF-8 no-BOM response bytes after mandatory sensitive-value redaction",
+  "parse": {
+    "parsed": true,
+    "value": {
+      "finding_id": "PPR-001",
+      "prior_finding_status": "active",
+      "decision_contract_assertion": "fail",
+      "evidence": [
+        "保持 state: lantern-pulse の mode wire token は必ず quick-check として送る固定契約であり、focus-mode は明示的に棄却済み",
+        "保持 finding PPR-001: Round 1 candidate は lantern-pulse に focus-mode を送っていた",
+        "current input: \"integrationSource\": \"lantern-pulse\", \"mode\": \"focus-mode\""
+      ],
+      "information_sufficiency": "sufficient"
+    },
+    "error": null,
+    "block_count": 1
+  },
+  "process_exit_code": 0,
+  "timed_out": false,
+  "raw_session_secret_environment_values_saved": false
+}

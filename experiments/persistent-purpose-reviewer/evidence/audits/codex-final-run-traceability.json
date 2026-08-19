@@ -1,0 +1,145 @@
+{
+  "schema_version": 2,
+  "audit_type": "codex-final-run-traceability",
+  "audited_at": "2026-08-19T17:55:17+09:00",
+  "working_directory": "D:\\Data\\git\\coding_agent_plan_and_verify_process",
+  "authority_path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\20260818T232647Z-run-metadata.json",
+  "authority_sha256": "e1bd7d1d3bb2fb57dd1bdda9038d72959b79ce36b3bc868a808ab2602d04c1e0",
+  "correction_note_path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\audits\\codex-final-run-traceability-correction-20260819T1755.md",
+  "existing_raw_metadata_report_edited": false,
+  "external_model_or_network_executed": false,
+  "previous_audit_error": {
+    "error": "Parallel read output was associated with the wrong round labels during semantic-form transcription.",
+    "hash_command_used_exact_round_path": true,
+    "filename_replaced_or_synthesized": false,
+    "incorrect_previous_claim": "R1/R2/R3 raw forms were R2/R3/R1 and formed a cycle.",
+    "corrected_claim": "Exact metadata raw_path files contain R1/R2/R3 forms in order."
+  },
+  "method": {
+    "metadata_read": "Get-Content -LiteralPath <authority_path> -Raw | ConvertFrom-Json",
+    "raw_path_source": "The string value of run-metadata.rounds[].raw_path",
+    "stored_byte_hash": "Get-FileHash -LiteralPath <exact raw_path> -Algorithm SHA256",
+    "byte_read": "[System.IO.File]::ReadAllBytes(<exact raw_path>)",
+    "semantic_read": "[System.IO.File]::ReadAllText(<exact raw_path>) and full-text marker classification",
+    "response_provenance_check": "Compare stored-byte SHA256, metadata response_sha256, and UTF-8 hash after removing only the appended CRLF"
+  },
+  "semantic_round_path_result": {
+    "status": "PASS",
+    "cycle_claim_status": "not_confirmed",
+    "rounds": [
+      {
+        "round": 1,
+        "expected_form": "R1 initial finding",
+        "semantic_form": "R1 initial finding",
+        "raw": {
+          "path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\raw\\20260818T232647Z-round-01-purpose-reviewer-codex-session-979423350a76.raw.md",
+          "bytes": 1335,
+          "stored_sha256": "812c4349121d1a524fbedf0dc97179c217d064cbf665a0a761512f45c46fc6c1",
+          "markers": [
+            "purpose_restatement"
+          ]
+        },
+        "sanitized": {
+          "path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\sanitized\\20260818T232647Z-round-01-purpose-reviewer-codex-session-979423350a76.md",
+          "bytes": 1335,
+          "stored_sha256": "812c4349121d1a524fbedf0dc97179c217d064cbf665a0a761512f45c46fc6c1"
+        },
+        "path_form_match": true
+      },
+      {
+        "round": 2,
+        "expected_form": "R2 prior FAIL",
+        "semantic_form": "R2 prior FAIL",
+        "raw": {
+          "path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\raw\\20260818T232647Z-round-02-purpose-reviewer-codex-session-979423350a76.raw.md",
+          "bytes": 739,
+          "stored_sha256": "fa510b068c9e7747f7ba7cec9f8ea15536d8515458f14a2c5554d16dc6b9cce1",
+          "markers": [
+            "prior_finding_resolution: FAIL"
+          ]
+        },
+        "sanitized": {
+          "path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\sanitized\\20260818T232647Z-round-02-purpose-reviewer-codex-session-979423350a76.md",
+          "bytes": 739,
+          "stored_sha256": "fa510b068c9e7747f7ba7cec9f8ea15536d8515458f14a2c5554d16dc6b9cce1"
+        },
+        "path_form_match": true
+      },
+      {
+        "round": 3,
+        "expected_form": "R3 prior PASS",
+        "semantic_form": "R3 prior PASS",
+        "raw": {
+          "path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\raw\\20260818T232647Z-round-03-purpose-reviewer-codex-session-979423350a76.raw.md",
+          "bytes": 399,
+          "stored_sha256": "e8637e27ab87fe9e0ef56ba92299a5ab1a644156a49c0443958dfef981bca72b",
+          "markers": [
+            "prior_finding_resolution: PASS"
+          ]
+        },
+        "sanitized": {
+          "path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\sanitized\\20260818T232647Z-round-03-purpose-reviewer-codex-session-979423350a76.md",
+          "bytes": 399,
+          "stored_sha256": "e8637e27ab87fe9e0ef56ba92299a5ab1a644156a49c0443958dfef981bca72b"
+        },
+        "path_form_match": true
+      }
+    ]
+  },
+  "hash_provenance_result": {
+    "status": "FAIL_STORED_BYTE_MATCH",
+    "classification": "hash provenance/recording issue, not raw round label/content mismatch",
+    "script_path_read_only": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\scripts\\codex\\run-real-experiment.ps1",
+    "hash_function": "Get-TextHash($safeResponse) before Save-Utf8",
+    "save_function": "Set-Content -LiteralPath $path -Value $text -Encoding utf8",
+    "observed_save_effect": "Saved files end with CRLF; metadata hash equals UTF-8 text hash after removing that appended CRLF.",
+    "rounds": [
+      {
+        "round": 1,
+        "run_metadata_response_sha256": "92b71d1a0697fb610c8020bb8632f01843a14693c83dfcae31a82e4480352ed1",
+        "machine_metadata_path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\20260818T232647Z-round-01-machine-metadata.json",
+        "machine_metadata_file_sha256": "646ecf17d94e3f3c81271d00732562567a507c43d6a6ef07d323b7c57d4631d9",
+        "machine_metadata_response_sha256": "92b71d1a0697fb610c8020bb8632f01843a14693c83dfcae31a82e4480352ed1",
+        "stored_raw_sha256": "812c4349121d1a524fbedf0dc97179c217d064cbf665a0a761512f45c46fc6c1",
+        "stored_sanitized_sha256": "812c4349121d1a524fbedf0dc97179c217d064cbf665a0a761512f45c46fc6c1",
+        "trimmed_utf8_text_sha256": "92b71d1a0697fb610c8020bb8632f01843a14693c83dfcae31a82e4480352ed1",
+        "stored_bytes_match_metadata": false,
+        "trimmed_text_matches_metadata": true
+      },
+      {
+        "round": 2,
+        "run_metadata_response_sha256": "dd80c064793296f9774c1d7d8adbab1afae8db90bc4ef86e5f1c8a74327ad6bf",
+        "machine_metadata_path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\20260818T232647Z-round-02-machine-metadata.json",
+        "machine_metadata_file_sha256": "206abc24a4ad3ed872e665422683b69e67ebb4d8c3795ad70e84e20aea2cecf0",
+        "machine_metadata_response_sha256": "dd80c064793296f9774c1d7d8adbab1afae8db90bc4ef86e5f1c8a74327ad6bf",
+        "stored_raw_sha256": "fa510b068c9e7747f7ba7cec9f8ea15536d8515458f14a2c5554d16dc6b9cce1",
+        "stored_sanitized_sha256": "fa510b068c9e7747f7ba7cec9f8ea15536d8515458f14a2c5554d16dc6b9cce1",
+        "trimmed_utf8_text_sha256": "dd80c064793296f9774c1d7d8adbab1afae8db90bc4ef86e5f1c8a74327ad6bf",
+        "stored_bytes_match_metadata": false,
+        "trimmed_text_matches_metadata": true
+      },
+      {
+        "round": 3,
+        "run_metadata_response_sha256": "e9851f1b220d110d26f486aecd845a072df447fd6d484ba4cbecaefdbf217ec9",
+        "machine_metadata_path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\20260818T232647Z-round-03-machine-metadata.json",
+        "machine_metadata_file_sha256": "33d058467f9a1f79bf327ddfbc08472e638cf12fb27cdfe384614a5fbe43dac0",
+        "machine_metadata_response_sha256": "e9851f1b220d110d26f486aecd845a072df447fd6d484ba4cbecaefdbf217ec9",
+        "stored_raw_sha256": "e8637e27ab87fe9e0ef56ba92299a5ab1a644156a49c0443958dfef981bca72b",
+        "stored_sanitized_sha256": "e8637e27ab87fe9e0ef56ba92299a5ab1a644156a49c0443958dfef981bca72b",
+        "trimmed_utf8_text_sha256": "e9851f1b220d110d26f486aecd845a072df447fd6d484ba4cbecaefdbf217ec9",
+        "stored_bytes_match_metadata": false,
+        "trimmed_text_matches_metadata": true
+      }
+    ]
+  },
+  "conclusion": {
+    "semantic_form_round_path_consistent": true,
+    "stored_byte_hash_matches_run_metadata": false,
+    "hash_provenance_issue": true,
+    "final_run_completely_consistent": false,
+    "semantic_traceability_blocker": false,
+    "byte_hash_traceability_blocker": true,
+    "existing_report_circular_claim_status": "not_supported_by_exact_path_read",
+    "required_follow_up": "Record the stored-byte hash after writing, or preserve/hash the exact pre-save bytes explicitly; do not infer a round/content cycle from the corrected exact-path audit."
+  }
+}

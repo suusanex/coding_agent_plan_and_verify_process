@@ -1,0 +1,39 @@
+{
+  "run_label": "persistent-round-1",
+  "channel": "persistent",
+  "round": 1,
+  "payload_file": {
+    "path": "input-payload.txt",
+    "bytes": 2646,
+    "sha256": "7794e17d28b3ea9467a0be32b37fde3aa7e0e959f2e3bc1c2d03f60fed53980f",
+    "hash_method": "SHA-256 over exact UTF-8 no-BOM payload bytes"
+  },
+  "source_files": [
+    {
+      "path": "prompts\\persistence-control\\round-1.md",
+      "bytes": 1079,
+      "sha256": "d9d9e86527da43f8c248f02453c55520baa9762491425cd06922ba6953bcb77f",
+      "hash_method": "SHA-256 over exact file bytes"
+    },
+    {
+      "path": "fixtures\\persistence-control\\round-1-context.md",
+      "bytes": 990,
+      "sha256": "f7effe92a77fae0a9d41fec04683180ca00033e29c81b2c697bfc85ba011512e",
+      "hash_method": "SHA-256 over exact file bytes"
+    },
+    {
+      "path": "fixtures\\persistence-control\\round-1-candidate.md",
+      "bytes": 389,
+      "sha256": "3213d66f6f3480f0e2066b08f592306dc3e05ba0a190f4c689dd5a45c91e664c",
+      "hash_method": "SHA-256 over exact file bytes"
+    }
+  ],
+  "full_round_1_context_sent": true,
+  "full_context_not_sent": false,
+  "prior_output_sent": false,
+  "prior_output_not_sent": true,
+  "semantic_decision_mapping_sent": true,
+  "semantic_decision_mapping_not_sent": false,
+  "external_meaningful_input_boundary": "The selected prompt file plus the listed selected fixture files only.",
+  "persistent_round_2_and_fresh_round_2_payload_equality_hash": null
+}

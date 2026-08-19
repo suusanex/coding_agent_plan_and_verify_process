@@ -1,0 +1,31 @@
+{
+  "label": "sanitized-provider-output",
+  "provider": "grok",
+  "run_label": "persistent-round-2",
+  "stdout": {
+    "label": "sanitized-stdout",
+    "content": "BEGIN_PERSISTENCE_REVIEW\n{\n  \"prior_finding_status\": \"active\",\n  \"decision_contract_assertion\": \"fail\",\n  \"evidence\": [\n    \"candidate JSON: \\\"integrationSource\\\": \\\"lantern-pulse\\\"\",\n    \"candidate JSON: \\\"mode\\\": \\\"focus-mode\\\"\"\n  ],\n  \"information_sufficiency\": \"sufficient\"\n}\nEND_PERSISTENCE_REVIEW\n",
+    "utf8_sha256": "ce844033af6d7000a41296a530a8438b3c5e69bd86892555400b78edb22a7b59"
+  },
+  "stderr": {
+    "label": "sanitized-stderr",
+    "content": "",
+    "utf8_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "raw": {
+    "label": "raw-provider-output-bytes",
+    "content_saved": false,
+    "stdout_bytes": 303,
+    "stderr_bytes": 0,
+    "stdout_bytes_sha256": "ce844033af6d7000a41296a530a8438b3c5e69bd86892555400b78edb22a7b59",
+    "stderr_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "combined_bytes_sha256": "ce844033af6d7000a41296a530a8438b3c5e69bd86892555400b78edb22a7b59"
+  },
+  "process": {
+    "started_at_utc": "2026-08-19T09:08:59.4741207+00:00",
+    "completed_at_utc": "2026-08-19T09:09:21.8103939+00:00",
+    "process_exited": true,
+    "timed_out": false,
+    "exit_code": 0
+  }
+}

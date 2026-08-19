@@ -1,0 +1,52 @@
+{
+  "pre_status_count": 209,
+  "post_status_count": 228,
+  "status_delta": [
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/final-diff-check.txt",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/fresh/round-2/machine-metadata.json",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/fresh/round-2/post-git-status.txt",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/fresh/round-2/raw-response.md",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/fresh/round-2/semantic.json",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/persistent/round-1/post-git-status.txt",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/persistent/round-2/post-git-status.txt",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/persistent/round-3/post-git-status.txt",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/post-git-status.txt",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/run-metadata.json",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/summary.md",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/verification.json",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/input-manifest.json",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/input-payload.txt",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/pre-git-status.json",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/persistent/round-3/post-git-status.json",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/persistent/round-3/raw-response.txt",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/persistent/round-3/run-metadata.json",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/persistent/round-3/semantic-form.json"
+  ],
+  "outside_our_write_boundary_delta": [
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/final-diff-check.txt",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/fresh/round-2/machine-metadata.json",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/fresh/round-2/post-git-status.txt",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/fresh/round-2/raw-response.md",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/fresh/round-2/semantic.json",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/persistent/round-1/post-git-status.txt",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/persistent/round-2/post-git-status.txt",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/persistent/round-3/post-git-status.txt",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/post-git-status.txt",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/run-metadata.json",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/summary.md",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/codex/persistence-control-v2/verification.json",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/input-manifest.json",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/input-payload.txt",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/pre-git-status.json",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/persistent/round-3/post-git-status.json",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/persistent/round-3/raw-response.txt",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/persistent/round-3/run-metadata.json",
+    "added-or-changed: ?? experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/persistent/round-3/semantic-form.json"
+  ],
+  "outside_experiment_delta": [],
+  "production_tree_changed_during_run": false,
+  "allowed_write_boundary": [
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/",
+    "experiments/persistent-purpose-reviewer/scripts/run-grok-persistence-control.ps1"
+  ]
+}

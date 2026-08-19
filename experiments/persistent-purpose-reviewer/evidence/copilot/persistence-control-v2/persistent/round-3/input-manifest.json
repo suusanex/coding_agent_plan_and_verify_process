@@ -1,0 +1,41 @@
+{
+  "run_label": "persistent-r3",
+  "channel": "persistent",
+  "round": 3,
+  "payload": {
+    "path": "input-payload.txt",
+    "bytes": 1913,
+    "sha256": "fea467f8b9d6843d942a1043ddc65abb0faa076fea3fb55b5b921e52328cab40",
+    "hash_method": "SHA-256 over exact UTF-8 no-BOM external payload bytes"
+  },
+  "source_files": [
+    {
+      "path": "prompts\\persistence-control-v2\\round-3.md",
+      "bytes": 1650,
+      "sha256": "7c8a93aa62aeab1e856e0d3a9dd4bcd3c800eca45e109c6043e5d833fdbfafd7",
+      "hash_method": "SHA-256 over exact file bytes"
+    },
+    {
+      "path": "fixtures\\persistence-control-v2\\round-3-candidate.md",
+      "bytes": 167,
+      "sha256": "33b2a14015eebca9e386b258a8678a3e434288fdd1366039efb0c5e529273493",
+      "hash_method": "SHA-256 over exact file bytes"
+    }
+  ],
+  "composition": {
+    "method": "SHA-256 over exact source file bytes concatenated in listed order without separators",
+    "bytes": 1817,
+    "sha256": "fbae4d5a465b19f086d7f80049cc0e8f4111ba4762ca2bc4e63f34a4d9f2564e"
+  },
+  "no_replay_flags": {
+    "round_1_context_sent": false,
+    "round_1_context_not_sent": true,
+    "previous_response_sent": false,
+    "previous_response_not_sent": true,
+    "decision_mapping_sent": false,
+    "decision_mapping_not_sent": true,
+    "finding_replayed": false,
+    "replay_prohibited_inputs_absent": true
+  },
+  "external_input_boundary": "Selected prompt and selected fixture bytes only; no environment, secret, session ID, or MCP data."
+}

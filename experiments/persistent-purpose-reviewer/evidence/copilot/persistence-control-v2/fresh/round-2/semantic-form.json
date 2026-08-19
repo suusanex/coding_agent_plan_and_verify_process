@@ -1,0 +1,14 @@
+{
+  "parsed": true,
+  "value": {
+    "finding_id": "PPR-001",
+    "prior_finding_status": "active",
+    "decision_contract_assertion": "fail",
+    "evidence": [
+      "保持 state では lantern-pulse の固定 token は quick-check とされ、focus-mode は棄却済み。",
+      "current candidate は integrationSource が lantern-pulse なのに mode が focus-mode。"
+    ],
+    "information_sufficiency": "sufficient"
+  },
+  "error": null
+}

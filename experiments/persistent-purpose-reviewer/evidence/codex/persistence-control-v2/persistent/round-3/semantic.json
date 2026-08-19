@@ -1,0 +1,19 @@
+{
+  "schema_version": 2,
+  "round_label": "persistent-r3",
+  "round": 3,
+  "round_label_verified": true,
+  "verification_basis": "orchestrator run label, round directory, and input manifest",
+  "response_block_parsed": true,
+  "parse_error": null,
+  "semantic": {
+    "finding_id": "PPR-001",
+    "prior_finding_status": "resolved",
+    "decision_contract_assertion": "pass",
+    "evidence": [
+      "保持 state では、`lantern-pulse` の `mode` wire token は `quick-check` 固定である。",
+      "current candidate は `integrationSource` が `lantern-pulse` で、`mode` が `quick-check` に修正されている。"
+    ],
+    "information_sufficiency": "sufficient"
+  }
+}

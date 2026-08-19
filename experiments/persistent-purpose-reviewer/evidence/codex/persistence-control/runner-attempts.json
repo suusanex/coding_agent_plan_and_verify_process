@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "provider": "codex",
+  "final_run_used_for_semantic_judgment": true,
+  "attempts": [
+    {
+      "attempt": 1,
+      "stage": "local-runner-preflight",
+      "result": "failed",
+      "failure": "Runner resolved the experiment root one directory too high; Codex was not invoked.",
+      "cleanup": "The runner-only accidental output at the wrong experiment path was removed before the final run.",
+      "response_reused": false,
+      "corrected": true
+    },
+    {
+      "attempt": 2,
+      "stage": "persistent-round-1-capture",
+      "result": "failed",
+      "failure": "PowerShell JSON event collection used a generic list in an incompatible conversion; the captured response was discarded and the runner was corrected.",
+      "response_reused": false,
+      "corrected": true
+    },
+    {
+      "attempt": 3,
+      "stage": "complete-persistence-control-run",
+      "result": "succeeded",
+      "response_reused": false,
+      "corrected": false
+    }
+  ]
+}

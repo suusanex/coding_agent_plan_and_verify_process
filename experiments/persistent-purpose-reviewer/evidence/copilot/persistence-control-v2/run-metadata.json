@@ -1,0 +1,172 @@
+{
+  "experiment": "Persistent Purpose Reviewer negative-control persistence-control-v2",
+  "captured_at_utc": "2026-08-19T09:11:01.6495281+00:00",
+  "cli": {
+    "name": "GitHub Copilot CLI",
+    "path": "C:\\Users\\suusa\\AppData\\Roaming\\npm\\copilot.ps1",
+    "version": "GitHub Copilot CLI 1.0.80.",
+    "model_requested": "gpt-5.6-luna",
+    "cwd": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer",
+    "custom_instructions_disabled": true,
+    "mcp_disabled": true,
+    "command_shapes": [
+      "copilot -C <EXPERIMENT_CWD> --no-custom-instructions --no-remote --no-remote-export --no-auto-update --no-ask-user --disable-builtin-mcps --disable-mcp-server microsoft-learn --disallow-temp-dir --no-color --silent --output-format json --stream off --model gpt-5.6-luna --available-tools=view,grep --allow-tool=view --allow-tool=grep --deny-tool=write --deny-tool=shell --deny-tool=task --deny-tool=edit --session-id=<SESSION_ID_REDACTED> -p <PAYLOAD_FROM_MANIFEST> (persistent)",
+      "copilot -C <EXPERIMENT_CWD> --no-custom-instructions --no-remote --no-remote-export --no-auto-update --no-ask-user --disable-builtin-mcps --disable-mcp-server microsoft-learn --disallow-temp-dir --no-color --silent --output-format json --stream off --model gpt-5.6-luna --available-tools=view,grep --allow-tool=view --allow-tool=grep --deny-tool=write --deny-tool=shell --deny-tool=task --deny-tool=edit --resume=<SESSION_ID_REDACTED> -p <PAYLOAD_FROM_MANIFEST> (persistent)",
+      "copilot -C <EXPERIMENT_CWD> --no-custom-instructions --no-remote --no-remote-export --no-auto-update --no-ask-user --disable-builtin-mcps --disable-mcp-server microsoft-learn --disallow-temp-dir --no-color --silent --output-format json --stream off --model gpt-5.6-luna --available-tools=view,grep --allow-tool=view --allow-tool=grep --deny-tool=write --deny-tool=shell --deny-tool=task --deny-tool=edit --session-id=<SESSION_ID_REDACTED> -p <PAYLOAD_FROM_MANIFEST> (fresh)"
+    ],
+    "permission_shape": "--available-tools=view,grep --allow-tool=view --allow-tool=grep --deny-tool=write --deny-tool=shell --deny-tool=task --deny-tool=edit"
+  },
+  "inputs": {
+    "round_1": [
+      {
+        "path": "prompts\\persistence-control-v2\\round-1.md",
+        "bytes": 1113,
+        "sha256": "3fea063ac1df232d9af69891f0baae4bfcebe75509acaa768a35317efbdfb8e7",
+        "hash_method": "SHA-256 over exact file bytes"
+      },
+      {
+        "path": "fixtures\\persistence-control-v2\\round-1-context.md",
+        "bytes": 990,
+        "sha256": "f7effe92a77fae0a9d41fec04683180ca00033e29c81b2c697bfc85ba011512e",
+        "hash_method": "SHA-256 over exact file bytes"
+      },
+      {
+        "path": "fixtures\\persistence-control-v2\\round-1-candidate.md",
+        "bytes": 389,
+        "sha256": "3213d66f6f3480f0e2066b08f592306dc3e05ba0a190f4c689dd5a45c91e664c",
+        "hash_method": "SHA-256 over exact file bytes"
+      }
+    ],
+    "round_2": [
+      {
+        "path": "prompts\\persistence-control-v2\\round-2.md",
+        "bytes": 1605,
+        "sha256": "6760d25b1a22bbe2cbefe00e2a1ae3546ff0c34a01590af599344d0ad17917e6",
+        "hash_method": "SHA-256 over exact file bytes"
+      },
+      {
+        "path": "fixtures\\persistence-control-v2\\round-2-candidate.md",
+        "bytes": 166,
+        "sha256": "3a278bdee809a04d05e2a95c3ce213982b94f0f62a549679961fd3c9f601ac29",
+        "hash_method": "SHA-256 over exact file bytes"
+      }
+    ],
+    "round_3": [
+      {
+        "path": "prompts\\persistence-control-v2\\round-3.md",
+        "bytes": 1650,
+        "sha256": "7c8a93aa62aeab1e856e0d3a9dd4bcd3c800eca45e109c6043e5d833fdbfafd7",
+        "hash_method": "SHA-256 over exact file bytes"
+      },
+      {
+        "path": "fixtures\\persistence-control-v2\\round-3-candidate.md",
+        "bytes": 167,
+        "sha256": "33b2a14015eebca9e386b258a8678a3e434288fdd1366039efb0c5e529273493",
+        "hash_method": "SHA-256 over exact file bytes"
+      }
+    ],
+    "round_2_persistent_fresh_exact_composition_equal": true,
+    "round_2_persistent_composition": {
+      "method": "SHA-256 over exact source file bytes concatenated in listed order without separators",
+      "bytes": 1771,
+      "sha256": "0c5be9a59873938331d8a0b96e2842174837b145d676d6023489d9a53079e357"
+    },
+    "round_2_fresh_composition": {
+      "method": "SHA-256 over exact source file bytes concatenated in listed order without separators",
+      "bytes": 1771,
+      "sha256": "0c5be9a59873938331d8a0b96e2842174837b145d676d6023489d9a53079e357"
+    },
+    "no_replay_verified": [
+      {
+        "label": "persistent-r1",
+        "full_context_not_replayed": false,
+        "previous_response_not_replayed": true,
+        "decision_mapping_not_replayed": false,
+        "finding_not_replayed": true
+      },
+      {
+        "label": "persistent-r2",
+        "full_context_not_replayed": true,
+        "previous_response_not_replayed": true,
+        "decision_mapping_not_replayed": true,
+        "finding_not_replayed": true
+      },
+      {
+        "label": "persistent-r3",
+        "full_context_not_replayed": true,
+        "previous_response_not_replayed": true,
+        "decision_mapping_not_replayed": true,
+        "finding_not_replayed": true
+      },
+      {
+        "label": "fresh-r2",
+        "full_context_not_replayed": true,
+        "previous_response_not_replayed": true,
+        "decision_mapping_not_replayed": true,
+        "finding_not_replayed": true
+      }
+    ]
+  },
+  "session_hashes": {
+    "persistent_r1": "ea85e17948cc",
+    "persistent_r2": "ea85e17948cc",
+    "persistent_r3": "ea85e17948cc",
+    "fresh_r2": "7198ea1f74ff",
+    "persistent_same": true,
+    "fresh_different": true,
+    "session_ids_saved": false
+  },
+  "rounds": [
+    {
+      "label": "persistent-r1",
+      "round": 1,
+      "status": "success",
+      "process_exit_code": 0,
+      "raw_response_sha256": "85df308f3a9d120f4456cc0e151b0997998377c3926e78a29be93a21336bd315",
+      "semantic_parse_passed": true,
+      "session_hash": "ea85e17948cc"
+    },
+    {
+      "label": "persistent-r2",
+      "round": 2,
+      "status": "success",
+      "process_exit_code": 0,
+      "raw_response_sha256": "7fd5ddb4e946d414314c2c011fb37aa095c454bce8d49b55099caf1fc8fb4e7c",
+      "semantic_parse_passed": true,
+      "session_hash": "ea85e17948cc"
+    },
+    {
+      "label": "persistent-r3",
+      "round": 3,
+      "status": "success",
+      "process_exit_code": 0,
+      "raw_response_sha256": "08a3b4d2574f3bcc964051f10377fe82ea533a27bc27e4ab64a8f6c71fa4d93d",
+      "semantic_parse_passed": true,
+      "session_hash": "ea85e17948cc"
+    },
+    {
+      "label": "fresh-r2",
+      "round": 2,
+      "status": "success",
+      "process_exit_code": 0,
+      "raw_response_sha256": "61dea44c782188bc942d2256a2cf7f19a3c0eafaacdbff3bc69995b10407611c",
+      "semantic_parse_passed": true,
+      "session_hash": "7198ea1f74ff"
+    }
+  ],
+  "verification": {
+    "persistent_r1_detected": true,
+    "persistent_r2_unhinted_ppr_001_active": true,
+    "persistent_r3_ppr_001_resolved": true,
+    "fresh_r2_exact_violation": true,
+    "fresh_r2_materially_weaker": false,
+    "r1_process_exited_before_r2": true,
+    "persistent_r2_fresh_r2_exact_composition_equal": true
+  },
+  "result": {
+    "semantic_outcome": "No (fresh control guessed the exact violation)",
+    "architecture_feasibility": "feasible",
+    "security_qualification": "not-qualified",
+    "fixture_changed": false
+  }
+}

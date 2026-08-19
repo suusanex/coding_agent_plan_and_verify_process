@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "cli": "Grok Build CLI",
+  "cli_path_label": "grok",
+  "version_evidence": "setup\\static-help-version-model.json",
+  "model": "grok-4.6 (CLI default reported by grok models; runtime selection not independently exposed)",
+  "cwd": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer",
+  "permission_mode": "plan",
+  "sandbox": "read-only",
+  "tools_allowed": [
+    "read",
+    "view",
+    "grep"
+  ],
+  "tools_disallowed": [
+    "write",
+    "shell",
+    "task",
+    "edit_file",
+    "run_shell_command"
+  ],
+  "web_search_disabled": true,
+  "memory_disabled": true,
+  "subagents_disabled": true,
+  "system_prompt_override": "safe read-only reviewer role; no fixture-specific mapping or finding",
+  "session_identity": "persistent R1 uses new session-id; persistent R2/R3 use --resume with the same specific ID; fresh R2 uses a different new session-id",
+  "persistent_session_hash": "a4057a7790c74dbef735e72932f8d88ad1406ab35ced2e3abcb1181a4ad0ed5d",
+  "fresh_session_hash": "29c5f1c1452701485fda22f9131a052b236432a6ac455c973547b3572e8f935f",
+  "raw_session_secret_environment_values_saved": false,
+  "command_shape_round_1": "grok --cwd <EXPERIMENT_CWD> --no-memory --no-subagents --permission-mode plan --sandbox read-only --disable-web-search --tools read,view,grep --disallowed-tools write,shell,task,edit_file,run_shell_command --system-prompt-override=<SAFE_REVIEWER_ROLE> --session-id <SESSION_ID_REDACTED> --output-format plain --verbatim --single <PAYLOAD_FROM_MANIFEST>",
+  "command_shape_persistent_round_2": "grok --cwd <EXPERIMENT_CWD> --no-memory --no-subagents --permission-mode plan --sandbox read-only --disable-web-search --tools read,view,grep --disallowed-tools write,shell,task,edit_file,run_shell_command --system-prompt-override=<SAFE_REVIEWER_ROLE> --resume <SESSION_ID_REDACTED> --output-format plain --verbatim --single <PAYLOAD_FROM_MANIFEST>",
+  "command_shape_persistent_round_3": "grok --cwd <EXPERIMENT_CWD> --no-memory --no-subagents --permission-mode plan --sandbox read-only --disable-web-search --tools read,view,grep --disallowed-tools write,shell,task,edit_file,run_shell_command --system-prompt-override=<SAFE_REVIEWER_ROLE> --resume <SESSION_ID_REDACTED> --output-format plain --verbatim --single <PAYLOAD_FROM_MANIFEST>",
+  "command_shape_fresh_round_2": "grok --cwd <EXPERIMENT_CWD> --no-memory --no-subagents --permission-mode plan --sandbox read-only --disable-web-search --tools read,view,grep --disallowed-tools write,shell,task,edit_file,run_shell_command --system-prompt-override=<SAFE_REVIEWER_ROLE> --session-id <SESSION_ID_REDACTED> --output-format plain --verbatim --single <PAYLOAD_FROM_MANIFEST>",
+  "captured_at_utc": "2026-08-19T09:13:48.6107137+00:00"
+}

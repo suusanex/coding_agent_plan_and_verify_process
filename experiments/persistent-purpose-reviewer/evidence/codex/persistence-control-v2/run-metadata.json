@@ -1,0 +1,86 @@
+{
+  "schema_version": 2,
+  "provider": "codex",
+  "cli": "codex",
+  "cli_version": "0.147.0",
+  "model": "gpt-5.6-luna",
+  "sandbox_requested": "read-only",
+  "cwd": "experiments/persistent-purpose-reviewer",
+  "started_at_utc": "2026-08-19T18:08:25.0724045+09:00",
+  "completed_at_utc": "2026-08-19T18:09:06.6663866+09:00",
+  "classification": "Yes",
+  "all_rounds_completed": 4,
+  "persistent_session_hashes": [
+    "e09cd769dd9d66106adaf9d4534118a60699bf9c4738b18fd9e8a9c0659fefdf",
+    "e09cd769dd9d66106adaf9d4534118a60699bf9c4738b18fd9e8a9c0659fefdf",
+    "e09cd769dd9d66106adaf9d4534118a60699bf9c4738b18fd9e8a9c0659fefdf"
+  ],
+  "fresh_session_hash": "8216165fcc06ed1293eddfb9b098501e71d09419d3cde42a3b38744f2fd5b8da",
+  "same_session_hash_persistent_r1_r3": true,
+  "fresh_session_hash_different": true,
+  "initial_process_exited_before_resume": true,
+  "r2_composition_equality_verified": true,
+  "r2_composition_sha256": "0c5be9a59873938331d8a0b96e2842174837b145d676d6023489d9a53079e357",
+  "input_context_replayed_to_follow_up": false,
+  "previous_response_replayed": false,
+  "decision_mapping_finding_replayed": false,
+  "raw_session_secret_environment_values_saved": false,
+  "status_changes_outside_codex_allowed_paths": [
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/final-diff-check.txt",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/post-git-status.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/raw-response.txt",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/run-metadata.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/semantic-form.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/post-experiment-git-status.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/production-unchanged.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/run-metadata.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/summary.md"
+  ],
+  "other_experiment_status_changes_observed": [
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/final-diff-check.txt",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/post-git-status.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/raw-response.txt",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/run-metadata.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/fresh/round-2/semantic-form.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/post-experiment-git-status.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/production-unchanged.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/run-metadata.json",
+    "experiments/persistent-purpose-reviewer/evidence/copilot/persistence-control-v2/summary.md"
+  ],
+  "production_status_changes_outside_experiment": [],
+  "production_unchanged_observed": true,
+  "architecture_feasibility": {
+    "status": "PASS",
+    "same_persistent_session_hash": true,
+    "different_fresh_session_hash": true,
+    "exact_r2_input_composition": true,
+    "completed_process_before_resume": true,
+    "read_only_requested": true,
+    "cwd_restricted_to_experiment": true
+  },
+  "security_qualification": {
+    "status": "CONDITIONAL",
+    "raw_session_ids_saved": false,
+    "raw_secret_values_saved": false,
+    "raw_environment_values_saved": false,
+    "read_only_requested": true,
+    "production_nonmutation_observed": true,
+    "network_payload_audit": "not performed",
+    "sandbox_implementation_internal_audit": "not performed",
+    "qualification": "CLI boundary and worktree non-mutation were observed; provider/network and sandbox internals were not independently audited."
+  },
+  "command_shapes": {
+    "persistent_round_1": "codex exec --json --color never --ignore-user-config --ignore-rules -s read-only -C <experiment-folder> -m gpt-5.6-luna -o <round-output> -",
+    "persistent_round_2": "codex exec resume <same-specific-session-id> --json --ignore-user-config --ignore-rules -o <round-output> -",
+    "persistent_round_3": "codex exec resume <same-specific-session-id> --json --ignore-user-config --ignore-rules -o <round-output> -",
+    "fresh_round_2": "codex exec --json --color never --ignore-user-config --ignore-rules -s read-only -C <experiment-folder> -m gpt-5.6-luna -o <round-output> -"
+  },
+  "machine_metadata": {
+    "os": "Microsoft Windows NT 10.0.26200.0",
+    "powershell": "7.6.5",
+    "node": "v26.7.0",
+    "git": "git version 2.55.0.windows.3",
+    "process_architecture": true,
+    "timezone_offset": "09:00:00"
+  }
+}

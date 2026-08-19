@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "platform": "Windows",
+  "architecture": "X64",
+  "process_architecture": "x64",
+  "powershell": "7.6.5",
+  "culture": "ja-JP",
+  "cwd": "experiments/persistent-purpose-reviewer",
+  "machine_name_saved": false,
+  "user_name_saved": false,
+  "environment_values_saved": false
+}

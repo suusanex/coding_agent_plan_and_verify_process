@@ -1,0 +1,26 @@
+{
+  "run_label": "fresh-r2",
+  "round": 2,
+  "channel": "fresh-control",
+  "round_label_verified": true,
+  "semantic_source": "exact saved response bytes from this invocation",
+  "response_path": "evidence\\grok\\persistence-control-v2\\runs\\fresh-r2\\raw-response.txt",
+  "response_bytes": 219,
+  "response_sha256": "8d789c466408c54cd7ea1dec9a7f72825b58fc4afb4fcf0e7eadfe57aaece7e9",
+  "response_hash_method": "SHA-256 over exact saved UTF-8 no-BOM response bytes after mandatory sensitive-value redaction",
+  "parse": {
+    "parsed": true,
+    "value": {
+      "finding_id": "none",
+      "prior_finding_status": "unknown",
+      "decision_contract_assertion": "unknown",
+      "evidence": [],
+      "information_sufficiency": "insufficient"
+    },
+    "error": null,
+    "block_count": 1
+  },
+  "process_exit_code": 0,
+  "timed_out": false,
+  "raw_session_secret_environment_values_saved": false
+}

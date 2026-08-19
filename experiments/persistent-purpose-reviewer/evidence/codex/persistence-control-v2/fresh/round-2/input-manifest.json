@@ -1,0 +1,37 @@
+{
+  "schema_version": 2,
+  "provider": "codex",
+  "run_label": "fresh-r2",
+  "round": 2,
+  "files": [
+    {
+      "path": "prompts/persistence-control-v2/round-2.md",
+      "bytes": 1605,
+      "sha256": "6760d25b1a22bbe2cbefe00e2a1ae3546ff0c34a01590af599344d0ad17917e6"
+    },
+    {
+      "path": "fixtures/persistence-control-v2/round-2-candidate.md",
+      "bytes": 166,
+      "sha256": "3a278bdee809a04d05e2a95c3ce213982b94f0f62a549679961fd3c9f601ac29"
+    }
+  ],
+  "payload": {
+    "composition": [
+      "prompts/persistence-control-v2/round-2.md",
+      "fixtures/persistence-control-v2/round-2-candidate.md"
+    ],
+    "composition_rule": "listed file bytes concatenated in order with no separator",
+    "bytes": 1771,
+    "sha256": "0c5be9a59873938331d8a0b96e2842174837b145d676d6023489d9a53079e357"
+  },
+  "no_replay_flags": {
+    "round_1_context_sent": false,
+    "previous_response_sent": false,
+    "decision_replayed": false,
+    "mapping_replayed": false,
+    "finding_replayed": false,
+    "round_1_context_replayed_to_follow_up": false,
+    "round_1_context_omitted_from_follow_up": true
+  },
+  "external_input_boundary": "only the listed prompt/context/candidate bytes were written to stdin"
+}

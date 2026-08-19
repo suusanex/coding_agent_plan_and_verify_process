@@ -1,0 +1,52 @@
+{
+  "experiment": "Persistent Purpose Reviewer negative-control persistence-control",
+  "captured_at_utc": "2026-08-19T09:03:08.9226769+00:00",
+  "cli": {
+    "name": "GitHub Copilot CLI",
+    "version": "GitHub Copilot CLI 1.0.80.",
+    "model": "gpt-5.6-luna",
+    "cwd": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer"
+  },
+  "input_boundary": "Only selected prompt and fixture bytes were placed in the user payload. Full Round 1 context, prior output, semantic mapping, and findings were not replayed in R2/R3/Fresh R2.",
+  "persistent_round_2_fresh_round_2_payload_hash": "1d65af69fea507cda1b60122ec8bd883a2401360c8aee3eac98fdd21a5e37937",
+  "persistent_round_2_fresh_round_2_payload_equal": true,
+  "session_hashes": {
+    "persistent_round_1": "932e7d9bad6e316237ea5c9e23d0a327d70247a294aef70481811b69e4f7ca99",
+    "persistent_round_2": "932e7d9bad6e316237ea5c9e23d0a327d70247a294aef70481811b69e4f7ca99",
+    "persistent_round_3": "932e7d9bad6e316237ea5c9e23d0a327d70247a294aef70481811b69e4f7ca99",
+    "fresh_round_2": "0f66cd8278b00fe9351808c13924344134d00a1bf24beec8e5e2e389196bc262",
+    "persistent_r1_r2_r3_equal": true,
+    "fresh_different": true,
+    "session_ids_saved": false
+  },
+  "runs": [
+    {
+      "label": "persistent-round-1",
+      "status": "success",
+      "output_sha256": "1cdca62c17812e041447bb3040f4c8c6d5c7a797eb577caf7335b8819402c93f",
+      "input_payload_sha256": "7794e17d28b3ea9467a0be32b37fde3aa7e0e959f2e3bc1c2d03f60fed53980f",
+      "session_hash": "932e7d9bad6e316237ea5c9e23d0a327d70247a294aef70481811b69e4f7ca99"
+    },
+    {
+      "label": "persistent-round-2",
+      "status": "success",
+      "output_sha256": "22a18af7d3c417e99bb26760ee8a6c4bc0fe5ea6a5fb994a7040886e418d3adc",
+      "input_payload_sha256": "1d65af69fea507cda1b60122ec8bd883a2401360c8aee3eac98fdd21a5e37937",
+      "session_hash": "932e7d9bad6e316237ea5c9e23d0a327d70247a294aef70481811b69e4f7ca99"
+    },
+    {
+      "label": "persistent-round-3",
+      "status": "success",
+      "output_sha256": "80814268f34a2ddbbe75f77c2e2b332db19c993723d46db36b08890b1235131b",
+      "input_payload_sha256": "0df9fa40b7ef1e974ecab7454cc3cabf9145dd8c798058b2d9f0e3fdd9c24fe3",
+      "session_hash": "932e7d9bad6e316237ea5c9e23d0a327d70247a294aef70481811b69e4f7ca99"
+    },
+    {
+      "label": "fresh-control-round-2",
+      "status": "success",
+      "output_sha256": "80814268f34a2ddbbe75f77c2e2b332db19c993723d46db36b08890b1235131b",
+      "input_payload_sha256": "1d65af69fea507cda1b60122ec8bd883a2401360c8aee3eac98fdd21a5e37937",
+      "session_hash": "0f66cd8278b00fe9351808c13924344134d00a1bf24beec8e5e2e389196bc262"
+    }
+  ]
+}

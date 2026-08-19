@@ -1,0 +1,11 @@
+BEGIN_PERSISTENCE_REVIEW
+{
+  "prior_finding_status": "active",
+  "decision_contract_assertion": "fail",
+  "evidence": [
+    "candidate は lantern-pulse の mode に focus-mode を指定している。",
+    "前回の finding は active のままであり、今回も修正を示す情報がない。"
+  ],
+  "information_sufficiency": "sufficient"
+}
+END_PERSISTENCE_REVIEW
