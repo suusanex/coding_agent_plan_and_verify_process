@@ -22,9 +22,11 @@
 
 The former `spark-implementer` is not retained as an agent, alias, compatibility route, fallback, template owner, or profile. Its implementation responsibility is transferred to the existing Adaptive Implementation flow; the overall review remediation process still includes implementation and validation in a separate parent turn.
 
-## Deliberately deferred
+## Historical deferred scope
 
 - Goal Context integration
 - `purpose-reviewer`
 - automatic next-turn startup
 - source repository archive or redirect decision
+
+現在の目的reviewは、互換性を持たない別package `persistent-purpose-review`とuser-level `purpose-review-runner`が担当します。

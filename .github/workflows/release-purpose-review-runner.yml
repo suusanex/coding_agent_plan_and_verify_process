@@ -1,0 +1,70 @@
+name: Release Purpose Review Runner
+
+on:
+  push:
+    tags:
+      - 'purpose-review-runner-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            archive: purpose-review-runner-win-x64.zip
+          - os: ubuntu-latest
+            rid: linux-x64
+            archive: purpose-review-runner-linux-x64.tar.gz
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Test
+        shell: pwsh
+        run: dotnet test ./tests/PurposeReviewRunner.Tests/PurposeReviewRunner.Tests.csproj --disable-build-servers
+      - name: Publish
+        shell: pwsh
+        run: dotnet publish ./apps/PurposeReviewRunner/PurposeReviewRunner.csproj -c Release -r ${{ matrix.rid }} --self-contained true -o ./artifacts/publish --disable-build-servers
+      - name: Add sample configuration
+        shell: pwsh
+        run: Copy-Item ./apps/PurposeReviewRunner/config.example.json ./artifacts/publish/config.example.json
+      - name: Archive Windows binary
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path ./artifacts/publish/* -DestinationPath ./artifacts/${{ matrix.archive }}
+      - name: Archive Linux binary
+        if: runner.os == 'Linux'
+        shell: bash
+        run: tar -C ./artifacts/publish -czf ./artifacts/${{ matrix.archive }} .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.rid }}
+          path: ./artifacts/${{ matrix.archive }}
+          if-no-files-found: error
+
+  release:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: ./release-assets
+          merge-multiple: true
+      - name: Add sample configuration
+        shell: bash
+        run: cp ./apps/PurposeReviewRunner/config.example.json ./release-assets/config.example.json
+      - name: Create checksums
+        shell: bash
+        run: cd release-assets && sha256sum purpose-review-runner-* config.example.json > SHA256SUMS
+      - name: Create GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" ./release-assets/* --verify-tag --generate-notes --title "$GITHUB_REF_NAME"

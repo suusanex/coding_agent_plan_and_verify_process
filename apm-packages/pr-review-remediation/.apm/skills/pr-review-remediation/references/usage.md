@@ -5,16 +5,16 @@
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills
 $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
-dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --dry-run
-dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- .
-dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --check
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- . --dry-run
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- . --check
 ```
 
-この導入はreview agent profileだけを同期し、canonical same-parent flowにも基礎版Phase 1にも十分です。
+この導入はbaseline PR reviewに必要なSkill、agent、profileだけを導入します。
 
 ## Start Phase 1
 
-これはGoal Contextを使わない基礎版入口です。目的達成reviewが必要な場合は`$goal-context-pr-review`を明示指定します。Goal Context欠落時に自動で基礎版へfallbackしません。
+これはbaseline PR reviewの入口です。継続的な目的達成reviewが必要な場合は、別packageの`$persistent-purpose-review`を明示指定します。
 
 ```text
 $pr-review-remediation を使って、このbranchのPRをレビュー反映プロセスで処理してください。
@@ -34,8 +34,8 @@ Phase 1が`READY_FOR_ADAPTIVE_IMPLEMENTATION`になり、利用者が別の親�
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
-dotnet run --file "$moduleRoot\apm-packages\adaptive-implementation-execution\scripts\install-adaptive-implementation-local.cs" -- .
-dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --check --check-adaptive
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- . --check
 ```
 
 Adaptiveのmodel mapping、agent validation、installation policyは既存Adaptive helperをsource of truthとして使います。その後、別の親ターンで開始します。
@@ -57,7 +57,7 @@ Phase 1の停止は全体完了ではありません。Phase 2の`COMPLETED_BY_H
 | `local-review-findings.md` | parent from local-reviewer output | local Codex findings |
 | `review-plan.md` | parent from review-planner output | Adaptive-ready remediation plan |
 
-Goal Context対応版では、同じartifactに`goal-context-selection.json`と`purpose-review-findings.md`が加わります。詳細はsibling Skill `../goal-context-pr-review/references/usage.md`を参照してください。
+`$persistent-purpose-review`は別run、別stateを所有し、このartifact集合へ目的review結果を混在させません。
 
 ## Reproduce validation
 
@@ -87,4 +87,4 @@ pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remedia
   -Ref <commit-sha>
 ```
 
-remote smokeはtransitive `git: parent`依存、基礎版とGoal Context対応版の両Skill、5 canonical agents、relative assets、5 concrete profilesを検証し、`AGENTS.md`と`.codex/config.toml`のsentinelが不変であることを確認します。一時directoryは成否にかかわらず削除されます。
+remote smokeはtransitive `git: parent`依存、baseline Skill、2 canonical agents、relative assets、2 concrete profilesを検証し、`AGENTS.md`と`.codex/config.toml`のsentinelが不変であることを確認します。一時directoryは成否にかかわらず削除されます。

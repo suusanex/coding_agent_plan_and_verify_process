@@ -1,0 +1,65 @@
+name: Validate Persistent Purpose Review
+
+on:
+  pull_request:
+    paths:
+      - 'apps/PurposeReviewRunner/**'
+      - 'tests/PurposeReviewRunner.Tests/**'
+      - 'tests/PurposeReviewRunner.FakeProvider/**'
+      - 'apm-packages/persistent-purpose-review/**'
+      - '.github/workflows/validate-persistent-purpose-review.yml'
+      - '.github/workflows/release-purpose-review-runner.yml'
+      - 'README.md'
+      - 'docs/installation-and-maintenance.md'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/PurposeReviewRunner/**'
+      - 'tests/PurposeReviewRunner.Tests/**'
+      - 'tests/PurposeReviewRunner.FakeProvider/**'
+      - 'apm-packages/persistent-purpose-review/**'
+      - '.github/workflows/validate-persistent-purpose-review.yml'
+      - '.github/workflows/release-purpose-review-runner.yml'
+      - 'README.md'
+      - 'docs/installation-and-maintenance.md'
+
+permissions:
+  contents: read
+
+jobs:
+  runner:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: ubuntu-latest
+            rid: linux-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Test Runner
+        shell: pwsh
+        run: dotnet test ./tests/PurposeReviewRunner.Tests/PurposeReviewRunner.Tests.csproj --disable-build-servers
+      - name: Publish Runner
+        shell: pwsh
+        run: dotnet publish ./apps/PurposeReviewRunner/PurposeReviewRunner.csproj -c Release -r ${{ matrix.rid }} --self-contained true --disable-build-servers
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/apm-action@v1
+        with:
+          apm-version: '0.26.0'
+          setup-only: true
+      - name: Validate Skill package
+        shell: pwsh
+        run: ./apm-packages/persistent-purpose-review/scripts/validate-persistent-purpose-review.ps1
+      - name: Smoke test package installation
+        shell: pwsh
+        run: ./apm-packages/persistent-purpose-review/scripts/test-apm-package-install.ps1

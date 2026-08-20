@@ -8,7 +8,8 @@
 | --- | --- | --- |
 | `scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs` | always-on Codex callback runtimeをuser-level設定へ導入する | canonical runtime、Local Spool provider、user-level `notify` |
 | `apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs` | APM導入後にpackage-owned concrete Codex profilesを補完する | `.codex/agents/*.toml`のprofile fields |
-| Goal Context Skill `scripts/execute-reviewer.cs` | typed設定でCodex exec / GitHub Copilot CLI reviewerを決定的に起動・待機・raw保存する | `round-NNN/{role}.raw.md`、`{role}.execution.json` |
+| `apps/PurposeReviewRunner` | OS user単位のconfigでpurpose reviewerを起動し、同じsessionを最大3roundまで維持する | versioned Runner binary、user-level config、minimal run state |
+| `apm-packages/persistent-purpose-review` | 元のimplementation parentへcontext選択、修正、同一runの再reviewを教える | repository-local `$persistent-purpose-review` Skill |
 | `apm-packages/*/codex-profile-overlays.json` | owning packageごとのprofile推奨値を宣言する | agent、model、reasoning、sandbox |
 | Goal Context validators | Goal Context authoring packageやfree-form文書を確認する | readability、package structure、APM install smoke |
 | `scripts/validate-architecture-slice-readiness.ps1` | architecture readinessのagents、manifest、templates、routingを確認する | ASR contractとfixture evidence |
@@ -27,7 +28,7 @@ dotnet run --file <installer.cs> -- <target> --check
 
 ## APM installation and Codex profile finalizer
 
-各 package は `apm install` を導入本体とします。Adaptive と PR Review Remediation は共通 finalizer packageへ依存し、Plan Coverage と Design Pairは既存のAdaptive Implementation package boundary dependencyを通じて同じ finalizerを利用します。source repository checkoutは通常導入に不要です。
+各 package は `apm install` を導入本体とします。Adaptive と PR Review Remediation は共通 finalizer packageへ依存し、Plan Coverage と Design Pairは既存のAdaptive Implementation package boundary dependencyを通じて同じ finalizerを利用します。Persistent Purpose Review Skillはprofileを持たず、RunnerをAPMに含めません。source repository checkoutは通常導入に不要です。
 
 Plan Coverageのcanonical authoring sourceは`apm-packages/plan-coverage-residual-flow/.apm/`です。source repository rootにpackage runtime projection（`.github/agents/`、`.github/instructions/`、`.codex/agents/`、`.agents/skills/`）をchecked-inしません。canonical contractを修正するときは`.apm`を修正し、runtime projectionの正しさはAPM install smokeで検証します。
 
@@ -92,12 +93,22 @@ repository rootから、変更したownership surfaceに対応するcheckを実�
 ### PR Review Remediation
 
 ```powershell
-./apm-packages/pr-review-remediation/scripts/validate-same-parent-review.ps1
-./apm-packages/pr-review-remediation/scripts/validate-execute-reviewer.ps1
 ./apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
 ```
 
 外部modelへpayloadを送るagent smokeは通常の文書変更では実行しません。必要な場合は先に`-DescribePayload`で対象を確認し、明示承認後だけ`-ConfirmExternalModelPayload`を使います。
+
+### Persistent Purpose Review
+
+```powershell
+dotnet test ./tests/PurposeReviewRunner.Tests/PurposeReviewRunner.Tests.csproj
+./apm-packages/persistent-purpose-review/scripts/validate-persistent-purpose-review.ps1
+./apm-packages/persistent-purpose-review/scripts/test-apm-package-install.ps1
+dotnet publish ./apps/PurposeReviewRunner/PurposeReviewRunner.csproj -c Release -r win-x64 --self-contained true
+dotnet publish ./apps/PurposeReviewRunner/PurposeReviewRunner.csproj -c Release -r linux-x64 --self-contained true
+```
+
+外部providerを使うsemantic persistence qualificationはManualOnlyです。Codex/Grokはsame-sessionとfresh control、Copilotはsession/resume成立までを別々に記録し、deterministic CIのPASSを実model evidenceとして扱いません。
 
 ### Plan Coverage
 

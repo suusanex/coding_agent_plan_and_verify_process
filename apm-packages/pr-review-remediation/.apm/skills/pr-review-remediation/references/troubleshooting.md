@@ -1,8 +1,8 @@
 # Troubleshooting
 
-## Goal Context purpose review is required
+## Persistent purpose review is required
 
-このSkillは基礎版です。free-form Goal Contextを選択し、`purpose-reviewer`を含む独立reviewが必要な場合は`$goal-context-pr-review`を明示指定してください。Goal Contextが欠落したまま、この基礎版で目的review済みと扱うことはできません。
+このSkillはbaseline PR review専用です。継続的な目的達成reviewが必要な場合は、別packageの`$persistent-purpose-review`とuser-level `purpose-review-runner`を導入してください。このSkillの結果を目的review済みとして扱うことはできません。
 
 ## The PR is a draft
 
@@ -31,10 +31,10 @@ base/head OID、Draft状態、PR stateが変化した場合、collectorは古い
 
 ```powershell
 $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
-dotnet run --file "$moduleRoot\apm-packages\pr-review-remediation\scripts\sync-pr-review-remediation-local.cs" -- . --check
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- . --check
 ```
 
-review profileが競合する場合だけ`--force`を検討します。通常の`--check`はcanonical same-parent/基礎版Phase 1だけを検査します。基礎版Phase 2を選び、Adaptive packageを別途導入済みの場合だけ`--check --check-adaptive`を使い、Adaptive profile不足は既存Adaptive helperで修復します。
+review profileが競合する場合だけ`--force`を検討します。Adaptive packageを別途導入した場合は、そのpackageを指定して同じfinalizerを実行します。
 
 ## `.codex/config.toml`
 
