@@ -109,7 +109,7 @@ public sealed class StateStore
         if (string.IsNullOrWhiteSpace(state.Repository) || !Path.IsPathFullyQualified(state.Repository) || state.ContextPaths is null || state.ContextPaths.Count == 0 ||
             state.ContextPaths.Any(path => string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path)) || string.IsNullOrWhiteSpace(state.SessionHandle) ||
             state.Round is < 1 or > Protocol.MaximumRounds ||
-            state.Status is not (ReviewStatuses.Findings or ReviewStatuses.Complete or ReviewStatuses.HumanDecisionRequired or ReviewStatuses.Blocked) ||
+            state.Status is not (ReviewStatuses.Findings or ReviewStatuses.Complete or ReviewStatuses.HumanDecisionRequired or ReviewStatuses.Blocked or ReviewStatuses.Error) ||
             state.Provider is null || state.Provider.Provider is not ("codex" or "grok" or "copilot") ||
             string.IsNullOrWhiteSpace(state.Provider.Executable) || !Path.IsPathFullyQualified(state.Provider.Executable) ||
             string.IsNullOrWhiteSpace(state.Provider.Model) || string.IsNullOrWhiteSpace(state.Provider.ReasoningEffort))

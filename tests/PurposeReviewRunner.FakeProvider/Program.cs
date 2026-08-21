@@ -14,7 +14,11 @@ public static class Program
     {
         try
         {
-            if (args.FirstOrDefault() == "exec")
+            if (args.Contains("--hang-without-reading-stdin", StringComparer.Ordinal))
+            {
+                await Task.Delay(TimeSpan.FromMinutes(1));
+            }
+            else if (args.FirstOrDefault() == "exec")
             {
                 await RunCodexAsync(args);
             }

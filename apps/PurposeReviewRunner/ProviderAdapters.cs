@@ -40,8 +40,11 @@ public abstract class ProviderAdapterBase
         }
         if (result.ExitCode != 0)
         {
-            var detail = string.IsNullOrWhiteSpace(result.StandardError) ? "No stderr was returned." : result.StandardError.Trim();
-            throw new RunnerException("PROVIDER_FAILED", $"Provider process exited with code {result.ExitCode}: {detail}", ExitCodes.RuntimeError);
+            if (!string.IsNullOrWhiteSpace(result.StandardError))
+            {
+                Trace.TraceError($"Provider process stderr:{Environment.NewLine}{result.StandardError.TrimEnd()}");
+            }
+            throw new RunnerException("PROVIDER_FAILED", $"Provider process exited with code {result.ExitCode}.", ExitCodes.RuntimeError);
         }
         return result;
     }

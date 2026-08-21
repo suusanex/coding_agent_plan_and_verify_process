@@ -32,24 +32,25 @@ public sealed class SystemProcessRunner : IProcessRunner
             {
                 throw new RunnerException("PROVIDER_START_FAILED", "Provider process did not start.", ExitCodes.RuntimeError);
             }
-            var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
-            if (request.StandardInput is not null)
-            {
-                await process.StandardInput.WriteAsync(request.StandardInput.AsMemory(), cancellationToken);
-            }
-            process.StandardInput.Close();
-
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
             using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutSource.CancelAfter(timeout);
             try
             {
+                if (request.StandardInput is not null)
+                {
+                    await process.StandardInput.WriteAsync(request.StandardInput.AsMemory(), timeoutSource.Token);
+                    await process.StandardInput.FlushAsync(timeoutSource.Token);
+                }
+                process.StandardInput.Close();
                 await process.WaitForExitAsync(timeoutSource.Token);
             }
             catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
             {
                 Trace.TraceError(exception.ToString());
                 TryKill(process);
+                TryCloseStandardInput(process);
                 var timedOutStdout = await stdoutTask;
                 var timedOutStderr = await stderrTask;
                 return new(-1, timedOutStdout, timedOutStderr, true);
@@ -59,6 +60,13 @@ public sealed class SystemProcessRunner : IProcessRunner
         }
         catch (RunnerException)
         {
+            throw;
+        }
+        catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested)
+        {
+            Trace.TraceError(exception.ToString());
+            TryKill(process);
+            TryCloseStandardInput(process);
             throw;
         }
         catch (Exception exception)
@@ -101,6 +109,18 @@ public sealed class SystemProcessRunner : IProcessRunner
     {
         static string Quote(string value) => "\"" + value.Replace("%", "%%", StringComparison.Ordinal).Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";
         return "\"" + Quote(executable) + " " + string.Join(" ", arguments.Select(Quote)) + "\"";
+    }
+
+    private static void TryCloseStandardInput(Process process)
+    {
+        try
+        {
+            process.StandardInput.Close();
+        }
+        catch (Exception exception)
+        {
+            Trace.TraceError(exception.ToString());
+        }
     }
 
     private static void TryKill(Process process)

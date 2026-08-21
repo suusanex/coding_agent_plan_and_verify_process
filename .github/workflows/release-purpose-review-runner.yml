@@ -31,6 +31,11 @@ jobs:
       - name: Publish
         shell: pwsh
         run: dotnet publish ./apps/PurposeReviewRunner/PurposeReviewRunner.csproj -c Release -r ${{ matrix.rid }} --self-contained true -o ./artifacts/publish --disable-build-servers
+      - name: Verify release tag and Runner version
+        shell: pwsh
+        run: |
+          $runnerPath = if ($IsWindows) { './artifacts/publish/purpose-review-runner.exe' } else { './artifacts/publish/purpose-review-runner' }
+          ./apps/PurposeReviewRunner/assert-release-tag.ps1 -RunnerPath $runnerPath -Tag $env:GITHUB_REF_NAME
       - name: Add sample configuration
         shell: pwsh
         run: Copy-Item ./apps/PurposeReviewRunner/config.example.json ./artifacts/publish/config.example.json

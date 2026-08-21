@@ -78,6 +78,8 @@ public sealed class RunnerApplication
         }
 
         var nextRound = state.Round + 1;
+        var terminalState = state with { Round = nextRound, Status = ReviewStatuses.Error };
+        stateStore.Save(terminalState);
         var payload = PromptBuilder.BuildContinue(nextRound);
         var provider = ProviderFactory.Create(state.Provider.Provider);
         var providerResult = await provider.ExecuteAsync(
@@ -97,7 +99,7 @@ public sealed class RunnerApplication
                 Message = "Actionable findings remain after the fixed maximum of three review rounds."
             };
         }
-        stateStore.Save(state with { Round = nextRound, Status = review.Status });
+        stateStore.Save(terminalState with { Status = review.Status });
         return new(RunnerOutput.FromReview(state.RunId, nextRound, review), ExitCodes.Success);
     }
 

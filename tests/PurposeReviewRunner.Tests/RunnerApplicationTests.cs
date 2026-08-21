@@ -148,6 +148,76 @@ public sealed class RunnerApplicationTests
     }
 
     [TestMethod]
+    public async Task MalformedContinuationMakesRunTerminalBeforeProviderCanBeRetried()
+    {
+        using var fixture = new RunnerFixture("grok");
+        fixture.WriteRepositoryFile("goal.md", "goal");
+        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue("not a review block");
+        var start = await fixture.Application.ExecuteAsync(
+            new StartCommand(fixture.Repository, ["goal.md"]),
+            CancellationToken.None);
+
+        var malformed = await Assert.ThrowsExactlyAsync<RunnerException>(
+            () => fixture.Application.ExecuteAsync(new ContinueCommand(start.Output.RunId!), CancellationToken.None));
+        var state = new StateStore(fixture.Paths.StateRoot).Load(start.Output.RunId!);
+        var retry = await Assert.ThrowsExactlyAsync<RunnerException>(
+            () => fixture.Application.ExecuteAsync(new ContinueCommand(start.Output.RunId!), CancellationToken.None));
+
+        Assert.AreEqual("REVIEW_PARSE_FAILED", malformed.Code);
+        Assert.AreEqual(2, state.Round);
+        Assert.AreEqual(ReviewStatuses.Error, state.Status);
+        Assert.AreEqual("RUN_TERMINAL", retry.Code);
+        Assert.HasCount(2, fixture.Process.Requests);
+    }
+
+    [TestMethod]
+    public void NullFindingFailsAsReviewerProtocolError()
+    {
+        const string response = """
+            BEGIN_PURPOSE_REVIEW
+            {"status":"FINDINGS","findings":[null],"message":null}
+            END_PURPOSE_REVIEW
+            """;
+
+        var exception = Assert.ThrowsExactly<RunnerException>(() => ReviewProtocol.Parse(response));
+
+        Assert.AreEqual("REVIEW_PARSE_FAILED", exception.Code);
+        Assert.AreEqual(ExitCodes.ContractError, exception.ExitCode);
+    }
+
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task ProviderStderrIsTracedButExcludedFromPublicError()
+    {
+        using var fixture = new RunnerFixture("grok");
+        fixture.WriteRepositoryFile("goal.md", "goal");
+        const string privateDiagnostic = "PRIVATE-PROVIDER-DIAGNOSTIC";
+        fixture.Process.ForcedResult = new ProcessResult(7, string.Empty, privateDiagnostic, false);
+        using var traceText = new StringWriter();
+        using var listener = new TextWriterTraceListener(traceText);
+        Trace.Listeners.Add(listener);
+        try
+        {
+            var exception = await Assert.ThrowsExactlyAsync<RunnerException>(
+                () => fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None));
+            listener.Flush();
+            var publicOutput = JsonSerializer.Serialize(
+                RunnerOutput.FromError(exception.Code, exception.Message),
+                JsonDefaults.Options);
+
+            StringAssert.Contains(traceText.ToString(), privateDiagnostic);
+            Assert.IsFalse(exception.Message.Contains(privateDiagnostic, StringComparison.Ordinal));
+            Assert.IsFalse(publicOutput.Contains(privateDiagnostic, StringComparison.Ordinal));
+            StringAssert.Contains(publicOutput, "Provider process exited with code 7.");
+        }
+        finally
+        {
+            Trace.Listeners.Remove(listener);
+        }
+    }
+
+    [TestMethod]
     public void RunLockRejectsConcurrentMutation()
     {
         using var fixture = new RunnerFixture("codex");
@@ -237,6 +307,26 @@ public sealed class RunnerApplicationTests
     }
 
     [TestMethod]
+    public async Task ReleaseTagValidationRequiresExactRunnerVersion()
+    {
+        var runnerPath = Path.Combine(
+            Path.GetDirectoryName(typeof(RunnerApplication).Assembly.Location)!,
+            OperatingSystem.IsWindows() ? "purpose-review-runner.exe" : "purpose-review-runner");
+        var scriptPath = Path.Combine(AppContext.BaseDirectory, "assert-release-tag.ps1");
+
+        var matching = await RunProcessAsync(
+            "pwsh",
+            ["-NoProfile", "-File", scriptPath, "-RunnerPath", runnerPath, "-Tag", $"purpose-review-runner-v{Protocol.RunnerVersion}"]);
+        var mismatching = await RunProcessAsync(
+            "pwsh",
+            ["-NoProfile", "-File", scriptPath, "-RunnerPath", runnerPath, "-Tag", "purpose-review-runner-v9.9.9"]);
+
+        Assert.AreEqual(0, matching.ExitCode, matching.StandardError);
+        Assert.AreNotEqual(0, mismatching.ExitCode);
+        StringAssert.Contains(mismatching.StandardError, "does not match Runner version");
+    }
+
+    [TestMethod]
     public async Task TimeoutFailsWithRuntimeErrorAndDoesNotSaveState()
     {
         using var fixture = new RunnerFixture("grok");
@@ -249,6 +339,38 @@ public sealed class RunnerApplicationTests
         Assert.AreEqual("PROVIDER_TIMEOUT", exception.Code);
         Assert.AreEqual(ExitCodes.RuntimeError, exception.ExitCode);
         Assert.IsEmpty(Directory.GetFiles(fixture.Paths.StateRoot, "state.json", SearchOption.AllDirectories));
+    }
+
+    [TestMethod]
+    public async Task ProcessTimeoutIncludesBlockedStandardInputWrite()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "purpose-review-runner-stdin-timeout-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var executable = CreateFakeProviderLauncher(root);
+        var runner = new SystemProcessRunner(TimeSpan.FromMilliseconds(500));
+        var request = new ProcessRequest(
+            executable,
+            ["--hang-without-reading-stdin"],
+            root,
+            new string('x', 8 * 1024 * 1024));
+        var stopwatch = Stopwatch.StartNew();
+
+        try
+        {
+            var result = await runner.RunAsync(request, CancellationToken.None);
+
+            stopwatch.Stop();
+            Assert.IsTrue(result.TimedOut);
+            Assert.AreEqual(-1, result.ExitCode);
+            Assert.IsLessThan(TimeSpan.FromSeconds(5), stopwatch.Elapsed);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
     }
 
     [TestMethod]
@@ -362,6 +484,28 @@ public sealed class RunnerApplicationTests
             scriptPath,
             UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         return scriptPath;
+    }
+
+    private static async Task<(int ExitCode, string StandardOutput, string StandardError)> RunProcessAsync(
+        string executable,
+        IReadOnlyList<string> arguments)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = executable,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+        foreach (var argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+        using var process = Process.Start(startInfo) ?? throw new AssertFailedException($"Process did not start: {executable}");
+        var stdout = process.StandardOutput.ReadToEndAsync();
+        var stderr = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        return (process.ExitCode, await stdout, await stderr);
     }
 
     private static ReviewFinding Finding(string id) => new(id, "HIGH", "Purpose gap", "summary", "evidence", "required change");

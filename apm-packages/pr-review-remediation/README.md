@@ -10,6 +10,7 @@
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills
+$moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
 dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
 ```
 

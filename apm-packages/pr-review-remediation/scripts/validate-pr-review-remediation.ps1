@@ -59,6 +59,7 @@ try {
 
     Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?m)^version:\s*0\.6\.0\s*$' 'baseline-only package version'
     Assert-Contains 'apm-packages/pr-review-remediation/README.md' '\$persistent-purpose-review' 'successor purpose review route'
+    Assert-Contains 'apm-packages/pr-review-remediation/README.md' '(?m)^\$moduleRoot\s*=\s*"\.\\apm_modules\\suusanex\\coding_agent_plan_and_verify_process"\s*$' 'installed module root assignment'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'Production code changed: No' 'Phase 1 non-mutation contract'
 
     $profiles = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'codex-profile-overlays.json') | ConvertFrom-Json

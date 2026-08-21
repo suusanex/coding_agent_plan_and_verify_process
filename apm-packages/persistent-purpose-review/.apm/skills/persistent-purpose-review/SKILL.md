@@ -49,7 +49,7 @@ repository rootと選択済みcontextを明示する。
 purpose-review-runner start --repository <repository-root> --context <path> [--context <path> ...]
 ```
 
-stdoutの`runId`とstatusだけをworkflowで扱う。内部session handleやstate fileを読み書きしない。
+stdoutの公開protocol fields（`runId`、`status`、`findings`、`message`、`error`等）だけをworkflowで扱う。内部session handleやstate fileを読み書きしない。
 
 - `FINDINGS`: findingを実装目的へ照合し、元のparentが必要なproduction/tests/docsを修正してrepository規約のvalidationを実行する。その後、同じ`runId`を`continue`する。
 - `COMPLETE`: purpose review完了として終了する。

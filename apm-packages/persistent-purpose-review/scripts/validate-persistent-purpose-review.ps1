@@ -24,6 +24,9 @@ if ($manifest -notmatch '(?m)^name:\s*persistent-purpose-review\s*$' -or $manife
 if ($skill -notmatch 'purpose-review-runner version' -or $skill -notmatch 'protocolVersion.*`1`') {
     throw 'Skill does not fail closed on the Runner protocol boundary.'
 }
+if ($skill -notmatch '公開protocol fields' -or $skill -notmatch '`findings`.*`message`.*`error`') {
+    throw 'Skill does not use the complete public Runner result contract.'
+}
 if ($skill -notmatch 'ユーザーが明示したsourceを最優先' -or $skill -notmatch '複数文書が同じ目的を補完') {
     throw 'Skill context selection precedence is incomplete.'
 }

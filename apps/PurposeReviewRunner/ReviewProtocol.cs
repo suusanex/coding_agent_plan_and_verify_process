@@ -64,7 +64,7 @@ public static partial class ReviewProtocol
         var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (var finding in response.Findings)
         {
-            if (string.IsNullOrWhiteSpace(finding.Id) || !ids.Add(finding.Id) ||
+            if (finding is null || string.IsNullOrWhiteSpace(finding.Id) || !ids.Add(finding.Id) ||
                 string.IsNullOrWhiteSpace(finding.Title) || string.IsNullOrWhiteSpace(finding.Summary) ||
                 string.IsNullOrWhiteSpace(finding.Evidence) || string.IsNullOrWhiteSpace(finding.RequiredChange) ||
                 !AllowedSeverities.Contains(finding.Severity))
