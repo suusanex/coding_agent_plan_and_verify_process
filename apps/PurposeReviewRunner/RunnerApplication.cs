@@ -41,11 +41,14 @@ public sealed class RunnerApplication
         var runId = Guid.NewGuid().ToString("D");
         using var runLock = stateStore.AcquireLock(runId);
         var payload = PromptBuilder.BuildStart(repository, contexts);
+        var transcriptStore = new TranscriptStore(stateStore.GetRunDirectory(runId));
+        transcriptStore.SavePrompt(1, payload);
         var provider = ProviderFactory.Create(snapshot.Provider);
         var providerResult = await provider.ExecuteAsync(
             new(snapshot, repository, stateStore.GetRunDirectory(runId), payload, null, 1),
             processRunner,
             cancellationToken);
+        transcriptStore.SaveResponse(1, providerResult.ReviewText);
         var review = ReviewProtocol.Parse(providerResult.ReviewText);
         var state = new RunState(
             Protocol.Version,
@@ -81,11 +84,14 @@ public sealed class RunnerApplication
         var terminalState = state with { Round = nextRound, Status = ReviewStatuses.Error };
         stateStore.Save(terminalState);
         var payload = PromptBuilder.BuildContinue(nextRound);
+        var transcriptStore = new TranscriptStore(stateStore.GetRunDirectory(state.RunId));
+        transcriptStore.SavePrompt(nextRound, payload);
         var provider = ProviderFactory.Create(state.Provider.Provider);
         var providerResult = await provider.ExecuteAsync(
             new(state.Provider, state.Repository, stateStore.GetRunDirectory(state.RunId), payload, state.SessionHandle, nextRound),
             processRunner,
             cancellationToken);
+        transcriptStore.SaveResponse(nextRound, providerResult.ReviewText);
         if (providerResult.SessionHandle != state.SessionHandle)
         {
             throw new RunnerException("SESSION_MISMATCH", "Provider resumed a different session.", ExitCodes.ContractError);
