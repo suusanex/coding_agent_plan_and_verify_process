@@ -26,7 +26,7 @@ catch {
     throw "purpose-review-runner version returned invalid JSON: $($_.Exception.Message)"
 }
 
-if ($version.protocolVersion -ne 1 -or [string]::IsNullOrWhiteSpace([string]$version.runnerVersion)) {
+if ($version.protocolVersion -ne 2 -or [string]::IsNullOrWhiteSpace([string]$version.runnerVersion)) {
     throw 'purpose-review-runner version returned an incompatible protocol response.'
 }
 

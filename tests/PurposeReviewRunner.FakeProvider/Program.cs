@@ -14,6 +14,16 @@ public static class Program
     {
         try
         {
+            var delayValue = Environment.GetEnvironmentVariable("PURPOSE_REVIEW_FAKE_PROVIDER_DELAY_MS");
+            if (int.TryParse(delayValue, out var delayMilliseconds) && delayMilliseconds > 0)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(delayMilliseconds));
+            }
+            var counterPath = Environment.GetEnvironmentVariable("PURPOSE_REVIEW_FAKE_PROVIDER_COUNTER");
+            if (!string.IsNullOrWhiteSpace(counterPath))
+            {
+                File.AppendAllText(counterPath, DateTime.UtcNow.ToString("O") + Environment.NewLine);
+            }
             if (args.Contains("--hang-without-reading-stdin", StringComparer.Ordinal))
             {
                 await Task.Delay(TimeSpan.FromMinutes(1));

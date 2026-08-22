@@ -3,6 +3,8 @@ namespace PurposeReviewRunner;
 public abstract record RunnerCommand;
 public sealed record StartCommand(string Repository, IReadOnlyList<string> ContextPaths) : RunnerCommand;
 public sealed record ContinueCommand(string RunId) : RunnerCommand;
+public sealed record StatusCommand(string RunId) : RunnerCommand;
+public sealed record WorkCommand(string RunId) : RunnerCommand;
 public sealed record VersionCommand : RunnerCommand;
 
 public static class CliParser
@@ -22,7 +24,9 @@ public static class CliParser
         return args[0] switch
         {
             "start" => ParseStart(args[1..]),
-            "continue" => ParseContinue(args[1..]),
+            "continue" => ParseRunCommand(args[1..], "continue", runId => new ContinueCommand(runId)),
+            "status" => ParseRunCommand(args[1..], "status", runId => new StatusCommand(runId)),
+            "work" => ParseRunCommand(args[1..], "work", runId => new WorkCommand(runId)),
             _ => throw Usage($"Unknown command: {args[0]}")
         };
     }
@@ -63,13 +67,13 @@ public static class CliParser
         return new(repository, contexts);
     }
 
-    private static ContinueCommand ParseContinue(string[] args)
+    private static RunnerCommand ParseRunCommand(string[] args, string command, Func<string, RunnerCommand> create)
     {
         if (args.Length != 2 || args[0] != "--run" || string.IsNullOrWhiteSpace(args[1]))
         {
-            throw Usage("continue requires exactly --run <run-id>.");
+            throw Usage($"{command} requires exactly --run <run-id>.");
         }
-        return new(args[1]);
+        return create(args[1]);
     }
 
     private static string NextValue(string[] args, ref int index, string option)
@@ -87,5 +91,5 @@ public static class CliParser
     }
 
     private static RunnerException Usage(string message) =>
-        new("INVALID_ARGUMENTS", message + " Usage: purpose-review-runner start --repository <path> --context <path> [--context <path> ...] | continue --run <run-id> | version");
+        new("INVALID_ARGUMENTS", message + " Usage: purpose-review-runner start --repository <path> --context <path> [--context <path> ...] | continue --run <run-id> | status --run <run-id> | version");
 }
