@@ -21,7 +21,7 @@ $readme = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'README.md')
 if ($manifest -notmatch '(?m)^name:\s*persistent-purpose-review\s*$' -or $manifest -notmatch '(?m)^version:\s*0\.1\.0\s*$') {
     throw 'APM package identity is invalid.'
 }
-if ($skill -notmatch 'purpose-review-runner version' -or $skill -notmatch 'protocolVersion.*`1`') {
+if ($skill -notmatch 'purpose-review-runner version' -or $skill -notmatch 'protocolVersion.*`1`' -or $skill -notmatch 'runnerVersion' -or $skill -notmatch '0\.1\.1') {
     throw 'Skill does not fail closed on the Runner protocol boundary.'
 }
 if ($skill -notmatch '公開protocol fields' -or $skill -notmatch '`findings`.*`message`.*`error`') {
@@ -44,6 +44,9 @@ if ($readme -match 'sandbox' -or $skill -match 'sandbox') {
 }
 if ($readme -notmatch 'non-modifying reviewer' -or $skill -notmatch 'repositoryを変更しない') {
     throw 'Package documents do not preserve the non-modifying reviewer contract.'
+}
+if ($readme -notmatch '0\.1\.1' -or $readme -notmatch 'apm update') {
+    throw 'Package README does not require Runner 0.1.1 or later after APM-only updates.'
 }
 
 Write-Output 'Persistent Purpose Review package validation: PASS'

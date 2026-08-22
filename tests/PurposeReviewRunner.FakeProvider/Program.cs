@@ -43,9 +43,13 @@ public static class Program
     {
         var resumed = args.Length > 1 && args[1] == "resume";
         Require(
+            args.Contains("--dangerously-bypass-approvals-and-sandbox", StringComparer.Ordinal),
+            "Codex sandbox bypass was not specified.");
+        Require(
             !args.Contains("-s", StringComparer.Ordinal) &&
             !args.Contains("read-only", StringComparer.Ordinal) &&
-            !args.Contains("sandbox_mode=\"read-only\"", StringComparer.Ordinal),
+            !args.Contains("sandbox_mode=\"read-only\"", StringComparer.Ordinal) &&
+            !args.Contains("workspace-write", StringComparer.Ordinal),
             "Codex filesystem sandbox was specified.");
         var payload = await Console.In.ReadToEndAsync();
         ValidatePayload(payload, resumed);

@@ -60,7 +60,7 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persisten
 purpose-review-runner version
 ```
 
-Runnerが同じpurpose reviewer session、non-modifying reviewer、最大3round、machine-readable resultを所有し、`$persistent-purpose-review`はcontext選択と元のparentによる修正だけを所有します。Goal Contextはfree-form textであり、`goal-context-authoring` packageへの依存を意味しません。baseline flowのreview planを別turnのAdaptiveで修正する場合だけ、Adaptive Implementationをoptional add-onとして導入します。
+Runnerが同じpurpose reviewer session、non-modifying reviewer、最大3round、machine-readable resultを所有し、`$persistent-purpose-review`はcontext選択と元のparentによる修正だけを所有します。このSkillは`purpose-review-runner` 0.1.1以上を要求し、`apm update`だけでは旧0.1.0 Runnerは更新されません。Goal Contextはfree-form textであり、`goal-context-authoring` packageへの依存を意味しません。baseline flowのreview planを別turnのAdaptiveで修正する場合だけ、Adaptive Implementationをoptional add-onとして導入します。
 
 ### Planから実装・検証・残件判断まで抜けを防ぎたい
 

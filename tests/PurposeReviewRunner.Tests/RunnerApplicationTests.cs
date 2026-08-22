@@ -38,11 +38,15 @@ public sealed class RunnerApplicationTests
         StringAssert.Contains(fixture.Process.Requests[0].StandardInput!, "Do not modify files");
         StringAssert.Contains(fixture.Process.Requests[0].StandardInput!, "non-modifying inspection");
         CollectionAssert.Contains(fixture.Process.Requests[1].Arguments.ToArray(), fixture.Process.CodexSessionId);
+        CollectionAssert.Contains(fixture.Process.Requests[0].Arguments.ToArray(), "--dangerously-bypass-approvals-and-sandbox");
+        CollectionAssert.Contains(fixture.Process.Requests[1].Arguments.ToArray(), "--dangerously-bypass-approvals-and-sandbox");
         CollectionAssert.DoesNotContain(fixture.Process.Requests[0].Arguments.ToArray(), "-s");
         CollectionAssert.DoesNotContain(fixture.Process.Requests[0].Arguments.ToArray(), "read-only");
+        CollectionAssert.DoesNotContain(fixture.Process.Requests[0].Arguments.ToArray(), "workspace-write");
         CollectionAssert.DoesNotContain(fixture.Process.Requests[1].Arguments.ToArray(), "-s");
         CollectionAssert.DoesNotContain(fixture.Process.Requests[1].Arguments.ToArray(), "sandbox_mode=\"read-only\"");
         CollectionAssert.DoesNotContain(fixture.Process.Requests[1].Arguments.ToArray(), "read-only");
+        CollectionAssert.DoesNotContain(fixture.Process.Requests[1].Arguments.ToArray(), "workspace-write");
         CollectionAssert.Contains(fixture.Process.Requests[1].Arguments.ToArray(), "test-model");
     }
 

@@ -112,9 +112,12 @@ public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
 
     private static IReadOnlyList<string> NewArguments(ProviderRequest request, string responsePath)
     {
+        // Codexのdefault sandboxはReadOnly。--ignore-user-configではproject trustから昇格せず、
+        // -s workspace-writeもWindowsでは実効read-onlyになる報告がある。別sandboxへ置換せずbypassする。
         var arguments = new List<string>
         {
             "exec", "--json", "--color", "never", "--ignore-user-config", "--ignore-rules",
+            "--dangerously-bypass-approvals-and-sandbox",
             "-C", request.Repository, "-m", request.Provider.Model,
             "-c", $"model_reasoning_effort=\"{request.Provider.ReasoningEffort}\"", "-o", responsePath, "-"
         };
@@ -125,9 +128,11 @@ public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
         return arguments;
     }
 
+    // resumeでもbypassを再指定する。session継続時にdefault ReadOnlyへ戻ると読み取り拒否が再発する。
     private static IReadOnlyList<string> ResumeArguments(ProviderRequest request, string responsePath) =>
         [
             "exec", "resume", request.SessionHandle!, "--json", "--ignore-user-config", "--ignore-rules",
+            "--dangerously-bypass-approvals-and-sandbox",
             "-m", request.Provider.Model,
             "-c", $"model_reasoning_effort=\"{request.Provider.ReasoningEffort}\"",
             "-o", responsePath, "-"
