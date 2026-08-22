@@ -6,7 +6,7 @@
 
 `Environment.SpecialFolder.ApplicationData`配下の`purpose-review-runner/config.json`を作成します。Windowsでは通常`%APPDATA%\purpose-review-runner\config.json`です。例は`config.example.json`を参照してください。
 
-設定可能なのは`provider`、`executable`、`model`、`reasoningEffort`、optional `profile`だけです。`provider`は`codex`、`grok`、`copilot`を選べます。same-session、non-modifying reviewer、最大3round、異常時停止は変更できません。filesystem sandboxによるread-only強制は要件ではありません。GrokとCopilotは副作用なくwrite/edit系toolを禁止できるため、その制約を使います。Codexには同等の安定したtool restrictionが無いので、promptの`Do not modify files`契約だけでnon-modifying reviewerを成立させます。`--ignore-user-config`下のCodex default sandboxはread-onlyのため、別sandboxへの置換ではなく`--dangerously-bypass-approvals-and-sandbox`でsandbox自体を無効化します。この契約はRunner 0.1.1以上が必要です。長時間reviewをforeground commandの寿命から分離するasync job契約はRunner 0.2.0以上が必要です。
+設定可能なのは`provider`、`executable`、`model`、`reasoningEffort`、optional `profile`だけです。`provider`は`codex`、`grok`、`copilot`を選べます。same-session、non-modifying reviewer、最大3round、異常時停止は変更できません。filesystem sandboxによるread-only強制は要件ではありません。GrokとCopilotは副作用なくwrite/edit系toolを禁止できるため、その制約を使います。Codexには同等の安定したtool restrictionが無いので、promptの「ファイルを変更しないでください」契約だけでnon-modifying reviewerを成立させます。`--ignore-user-config`下のCodex default sandboxはread-onlyのため、別sandboxへの置換ではなく`--dangerously-bypass-approvals-and-sandbox`でsandbox自体を無効化します。この契約はRunner 0.1.1以上が必要です。長時間reviewをforeground commandの寿命から分離するasync job契約はRunner 0.2.0以上が必要です。reviewerへ送る自然言語instructionは日本語です。BEGIN_PURPOSE_REVIEWなどのmachine-readable contractは英語のままです。
 
 ## Usage
 

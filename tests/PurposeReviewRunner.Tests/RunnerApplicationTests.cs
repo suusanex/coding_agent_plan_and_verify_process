@@ -37,8 +37,12 @@ public sealed class RunnerApplicationTests
         StringAssert.Contains(fixture.Process.Requests[0].StandardInput!, "ACCEPTED-DECISION-BETA");
         Assert.IsFalse(fixture.Process.Requests[1].StandardInput!.Contains("GOAL-CONTEXT-ALPHA", StringComparison.Ordinal));
         Assert.IsFalse(fixture.Process.Requests[1].StandardInput!.Contains("ACCEPTED-DECISION-BETA", StringComparison.Ordinal));
-        StringAssert.Contains(fixture.Process.Requests[0].StandardInput!, "Do not modify files");
-        StringAssert.Contains(fixture.Process.Requests[0].StandardInput!, "non-modifying inspection");
+        StringAssert.Contains(fixture.Process.Requests[0].StandardInput!, "ファイルを変更しないでください");
+        StringAssert.Contains(fixture.Process.Requests[0].StandardInput!, "変更を伴わない調査");
+        StringAssert.Contains(fixture.Process.Requests[1].StandardInput!, "ファイルを変更しないでください");
+        StringAssert.Contains(fixture.Process.Requests[1].StandardInput!, "意図的に再送していません");
+        StringAssert.Contains(fixture.Process.Requests[0].StandardInput!, "BEGIN_PURPOSE_REVIEW");
+        StringAssert.Contains(fixture.Process.Requests[1].StandardInput!, "BEGIN_PURPOSE_REVIEW");
         CollectionAssert.Contains(fixture.Process.Requests[1].Arguments.ToArray(), fixture.Process.CodexSessionId);
         CollectionAssert.Contains(fixture.Process.Requests[0].Arguments.ToArray(), "--dangerously-bypass-approvals-and-sandbox");
         CollectionAssert.Contains(fixture.Process.Requests[1].Arguments.ToArray(), "--dangerously-bypass-approvals-and-sandbox");
