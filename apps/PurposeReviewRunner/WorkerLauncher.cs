@@ -27,18 +27,12 @@ public sealed class DetachedWorkerLauncher : IWorkerLauncher
 
     private static WorkerLaunchResult LaunchWindows(string executable, string runId)
     {
-        var detachedFlags = DetachedProcess | CreateNewProcessGroup | CreateUnicodeEnvironment;
-        if (!TryCreateWindowsProcess(executable, runId, detachedFlags | CreateBreakawayFromJob, out var information, out var firstError))
+        var flags = DetachedProcess | CreateNewProcessGroup | CreateBreakawayFromJob | CreateUnicodeEnvironment;
+        if (!TryCreateWindowsProcess(executable, runId, flags, out var information, out var nativeError))
         {
-            Trace.TraceError(new Win32Exception(firstError).ToString());
-            // 呼び出し元jobがBREAKAWAY_OKを許可しない場合でも独立processは起動する。in-process実行へは落とさない。
-            var retryError = firstError;
-            if (firstError != 5 || !TryCreateWindowsProcess(executable, runId, detachedFlags, out information, out retryError))
-            {
-                var error = new Win32Exception(retryError);
-                Trace.TraceError(error.ToString());
-                throw new RunnerException("WORKER_START_FAILED", $"The review worker process did not start: {error.Message}", ExitCodes.RuntimeError, error);
-            }
+            var error = new Win32Exception(nativeError);
+            Trace.TraceError(error.ToString());
+            throw new RunnerException("WORKER_START_FAILED", $"The review worker process did not start: {error.Message}", ExitCodes.RuntimeError, error);
         }
 
         try
@@ -60,39 +54,52 @@ public sealed class DetachedWorkerLauncher : IWorkerLauncher
 
     private static WorkerLaunchResult LaunchUnix(string executable, string runId)
     {
-        const string setsid = "/usr/bin/setsid";
-        if (!File.Exists(setsid))
+        const string shell = "/bin/sh";
+        if (!File.Exists(shell))
         {
-            throw new RunnerException("WORKER_START_FAILED", "setsid was not found at /usr/bin/setsid.", ExitCodes.RuntimeError);
+            throw new RunnerException("WORKER_START_FAILED", "sh was not found at /bin/sh.", ExitCodes.RuntimeError);
         }
 
         var startInfo = new ProcessStartInfo
         {
-            FileName = setsid,
+            FileName = shell,
             WorkingDirectory = Path.GetDirectoryName(executable) ?? Environment.CurrentDirectory,
             UseShellExecute = false,
             CreateNoWindow = true,
-            RedirectStandardInput = false,
-            RedirectStandardOutput = false,
-            RedirectStandardError = false
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
         };
+        // exec で PID を worker に保ち、標準streamを親のpipeから切り離す。
+        startInfo.ArgumentList.Add("-c");
+        startInfo.ArgumentList.Add("exec \"$1\" work --run \"$2\" </dev/null >/dev/null 2>&1");
+        startInfo.ArgumentList.Add("sh");
         startInfo.ArgumentList.Add(executable);
-        startInfo.ArgumentList.Add("work");
-        startInfo.ArgumentList.Add("--run");
         startInfo.ArgumentList.Add(runId);
 
         try
         {
-            using var process = Process.Start(startInfo)
+            var process = Process.Start(startInfo)
                 ?? throw new RunnerException("WORKER_START_FAILED", "The review worker process did not start.", ExitCodes.RuntimeError);
-            return ReadLaunchResult(process.Id);
-        }
-        catch (RunnerException)
-        {
-            throw;
+            try
+            {
+                process.StandardInput.Close();
+                process.StandardOutput.Close();
+                process.StandardError.Close();
+                return ReadLaunchResult(process.Id);
+            }
+            finally
+            {
+                process.Dispose();
+            }
         }
         catch (Exception exception)
         {
+            Trace.TraceError(exception.ToString());
+            if (exception is RunnerException)
+            {
+                throw;
+            }
             throw new RunnerException("WORKER_START_FAILED", $"The review worker process did not start: {exception.Message}", ExitCodes.RuntimeError, exception);
         }
     }

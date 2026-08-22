@@ -17,7 +17,7 @@ purpose-review-runner status --run <run-id>
 purpose-review-runner continue --run <run-id>
 ```
 
-`start`と`continue`はprovider完了をforegroundで待ちません。durable jobを登録して独立したworker processを起動し、`jobStatus`が`RUNNING`のJSONを返します。結果は同じ`run-id`で`status`を短時間pollingして取得します。`status`はreviewを再実行しません。
+`start`と`continue`はprovider完了をforegroundで待ちません。durable jobを登録して独立したworker processを起動し、`jobStatus`が`RUNNING`のJSONを返します。結果は同じ`run-id`で`status`を短時間pollingして取得します。`status`はreviewを再実行しません。workerは起動時に親のstdin/stdout/stderrを継承しません。Windowsでは呼び出し元のJob Objectから`CREATE_BREAKAWAY_FROM_JOB`で離脱します。離脱できない場合はworkerを同じJob Objectへ残さず`WORKER_START_FAILED`で停止します。
 
 stdoutはprotocol v2の単一JSONです。`FINDINGS`の場合だけ元のimplementation parentが修正・検証し、同じ`run-id`を`continue`します。`COMPLETE`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`、`ERROR`では停止します。`RUNNING`なら`status`を繰り返します。1回のCLI呼び出しが失敗しても、新しいrunを作らず同じ`status`を問い合わせ直します。
 

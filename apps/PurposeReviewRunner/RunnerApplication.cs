@@ -123,10 +123,7 @@ public sealed class RunnerApplication
         }
         catch (Exception exception)
         {
-            if (exception is not RunnerException)
-            {
-                Trace.TraceError(exception.ToString());
-            }
+            Trace.TraceError(exception.ToString());
             PersistLaunchFailure(runId, exception);
             if (jobStore.TryLoadResult(runId, out _))
             {

@@ -521,6 +521,33 @@ public sealed class RunnerApplicationTests
     }
 
     [TestMethod]
+    [DoNotParallelize]
+    public async Task WorkerStartFailureIsTraced()
+    {
+        using var fixture = new RunnerFixture("grok", new ThrowingWorkerLauncher());
+        fixture.WriteRepositoryFile("goal.md", "goal");
+        using var traceText = new StringWriter();
+        using var listener = new TextWriterTraceListener(traceText);
+        Trace.Listeners.Add(listener);
+        try
+        {
+            var result = await fixture.Application.ExecuteAsync(
+                new StartCommand(fixture.Repository, ["goal.md"]),
+                CancellationToken.None);
+            listener.Flush();
+
+            Assert.AreEqual("WORKER_START_FAILED", result.Output.Error?.Code);
+            Assert.AreEqual(JobStatuses.Failed, result.Output.JobStatus);
+            StringAssert.Contains(traceText.ToString(), nameof(RunnerException));
+            StringAssert.Contains(traceText.ToString(), "The review worker process did not start.");
+        }
+        finally
+        {
+            Trace.Listeners.Remove(listener);
+        }
+    }
+
+    [TestMethod]
     public async Task StartReturnsWithoutWaitingWhenWorkerIsDetachedFromSubmit()
     {
         var launcher = new RecordingWorkerLauncher();
@@ -673,12 +700,21 @@ public sealed class RunnerApplicationTests
                     ["PURPOSE_REVIEW_FAKE_PROVIDER_COUNTER"] = counterPath
                 });
             startWatch.Stop();
+            Assert.IsLessThan(TimeSpan.FromSeconds(5), startWatch.Elapsed);
+
+            if (start.ExitCode != 0)
+            {
+                // Windows Job Object が breakaway を拒否した場合は in-job 起動を成功扱いしない。
+                Assert.IsTrue(OperatingSystem.IsWindows(), start.StandardOutput + start.StandardError);
+                using var failedDocument = JsonDocument.Parse(start.StandardOutput.Trim());
+                Assert.AreEqual("WORKER_START_FAILED", failedDocument.RootElement.GetProperty("error").GetProperty("code").GetString());
+                return;
+            }
 
             Assert.AreEqual(0, start.ExitCode, start.StandardError);
             using var startDocument = JsonDocument.Parse(start.StandardOutput.Trim());
             Assert.AreEqual(JobStatuses.Running, startDocument.RootElement.GetProperty("jobStatus").GetString());
             Assert.AreEqual(ReviewStatuses.Running, startDocument.RootElement.GetProperty("status").GetString());
-            Assert.IsLessThan(TimeSpan.FromSeconds(5), startWatch.Elapsed);
             var runId = startDocument.RootElement.GetProperty("runId").GetString();
             Assert.IsFalse(string.IsNullOrWhiteSpace(runId));
 
@@ -856,6 +892,12 @@ internal sealed class InProcessWorkerLauncher : IWorkerLauncher
         var process = Process.GetCurrentProcess();
         return new(process.Id, new DateTimeOffset(process.StartTime.ToUniversalTime()));
     }
+}
+
+internal sealed class ThrowingWorkerLauncher : IWorkerLauncher
+{
+    public WorkerLaunchResult Launch(string runId) =>
+        throw new RunnerException("WORKER_START_FAILED", "The review worker process did not start.", ExitCodes.RuntimeError);
 }
 
 internal sealed class RecordingWorkerLauncher : IWorkerLauncher

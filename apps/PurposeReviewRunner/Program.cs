@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using PurposeReviewRunner;
 
@@ -16,6 +17,7 @@ static async Task<int> MainAsync(string[] args)
         var command = CliParser.Parse(args);
         if (command is WorkCommand work)
         {
+            DetachCurrentUnixSession();
             workerLog = AttachWorkerLog(paths, work.RunId);
         }
         var application = new RunnerApplication(
@@ -60,6 +62,21 @@ static RunnerPaths CreatePaths()
     return RunnerPaths.CreateDefault();
 }
 
+static void DetachCurrentUnixSession()
+{
+    if (OperatingSystem.IsWindows())
+    {
+        return;
+    }
+
+    if (UnixNative.setsid() != -1)
+    {
+        return;
+    }
+
+    Trace.TraceError(new System.ComponentModel.Win32Exception(Marshal.GetLastPInvokeError()).ToString());
+}
+
 static StreamWriter AttachWorkerLog(RunnerPaths paths, string runId)
 {
     if (!Guid.TryParseExact(runId, "D", out _))
@@ -74,4 +91,10 @@ static StreamWriter AttachWorkerLog(RunnerPaths paths, string runId)
     Console.SetOut(writer);
     Console.SetError(writer);
     return writer;
+}
+
+static class UnixNative
+{
+    [DllImport("libc", SetLastError = true)]
+    public static extern int setsid();
 }
