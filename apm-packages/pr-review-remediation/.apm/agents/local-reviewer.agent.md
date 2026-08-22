@@ -13,7 +13,7 @@ description: Review only the confirmed remote PR base/head diff and produce evid
 
 ## Role
 
-確定済みremote PRのbase/head差分、収集済みreview context、対象repositoryの規約を読み、same-parent flowの元の親agentへ返すローカルCodexレビュー指摘を作成します。基礎版flowまたはhistorical compatibilityでは`review-planner`へ渡す場合があります。
+確定済みremote PRのbase/head差分、収集済みreview context、対象repositoryの規約を読み、親agentへ返すローカルCodexレビュー指摘を作成します。親agentは指摘を`review-planner`へ渡します。
 
 このagentは読み取り専用です。production code、test、review artifact、GitHub stateを変更せず、commit、push、PR更新、Issue更新を行いません。
 

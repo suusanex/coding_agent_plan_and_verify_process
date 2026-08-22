@@ -45,7 +45,7 @@ Design Pair manifestもAdaptive Skillとcanonical agentsをdependencyとして�
 
 ### PRレビューと修正を改善したい
 
-[PR Review Remediation](apm-packages/pr-review-remediation/README.md)には二つの入口があります。baseline `$pr-review-remediation`はreview planを作り、別turnの修正前で停止します。canonical `$goal-context-pr-review`は、独立review、元のparentによる修正、purpose-only再reviewを同じparent task内で進めます。
+[PR Review Remediation](apm-packages/pr-review-remediation/README.md)の`$pr-review-remediation`は、Goal Contextを使わないbaseline PR review planを作り、別turnの修正前で停止します。
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills
@@ -53,7 +53,14 @@ $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
 dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
 ```
 
-Goal Contextはfree-form textであり、`goal-context-authoring` packageへの依存を意味しません。baseline flowのreview planを別turnのAdaptiveで修正する場合だけ、Adaptive Implementationをoptional add-onとして導入します。canonical same-parent flowには不要です。
+実装後の目的達成reviewと修正を元のimplementation parent内で完了したい場合は、[Persistent Purpose Review](apm-packages/persistent-purpose-review/README.md)と、OS user単位で導入する[Purpose Review Runner](apps/PurposeReviewRunner/README.md)を使います。
+
+```powershell
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persistent-purpose-review --target codex,agent-skills
+purpose-review-runner version
+```
+
+Runnerが同じpurpose reviewer session、read-only、最大3round、machine-readable resultを所有し、`$persistent-purpose-review`はcontext選択と元のparentによる修正だけを所有します。Goal Contextはfree-form textであり、`goal-context-authoring` packageへの依存を意味しません。baseline flowのreview planを別turnのAdaptiveで修正する場合だけ、Adaptive Implementationをoptional add-onとして導入します。
 
 ### Planから実装・検証・残件判断まで抜けを防ぎたい
 
@@ -77,12 +84,13 @@ APM installがportable agentsとSkillを導入し、finalizerが必要なCodex p
 | --- | --- | --- |
 | Adaptive Implementation | 既存Planからの実装 | decision closureとimplementation orchestrationを所有する |
 | Design Pair | 実装前のTarget Map対話 | Adaptiveの任意pre-stage。実装はAdaptiveへ渡す |
-| PR Review Remediation | Ready PRのreview / remediation | canonical flowはsame-parent、baselineの別turn修正だけAdaptiveを任意追加する |
+| PR Review Remediation | Ready PRのbaseline review / remediation plan | baselineの別turn修正だけAdaptiveを任意追加する |
+| Persistent Purpose Review | 実装後の目的達成review / remediation | Runnerが同一reviewer session、元のparentが修正を所有する |
 | Plan Coverage Residual Flow | Plan-first全体とcoverage管理 | Adaptiveを実装経路として含み、検証後の残件をResidual Decisionへ渡す |
 
 ## 通常使うprocessを一通り入れる
 
-通常セットはAdaptive Implementation、Design Pair、PR Review Remediation、Plan Coverageです。Plan CoverageがAdaptiveと共通finalizerをdependencyとして導入するため、全部入りではAdaptive packageやfinalizer packageを重ねてinstallしません。
+通常セットはAdaptive Implementation、Design Pair、PR Review Remediation、Plan Coverageです。Persistent Purpose Reviewはpurpose reviewが必要なrepositoryへ追加し、RunnerはOS user単位で一度だけ導入します。Plan CoverageがAdaptiveと共通finalizerをdependencyとして導入するため、全部入りではAdaptive packageやfinalizer packageを重ねてinstallしません。
 
 1. 導入先repositoryのrootでPlan Coverageをinstallします。
 
@@ -95,6 +103,7 @@ APM installがportable agentsとSkillを導入し、finalizerが必要なCodex p
    ```powershell
    apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target copilot,codex,agent-skills
    apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills
+   apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persistent-purpose-review --target codex,agent-skills
    $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
    dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
    ```

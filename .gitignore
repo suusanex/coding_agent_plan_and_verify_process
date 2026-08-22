@@ -6,6 +6,15 @@ apm_modules/
 apm-packages/adaptive-implementation-execution/scripts/artifacts/
 scripts/codex-notification-runtime/artifacts/
 
+# Purpose Review Runner build and acceptance outputs
+apps/PurposeReviewRunner/bin/
+apps/PurposeReviewRunner/obj/
+tests/PurposeReviewRunner.Tests/bin/
+tests/PurposeReviewRunner.Tests/obj/
+tests/PurposeReviewRunner.FakeProvider/bin/
+tests/PurposeReviewRunner.FakeProvider/obj/
+artifacts/purpose-review-runner/
+
 # apm modules
 # このリポジトリ自体にapmでインストールを行うと開発対象と誤認し得るため、gitignore対象とした上で、ワークツリーごとにその都度導入する
 /apm.yml

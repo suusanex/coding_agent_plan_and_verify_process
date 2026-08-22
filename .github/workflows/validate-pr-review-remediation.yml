@@ -7,8 +7,6 @@ on:
       - 'apm-packages/pr-review-remediation/**'
       - 'apm-packages/codex-profile-finalizer/**'
       - 'apm-packages/pr-review-remediation/codex-profile-overlays.json'
-      - 'apm-packages/goal-context-authoring/**'
-      - 'apm-packages/adaptive-implementation-execution/**'
       - 'tests/pr-review-remediation/**'
       - 'README.md'
   push:
@@ -17,8 +15,6 @@ on:
       - 'apm-packages/pr-review-remediation/**'
       - 'apm-packages/codex-profile-finalizer/**'
       - 'apm-packages/pr-review-remediation/codex-profile-overlays.json'
-      - 'apm-packages/goal-context-authoring/**'
-      - 'apm-packages/adaptive-implementation-execution/**'
       - 'tests/pr-review-remediation/**'
       - 'README.md'
 
@@ -49,9 +45,6 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
-      - name: Validate multi-round replay and symlink containment on Linux
-        shell: pwsh
-        run: ./apm-packages/pr-review-remediation/scripts/validate-prr-003-contract.ps1
       - name: Install APM CLI for remote package smoke
         uses: microsoft/apm-action@v1
         with:

@@ -31,18 +31,22 @@ function Forbid([string] $RelativePath, [string] $Pattern, [string] $Description
 Require 'README.md' 'apm-packages/adaptive-implementation-execution/README\.md' 'Adaptive package link'
 Require 'README.md' 'apm-packages/design-pair-implementation-execution/README\.md' 'Design Pair package link'
 Require 'README.md' 'apm-packages/pr-review-remediation/README\.md' 'PR Review package link'
+Require 'README.md' 'apm-packages/persistent-purpose-review/README\.md' 'Persistent Purpose Review package link'
+Require 'README.md' 'apps/PurposeReviewRunner/README\.md' 'Purpose Review Runner link'
 Require 'README.md' 'apm-packages/plan-coverage-residual-flow/README\.md' 'Plan Coverage package link'
 Require 'README.md' 'finalize-codex-agent-profiles\.cs' 'common finalizer Quickstart'
 Require 'docs/installation-and-maintenance.md' 'codex-profile-overlays\.json' 'overlay maintenance contract'
 Require 'apm-packages/plan-coverage-residual-flow/README.md' 'apm install .*plan-coverage-residual-flow' 'Plan Coverage APM install'
 Require 'apm-packages/adaptive-implementation-execution/README.md' 'codex-profile-overlays\.json' 'Adaptive overlay contract'
 Require 'apm-packages/pr-review-remediation/README.md' 'finalize-codex-agent-profiles\.cs' 'PR Review finalizer command'
+Require 'apm-packages/persistent-purpose-review/README.md' 'purpose-review-runner version' 'Persistent Purpose Review Runner preflight'
 
 foreach ($path in @(
     'README.md',
     'docs/installation-and-maintenance.md',
     'apm-packages/adaptive-implementation-execution/README.md',
     'apm-packages/pr-review-remediation/README.md',
+    'apm-packages/persistent-purpose-review/README.md',
     'apm-packages/plan-coverage-residual-flow/README.md',
     'apm-packages/design-pair-implementation-execution/README.md'
 )) {

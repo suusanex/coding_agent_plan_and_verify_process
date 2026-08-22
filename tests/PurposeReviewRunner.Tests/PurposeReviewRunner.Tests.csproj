@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MSTest" Version="4.2.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\apps\PurposeReviewRunner\PurposeReviewRunner.csproj" />
+    <ProjectReference Include="..\PurposeReviewRunner.FakeProvider\PurposeReviewRunner.FakeProvider.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\apps\PurposeReviewRunner\assert-release-tag.ps1" Link="assert-release-tag.ps1" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -1,6 +1,6 @@
 name: pr-review-remediation
-version: 0.5.0
-description: Baseline PR review planning plus canonical same-parent Goal Context review, parent-owned remediation, and bounded purpose-only re-review
+version: 0.6.0
+description: Baseline PR review collection and remediation planning without Goal Context purpose review
 type: hybrid
 targets:
   - codex
