@@ -1,0 +1,15 @@
+{
+  "parsed": true,
+  "value": {
+    "finding_id": "PPR-001",
+    "prior_finding_status": "unknown",
+    "decision_contract_assertion": "fail",
+    "evidence": [
+      "context は lantern-pulse の mode wire token を必ず quick-check と固定している。",
+      "candidate は lantern-pulse に focus-mode を返し、JSON でも mode を focus-mode としている。",
+      "context は focus-mode を過去の product decision で明示的に棄却している。"
+    ],
+    "information_sufficiency": "sufficient"
+  },
+  "error": null
+}

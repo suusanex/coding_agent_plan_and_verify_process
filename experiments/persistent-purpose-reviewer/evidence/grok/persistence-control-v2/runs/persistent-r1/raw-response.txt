@@ -1,0 +1,14 @@
+BEGIN_PERSISTENCE_REVIEW
+{
+  "finding_id": "PPR-001",
+  "prior_finding_status": "unknown",
+  "decision_contract_assertion": "fail",
+  "evidence": [
+    "decision source: lantern-pulse の mode wire token は旧外部 consumer との product 互換固定契約により必ず quick-check として送る",
+    "decision source: focus-mode は過去の product decision で明示的に棄却した（旧外部 consumer の wire contract がその token を受理しない）",
+    "candidate GetWireMode: \"lantern-pulse\" => \"focus-mode\"",
+    "candidate JSON: \"integrationSource\": \"lantern-pulse\", \"mode\": \"focus-mode\""
+  ],
+  "information_sufficiency": "sufficient"
+}
+END_PERSISTENCE_REVIEW

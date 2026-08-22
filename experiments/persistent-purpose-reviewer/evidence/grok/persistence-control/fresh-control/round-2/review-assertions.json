@@ -1,0 +1,9 @@
+{
+  "block_found": true,
+  "finding_id": null,
+  "finding_status": null,
+  "prior_finding_status": "unknown",
+  "decision_contract_assertion": "unknown",
+  "evidence": [],
+  "information_sufficiency": "insufficient"
+}

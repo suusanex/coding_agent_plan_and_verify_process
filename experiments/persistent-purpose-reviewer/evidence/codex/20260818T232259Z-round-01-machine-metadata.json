@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "round": 1,
+  "cli": "codex",
+  "version": "0.147.0",
+  "model": "gpt-5.6-luna",
+  "sandbox_requested": "read-only",
+  "cwd": "experiments/persistent-purpose-reviewer",
+  "process_exited_before_next_round": true,
+  "started_at_utc": "2026-08-18T23:22:59.6898922+00:00",
+  "completed_at_utc": "2026-08-18T23:24:30.7012341+00:00",
+  "process_exited": true,
+  "timed_out": false,
+  "exit_code": 0,
+  "event_types": [
+    "thread.started",
+    "item.completed",
+    "turn.started",
+    "item.started",
+    "turn.completed"
+  ],
+  "session_id_sha256_12": "3652ba02c7ae",
+  "session_identity_source": "codex --json machine event thread_id",
+  "response_present": true,
+  "production_change_outside_experiment": false,
+  "production_status_pre": [
+    "?? .wt/plain-coyote/coding_agent_plan_and_verify_process/",
+    "?? .wt/sheer-cliff/coding_agent_plan_and_verify_process/"
+  ],
+  "production_status_post": [
+    "?? .wt/plain-coyote/coding_agent_plan_and_verify_process/",
+    "?? .wt/sheer-cliff/coding_agent_plan_and_verify_process/"
+  ],
+  "command_shape": [
+    "codex exec --json --color never --sandbox read-only",
+    "--cd experiments/persistent-purpose-reviewer --model gpt-5.6-luna",
+    "--output-last-message <evidence/codex/working-output> -"
+  ],
+  "response_evidence": {
+    "raw_path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\raw\\20260818T232259Z-round-01-purpose-reviewer-codex-session-3652ba02c7ae.raw.md",
+    "sanitized_path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\sanitized\\20260818T232259Z-round-01-purpose-reviewer-codex-session-3652ba02c7ae.md",
+    "sanitization_applied_before_save": true,
+    "response_sha256_after_sanitization": "72a385c17ce29c923dec266c192ca34ed0c438d21644f29694cebd619312a39d"
+  }
+}

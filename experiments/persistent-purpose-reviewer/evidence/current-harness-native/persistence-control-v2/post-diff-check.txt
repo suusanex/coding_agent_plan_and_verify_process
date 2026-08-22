@@ -1,0 +1,5 @@
+command: git diff --check
+label: final after all native evidence writes
+exit_code: 0
+stdout:
+(empty)

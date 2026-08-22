@@ -1,0 +1,38 @@
+{
+  "schema_version": 2,
+  "composition_rule": "listed file bytes concatenated in order with no separator",
+  "persistent_r2": {
+    "files": [
+      {
+        "path": "prompts/persistence-control-v2/round-2.md",
+        "bytes": 1605,
+        "sha256": "6760d25b1a22bbe2cbefe00e2a1ae3546ff0c34a01590af599344d0ad17917e6"
+      },
+      {
+        "path": "fixtures/persistence-control-v2/round-2-candidate.md",
+        "bytes": 166,
+        "sha256": "3a278bdee809a04d05e2a95c3ce213982b94f0f62a549679961fd3c9f601ac29"
+      }
+    ],
+    "bytes": 1771,
+    "sha256": "0c5be9a59873938331d8a0b96e2842174837b145d676d6023489d9a53079e357"
+  },
+  "fresh_r2": {
+    "files": [
+      {
+        "path": "prompts/persistence-control-v2/round-2.md",
+        "bytes": 1605,
+        "sha256": "6760d25b1a22bbe2cbefe00e2a1ae3546ff0c34a01590af599344d0ad17917e6"
+      },
+      {
+        "path": "fixtures/persistence-control-v2/round-2-candidate.md",
+        "bytes": 166,
+        "sha256": "3a278bdee809a04d05e2a95c3ce213982b94f0f62a549679961fd3c9f601ac29"
+      }
+    ],
+    "bytes": 1771,
+    "sha256": "0c5be9a59873938331d8a0b96e2842174837b145d676d6023489d9a53079e357"
+  },
+  "exact_composition_bytes_equal": true,
+  "persistent_r2_fresh_r2_composition_sha256": "0c5be9a59873938331d8a0b96e2842174837b145d676d6023489d9a53079e357"
+}

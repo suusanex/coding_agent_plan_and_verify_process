@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "cli": "copilot",
+  "cli_path": "C:\\Users\\suusa\\AppData\\Roaming\\npm\\copilot.ps1",
+  "model": "CLI default (runtime model not independently exposed by noninteractive text output)",
+  "cwd": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer",
+  "permission_and_sandbox": "copilot --no-custom-instructions --no-remote --no-remote-export --disable-builtin-mcps --no-auto-update --silent --output-format text --stream off --session-id=<SESSION_ID_REDACTED> --available-tools=view,grep --allow-tool=view --allow-tool=grep --deny-tool=write --deny-tool=shell --deny-tool=task --deny-tool=edit -p <PROMPT_FROM_MANIFEST>",
+  "session_hash": "b3f6796ce180",
+  "session_identity": "--session-id for Round1; --resume=<same specific ID> for Round2/3",
+  "captured_at_utc": "2026-08-18T23:21:36.2334020+00:00"
+}

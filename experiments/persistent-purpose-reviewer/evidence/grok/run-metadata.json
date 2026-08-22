@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "cli": "grok",
+  "cli_path": "C:\\Users\\suusa\\.grok\\bin\\grok.exe",
+  "model": "grok-4.6 (CLI default reported by grok models; runtime selection not independently exposed)",
+  "cwd": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer",
+  "permission_and_sandbox": "grok --cwd <EXPERIMENT_ROOT> --no-memory --no-subagents --permission-mode plan --sandbox read-only --disable-web-search --tools=read,view,grep --disallowed-tools=write,shell,task,edit_file,run_shell_command --system-prompt-override=<SAFE_REVIEWER_ROLE> --session-id=<SESSION_ID_REDACTED> --output-format plain --verbatim --single <PROMPT_FROM_MANIFEST>",
+  "session_hash": "057dd4d83ed7",
+  "session_identity": "--session-id for Round1; --resume <same specific ID> for Round2/3",
+  "captured_at_utc": "2026-08-18T23:22:27.9437888+00:00"
+}

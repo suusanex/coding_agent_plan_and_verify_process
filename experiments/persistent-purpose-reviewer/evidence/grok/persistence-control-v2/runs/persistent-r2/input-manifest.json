@@ -1,0 +1,39 @@
+{
+  "schema_version": 2,
+  "run_label": "persistent-r2",
+  "channel": "persistent",
+  "round": 2,
+  "session_hash": "a4057a7790c74dbef735e72932f8d88ad1406ab35ced2e3abcb1181a4ad0ed5d",
+  "session_role": "resume-same-specific-session",
+  "payload": {
+    "path": "evidence\\grok\\persistence-control-v2\\runs\\persistent-r2\\input-payload.txt",
+    "bytes": 1771,
+    "sha256": "0c5be9a59873938331d8a0b96e2842174837b145d676d6023489d9a53079e357",
+    "hash_method": "SHA-256 over exact file bytes",
+    "composition": "SHA-256 over exact UTF-8 no-BOM concatenation of listed source file bytes without separators"
+  },
+  "source_files": [
+    {
+      "path": "prompts\\persistence-control-v2\\round-2.md",
+      "bytes": 1605,
+      "sha256": "6760d25b1a22bbe2cbefe00e2a1ae3546ff0c34a01590af599344d0ad17917e6",
+      "hash_method": "SHA-256 over exact file bytes"
+    },
+    {
+      "path": "fixtures\\persistence-control-v2\\round-2-candidate.md",
+      "bytes": 166,
+      "sha256": "3a278bdee809a04d05e2a95c3ce213982b94f0f62a549679961fd3c9f601ac29",
+      "hash_method": "SHA-256 over exact file bytes"
+    }
+  ],
+  "full_round_1_context_sent": false,
+  "full_round_1_context_replayed": false,
+  "previous_response_replayed": false,
+  "decision_mapping_replayed": false,
+  "finding_text_replayed": false,
+  "semantic_secret_replayed": false,
+  "no_replay_flags_verified": true,
+  "persistent_r2_fresh_r2_same_payload_expected": true,
+  "external_input_boundary": "listed prompt and candidate/context fixture file bytes only; no previous response or semantic decision replay",
+  "raw_session_secret_environment_values_saved": false
+}

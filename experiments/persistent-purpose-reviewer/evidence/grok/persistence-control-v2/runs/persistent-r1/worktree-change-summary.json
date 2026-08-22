@@ -1,0 +1,12 @@
+{
+  "run_label": "persistent-r1",
+  "round_label_verified": true,
+  "process_exit_code": 0,
+  "timed_out": false,
+  "outside_experiment_status_unchanged": true,
+  "outside_experiment_pre_status_sha256": "9f499439a222d52352571fa7c7ed3ec5dc361482cd820280c21b36fbd51b2537",
+  "outside_experiment_post_status_sha256": "9f499439a222d52352571fa7c7ed3ec5dc361482cd820280c21b36fbd51b2537",
+  "production_nonmutation_observed": true,
+  "allowed_write_root": "experiments\\persistent-purpose-reviewer\\evidence\\grok\\persistence-control-v2",
+  "exception_recorded": false
+}

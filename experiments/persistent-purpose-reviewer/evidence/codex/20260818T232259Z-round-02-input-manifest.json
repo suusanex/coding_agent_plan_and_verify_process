@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "round": 2,
+  "role": "persistent-purpose-reviewer",
+  "prompt_file": "prompts/round-2.md",
+  "input_files": [
+    {
+      "file": "prompts/round-2.md",
+      "sha256": "ec89fe57b3bc0aebea67a2dd83262751597e8a3fcb24117b4495099f527795a9",
+      "bytes": 2060
+    },
+    {
+      "file": "fixtures/round-2-remediation.md",
+      "sha256": "8aa20aded2366d1c8afac15c19c9219ba40db60933fb0b2e4804e47f70772ff5",
+      "bytes": 1550
+    }
+  ],
+  "goal_context_full_sent": false,
+  "goal_context_replayed": false,
+  "prior_reviewer_output_replayed": false,
+  "prior_reviewer_output_full_sent": false,
+  "semantic_secret_replayed": false,
+  "minimal_follow_up": "前回の finding の解消確認だけを行う。",
+  "external_model_input_boundary": "fixed prompt plus listed fixture files only"
+}

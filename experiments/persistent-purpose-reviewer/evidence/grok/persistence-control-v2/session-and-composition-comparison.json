@@ -1,0 +1,19 @@
+{
+  "session": {
+    "persistent_round_1_session_hash": "a4057a7790c74dbef735e72932f8d88ad1406ab35ced2e3abcb1181a4ad0ed5d",
+    "persistent_round_2_session_hash": "a4057a7790c74dbef735e72932f8d88ad1406ab35ced2e3abcb1181a4ad0ed5d",
+    "persistent_round_3_session_hash": "a4057a7790c74dbef735e72932f8d88ad1406ab35ced2e3abcb1181a4ad0ed5d",
+    "fresh_round_2_session_hash": "29c5f1c1452701485fda22f9131a052b236432a6ac455c973547b3572e8f935f",
+    "persistent_same_session_hash": true,
+    "fresh_different_session_hash": true,
+    "raw_session_ids_saved": false
+  },
+  "round_2_persistent_and_fresh": {
+    "persistent_payload_sha256": "0c5be9a59873938331d8a0b96e2842174837b145d676d6023489d9a53079e357",
+    "fresh_payload_sha256": "0c5be9a59873938331d8a0b96e2842174837b145d676d6023489d9a53079e357",
+    "exact_composition_equal": true,
+    "composition_contract": "prompt file bytes followed by candidate file bytes without separators"
+  },
+  "source_file_hashes_equal": true,
+  "raw_session_secret_environment_values_saved": false
+}

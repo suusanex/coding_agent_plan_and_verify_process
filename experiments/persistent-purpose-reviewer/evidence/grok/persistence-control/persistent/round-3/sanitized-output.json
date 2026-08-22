@@ -1,0 +1,31 @@
+{
+  "label": "sanitized-provider-output",
+  "provider": "grok",
+  "run_label": "persistent-round-3",
+  "stdout": {
+    "label": "sanitized-stdout",
+    "content": "BEGIN_PERSISTENCE_REVIEW\n{\n  \"prior_finding_status\": \"resolved\",\n  \"decision_contract_assertion\": \"pass\",\n  \"evidence\": [\n    \"candidate JSON: \\\"integrationSource\\\": \\\"lantern-pulse\\\"\",\n    \"candidate JSON: \\\"mode\\\": \\\"quick-check\\\"\"\n  ],\n  \"information_sufficiency\": \"sufficient\"\n}\nEND_PERSISTENCE_REVIEW\n",
+    "utf8_sha256": "feae54e5707924bbe44680bd7e28b065dfc13db81a89a99bb7f6c3021bf9cecc"
+  },
+  "stderr": {
+    "label": "sanitized-stderr",
+    "content": "",
+    "utf8_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "raw": {
+    "label": "raw-provider-output-bytes",
+    "content_saved": false,
+    "stdout_bytes": 306,
+    "stderr_bytes": 0,
+    "stdout_bytes_sha256": "feae54e5707924bbe44680bd7e28b065dfc13db81a89a99bb7f6c3021bf9cecc",
+    "stderr_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "combined_bytes_sha256": "feae54e5707924bbe44680bd7e28b065dfc13db81a89a99bb7f6c3021bf9cecc"
+  },
+  "process": {
+    "started_at_utc": "2026-08-19T09:09:22.2369769+00:00",
+    "completed_at_utc": "2026-08-19T09:09:38.4503541+00:00",
+    "process_exited": true,
+    "timed_out": false,
+    "exit_code": 0
+  }
+}

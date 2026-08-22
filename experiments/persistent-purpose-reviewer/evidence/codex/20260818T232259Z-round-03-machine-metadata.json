@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "round": 3,
+  "cli": "codex",
+  "version": "0.147.0",
+  "model": "gpt-5.6-luna",
+  "sandbox_requested": "read-only",
+  "cwd": "experiments/persistent-purpose-reviewer",
+  "process_exited_before_next_round": true,
+  "started_at_utc": "2026-08-18T23:25:11.8762948+00:00",
+  "completed_at_utc": "2026-08-18T23:25:46.4078506+00:00",
+  "process_exited": true,
+  "timed_out": false,
+  "exit_code": 0,
+  "event_types": [
+    "thread.started",
+    "item.completed",
+    "turn.started",
+    "item.started",
+    "turn.completed"
+  ],
+  "session_id_sha256_12": "3652ba02c7ae",
+  "session_identity_source": "codex --json machine event thread_id matched Round 1",
+  "response_present": true,
+  "production_change_outside_experiment": false,
+  "production_status_pre": [
+    "?? .wt/plain-coyote/coding_agent_plan_and_verify_process/",
+    "?? .wt/sheer-cliff/coding_agent_plan_and_verify_process/"
+  ],
+  "production_status_post": [
+    "?? .wt/plain-coyote/coding_agent_plan_and_verify_process/",
+    "?? .wt/sheer-cliff/coding_agent_plan_and_verify_process/"
+  ],
+  "command_shape": [
+    "codex exec resume <session-id> --json",
+    "--output-last-message <evidence/codex/working-output> -",
+    "resume target is the same session; sandbox/cwd inherited from Round 1"
+  ],
+  "response_evidence": {
+    "raw_path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\raw\\20260818T232259Z-round-03-purpose-reviewer-codex-session-3652ba02c7ae.raw.md",
+    "sanitized_path": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer\\evidence\\codex\\sanitized\\20260818T232259Z-round-03-purpose-reviewer-codex-session-3652ba02c7ae.md",
+    "sanitization_applied_before_save": true,
+    "response_sha256_after_sanitization": "e9851f1b220d110d26f486aecd845a072df447fd6d484ba4cbecaefdbf217ec9"
+  }
+}

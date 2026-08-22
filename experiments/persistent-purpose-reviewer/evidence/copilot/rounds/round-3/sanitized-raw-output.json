@@ -1,0 +1,14 @@
+{
+  "round": 3,
+  "cli": "copilot",
+  "session_hash": "b3f6796ce180",
+  "command_shape": "copilot --no-custom-instructions --no-remote --no-remote-export --disable-builtin-mcps --no-auto-update --silent --output-format text --stream off --resume=<SESSION_ID_REDACTED> --available-tools=view,grep --allow-tool=view --allow-tool=grep --deny-tool=write --deny-tool=shell --deny-tool=task --deny-tool=edit -p <PROMPT_FROM_MANIFEST>",
+  "result": {
+    "started_at_utc": "2026-08-18T23:22:06.6631376+00:00",
+    "completed_at_utc": "2026-08-18T23:22:17.4200899+00:00",
+    "exit_code": 0,
+    "timed_out": false,
+    "stdout": "BEGIN_PURPOSE_REVIEW\nprior_finding_resolution: PASS\nreopened_or_persistent_finding: id: none status: none statement: none evidence: none\nmapping_assertion: PASS\nunknown_handling_assertion: PASS\ndata_preservation_assertion: PASS\nvisible_failure_assertion: PASS\nmvp_boundary_assertion: PASS\npriority_assertion: PASS\nproduction_changes: NO\nproduction_change_assertion: PASS\nEND_PURPOSE_REVIEW\n\n",
+    "stderr": ""
+  }
+}

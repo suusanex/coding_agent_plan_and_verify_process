@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "persistent_session_same_hash": true,
+  "fresh_session_different_hash": true,
+  "r2_payload_equality_hash": "7456fcac41dda767d74e3618eaafde38164fe683148e30992481dfe9084a6c86",
+  "production_unchanged": true,
+  "git_diff_check": "",
+  "allowed_output_scope_unchanged": false,
+  "other_experiment_changes_observed": [
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/fresh-control/round-2/input-payload-manifest.json",
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/fresh-control/round-2/pre-git-snapshot.json",
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/persistent/round-1/git-change-verification.json",
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/persistent/round-1/post-git-snapshot.json",
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/persistent/round-1/review-assertions.json",
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/persistent/round-1/sanitized-output.json",
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/persistent/round-2/git-change-verification.json",
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/persistent/round-2/input-payload-manifest.json",
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/persistent/round-2/post-git-snapshot.json",
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/persistent/round-2/pre-git-snapshot.json",
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/persistent/round-2/review-assertions.json",
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/persistent/round-2/sanitized-output.json",
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/persistent/round-3/git-change-verification.json",
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/persistent/round-3/input-payload-manifest.json",
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/persistent/round-3/post-git-snapshot.json",
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/persistent/round-3/pre-git-snapshot.json",
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/persistent/round-3/review-assertions.json",
+    "experiments/persistent-purpose-reviewer/evidence/grok/persistence-control/persistent/round-3/sanitized-output.json"
+  ],
+  "production_changes_observed": []
+}

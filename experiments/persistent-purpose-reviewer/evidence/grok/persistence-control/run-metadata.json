@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "provider": "grok",
+  "cli_executable": "grok.exe",
+  "model": "grok-4.6",
+  "cwd": "experiments/persistent-purpose-reviewer",
+  "permission_mode": "plan",
+  "sandbox": "read-only",
+  "disable_web_search": true,
+  "no_memory": true,
+  "no_subagents": true,
+  "allowed_tools": [
+    "read",
+    "view",
+    "grep"
+  ],
+  "disallowed_tools": [
+    "write",
+    "shell",
+    "task",
+    "edit_file",
+    "run_shell_command"
+  ],
+  "system_wrapper": "safe reviewer role only; no fixture decision data",
+  "command_shapes": {
+    "persistent_round_1": "grok --cwd <EXPERIMENT_ROOT> --model grok-4.6 --no-memory --no-subagents --permission-mode plan --sandbox read-only --disable-web-search --tools read,view,grep --disallowed-tools write,shell,task,edit_file,run_shell_command --system-prompt-override=<SAFE_REVIEWER_ROLE> --output-format plain --verbatim --session-id <SESSION_ID_REDACTED> --single <PAYLOAD_FROM_MANIFEST>",
+    "persistent_round_2": "grok --cwd <EXPERIMENT_ROOT> --model grok-4.6 --no-memory --no-subagents --permission-mode plan --sandbox read-only --disable-web-search --tools read,view,grep --disallowed-tools write,shell,task,edit_file,run_shell_command --system-prompt-override=<SAFE_REVIEWER_ROLE> --output-format plain --verbatim --resume <SAME_SESSION_ID_REDACTED> --single <PAYLOAD_FROM_MANIFEST>",
+    "persistent_round_3": "grok --cwd <EXPERIMENT_ROOT> --model grok-4.6 --no-memory --no-subagents --permission-mode plan --sandbox read-only --disable-web-search --tools read,view,grep --disallowed-tools write,shell,task,edit_file,run_shell_command --system-prompt-override=<SAFE_REVIEWER_ROLE> --output-format plain --verbatim --resume <SAME_SESSION_ID_REDACTED> --single <PAYLOAD_FROM_MANIFEST>",
+    "fresh_control_round_2": "grok --cwd <EXPERIMENT_ROOT> --model grok-4.6 --no-memory --no-subagents --permission-mode plan --sandbox read-only --disable-web-search --tools read,view,grep --disallowed-tools write,shell,task,edit_file,run_shell_command --system-prompt-override=<SAFE_REVIEWER_ROLE> --output-format plain --verbatim --session-id <SESSION_ID_REDACTED> --single <PAYLOAD_FROM_MANIFEST>"
+  },
+  "persistent_session_hash": "a5fff86e2afd3522532b7812e417134e5b94f59e716d3d60619dace248ab8468",
+  "fresh_session_hash": "7534896590d7e1a9eb70b5002bf35bbd8668f9ace46d388e352f2d1558713699",
+  "persistent_same_session_hash": true,
+  "fresh_session_different_hash": true,
+  "session_id_saved": false,
+  "secret_saved": false,
+  "environment_values_saved": false,
+  "captured_at_utc": "2026-08-19T09:10:00.3803045+00:00"
+}

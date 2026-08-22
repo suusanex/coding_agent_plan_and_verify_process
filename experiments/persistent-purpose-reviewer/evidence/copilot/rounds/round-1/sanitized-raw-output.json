@@ -1,0 +1,14 @@
+{
+  "round": 1,
+  "cli": "copilot",
+  "session_hash": "b3f6796ce180",
+  "command_shape": "copilot --no-custom-instructions --no-remote --no-remote-export --disable-builtin-mcps --no-auto-update --silent --output-format text --stream off --session-id=<SESSION_ID_REDACTED> --available-tools=view,grep --allow-tool=view --allow-tool=grep --deny-tool=write --deny-tool=shell --deny-tool=task --deny-tool=edit -p <PROMPT_FROM_MANIFEST>",
+  "result": {
+    "started_at_utc": "2026-08-18T23:21:36.4473589+00:00",
+    "completed_at_utc": "2026-08-18T23:21:53.9676027+00:00",
+    "exit_code": 0,
+    "timed_out": false,
+    "stdout": "BEGIN_PURPOSE_REVIEW\npurpose_restatement: 利用者が手入力や設定の作り直しをせず、安全に legacy\n設定値を移行して使い続けられること。unknown legacy 値は隠さず保留または明示的エラーとして扱う。\npurpose_assertion: FAIL\nrejected_approach: proposal: 旧値を黙って default v2 の \"steady\" に置換して移行成功扱いにする方式\nreason: データ消失と利用者の意図喪失を招くため\nrejected_approach_assertion: FAIL\nformal_but_goal_failure_assertion: PASS\nfindings:\n\n - id: PUR-001\n status: active\n severity: blocker\n statement: unknown な NotificationMode を \"steady\"\nに置換し、成功扱いにしているため、利用者の意図を失い失敗も可視化されない。\n evidence:\n  : v2Mode) ? v2Mode : \"steady\"; および return MigrationResult.Success(result);\n - id: PUR-002\n status: active\n severity: high\n statement: 判定用入力の unknown legacy 値である extension_value\nを保持も保留もエラー化もせず、移行結果から失っている。\n evidence: var result = new V2Settings { NotificationMode = converted, QuietHours = input.QuietHours\n};\n mapping_assertion: PASS\n unknown_handling_assertion: FAIL\n mvp_boundary_assertion: PASS\n priority_assertion: FAIL\n production_changes: NO\n production_change_assertion: PASS\n END_PURPOSE_REVIEW\n\n",
+    "stderr": ""
+  }
+}

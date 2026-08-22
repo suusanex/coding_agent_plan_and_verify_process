@@ -1,0 +1,12 @@
+BEGIN_PERSISTENCE_REVIEW
+{
+  "finding_id": "PPR-001",
+  "prior_finding_status": "resolved",
+  "decision_contract_assertion": "pass",
+  "evidence": [
+    "保持 state では lantern-pulse の mode wire token は quick-check と固定されている。",
+    "current candidate は lantern-pulse の mode を quick-check としている。"
+  ],
+  "information_sufficiency": "sufficient"
+}
+END_PERSISTENCE_REVIEW

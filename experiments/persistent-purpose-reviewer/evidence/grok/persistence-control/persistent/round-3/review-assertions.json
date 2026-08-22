@@ -1,0 +1,12 @@
+{
+  "block_found": true,
+  "finding_id": null,
+  "finding_status": null,
+  "prior_finding_status": "resolved",
+  "decision_contract_assertion": "pass",
+  "evidence": [
+    "candidate JSON: \"integrationSource\": \"lantern-pulse\"",
+    "candidate JSON: \"mode\": \"quick-check\""
+  ],
+  "information_sufficiency": "sufficient"
+}

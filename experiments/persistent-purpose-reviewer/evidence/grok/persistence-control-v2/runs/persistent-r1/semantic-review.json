@@ -1,0 +1,31 @@
+{
+  "run_label": "persistent-r1",
+  "round": 1,
+  "channel": "persistent",
+  "round_label_verified": true,
+  "semantic_source": "exact saved response bytes from this invocation",
+  "response_path": "evidence\\grok\\persistence-control-v2\\runs\\persistent-r1\\raw-response.txt",
+  "response_bytes": 702,
+  "response_sha256": "d541bce9c7129cf65510743f3db3b3fe99ae1dc2c28d0bdae4a00dc4346c4cc3",
+  "response_hash_method": "SHA-256 over exact saved UTF-8 no-BOM response bytes after mandatory sensitive-value redaction",
+  "parse": {
+    "parsed": true,
+    "value": {
+      "finding_id": "PPR-001",
+      "prior_finding_status": "unknown",
+      "decision_contract_assertion": "fail",
+      "evidence": [
+        "decision source: lantern-pulse の mode wire token は旧外部 consumer との product 互換固定契約により必ず quick-check として送る",
+        "decision source: focus-mode は過去の product decision で明示的に棄却した（旧外部 consumer の wire contract がその token を受理しない）",
+        "candidate GetWireMode: \"lantern-pulse\" => \"focus-mode\"",
+        "candidate JSON: \"integrationSource\": \"lantern-pulse\", \"mode\": \"focus-mode\""
+      ],
+      "information_sufficiency": "sufficient"
+    },
+    "error": null,
+    "block_count": 1
+  },
+  "process_exit_code": 0,
+  "timed_out": false,
+  "raw_session_secret_environment_values_saved": false
+}

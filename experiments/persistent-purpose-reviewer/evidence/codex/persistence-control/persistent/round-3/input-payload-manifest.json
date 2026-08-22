@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "provider": "codex",
+  "run": "persistent",
+  "round": 3,
+  "files": [
+    {
+      "path": "prompts\\persistence-control\\round-3.md",
+      "bytes": 925,
+      "sha256": "1c7ddafb1158e885f78e72a2a8c9f2c002519494b45914e03f8df59448d7b426"
+    },
+    {
+      "path": "fixtures\\persistence-control\\round-3-candidate.md",
+      "bytes": 167,
+      "sha256": "33b2a14015eebca9e386b258a8678a3e434288fdd1366039efb0c5e529273493"
+    }
+  ],
+  "payload": {
+    "composition": [
+      "prompts\\persistence-control\\round-3.md",
+      "fixtures\\persistence-control\\round-3-candidate.md"
+    ],
+    "separator": "\r\n\r\n",
+    "separator_bytes": [
+      13,
+      10,
+      13,
+      10
+    ],
+    "bytes": 1096,
+    "sha256": "385c4f9542063a6a6e47931781d66519175652578998abbf1b3ee507c60b37d9"
+  },
+  "full_context_sent": false,
+  "previous_output_sent": false,
+  "prior_reviewer_output_full_sent": false,
+  "semantic_decision_replayed": false,
+  "semantic_mapping_replayed": false,
+  "semantic_finding_replayed": false,
+  "external_meaning_data_sources": [
+    "listed prompt bytes",
+    "listed fixture bytes"
+  ],
+  "persistent_r2_fresh_r2_equality_sha256": "7456fcac41dda767d74e3618eaafde38164fe683148e30992481dfe9084a6c86"
+}

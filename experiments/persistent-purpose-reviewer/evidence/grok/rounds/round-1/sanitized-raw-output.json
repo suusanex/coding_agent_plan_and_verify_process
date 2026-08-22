@@ -1,0 +1,14 @@
+{
+  "round": 1,
+  "cli": "grok",
+  "session_hash": "057dd4d83ed7",
+  "command_shape": "grok --cwd <EXPERIMENT_ROOT> --no-memory --no-subagents --permission-mode plan --sandbox read-only --disable-web-search --tools=read,view,grep --disallowed-tools=write,shell,task,edit_file,run_shell_command --system-prompt-override=<SAFE_REVIEWER_ROLE> --session-id=<SESSION_ID_REDACTED> --output-format plain --verbatim --single <PROMPT_FROM_MANIFEST>",
+  "result": {
+    "started_at_utc": "2026-08-18T23:22:28.1895337+00:00",
+    "completed_at_utc": "2026-08-18T23:23:43.7264395+00:00",
+    "exit_code": 0,
+    "timed_out": false,
+    "stdout": "```text\nBEGIN_PURPOSE_REVIEW\npurpose_restatement: 利用者が v1 設定を手入力や作り直しなしに、明示的な既知値 mapping だけで安全に v2 へ移行し使い続けること。unknown legacy 値は保留または明示エラーとし、意図を消さない。\npurpose_assertion: FAIL\nrejected_approach:\n  proposal: 変換できない旧値を黙って通常の v2 default（ここでは \"steady\"）へ置換し、処理を完了扱いにする方式\n  reason: データ消失と利用者の設定意図の喪失を招き、失敗を成功に見せるため棄却されている\nrejected_approach_assertion: FAIL\nformal_but_goal_failure_assertion: FAIL\nfindings:\n  - id: PUR-1\n    status: active\n    severity: blocker\n    statement: unknown legacy 値を保留にも明示エラーにもせず、通常の v2 値 \"steady\" へ黙って置換している。これは棄却された default 丸めであり、利用者の意図を消す。\n    evidence: mapping.TryGetValue(...) ? v2Mode : \"steady\"\n  - id: PUR-2\n    status: active\n    severity: blocker\n    statement: ValidateV2Schema 成功後に常に MigrationResult.Success を返しており、形式的成功を目的達成と扱っている。unknown の可視失敗がない。\n    evidence: ValidateV2Schema(result); return MigrationResult.Success(result);\n  - id: PUR-3\n    status: active\n    severity: high\n    statement: 判定用入力の unknown marker（extension_value: lantern-archive）を pending/error として記録せず、元の v1 値も保持しない。既知の NotificationMode 以外の未知値は結果から消える。\n    evidence: V2Settings は NotificationMode と QuietHours のみ代入し、extension_value を扱わない\nmapping_assertion: PASS\nunknown_handling_assertion: FAIL\nmvp_boundary_assertion: PASS\npriority_assertion: FAIL\nproduction_changes: NO\nproduction_change_assertion: PASS\nEND_PURPOSE_REVIEW\n```\n",
+    "stderr": ""
+  }
+}

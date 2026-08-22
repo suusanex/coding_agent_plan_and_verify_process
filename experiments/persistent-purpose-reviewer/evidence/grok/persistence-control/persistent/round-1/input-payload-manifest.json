@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "provider": "grok",
+  "control": "persistent",
+  "round": 1,
+  "session_hash": "a5fff86e2afd3522532b7812e417134e5b94f59e716d3d60619dace248ab8468",
+  "session_id_saved": false,
+  "session_identity": "new specific session; R2/R3 resume the same supplied ID",
+  "input_files": [
+    {
+      "path": "prompts/persistence-control/round-1.md",
+      "bytes": 1079,
+      "sha256": "d9d9e86527da43f8c248f02453c55520baa9762491425cd06922ba6953bcb77f"
+    },
+    {
+      "path": "fixtures/persistence-control/round-1-context.md",
+      "bytes": 990,
+      "sha256": "f7effe92a77fae0a9d41fec04683180ca00033e29c81b2c697bfc85ba011512e"
+    },
+    {
+      "path": "fixtures/persistence-control/round-1-candidate.md",
+      "bytes": 389,
+      "sha256": "3213d66f6f3480f0e2066b08f592306dc3e05ba0a190f4c689dd5a45c91e664c"
+    }
+  ],
+  "input_payload": {
+    "label": "prompt-plus-designated-fixture-text",
+    "composition": "UTF-8 decoded file text joined with CRLF CRLF; no additional user data",
+    "bytes": 2466,
+    "sha256": "ce2513081be6e51ddca8472fec6add01e597cf65bc61d88322bc98883d30e108"
+  },
+  "full_context_sent": true,
+  "previous_response_sent": false,
+  "previous_response_full_text_sent": false,
+  "semantic_decision_mapping_finding_replayed": false,
+  "full_context_and_prior_output_not_sent_flags": {
+    "full_context_not_sent": false,
+    "prior_output_not_sent": true,
+    "semantic_decision_mapping_finding_not_sent": true
+  },
+  "external_meaning_data_boundary": "prompt and listed fixture text only"
+}

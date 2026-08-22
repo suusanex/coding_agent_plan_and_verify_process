@@ -1,0 +1,14 @@
+{
+  "round": 3,
+  "cli": "grok",
+  "session_hash": "057dd4d83ed7",
+  "command_shape": "grok --cwd <EXPERIMENT_ROOT> --no-memory --no-subagents --permission-mode plan --sandbox read-only --disable-web-search --tools=read,view,grep --disallowed-tools=write,shell,task,edit_file,run_shell_command --system-prompt-override=<SAFE_REVIEWER_ROLE> --resume <SESSION_ID_REDACTED> --output-format plain --verbatim --single <PROMPT_FROM_MANIFEST>",
+  "result": {
+    "started_at_utc": "2026-08-18T23:24:07.2825410+00:00",
+    "completed_at_utc": "2026-08-18T23:24:42.3396182+00:00",
+    "exit_code": 0,
+    "timed_out": false,
+    "stdout": "```text\nBEGIN_PURPOSE_REVIEW\nprior_finding_resolution: PASS\nreopened_or_persistent_finding:\n  id: none\n  status: resolved\n  statement: none\n  evidence: none\nmapping_assertion: PASS\nunknown_handling_assertion: PASS\ndata_preservation_assertion: PASS\nvisible_failure_assertion: PASS\nmvp_boundary_assertion: PASS\npriority_assertion: PASS\nproduction_changes: NO\nproduction_change_assertion: PASS\nEND_PURPOSE_REVIEW\n```\n",
+    "stderr": ""
+  }
+}

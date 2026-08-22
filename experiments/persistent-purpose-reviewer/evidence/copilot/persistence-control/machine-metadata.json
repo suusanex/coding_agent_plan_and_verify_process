@@ -1,0 +1,15 @@
+{
+  "captured_at_utc": "2026-08-19T09:03:08.9321659+00:00",
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "is_64_bit_os": true,
+  "powershell": "7.6.5",
+  "platform": "Win32NT",
+  "architecture": "Microsoft Windows 10.0.26200",
+  "repository_root": "D:\\Data\\git\\coding_agent_plan_and_verify_process",
+  "experiment_cwd": "D:\\Data\\git\\coding_agent_plan_and_verify_process\\experiments\\persistent-purpose-reviewer",
+  "branch": "trial-subagent-review",
+  "cli_version": "GitHub Copilot CLI 1.0.80.",
+  "environment_values_saved": false,
+  "secrets_saved": false,
+  "session_ids_saved": false
+}

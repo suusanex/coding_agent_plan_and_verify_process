@@ -1,0 +1,5 @@
+command: git diff --check
+label: v2 before evidence files
+exit_code: 0
+stdout:
+(empty)

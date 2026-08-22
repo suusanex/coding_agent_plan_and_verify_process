@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "round_label": "fresh-r2",
+  "round": 2,
+  "round_label_verified": true,
+  "verification_basis": "orchestrator run label, round directory, and input manifest",
+  "response_block_parsed": true,
+  "parse_error": null,
+  "semantic": {
+    "finding_id": "none",
+    "prior_finding_status": "unknown",
+    "decision_contract_assertion": "unknown",
+    "evidence": [],
+    "information_sufficiency": "insufficient"
+  }
+}

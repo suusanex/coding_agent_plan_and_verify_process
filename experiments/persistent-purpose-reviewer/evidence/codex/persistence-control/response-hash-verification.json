@@ -1,0 +1,54 @@
+[
+  {
+    "run": "persistent",
+    "round": "round-1",
+    "raw_bytes": 430,
+    "raw_sha256_direct": "1cccfa216b3df32cbd798659c3b38e7b2d699b9bb192986ce04c442282c00f1b",
+    "raw_sha256_recorded": "1cccfa216b3df32cbd798659c3b38e7b2d699b9bb192986ce04c442282c00f1b",
+    "raw_hash_match": true,
+    "sanitized_bytes": 430,
+    "sanitized_sha256_direct": "1cccfa216b3df32cbd798659c3b38e7b2d699b9bb192986ce04c442282c00f1b",
+    "sanitized_sha256_recorded": "1cccfa216b3df32cbd798659c3b38e7b2d699b9bb192986ce04c442282c00f1b",
+    "sanitized_hash_match": true,
+    "raw_and_sanitized_equal": true
+  },
+  {
+    "run": "persistent",
+    "round": "round-2",
+    "raw_bytes": 304,
+    "raw_sha256_direct": "a1e52a03803e1bf4f78d3559efe9531cd76c933e5d82d916c4110b9d50c361b1",
+    "raw_sha256_recorded": "a1e52a03803e1bf4f78d3559efe9531cd76c933e5d82d916c4110b9d50c361b1",
+    "raw_hash_match": true,
+    "sanitized_bytes": 304,
+    "sanitized_sha256_direct": "a1e52a03803e1bf4f78d3559efe9531cd76c933e5d82d916c4110b9d50c361b1",
+    "sanitized_sha256_recorded": "a1e52a03803e1bf4f78d3559efe9531cd76c933e5d82d916c4110b9d50c361b1",
+    "sanitized_hash_match": true,
+    "raw_and_sanitized_equal": true
+  },
+  {
+    "run": "persistent",
+    "round": "round-3",
+    "raw_bytes": 307,
+    "raw_sha256_direct": "cfc2a438e483e6fc2cb64c3d7df704a722eccfa7c6902862a70edd15e529e342",
+    "raw_sha256_recorded": "cfc2a438e483e6fc2cb64c3d7df704a722eccfa7c6902862a70edd15e529e342",
+    "raw_hash_match": true,
+    "sanitized_bytes": 307,
+    "sanitized_sha256_direct": "cfc2a438e483e6fc2cb64c3d7df704a722eccfa7c6902862a70edd15e529e342",
+    "sanitized_sha256_recorded": "cfc2a438e483e6fc2cb64c3d7df704a722eccfa7c6902862a70edd15e529e342",
+    "sanitized_hash_match": true,
+    "raw_and_sanitized_equal": true
+  },
+  {
+    "run": "fresh-control",
+    "round": "round-2",
+    "raw_bytes": 194,
+    "raw_sha256_direct": "80814268f34a2ddbbe75f77c2e2b332db19c993723d46db36b08890b1235131b",
+    "raw_sha256_recorded": "80814268f34a2ddbbe75f77c2e2b332db19c993723d46db36b08890b1235131b",
+    "raw_hash_match": true,
+    "sanitized_bytes": 194,
+    "sanitized_sha256_direct": "80814268f34a2ddbbe75f77c2e2b332db19c993723d46db36b08890b1235131b",
+    "sanitized_sha256_recorded": "80814268f34a2ddbbe75f77c2e2b332db19c993723d46db36b08890b1235131b",
+    "sanitized_hash_match": true,
+    "raw_and_sanitized_equal": true
+  }
+]

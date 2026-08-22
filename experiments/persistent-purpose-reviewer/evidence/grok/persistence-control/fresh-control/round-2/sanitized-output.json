@@ -1,0 +1,31 @@
+{
+  "label": "sanitized-provider-output",
+  "provider": "grok",
+  "run_label": "fresh-control-round-2",
+  "stdout": {
+    "label": "sanitized-stdout",
+    "content": "BEGIN_PERSISTENCE_REVIEW\n{\n  \"prior_finding_status\": \"unknown\",\n  \"decision_contract_assertion\": \"unknown\",\n  \"evidence\": [],\n  \"information_sufficiency\": \"insufficient\"\n}\nEND_PERSISTENCE_REVIEW\n",
+    "utf8_sha256": "12331b92bc9d69ffec565964d7fe9731a34654d46399ba8ad21beafb3d1f31fe"
+  },
+  "stderr": {
+    "label": "sanitized-stderr",
+    "content": "",
+    "utf8_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "raw": {
+    "label": "raw-provider-output-bytes",
+    "content_saved": false,
+    "stdout_bytes": 195,
+    "stderr_bytes": 0,
+    "stdout_bytes_sha256": "12331b92bc9d69ffec565964d7fe9731a34654d46399ba8ad21beafb3d1f31fe",
+    "stderr_bytes_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "combined_bytes_sha256": "12331b92bc9d69ffec565964d7fe9731a34654d46399ba8ad21beafb3d1f31fe"
+  },
+  "process": {
+    "started_at_utc": "2026-08-19T09:09:38.8786633+00:00",
+    "completed_at_utc": "2026-08-19T09:09:59.9393375+00:00",
+    "process_exited": true,
+    "timed_out": false,
+    "exit_code": 0
+  }
+}

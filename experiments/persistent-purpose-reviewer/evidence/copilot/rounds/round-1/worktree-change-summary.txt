@@ -1,0 +1,1 @@
+cli=copilot round=1 production_tree_changes_detected=False outside_experiment_status_count=0 pre_status_count=45 post_status_count=48 exit_code=0 timed_out=False stdout_nonempty=True stderr_nonempty=False session_identity_evidence=the same specific session hash was used; semantic persistence requires Round2/3 output assertions

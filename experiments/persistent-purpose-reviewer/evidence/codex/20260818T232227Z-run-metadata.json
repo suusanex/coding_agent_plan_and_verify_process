@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "cli": "codex",
+  "version": "0.147.0",
+  "model": "gpt-5.6-luna",
+  "experiment_root": "experiments/persistent-purpose-reviewer",
+  "allowed_write_root": "experiments/persistent-purpose-reviewer/evidence/codex",
+  "sandbox_requested": "read-only",
+  "rounds_requested": 3,
+  "rounds_completed": 1,
+  "all_rounds_verified": false,
+  "session_id_sha256_12": null,
+  "session_identity_full_id_saved": false,
+  "initial_process_exited_before_resume": false,
+  "started_at_utc": "2026-08-18T23:22:27.7053996+00:00",
+  "completed_at_utc": "2026-08-18T23:22:29.3240219+00:00",
+  "production_changed_outside_allowed_evidence": true,
+  "input_boundary": "fixture files and fixed prompts only; repository documents and git metadata were not included in constructed prompts",
+  "network_payload_audit": "not performed",
+  "native_child_experiment": "not performed",
+  "rounds": [
+    {
+      "round": 1,
+      "success": false,
+      "exit_code": 1,
+      "timed_out": false,
+      "response_sha256": null,
+      "session_id_sha256_12": null,
+      "production_change_outside_allowed_evidence": false,
+      "assertions": {
+        "purpose_assertion": "MISSING",
+        "rejected_approach_assertion": "MISSING",
+        "formal_but_goal_failure_assertion": "MISSING",
+        "mapping_assertion": "MISSING",
+        "unknown_handling_assertion": "MISSING",
+        "data_preservation_assertion": "MISSING",
+        "visible_failure_assertion": "MISSING",
+        "mvp_boundary_assertion": "MISSING",
+        "priority_assertion": "MISSING",
+        "prior_finding_resolution": "MISSING",
+        "production_change_assertion": "MISSING"
+      },
+      "finding_ids": null,
+      "raw_path": null,
+      "sanitized_path": null
+    }
+  ],
+  "failures": [
+    {
+      "round": 1,
+      "classification": "non-zero",
+      "exit_code": 1,
+      "sanitized_stderr": "Failed to read prompt from stdin: input is not valid UTF-8 (invalid byte at offset 49). Convert it to UTF-8 and retry (e.g., `iconv -f <ENC> -t UTF-8 prompt.txt`).",
+      "recovery_attempt": "none; one-shot run stopped without replaying context or duplicating a session",
+      "conclusion": "Round did not produce a verified successful evidence record."
+    }
+  ]
+}

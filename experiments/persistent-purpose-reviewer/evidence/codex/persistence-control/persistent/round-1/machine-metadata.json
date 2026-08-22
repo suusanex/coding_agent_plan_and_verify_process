@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "provider": "codex",
+  "kind": "persistent-r1",
+  "cli_version": "0.147.0",
+  "model": "gpt-5.6-luna",
+  "sandbox": "read-only",
+  "cwd": "experiments/persistent-purpose-reviewer",
+  "process_exited": true,
+  "exit_code": 0,
+  "timed_out": false,
+  "started_at_utc": "2026-08-19T09:02:54.3872397+00:00",
+  "completed_at_utc": "2026-08-19T09:03:09.3616813+00:00",
+  "command_shape": "node <codex-entrypoint> exec --json --color never --ignore-user-config --ignore-rules -s read-only -C <experiment-root> -m gpt-5.6-luna -o <round-1-raw-response> -",
+  "session_id_sha256_12": "f5777d93ac6b",
+  "response_present": true,
+  "response_sha256_after_capture": "1cccfa216b3df32cbd798659c3b38e7b2d699b9bb192986ce04c442282c00f1b",
+  "sanitized_response_sha256_after_save": "1cccfa216b3df32cbd798659c3b38e7b2d699b9bb192986ce04c442282c00f1b",
+  "response_paths": {
+    "raw": "raw-response.md",
+    "sanitized": "sanitized-response.md"
+  },
+  "event_summary": {
+    "event_count": 7,
+    "parse_error_count": 0,
+    "event_types": [
+      "thread.started",
+      "turn.started",
+      "item.completed",
+      "item.started",
+      "item.completed",
+      "item.completed",
+      "turn.completed"
+    ],
+    "agent_message_event_count": 2,
+    "thread_id_present": true
+  },
+  "stderr_present": false
+}

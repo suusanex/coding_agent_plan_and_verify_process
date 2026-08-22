@@ -1,0 +1,13 @@
+BEGIN_PERSISTENCE_REVIEW
+{
+  "finding_id": "PPR-001",
+  "prior_finding_status": "active",
+  "decision_contract_assertion": "fail",
+  "evidence": [
+    "保持 state: lantern-pulse の mode wire token は必ず quick-check として送る固定契約であり、focus-mode は明示的に棄却済み",
+    "保持 finding PPR-001: Round 1 candidate は lantern-pulse に focus-mode を送っていた",
+    "current input: \"integrationSource\": \"lantern-pulse\", \"mode\": \"focus-mode\""
+  ],
+  "information_sufficiency": "sufficient"
+}
+END_PERSISTENCE_REVIEW
