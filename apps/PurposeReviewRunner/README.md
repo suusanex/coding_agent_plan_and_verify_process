@@ -24,6 +24,8 @@ output schema v1は`protocolVersion`、`runnerVersion`、`runId`、`round`、`st
 
 stateは`Environment.SpecialFolder.LocalApplicationData`配下の`purpose-review-runner/runs/<run-id>/state.json`へ保存します。session handleは公開outputへ出しません。config変更は既存runへ反映されません。
 
+各runのtranscriptは同じ`LocalApplicationData`のrun directory配下にある`transcript/round-01-prompt.md`、`round-01-response.md`のようなround別ファイルへ保存します。promptとreviewer responseは全文をローカル保存するため、purpose contextやrepository由来の情報を含み得ます。実装対象repositoryには生成されず、`LocalApplicationData`のrun directory内だけに保存されます。これはRunnerが生成してprovider adapterへ渡したreview payloadと、reviewer response本文の監査用であり、provider内部のsystem promptやnetwork payloadを記録するものではありません。
+
 ## Build and publish
 
 ```powershell

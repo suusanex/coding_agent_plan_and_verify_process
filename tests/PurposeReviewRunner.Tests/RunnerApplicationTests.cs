@@ -48,6 +48,28 @@ public sealed class RunnerApplicationTests
         CollectionAssert.DoesNotContain(fixture.Process.Requests[1].Arguments.ToArray(), "read-only");
         CollectionAssert.DoesNotContain(fixture.Process.Requests[1].Arguments.ToArray(), "workspace-write");
         CollectionAssert.Contains(fixture.Process.Requests[1].Arguments.ToArray(), "test-model");
+
+        var transcriptDirectory = TranscriptDirectory(fixture, start.Output.RunId!);
+        Assert.AreEqual(fixture.Process.Requests[0].StandardInput, File.ReadAllText(Path.Combine(transcriptDirectory, "round-01-prompt.md")));
+        Assert.AreEqual(fixture.Process.Requests[1].StandardInput, File.ReadAllText(Path.Combine(transcriptDirectory, "round-02-prompt.md")));
+        Assert.AreEqual(fixture.Process.ReviewTexts[0], File.ReadAllText(Path.Combine(transcriptDirectory, "round-01-response.md")));
+        Assert.AreEqual(fixture.Process.ReviewTexts[1], File.ReadAllText(Path.Combine(transcriptDirectory, "round-02-response.md")));
+    }
+
+    [TestMethod]
+    public async Task MalformedReviewerResponseIsSavedBeforeProtocolParse()
+    {
+        using var fixture = new RunnerFixture("grok");
+        fixture.WriteRepositoryFile("goal.md", "goal");
+        const string malformed = "malformed response with {not-json}";
+        fixture.Process.Reviews.Enqueue(malformed);
+
+        var exception = await Assert.ThrowsExactlyAsync<RunnerException>(
+            () => fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None));
+
+        Assert.AreEqual("REVIEW_PARSE_FAILED", exception.Code);
+        var runDirectory = Directory.GetDirectories(fixture.Paths.StateRoot).Single();
+        Assert.AreEqual(malformed, File.ReadAllText(Path.Combine(runDirectory, "transcript", "round-01-response.md")));
     }
 
     [TestMethod]
@@ -148,6 +170,9 @@ public sealed class RunnerApplicationTests
 
         Assert.AreEqual("PROVIDER_FAILED", exception.Code);
         Assert.IsEmpty(Directory.GetFiles(fixture.Paths.StateRoot, "state.json", SearchOption.AllDirectories));
+        var runDirectory = Directory.GetDirectories(fixture.Paths.StateRoot).Single();
+        Assert.IsTrue(File.Exists(Path.Combine(runDirectory, "transcript", "round-01-prompt.md")));
+        Assert.IsFalse(File.Exists(Path.Combine(runDirectory, "transcript", "round-01-response.md")));
     }
 
     [TestMethod]
@@ -527,6 +552,9 @@ public sealed class RunnerApplicationTests
 
     private static ReviewFinding Finding(string id) => new(id, "HIGH", "Purpose gap", "summary", "evidence", "required change");
 
+    private static string TranscriptDirectory(RunnerFixture fixture, string runId) =>
+        Path.Combine(fixture.Paths.StateRoot, runId, "transcript");
+
     private static string Review(string status, params ReviewFinding[] findings)
     {
         var message = status is "BLOCKED" or "HUMAN_DECISION_REQUIRED" ? "decision required" : null;
@@ -595,6 +623,7 @@ internal sealed class ScriptedProcessRunner : IProcessRunner
     public ScriptedProcessRunner(string provider) => this.provider = provider;
 
     public Queue<string> Reviews { get; } = new();
+    public List<string> ReviewTexts { get; } = [];
     public List<ProcessRequest> Requests { get; } = [];
     public ProcessResult? ForcedResult { get; set; }
     public string CodexSessionId { get; } = "11111111-1111-4111-8111-111111111111";
@@ -607,6 +636,7 @@ internal sealed class ScriptedProcessRunner : IProcessRunner
             return Task.FromResult(ForcedResult);
         }
         var review = Reviews.Dequeue();
+        ReviewTexts.Add(review);
         return Task.FromResult(provider switch
         {
             "codex" => CodexResult(request, review),

@@ -7,7 +7,7 @@ public static class Protocol
 {
     public const int Version = 1;
     public const int MaximumRounds = 3;
-    public const string RunnerVersion = "0.1.1";
+    public const string RunnerVersion = "0.1.2";
 }
 
 public static class ExitCodes
