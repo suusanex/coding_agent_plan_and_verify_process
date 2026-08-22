@@ -17,7 +17,7 @@ description: Use after implementation when the original implementation parent mu
 
 - production、tests、docsを変更できるのは、このSkillを開始した元のimplementation parentだけ。
 - reviewerは目的達成の判断だけを担当し、repositoryを変更しない。
-- Runnerがprovider、session handle、round、read-only制約、result parse、最大3roundを所有する。
+- Runnerがprovider、session handle、round、non-modifying reviewer契約、result parse、最大3roundを所有する。providerが副作用なくwrite/edit系toolを禁止できる場合は、その制約をRunnerが利用する。
 - provider CLI構文、session ID、round counter、model、reasoning effortを親から指定または再実装しない。
 - PR、GitHub Copilot review、別top-level task、Zed integrationは前提にしない。
 
@@ -69,4 +69,4 @@ Round 3でfindingが残る場合はRunnerが`HUMAN_DECISION_REQUIRED`を返す�
 
 ## Report
 
-完了済み、未検証、HumanDecisionRequiredまたはBlocked、人手で必要な作業を分ける。Runnerのread-only指定は意図したpermission contractであり、OS-level security auditの証明とは表現しない。
+完了済み、未検証、HumanDecisionRequiredまたはBlocked、人手で必要な作業を分ける。reviewerがrepositoryを変更しないことは役割契約であり、OS-level isolationの証明とは表現しない。

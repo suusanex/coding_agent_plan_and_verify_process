@@ -6,7 +6,7 @@
 
 `Environment.SpecialFolder.ApplicationData`配下の`purpose-review-runner/config.json`を作成します。Windowsでは通常`%APPDATA%\purpose-review-runner\config.json`です。例は`config.example.json`を参照してください。
 
-設定可能なのは`provider`、`executable`、`model`、`reasoningEffort`、optional `profile`だけです。`provider`は`codex`、`grok`、`copilot`を選べます。same-session、read-only、最大3round、異常時停止は変更できません。
+設定可能なのは`provider`、`executable`、`model`、`reasoningEffort`、optional `profile`だけです。`provider`は`codex`、`grok`、`copilot`を選べます。same-session、non-modifying reviewer、最大3round、異常時停止は変更できません。filesystem sandboxによるread-only強制は要件ではなく、write/edit系toolを副作用なく禁止できるproviderではその制約だけを使います。
 
 ## Usage
 

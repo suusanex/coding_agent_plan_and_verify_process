@@ -35,8 +35,14 @@ public sealed class RunnerApplicationTests
         StringAssert.Contains(fixture.Process.Requests[0].StandardInput!, "ACCEPTED-DECISION-BETA");
         Assert.IsFalse(fixture.Process.Requests[1].StandardInput!.Contains("GOAL-CONTEXT-ALPHA", StringComparison.Ordinal));
         Assert.IsFalse(fixture.Process.Requests[1].StandardInput!.Contains("ACCEPTED-DECISION-BETA", StringComparison.Ordinal));
+        StringAssert.Contains(fixture.Process.Requests[0].StandardInput!, "Do not modify files");
+        StringAssert.Contains(fixture.Process.Requests[0].StandardInput!, "non-modifying inspection");
         CollectionAssert.Contains(fixture.Process.Requests[1].Arguments.ToArray(), fixture.Process.CodexSessionId);
-        CollectionAssert.Contains(fixture.Process.Requests[1].Arguments.ToArray(), "sandbox_mode=\"read-only\"");
+        CollectionAssert.DoesNotContain(fixture.Process.Requests[0].Arguments.ToArray(), "-s");
+        CollectionAssert.DoesNotContain(fixture.Process.Requests[0].Arguments.ToArray(), "read-only");
+        CollectionAssert.DoesNotContain(fixture.Process.Requests[1].Arguments.ToArray(), "-s");
+        CollectionAssert.DoesNotContain(fixture.Process.Requests[1].Arguments.ToArray(), "sandbox_mode=\"read-only\"");
+        CollectionAssert.DoesNotContain(fixture.Process.Requests[1].Arguments.ToArray(), "read-only");
         CollectionAssert.Contains(fixture.Process.Requests[1].Arguments.ToArray(), "test-model");
     }
 
@@ -78,7 +84,7 @@ public sealed class RunnerApplicationTests
     }
 
     [TestMethod]
-    public async Task CopilotUsesGeneratedSessionAndReadOnlyToolContract()
+    public async Task CopilotUsesGeneratedSessionAndToolRestrictionContract()
     {
         using var fixture = new RunnerFixture("copilot");
         fixture.WriteRepositoryFile("goal.md", "goal");
@@ -99,7 +105,7 @@ public sealed class RunnerApplicationTests
     }
 
     [TestMethod]
-    public async Task GrokUsesReadOnlySessionAndResumeContract()
+    public async Task GrokUsesToolRestrictionAndResumeContract()
     {
         using var fixture = new RunnerFixture("grok");
         fixture.WriteRepositoryFile("goal.md", "goal");
@@ -113,7 +119,14 @@ public sealed class RunnerApplicationTests
         CollectionAssert.Contains(startArguments, "--session-id");
         CollectionAssert.Contains(resumeArguments, "--resume");
         CollectionAssert.Contains(startArguments, "--permission-mode");
-        CollectionAssert.Contains(startArguments, "read-only");
+        CollectionAssert.DoesNotContain(startArguments, "--sandbox");
+        CollectionAssert.DoesNotContain(startArguments, "read-only");
+        CollectionAssert.DoesNotContain(resumeArguments, "--sandbox");
+        CollectionAssert.DoesNotContain(resumeArguments, "read-only");
+        CollectionAssert.Contains(startArguments, "--tools");
+        CollectionAssert.Contains(startArguments, "read,view,grep");
+        CollectionAssert.Contains(startArguments, "--disallowed-tools");
+        CollectionAssert.Contains(startArguments, "write,shell,task,edit_file,run_shell_command");
         CollectionAssert.Contains(startArguments, "--no-memory");
         CollectionAssert.Contains(startArguments, "--no-subagents");
         CollectionAssert.Contains(startArguments, "--disable-web-search");

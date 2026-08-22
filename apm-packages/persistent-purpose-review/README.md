@@ -6,7 +6,7 @@
 
 | Component | Installation scope | Responsibility |
 | --- | --- | --- |
-| `purpose-review-runner` | 開発PCのOS userごとに一度 | provider CLI起動、same-session、read-only、最大3round、state、machine-readable result |
+| `purpose-review-runner` | 開発PCのOS userごとに一度 | provider CLI起動、same-session、non-modifying reviewer、最大3round、state、machine-readable result |
 | `$persistent-purpose-review` | 利用するwork repositoryごと | purpose context選択、parent-owned remediation、terminal reporting |
 | `$pr-review-remediation` | baseline PR reviewが必要なrepositoryごと | Goal Contextを使わないPR review plan作成 |
 

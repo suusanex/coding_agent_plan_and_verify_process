@@ -39,5 +39,11 @@ if ($skill -match 'codex exec|grok --|copilot -|--session-id|--resume|--sandbox|
 if ($readme -notmatch 'OS userごとに一度' -or $readme -notmatch 'work repositoryごと' -or $readme -notmatch '\$pr-review-remediation') {
     throw 'Package README does not preserve the three installation and ownership boundaries.'
 }
+if ($readme -match 'sandbox' -or $skill -match 'sandbox') {
+    throw 'Package documents must not treat filesystem sandbox enforcement as a protocol invariant.'
+}
+if ($readme -notmatch 'non-modifying reviewer' -or $skill -notmatch 'repositoryを変更しない') {
+    throw 'Package documents do not preserve the non-modifying reviewer contract.'
+}
 
 Write-Output 'Persistent Purpose Review package validation: PASS'

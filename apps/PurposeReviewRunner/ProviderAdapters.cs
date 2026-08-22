@@ -115,7 +115,7 @@ public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
         var arguments = new List<string>
         {
             "exec", "--json", "--color", "never", "--ignore-user-config", "--ignore-rules",
-            "-s", "read-only", "-C", request.Repository, "-m", request.Provider.Model,
+            "-C", request.Repository, "-m", request.Provider.Model,
             "-c", $"model_reasoning_effort=\"{request.Provider.ReasoningEffort}\"", "-o", responsePath, "-"
         };
         if (!string.IsNullOrWhiteSpace(request.Provider.Profile))
@@ -130,7 +130,6 @@ public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
             "exec", "resume", request.SessionHandle!, "--json", "--ignore-user-config", "--ignore-rules",
             "-m", request.Provider.Model,
             "-c", $"model_reasoning_effort=\"{request.Provider.ReasoningEffort}\"",
-            "-c", "sandbox_mode=\"read-only\"",
             "-o", responsePath, "-"
         ];
 
@@ -171,7 +170,7 @@ public sealed class GrokProviderAdapter : ProviderAdapterBase, IProviderAdapter
             var arguments = new List<string>
             {
                 "--cwd", request.Repository, "--no-memory", "--no-subagents", "--permission-mode", "plan",
-                "--sandbox", "read-only", "--disable-web-search", "--tools", "read,view,grep",
+                "--disable-web-search", "--tools", "read,view,grep",
                 "--disallowed-tools", "write,shell,task,edit_file,run_shell_command", "--model", request.Provider.Model,
                 "--reasoning-effort", request.Provider.ReasoningEffort, "--output-format", "plain", "--verbatim"
             };
