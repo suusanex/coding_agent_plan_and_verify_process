@@ -6,11 +6,11 @@
 
 | Component | Installation scope | Responsibility |
 | --- | --- | --- |
-| `purpose-review-runner` | 開発PCのOS userごとに一度 | provider CLI起動、same-session、read-only、最大3round、state、machine-readable result |
+| `purpose-review-runner` | 開発PCのOS userごとに一度 | provider CLI起動、same-session、non-modifying reviewer、最大3round、state、machine-readable result |
 | `$persistent-purpose-review` | 利用するwork repositoryごと | purpose context選択、parent-owned remediation、terminal reporting |
 | `$pr-review-remediation` | baseline PR reviewが必要なrepositoryごと | Goal Contextを使わないPR review plan作成 |
 
-SkillはRunner binaryを内包、複製、自動download、installしません。Runner未導入またはprotocol非互換ならfail closedで停止します。
+SkillはRunner binaryを内包、複製、自動download、installしません。このSkillは`purpose-review-runner` 0.1.1以上を要求する。0.1.0はreviewer起動時にread-onlyを強制するため、non-modifying reviewer契約と両立しない。Runner未導入、0.1.0以下、またはprotocol非互換ならfail closedで停止します。
 
 ## Install
 
@@ -40,7 +40,7 @@ apm update
 apm uninstall persistent-purpose-review
 ```
 
-APM packageの更新・削除はRunner binary、user-level config、既存run stateを変更しません。Runnerの更新はGitHub Release側で別に行います。
+APM packageの更新・削除はRunner binary、user-level config、既存run stateを変更しません。`apm update`だけでは今回のnon-modifying reviewer契約へ移行できない。Runner 0.1.1以上への更新はGitHub Release側で別に行う。
 
 ## Validation
 

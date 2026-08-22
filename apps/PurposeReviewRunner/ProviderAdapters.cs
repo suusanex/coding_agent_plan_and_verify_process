@@ -112,10 +112,13 @@ public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
 
     private static IReadOnlyList<string> NewArguments(ProviderRequest request, string responsePath)
     {
+        // Codexのdefault sandboxはReadOnly。--ignore-user-configではproject trustから昇格せず、
+        // -s workspace-writeもWindowsでは実効read-onlyになる報告がある。別sandboxへ置換せずbypassする。
         var arguments = new List<string>
         {
             "exec", "--json", "--color", "never", "--ignore-user-config", "--ignore-rules",
-            "-s", "read-only", "-C", request.Repository, "-m", request.Provider.Model,
+            "--dangerously-bypass-approvals-and-sandbox",
+            "-C", request.Repository, "-m", request.Provider.Model,
             "-c", $"model_reasoning_effort=\"{request.Provider.ReasoningEffort}\"", "-o", responsePath, "-"
         };
         if (!string.IsNullOrWhiteSpace(request.Provider.Profile))
@@ -125,12 +128,13 @@ public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
         return arguments;
     }
 
+    // resumeでもbypassを再指定する。session継続時にdefault ReadOnlyへ戻ると読み取り拒否が再発する。
     private static IReadOnlyList<string> ResumeArguments(ProviderRequest request, string responsePath) =>
         [
             "exec", "resume", request.SessionHandle!, "--json", "--ignore-user-config", "--ignore-rules",
+            "--dangerously-bypass-approvals-and-sandbox",
             "-m", request.Provider.Model,
             "-c", $"model_reasoning_effort=\"{request.Provider.ReasoningEffort}\"",
-            "-c", "sandbox_mode=\"read-only\"",
             "-o", responsePath, "-"
         ];
 
@@ -171,7 +175,7 @@ public sealed class GrokProviderAdapter : ProviderAdapterBase, IProviderAdapter
             var arguments = new List<string>
             {
                 "--cwd", request.Repository, "--no-memory", "--no-subagents", "--permission-mode", "plan",
-                "--sandbox", "read-only", "--disable-web-search", "--tools", "read,view,grep",
+                "--disable-web-search", "--tools", "read,view,grep",
                 "--disallowed-tools", "write,shell,task,edit_file,run_shell_command", "--model", request.Provider.Model,
                 "--reasoning-effort", request.Provider.ReasoningEffort, "--output-format", "plain", "--verbatim"
             };

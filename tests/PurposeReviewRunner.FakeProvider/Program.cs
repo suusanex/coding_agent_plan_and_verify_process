@@ -22,7 +22,7 @@ public static class Program
             {
                 await RunCodexAsync(args);
             }
-            else if (args.Contains("--sandbox", StringComparer.Ordinal))
+            else if (args.Contains("--prompt-file", StringComparer.Ordinal) || args.Contains("--cwd", StringComparer.Ordinal))
             {
                 RunGrok(args);
             }
@@ -43,8 +43,14 @@ public static class Program
     {
         var resumed = args.Length > 1 && args[1] == "resume";
         Require(
-            resumed ? args.Contains("sandbox_mode=\"read-only\"", StringComparer.Ordinal) : ValueAfter(args, "-s") == "read-only",
-            "Codex read-only sandbox was not fixed.");
+            args.Contains("--dangerously-bypass-approvals-and-sandbox", StringComparer.Ordinal),
+            "Codex sandbox bypass was not specified.");
+        Require(
+            !args.Contains("-s", StringComparer.Ordinal) &&
+            !args.Contains("read-only", StringComparer.Ordinal) &&
+            !args.Contains("sandbox_mode=\"read-only\"", StringComparer.Ordinal) &&
+            !args.Contains("workspace-write", StringComparer.Ordinal),
+            "Codex filesystem sandbox was specified.");
         var payload = await Console.In.ReadToEndAsync();
         ValidatePayload(payload, resumed);
         File.WriteAllText(ValueAfter(args, "-o"), Review(resumed));
@@ -54,7 +60,9 @@ public static class Program
     private static void RunGrok(string[] args)
     {
         var resumed = args.Contains("--resume", StringComparer.Ordinal);
-        Require(ValueAfter(args, "--sandbox") == "read-only", "Grok read-only sandbox was not fixed.");
+        Require(!args.Contains("--sandbox", StringComparer.Ordinal) && !args.Contains("read-only", StringComparer.Ordinal), "Grok filesystem sandbox was specified.");
+        Require(ValueAfter(args, "--tools") == "read,view,grep", "Grok tool allowlist was not fixed.");
+        Require(ValueAfter(args, "--disallowed-tools") == "write,shell,task,edit_file,run_shell_command", "Grok write tools were not denied.");
         Require(args.Contains("--no-subagents", StringComparer.Ordinal), "Grok subagents were not disabled.");
         ValidatePayload(File.ReadAllText(ValueAfter(args, "--prompt-file")), resumed);
         Console.WriteLine(Review(resumed));

@@ -8,7 +8,7 @@ public static class PromptBuilder
     {
         var builder = new StringBuilder();
         AppendRole(builder);
-        builder.AppendLine("This is review round 1. Inspect the current implementation in the read-only repository workspace below.");
+        builder.AppendLine("This is review round 1. Inspect the current implementation in the repository workspace below.");
         builder.AppendLine($"Repository: {repository}");
         builder.AppendLine("Use every supplied purpose context as the authority for intended outcomes, rejected alternatives, and superficially valid but purpose-defeating behavior.");
         builder.AppendLine("Do not modify files. Do not ask another agent to perform the review.");
@@ -39,7 +39,7 @@ public static class PromptBuilder
     private static void AppendRole(StringBuilder builder)
     {
         builder.AppendLine("You are an independent purpose reviewer. Evaluate whether the implementation achieves the intended product purpose, not merely whether code is well formed.");
-        builder.AppendLine("Keep purpose judgment independent from the implementation parent. Use repository access only for read-only inspection.");
+        builder.AppendLine("Keep purpose judgment independent from the implementation parent. Use repository access only for non-modifying inspection.");
     }
 
     private static void AppendOutputContract(StringBuilder builder)

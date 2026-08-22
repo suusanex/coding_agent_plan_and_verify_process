@@ -21,7 +21,7 @@ $readme = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'README.md')
 if ($manifest -notmatch '(?m)^name:\s*persistent-purpose-review\s*$' -or $manifest -notmatch '(?m)^version:\s*0\.1\.0\s*$') {
     throw 'APM package identity is invalid.'
 }
-if ($skill -notmatch 'purpose-review-runner version' -or $skill -notmatch 'protocolVersion.*`1`') {
+if ($skill -notmatch 'purpose-review-runner version' -or $skill -notmatch 'protocolVersion.*`1`' -or $skill -notmatch 'runnerVersion' -or $skill -notmatch '0\.1\.1') {
     throw 'Skill does not fail closed on the Runner protocol boundary.'
 }
 if ($skill -notmatch '公開protocol fields' -or $skill -notmatch '`findings`.*`message`.*`error`') {
@@ -38,6 +38,15 @@ if ($skill -match 'codex exec|grok --|copilot -|--session-id|--resume|--sandbox|
 }
 if ($readme -notmatch 'OS userごとに一度' -or $readme -notmatch 'work repositoryごと' -or $readme -notmatch '\$pr-review-remediation') {
     throw 'Package README does not preserve the three installation and ownership boundaries.'
+}
+if ($readme -match 'sandbox' -or $skill -match 'sandbox') {
+    throw 'Package documents must not treat filesystem sandbox enforcement as a protocol invariant.'
+}
+if ($readme -notmatch 'non-modifying reviewer' -or $skill -notmatch 'repositoryを変更しない') {
+    throw 'Package documents do not preserve the non-modifying reviewer contract.'
+}
+if ($readme -notmatch '0\.1\.1' -or $readme -notmatch 'apm update') {
+    throw 'Package README does not require Runner 0.1.1 or later after APM-only updates.'
 }
 
 Write-Output 'Persistent Purpose Review package validation: PASS'
