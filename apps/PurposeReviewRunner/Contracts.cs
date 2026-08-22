@@ -5,9 +5,9 @@ namespace PurposeReviewRunner;
 
 public static class Protocol
 {
-    public const int Version = 1;
+    public const int Version = 2;
     public const int MaximumRounds = 3;
-    public const string RunnerVersion = "0.1.2";
+    public const string RunnerVersion = "0.2.0";
 }
 
 public static class ExitCodes
@@ -19,6 +19,7 @@ public static class ExitCodes
 
 public static class ReviewStatuses
 {
+    public const string Running = "RUNNING";
     public const string Findings = "FINDINGS";
     public const string Complete = "COMPLETE";
     public const string HumanDecisionRequired = "HUMAN_DECISION_REQUIRED";
@@ -26,6 +27,19 @@ public static class ReviewStatuses
     public const string Error = "ERROR";
 
     public static bool IsTerminal(string status) => status is Complete or HumanDecisionRequired or Blocked or Error;
+}
+
+public static class JobStatuses
+{
+    public const string Running = "RUNNING";
+    public const string Succeeded = "SUCCEEDED";
+    public const string Failed = "FAILED";
+}
+
+public static class JobOperations
+{
+    public const string Start = "start";
+    public const string Continue = "continue";
 }
 
 public sealed record RunnerError(string Code, string Message);
@@ -52,7 +66,8 @@ public sealed record RunnerOutput(
     bool Terminal,
     IReadOnlyList<ReviewFinding> Findings,
     string? Message,
-    RunnerError? Error)
+    RunnerError? Error,
+    string? JobStatus = null)
 {
     public static RunnerOutput FromReview(string runId, int round, ReviewerResponse response) =>
         new(
@@ -64,13 +79,40 @@ public sealed record RunnerOutput(
             ReviewStatuses.IsTerminal(response.Status),
             response.Findings,
             response.Message,
-            null);
+            null,
+            JobStatuses.Succeeded);
+
+    public static RunnerOutput Running(string runId, int round) =>
+        new(Protocol.Version, Protocol.RunnerVersion, runId, round, ReviewStatuses.Running, false, [], null, null, JobStatuses.Running);
 
     public static RunnerOutput Version() =>
         new(Protocol.Version, Protocol.RunnerVersion, null, null, "COMPLETE", true, [], null, null);
 
-    public static RunnerOutput FromError(string code, string message, string? runId = null, int? round = null) =>
-        new(Protocol.Version, Protocol.RunnerVersion, runId, round, ReviewStatuses.Error, true, [], null, new(code, message));
+    public static RunnerOutput FromError(string code, string message, string? runId = null, int? round = null, string? jobStatus = null) =>
+        new(Protocol.Version, Protocol.RunnerVersion, runId, round, ReviewStatuses.Error, true, [], null, new(code, message), jobStatus);
+}
+
+public sealed record JobResult(RunnerOutput Output, int ExitCode);
+
+public sealed record JobState(
+    int SchemaVersion,
+    string RunId,
+    int Round,
+    string Operation,
+    string JobStatus,
+    DateTimeOffset StartedAtUtc,
+    int? Pid = null,
+    DateTimeOffset? ProcessStartTimeUtc = null,
+    DateTimeOffset? FinishedAtUtc = null,
+    string? Repository = null,
+    IReadOnlyList<string>? ContextPaths = null,
+    ProviderSnapshot? Provider = null);
+
+public sealed record WorkerLaunchResult(int ProcessId, DateTimeOffset ProcessStartTimeUtc);
+
+public interface IWorkerLauncher
+{
+    WorkerLaunchResult Launch(string runId);
 }
 
 public sealed record ExecutionResult(RunnerOutput Output, int ExitCode);

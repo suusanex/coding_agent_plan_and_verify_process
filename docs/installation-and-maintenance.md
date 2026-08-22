@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | `scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs` | always-on Codex callback runtimeをuser-level設定へ導入する | canonical runtime、Local Spool provider、user-level `notify` |
 | `apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs` | APM導入後にpackage-owned concrete Codex profilesを補完する | `.codex/agents/*.toml`のprofile fields |
-| `apps/PurposeReviewRunner` | OS user単位のconfigでpurpose reviewerを起動し、同じsessionを最大3roundまで維持する | versioned Runner binary、user-level config、minimal run state |
+| `apps/PurposeReviewRunner` | OS user単位のconfigでpurpose reviewerを起動し、同じsessionを最大3roundまで維持する。長時間reviewはworkerへ分離し、`status`で結果を取得する | versioned Runner binary、user-level config、minimal run/job state |
 | `apm-packages/persistent-purpose-review` | 元のimplementation parentへcontext選択、修正、同一runの再reviewを教える | repository-local `$persistent-purpose-review` Skill |
 | `apm-packages/*/codex-profile-overlays.json` | owning packageごとのprofile推奨値を宣言する | agent、model、reasoning、sandbox |
 | Goal Context validators | Goal Context authoring packageやfree-form文書を確認する | readability、package structure、APM install smoke |

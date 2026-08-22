@@ -10,7 +10,7 @@
 | `$persistent-purpose-review` | 利用するwork repositoryごと | purpose context選択、parent-owned remediation、terminal reporting |
 | `$pr-review-remediation` | baseline PR reviewが必要なrepositoryごと | Goal Contextを使わないPR review plan作成 |
 
-SkillはRunner binaryを内包、複製、自動download、installしません。このSkillは`purpose-review-runner` 0.1.1以上を要求する。0.1.0はreviewer起動時にread-onlyを強制するため、non-modifying reviewer契約と両立しない。Runner未導入、0.1.0以下、またはprotocol非互換ならfail closedで停止します。
+SkillはRunner binaryを内包、複製、自動download、installしません。このSkillは`purpose-review-runner` 0.2.0以上とprotocol v2を要求する。0.1.xは`start`/`continue`が最終review JSONを同期的に返すため、coding agentのforeground command寿命と両立しない。Runner未導入、0.2.0未満、またはprotocol非互換ならfail closedで停止します。
 
 ## Install
 
@@ -31,7 +31,7 @@ purpose-review-runner version
 
 Goal Contextやaccepted decision documentが会話で明示済みなら、そのpathも指定できます。補完関係にある複数文書はすべてcontextとして渡せます。現在のsourceが競合する場合だけ、parentがreview開始前に質問します。
 
-`FINDINGS`では元のparentだけが修正とvalidationを行い、Runnerが返した同じ`runId`で`continue`します。`COMPLETE`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`、`ERROR`で終了します。
+`start`と`continue`は短時間でjobを登録するだけです。結果は同じ`runId`の`status`をpollingして取得します。`FINDINGS`では元のparentだけが修正とvalidationを行い、同じ`runId`で`continue`します。`COMPLETE`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`、`ERROR`で終了します。polling中のCLI失敗では`status`だけをやり直します。
 
 ## Update and remove
 
@@ -40,7 +40,7 @@ apm update
 apm uninstall persistent-purpose-review
 ```
 
-APM packageの更新・削除はRunner binary、user-level config、既存run stateを変更しません。`apm update`だけでは今回のnon-modifying reviewer契約へ移行できない。Runner 0.1.1以上への更新はGitHub Release側で別に行う。
+APM packageの更新・削除はRunner binary、user-level config、既存run stateを変更しません。`apm update`だけでは今回のdurable job契約へ移行できない。Runner 0.2.0以上への更新はGitHub Release側で別に行う。
 
 ## Validation
 

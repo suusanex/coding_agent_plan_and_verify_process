@@ -28,7 +28,9 @@ public sealed class RunnerApplicationTests
             CancellationToken.None);
 
         Assert.AreEqual(ReviewStatuses.Findings, start.Output.Status);
+        Assert.AreEqual(JobStatuses.Succeeded, start.Output.JobStatus);
         Assert.AreEqual(ReviewStatuses.Complete, continuation.Output.Status);
+        Assert.AreEqual(JobStatuses.Succeeded, continuation.Output.JobStatus);
         Assert.AreEqual(2, continuation.Output.Round);
         Assert.AreEqual(2, fixture.Process.Requests.Count);
         StringAssert.Contains(fixture.Process.Requests[0].StandardInput!, "GOAL-CONTEXT-ALPHA");
@@ -64,10 +66,10 @@ public sealed class RunnerApplicationTests
         const string malformed = "malformed response with {not-json}";
         fixture.Process.Reviews.Enqueue(malformed);
 
-        var exception = await Assert.ThrowsExactlyAsync<RunnerException>(
-            () => fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None));
+        var result = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
 
-        Assert.AreEqual("REVIEW_PARSE_FAILED", exception.Code);
+        Assert.AreEqual("REVIEW_PARSE_FAILED", result.Output.Error?.Code);
+        Assert.AreEqual(JobStatuses.Failed, result.Output.JobStatus);
         var runDirectory = Directory.GetDirectories(fixture.Paths.StateRoot).Single();
         Assert.AreEqual(malformed, File.ReadAllText(Path.Combine(runDirectory, "transcript", "round-01-response.md")));
     }
@@ -165,14 +167,18 @@ public sealed class RunnerApplicationTests
         fixture.WriteRepositoryFile("goal.md", "goal");
         fixture.Process.ForcedResult = new ProcessResult(7, string.Empty, "auth failed", false);
 
-        var exception = await Assert.ThrowsExactlyAsync<RunnerException>(
-            () => fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None));
+        var result = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
 
-        Assert.AreEqual("PROVIDER_FAILED", exception.Code);
+        Assert.AreEqual("PROVIDER_FAILED", result.Output.Error?.Code);
+        Assert.AreEqual(JobStatuses.Failed, result.Output.JobStatus);
+        Assert.AreEqual(ExitCodes.RuntimeError, result.ExitCode);
         Assert.IsEmpty(Directory.GetFiles(fixture.Paths.StateRoot, "state.json", SearchOption.AllDirectories));
         var runDirectory = Directory.GetDirectories(fixture.Paths.StateRoot).Single();
         Assert.IsTrue(File.Exists(Path.Combine(runDirectory, "transcript", "round-01-prompt.md")));
         Assert.IsFalse(File.Exists(Path.Combine(runDirectory, "transcript", "round-01-response.md")));
+        var status = await fixture.Application.ExecuteAsync(new StatusCommand(result.Output.RunId!), CancellationToken.None);
+        Assert.AreEqual("PROVIDER_FAILED", status.Output.Error?.Code);
+        Assert.AreEqual(1, fixture.Process.Requests.Count);
     }
 
     [TestMethod]
@@ -182,11 +188,11 @@ public sealed class RunnerApplicationTests
         fixture.WriteRepositoryFile("goal.md", "goal");
         fixture.Process.Reviews.Enqueue("not a review block");
 
-        var exception = await Assert.ThrowsExactlyAsync<RunnerException>(
-            () => fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None));
+        var result = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
 
-        Assert.AreEqual("REVIEW_PARSE_FAILED", exception.Code);
-        Assert.AreEqual(ExitCodes.ContractError, exception.ExitCode);
+        Assert.AreEqual("REVIEW_PARSE_FAILED", result.Output.Error?.Code);
+        Assert.AreEqual(ExitCodes.ContractError, result.ExitCode);
+        Assert.AreEqual(JobStatuses.Failed, result.Output.JobStatus);
     }
 
     [TestMethod]
@@ -200,13 +206,13 @@ public sealed class RunnerApplicationTests
             new StartCommand(fixture.Repository, ["goal.md"]),
             CancellationToken.None);
 
-        var malformed = await Assert.ThrowsExactlyAsync<RunnerException>(
-            () => fixture.Application.ExecuteAsync(new ContinueCommand(start.Output.RunId!), CancellationToken.None));
+        var malformed = await fixture.Application.ExecuteAsync(new ContinueCommand(start.Output.RunId!), CancellationToken.None);
         var state = new StateStore(fixture.Paths.StateRoot).Load(start.Output.RunId!);
         var retry = await Assert.ThrowsExactlyAsync<RunnerException>(
             () => fixture.Application.ExecuteAsync(new ContinueCommand(start.Output.RunId!), CancellationToken.None));
 
-        Assert.AreEqual("REVIEW_PARSE_FAILED", malformed.Code);
+        Assert.AreEqual("REVIEW_PARSE_FAILED", malformed.Output.Error?.Code);
+        Assert.AreEqual(JobStatuses.Failed, malformed.Output.JobStatus);
         Assert.AreEqual(2, state.Round);
         Assert.AreEqual(ReviewStatuses.Error, state.Status);
         Assert.AreEqual("RUN_TERMINAL", retry.Code);
@@ -241,15 +247,13 @@ public sealed class RunnerApplicationTests
         Trace.Listeners.Add(listener);
         try
         {
-            var exception = await Assert.ThrowsExactlyAsync<RunnerException>(
-                () => fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None));
+            var result = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
             listener.Flush();
-            var publicOutput = JsonSerializer.Serialize(
-                RunnerOutput.FromError(exception.Code, exception.Message),
-                JsonDefaults.Options);
+            var publicOutput = JsonSerializer.Serialize(result.Output, JsonDefaults.Options);
 
             StringAssert.Contains(traceText.ToString(), privateDiagnostic);
-            Assert.IsFalse(exception.Message.Contains(privateDiagnostic, StringComparison.Ordinal));
+            Assert.AreEqual("PROVIDER_FAILED", result.Output.Error?.Code);
+            Assert.IsFalse(result.Output.Error!.Message.Contains(privateDiagnostic, StringComparison.Ordinal));
             Assert.IsFalse(publicOutput.Contains(privateDiagnostic, StringComparison.Ordinal));
             StringAssert.Contains(publicOutput, "Provider process exited with code 7.");
         }
@@ -290,7 +294,10 @@ public sealed class RunnerApplicationTests
     {
         var parsed = (StartCommand)CliParser.Parse(["start", "--repository", ".", "--context", "a.md", "--context", "b.md"]);
         Assert.HasCount(2, parsed.ContextPaths);
-        Assert.IsInstanceOfType<ContinueCommand>(CliParser.Parse(["continue", "--run", Guid.NewGuid().ToString("D")]));
+        var runId = Guid.NewGuid().ToString("D");
+        Assert.IsInstanceOfType<ContinueCommand>(CliParser.Parse(["continue", "--run", runId]));
+        Assert.IsInstanceOfType<StatusCommand>(CliParser.Parse(["status", "--run", runId]));
+        Assert.IsInstanceOfType<WorkCommand>(CliParser.Parse(["work", "--run", runId]));
         Assert.IsInstanceOfType<VersionCommand>(CliParser.Parse(["version"]));
         Assert.ThrowsExactly<RunnerException>(() => CliParser.Parse(["start", "--repository", "."]));
     }
@@ -375,11 +382,11 @@ public sealed class RunnerApplicationTests
         fixture.WriteRepositoryFile("goal.md", "goal");
         fixture.Process.ForcedResult = new ProcessResult(-1, string.Empty, string.Empty, true);
 
-        var exception = await Assert.ThrowsExactlyAsync<RunnerException>(
-            () => fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None));
+        var result = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
 
-        Assert.AreEqual("PROVIDER_TIMEOUT", exception.Code);
-        Assert.AreEqual(ExitCodes.RuntimeError, exception.ExitCode);
+        Assert.AreEqual("PROVIDER_TIMEOUT", result.Output.Error?.Code);
+        Assert.AreEqual(ExitCodes.RuntimeError, result.ExitCode);
+        Assert.AreEqual(JobStatuses.Failed, result.Output.JobStatus);
         Assert.IsEmpty(Directory.GetFiles(fixture.Paths.StateRoot, "state.json", SearchOption.AllDirectories));
     }
 
@@ -486,10 +493,13 @@ public sealed class RunnerApplicationTests
         File.WriteAllText(
             configPath,
             JsonSerializer.Serialize(new RunnerConfig(1, provider, executable, "test-model", "high", null), JsonDefaults.Options));
+        var launcher = new InProcessWorkerLauncher();
         var application = new RunnerApplication(
             new RunnerPaths(configPath, stateRoot),
             new ExecutableResolver(),
-            new SystemProcessRunner(TimeSpan.FromSeconds(15)));
+            new SystemProcessRunner(TimeSpan.FromSeconds(15)),
+            launcher);
+        launcher.Application = application;
 
         try
         {
@@ -497,6 +507,7 @@ public sealed class RunnerApplicationTests
             var second = await application.ExecuteAsync(new ContinueCommand(first.Output.RunId!), CancellationToken.None);
 
             Assert.AreEqual(ReviewStatuses.Findings, first.Output.Status);
+            Assert.AreEqual(JobStatuses.Succeeded, first.Output.JobStatus);
             Assert.AreEqual(ReviewStatuses.Complete, second.Output.Status);
             Assert.AreEqual(2, second.Output.Round);
         }
@@ -507,6 +518,274 @@ public sealed class RunnerApplicationTests
                 Directory.Delete(root, true);
             }
         }
+    }
+
+    [TestMethod]
+    public async Task StartReturnsWithoutWaitingWhenWorkerIsDetachedFromSubmit()
+    {
+        var launcher = new RecordingWorkerLauncher();
+        using var fixture = new RunnerFixture("grok", launcher);
+        fixture.WriteRepositoryFile("goal.md", "goal");
+        var stopwatch = Stopwatch.StartNew();
+
+        var submitted = await fixture.Application.ExecuteAsync(
+            new StartCommand(fixture.Repository, ["goal.md"]),
+            CancellationToken.None);
+
+        stopwatch.Stop();
+        Assert.AreEqual(JobStatuses.Running, submitted.Output.JobStatus);
+        Assert.AreEqual(ReviewStatuses.Running, submitted.Output.Status);
+        Assert.IsFalse(submitted.Output.Terminal);
+        Assert.AreEqual(1, launcher.LaunchCount);
+        Assert.IsEmpty(fixture.Process.Requests);
+        Assert.IsLessThan(TimeSpan.FromSeconds(2), stopwatch.Elapsed);
+        var status = await fixture.Application.ExecuteAsync(new StatusCommand(submitted.Output.RunId!), CancellationToken.None);
+        Assert.AreEqual(JobStatuses.Running, status.Output.JobStatus);
+        Assert.IsEmpty(fixture.Process.Requests);
+    }
+
+    [TestMethod]
+    public async Task StatusDoesNotRerunProviderAndCompletedResultIsRepeatable()
+    {
+        using var fixture = new RunnerFixture("grok");
+        fixture.WriteRepositoryFile("goal.md", "goal");
+        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
+        var start = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
+        var first = await fixture.Application.ExecuteAsync(new StatusCommand(start.Output.RunId!), CancellationToken.None);
+        var second = await fixture.Application.ExecuteAsync(new StatusCommand(start.Output.RunId!), CancellationToken.None);
+
+        Assert.AreEqual(ReviewStatuses.Findings, start.Output.Status);
+        Assert.AreEqual(start.Output.Status, first.Output.Status);
+        Assert.AreEqual(start.Output.Status, second.Output.Status);
+        Assert.AreEqual(start.Output.Findings[0].Id, second.Output.Findings[0].Id);
+        Assert.AreEqual(JobStatuses.Succeeded, second.Output.JobStatus);
+        Assert.HasCount(1, fixture.Process.Requests);
+    }
+
+    [TestMethod]
+    public async Task DuplicateContinueIsRejectedWhileJobIsRunning()
+    {
+        var launcher = new RecordingWorkerLauncher();
+        using var fixture = new RunnerFixture("grok", launcher);
+        fixture.WriteRepositoryFile("goal.md", "goal");
+        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
+        var inProcess = new InProcessWorkerLauncher();
+        var prepared = new RunnerApplication(fixture.Paths, new FakeExecutableResolver(), fixture.Process, inProcess);
+        inProcess.Application = prepared;
+        var start = await prepared.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
+
+        var runningFixture = new RunnerApplication(fixture.Paths, new FakeExecutableResolver(), fixture.Process, launcher);
+        var firstContinue = await runningFixture.ExecuteAsync(new ContinueCommand(start.Output.RunId!), CancellationToken.None);
+        var duplicate = await Assert.ThrowsExactlyAsync<RunnerException>(
+            () => runningFixture.ExecuteAsync(new ContinueCommand(start.Output.RunId!), CancellationToken.None));
+
+        Assert.AreEqual(JobStatuses.Running, firstContinue.Output.JobStatus);
+        Assert.AreEqual(2, firstContinue.Output.Round);
+        Assert.AreEqual("JOB_IN_PROGRESS", duplicate.Code);
+        Assert.AreEqual(1, launcher.LaunchCount);
+        Assert.HasCount(1, fixture.Process.Requests);
+    }
+
+    [TestMethod]
+    public async Task ContinueReturnsRunningWithoutWaitingWhenWorkerIsDetachedFromSubmit()
+    {
+        var launcher = new RecordingWorkerLauncher();
+        using var fixture = new RunnerFixture("grok");
+        fixture.WriteRepositoryFile("goal.md", "goal");
+        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
+        var start = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
+        var continueApp = new RunnerApplication(fixture.Paths, new FakeExecutableResolver(), fixture.Process, launcher);
+        var stopwatch = Stopwatch.StartNew();
+
+        var submitted = await continueApp.ExecuteAsync(new ContinueCommand(start.Output.RunId!), CancellationToken.None);
+
+        stopwatch.Stop();
+        Assert.AreEqual(JobStatuses.Running, submitted.Output.JobStatus);
+        Assert.AreEqual(2, submitted.Output.Round);
+        Assert.AreEqual(1, launcher.LaunchCount);
+        Assert.HasCount(1, fixture.Process.Requests);
+        Assert.IsLessThan(TimeSpan.FromSeconds(2), stopwatch.Elapsed);
+    }
+
+    [TestMethod]
+    public async Task StatusMarksAbandonedWorkerAsTerminalErrorAndBlocksContinue()
+    {
+        using var fixture = new RunnerFixture("grok");
+        fixture.WriteRepositoryFile("goal.md", "goal");
+        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
+        var start = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
+        var jobStore = new JobStore(fixture.Paths.StateRoot);
+        File.Delete(Path.Combine(fixture.Paths.StateRoot, start.Output.RunId!, "result.json"));
+        jobStore.Save(new JobState(
+            1,
+            start.Output.RunId!,
+            2,
+            JobOperations.Continue,
+            JobStatuses.Running,
+            DateTimeOffset.UtcNow.AddMinutes(-5),
+            Pid: 999_999_999,
+            ProcessStartTimeUtc: DateTimeOffset.UtcNow.AddMinutes(-5),
+            Repository: fixture.Repository));
+
+        var status = await fixture.Application.ExecuteAsync(new StatusCommand(start.Output.RunId!), CancellationToken.None);
+        var state = new StateStore(fixture.Paths.StateRoot).Load(start.Output.RunId!);
+        var continuation = await Assert.ThrowsExactlyAsync<RunnerException>(
+            () => fixture.Application.ExecuteAsync(new ContinueCommand(start.Output.RunId!), CancellationToken.None));
+
+        Assert.AreEqual("WORKER_ABANDONED", status.Output.Error?.Code);
+        Assert.AreEqual(JobStatuses.Failed, status.Output.JobStatus);
+        Assert.AreEqual(ExitCodes.RuntimeError, status.ExitCode);
+        Assert.AreEqual(ReviewStatuses.Error, state.Status);
+        Assert.AreEqual("RUN_TERMINAL", continuation.Code);
+        Assert.HasCount(1, fixture.Process.Requests);
+    }
+
+    [TestMethod]
+    public async Task DetachedStartReturnsBeforeProviderAndStatusReadsDurableResult()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "purpose-review-runner-detach-tests", Guid.NewGuid().ToString("N"));
+        var repository = Path.Combine(root, "repository");
+        var configPath = Path.Combine(root, "config", "config.json");
+        var stateRoot = Path.Combine(root, "state", "runs");
+        var counterPath = Path.Combine(root, "provider-counter.txt");
+        Directory.CreateDirectory(repository);
+        Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
+        File.WriteAllText(Path.Combine(repository, "purpose.md"), "FAKE-INTEGRATION-CONTEXT");
+        var executable = CreateFakeProviderLauncher(root);
+        File.WriteAllText(
+            configPath,
+            JsonSerializer.Serialize(new RunnerConfig(1, "grok", executable, "test-model", "high", null), JsonDefaults.Options));
+        var runnerPath = Path.Combine(
+            Path.GetDirectoryName(typeof(RunnerApplication).Assembly.Location)!,
+            OperatingSystem.IsWindows() ? "purpose-review-runner.exe" : "purpose-review-runner");
+
+        try
+        {
+            var startWatch = Stopwatch.StartNew();
+            var start = await RunRunnerCliAsync(
+                runnerPath,
+                ["start", "--repository", repository, "--context", "purpose.md"],
+                configPath,
+                stateRoot,
+                new Dictionary<string, string>
+                {
+                    ["PURPOSE_REVIEW_FAKE_PROVIDER_DELAY_MS"] = "31000",
+                    ["PURPOSE_REVIEW_FAKE_PROVIDER_COUNTER"] = counterPath
+                });
+            startWatch.Stop();
+
+            Assert.AreEqual(0, start.ExitCode, start.StandardError);
+            using var startDocument = JsonDocument.Parse(start.StandardOutput.Trim());
+            Assert.AreEqual(JobStatuses.Running, startDocument.RootElement.GetProperty("jobStatus").GetString());
+            Assert.AreEqual(ReviewStatuses.Running, startDocument.RootElement.GetProperty("status").GetString());
+            Assert.IsLessThan(TimeSpan.FromSeconds(5), startWatch.Elapsed);
+            var runId = startDocument.RootElement.GetProperty("runId").GetString();
+            Assert.IsFalse(string.IsNullOrWhiteSpace(runId));
+
+            var running = await RunRunnerCliAsync(runnerPath, ["status", "--run", runId!], configPath, stateRoot);
+            Assert.AreEqual(0, running.ExitCode, running.StandardError);
+            using var runningDocument = JsonDocument.Parse(running.StandardOutput.Trim());
+            Assert.AreEqual(JobStatuses.Running, runningDocument.RootElement.GetProperty("jobStatus").GetString());
+
+            var completed = await PollStatusAsync(runnerPath, runId!, configPath, stateRoot, TimeSpan.FromSeconds(50));
+            Assert.AreEqual(ReviewStatuses.Findings, completed.RootElement.GetProperty("status").GetString());
+            Assert.AreEqual(JobStatuses.Succeeded, completed.RootElement.GetProperty("jobStatus").GetString());
+
+            var repeated = await RunRunnerCliAsync(runnerPath, ["status", "--run", runId!], configPath, stateRoot);
+            using var repeatedDocument = JsonDocument.Parse(repeated.StandardOutput.Trim());
+            Assert.AreEqual(ReviewStatuses.Findings, repeatedDocument.RootElement.GetProperty("status").GetString());
+            Assert.AreEqual(1, File.ReadAllLines(counterPath).Length);
+
+            var continueWatch = Stopwatch.StartNew();
+            var continuation = await RunRunnerCliAsync(
+                runnerPath,
+                ["continue", "--run", runId!],
+                configPath,
+                stateRoot,
+                new Dictionary<string, string>
+                {
+                    ["PURPOSE_REVIEW_FAKE_PROVIDER_DELAY_MS"] = "3000",
+                    ["PURPOSE_REVIEW_FAKE_PROVIDER_COUNTER"] = counterPath
+                });
+            continueWatch.Stop();
+            Assert.AreEqual(0, continuation.ExitCode, continuation.StandardError);
+            using var continueDocument = JsonDocument.Parse(continuation.StandardOutput.Trim());
+            Assert.AreEqual(JobStatuses.Running, continueDocument.RootElement.GetProperty("jobStatus").GetString());
+            Assert.IsLessThan(TimeSpan.FromSeconds(5), continueWatch.Elapsed);
+
+            var continued = await PollStatusAsync(runnerPath, runId!, configPath, stateRoot, TimeSpan.FromSeconds(20));
+            Assert.AreEqual(ReviewStatuses.Complete, continued.RootElement.GetProperty("status").GetString());
+            Assert.AreEqual(2, continued.RootElement.GetProperty("round").GetInt32());
+            Assert.AreEqual(2, File.ReadAllLines(counterPath).Length);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
+    }
+
+    private static async Task<JsonDocument> PollStatusAsync(
+        string runnerPath,
+        string runId,
+        string configPath,
+        string stateRoot,
+        TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        string? lastOutput = null;
+        while (DateTime.UtcNow < deadline)
+        {
+            var status = await RunRunnerCliAsync(runnerPath, ["status", "--run", runId], configPath, stateRoot);
+            lastOutput = status.StandardOutput;
+            if (status.ExitCode == 0)
+            {
+                var document = JsonDocument.Parse(status.StandardOutput.Trim());
+                if (document.RootElement.GetProperty("jobStatus").GetString() != JobStatuses.Running)
+                {
+                    return document;
+                }
+                document.Dispose();
+            }
+            await Task.Delay(500);
+        }
+        throw new AssertFailedException($"Timed out waiting for durable job completion. Last output:{Environment.NewLine}{lastOutput}");
+    }
+
+    private static async Task<(int ExitCode, string StandardOutput, string StandardError)> RunRunnerCliAsync(
+        string runnerPath,
+        IReadOnlyList<string> arguments,
+        string configPath,
+        string stateRoot,
+        IReadOnlyDictionary<string, string>? extraEnvironment = null)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = runnerPath,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+        foreach (var argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+        startInfo.Environment["PURPOSE_REVIEW_RUNNER_CONFIG_PATH"] = configPath;
+        startInfo.Environment["PURPOSE_REVIEW_RUNNER_STATE_ROOT"] = stateRoot;
+        if (extraEnvironment is not null)
+        {
+            foreach (var pair in extraEnvironment)
+            {
+                startInfo.Environment[pair.Key] = pair.Value;
+            }
+        }
+        using var process = Process.Start(startInfo) ?? throw new AssertFailedException("Runner process did not start.");
+        var stdout = process.StandardOutput.ReadToEndAsync();
+        var stderr = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        return (process.ExitCode, await stdout, await stderr);
     }
 
     private static string CreateFakeProviderLauncher(string root)
@@ -563,9 +842,37 @@ public sealed class RunnerApplicationTests
     }
 }
 
+internal sealed class InProcessWorkerLauncher : IWorkerLauncher
+{
+    public RunnerApplication? Application { get; set; }
+
+    public WorkerLaunchResult Launch(string runId)
+    {
+        if (Application is null)
+        {
+            throw new InvalidOperationException("Application was not assigned.");
+        }
+        Application.ExecuteAsync(new WorkCommand(runId), CancellationToken.None).GetAwaiter().GetResult();
+        var process = Process.GetCurrentProcess();
+        return new(process.Id, new DateTimeOffset(process.StartTime.ToUniversalTime()));
+    }
+}
+
+internal sealed class RecordingWorkerLauncher : IWorkerLauncher
+{
+    public int LaunchCount { get; private set; }
+
+    public WorkerLaunchResult Launch(string runId)
+    {
+        LaunchCount++;
+        var process = Process.GetCurrentProcess();
+        return new(process.Id, new DateTimeOffset(process.StartTime.ToUniversalTime()));
+    }
+}
+
 internal sealed class RunnerFixture : IDisposable
 {
-    public RunnerFixture(string provider)
+    public RunnerFixture(string provider, IWorkerLauncher? workerLauncher = null)
     {
         Root = Path.Combine(Path.GetTempPath(), "purpose-review-runner-tests", Guid.NewGuid().ToString("N"));
         Repository = Path.Combine(Root, "repo");
@@ -576,7 +883,16 @@ internal sealed class RunnerFixture : IDisposable
         Directory.CreateDirectory(Path.GetDirectoryName(Paths.ConfigPath)!);
         WriteConfig(provider, provider, "test-model");
         Process = new ScriptedProcessRunner(provider);
-        Application = new(Paths, new FakeExecutableResolver(), Process);
+        if (workerLauncher is null)
+        {
+            var inProcess = new InProcessWorkerLauncher();
+            Application = new(Paths, new FakeExecutableResolver(), Process, inProcess);
+            inProcess.Application = Application;
+        }
+        else
+        {
+            Application = new(Paths, new FakeExecutableResolver(), Process, workerLauncher);
+        }
     }
 
     public string Root { get; }

@@ -39,17 +39,25 @@ context pathはrepository相対またはabsoluteでよい。Runner自身にsourc
 purpose-review-runner version
 ```
 
-stdoutの単一JSONを読み、`protocolVersion`が`1`であること、および`runnerVersion`が`0.1.1`以上であることを確認する。`runnerVersion`はmajor.minor.patchとして比較する。command未導入、非0 exit、JSON不正、`protocolVersion`非互換、`runnerVersion`欠落、`0.1.0`以下、または比較不能なら`Blocked`として停止する。別commandやprovider CLIで代替しない。`apm update`はRunner binaryを更新しないため、旧Runnerのまま続行しない。
+stdoutの単一JSONを読み、`protocolVersion`が`2`であること、および`runnerVersion`が`0.2.0`以上であることを確認する。`runnerVersion`はmajor.minor.patchとして比較する。command未導入、非0 exit、JSON不正、`protocolVersion`非互換、`runnerVersion`欠落、`0.2.0`未満、または比較不能なら`Blocked`として停止する。別commandやprovider CLIで代替しない。`apm update`はRunner binaryを更新しないため、旧Runnerのまま続行しない。
 
 ## Start review
 
-repository rootと選択済みcontextを明示する。
+repository rootと選択済みcontextを明示する。`start`はprovider完了をforegroundで待たない。
 
 ```powershell
 purpose-review-runner start --repository <repository-root> --context <path> [--context <path> ...]
 ```
 
-stdoutの公開protocol fields（`runId`、`status`、`findings`、`message`、`error`等）だけをworkflowで扱う。内部session handleやstate fileを読み書きしない。
+返った`runId`を保持する。stdoutの公開protocol fields（`runId`、`jobStatus`、`status`、`findings`、`message`、`error`等）だけをworkflowで扱う。内部session handleやstate fileを読み書きしない。内部コマンド`work`は呼び出さない。
+
+`jobStatus`または`status`が`RUNNING`なら、数秒間隔で同じ`runId`の`status`を繰り返す。1回のCLI invocationが失敗・結果不明でも、新規run作成や同じroundの再submitはせず、`status`だけをやり直す。
+
+```powershell
+purpose-review-runner status --run <run-id>
+```
+
+`status`はreviewを再実行しない。provider timeoutまで1 roundが約10分かかることがある。`RUNNING`が続くこと自体をrecovery理由にしない。
 
 - `FINDINGS`: findingを実装目的へ照合し、元のparentが必要なproduction/tests/docsを修正してrepository規約のvalidationを実行する。その後、同じ`runId`を`continue`する。
 - `COMPLETE`: purpose review完了として終了する。
@@ -63,7 +71,7 @@ stdoutの公開protocol fields（`runId`、`status`、`findings`、`message`、`
 purpose-review-runner continue --run <run-id>
 ```
 
-`continue`へcontext、previous output、provider設定、session IDを追加しない。同じreviewer sessionが保持する目的理解を利用する。再び`FINDINGS`なら親が修正・validationして同じcommandを使い、terminal statusまで繰り返す。
+`continue`もprovider完了を待たない。`continue`へcontext、previous output、provider設定、session IDを追加しない。同じreviewer sessionが保持する目的理解を利用する。返ったあとは再び`status --run <run-id>`でpollingする。再び`FINDINGS`なら親が修正・validationして同じcommandを使い、terminal statusまで繰り返す。
 
 Round 3でfindingが残る場合はRunnerが`HUMAN_DECISION_REQUIRED`を返す。automatic round 4、session reconstruction、transcript replay、別reviewer recoveryを行わない。
 
