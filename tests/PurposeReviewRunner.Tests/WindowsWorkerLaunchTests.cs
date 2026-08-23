@@ -70,6 +70,32 @@ public sealed class WindowsWorkerLaunchTests
     }
 
     [TestMethod]
+    public void JobLimitQueryFailureIsWrittenToLauncherLogAndStillUsesWmi()
+    {
+        using var root = new TemporaryDirectory();
+        var inspector = new FakeWindowsJobInspector(WindowsJobSnapshot.InJobWithFailedLimitQuery(5, "Access is denied"));
+        var processLauncher = new FakeWindowsProcessLauncher
+        {
+            ExternalResult = SucceededLaunch("Win32_Process.Create"),
+            DetachedResult = SucceededLaunch("CreateProcess")
+        };
+        var launcher = CreateLauncher(root.Paths, inspector, processLauncher);
+        var runId = PrepareJob(root.Paths);
+
+        var launched = launcher.Launch(runId);
+
+        Assert.AreEqual(Environment.ProcessId, launched.ProcessId);
+        Assert.AreEqual(1, processLauncher.ExternalCallCount);
+        Assert.AreEqual(0, processLauncher.DetachedCallCount);
+        var log = File.ReadAllText(LauncherLogPath(root.Paths, runId));
+        StringAssert.Contains(log, "inJob=true");
+        StringAssert.Contains(log, "jobLimitQueryFailed=true");
+        StringAssert.Contains(log, "jobLimitQueryNativeErrorCode=5");
+        StringAssert.Contains(log, "jobLimitQueryNativeErrorMessage=Access is denied");
+        StringAssert.Contains(log, "selectedStrategy=external-win32-process-create");
+    }
+
+    [TestMethod]
     public void NotInJobLaunchUsesDetachedCreateProcess()
     {
         using var root = new TemporaryDirectory();

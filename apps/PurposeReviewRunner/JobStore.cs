@@ -29,7 +29,7 @@ public sealed class JobStore
         }
         try
         {
-            var job = JsonSerializer.Deserialize<JobState>(File.ReadAllText(path), JsonDefaults.Options)
+            var job = JsonSerializer.Deserialize<JobState>(SharedStateFile.ReadAllText(path), JsonDefaults.Options)
                 ?? throw new JsonException("Job JSON was empty.");
             if (job.RunId != runId)
             {
@@ -57,7 +57,7 @@ public sealed class JobStore
         }
         try
         {
-            var result = JsonSerializer.Deserialize<JobResult>(File.ReadAllText(path), JsonDefaults.Options)
+            var result = JsonSerializer.Deserialize<JobResult>(SharedStateFile.ReadAllText(path), JsonDefaults.Options)
                 ?? throw new JsonException("Result JSON was empty.");
             return result;
         }
@@ -85,7 +85,7 @@ public sealed class JobStore
     public void Save(JobState job)
     {
         Validate(job);
-        WriteAtomic(JobPath(job.RunId), JsonSerializer.Serialize(job, JsonDefaults.Options));
+        WriteJobFile(JobPath(job.RunId), JsonSerializer.Serialize(job, JsonDefaults.Options));
     }
 
     public void SaveResult(string runId, JobResult result)
@@ -94,7 +94,7 @@ public sealed class JobStore
         {
             throw new RunnerException("INVALID_RUN_ID", "run-id must be a canonical UUID.");
         }
-        WriteAtomic(ResultPath(runId), JsonSerializer.Serialize(result, JsonDefaults.Options));
+        WriteJobFile(ResultPath(runId), JsonSerializer.Serialize(result, JsonDefaults.Options));
     }
 
     public void DeleteResult(string runId)
@@ -117,33 +117,16 @@ public sealed class JobStore
 
     private string ResultPath(string runId) => Path.Combine(GetRunDirectory(runId), "result.json");
 
-    private static void WriteAtomic(string path, string json)
+    private static void WriteJobFile(string path, string json)
     {
-        var directory = Path.GetDirectoryName(path) ?? throw new RunnerException("STATE_WRITE_FAILED", "Run state directory was invalid.");
-        var temporaryPath = path + ".tmp-" + Guid.NewGuid().ToString("N");
         try
         {
-            Directory.CreateDirectory(directory);
-            File.WriteAllText(temporaryPath, json + Environment.NewLine, new System.Text.UTF8Encoding(false));
-            File.Move(temporaryPath, path, true);
+            SharedStateFile.WriteAtomic(path, json + Environment.NewLine);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.Security.SecurityException)
         {
+            Trace.TraceError(exception.ToString());
             throw new RunnerException("STATE_WRITE_FAILED", "Job state could not be saved.", ExitCodes.ContractError, exception);
-        }
-        finally
-        {
-            try
-            {
-                if (File.Exists(temporaryPath))
-                {
-                    File.Delete(temporaryPath);
-                }
-            }
-            catch (Exception exception)
-            {
-                Trace.TraceError(exception.ToString());
-            }
         }
     }
 

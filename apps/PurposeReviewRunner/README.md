@@ -25,7 +25,7 @@ stdoutはprotocol v2の単一JSONです。`FINDINGS`の場合だけ元のimpleme
 
 output schema v2は`protocolVersion`、`runnerVersion`、`runId`、`round`、`jobStatus`、`status`、`terminal`、`findings`と、必要時の`message`または`error`で構成します。`jobStatus`は`RUNNING`、`SUCCEEDED`、`FAILED`です。実行中の`status`は`RUNNING`です。診断はstderrへ出し、stdoutへ別形式のtextを混在させません。exit codeは0がjob受付または有効なreview結果、1がprovider/process実行失敗、2が引数・config・state・protocol違反です。非0でもstdoutはstatus `ERROR`のschema v2です。
 
-stateは`Environment.SpecialFolder.LocalApplicationData`配下の`purpose-review-runner/runs/<run-id>/`へ保存します。`state.json`はreview制御（session、provider snapshot、round、review status）、`job.json`はjob lifecycle、`result.json`は公開結果です。session handleは公開outputへ出しません。config変更は既存runへ反映されません。worker起動処理の診断は同じrun directoryの`launcher.log`へ出します。`worker.log`は`work` processが起動してからの診断です。内部コマンド`work`はSkillから使いません。`PURPOSE_REVIEW_RUNNER_CONFIG_PATH`と`PURPOSE_REVIEW_RUNNER_STATE_ROOT`を両方指定すると、通常の`%APPDATA%` / `%LOCALAPPDATA%`の代わりにそのconfigとstateをworkerも参照します。launcher.logにはJob flags、選択した起動経路、native / WMI error、worker PIDを残します。provider prompt、response、token、credential、environment全件は記録しません。
+stateは`Environment.SpecialFolder.LocalApplicationData`配下の`purpose-review-runner/runs/<run-id>/`へ保存します。`state.json`はreview制御（session、provider snapshot、round、review status）、`job.json`はjob lifecycle、`result.json`は公開結果です。session handleは公開outputへ出しません。config変更は既存runへ反映されません。worker起動処理の診断は同じrun directoryの`launcher.log`へ出します。`worker.log`は`work` processが起動してからの診断です。内部コマンド`work`はSkillから使いません。`PURPOSE_REVIEW_RUNNER_CONFIG_PATH`と`PURPOSE_REVIEW_RUNNER_STATE_ROOT`を両方指定すると、通常の`%APPDATA%` / `%LOCALAPPDATA%`の代わりにそのconfigとstateをworkerも参照します。launcher.logにはJob flags、Job limit query の失敗、選択した起動経路、native / WMI error、worker PIDを残します。provider prompt、response、token、credential、environment全件は記録しません。
 
 各runのtranscriptは同じ`LocalApplicationData`のrun directory配下にある`transcript/round-01-prompt.md`、`round-01-response.md`のようなround別ファイルへ保存します。promptとreviewer responseは全文をローカル保存するため、purpose contextやrepository由来の情報を含み得ます。実装対象repositoryには生成されず、`LocalApplicationData`のrun directory内だけに保存されます。これはRunnerが生成してprovider adapterへ渡したreview payloadと、reviewer response本文の監査用であり、provider内部のsystem promptやnetwork payloadを記録するものではありません。
 
@@ -37,11 +37,11 @@ dotnet publish apps/PurposeReviewRunner/PurposeReviewRunner.csproj -c Release -r
 dotnet publish apps/PurposeReviewRunner/PurposeReviewRunner.csproj -c Release -r linux-x64 --self-contained true
 ```
 
-通常の unit / CI test は Job Object と WMI をスタブします。restrictive Job から worker が親終了後も生存することの実機確認は opt-in です。
+通常の unit / CI test は Job Object と WMI をスタブします。Linux CI は detached worker の process-level 寿命確認を維持します。Windows の実 Job Object / 実 WMI 経路は opt-in qualification です。
 
 ```powershell
 $env:PURPOSE_REVIEW_RUNNER_WINDOWS_JOB_QUALIFICATION = '1'
-dotnet test tests/PurposeReviewRunner.Tests/PurposeReviewRunner.Tests.csproj --filter RestrictiveJobObjectDoesNotKillDurableWorker
+dotnet test tests/PurposeReviewRunner.Tests/PurposeReviewRunner.Tests.csproj --filter "FullyQualifiedName~RestrictiveJobObjectDoesNotKillDurableWorker|FullyQualifiedName~DetachedStartReturnsBeforeProviderAndStatusReadsDurableResult"
 ```
 
 GitHub ReleaseのarchiveをPATH上のuser-owned directoryへ展開し、configをOS userごとに一度作成します。APM SkillはRunner binaryを内包または自動導入しません。

@@ -82,7 +82,7 @@ public sealed class DetachedWorkerLauncher : IWorkerLauncher
             log.Write("jobInspectionFailed", true);
             log.Write("jobInspectionError", exception.Message);
             log.Write("failClosed", true);
-            log.Write("failClosedReason", "Job object membership or limits could not be queried; refusing to launch a worker inside an unknown job.");
+            log.Write("failClosedReason", "Job object membership could not be queried; refusing to launch a worker inside an unknown job.");
             if (exception is RunnerException)
             {
                 throw;
@@ -110,6 +110,20 @@ public sealed class DetachedWorkerLauncher : IWorkerLauncher
         if (snapshot.KillOnJobClose is bool killOnJobClose)
         {
             log.Write("killOnJobClose", killOnJobClose);
+        }
+
+        if (snapshot.LimitQueryFailed)
+        {
+            log.Write("jobLimitQueryFailed", true);
+            if (snapshot.LimitQueryNativeErrorCode is int nativeErrorCode)
+            {
+                log.Write("jobLimitQueryNativeErrorCode", nativeErrorCode);
+            }
+
+            if (!string.IsNullOrWhiteSpace(snapshot.LimitQueryNativeErrorMessage))
+            {
+                log.Write("jobLimitQueryNativeErrorMessage", snapshot.LimitQueryNativeErrorMessage);
+            }
         }
 
         var strategy = WindowsWorkerLaunchStrategySelector.Select(snapshot);

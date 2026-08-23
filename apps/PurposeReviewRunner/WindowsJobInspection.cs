@@ -16,7 +16,10 @@ public sealed record WindowsJobSnapshot(
     uint? LimitFlags,
     bool? BreakawayOk,
     bool? SilentBreakawayOk,
-    bool? KillOnJobClose)
+    bool? KillOnJobClose,
+    bool LimitQueryFailed = false,
+    int? LimitQueryNativeErrorCode = null,
+    string? LimitQueryNativeErrorMessage = null)
 {
     public const uint BreakawayOkFlag = 0x00000800;
     public const uint SilentBreakawayOkFlag = 0x00001000;
@@ -32,6 +35,9 @@ public sealed record WindowsJobSnapshot(
             (limitFlags & BreakawayOkFlag) != 0,
             (limitFlags & SilentBreakawayOkFlag) != 0,
             (limitFlags & KillOnJobCloseFlag) != 0);
+
+    public static WindowsJobSnapshot InJobWithFailedLimitQuery(int nativeErrorCode, string nativeErrorMessage) =>
+        new(true, null, null, null, null, true, nativeErrorCode, nativeErrorMessage);
 }
 
 public static class WindowsWorkerLaunchStrategySelector
@@ -112,8 +118,9 @@ public sealed class WindowsJobInspector : IWindowsJobInspector
                 out _))
         {
             var nativeError = Marshal.GetLastWin32Error();
-            Trace.TraceError(new Win32Exception(nativeError).ToString());
-            return new WindowsJobSnapshot(true, null, null, null, null);
+            var exception = new Win32Exception(nativeError);
+            Trace.TraceError(exception.ToString());
+            return WindowsJobSnapshot.InJobWithFailedLimitQuery(nativeError, exception.Message);
         }
 
         return WindowsJobSnapshot.FromLimitFlags(information.BasicLimitInformation.LimitFlags);

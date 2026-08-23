@@ -708,6 +708,13 @@ public sealed class RunnerApplicationTests
     [TestMethod]
     public async Task DetachedStartReturnsBeforeProviderAndStatusReadsDurableResult()
     {
+        if (OperatingSystem.IsWindows() &&
+            !string.Equals(Environment.GetEnvironmentVariable("PURPOSE_REVIEW_RUNNER_WINDOWS_JOB_QUALIFICATION"), "1", StringComparison.Ordinal))
+        {
+            Assert.Inconclusive("Windows process-level durable launch uses real Job Object/WMI and is opt-in. Set PURPOSE_REVIEW_RUNNER_WINDOWS_JOB_QUALIFICATION=1 to run it.");
+            return;
+        }
+
         var root = Path.Combine(Path.GetTempPath(), "purpose-review-runner-detach-tests", Guid.NewGuid().ToString("N"));
         var repository = Path.Combine(root, "repository");
         var configPath = Path.Combine(root, "config", "config.json");
