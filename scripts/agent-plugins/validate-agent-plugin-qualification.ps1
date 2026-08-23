@@ -38,6 +38,32 @@ function Get-QualificationEvidenceFailure([string]$Reference) {
     return $null
 }
 
+function Get-QualificationCandidateFailures([string]$CandidateCommit, [string]$ExpectedPackage) {
+    $failures = [Collections.Generic.List[string]]::new()
+    if ($CandidateCommit -ceq 'UNCOMMITTED') {
+        Add-QualificationFailure $failures 'PASS evidence requires a committed candidate snapshot'
+        return $failures
+    }
+
+    & git -C $repoRoot cat-file -e "$CandidateCommit^{commit}" 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Add-QualificationFailure $failures "candidate commit does not exist: $CandidateCommit"
+        return $failures
+    }
+    & git -C $repoRoot merge-base --is-ancestor $CandidateCommit HEAD 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Add-QualificationFailure $failures "candidate commit is not an ancestor of HEAD: $CandidateCommit"
+        return $failures
+    }
+
+    $packagePath = "apm-packages/$ExpectedPackage"
+    & git -C $repoRoot diff --quiet $CandidateCommit HEAD -- "$packagePath/.apm" "$packagePath/apm.yml" "$packagePath/tests/agent-plugin/contract.json"
+    if ($LASTEXITCODE -ne 0) {
+        Add-QualificationFailure $failures 'package runtime inputs differ from the candidate snapshot'
+    }
+    return $failures
+}
+
 function Get-AgentPluginQualificationFailures([string]$Path, [string]$ExpectedPackage) {
     $failures = [Collections.Generic.List[string]]::new()
     try {
@@ -64,6 +90,12 @@ function Get-AgentPluginQualificationFailures([string]$Path, [string]$ExpectedPa
     if (($distributions | Sort-Object) -join '|' -cne 'agent-plugin-direct|apm') {
         Add-QualificationFailure $failures 'record must contain exactly one APM and one direct assessment'
     }
+    $passAssessments = @($result.assessments | Where-Object { [string]$_.status -ceq 'PASS' })
+    if ($passAssessments.Count -gt 0) {
+        foreach ($failure in Get-QualificationCandidateFailures ([string]$result.candidateCommit) $ExpectedPackage) {
+            Add-QualificationFailure $failures $failure
+        }
+    }
     foreach ($assessment in @($result.assessments)) {
         $identity = "$ExpectedPackage/$($assessment.distribution)"
         $references = @($assessment.evidenceRefs)
@@ -73,6 +105,15 @@ function Get-AgentPluginQualificationFailures([string]$Path, [string]$ExpectedPa
         foreach ($reference in $references) {
             $evidenceFailure = Get-QualificationEvidenceFailure ([string]$reference)
             if ($evidenceFailure) { Add-QualificationFailure $failures "$identity $evidenceFailure" }
+        }
+        if ([string]$assessment.status -ceq 'PASS' -and [string]$result.candidateCommit -cne 'UNCOMMITTED') {
+            $candidateMentioned = @($references | Where-Object {
+                $reference = [string]$_
+                if (Get-QualificationEvidenceFailure $reference) { return $false }
+                $candidatePath = Join-Path $repoRoot $reference.Replace('/', [IO.Path]::DirectorySeparatorChar)
+                return (Get-Content -Raw -LiteralPath $candidatePath).Contains([string]$result.candidateCommit)
+            }).Count -gt 0
+            if (-not $candidateMentioned) { Add-QualificationFailure $failures "PASS evidence does not identify candidate commit for $identity" }
         }
     }
     return $failures
@@ -117,6 +158,14 @@ if (-not $SkipNegativeMutations) {
             param($record)
             $record.assessments[0] | Add-Member -NotePropertyName unsupported -NotePropertyValue $true
         } 'JSON Schema'
+        Assert-QualificationMutationFails 'uncommitted-pass' {
+            param($record)
+            $record.candidateCommit = 'UNCOMMITTED'
+        } 'committed candidate snapshot'
+        Assert-QualificationMutationFails 'unknown-pass-candidate' {
+            param($record)
+            $record.candidateCommit = '0000000000000000000000000000000000000000'
+        } 'candidate commit does not exist'
         Assert-QualificationMutationFails 'missing-evidence-file' {
             param($record)
             $record.assessments[0].evidenceRefs = @('tests/agent-plugins/results/does-not-exist.md')
