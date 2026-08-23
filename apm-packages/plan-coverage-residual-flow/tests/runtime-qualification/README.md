@@ -26,7 +26,7 @@ Decision ownership scenarios DO-001〜DO-003 are loaded from the separate packag
 tests/decision-ownership-scenarios.json
 ```
 
-They require `implementation-contract-kernel` to keep SliceLocalContract design-owned items in scope, separate credential mechanism from ManualOnly secret provisioning, and isolate a genuine commit-identity policy escalation. A current `QUALIFIED` result requires all three scenarios to PASS.
+これらは`implementation-contract-kernel`に対し、SliceLocalContractのdesign-owned itemをscope内に維持し、credential mechanismとManualOnly secret provisioningを分離し、真正なcommit-identity policy escalationを隔離するよう要求します。Full qualification evidenceでは3 scenarioすべてのPASSを要求します。DOだけのtargeted runは`PENDING` evidenceのままsupport-assessment deltaとして利用でき、full evidenceへ再ラベルしません。
 
 `DO-001` is the full-coverage regression path: the harness creates its Slice Living Record and canonical ledger, invokes the kernel with `artifact_mode: slice-living-record` and `output_contract: section-delta`, then requires the emitted `Implementation Contract Decisions`, `Decision Ownership Gate`, `Coverage Ledger Delta`, and terminal verdict.
 
@@ -61,6 +61,9 @@ They require `implementation-contract-kernel` to keep SliceLocalContract design-
 
 # Static evidence validator (no external model)
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-runtime-qualification.ps1
+
+# Explicit promotion/current-snapshot full qualification gate (no external model)
+./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-runtime-qualification.ps1 -RequireQualified
 ```
 
 Isolation: each suite uses a temporary `COPILOT_HOME` with a qualification-only hook observer. Personal `~/.copilot` customizations are not loaded into the qualification context. Use `-KeepWorktree` to retain temporary directories for debugging.
@@ -70,3 +73,5 @@ Isolation: each suite uses a temporary `COPILOT_HOME` with a qualification-only 
 `PASS` / `FAIL` / `NOT_RUN` / `UNOBSERVABLE`
 
 `UNOBSERVABLE` is never an overall PASS substitute. Skill load may be `UNOBSERVABLE` when Copilot CLI does not emit skill-selection events; scenario PASS may still be justified from hooks, artifact deltas, verifiers, and final response when the observable contract is met.
+
+`overall_status`は`source_run`に記録したsource snapshotについてのevidence verdictであり、current support assessmentではありません。通常validationは全committed resultを検査し、snapshot relationを表示しますが、current fingerprintまたはpackage versionとの差異だけでは失敗しません。Targeted scopeが全PASSなら`PENDING` evidenceを出力してcommandは成功し、scenario failureがあれば`FAIL`として失敗します。`-RequireQualified`は分離されたstrict gateであり、current fingerprint、package version、`apm.yml` hash、Plan Coverage・Adaptive・profile finalizerのruntime-relevant qualification input fingerprintへ正確に一致するfull `QUALIFIED` evidenceを要求します。

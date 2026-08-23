@@ -15,6 +15,7 @@
   "candidate_commit": "UNOBSERVABLE",
   "plan_coverage_package_version": "0.14.0",
   "canonical_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+  "qualification_input_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
   "apm_yml_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
   "install_targets": ["copilot", "codex", "agent-skills"],
   "apm_lock_sha256": "NOT_RUN",
@@ -22,10 +23,30 @@
   "distribution_smoke": {
     "status": "NOT_RUN",
     "command": "./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1",
-    "rationale": "Replace after fresh APM smoke is executed for this candidate."
+    "rationale": "Template identity only. Replace from run-metadata.json after execution."
   },
   "overall_status": "PENDING",
   "qualification_matrix_notes": "Template only. Do not treat as QUALIFIED evidence.",
+  "source_run": {
+    "source_run_id": "TEMPLATE-NOT-RUN",
+    "candidate_commit": "UNOBSERVABLE",
+    "canonical_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+    "qualification_input_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+    "apm_yml_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "package_version": "0.14.0",
+    "apm_lock_sha256": "NOT_RUN",
+    "install_targets": ["copilot", "codex", "agent-skills"],
+    "client_version": "UNOBSERVABLE",
+    "apm_version": "UNOBSERVABLE",
+    "model_requested": null,
+    "model_observed": "client-selected-or-unobserved",
+    "platform": "win32",
+    "distribution_smoke": {
+      "status": "NOT_RUN",
+      "command": "./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1",
+      "rationale": "Template identity only. Replace from run-metadata.json after execution."
+    }
+  },
   "scenarios": [
     {
       "id": "A",

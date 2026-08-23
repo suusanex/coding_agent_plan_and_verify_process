@@ -17,9 +17,13 @@ $docsPath = Join-Path $repoRoot 'docs/plan-coverage-runtime-qualification.md'
 $authPath = Join-Path $packageRoot 'tests/invocation-authorization-scenarios.json'
 $decisionOwnershipPath = Join-Path $packageRoot 'tests/decision-ownership-scenarios.json'
 $failures = [System.Collections.Generic.List[string]]::new()
+$script:validationContext = $null
+
+. (Join-Path $PSScriptRoot 'PlanCoverageRuntimeQualification.Common.ps1')
 
 function Add-Failure([string]$Message) {
-    $failures.Add($Message)
+    $prefix = if ([string]::IsNullOrWhiteSpace($script:validationContext)) { '' } else { "[$script:validationContext] " }
+    $failures.Add("$prefix$Message")
 }
 
 function Get-NormalizedText([string]$Path) {
@@ -72,7 +76,8 @@ function Test-SchemaShape($Result) {
     $required = @(
         'schema_version', 'date', 'runtime', 'client_version', 'model_requested', 'model_observed',
         'apm_version', 'candidate_commit', 'plan_coverage_package_version', 'canonical_fingerprint',
-        'install_targets', 'apm_lock_sha256', 'platform', 'distribution_smoke', 'overall_status', 'scenarios'
+        'apm_yml_sha256', 'install_targets', 'apm_lock_sha256', 'platform', 'distribution_smoke',
+        'overall_status', 'source_run', 'scenarios'
     )
     foreach ($name in $required) {
         if (-not ($Result.psobject.Properties.Name -contains $name)) {
@@ -84,6 +89,14 @@ function Test-SchemaShape($Result) {
     }
     if ($Result.canonical_fingerprint -notmatch '^[a-f0-9]{64}$') {
         Add-Failure 'canonical_fingerprint must be 64-char lowercase hex'
+    }
+    if ($Result.apm_yml_sha256 -notmatch '^[a-f0-9]{64}$') {
+        Add-Failure 'apm_yml_sha256 must be 64-char lowercase hex'
+    }
+    if ($Result.psobject.Properties.Name -contains 'qualification_input_fingerprint' -and
+        $null -ne $Result.qualification_input_fingerprint -and
+        [string]$Result.qualification_input_fingerprint -notmatch '^[a-f0-9]{64}$') {
+        Add-Failure 'qualification_input_fingerprint must be null or 64-char lowercase hex'
     }
     if ($Result.runtime.qualified_client_surface -cne 'github-copilot-cli') {
         Add-Failure 'qualified_client_surface must be github-copilot-cli'
@@ -99,6 +112,9 @@ function Test-SchemaShape($Result) {
     }
     if (@('QUALIFIED', 'PENDING', 'FAIL') -cnotcontains $Result.overall_status) {
         Add-Failure 'overall_status must be QUALIFIED, PENDING, or FAIL'
+    }
+    if ($null -eq $Result.source_run) {
+        Add-Failure 'source_run frozen identity is required for every evidence verdict'
     }
     if ($null -eq $Result.scenarios -or @($Result.scenarios).Count -lt 1) {
         Add-Failure 'scenarios must be a non-empty array'
@@ -138,6 +154,7 @@ function Assert-InfrastructurePresent {
         (Join-Path $rqRoot 'copilot-cli/full-coverage/seed/src/ConsumerGate.ps1'),
         (Join-Path $rqRoot 'copilot-cli/full-coverage/seed/src/StartupFlow.ps1'),
         (Join-Path $packageRoot 'scripts/run-plan-coverage-copilot-qualification.ps1'),
+        (Join-Path $packageRoot 'scripts/PlanCoverageRuntimeQualification.Common.ps1'),
         $docsPath,
         $authPath,
         $decisionOwnershipPath
@@ -175,212 +192,265 @@ function Assert-InfrastructurePresent {
     }
 }
 
-function Resolve-ResultPath {
+function Resolve-ResultPaths {
     if (-not [string]::IsNullOrWhiteSpace($ResultPath)) {
-        return (Resolve-Path -LiteralPath $ResultPath).Path
+        return @((Resolve-Path -LiteralPath $ResultPath).Path)
     }
     if (-not (Test-Path -LiteralPath $resultsDir -PathType Container)) {
-        return $null
+        return @()
     }
-    $files = @(Get-ChildItem -LiteralPath $resultsDir -File -Filter '*-copilot-cli*.json' | Sort-Object -Property LastWriteTime, Name -Descending)
-    if ($files.Count -eq 0) {
-        return $null
+    return @(Get-ChildItem -LiteralPath $resultsDir -File -Filter '*-copilot-cli*.json' | Sort-Object Name)
+}
+
+function Test-ResultJsonSchema([string]$JsonText) {
+    try {
+        if (-not ($JsonText | Test-Json -SchemaFile $schemaPath -ErrorAction Stop)) {
+            Add-Failure 'Result does not satisfy result.schema.json'
+        }
     }
-    return $files[0].FullName
+    catch {
+        Write-Host "TRACE: $($_.Exception.ToString())"
+        Add-Failure "Result schema validation failed: $($_.Exception.Message)"
+    }
+}
+
+function Test-SourceRunIdentity($Result) {
+    if ($null -eq $Result.source_run) { return }
+    $sr = $Result.source_run
+    foreach ($field in @('source_run_id', 'candidate_commit', 'canonical_fingerprint', 'apm_yml_sha256', 'package_version', 'apm_lock_sha256', 'client_version')) {
+        if (-not ($sr.psobject.Properties.Name -contains $field) -or [string]::IsNullOrWhiteSpace([string]$sr.$field)) {
+            Add-Failure "source_run missing $field"
+        }
+    }
+    foreach ($field in @('apm_version', 'model_requested', 'model_observed', 'platform', 'distribution_smoke')) {
+        if (-not ($sr.psobject.Properties.Name -contains $field)) {
+            Add-Failure "source_run missing $field"
+        }
+    }
+    if ([string]$sr.canonical_fingerprint -notmatch '^[a-f0-9]{64}$') {
+        Add-Failure 'source_run.canonical_fingerprint must be 64-char lowercase hex'
+    }
+    if ([string]$sr.apm_yml_sha256 -notmatch '^[a-f0-9]{64}$') {
+        Add-Failure 'source_run.apm_yml_sha256 must be 64-char lowercase hex'
+    }
+    $resultHasQualificationInput = $Result.psobject.Properties.Name -contains 'qualification_input_fingerprint'
+    $sourceHasQualificationInput = $sr.psobject.Properties.Name -contains 'qualification_input_fingerprint'
+    if ($resultHasQualificationInput -ne $sourceHasQualificationInput) {
+        Add-Failure 'result and source_run must either both record qualification_input_fingerprint or both omit it'
+    }
+    if ($sourceHasQualificationInput -and $null -ne $sr.qualification_input_fingerprint -and
+        [string]$sr.qualification_input_fingerprint -notmatch '^[a-f0-9]{64}$') {
+        Add-Failure 'source_run.qualification_input_fingerprint must be null or 64-char lowercase hex'
+    }
+
+    $pairs = @(
+        @('canonical_fingerprint', 'canonical_fingerprint'),
+        @('candidate_commit', 'candidate_commit'),
+        @('plan_coverage_package_version', 'package_version'),
+        @('apm_yml_sha256', 'apm_yml_sha256'),
+        @('qualification_input_fingerprint', 'qualification_input_fingerprint'),
+        @('apm_lock_sha256', 'apm_lock_sha256'),
+        @('client_version', 'client_version'),
+        @('apm_version', 'apm_version'),
+        @('model_requested', 'model_requested'),
+        @('model_observed', 'model_observed'),
+        @('platform', 'platform')
+    )
+    foreach ($pair in $pairs) {
+        $resultField = $pair[0]
+        $sourceField = $pair[1]
+        if ([string]$Result.$resultField -cne [string]$sr.$sourceField) {
+            Add-Failure "result.$resultField must equal source_run.$sourceField (frozen identity; no re-bind)"
+        }
+    }
+    if ((@($Result.install_targets) -join "`n") -cne (@($sr.install_targets) -join "`n")) {
+        Add-Failure 'result.install_targets must equal source_run.install_targets'
+    }
+    if ([string]$Result.distribution_smoke.status -cne [string]$sr.distribution_smoke.status) {
+        Add-Failure 'result.distribution_smoke.status must equal source_run.distribution_smoke.status'
+    }
+    if ([string]$Result.distribution_smoke.command -cne [string]$sr.distribution_smoke.command) {
+        Add-Failure 'result.distribution_smoke.command must equal source_run.distribution_smoke.command'
+    }
+    if ([string]$Result.distribution_smoke.rationale -cne [string]$sr.distribution_smoke.rationale) {
+        Add-Failure 'result.distribution_smoke.rationale must equal source_run.distribution_smoke.rationale'
+    }
+}
+
+function Test-ScenarioEvidenceInvariants($Result) {
+    $byId = @{}
+    foreach ($scenario in @($Result.scenarios)) {
+        $id = [string]$scenario.id
+        if ($byId.ContainsKey($id)) {
+            Add-Failure "Duplicate scenario $id"
+            continue
+        }
+        $byId[$id] = $scenario
+    }
+    if ($Result.overall_status -ceq 'PENDING') {
+        if ($Result.distribution_smoke.status -cne 'PASS') {
+            Add-Failure "PENDING evidence distribution_smoke status is $($Result.distribution_smoke.status), expected PASS"
+        }
+        foreach ($scenario in @($Result.scenarios)) {
+            if ($scenario.status -cne 'PASS') {
+                Add-Failure "PENDING evidence scenario $($scenario.id) status is $($scenario.status), expected PASS for every recorded targeted scenario"
+            }
+        }
+    }
+}
+
+function Test-FullQualificationEvidence($Result) {
+    $byId = @{}
+    foreach ($scenario in @($Result.scenarios)) {
+        $id = [string]$scenario.id
+        $byId[$id] = $scenario
+    }
+
+    $requiredIds = @('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'STD-001', 'FULL-001')
+    $packageSemVer = $null
+    if ([version]::TryParse([string]$Result.plan_coverage_package_version, [ref]$packageSemVer) -and $packageSemVer -ge [version]'0.14.0') {
+        $requiredIds = @($requiredIds[0..7]) + @('DO-001', 'DO-002', 'DO-003') + @($requiredIds[8..9])
+    }
+    foreach ($id in $requiredIds) {
+        if (-not $byId.ContainsKey($id)) {
+            Add-Failure "Missing required scenario $id"
+            continue
+        }
+        if ($byId[$id].status -cne 'PASS') {
+            Add-Failure "Required scenario $id status is $($byId[$id].status), expected PASS"
+        }
+    }
+    if ($Result.distribution_smoke.status -cne 'PASS') {
+        Add-Failure 'distribution_smoke must be PASS for QUALIFIED evidence'
+    }
+
+    $adaptiveOk = $false
+    foreach ($id in @('STD-001', 'FULL-001')) {
+        if (-not $byId.ContainsKey($id)) { continue }
+        $scenario = $byId[$id]
+        $ac = $scenario.adaptive_connection
+        if (-not $ac -or -not ($ac.psobject.Properties.Name -contains 'connection_satisfied')) {
+            Add-Failure "$id adaptive_connection lacks structured phases required for QUALIFIED evidence"
+            continue
+        }
+        if ($ac.connection_satisfied) { $adaptiveOk = $true }
+        foreach ($phaseName in @('high_execution', 'handoff', 'standard_execution')) {
+            if (-not ($ac.psobject.Properties.Name -contains $phaseName)) {
+                Add-Failure "$id adaptive_connection missing phase $phaseName"
+                continue
+            }
+            $phase = $ac.$phaseName
+            $phaseStatus = [string]$phase.status
+            if ($phaseStatus -like 'OBSERVED_*' -and [string]::IsNullOrWhiteSpace([string]$phase.evidence)) {
+                Add-Failure "$id.$phaseName OBSERVED_* requires evidence path/ref"
+            }
+            if ($phaseName -ceq 'standard_execution' -and $phaseStatus -like 'OBSERVED_*' -and
+                [string]$phase.evidence -match 'READY_FOR_STANDARD_COMPLETION' -and
+                [string]$phase.evidence -notmatch 'standard-implementation-completer|COMPLETED_BY_STANDARD|hooks/session') {
+                Add-Failure "$id.standard_execution must not treat READY_FOR_STANDARD_COMPLETION alone as STANDARD execution"
+            }
+        }
+        if ($ac.high_observed -and $ac.high_execution.status -notlike 'OBSERVED_*') {
+            Add-Failure "$id high_observed=true but high_execution is not OBSERVED_*"
+        }
+        if ($ac.standard_observed -and $ac.standard_execution.status -notlike 'OBSERVED_*') {
+            Add-Failure "$id standard_observed=true but standard_execution is not OBSERVED_*"
+        }
+        if ($ac.handoff_observed -and $ac.handoff.status -notlike 'OBSERVED_*') {
+            Add-Failure "$id handoff_observed=true but handoff is not OBSERVED_*"
+        }
+        if ($ac.design_pair_auto_selected) {
+            Add-Failure "Design Pair auto-selection evidence present in $id"
+        }
+    }
+    if (-not $adaptiveOk) {
+        Add-Failure 'Adaptive connection_satisfied evidence missing from STD-001/FULL-001'
+    }
 }
 
 Assert-InfrastructurePresent
 
 $currentFingerprint = Get-CanonicalFingerprint $canonicalRoot
 $currentPackageVersion = Get-PackageVersion $apmYmlPath
-$resolvedResult = Resolve-ResultPath
+$currentApmYmlSha256 = Get-Sha256File $apmYmlPath
+$currentQualificationInputFingerprint = Get-PlanCoverageQualificationInputFingerprint $repoRoot
+$resolvedResults = @(Resolve-ResultPaths)
+$hasCurrentQualifiedEvidence = $false
 
-if (-not $resolvedResult) {
-    if ($RequireQualified) {
-        Add-Failure 'No runtime qualification result JSON found and -RequireQualified was set.'
-    }
-    else {
-        Write-Host "No committed copilot-cli result JSON yet. Infrastructure checks only."
-        Write-Host "current_canonical_fingerprint=$currentFingerprint"
-        Write-Host "current_package_version=$currentPackageVersion"
-        if ($failures.Count -gt 0) {
-            Write-Host 'Plan Coverage runtime qualification validator: FAIL'
-            $failures | ForEach-Object { Write-Host " - $_" }
-            exit 1
-        }
-        Write-Host 'Plan Coverage runtime qualification validator: PASS (infrastructure; qualification PENDING)'
-        exit 0
-    }
+if ($resolvedResults.Count -eq 0 -and $RequireQualified) {
+    Add-Failure 'No runtime qualification result JSON found and -RequireQualified was set.'
 }
 
-Write-Host "Validating result: $resolvedResult"
-$result = Get-Content -Raw -LiteralPath $resolvedResult | ConvertFrom-Json
-Test-SchemaShape $result
+foreach ($resolvedResult in $resolvedResults) {
+    $script:validationContext = Split-Path -Leaf $resolvedResult
+    Write-Host "Validating result: $resolvedResult"
+    $failuresBeforeResult = $failures.Count
+    $resultJson = Get-Content -Raw -LiteralPath $resolvedResult
+    Test-ResultJsonSchema $resultJson
+    $result = $resultJson | ConvertFrom-Json
+    Test-SchemaShape $result
+    Test-SourceRunIdentity $result
+    Test-ScenarioEvidenceInvariants $result
 
-if ($result.plan_coverage_package_version -cne $currentPackageVersion) {
+    $isCurrentSnapshot = (
+        [string]$result.canonical_fingerprint -ceq $currentFingerprint -and
+        [string]$result.plan_coverage_package_version -ceq $currentPackageVersion -and
+        [string]$result.apm_yml_sha256 -ceq $currentApmYmlSha256 -and
+        $result.psobject.Properties.Name -contains 'qualification_input_fingerprint' -and
+        [string]$result.qualification_input_fingerprint -ceq $currentQualificationInputFingerprint
+    )
+    $snapshotRelation = if ($isCurrentSnapshot) {
+        'CURRENT_SNAPSHOT'
+    }
+    elseif ($result.overall_status -ceq 'QUALIFIED') {
+        'HISTORICAL_BASELINE'
+    }
+    else {
+        'DIFFERENT_SNAPSHOT'
+    }
+
     if ($result.overall_status -ceq 'QUALIFIED') {
-        Add-Failure "QUALIFIED result package version $($result.plan_coverage_package_version) != current $currentPackageVersion"
+        Test-FullQualificationEvidence $result
     }
+    if ($isCurrentSnapshot -and $result.overall_status -ceq 'QUALIFIED' -and $failures.Count -eq $failuresBeforeResult) {
+        $hasCurrentQualifiedEvidence = $true
+    }
+
+    Write-Host "evidence_verdict=$($result.overall_status)"
+    Write-Host "snapshot_relation=$snapshotRelation"
 }
 
-if ($result.canonical_fingerprint -cne $currentFingerprint) {
-    if ($result.overall_status -ceq 'QUALIFIED') {
-        Add-Failure "QUALIFIED result fingerprint does not match current canonical source ($currentFingerprint)"
-    }
-    else {
-        Write-Host "Note: result fingerprint differs from current canonical source (allowed while PENDING/FAIL)."
-    }
-}
-
-$docsText = if (Test-Path -LiteralPath $docsPath) { Get-NormalizedText $docsPath } else { '' }
-if ($result.overall_status -ceq 'QUALIFIED') {
-    if ($docsText -cnotmatch 'QUALIFIED' -and $docsText -cnotmatch 'qualified') {
-        Add-Failure 'Result is QUALIFIED but docs/plan-coverage-runtime-qualification.md does not record qualified status.'
-    }
-}
-if ($docsText -cmatch '(?i)VS Code Agent mode[^\n]*qualified' -and $docsText -cnotmatch 'not.*qualified|separate') {
-    Add-Failure 'Docs must not claim VS Code Agent mode runtime qualification for this Issue.'
-}
-
-$byId = @{}
-foreach ($s in @($result.scenarios)) {
-    $byId[[string]$s.id] = $s
-}
-
-$requiredIds = @('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'DO-001', 'DO-002', 'DO-003', 'STD-001', 'FULL-001')
-foreach ($id in $requiredIds) {
-    if (-not $byId.ContainsKey($id)) {
-        if ($result.overall_status -ceq 'QUALIFIED' -or $RequireQualified) {
-            Add-Failure "Missing required scenario $id"
-        }
-    }
-}
-
-if ($result.overall_status -ceq 'QUALIFIED' -or $RequireQualified) {
-    if ($result.distribution_smoke.status -cne 'PASS') {
-        Add-Failure 'distribution_smoke must be PASS for QUALIFIED evidence'
-    }
-    foreach ($id in $requiredIds) {
-        if (-not $byId.ContainsKey($id)) { continue }
-        $s = $byId[$id]
-        if ($s.status -cne 'PASS') {
-            Add-Failure "Required scenario $id status is $($s.status), expected PASS"
-        }
-        if ($s.status -ceq 'UNOBSERVABLE') {
-            Add-Failure "Required scenario $id must not use UNOBSERVABLE as overall scenario status"
-        }
-        if ($s.status -ceq 'NOT_RUN') {
-            Add-Failure "Required scenario $id is NOT_RUN"
-        }
-        if ($s.status -ceq 'FAIL') {
-            Add-Failure "Required scenario $id is FAIL"
-        }
-    }
-
-    $std = $byId['STD-001']
-    $full = $byId['FULL-001']
-    $adaptiveOk = $false
-    $handoffOk = $false
-    foreach ($s in @($std, $full)) {
-        if ($null -eq $s) { continue }
-        $ac = $s.adaptive_connection
-        if (-not $ac) { continue }
-
-        # Reject weak boolean-only claims without structured phases when present on newer evidence.
-        if ($ac.psobject.Properties.Name -contains 'connection_satisfied') {
-            if ($ac.connection_satisfied) { $adaptiveOk = $true }
-            if ($ac.high_to_standard_handoff_satisfied) { $handoffOk = $true }
-
-            foreach ($phaseName in @('high_execution', 'handoff', 'standard_execution')) {
-                if (-not ($ac.psobject.Properties.Name -contains $phaseName)) {
-                    Add-Failure "$($s.id) adaptive_connection missing phase $phaseName"
-                    continue
-                }
-                $phase = $ac.$phaseName
-                $st = [string]$phase.status
-                if ($st -like 'OBSERVED_*' -and [string]::IsNullOrWhiteSpace([string]$phase.evidence)) {
-                    Add-Failure "$($s.id).$phaseName OBSERVED_* requires evidence path/ref"
-                }
-                # READY_FOR_STANDARD_COMPLETION alone must not imply STANDARD execution.
-                if ($phaseName -ceq 'standard_execution' -and $st -like 'OBSERVED_*') {
-                    if ([string]$phase.evidence -match 'READY_FOR_STANDARD_COMPLETION' -and [string]$phase.evidence -notmatch 'standard-implementation-completer|COMPLETED_BY_STANDARD|hooks/session') {
-                        Add-Failure "$($s.id).standard_execution must not treat READY_FOR_STANDARD_COMPLETION alone as STANDARD execution"
-                    }
-                }
-            }
-
-            if ($ac.high_observed -and $ac.high_execution.status -notlike 'OBSERVED_*') {
-                Add-Failure "$($s.id) high_observed=true but high_execution is not OBSERVED_*"
-            }
-            if ($ac.standard_observed -and $ac.standard_execution.status -notlike 'OBSERVED_*') {
-                Add-Failure "$($s.id) standard_observed=true but standard_execution is not OBSERVED_*"
-            }
-            if ($ac.handoff_observed -and $ac.handoff.status -notlike 'OBSERVED_*') {
-                Add-Failure "$($s.id) handoff_observed=true but handoff is not OBSERVED_*"
-            }
-        }
-        else {
-            # Legacy boolean-only shape is insufficient for QUALIFIED.
-            Add-Failure "$($s.id) adaptive_connection lacks structured phases required for QUALIFIED evidence"
-        }
-
-        if ($ac.design_pair_auto_selected) {
-            Add-Failure "Design Pair auto-selection evidence present in $($s.id)"
-        }
-    }
-    if (-not $adaptiveOk) {
-        Add-Failure 'Adaptive connection_satisfied evidence missing from STD-001/FULL-001 (structured HIGH durable/hook evidence required)'
-    }
-
-    if (-not ($result.psobject.Properties.Name -contains 'source_run') -or $null -eq $result.source_run) {
-        Add-Failure 'QUALIFIED result must include source_run frozen identity'
-    }
-    else {
-        $sr = $result.source_run
-        foreach ($field in @('source_run_id', 'candidate_commit', 'canonical_fingerprint', 'apm_yml_sha256', 'package_version', 'apm_lock_sha256', 'client_version')) {
-            if (-not ($sr.psobject.Properties.Name -contains $field) -or [string]::IsNullOrWhiteSpace([string]$sr.$field)) {
-                Add-Failure "source_run missing $field"
-            }
-        }
-        if ([string]$sr.canonical_fingerprint -cne [string]$result.canonical_fingerprint) {
-            Add-Failure 'result.canonical_fingerprint must equal source_run.canonical_fingerprint (no re-bind)'
-        }
-        if ([string]$sr.candidate_commit -cne [string]$result.candidate_commit) {
-            Add-Failure 'result.candidate_commit must equal source_run.candidate_commit (no re-bind)'
-        }
-        if ([string]$sr.package_version -cne [string]$result.plan_coverage_package_version) {
-            Add-Failure 'result.plan_coverage_package_version must equal source_run.package_version'
-        }
-        if ([string]$sr.apm_yml_sha256 -cne [string]$result.apm_yml_sha256) {
-            Add-Failure 'result.apm_yml_sha256 must equal source_run.apm_yml_sha256'
-        }
-        if ([string]$sr.canonical_fingerprint -cne $currentFingerprint) {
-            Add-Failure "QUALIFIED source_run fingerprint must match current canonical source ($currentFingerprint)"
-        }
-    }
-
-    if ($result.canonical_fingerprint -cne $currentFingerprint) {
-        Add-Failure 'QUALIFIED evidence fingerprint must match current canonical .apm source'
-    }
-    if ($result.plan_coverage_package_version -cne $currentPackageVersion) {
-        Add-Failure 'QUALIFIED evidence package version must match current apm.yml'
-    }
-}
-else {
-    # PENDING/FAIL evidence must not be treated as current qualification in docs.
-    if ($docsText -cmatch '(?m)^.*\bQUALIFIED\b.*GitHub Copilot CLI' -and $docsText -cnotmatch 'PENDING|not qualified|NOT QUALIFIED') {
-        # Allow historical wording if PENDING is also explicit.
-        if ($docsText -cnotmatch 'overall_status:\s*PENDING' -and $docsText -cnotmatch 'status:\s*PENDING' -and $docsText -cnotmatch 'PENDING \(not QUALIFIED\)') {
-            Add-Failure 'Docs appear to claim QUALIFIED while result overall_status is not QUALIFIED'
-        }
-    }
-}
-
-# Template must remain valid sample
-$template = Get-Content -Raw -LiteralPath $templatePath | ConvertFrom-Json
+$script:validationContext = 'result-template.json'
+$templateJson = Get-Content -Raw -LiteralPath $templatePath
+Test-ResultJsonSchema $templateJson
+$template = $templateJson | ConvertFrom-Json
+Test-SchemaShape $template
+Test-SourceRunIdentity $template
 if ($template.overall_status -cne 'PENDING') {
-    Add-Failure 'result-template.json overall_status must remain PENDING'
+    Add-Failure 'overall_status must remain PENDING'
 }
+
+$script:validationContext = 'policy-doc'
+$docsText = if (Test-Path -LiteralPath $docsPath) { Get-NormalizedText $docsPath } else { '' }
+foreach ($term in @('evidence validity', 'evidence verdict', 'support assessment', 'targeted runtime risk', 'full runtime risk')) {
+    if ($docsText -notmatch [regex]::Escape($term)) {
+        Add-Failure "Runtime qualification policy must define $term"
+    }
+}
+if ($docsText -cmatch '(?i)VS Code Agent mode[^\n]*qualified' -and $docsText -cnotmatch 'not.*qualified|separate|別') {
+    Add-Failure 'Docs must not claim VS Code Agent mode runtime qualification.'
+}
+
+if ($RequireQualified -and -not $hasCurrentQualifiedEvidence) {
+    $script:validationContext = $null
+    Add-Failure 'No full QUALIFIED evidence matches the current canonical fingerprint, package version, apm.yml hash, and runtime-relevant qualification input fingerprint.'
+}
+
+$script:validationContext = $null
+Write-Host "current_canonical_fingerprint=$currentFingerprint"
+Write-Host "current_package_version=$currentPackageVersion"
+Write-Host "current_apm_yml_sha256=$currentApmYmlSha256"
+Write-Host "current_qualification_input_fingerprint=$currentQualificationInputFingerprint"
 
 if ($failures.Count -gt 0) {
     Write-Host 'Plan Coverage runtime qualification validator: FAIL'
@@ -388,7 +458,6 @@ if ($failures.Count -gt 0) {
     exit 1
 }
 
-Write-Host "current_canonical_fingerprint=$currentFingerprint"
-Write-Host "result_overall_status=$($result.overall_status)"
-Write-Host 'Plan Coverage runtime qualification validator: PASS'
+$mode = if ($RequireQualified) { 'strict current qualification' } else { 'ordinary evidence integrity' }
+Write-Host "Plan Coverage runtime qualification validator: PASS ($mode)"
 exit 0

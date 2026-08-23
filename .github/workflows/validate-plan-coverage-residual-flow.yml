@@ -54,7 +54,7 @@ jobs:
         run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1
       - name: Validate committed runtime qualification evidence contract
         shell: pwsh
-        run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-runtime-qualification.ps1
+        run: ./apm-packages/plan-coverage-residual-flow/scripts/test-plan-coverage-runtime-qualification-validator.ps1
       - name: Check branch or PR whitespace
         shell: pwsh
         env:

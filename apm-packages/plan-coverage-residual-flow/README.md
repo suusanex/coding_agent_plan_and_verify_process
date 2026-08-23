@@ -312,7 +312,7 @@ Canonical Plan Coverage semantics remain runtime-neutral under `.apm/`. Distribu
 - [Runtime qualification matrix](../../docs/plan-coverage-runtime-qualification.md)
 - [Runtime qualification fixtures](tests/runtime-qualification/README.md)
 
-Current Copilot CLI status is recorded in that matrix document. The targeted current run passed DO-001〜DO-003; the status remains `PENDING` until a fresh run also passes A-H, STD-001, and FULL-001. Do not treat VS Code Agent mode as qualified unless a separate runtime run says so.
+現行Copilot CLIのsupport assessmentはmatrix文書に記録します。0.13.0のfull `QUALIFIED` evidenceは取得時snapshotへ紐付けたまま保持し、0.14.0のtargeted runはDO-001〜DO-003 PASSを含む`PENDING` evidenceとして保持します。現行support assessmentはhistorical baselineとtargeted deltaを組み合わせてcarry forwardし、fingerprint変更だけを理由に無関係なA-H、STD-001、FULL-001を再実行しません。VS Code Agent modeは別のruntime runが示さない限りqualifiedとして扱いません。
 
 ## Agent Plugins PoC and adoption policy (Issue #107 / #113)
 
