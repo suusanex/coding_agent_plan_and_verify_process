@@ -1,42 +1,136 @@
 [CmdletBinding()]
-param([string[]]$Package)
+param(
+    [string[]]$Package,
+    [switch]$SkipNegativeMutations
+)
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'AgentPlugin.Common.ps1')
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $schemaPath = Join-Path $repoRoot 'tests/agent-plugins/qualification.schema.json'
-$schema = Get-Content -Raw -LiteralPath $schemaPath | ConvertFrom-Json
-if ($schema.additionalProperties -ne $false -or @($schema.required).Count -eq 0) { throw 'Qualification schema must be closed and declare required fields.' }
+if (-not (Test-Path -LiteralPath $schemaPath -PathType Leaf)) { throw "Qualification schema is missing: $schemaPath" }
 if (-not $Package -or $Package.Count -eq 0) {
     $Package = @('adaptive-implementation-execution','design-pair-implementation-execution','goal-context-authoring','pr-review-remediation','persistent-purpose-review','plan-coverage-residual-flow')
 }
-$allowedStatuses = @('PASS','FAIL','HOLD','NOT_RUN','UNOBSERVABLE')
-$allowedModes = @('LIVE','REUSED','PARTIAL','NONE')
+
+function Add-QualificationFailure([Collections.Generic.List[string]]$Failures, [string]$Message) {
+    $Failures.Add($Message) | Out-Null
+}
+
+function Get-QualificationEvidenceFailure([string]$Reference) {
+    if ([string]::IsNullOrWhiteSpace($Reference)) { return 'evidence reference is empty' }
+    if (Test-AgentPluginPathEscape $repoRoot $Reference) { return "evidence reference escapes repository: $Reference" }
+
+    $relative = $Reference.Replace('/', [IO.Path]::DirectorySeparatorChar)
+    $candidate = [IO.Path]::GetFullPath((Join-Path $repoRoot $relative))
+    $rootPrefix = [IO.Path]::GetFullPath($repoRoot).TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+    if (-not $candidate.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) { return "evidence reference escapes repository: $Reference" }
+
+    $current = $repoRoot
+    foreach ($segment in @($relative -split '[\\/]' | Where-Object { $_ })) {
+        $current = Join-Path $current $segment
+        if (Test-Path -LiteralPath $current) {
+            $item = Get-Item -LiteralPath $current -Force
+            if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { return "evidence reference crosses a reparse point: $Reference" }
+        }
+    }
+    if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) { return "evidence file does not exist: $Reference" }
+    return $null
+}
+
+function Get-AgentPluginQualificationFailures([string]$Path, [string]$ExpectedPackage) {
+    $failures = [Collections.Generic.List[string]]::new()
+    try {
+        $valid = Test-Json -LiteralPath $Path -SchemaFile $schemaPath -ErrorAction Stop
+        if (-not $valid) { Add-QualificationFailure $failures 'record does not conform to qualification JSON Schema' }
+    }
+    catch {
+        Add-QualificationFailure $failures "qualification JSON Schema validation failed: $($_.Exception.Message)"
+        return $failures
+    }
+
+    try { $result = Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json }
+    catch {
+        Add-QualificationFailure $failures "qualification JSON could not be parsed: $($_.Exception.Message)"
+        return $failures
+    }
+
+    if ([string]$result.package -cne $ExpectedPackage) { Add-QualificationFailure $failures "package identity differs from $ExpectedPackage" }
+    $packageRoot = Join-Path $repoRoot "apm-packages/$ExpectedPackage"
+    $currentFingerprint = Get-AgentPluginCanonicalFingerprint (Join-Path $packageRoot '.apm')
+    if ([string]$result.canonicalFingerprint -cne $currentFingerprint) { Add-QualificationFailure $failures 'canonical fingerprint is not current' }
+
+    $distributions = @($result.assessments | ForEach-Object { $_.distribution })
+    if (($distributions | Sort-Object) -join '|' -cne 'agent-plugin-direct|apm') {
+        Add-QualificationFailure $failures 'record must contain exactly one APM and one direct assessment'
+    }
+    foreach ($assessment in @($result.assessments)) {
+        $identity = "$ExpectedPackage/$($assessment.distribution)"
+        $references = @($assessment.evidenceRefs)
+        if ([string]$assessment.status -ceq 'PASS' -and $references.Count -eq 0) { Add-QualificationFailure $failures "PASS requires evidenceRefs for $identity" }
+        if ([string]$assessment.status -ceq 'PASS' -and [string]$assessment.evidenceMode -ceq 'NONE') { Add-QualificationFailure $failures "PASS cannot use evidenceMode NONE for $identity" }
+        if (($references | Sort-Object -Unique).Count -ne $references.Count) { Add-QualificationFailure $failures "duplicate evidenceRefs for $identity" }
+        foreach ($reference in $references) {
+            $evidenceFailure = Get-QualificationEvidenceFailure ([string]$reference)
+            if ($evidenceFailure) { Add-QualificationFailure $failures "$identity $evidenceFailure" }
+        }
+    }
+    return $failures
+}
 
 foreach ($name in $Package) {
-    $packageRoot = Join-Path $repoRoot "apm-packages/$name"
-    $path = Join-Path $packageRoot 'tests/agent-plugin/qualification.json'
+    $path = Join-Path $repoRoot "apm-packages/$name/tests/agent-plugin/qualification.json"
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing qualification record: $path" }
-    $result = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
-    foreach ($required in @($schema.required)) {
-        if ($result.PSObject.Properties.Name -notcontains $required) { throw "Qualification record missing $required for $name" }
-    }
-    foreach ($property in $result.PSObject.Properties.Name) {
-        if ($schema.properties.PSObject.Properties.Name -notcontains $property) { throw "Qualification record contains unsupported field $property for $name" }
-    }
-    if ([int]$result.schemaVersion -ne 1 -or [string]$result.package -cne $name) { throw "Invalid qualification identity: $name" }
-    $currentFingerprint = Get-AgentPluginCanonicalFingerprint (Join-Path $packageRoot '.apm')
-    if ([string]$result.canonicalFingerprint -cne $currentFingerprint) { throw "Qualification fingerprint is not current for $name" }
-    if ([string]$result.candidateCommit -notmatch '^(?:[a-f0-9]{40}|UNCOMMITTED)$') { throw "Invalid candidateCommit for $name" }
-    if ([string]$result.runtime.surface -cne 'github-copilot-cli') { throw "Invalid runtime surface for $name" }
-    $distributions = @($result.assessments | ForEach-Object distribution)
-    if (($distributions | Sort-Object) -join '|' -cne 'agent-plugin-direct|apm') { throw "Qualification must contain exactly APM and direct assessments for $name" }
-    foreach ($assessment in @($result.assessments)) {
-        if ($allowedStatuses -notcontains [string]$assessment.status) { throw "Invalid status for $name/$($assessment.distribution)" }
-        if ($allowedModes -notcontains [string]$assessment.evidenceMode) { throw "Invalid evidenceMode for $name/$($assessment.distribution)" }
-        if ([string]::IsNullOrWhiteSpace([string]$assessment.reason)) { throw "Missing reason for $name/$($assessment.distribution)" }
-        if ([string]$assessment.status -ceq 'PASS' -and @($assessment.evidenceRefs).Count -eq 0) { throw "PASS requires evidenceRefs for $name/$($assessment.distribution)" }
-        if ([string]$assessment.status -eq 'PASS' -and [string]$assessment.evidenceMode -eq 'NONE') { throw "PASS cannot use evidenceMode NONE for $name/$($assessment.distribution)" }
-    }
+    $failures = @(Get-AgentPluginQualificationFailures -Path $path -ExpectedPackage $name)
+    if ($failures.Count -gt 0) { throw ("Agent Plugin qualification failed for ${name}:`n- " + ($failures -join "`n- ")) }
     Write-Output "Agent Plugin qualification record: PASS ($name)"
+}
+
+if (-not $SkipNegativeMutations) {
+    $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
+    $mutationRoot = Join-Path $tempRoot ('agent-plugin-qualification-mutations-' + [guid]::NewGuid().ToString('N'))
+    $safeToDelete = $false
+    try {
+        $null = New-Item -ItemType Directory -Path $mutationRoot -Force
+        $resolvedMutationRoot = (Resolve-Path -LiteralPath $mutationRoot).Path
+        if (-not $resolvedMutationRoot.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase)) { throw "Unsafe qualification mutation root: $resolvedMutationRoot" }
+        $safeToDelete = $true
+        $baselinePackage = [string]$Package[0]
+        $baselinePath = Join-Path $repoRoot "apm-packages/$baselinePackage/tests/agent-plugin/qualification.json"
+
+        function Assert-QualificationMutationFails([string]$Name, [scriptblock]$Mutate, [string]$ExpectedPattern) {
+            $path = Join-Path $resolvedMutationRoot "$Name.json"
+            Copy-Item -LiteralPath $baselinePath -Destination $path
+            $record = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
+            & $Mutate $record
+            [IO.File]::WriteAllText($path, (($record | ConvertTo-Json -Depth 30) + "`n"), [Text.UTF8Encoding]::new($false))
+            $failures = @(Get-AgentPluginQualificationFailures -Path $path -ExpectedPackage $baselinePackage)
+            if ($failures.Count -eq 0) { throw "Qualification negative mutation was not detected: $Name" }
+            if (($failures -join "`n") -notmatch $ExpectedPattern) { throw "Qualification mutation did not use expected validation path: $Name" }
+        }
+
+        Assert-QualificationMutationFails 'missing-client-version' {
+            param($record)
+            $record.runtime.PSObject.Properties.Remove('clientVersion')
+        } 'JSON Schema'
+        Assert-QualificationMutationFails 'unexpected-assessment-field' {
+            param($record)
+            $record.assessments[0] | Add-Member -NotePropertyName unsupported -NotePropertyValue $true
+        } 'JSON Schema'
+        Assert-QualificationMutationFails 'missing-evidence-file' {
+            param($record)
+            $record.assessments[0].evidenceRefs = @('tests/agent-plugins/results/does-not-exist.md')
+        } 'evidence file does not exist'
+        Assert-QualificationMutationFails 'escaping-evidence-path' {
+            param($record)
+            $record.assessments[0].evidenceRefs = @('../outside-repository.md')
+        } 'escapes repository'
+    }
+    finally {
+        if ($safeToDelete -and (Test-Path -LiteralPath $mutationRoot)) {
+            $resolved = [IO.Path]::GetFullPath($mutationRoot)
+            if (-not $resolved.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase)) { throw "Refusing to remove unsafe qualification mutation root: $resolved" }
+            Remove-Item -LiteralPath $resolved -Recurse -Force
+        }
+    }
 }

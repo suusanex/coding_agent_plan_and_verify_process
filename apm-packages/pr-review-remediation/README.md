@@ -22,7 +22,7 @@ APMは`pr-review-remediation` Skillと`review-planner`を導入します。final
 2. `gh pr edit <number> --add-reviewer @copilot`等でGitHub上のreviewを要求する。失敗時はpolling前に停止する。
 3. `collect-pr-review-context.cs`でremote PR identity、review/comment/check、patchを取得する。
 4. `review-planner`がremote sourceを`Apply | Hold | Reject`へ整理し、implementation intentとvalidationを含むreview planを作成する。
-5. `READY_FOR_ADAPTIVE_IMPLEMENTATION | HUMAN_DECISION_REQUIRED | BLOCKED`を返して停止する。Phase 1ではproduction、commit、pushを変更しない。
+5. `READY_FOR_ADAPTIVE_IMPLEMENTATION | REVIEW_COMPLETE | HUMAN_DECISION_REQUIRED | BLOCKED`を返して停止する。Phase 1ではproduction、commit、pushを変更しない。`REVIEW_COMPLETE`では修正計画やAdaptive開始promptを生成しない。
 
 ```powershell
 dotnet run --file .agents/skills/pr-review-remediation/scripts/collect-pr-review-context.cs -- --repo owner/name --pr 123 --out .review/pr-123

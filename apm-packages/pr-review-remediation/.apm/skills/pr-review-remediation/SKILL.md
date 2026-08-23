@@ -68,7 +68,9 @@ collectorがDraft、base/head drift、GitHub CLI失敗、不正JSON、permission
 
 すべてのremote finding/comment/checkにsource IDを維持し、`Apply | Hold | Reject`と理由を付けます。duplicate/conflict、remediation scope、acceptance、`implementation_intent`、human decision、blockerを隠しません。
 
-Phase 1 verdictは`READY_FOR_ADAPTIVE_IMPLEMENTATION | HUMAN_DECISION_REQUIRED | BLOCKED`のいずれかです。次をすべて満たす場合だけ`READY_FOR_ADAPTIVE_IMPLEMENTATION`を受理します。
+Phase 1 verdictは`READY_FOR_ADAPTIVE_IMPLEMENTATION | REVIEW_COMPLETE | HUMAN_DECISION_REQUIRED | BLOCKED`のいずれかです。
+
+1件以上の`Apply` findingがあり、次をすべて満たす場合だけ`READY_FOR_ADAPTIVE_IMPLEMENTATION`を受理します。
 
 - PR identityがcollector outputと一致する
 - 必須remote review sourceが取得済み、または未取得でも進む利用者の明示判断が記録されている
@@ -78,9 +80,11 @@ Phase 1 verdictは`READY_FOR_ADAPTIVE_IMPLEMENTATION | HUMAN_DECISION_REQUIRED |
 - blocking conflict、product判断不足、head driftがない
 - `Production code changed: No`
 
+`Apply` findingがなく、未解決の`Hold`やconflictもなく、必須remote source、PR identity、checksにblockerがない場合は`REVIEW_COMPLETE`とします。この終端では変更不要であることと全source coverageを記録し、ordered remediation、`implementation_intent`、Adaptive開始promptを生成しません。timeout、未取得review、permission failure、head driftを`REVIEW_COMPLETE`へ変換してはいけません。
+
 ### 4. Stop the parent turn
 
-`READY_FOR_ADAPTIVE_IMPLEMENTATION`でもAdaptiveを起動しません。成果物path、Phase 1 verdict、未取得・未検証事項、人手作業、次のpromptを報告して親ターンを終了します。
+`READY_FOR_ADAPTIVE_IMPLEMENTATION`でもAdaptiveを起動しません。成果物path、Phase 1 verdict、未取得・未検証事項、人手作業、次のpromptを報告して親ターンを終了します。`REVIEW_COMPLETE`では修正不要であることを報告し、Phase 2用promptを返さず終了します。
 
 ## Phase 2
 

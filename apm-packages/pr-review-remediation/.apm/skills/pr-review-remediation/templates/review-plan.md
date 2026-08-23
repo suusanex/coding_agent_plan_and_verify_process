@@ -2,9 +2,9 @@
 
 ## Phase 1 Verdict
 
-- Verdict: READY_FOR_ADAPTIVE_IMPLEMENTATION / HUMAN_DECISION_REQUIRED / BLOCKED
+- Verdict: READY_FOR_ADAPTIVE_IMPLEMENTATION / REVIEW_COMPLETE / HUMAN_DECISION_REQUIRED / BLOCKED
 - Production code changed: No
-- Process status: Review planning complete / Human decision required / Blocked
+- Process status: Review planning complete / Review complete, no remediation required / Human decision required / Blocked
 
 ## PR Identity
 
@@ -39,11 +39,15 @@
 
 ## Ordered Remediation Plan
 
+`REVIEW_COMPLETE`の場合はこのsectionを`N/A - no remediation required`とし、stepを生成しません。
+
 | Step | Scope ID | Acceptance ID | Finding IDs | Change | Expected files / symbols | Acceptance | Validation |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | SI-001 | AC-001 |  |  |  |  |  |
 
 ## Implementation Intent
+
+`REVIEW_COMPLETE`の場合はこのsectionを省略します。
 
 ```yaml
 implementation_intent:
@@ -67,6 +71,8 @@ implementation_intent:
 - 人手での作業が必要: N/A
 
 ## Explicit Implementation Turn Handoff
+
+`REVIEW_COMPLETE`の場合はこのsectionを省略します。
 
 ```text
 $adaptive-implementation-execution を使って .review/pr-123/review-plan.md を実装してください。

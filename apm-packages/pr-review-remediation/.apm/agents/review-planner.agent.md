@@ -31,17 +31,18 @@ description: Convert remote GitHub PR review evidence into an Adaptive-ready rem
 2. 重複は統合してよいが、すべてのsource IDを残す。
 3. 競合、product判断不足、未取得の必須review、head driftを隠さない。
 4. `waitStatus: timeout`、`observedReviewState: none`、request/permission failureを「findingsなし」と扱わない。
-5. 未取得reviewでも進む利用者の明示判断がなければ`READY_FOR_ADAPTIVE_IMPLEMENTATION`を返さない。
+5. 未取得reviewでも進む利用者の明示判断がなければ`READY_FOR_ADAPTIVE_IMPLEMENTATION`または`REVIEW_COMPLETE`を返さない。
 6. すべての`Apply` findingをscopeまたはacceptanceへ対応付ける。
 7. 無関係なrefactor、仕様追加、PR外差分をscopeへ入れない。
 8. implementation route、model selection、HIGH/STANDARD verdict、handoff、re-entryを再定義しない。
 9. collectorが指定するremote patchを正本とし、working tree差分や別patchで代用しない。
-10. actionable findingがなく、必須remote sourceが取得済みで、checksとidentityにblockerがない場合は空planを作らず、変更不要であることを明記して停止する。
+10. `Apply` findingがなく、未解決の`Hold`やconflictもなく、必須remote sourceが取得済みで、checksとidentityにblockerがない場合は`REVIEW_COMPLETE`とする。変更不要であることと全source coverageを明記し、空のremediation planを作らず停止する。
 11. `READY_FOR_ADAPTIVE_IMPLEMENTATION`でもproductionを変更せず、別の明示turn用handoffだけを返す。
+12. `REVIEW_COMPLETE`ではordered remediation、`implementation_intent`、Adaptive開始promptを出力しない。
 
 ## Adaptive handoff
 
-実装対象があるplanには次のcanonical blockを含めます。
+`READY_FOR_ADAPTIVE_IMPLEMENTATION`となる実装対象があるplanには次のcanonical blockを含めます。
 
 ```yaml
 implementation_intent:
@@ -60,13 +61,13 @@ implementation_intent:
 
 `templates/review-plan.md`に適合する内容を返してください。
 
-- Phase 1 verdict: `READY_FOR_ADAPTIVE_IMPLEMENTATION | HUMAN_DECISION_REQUIRED | BLOCKED`
+- Phase 1 verdict: `READY_FOR_ADAPTIVE_IMPLEMENTATION | REVIEW_COMPLETE | HUMAN_DECISION_REQUIRED | BLOCKED`
 - PR identityとinput artifacts
 - remote review input status
 - finding decision ledgerとsource coverage
 - duplicate/conflict mapping
-- ordered remediation plan
-- canonical `implementation_intent`
+- ordered remediation plan（`REVIEW_COMPLETE`では省略）
+- canonical `implementation_intent`（`REVIEW_COMPLETE`では省略）
 - 未取得・未検証事項と人手作業
-- 別turn用の正確なAdaptive開始prompt
+- 別turn用の正確なAdaptive開始prompt（`REVIEW_COMPLETE`では省略）
 - `Production code changed: No`

@@ -49,12 +49,15 @@ try {
     }
 
     if (-not $SkipNegativeMutations) {
-        function Assert-MutationFails([string]$Name, [scriptblock]$Mutate) {
+        function Assert-MutationFails([string]$Name, [scriptblock]$Mutate, [string]$ExpectedFailurePattern) {
             $copy = Join-Path $outputRoot "mutation-$Name"
             Copy-AgentPluginDirectory $build.bundleRoot $copy
             & $Mutate $copy
             $mutationFailures = @(Get-AgentPluginBundleFailures $packageRoot $copy)
             if ($mutationFailures.Count -eq 0) { Add-Failure "Negative mutation was not detected: $Name" }
+            elseif ($ExpectedFailurePattern -and (($mutationFailures -join "`n") -notmatch $ExpectedFailurePattern)) {
+                Add-Failure "Negative mutation did not use the expected validation path: $Name"
+            }
         }
 
         Assert-MutationFails 'manifest-name' {
@@ -63,27 +66,48 @@ try {
             $json = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
             $json.name = 'mutated-name'
             [IO.File]::WriteAllText($path, ($json | ConvertTo-Json -Depth 20), [Text.UTF8Encoding]::new($false))
-        }
+        } 'plugin name differs'
+        Assert-MutationFails 'manifest-missing-schema' {
+            param($root)
+            $path = Join-Path $root 'plugin.json'
+            $json = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
+            $json.PSObject.Properties.Remove('$schema')
+            [IO.File]::WriteAllText($path, ($json | ConvertTo-Json -Depth 20), [Text.UTF8Encoding]::new($false))
+        } 'JSON Schema'
+        Assert-MutationFails 'manifest-wrong-schema' {
+            param($root)
+            $path = Join-Path $root 'plugin.json'
+            $json = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
+            $json.'$schema' = 'https://agent-plugins.org/schemas/0.0.0/plugin.schema.json'
+            [IO.File]::WriteAllText($path, ($json | ConvertTo-Json -Depth 20), [Text.UTF8Encoding]::new($false))
+        } 'JSON Schema'
+        Assert-MutationFails 'manifest-invalid-name' {
+            param($root)
+            $path = Join-Path $root 'plugin.json'
+            $json = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
+            $json.name = 'Invalid_Name'
+            [IO.File]::WriteAllText($path, ($json | ConvertTo-Json -Depth 20), [Text.UTF8Encoding]::new($false))
+        } 'JSON Schema'
         $firstSkill = @(Get-ChildItem -LiteralPath (Join-Path $build.bundleRoot 'skills') -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1)
         if ($firstSkill) {
             $relative = Get-AgentPluginRelativePath $build.bundleRoot $firstSkill[0].FullName
-            Assert-MutationFails 'skill-drift' { param($root) Add-Content -LiteralPath (Join-Path $root $relative) -Value 'mutation' }
+            Assert-MutationFails 'skill-drift' { param($root) Add-Content -LiteralPath (Join-Path $root $relative) -Value 'mutation' } 'Canonical drift'
         }
         $firstAgent = @(Get-ChildItem -LiteralPath (Join-Path $build.bundleRoot 'agents') -File -ErrorAction SilentlyContinue | Select-Object -First 1)
         if ($firstAgent) {
             $relative = Get-AgentPluginRelativePath $build.bundleRoot $firstAgent[0].FullName
-            Assert-MutationFails 'agent-drift' { param($root) Add-Content -LiteralPath (Join-Path $root $relative) -Value 'mutation' }
+            Assert-MutationFails 'agent-drift' { param($root) Add-Content -LiteralPath (Join-Path $root $relative) -Value 'mutation' } 'Canonical drift'
         }
         $firstInstruction = @(Get-ChildItem -LiteralPath (Join-Path $build.bundleRoot 'instructions') -File -ErrorAction SilentlyContinue | Select-Object -First 1)
         if ($firstInstruction) {
             $relative = Get-AgentPluginRelativePath $build.bundleRoot $firstInstruction[0].FullName
-            Assert-MutationFails 'instruction-drift' { param($root) Add-Content -LiteralPath (Join-Path $root $relative) -Value 'mutation' }
+            Assert-MutationFails 'instruction-drift' { param($root) Add-Content -LiteralPath (Join-Path $root $relative) -Value 'mutation' } 'Canonical drift'
         }
         Assert-MutationFails 'lock-hash' {
             param($root)
             $path = Join-Path $root 'plugin.json'
             Add-Content -LiteralPath $path -Value ' '
-        }
+        } 'Lock hash mismatch'
 
         $sourceCopy = Join-Path $outputRoot 'source-duplicate'
         Copy-AgentPluginDirectory $packageRoot $sourceCopy

@@ -27,7 +27,8 @@ try {
         'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs',
         'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md',
         'apm-packages/pr-review-remediation/tests/fixtures/remote-review-scenarios.json',
-        'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md'
+        'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md',
+        'apm-packages/pr-review-remediation/tests/fixtures/expected-review-complete.md'
     )) {
         if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $relative) -PathType Leaf)) { throw "Missing package file: $relative" }
     }
@@ -44,7 +45,10 @@ try {
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' '別の明示turn' 'separate Adaptive turn boundary'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'Apply \| Hold \| Reject' 'remote finding decision contract'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'waitStatus: timeout' 'timeout fail-closed contract'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'REVIEW_COMPLETE' 'no-remediation terminal contract'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md' 'Source Coverage' 'remote source coverage contract'
+    Assert-Contains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-complete.md' 'Verdict: REVIEW_COMPLETE' 'no-remediation expected verdict'
+    Assert-NotContains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-complete.md' 'implementation_intent|adaptive-implementation-execution|Ordered Remediation Plan' 'no-remediation implementation handoff'
 
     foreach ($relative in @(
         'apm-packages/pr-review-remediation/README.md',
@@ -63,7 +67,7 @@ try {
     $catalog = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'tests/fixtures/remote-review-scenarios.json') | ConvertFrom-Json
     $expected = @{
         'REMOTE-001' = 'READY_FOR_ADAPTIVE_IMPLEMENTATION'
-        'REMOTE-002' = 'READY_FOR_ADAPTIVE_IMPLEMENTATION'
+        'REMOTE-002' = 'REVIEW_COMPLETE'
         'REMOTE-003' = 'HUMAN_DECISION_REQUIRED'
         'REMOTE-004' = 'BLOCKED'
         'REMOTE-005' = 'BLOCKED'

@@ -23,7 +23,7 @@ $pr-review-remediation を使って owner/name#123 を処理してください�
 
 ## Start Phase 2
 
-Phase 1が`READY_FOR_ADAPTIVE_IMPLEMENTATION`になり、利用者が別turnで実装を明示した場合だけAdaptiveを導入して開始します。
+Phase 1が`READY_FOR_ADAPTIVE_IMPLEMENTATION`になり、利用者が別turnで実装を明示した場合だけAdaptiveを導入して開始します。`REVIEW_COMPLETE`は修正不要の終端であり、Adaptiveを導入または開始しません。
 
 ```text
 $adaptive-implementation-execution を使って .review/pr-123/review-plan.md を実装してください。

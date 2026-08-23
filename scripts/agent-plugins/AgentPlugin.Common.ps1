@@ -3,6 +3,7 @@
 
 $script:AgentPluginContractVersion = 1
 $script:AgentPluginsSchemaId = 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json'
+$script:AgentPluginsSchemaFixture = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../tests/agent-plugins/plugin.schema.1.0.0.json'))
 $script:AgentPluginsAllowedTopLevel = @(
     '$schema', 'name', 'version', 'description', 'author', 'homepage',
     'repository', 'license', 'keywords', 'extensions'
@@ -84,6 +85,36 @@ function Get-AgentPluginManifestDependencies([string]$ManifestPath) {
     return @($dependencies)
 }
 
+function Write-AgentPluginManifest([string]$Path, [string]$ManifestPath) {
+    $manifest = [ordered]@{
+        '$schema' = $script:AgentPluginsSchemaId
+        name = Get-AgentPluginManifestScalar $ManifestPath 'name'
+        version = Get-AgentPluginManifestScalar $ManifestPath 'version'
+        description = Get-AgentPluginManifestScalar $ManifestPath 'description'
+    }
+    $json = $manifest | ConvertTo-Json -Depth 10
+    [IO.File]::WriteAllText($Path, $json + "`n", [Text.UTF8Encoding]::new($false))
+}
+
+function Get-AgentPluginJsonSchemaFailures([string]$JsonPath, [string]$Context) {
+    $failures = [Collections.Generic.List[string]]::new()
+    if (-not (Test-Path -LiteralPath $script:AgentPluginsSchemaFixture -PathType Leaf)) {
+        $failures.Add("$Context schema fixture is missing: $script:AgentPluginsSchemaFixture") | Out-Null
+        return $failures
+    }
+    try {
+        $schema = Get-Content -Raw -LiteralPath $script:AgentPluginsSchemaFixture | ConvertFrom-Json
+        if ([string]$schema.'$id' -cne $script:AgentPluginsSchemaId) { $failures.Add("$Context schema fixture `$id mismatch") | Out-Null }
+        if ($schema.additionalProperties -ne $false) { $failures.Add("$Context schema fixture must be closed") | Out-Null }
+        $valid = Test-Json -LiteralPath $JsonPath -SchemaFile $script:AgentPluginsSchemaFixture -ErrorAction Stop
+        if (-not $valid) { $failures.Add("$Context does not conform to Agent Plugins v1 JSON Schema") | Out-Null }
+    }
+    catch {
+        $failures.Add("$Context JSON Schema validation failed: $($_.Exception.Message)") | Out-Null
+    }
+    return $failures
+}
+
 function Get-AgentPluginContract([string]$PackageRoot) {
     $path = Join-Path $PackageRoot 'tests/agent-plugin/contract.json'
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing Agent Plugin contract: $path" }
@@ -150,6 +181,7 @@ function Invoke-AgentPluginBuild {
         $lockConsumer = Join-Path $resolvedStage '.pack-lock-consumer'
         $null = New-Item -ItemType Directory -Path $preliminaryOutput -Force
         $null = New-Item -ItemType Directory -Path $lockConsumer -Force
+        Write-AgentPluginManifest -Path (Join-Path $resolvedStage 'plugin.json') -ManifestPath $manifestPath
 
         # APM自身でpackage-owned lockを生成する。最初のpackをlocal bundleとして
         # installし、そのlockを二回目のpackへ渡すことで独自lock実装を避ける。
@@ -221,6 +253,7 @@ function Get-AgentPluginBundleFailures([string]$PackageRoot, [string]$BundleRoot
 
     try { $plugin = Get-Content -Raw -LiteralPath $pluginPath | ConvertFrom-Json }
     catch { $failures.Add("Invalid plugin.json: $($_.Exception.Message)") | Out-Null; return $failures }
+    foreach ($failure in Get-AgentPluginJsonSchemaFailures $pluginPath 'plugin.json') { $failures.Add($failure) | Out-Null }
     foreach ($required in @('name', 'version', 'description')) {
         if ($plugin.PSObject.Properties.Name -notcontains $required -or [string]::IsNullOrWhiteSpace([string]$plugin.$required)) { $failures.Add("plugin.json missing $required") | Out-Null }
     }
