@@ -30,9 +30,7 @@ public sealed record WindowsProcessLaunchResult(
     string NativeErrorMessage,
     string LaunchApi,
     uint CreationFlags,
-    uint? WmiReturnValue = null,
-    bool FallbackUsed = false,
-    string? FallbackReason = null);
+    uint? WmiReturnValue = null);
 
 public interface IWindowsProcessLauncher
 {
@@ -135,26 +133,8 @@ public sealed class WindowsProcessLauncher : IWindowsProcessLauncher
     }
 
     [SupportedOSPlatform("windows")]
-    private static WindowsProcessLaunchResult CreateExternalProcessWindows(WindowsProcessLaunchRequest request)
-    {
-        var first = InvokeWin32ProcessCreate(request);
-        if (first.Success || (request.CreationFlags & WindowsWorkerLaunchStrategySelector.CreateBreakawayFromJob) == 0)
-        {
-            return first;
-        }
-
-        var retried = InvokeWin32ProcessCreate(request with
-        {
-            CreationFlags = request.CreationFlags & ~WindowsWorkerLaunchStrategySelector.CreateBreakawayFromJob
-        });
-        return retried with
-        {
-            FallbackUsed = true,
-            FallbackReason = "Win32_Process.Create with CREATE_BREAKAWAY_FROM_JOB returned " +
-                FormatWmiReturn(first.WmiReturnValue, first.NativeErrorMessage) +
-                "; retried without that flag. The worker still does not inherit the calling process job."
-        };
-    }
+    private static WindowsProcessLaunchResult CreateExternalProcessWindows(WindowsProcessLaunchRequest request) =>
+        InvokeWin32ProcessCreate(request);
 
     [SupportedOSPlatform("windows")]
     private static WindowsProcessLaunchResult InvokeWin32ProcessCreate(WindowsProcessLaunchRequest request)
@@ -239,7 +219,4 @@ public sealed class WindowsProcessLauncher : IWindowsProcessLauncher
         21 => "Invalid parameter",
         _ => "Create failed"
     };
-
-    private static string FormatWmiReturn(uint? returnValue, string message) =>
-        returnValue is uint value ? $"{value} ({message})" : message;
 }

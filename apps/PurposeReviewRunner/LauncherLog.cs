@@ -29,7 +29,10 @@ internal sealed class LauncherLogWriter : IDisposable
 
     public void Write(string key, string? value)
     {
-        if (string.IsNullOrWhiteSpace(key) || key.Contains('=', StringComparison.Ordinal) || key.Contains('\n', StringComparison.Ordinal))
+        if (string.IsNullOrWhiteSpace(key) ||
+            key.Contains('=', StringComparison.Ordinal) ||
+            key.Contains('\n', StringComparison.Ordinal) ||
+            key.Contains('\r', StringComparison.Ordinal))
         {
             throw new ArgumentException("Launcher log key is invalid.", nameof(key));
         }

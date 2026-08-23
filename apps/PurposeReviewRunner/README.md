@@ -17,7 +17,7 @@ purpose-review-runner status --run <run-id>
 purpose-review-runner continue --run <run-id>
 ```
 
-`start`と`continue`はprovider完了をforegroundで待ちません。durable jobを登録して独立したworker processを起動し、`jobStatus`が`RUNNING`のJSONを返します。結果は同じ`run-id`で`status`を短時間pollingして取得します。`status`はreviewを再実行しません。workerは起動時に親のstdin/stdout/stderrを継承しません。この分離はimplementation parentやproviderの種類に依存しません。Windowsでは現在プロセスのJob Object状態を見て起動経路を選びます。Jobに入っていなければdetached child process、`JOB_OBJECT_LIMIT_BREAKAWAY_OK`なら`CREATE_BREAKAWAY_FROM_JOB`、`JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK`ならその仕様に従ったCreateProcessです。どちらも禁止されたrestrictive Job Objectでは、呼び出し元Jobを継承しない`Win32_Process.Create`でworkerをJobの外側へ起動します。この独立起動もできなければworkerを同じ`KillOnJobClose` Jobへ残さず`WORKER_START_FAILED`で停止します。
+`start`と`continue`はprovider完了をforegroundで待ちません。durable jobを登録して独立したworker processを起動し、`jobStatus`が`RUNNING`のJSONを返します。結果は同じ`run-id`で`status`を短時間pollingして取得します。`status`はreviewを再実行しません。workerは起動時に親のstdin/stdout/stderrを継承しません。この分離はimplementation parentやproviderの種類に依存しません。Windowsでは現在プロセスがJob Object内かどうかを見て起動経路を選びます。Jobに入っていなければdetached `CreateProcess`です。Job内ならimmediate Jobのbreakaway可否に関わらず、呼び出し元Job chainを継承しない`Win32_Process.Create`に`CREATE_BREAKAWAY_FROM_JOB`を付けて起動します。nested JobのancestorやWMI provider host側Jobへ残す経路は使いません。独立起動できなければ同じJobへ残さず`WORKER_START_FAILED`で停止します。
 
 stdoutはprotocol v2の単一JSONです。`FINDINGS`の場合だけ元のimplementation parentが修正・検証し、同じ`run-id`を`continue`します。`COMPLETE`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`、`ERROR`では停止します。`RUNNING`なら`status`を繰り返します。1回のCLI呼び出しが失敗しても、新しいrunを作らず同じ`status`を問い合わせ直します。
 
@@ -35,6 +35,13 @@ stateは`Environment.SpecialFolder.LocalApplicationData`配下の`purpose-review
 dotnet test tests/PurposeReviewRunner.Tests/PurposeReviewRunner.Tests.csproj
 dotnet publish apps/PurposeReviewRunner/PurposeReviewRunner.csproj -c Release -r win-x64 --self-contained true
 dotnet publish apps/PurposeReviewRunner/PurposeReviewRunner.csproj -c Release -r linux-x64 --self-contained true
+```
+
+通常の unit / CI test は Job Object と WMI をスタブします。restrictive Job から worker が親終了後も生存することの実機確認は opt-in です。
+
+```powershell
+$env:PURPOSE_REVIEW_RUNNER_WINDOWS_JOB_QUALIFICATION = '1'
+dotnet test tests/PurposeReviewRunner.Tests/PurposeReviewRunner.Tests.csproj --filter RestrictiveJobObjectDoesNotKillDurableWorker
 ```
 
 GitHub ReleaseのarchiveをPATH上のuser-owned directoryへ展開し、configをOS userごとに一度作成します。APM SkillはRunner binaryを内包または自動導入しません。

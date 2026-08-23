@@ -38,16 +38,16 @@ public sealed class WindowsWorkerLaunchTests
     }
 
     [TestMethod]
-    public void LaunchStrategyMatchesJobStateAndRejectsInJobCreateProcessFallback()
+    public void LaunchStrategyUsesWmiForAnyJobIncludingBreakawayPermittedNestedJobs()
     {
         Assert.AreEqual(
             WindowsWorkerLaunchStrategy.DetachedCreateProcess,
             WindowsWorkerLaunchStrategySelector.Select(WindowsJobSnapshot.NotInJob()));
         Assert.AreEqual(
-            WindowsWorkerLaunchStrategy.ExplicitBreakawayCreateProcess,
+            WindowsWorkerLaunchStrategy.ExternalWin32ProcessCreate,
             WindowsWorkerLaunchStrategySelector.Select(WindowsJobSnapshot.FromLimitFlags(WindowsJobSnapshot.BreakawayOkFlag)));
         Assert.AreEqual(
-            WindowsWorkerLaunchStrategy.SilentBreakawayCreateProcess,
+            WindowsWorkerLaunchStrategy.ExternalWin32ProcessCreate,
             WindowsWorkerLaunchStrategySelector.Select(WindowsJobSnapshot.FromLimitFlags(WindowsJobSnapshot.SilentBreakawayOkFlag)));
         Assert.AreEqual(
             WindowsWorkerLaunchStrategy.ExternalWin32ProcessCreate,
@@ -56,26 +56,17 @@ public sealed class WindowsWorkerLaunchTests
             WindowsWorkerLaunchStrategy.ExternalWin32ProcessCreate,
             WindowsWorkerLaunchStrategySelector.Select(WindowsJobSnapshot.FromLimitFlags(0)));
         Assert.AreEqual(
-            WindowsWorkerLaunchStrategy.ExplicitBreakawayCreateProcess,
+            WindowsWorkerLaunchStrategy.ExternalWin32ProcessCreate,
             WindowsWorkerLaunchStrategySelector.Select(WindowsJobSnapshot.FromLimitFlags(
-                WindowsJobSnapshot.BreakawayOkFlag | WindowsJobSnapshot.SilentBreakawayOkFlag | WindowsJobSnapshot.KillOnJobCloseFlag)));
-        Assert.AreEqual(
-            WindowsWorkerLaunchStrategy.SilentBreakawayCreateProcess,
-            WindowsWorkerLaunchStrategySelector.Select(WindowsJobSnapshot.FromLimitFlags(
-                WindowsJobSnapshot.SilentBreakawayOkFlag | WindowsJobSnapshot.KillOnJobCloseFlag)));
-
-        var restrictive = WindowsWorkerLaunchStrategySelector.Select(
-            WindowsJobSnapshot.FromLimitFlags(WindowsJobSnapshot.KillOnJobCloseFlag));
-        Assert.IsFalse(WindowsWorkerLaunchStrategySelector.UsesCreateProcess(restrictive));
-        Assert.AreEqual(
-            WindowsWorkerLaunchStrategySelector.BaseCreationFlags | WindowsWorkerLaunchStrategySelector.CreateBreakawayFromJob,
-            WindowsWorkerLaunchStrategySelector.GetCreationFlags(restrictive));
+                WindowsJobSnapshot.BreakawayOkFlag | WindowsJobSnapshot.KillOnJobCloseFlag)));
+        Assert.IsTrue(WindowsWorkerLaunchStrategySelector.UsesCreateProcess(WindowsWorkerLaunchStrategy.DetachedCreateProcess));
+        Assert.IsFalse(WindowsWorkerLaunchStrategySelector.UsesCreateProcess(WindowsWorkerLaunchStrategy.ExternalWin32ProcessCreate));
         Assert.AreEqual(
             WindowsWorkerLaunchStrategySelector.BaseCreationFlags,
             WindowsWorkerLaunchStrategySelector.GetCreationFlags(WindowsWorkerLaunchStrategy.DetachedCreateProcess));
         Assert.AreEqual(
-            WindowsWorkerLaunchStrategySelector.BaseCreationFlags,
-            WindowsWorkerLaunchStrategySelector.GetCreationFlags(WindowsWorkerLaunchStrategy.SilentBreakawayCreateProcess));
+            WindowsWorkerLaunchStrategySelector.BaseCreationFlags | WindowsWorkerLaunchStrategySelector.CreateBreakawayFromJob,
+            WindowsWorkerLaunchStrategySelector.GetCreationFlags(WindowsWorkerLaunchStrategy.ExternalWin32ProcessCreate));
     }
 
     [TestMethod]
@@ -103,10 +94,14 @@ public sealed class WindowsWorkerLaunchTests
     }
 
     [TestMethod]
-    public void RestrictiveJobLaunchUsesExternalPathAndDoesNotCallCreateProcess()
+    [DataRow(WindowsJobSnapshot.KillOnJobCloseFlag)]
+    [DataRow(WindowsJobSnapshot.BreakawayOkFlag)]
+    [DataRow(WindowsJobSnapshot.SilentBreakawayOkFlag)]
+    [DataRow(WindowsJobSnapshot.BreakawayOkFlag | WindowsJobSnapshot.KillOnJobCloseFlag)]
+    public void InJobLaunchUsesExternalPathAndDoesNotCallCreateProcess(uint limitFlags)
     {
         using var root = new TemporaryDirectory();
-        var inspector = new FakeWindowsJobInspector(WindowsJobSnapshot.FromLimitFlags(WindowsJobSnapshot.KillOnJobCloseFlag));
+        var inspector = new FakeWindowsJobInspector(WindowsJobSnapshot.FromLimitFlags(limitFlags));
         var processLauncher = new FakeWindowsProcessLauncher
         {
             ExternalResult = SucceededLaunch("Win32_Process.Create"),
@@ -120,6 +115,9 @@ public sealed class WindowsWorkerLaunchTests
         Assert.AreEqual(Environment.ProcessId, launched.ProcessId);
         Assert.AreEqual(1, processLauncher.ExternalCallCount);
         Assert.AreEqual(0, processLauncher.DetachedCallCount);
+        Assert.AreEqual(
+            WindowsWorkerLaunchStrategySelector.BaseCreationFlags | WindowsWorkerLaunchStrategySelector.CreateBreakawayFromJob,
+            processLauncher.LastExternalRequest!.CreationFlags);
         StringAssert.Contains(File.ReadAllText(LauncherLogPath(root.Paths, runId)), "selectedStrategy=external-win32-process-create");
     }
 
@@ -174,6 +172,7 @@ public sealed class WindowsWorkerLaunchTests
             StringAssert.Contains(log, "wmiReturnValue=2");
             StringAssert.Contains(log, "outsideJobIntended=true");
             StringAssert.Contains(log, "failClosed=true");
+            Assert.IsFalse(log.Contains("fallback=true", StringComparison.Ordinal));
             Assert.IsFalse(log.Contains(secret, StringComparison.Ordinal));
             Assert.IsFalse(log.Contains("PURPOSE_REVIEW_TEST_TOKEN", StringComparison.Ordinal));
         }
@@ -209,9 +208,10 @@ public sealed class WindowsWorkerLaunchTests
     [DoNotParallelize]
     public async Task RestrictiveJobObjectDoesNotKillDurableWorker()
     {
-        if (!OperatingSystem.IsWindows())
+        if (!OperatingSystem.IsWindows() ||
+            !string.Equals(Environment.GetEnvironmentVariable("PURPOSE_REVIEW_RUNNER_WINDOWS_JOB_QUALIFICATION"), "1", StringComparison.Ordinal))
         {
-            Assert.Inconclusive("This process-level regression requires Windows Job Objects.");
+            Assert.Inconclusive("Opt-in Windows Job Object qualification. Set PURPOSE_REVIEW_RUNNER_WINDOWS_JOB_QUALIFICATION=1 to run it.");
             return;
         }
 
@@ -385,8 +385,11 @@ public sealed class WindowsWorkerLaunchTests
             startInfo.Environment["PURPOSE_REVIEW_RUNNER_CONFIG_PATH"] = configPath;
             startInfo.Environment["PURPOSE_REVIEW_RUNNER_STATE_ROOT"] = stateRoot;
             using var process = Process.Start(startInfo) ?? throw new AssertFailedException("status process did not start.");
-            var stdout = await process.StandardOutput.ReadToEndAsync();
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
             await process.WaitForExitAsync();
+            var stdout = await stdoutTask;
+            await stderrTask;
             lastOutput = stdout;
             if (process.ExitCode == 0)
             {
@@ -427,6 +430,8 @@ internal sealed class FakeWindowsProcessLauncher : IWindowsProcessLauncher
 
     public int ExternalCallCount { get; private set; }
 
+    public WindowsProcessLaunchRequest? LastExternalRequest { get; private set; }
+
     public WindowsProcessLaunchResult CreateDetachedProcess(WindowsProcessLaunchRequest request)
     {
         DetachedCallCount++;
@@ -436,6 +441,7 @@ internal sealed class FakeWindowsProcessLauncher : IWindowsProcessLauncher
     public WindowsProcessLaunchResult CreateExternalProcess(WindowsProcessLaunchRequest request)
     {
         ExternalCallCount++;
+        LastExternalRequest = request;
         return ExternalResult;
     }
 }

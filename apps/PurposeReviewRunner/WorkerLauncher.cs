@@ -134,7 +134,7 @@ public sealed class DetachedWorkerLauncher : IWorkerLauncher
             log.Write(
                 "failClosedReason",
                 strategy == WindowsWorkerLaunchStrategy.ExternalWin32ProcessCreate
-                    ? "Restrictive job object detected and Win32_Process.Create could not start a worker outside the calling process job."
+                    ? "The process is in a job object and Win32_Process.Create with CREATE_BREAKAWAY_FROM_JOB could not start a worker outside that job chain."
                     : "The selected CreateProcess launch path failed.");
             throw new RunnerException("WORKER_START_FAILED", FormatPublicFailure(launched), ExitCodes.RuntimeError);
         }
@@ -228,12 +228,6 @@ public sealed class DetachedWorkerLauncher : IWorkerLauncher
         if (launched.ProcessId is int processId)
         {
             log.Write("workerPid", processId);
-        }
-
-        log.Write("fallback", launched.FallbackUsed);
-        if (!string.IsNullOrWhiteSpace(launched.FallbackReason))
-        {
-            log.Write("fallbackReason", launched.FallbackReason);
         }
     }
 

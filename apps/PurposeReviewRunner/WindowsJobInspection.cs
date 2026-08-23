@@ -8,8 +8,6 @@ namespace PurposeReviewRunner;
 public enum WindowsWorkerLaunchStrategy
 {
     DetachedCreateProcess,
-    ExplicitBreakawayCreateProcess,
-    SilentBreakawayCreateProcess,
     ExternalWin32ProcessCreate
 }
 
@@ -47,30 +45,18 @@ public static class WindowsWorkerLaunchStrategySelector
 
     public static WindowsWorkerLaunchStrategy Select(WindowsJobSnapshot snapshot)
     {
-        if (!snapshot.InJob)
-        {
-            return WindowsWorkerLaunchStrategy.DetachedCreateProcess;
-        }
-
-        if (snapshot.BreakawayOk == true)
-        {
-            return WindowsWorkerLaunchStrategy.ExplicitBreakawayCreateProcess;
-        }
-
-        if (snapshot.SilentBreakawayOk == true)
-        {
-            return WindowsWorkerLaunchStrategy.SilentBreakawayCreateProcess;
-        }
-
-        return WindowsWorkerLaunchStrategy.ExternalWin32ProcessCreate;
+        // nested Job では QueryInformationJobObject(NULL) は immediate Job しか返さない。
+        // immediate Job の breakaway 許可だけを見て CreateProcess すると ancestor の KillOnJobClose に残る。
+        // Job 内は一律 Win32_Process.Create で呼び出し元 Job chain を切る。
+        return snapshot.InJob
+            ? WindowsWorkerLaunchStrategy.ExternalWin32ProcessCreate
+            : WindowsWorkerLaunchStrategy.DetachedCreateProcess;
     }
 
     public static uint GetCreationFlags(WindowsWorkerLaunchStrategy strategy) => strategy switch
     {
         WindowsWorkerLaunchStrategy.DetachedCreateProcess => BaseCreationFlags,
-        WindowsWorkerLaunchStrategy.SilentBreakawayCreateProcess => BaseCreationFlags,
-        WindowsWorkerLaunchStrategy.ExplicitBreakawayCreateProcess => BaseCreationFlags | CreateBreakawayFromJob,
-        // WMI ホスト側 Job からも離脱するため CREATE_BREAKAWAY_FROM_JOB を付ける。呼び出し元 Job の継承は Win32_Process.Create 自体が発生させない。
+        // WMI provider host 側 Job に残さないため CREATE_BREAKAWAY_FROM_JOB は必須。失敗時のフラグなし再試行はしない。
         WindowsWorkerLaunchStrategy.ExternalWin32ProcessCreate => BaseCreationFlags | CreateBreakawayFromJob,
         _ => throw new ArgumentOutOfRangeException(nameof(strategy), strategy, "Unsupported Windows worker launch strategy.")
     };
@@ -78,8 +64,6 @@ public static class WindowsWorkerLaunchStrategySelector
     public static string ToLogName(WindowsWorkerLaunchStrategy strategy) => strategy switch
     {
         WindowsWorkerLaunchStrategy.DetachedCreateProcess => "detached-create-process",
-        WindowsWorkerLaunchStrategy.ExplicitBreakawayCreateProcess => "explicit-breakaway-create-process",
-        WindowsWorkerLaunchStrategy.SilentBreakawayCreateProcess => "silent-breakaway-create-process",
         WindowsWorkerLaunchStrategy.ExternalWin32ProcessCreate => "external-win32-process-create",
         _ => strategy.ToString()
     };
@@ -127,7 +111,9 @@ public sealed class WindowsJobInspector : IWindowsJobInspector
                 size,
                 out _))
         {
-            throw CreateNativeFailure("The current job object limits could not be queried.");
+            var nativeError = Marshal.GetLastWin32Error();
+            Trace.TraceError(new Win32Exception(nativeError).ToString());
+            return new WindowsJobSnapshot(true, null, null, null, null);
         }
 
         return WindowsJobSnapshot.FromLimitFlags(information.BasicLimitInformation.LimitFlags);
