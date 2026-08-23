@@ -46,13 +46,9 @@ public sealed class StateStore
     public RunState Load(string runId)
     {
         var statePath = Path.Combine(GetRunDirectory(runId), "state.json");
-        if (!File.Exists(statePath))
-        {
-            throw new RunnerException("STATE_NOT_FOUND", $"Run state was not found for {runId}.");
-        }
         try
         {
-            var state = JsonSerializer.Deserialize<RunState>(File.ReadAllText(statePath), JsonDefaults.Options)
+            var state = JsonSerializer.Deserialize<RunState>(SharedStateFile.ReadAllText(statePath), JsonDefaults.Options)
                 ?? throw new JsonException("State JSON was empty.");
             if (state.ProtocolVersion != Protocol.Version || state.RunId != runId)
             {
@@ -65,6 +61,10 @@ public sealed class StateStore
         {
             throw;
         }
+        catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
+        {
+            throw new RunnerException("STATE_NOT_FOUND", $"Run state was not found for {runId}.", ExitCodes.ContractError, exception);
+        }
         catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
         {
             throw new RunnerException("STATE_INVALID", $"Run state could not be read: {exception.Message}", ExitCodes.ContractError, exception);
@@ -73,34 +73,20 @@ public sealed class StateStore
 
     public void Save(RunState state)
     {
-        var directory = GetRunDirectory(state.RunId);
-        var statePath = Path.Combine(directory, "state.json");
-        var temporaryPath = statePath + ".tmp-" + Guid.NewGuid().ToString("N");
+        var statePath = Path.Combine(GetRunDirectory(state.RunId), "state.json");
         try
         {
             Validate(state);
-            Directory.CreateDirectory(directory);
-            var json = JsonSerializer.Serialize(state, JsonDefaults.Options) + Environment.NewLine;
-            File.WriteAllText(temporaryPath, json, new System.Text.UTF8Encoding(false));
-            File.Move(temporaryPath, statePath, true);
+            SharedStateFile.WriteAtomic(statePath, JsonSerializer.Serialize(state, JsonDefaults.Options) + Environment.NewLine);
+        }
+        catch (RunnerException)
+        {
+            throw;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.Security.SecurityException)
         {
+            Trace.TraceError(exception.ToString());
             throw new RunnerException("STATE_WRITE_FAILED", "Run state could not be saved.", ExitCodes.ContractError, exception);
-        }
-        finally
-        {
-            try
-            {
-                if (File.Exists(temporaryPath))
-                {
-                    File.Delete(temporaryPath);
-                }
-            }
-            catch (Exception exception)
-            {
-                Trace.TraceError(exception.ToString());
-            }
         }
     }
 

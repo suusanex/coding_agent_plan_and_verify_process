@@ -13,6 +13,8 @@ tests/PurposeReviewRunner.Tests/bin/
 tests/PurposeReviewRunner.Tests/obj/
 tests/PurposeReviewRunner.FakeProvider/bin/
 tests/PurposeReviewRunner.FakeProvider/obj/
+tests/PurposeReviewRunner.RestrictiveJobHelper/bin/
+tests/PurposeReviewRunner.RestrictiveJobHelper/obj/
 artifacts/purpose-review-runner/
 
 # apm modules

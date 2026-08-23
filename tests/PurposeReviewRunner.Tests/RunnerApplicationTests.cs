@@ -708,6 +708,13 @@ public sealed class RunnerApplicationTests
     [TestMethod]
     public async Task DetachedStartReturnsBeforeProviderAndStatusReadsDurableResult()
     {
+        if (OperatingSystem.IsWindows() &&
+            !string.Equals(Environment.GetEnvironmentVariable("PURPOSE_REVIEW_RUNNER_WINDOWS_JOB_QUALIFICATION"), "1", StringComparison.Ordinal))
+        {
+            Assert.Inconclusive("Windows process-level durable launch uses real Job Object/WMI and is opt-in. Set PURPOSE_REVIEW_RUNNER_WINDOWS_JOB_QUALIFICATION=1 to run it.");
+            return;
+        }
+
         var root = Path.Combine(Path.GetTempPath(), "purpose-review-runner-detach-tests", Guid.NewGuid().ToString("N"));
         var repository = Path.Combine(root, "repository");
         var configPath = Path.Combine(root, "config", "config.json");
@@ -740,21 +747,18 @@ public sealed class RunnerApplicationTests
             startWatch.Stop();
             Assert.IsLessThan(TimeSpan.FromSeconds(5), startWatch.Elapsed);
 
-            if (start.ExitCode != 0)
-            {
-                // Windows Job Object が breakaway を拒否した場合は in-job 起動を成功扱いしない。
-                Assert.IsTrue(OperatingSystem.IsWindows(), start.StandardOutput + start.StandardError);
-                using var failedDocument = JsonDocument.Parse(start.StandardOutput.Trim());
-                Assert.AreEqual("WORKER_START_FAILED", failedDocument.RootElement.GetProperty("error").GetProperty("code").GetString());
-                return;
-            }
-
-            Assert.AreEqual(0, start.ExitCode, start.StandardError);
+            Assert.AreEqual(0, start.ExitCode, start.StandardOutput + start.StandardError);
             using var startDocument = JsonDocument.Parse(start.StandardOutput.Trim());
             Assert.AreEqual(JobStatuses.Running, startDocument.RootElement.GetProperty("jobStatus").GetString());
             Assert.AreEqual(ReviewStatuses.Running, startDocument.RootElement.GetProperty("status").GetString());
             var runId = startDocument.RootElement.GetProperty("runId").GetString();
             Assert.IsFalse(string.IsNullOrWhiteSpace(runId));
+            var launcherLog = File.ReadAllText(Path.Combine(stateRoot, runId!, "launcher.log"));
+            StringAssert.Contains(launcherLog, "outsideJobIntended=true");
+            StringAssert.Contains(launcherLog, "success=true");
+            StringAssert.Contains(launcherLog, "configPathOverrideSet=true");
+            StringAssert.Contains(launcherLog, "stateRootOverrideSet=true");
+            Assert.IsFalse(launcherLog.Contains("FAKE-INTEGRATION-CONTEXT", StringComparison.Ordinal));
 
             var running = await RunRunnerCliAsync(runnerPath, ["status", "--run", runId!], configPath, stateRoot);
             Assert.AreEqual(0, running.ExitCode, running.StandardError);
