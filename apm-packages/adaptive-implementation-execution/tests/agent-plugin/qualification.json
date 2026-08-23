@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "package": "adaptive-implementation-execution",
   "canonicalFingerprint": "97eab47ecd7ebf3a875ebad29126aff7854afeed17346fc42caae7ba980334af",
+  "distributionFingerprint": "295ccbddf8a5f6a28d48cce0e80a2b3b8c773d3ab042d0874ff1f948dfcc6269",
   "candidateCommit": "0ff5900beb62d8c42226a5cad2779c56747d50c2",
   "runtime": {
     "surface": "github-copilot-cli",

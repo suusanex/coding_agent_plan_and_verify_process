@@ -115,6 +115,21 @@ try {
         $null = New-Item -ItemType Directory -Path (Split-Path -Parent $dup) -Force
         [IO.File]::WriteAllText($dup, '# duplicate', [Text.UTF8Encoding]::new($false))
         if (@(Get-AgentPluginSourceGuardFailures $sourceCopy).Count -eq 0) { Add-Failure 'Negative duplicate semantic source was not detected' }
+
+        $invalidContractRoot = Join-Path $outputRoot 'source-invalid-contract'
+        Copy-AgentPluginDirectory $packageRoot $invalidContractRoot
+        $invalidContractPath = Join-Path $invalidContractRoot 'tests/agent-plugin/contract.json'
+        $invalidContract = Get-Content -Raw -LiteralPath $invalidContractPath | ConvertFrom-Json
+        $invalidContract.ownedInstructions = $null
+        [IO.File]::WriteAllText($invalidContractPath, (($invalidContract | ConvertTo-Json -Depth 20) + "`n"), [Text.UTF8Encoding]::new($false))
+        try {
+            $null = Get-AgentPluginContract $invalidContractRoot
+            Add-Failure 'Negative contract schema mutation was not detected'
+        }
+        catch {
+            Write-Host "TRACE: $($_.Exception.ToString())"
+            if ($_.Exception.Message -notmatch 'JSON Schema') { Add-Failure 'Negative contract mutation did not use JSON Schema validation' }
+        }
     }
 
     if ($failures.Count -gt 0) { throw ("Agent Plugin package validation failed for ${Package}:`n- " + ($failures -join "`n- ")) }

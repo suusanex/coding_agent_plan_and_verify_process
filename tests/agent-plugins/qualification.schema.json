@@ -3,11 +3,12 @@
   "$id": "https://github.com/suusanex/coding_agent_plan_and_verify_process/tests/agent-plugins/qualification.schema.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "package", "canonicalFingerprint", "candidateCommit", "runtime", "assessments"],
+  "required": ["schemaVersion", "package", "canonicalFingerprint", "distributionFingerprint", "candidateCommit", "runtime", "assessments"],
   "properties": {
     "schemaVersion": { "const": 1 },
     "package": { "type": "string", "minLength": 1 },
     "canonicalFingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "distributionFingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "candidateCommit": { "type": "string", "pattern": "^(?:[a-f0-9]{40}|UNCOMMITTED)$" },
     "runtime": {
       "type": "object",

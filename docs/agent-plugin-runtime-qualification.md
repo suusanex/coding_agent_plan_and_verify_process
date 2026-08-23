@@ -7,7 +7,7 @@
 - status: `PASS | FAIL | HOLD | NOT_RUN | UNOBSERVABLE`
 - evidence mode: `LIVE | REUSED | PARTIAL | NONE`
 - `PASS`にはevidence referenceが必要で、`NONE`を指定できない。
-- canonical fingerprintとcandidate commitを保持し、別snapshotへPASSを移植しない。
+- canonical fingerprint、package-local runtime入力のdistribution fingerprint、candidate commitを保持し、別snapshotへPASSを移植しない。PASS evidenceはcandidate commitとdistribution fingerprintの両方を明記する。
 
 通常CIは形式、current canonical fingerprint、status/evidence invariantだけを検査する。外部model実行は手動qualificationであり、通常CIへ入れない。
 

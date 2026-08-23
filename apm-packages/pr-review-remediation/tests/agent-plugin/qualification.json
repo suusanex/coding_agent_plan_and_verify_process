@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "package": "pr-review-remediation",
   "canonicalFingerprint": "340913aecbb90c5abfcb2146f66b64217e934b5daa6f1df2b6944d32d17f210b",
+  "distributionFingerprint": "c3ee0c0dab5b30cf8d177b4b3ce0117a2b2980f6bcf2da9e11924dc673c06f26",
   "candidateCommit": "3b21a9e6dfa6f6e5123f2ad2ff5cceac6926c79a",
   "runtime": {
     "surface": "github-copilot-cli",

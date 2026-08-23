@@ -38,28 +38,17 @@ function Get-QualificationEvidenceFailure([string]$Reference) {
     return $null
 }
 
-function Get-QualificationCandidateFailures([string]$CandidateCommit, [string]$ExpectedPackage) {
+function Get-QualificationCandidateFailures([string]$CandidateCommit, [string]$DistributionFingerprint, [string]$ExpectedPackage) {
     $failures = [Collections.Generic.List[string]]::new()
     if ($CandidateCommit -ceq 'UNCOMMITTED') {
         Add-QualificationFailure $failures 'PASS evidence requires a committed candidate snapshot'
         return $failures
     }
 
-    & git -C $repoRoot cat-file -e "$CandidateCommit^{commit}" 2>$null
-    if ($LASTEXITCODE -ne 0) {
-        Add-QualificationFailure $failures "candidate commit does not exist: $CandidateCommit"
-        return $failures
-    }
-    & git -C $repoRoot merge-base --is-ancestor $CandidateCommit HEAD 2>$null
-    if ($LASTEXITCODE -ne 0) {
-        Add-QualificationFailure $failures "candidate commit is not an ancestor of HEAD: $CandidateCommit"
-        return $failures
-    }
-
-    $packagePath = "apm-packages/$ExpectedPackage"
-    & git -C $repoRoot diff --quiet $CandidateCommit HEAD -- "$packagePath/.apm" "$packagePath/apm.yml" "$packagePath/tests/agent-plugin/contract.json"
-    if ($LASTEXITCODE -ne 0) {
-        Add-QualificationFailure $failures 'package runtime inputs differ from the candidate snapshot'
+    $packageRoot = Join-Path $repoRoot "apm-packages/$ExpectedPackage"
+    $currentFingerprint = Get-AgentPluginDistributionFingerprint $packageRoot
+    if ($DistributionFingerprint -cne $currentFingerprint) {
+        Add-QualificationFailure $failures 'distribution fingerprint is not current'
     }
     return $failures
 }
@@ -71,12 +60,14 @@ function Get-AgentPluginQualificationFailures([string]$Path, [string]$ExpectedPa
         if (-not $valid) { Add-QualificationFailure $failures 'record does not conform to qualification JSON Schema' }
     }
     catch {
+        Write-Host "TRACE: $($_.Exception.ToString())"
         Add-QualificationFailure $failures "qualification JSON Schema validation failed: $($_.Exception.Message)"
         return $failures
     }
 
     try { $result = Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json }
     catch {
+        Write-Host "TRACE: $($_.Exception.ToString())"
         Add-QualificationFailure $failures "qualification JSON could not be parsed: $($_.Exception.Message)"
         return $failures
     }
@@ -92,7 +83,7 @@ function Get-AgentPluginQualificationFailures([string]$Path, [string]$ExpectedPa
     }
     $passAssessments = @($result.assessments | Where-Object { [string]$_.status -ceq 'PASS' })
     if ($passAssessments.Count -gt 0) {
-        foreach ($failure in Get-QualificationCandidateFailures ([string]$result.candidateCommit) $ExpectedPackage) {
+        foreach ($failure in Get-QualificationCandidateFailures ([string]$result.candidateCommit) ([string]$result.distributionFingerprint) $ExpectedPackage) {
             Add-QualificationFailure $failures $failure
         }
     }
@@ -111,9 +102,10 @@ function Get-AgentPluginQualificationFailures([string]$Path, [string]$ExpectedPa
                 $reference = [string]$_
                 if (Get-QualificationEvidenceFailure $reference) { return $false }
                 $candidatePath = Join-Path $repoRoot $reference.Replace('/', [IO.Path]::DirectorySeparatorChar)
-                return (Get-Content -Raw -LiteralPath $candidatePath).Contains([string]$result.candidateCommit)
+                $evidence = Get-Content -Raw -LiteralPath $candidatePath
+                return $evidence.Contains([string]$result.candidateCommit) -and $evidence.Contains([string]$result.distributionFingerprint)
             }).Count -gt 0
-            if (-not $candidateMentioned) { Add-QualificationFailure $failures "PASS evidence does not identify candidate commit for $identity" }
+            if (-not $candidateMentioned) { Add-QualificationFailure $failures "PASS evidence does not identify candidate commit and distribution fingerprint for $identity" }
         }
     }
     return $failures
@@ -171,7 +163,11 @@ if (-not $SkipNegativeMutations) {
             $record.assessments[0].evidenceMode = 'LIVE'
             $record.assessments[0].evidenceRefs = @('tests/agent-plugins/results/2026-08-23-runtime-qualification.md')
             $record.candidateCommit = '0000000000000000000000000000000000000000'
-        } 'candidate commit does not exist'
+        } 'does not identify candidate commit and distribution fingerprint'
+        Assert-QualificationMutationFails 'stale-distribution-fingerprint' {
+            param($record)
+            $record.distributionFingerprint = '0000000000000000000000000000000000000000000000000000000000000000'
+        } 'distribution fingerprint is not current'
         Assert-QualificationMutationFails 'missing-evidence-file' {
             param($record)
             $record.assessments[0].evidenceRefs = @('tests/agent-plugins/results/does-not-exist.md')

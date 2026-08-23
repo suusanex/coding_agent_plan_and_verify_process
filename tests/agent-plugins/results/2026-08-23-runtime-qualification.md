@@ -10,6 +10,17 @@
 - Purpose Review Runner: `0.2.2`
 - Runtime fixtures: repository-owned sourceだけをsystem temporary directoryへ複製した。APM projectionとdirect pluginを同じfixtureへ重ねていない。
 
+### Distribution fingerprints
+
+| Package | Candidate | Distribution fingerprint |
+| --- | --- | --- |
+| Adaptive Implementation | `0ff5900beb62d8c42226a5cad2779c56747d50c2` | `295ccbddf8a5f6a28d48cce0e80a2b3b8c773d3ab042d0874ff1f948dfcc6269` |
+| Design Pair | `0ff5900beb62d8c42226a5cad2779c56747d50c2` | `a154cb67bd26d7e435818777afd197459774151b5a3e88dcef38f1af886cbd94` |
+| Goal Context Authoring | `0ff5900beb62d8c42226a5cad2779c56747d50c2` | `a8ef088971524fa075633b678b8c5d27ebfed051d1fe683be4641d98d792c7e1` |
+| PR Review Remediation | `3b21a9e6dfa6f6e5123f2ad2ff5cceac6926c79a` | `c3ee0c0dab5b30cf8d177b4b3ce0117a2b2980f6bcf2da9e11924dc673c06f26` |
+| Persistent Purpose Review | `0ff5900beb62d8c42226a5cad2779c56747d50c2` | `87c06ae17f1d4d2f21c084e6b4fe6c565ebe23da6ac2c751988fa47c0291c733` |
+| Plan Coverage | `0ff5900beb62d8c42226a5cad2779c56747d50c2` | `b5d961cd96f2102e276ba1fd6c2d5213c81a261db9ae04a0ca9e995a48eaaf8a` |
+
 ## Deterministic baseline
 
 - 6 packageのcommon builder/validator、manifest、containment、reparse point、provenance/lock、canonical equivalence、dependency attestation、negative mutation: PASS

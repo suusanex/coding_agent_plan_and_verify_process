@@ -4,6 +4,7 @@
 $script:AgentPluginContractVersion = 1
 $script:AgentPluginsSchemaId = 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json'
 $script:AgentPluginsSchemaFixture = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../tests/agent-plugins/plugin.schema.1.0.0.json'))
+$script:AgentPluginContractSchemaFixture = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../tests/agent-plugins/contract.schema.json'))
 $script:AgentPluginsAllowedTopLevel = @(
     '$schema', 'name', 'version', 'description', 'author', 'homepage',
     'repository', 'license', 'keywords', 'extensions'
@@ -33,6 +34,27 @@ function Get-AgentPluginCanonicalFingerprint([string]$CanonicalRoot) {
         $relative = $file.FullName.Substring($CanonicalRoot.Length).TrimStart('\', '/').Replace('\', '/')
         $content = Get-AgentPluginNormalizedText $file.FullName
         [void]$builder.Append($relative).Append("`n").Append($content)
+        if (-not $content.EndsWith("`n")) { [void]$builder.Append("`n") }
+        [void]$builder.Append("`n")
+    }
+    return Get-AgentPluginSha256Text $builder.ToString()
+}
+
+function Get-AgentPluginDistributionFingerprint([string]$PackageRoot) {
+    $resolvedPackage = (Resolve-Path -LiteralPath $PackageRoot).Path
+    $paths = [Collections.Generic.List[string]]::new()
+    $paths.Add('apm.yml') | Out-Null
+    $paths.Add('tests/agent-plugin/contract.json') | Out-Null
+    foreach ($file in @(Get-ChildItem -LiteralPath (Join-Path $resolvedPackage '.apm') -Recurse -File | Sort-Object FullName)) {
+        $paths.Add((Get-AgentPluginRelativePath $resolvedPackage $file.FullName)) | Out-Null
+    }
+
+    $builder = [Text.StringBuilder]::new()
+    foreach ($relative in @($paths | Sort-Object)) {
+        $path = Join-Path $resolvedPackage $relative.Replace('/', [IO.Path]::DirectorySeparatorChar)
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing distribution input: $relative" }
+        $content = Get-AgentPluginNormalizedText $path
+        [void]$builder.Append($relative.Replace('\', '/')).Append("`n").Append($content)
         if (-not $content.EndsWith("`n")) { [void]$builder.Append("`n") }
         [void]$builder.Append("`n")
     }
@@ -110,6 +132,7 @@ function Get-AgentPluginJsonSchemaFailures([string]$JsonPath, [string]$Context) 
         if (-not $valid) { $failures.Add("$Context does not conform to Agent Plugins v1 JSON Schema") | Out-Null }
     }
     catch {
+        Write-Host "TRACE: $($_.Exception.ToString())"
         $failures.Add("$Context JSON Schema validation failed: $($_.Exception.Message)") | Out-Null
     }
     return $failures
@@ -118,6 +141,15 @@ function Get-AgentPluginJsonSchemaFailures([string]$JsonPath, [string]$Context) 
 function Get-AgentPluginContract([string]$PackageRoot) {
     $path = Join-Path $PackageRoot 'tests/agent-plugin/contract.json'
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing Agent Plugin contract: $path" }
+    if (-not (Test-Path -LiteralPath $script:AgentPluginContractSchemaFixture -PathType Leaf)) { throw "Missing Agent Plugin contract schema: $script:AgentPluginContractSchemaFixture" }
+    try {
+        $valid = Test-Json -LiteralPath $path -SchemaFile $script:AgentPluginContractSchemaFixture -ErrorAction Stop
+        if (-not $valid) { throw 'Agent Plugin contract does not conform to its JSON Schema.' }
+    }
+    catch {
+        Write-Host "TRACE: $($_.Exception.ToString())"
+        throw "Agent Plugin contract JSON Schema validation failed: $($_.Exception.Message)"
+    }
     $contract = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
     if ([int]$contract.schemaVersion -ne $script:AgentPluginContractVersion) { throw "Unsupported Agent Plugin contract version: $($contract.schemaVersion)" }
     $required = @('package','installTargets','ownedSkills','ownedAgents','ownedInstructions','dependencies','runtimeBoundary')
@@ -252,7 +284,11 @@ function Get-AgentPluginBundleFailures([string]$PackageRoot, [string]$BundleRoot
     if (-not (Test-Path -LiteralPath $lockPath -PathType Leaf)) { $failures.Add('Bundle missing apm.lock.yaml') | Out-Null; return $failures }
 
     try { $plugin = Get-Content -Raw -LiteralPath $pluginPath | ConvertFrom-Json }
-    catch { $failures.Add("Invalid plugin.json: $($_.Exception.Message)") | Out-Null; return $failures }
+    catch {
+        Write-Host "TRACE: $($_.Exception.ToString())"
+        $failures.Add("Invalid plugin.json: $($_.Exception.Message)") | Out-Null
+        return $failures
+    }
     foreach ($failure in Get-AgentPluginJsonSchemaFailures $pluginPath 'plugin.json') { $failures.Add($failure) | Out-Null }
     foreach ($required in @('name', 'version', 'description')) {
         if ($plugin.PSObject.Properties.Name -notcontains $required -or [string]::IsNullOrWhiteSpace([string]$plugin.$required)) { $failures.Add("plugin.json missing $required") | Out-Null }

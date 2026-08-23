@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "package": "goal-context-authoring",
   "canonicalFingerprint": "f5f46e679fbf01ffc5ac3cb1ef7e56ac080f34ef3577af9ca0bf0e38e2fc3f2a",
+  "distributionFingerprint": "a8ef088971524fa075633b678b8c5d27ebfed051d1fe683be4641d98d792c7e1",
   "candidateCommit": "0ff5900beb62d8c42226a5cad2779c56747d50c2",
   "runtime": {
     "surface": "github-copilot-cli",

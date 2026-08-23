@@ -28,6 +28,8 @@
 
 共通builderとvalidatorは`scripts/agent-plugins/`に置く。Plan Coverage固有のPoC scenario、Adaptive attestation、rich runtime evidenceはpackage側へ残すが、別packageへそのscriptをコピーしない。
 
+この共通基盤は新規のpack algorithmではなく、Plan Coverageで実証済みのPowerShellによるAPM CLI orchestration、fingerprint、conformance、negative mutation処理を移設・一般化したものである。APMのPowerShell呼び出しと既存処理を再利用し、同じ責務をC# file-based appへ再実装して二重化しないことを優先する。この限定的な例外はAgent Plugin共通基盤だけに適用し、新規の独立toolingをPowerShellで実装する一般方針にはしない。
+
 ```powershell
 ./scripts/agent-plugins/build-agent-plugin.ps1 -Package <package-name>
 ./scripts/agent-plugins/validate-agent-plugin-packages.ps1
@@ -45,7 +47,7 @@
 - generated Skill、owned agent、shared instruction と canonical source の等価性および drift を検出すること。
 - duplicate Skill / duplicate process semantics と package root の不正な plugin projection を拒否すること。
 - APM source/install 経路、Adaptive attestation、dependency boundary を壊していないこと。
-- committed qualification / PoC result の schema、invariant、fingerprint 比較を検証すること。
+- committed qualification / PoC result のschema、invariant、canonical/distribution fingerprint、candidate evidence比較を検証すること。
 
 通常CIは6 packageをmatrixでpackし、package-local contract、canonical equivalence、lock integrity、dependency非inline、negative mutation、root projection不在、committed qualification recordを検査する。
 
