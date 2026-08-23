@@ -15,12 +15,14 @@
 
 | Package | APM / Copilot | Agent Plugin direct | Boundary |
 | --- | --- | --- | --- |
-| Adaptive Implementation | existing evidenceをfingerprint一致時だけ再利用 | candidate discoveryと代表routeを別途記録 | Codex model mappingはfinalizer |
-| Design Pair | existing multi-turn evidenceを再利用可能 | Adaptive pluginとの明示compositionが未達ならHOLD | Adaptiveをinlineしない |
-| Goal Context Authoring | free-form authoring smoke対象 | direct discoveryと代表authoring対象 | human reviewは自動PASSにしない |
-| PR Review Remediation | remote-only processのlive smoke対象 | GitHub auth/review evidenceが得られる場合だけPASS | local reviewerなし |
-| Persistent Purpose Review | Runner boundaryを含むlive smoke対象 | Runnerが別配布のためplugin単体はHOLD | Runner 0.2.2以上 |
-| Plan Coverage | immutable full baselineとtargeted deltaを維持 | Adaptive/shared instruction gapが残る間HOLD | rich evidenceはpackage側 |
+| Adaptive Implementation | PASS / PARTIAL | HOLD / PARTIAL | candidate installはPASS。direct代表routeは未実行 |
+| Design Pair | PASS / PARTIAL | HOLD / PARTIAL | Adaptiveをinlineせず、direct compositionは未実行 |
+| Goal Context Authoring | PASS / LIVE | PASS / LIVE | free-form生成とbundle validatorを確認 |
+| PR Review Remediation | PASS / LIVE | PASS / LIVE | PR #131のremote reviewをplanner停止点まで確認 |
+| Persistent Purpose Review | PASS / LIVE | HOLD / PARTIAL | Runner 0.2.2は別配布。Copilot same-run flowは確認 |
+| Plan Coverage | PASS / PARTIAL | HOLD / PARTIAL | immutable behavior evidenceを維持し、direct gapは未解消 |
+
+candidate `0ff5900beb62d8c42226a5cad2779c56747d50c2`の実行結果は[`tests/agent-plugins/results/2026-08-23-runtime-qualification.md`](../tests/agent-plugins/results/2026-08-23-runtime-qualification.md)に記録する。
 
 ## Manual qualification rules
 

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "package": "design-pair-implementation-execution",
   "canonicalFingerprint": "3abd6ef9cfd7fea06943a2ef025f019ee6b0bb1edb7ba82910fe022a6d9dd434",
-  "candidateCommit": "UNCOMMITTED",
+  "candidateCommit": "0ff5900beb62d8c42226a5cad2779c56747d50c2",
   "runtime": {
     "surface": "github-copilot-cli",
     "clientVersion": "1.0.80",
@@ -12,18 +12,21 @@
     {
       "distribution": "apm",
       "status": "PASS",
-      "evidenceMode": "REUSED",
-      "reason": "Canonical fingerprint is unchanged and existing real multi-turn Copilot evidence remains applicable.",
+      "evidenceMode": "PARTIAL",
+      "reason": "The candidate remote APM dependency closure passed and the unchanged canonical fingerprint permits reuse of existing multi-turn Copilot evidence.",
       "evidenceRefs": [
+        "tests/agent-plugins/results/2026-08-23-runtime-qualification.md",
         "apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/results/20260805-copilot-issue69.md"
       ]
     },
     {
       "distribution": "agent-plugin-direct",
       "status": "HOLD",
-      "evidenceMode": "NONE",
-      "reason": "The Design Pair bundle intentionally does not inline its Adaptive Implementation dependency; direct composition is not yet behavior-qualified.",
-      "evidenceRefs": []
+      "evidenceMode": "PARTIAL",
+      "reason": "Copilot discovered the Design Pair bundle, but the intentionally separate Adaptive plugin was not explicitly composed and behavior-qualified.",
+      "evidenceRefs": [
+        "tests/agent-plugins/results/2026-08-23-runtime-qualification.md"
+      ]
     }
   ]
 }
