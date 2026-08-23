@@ -22,6 +22,20 @@
 - runtime adapter は client 固有の invocation、agent、model、handoff、instruction path の差異を閉じ込める。adapter に canonical semantics を複製しない。
 - qualification は runtime-specific evidence であり、deterministic source/pack validation の代替ではない。
 
+## Repository-wide package structure
+
+対象process packageは、Adaptive Implementation、Design Pair、Goal Context Authoring、PR Review Remediation、Persistent Purpose Review、Plan Coverageである。各packageは`.apm/**`だけをprocess semanticsの正本とし、`tests/agent-plugin/contract.json`でowned asset、APM target、dependency、runtime boundaryを宣言する。
+
+共通builderとvalidatorは`scripts/agent-plugins/`に置く。Plan Coverage固有のPoC scenario、Adaptive attestation、rich runtime evidenceはpackage側へ残すが、別packageへそのscriptをコピーしない。
+
+```powershell
+./scripts/agent-plugins/build-agent-plugin.ps1 -Package <package-name>
+./scripts/agent-plugins/validate-agent-plugin-packages.ps1
+./scripts/agent-plugins/validate-agent-plugin-qualification.ps1
+```
+
+`codex-profile-finalizer`はCodex runtime adapterでありprocess packageではない。`completion-notification-decorator`はCodex callback/runtime配布を中心とするsupport packageであり、portable process pluginへ昇格させない。いずれもprocess semanticsの第二正本を持たないこととdependency boundaryを検証する。
+
 ## 通常 CI と runtime qualification
 
 通常の PR CI は外部モデルや有料 GitHub Copilot 実行に依存せず、次の deterministic contract を必須にする。
@@ -32,6 +46,8 @@
 - duplicate Skill / duplicate process semantics と package root の不正な plugin projection を拒否すること。
 - APM source/install 経路、Adaptive attestation、dependency boundary を壊していないこと。
 - committed qualification / PoC result の schema、invariant、fingerprint 比較を検証すること。
+
+通常CIは6 packageをmatrixでpackし、package-local contract、canonical equivalence、lock integrity、dependency非inline、negative mutation、root projection不在、committed qualification recordを検査する。
 
 次の項目は通常 regression CI ではなく、明示的な runtime qualification evidence として扱う。
 
@@ -78,7 +94,7 @@ External-model qualificationの要否と範囲は、fingerprintやpackage versio
 
 - APM の廃止または現行 supported path の置換。
 - Agent Plugins direct-load の即時昇格。
-- 全 package の一括移行。
+- runtime/support packageをportable processと偽ること。
 - Agent Plugins 未対応 capability の portable core への押し込み。
 - Plan Coverage の process semantics の再設計。
 - 通常 CI での外部 model 実行の必須化。

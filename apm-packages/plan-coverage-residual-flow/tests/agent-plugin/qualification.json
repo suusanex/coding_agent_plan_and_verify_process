@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "package": "plan-coverage-residual-flow",
+  "canonicalFingerprint": "c12b3a9031845b746637930df2ce82deb1570b2181866a40f5981a32aa696010",
+  "candidateCommit": "UNCOMMITTED",
+  "runtime": {
+    "surface": "github-copilot-cli",
+    "clientVersion": "1.0.80",
+    "apmVersion": "0.26.0"
+  },
+  "assessments": [
+    {
+      "distribution": "apm",
+      "status": "PASS",
+      "evidenceMode": "REUSED",
+      "reason": "Immutable full baseline plus targeted delta evidence support the current APM Copilot assessment.",
+      "evidenceRefs": [
+        "apm-packages/plan-coverage-residual-flow/tests/runtime-qualification/results/2026-08-10-copilot-cli.json",
+        "apm-packages/plan-coverage-residual-flow/tests/runtime-qualification/results/2026-08-11-copilot-cli-pending.json"
+      ]
+    },
+    {
+      "distribution": "agent-plugin-direct",
+      "status": "HOLD",
+      "evidenceMode": "REUSED",
+      "reason": "Existing PoC evidence retains Adaptive composition and shared instruction materialization gaps; semantic parity is not claimed.",
+      "evidenceRefs": [
+        "apm-packages/plan-coverage-residual-flow/tests/agent-plugin-poc/results/2026-08-11-copilot-plugin-poc.json"
+      ]
+    }
+  ]
+}

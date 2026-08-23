@@ -9,7 +9,7 @@ Goal Contextはfree-form textです。このpackageのpromptやexampleを使わ�
 対象repositoryのrootで実行します。
 
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/goal-context-authoring --target codex,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/goal-context-authoring --target copilot,codex,agent-skills
 ```
 
 ## Use
@@ -42,3 +42,14 @@ validatorのPASSは、non-empty readable textであり高確度credential patter
 | APM install smoke | `scripts/test-apm-package-install.ps1` |
 
 詳細は[usage and install guide](docs/usage-and-install-guide.md)を参照してください。
+
+## Agent Plugin artifact
+
+process semanticsの正本はこのpackageの`.apm/**`です。Agent Plugin artifactはpackage rootへchecked-inせず、repository共通builderでtemporary stageへ生成します。
+
+```powershell
+pwsh -NoProfile -File scripts/agent-plugins/build-agent-plugin.ps1 -Package goal-context-authoring
+pwsh -NoProfile -File scripts/agent-plugins/validate-agent-plugin-package.ps1 -Package goal-context-authoring
+```
+
+APMがsupported distributionです。direct deploymentのstatusとevidenceは`tests/agent-plugin/qualification.json`に記録し、未観測のbehaviorをPASSへ昇格させません。

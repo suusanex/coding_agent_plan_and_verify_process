@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/suusanex/coding_agent_plan_and_verify_process/tests/agent-plugins/qualification.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "package", "canonicalFingerprint", "candidateCommit", "runtime", "assessments"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "package": { "type": "string", "minLength": 1 },
+    "canonicalFingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "candidateCommit": { "type": "string", "pattern": "^(?:[a-f0-9]{40}|UNCOMMITTED)$" },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surface", "clientVersion", "apmVersion"],
+      "properties": {
+        "surface": { "const": "github-copilot-cli" },
+        "clientVersion": { "type": "string", "minLength": 1 },
+        "apmVersion": { "type": "string", "minLength": 1 }
+      }
+    },
+    "assessments": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["distribution", "status", "evidenceMode", "reason", "evidenceRefs"],
+        "properties": {
+          "distribution": { "enum": ["apm", "agent-plugin-direct"] },
+          "status": { "enum": ["PASS", "FAIL", "HOLD", "NOT_RUN", "UNOBSERVABLE"] },
+          "evidenceMode": { "enum": ["LIVE", "REUSED", "PARTIAL", "NONE"] },
+          "reason": { "type": "string", "minLength": 1 },
+          "evidenceRefs": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    }
+  }
+}

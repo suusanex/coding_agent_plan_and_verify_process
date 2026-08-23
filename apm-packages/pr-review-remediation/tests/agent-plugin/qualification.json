@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "package": "pr-review-remediation",
+  "canonicalFingerprint": "419394d2052909b73afd63c84b60b5d01e404e7cf9516e6b3ce04078791d45ba",
+  "candidateCommit": "UNCOMMITTED",
+  "runtime": {
+    "surface": "github-copilot-cli",
+    "clientVersion": "1.0.80",
+    "apmVersion": "0.26.0"
+  },
+  "assessments": [
+    {
+      "distribution": "apm",
+      "status": "NOT_RUN",
+      "evidenceMode": "NONE",
+      "reason": "The new remote-only 0.7.0 process requires candidate installation and runtime qualification.",
+      "evidenceRefs": []
+    },
+    {
+      "distribution": "agent-plugin-direct",
+      "status": "NOT_RUN",
+      "evidenceMode": "NONE",
+      "reason": "Direct plugin discovery and remote review planning have not yet run for this candidate.",
+      "evidenceRefs": []
+    }
+  ]
+}

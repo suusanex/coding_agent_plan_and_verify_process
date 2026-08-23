@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "package": "adaptive-implementation-execution",
+  "canonicalFingerprint": "97eab47ecd7ebf3a875ebad29126aff7854afeed17346fc42caae7ba980334af",
+  "candidateCommit": "UNCOMMITTED",
+  "runtime": {
+    "surface": "github-copilot-cli",
+    "clientVersion": "1.0.80",
+    "apmVersion": "0.26.0"
+  },
+  "assessments": [
+    {
+      "distribution": "apm",
+      "status": "PASS",
+      "evidenceMode": "REUSED",
+      "reason": "Canonical fingerprint is unchanged and the existing Copilot HIGH/STANDARD routing evidence remains applicable.",
+      "evidenceRefs": [
+        "apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-08-09.md"
+      ]
+    },
+    {
+      "distribution": "agent-plugin-direct",
+      "status": "NOT_RUN",
+      "evidenceMode": "NONE",
+      "reason": "The generated bundle is deterministic, but direct Copilot discovery and behavior qualification have not yet run for this candidate.",
+      "evidenceRefs": []
+    }
+  ]
+}

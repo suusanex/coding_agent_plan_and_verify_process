@@ -32,6 +32,8 @@ dotnet run --file <installer.cs> -- <target> --check
 
 Plan Coverageのcanonical authoring sourceは`apm-packages/plan-coverage-residual-flow/.apm/`です。source repository rootにpackage runtime projection（`.github/agents/`、`.github/instructions/`、`.codex/agents/`、`.agents/skills/`）をchecked-inしません。canonical contractを修正するときは`.apm`を修正し、runtime projectionの正しさはAPM install smokeで検証します。
 
+同じownershipを6つのprocess packageへ適用します。Agent Plugin artifactはpackage rootへchecked-inせず、共通builderがtemporary stageで`apm pack --format plugin`を実行します。
+
 ```powershell
 $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
 dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- C:\path\to\target --dry-run
@@ -117,11 +119,13 @@ dotnet publish ./apps/PurposeReviewRunner/PurposeReviewRunner.csproj -c Release 
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-runtime-qualification.ps1
+./scripts/agent-plugins/validate-agent-plugin-packages.ps1
+./scripts/agent-plugins/validate-agent-plugin-qualification.ps1
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-agent-plugin.ps1
 ./scripts/validate-architecture-slice-readiness.ps1
 ```
 
-Agent Plugins bundle conformance / provenance validation is deterministic and belongs to ordinary CI. GitHub Copilot CLI runtime qualification and Agent Plugins direct-load qualification (external model) are manual, explicit re-runs. See [Plan Coverage runtime qualification](plan-coverage-runtime-qualification.md) and [Agent Plugins adoption strategy](agent-plugin-adoption-strategy.md). Do not add paid model invocation to ordinary pull_request CI.
+Agent Plugins bundle conformance / provenance validation is deterministic and belongs to ordinary CI. GitHub Copilot CLI runtime qualification and Agent Plugins direct-load qualification (external model) are manual, explicit re-runs. See [repository-wide runtime qualification](agent-plugin-runtime-qualification.md)、[Plan Coverage runtime qualification](plan-coverage-runtime-qualification.md)、[Agent Plugins adoption strategy](agent-plugin-adoption-strategy.md). Do not add paid model invocation to ordinary pull_request CI.
 
 ### Common checks
 

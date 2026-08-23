@@ -1,0 +1,61 @@
+name: Validate Agent Plugin Packages
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-agent-plugin-packages.yml'
+      - 'apm-packages/**/.apm/**'
+      - 'apm-packages/**/apm.yml'
+      - 'apm-packages/**/tests/agent-plugin/**'
+      - 'scripts/agent-plugins/**'
+      - 'tests/agent-plugins/**'
+      - 'docs/agent-plugin-adoption-strategy.md'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/validate-agent-plugin-packages.yml'
+      - 'apm-packages/**/.apm/**'
+      - 'apm-packages/**/apm.yml'
+      - 'apm-packages/**/tests/agent-plugin/**'
+      - 'scripts/agent-plugins/**'
+      - 'tests/agent-plugins/**'
+      - 'docs/agent-plugin-adoption-strategy.md'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-package:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - adaptive-implementation-execution
+          - design-pair-implementation-execution
+          - goal-context-authoring
+          - pr-review-remediation
+          - persistent-purpose-review
+          - plan-coverage-residual-flow
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: microsoft/apm-action@v1
+        with:
+          setup-only: 'true'
+          apm-version: '0.26.0'
+      - name: Validate canonical plugin artifact
+        shell: pwsh
+        run: ./scripts/agent-plugins/validate-agent-plugin-package.ps1 -Package '${{ matrix.package }}'
+      - name: Validate qualification record
+        shell: pwsh
+        run: ./scripts/agent-plugins/validate-agent-plugin-qualification.ps1 -Package '${{ matrix.package }}'
+
+  validate-repository-boundary:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate source repository ownership boundary
+        shell: pwsh
+        run: ./scripts/validate-no-root-projections.ps1

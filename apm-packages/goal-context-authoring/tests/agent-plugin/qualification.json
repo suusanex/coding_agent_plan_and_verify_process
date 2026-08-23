@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "package": "goal-context-authoring",
+  "canonicalFingerprint": "f5f46e679fbf01ffc5ac3cb1ef7e56ac080f34ef3577af9ca0bf0e38e2fc3f2a",
+  "candidateCommit": "UNCOMMITTED",
+  "runtime": {
+    "surface": "github-copilot-cli",
+    "clientVersion": "1.0.80",
+    "apmVersion": "0.26.0"
+  },
+  "assessments": [
+    {
+      "distribution": "apm",
+      "status": "NOT_RUN",
+      "evidenceMode": "NONE",
+      "reason": "The copilot target and current package install path require candidate qualification.",
+      "evidenceRefs": []
+    },
+    {
+      "distribution": "agent-plugin-direct",
+      "status": "NOT_RUN",
+      "evidenceMode": "NONE",
+      "reason": "Direct plugin discovery and representative free-form authoring have not yet run for this candidate.",
+      "evidenceRefs": []
+    }
+  ]
+}

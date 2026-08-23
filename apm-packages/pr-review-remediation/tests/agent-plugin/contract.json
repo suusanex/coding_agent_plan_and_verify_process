@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "package": "pr-review-remediation",
+  "installTargets": ["copilot", "codex", "agent-skills"],
+  "ownedSkills": ["pr-review-remediation"],
+  "ownedAgents": ["review-planner"],
+  "ownedInstructions": [],
+  "dependencies": ["codex-profile-finalizer"],
+  "runtimeBoundary": "GitHub review request and collection require authenticated GitHub access; local reviewer execution is not part of the process."
+}

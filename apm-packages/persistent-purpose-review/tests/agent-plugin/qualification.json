@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "package": "persistent-purpose-review",
+  "canonicalFingerprint": "56df277d058c7db2bc92ea0dd88686c25f1ba2b4fe81771e759246a784673d3e",
+  "candidateCommit": "UNCOMMITTED",
+  "runtime": {
+    "surface": "github-copilot-cli",
+    "clientVersion": "1.0.80",
+    "apmVersion": "0.26.0"
+  },
+  "assessments": [
+    {
+      "distribution": "apm",
+      "status": "NOT_RUN",
+      "evidenceMode": "NONE",
+      "reason": "The new copilot target requires candidate installation and Runner boundary qualification.",
+      "evidenceRefs": []
+    },
+    {
+      "distribution": "agent-plugin-direct",
+      "status": "HOLD",
+      "evidenceMode": "NONE",
+      "reason": "The plugin intentionally excludes the independently installed purpose-review-runner binary.",
+      "evidenceRefs": []
+    }
+  ]
+}
