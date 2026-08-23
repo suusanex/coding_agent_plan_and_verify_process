@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text;
 
 namespace PurposeReviewRunnerFakeProvider;
 
@@ -42,7 +43,7 @@ public static class Program
             }
             else
             {
-                RunCopilot(args);
+                await RunCopilotAsync(args);
             }
             return 0;
         }
@@ -90,14 +91,26 @@ public static class Program
         Console.WriteLine(Review(resumed));
     }
 
-    private static void RunCopilot(string[] args)
+    private static async Task RunCopilotAsync(string[] args)
     {
         var sessionArgument = args.Single(value => value.StartsWith("--session-id=", StringComparison.Ordinal) || value.StartsWith("--resume=", StringComparison.Ordinal));
         var resumed = sessionArgument.StartsWith("--resume=", StringComparison.Ordinal);
         var sessionId = sessionArgument[(sessionArgument.IndexOf('=') + 1)..];
         Require(args.Contains("--available-tools=view,grep", StringComparer.Ordinal), "Copilot tool allowlist was not fixed.");
         Require(args.Contains("--deny-tool=write", StringComparer.Ordinal) && args.Contains("--deny-tool=shell", StringComparer.Ordinal), "Copilot write tools were not denied.");
-        ValidatePayload(File.ReadAllText(ValueAfter(args, "--attachment")), resumed);
+        Require(!args.Contains("--attachment", StringComparer.Ordinal) && !args.Contains("-p", StringComparer.Ordinal), "Copilot payload must not use command-line or attachment transport.");
+        await using var standardInput = Console.OpenStandardInput();
+        using var reader = new StreamReader(
+            standardInput,
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true),
+            detectEncodingFromByteOrderMarks: false);
+        var payload = await reader.ReadToEndAsync();
+        Require(!payload.StartsWith('\uFEFF'), "Copilot stdin payload must not contain a UTF-8 BOM.");
+        ValidatePayload(payload, resumed);
+        if (!resumed && payload.Contains("FAKE-INTEGRATION-CONTEXT", StringComparison.Ordinal))
+        {
+            Require(payload.Contains("FAKE-JAPANESE-END-終端", StringComparison.Ordinal), "Copilot stdin payload was truncated or incorrectly encoded.");
+        }
         Console.WriteLine(JsonSerializer.Serialize(new { type = "assistant.message", data = new { content = Review(resumed) } }));
         Console.WriteLine(JsonSerializer.Serialize(new { type = "result", sessionId }));
     }

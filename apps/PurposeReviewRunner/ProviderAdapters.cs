@@ -199,37 +199,31 @@ public sealed class CopilotProviderAdapter : ProviderAdapterBase, IProviderAdapt
 {
     public async Task<ProviderResult> ExecuteAsync(ProviderRequest request, IProcessRunner processRunner, CancellationToken cancellationToken)
     {
-        var payloadPath = WritePayload(request);
         var session = request.SessionHandle ?? Guid.NewGuid().ToString("D");
-        try
+        var arguments = new List<string>
         {
-            var arguments = new List<string>
-            {
-                "-C", request.Repository, "--no-custom-instructions", "--no-remote", "--no-remote-export",
-                "--no-auto-update", "--no-ask-user", "--disable-builtin-mcps", "--disallow-temp-dir",
-                "--no-color", "--silent", "--output-format", "json", "--stream", "off",
-                "--model", request.Provider.Model, "--effort", request.Provider.ReasoningEffort,
-                "--available-tools=view,grep", "--allow-tool=view", "--allow-tool=grep",
-                "--deny-tool=write", "--deny-tool=shell", "--deny-tool=task", "--deny-tool=edit"
-            };
-            if (!string.IsNullOrWhiteSpace(request.Provider.Profile))
-            {
-                arguments.AddRange(["--agent", request.Provider.Profile]);
-            }
-            arguments.Add(request.SessionHandle is null ? $"--session-id={session}" : $"--resume={session}");
-            arguments.AddRange(["--attachment", payloadPath, "-p", "Follow the attached purpose-review payload exactly."]);
-            var process = await RunCheckedAsync(new(request.Provider.Executable, arguments, request.Repository, null), processRunner, cancellationToken);
-            var parsed = ParseCopilot(process.StandardOutput);
-            if (parsed.SessionIds.Count != 1 || parsed.SessionIds[0] != session)
-            {
-                throw new RunnerException("SESSION_MISMATCH", "Copilot did not confirm the requested session identity.", ExitCodes.ContractError);
-            }
-            return new(session, parsed.ReviewText);
-        }
-        finally
+            "-C", request.Repository, "--no-custom-instructions", "--no-remote", "--no-remote-export",
+            "--no-auto-update", "--no-ask-user", "--disable-builtin-mcps", "--disallow-temp-dir",
+            "--no-color", "--silent", "--output-format", "json", "--stream", "off",
+            "--model", request.Provider.Model, "--effort", request.Provider.ReasoningEffort,
+            "--available-tools=view,grep", "--allow-tool=view", "--allow-tool=grep",
+            "--deny-tool=write", "--deny-tool=shell", "--deny-tool=task", "--deny-tool=edit"
+        };
+        if (!string.IsNullOrWhiteSpace(request.Provider.Profile))
         {
-            DeleteTemporary(payloadPath);
+            arguments.AddRange(["--agent", request.Provider.Profile]);
         }
+        arguments.Add(request.SessionHandle is null ? $"--session-id={session}" : $"--resume={session}");
+        var process = await RunCheckedAsync(
+            new(request.Provider.Executable, arguments, request.Repository, request.Payload),
+            processRunner,
+            cancellationToken);
+        var parsed = ParseCopilot(process.StandardOutput);
+        if (parsed.SessionIds.Count != 1 || parsed.SessionIds[0] != session)
+        {
+            throw new RunnerException("SESSION_MISMATCH", "Copilot did not confirm the requested session identity.", ExitCodes.ContractError);
+        }
+        return new(session, parsed.ReviewText);
     }
 
     private static (IReadOnlyList<string> SessionIds, string ReviewText) ParseCopilot(string stdout)

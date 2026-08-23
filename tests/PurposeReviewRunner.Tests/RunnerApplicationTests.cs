@@ -128,13 +128,24 @@ public sealed class RunnerApplicationTests
 
         var startArguments = fixture.Process.Requests[0].Arguments.ToArray();
         var resumeArguments = fixture.Process.Requests[1].Arguments.ToArray();
-        Assert.IsTrue(startArguments.Any(value => value.StartsWith("--session-id=", StringComparison.Ordinal)));
-        Assert.IsTrue(resumeArguments.Any(value => value.StartsWith("--resume=", StringComparison.Ordinal)));
+        var startSession = startArguments.Single(value => value.StartsWith("--session-id=", StringComparison.Ordinal));
+        var resumeSession = resumeArguments.Single(value => value.StartsWith("--resume=", StringComparison.Ordinal));
+        Assert.AreEqual(startSession["--session-id=".Length..], resumeSession["--resume=".Length..]);
         CollectionAssert.Contains(startArguments, "--available-tools=view,grep");
         CollectionAssert.Contains(startArguments, "--deny-tool=write");
         CollectionAssert.Contains(startArguments, "--deny-tool=shell");
         CollectionAssert.Contains(startArguments, "--disable-builtin-mcps");
-        CollectionAssert.Contains(startArguments, "--attachment");
+        CollectionAssert.DoesNotContain(startArguments, "--attachment");
+        CollectionAssert.DoesNotContain(startArguments, "-p");
+        CollectionAssert.DoesNotContain(resumeArguments, "--attachment");
+        CollectionAssert.DoesNotContain(resumeArguments, "-p");
+        var runDirectory = Path.Combine(fixture.Paths.StateRoot, first.Output.RunId!);
+        Assert.AreEqual(
+            File.ReadAllText(Path.Combine(runDirectory, "transcript", "round-01-prompt.md")),
+            fixture.Process.Requests[0].StandardInput);
+        Assert.AreEqual(
+            File.ReadAllText(Path.Combine(runDirectory, "transcript", "round-02-prompt.md")),
+            fixture.Process.Requests[1].StandardInput);
     }
 
     [TestMethod]
@@ -526,7 +537,10 @@ public sealed class RunnerApplicationTests
         var stateRoot = Path.Combine(root, "state", "runs");
         Directory.CreateDirectory(repository);
         Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
-        File.WriteAllText(Path.Combine(repository, "purpose.md"), "FAKE-INTEGRATION-CONTEXT");
+        var purpose = provider == "copilot"
+            ? "FAKE-INTEGRATION-CONTEXT\n" + new string('あ', 10_000) + "\nFAKE-JAPANESE-END-終端"
+            : "FAKE-INTEGRATION-CONTEXT";
+        File.WriteAllText(Path.Combine(repository, "purpose.md"), purpose);
         var executable = CreateFakeProviderLauncher(root);
         File.WriteAllText(
             configPath,

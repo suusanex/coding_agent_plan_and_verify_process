@@ -18,10 +18,10 @@ $manifest = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'apm.yml')
 $skill = Get-Content -Raw -LiteralPath $skillPath
 $readme = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'README.md')
 
-if ($manifest -notmatch '(?m)^name:\s*persistent-purpose-review\s*$' -or $manifest -notmatch '(?m)^version:\s*0\.2\.1\s*$') {
+if ($manifest -notmatch '(?m)^name:\s*persistent-purpose-review\s*$' -or $manifest -notmatch '(?m)^version:\s*0\.2\.2\s*$') {
     throw 'APM package identity is invalid.'
 }
-if ($skill -notmatch 'purpose-review-runner version' -or $skill -notmatch 'protocolVersion.*`2`' -or $skill -notmatch 'runnerVersion' -or $skill -notmatch '0\.2\.1') {
+if ($skill -notmatch 'purpose-review-runner version' -or $skill -notmatch 'protocolVersion.*`2`' -or $skill -notmatch 'runnerVersion' -or $skill -notmatch '0\.2\.2') {
     throw 'Skill does not fail closed on the Runner protocol boundary.'
 }
 if ($skill -notmatch 'status --run' -or $skill -notmatch 'RUNNING' -or $skill -notmatch 'jobStatus') {
@@ -54,8 +54,8 @@ if ($readme -match 'sandbox' -or $skill -match 'sandbox') {
 if ($readme -notmatch 'non-modifying reviewer' -or $skill -notmatch 'repositoryを変更しない') {
     throw 'Package documents do not preserve the non-modifying reviewer contract.'
 }
-if ($readme -notmatch '0\.2\.1' -or $readme -notmatch 'apm update') {
-    throw 'Package README does not require Runner 0.2.1 or later after APM-only updates.'
+if ($readme -notmatch '0\.2\.2' -or $readme -notmatch 'apm update') {
+    throw 'Package README does not require Runner 0.2.2 or later after APM-only updates.'
 }
 
 Write-Output 'Persistent Purpose Review package validation: PASS'
