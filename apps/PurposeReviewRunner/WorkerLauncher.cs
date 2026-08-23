@@ -1,16 +1,30 @@
-using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace PurposeReviewRunner;
 
 public sealed class DetachedWorkerLauncher : IWorkerLauncher
 {
-    private const uint CreateBreakawayFromJob = 0x01000000;
-    private const uint CreateNewProcessGroup = 0x00000200;
-    private const uint CreateUnicodeEnvironment = 0x00000400;
-    private const uint DetachedProcess = 0x00000008;
+    private readonly RunnerPaths paths;
+    private readonly IWindowsJobInspector windowsJobInspector;
+    private readonly IWindowsProcessLauncher windowsProcessLauncher;
+    private readonly bool useWindowsLaunch;
+
+    public DetachedWorkerLauncher(RunnerPaths paths)
+        : this(paths, new WindowsJobInspector(), new WindowsProcessLauncher(), OperatingSystem.IsWindows())
+    {
+    }
+
+    public DetachedWorkerLauncher(
+        RunnerPaths paths,
+        IWindowsJobInspector windowsJobInspector,
+        IWindowsProcessLauncher windowsProcessLauncher,
+        bool useWindowsLaunch)
+    {
+        this.paths = paths;
+        this.windowsJobInspector = windowsJobInspector;
+        this.windowsProcessLauncher = windowsProcessLauncher;
+        this.useWindowsLaunch = useWindowsLaunch;
+    }
 
     public WorkerLaunchResult Launch(string runId)
     {
@@ -20,43 +34,127 @@ public sealed class DetachedWorkerLauncher : IWorkerLauncher
             throw new RunnerException("WORKER_START_FAILED", "The runner executable path was not available.", ExitCodes.RuntimeError);
         }
 
-        return OperatingSystem.IsWindows()
-            ? LaunchWindows(executable, runId)
-            : LaunchUnix(executable, runId);
-    }
-
-    private static WorkerLaunchResult LaunchWindows(string executable, string runId)
-    {
-        var flags = DetachedProcess | CreateNewProcessGroup | CreateBreakawayFromJob | CreateUnicodeEnvironment;
-        if (!TryCreateWindowsProcess(executable, runId, flags, out var information, out var nativeError))
-        {
-            var error = new Win32Exception(nativeError);
-            Trace.TraceError(error.ToString());
-            throw new RunnerException("WORKER_START_FAILED", $"The review worker process did not start: {error.Message}", ExitCodes.RuntimeError, error);
-        }
-
+        var runDirectory = Path.Combine(paths.StateRoot, runId);
         try
         {
-            return ReadLaunchResult(information.DwProcessId);
+            using var log = LauncherLogWriter.Open(runDirectory);
+            log.WriteLaunchHeader();
+            log.Write("runnerVersion", Protocol.RunnerVersion);
+            log.Write("runId", runId);
+            var round = TryReadRound(runId);
+            if (round is int roundValue)
+            {
+                log.Write("round", roundValue);
+            }
+
+            log.Write("pid", Environment.ProcessId);
+            log.Write("configPathOverrideSet", !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("PURPOSE_REVIEW_RUNNER_CONFIG_PATH")));
+            log.Write("stateRootOverrideSet", !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("PURPOSE_REVIEW_RUNNER_STATE_ROOT")));
+            log.Write("workerCommand", "work --run " + runId);
+
+            return useWindowsLaunch
+                ? LaunchWindows(executable, runId, log)
+                : LaunchUnix(executable, runId, log);
         }
-        finally
+        catch (RunnerException)
         {
-            if (information.HProcess != IntPtr.Zero)
-            {
-                CloseHandle(information.HProcess);
-            }
-            if (information.HThread != IntPtr.Zero)
-            {
-                CloseHandle(information.HThread);
-            }
+            throw;
+        }
+        catch (Exception exception)
+        {
+            Trace.TraceError(exception.ToString());
+            throw new RunnerException("WORKER_START_FAILED", $"The review worker process did not start: {exception.Message}", ExitCodes.RuntimeError, exception);
         }
     }
 
-    private static WorkerLaunchResult LaunchUnix(string executable, string runId)
+    private WorkerLaunchResult LaunchWindows(string executable, string runId, LauncherLogWriter log)
     {
+        log.Write("os", "Windows");
+        WindowsJobSnapshot snapshot;
+        try
+        {
+            snapshot = windowsJobInspector.InspectCurrentProcess();
+        }
+        catch (Exception exception)
+        {
+            Trace.TraceError(exception.ToString());
+            log.Write("inJob", "unknown");
+            log.Write("jobInspectionFailed", true);
+            log.Write("jobInspectionError", exception.Message);
+            log.Write("failClosed", true);
+            log.Write("failClosedReason", "Job object membership or limits could not be queried; refusing to launch a worker inside an unknown job.");
+            if (exception is RunnerException)
+            {
+                throw;
+            }
+
+            throw new RunnerException("WORKER_START_FAILED", $"The review worker process did not start: {exception.Message}", ExitCodes.RuntimeError, exception);
+        }
+
+        log.Write("inJob", snapshot.InJob);
+        if (snapshot.LimitFlags is uint limitFlags)
+        {
+            log.WriteHex("limitFlags", limitFlags);
+        }
+
+        if (snapshot.BreakawayOk is bool breakawayOk)
+        {
+            log.Write("breakawayOk", breakawayOk);
+        }
+
+        if (snapshot.SilentBreakawayOk is bool silentBreakawayOk)
+        {
+            log.Write("silentBreakawayOk", silentBreakawayOk);
+        }
+
+        if (snapshot.KillOnJobClose is bool killOnJobClose)
+        {
+            log.Write("killOnJobClose", killOnJobClose);
+        }
+
+        var strategy = WindowsWorkerLaunchStrategySelector.Select(snapshot);
+        var creationFlags = WindowsWorkerLaunchStrategySelector.GetCreationFlags(strategy);
+        log.Write("selectedStrategy", WindowsWorkerLaunchStrategySelector.ToLogName(strategy));
+        log.Write("outsideJobIntended", true);
+        log.WriteHex("creationFlags", creationFlags);
+
+        var request = WindowsProcessLaunchRequest.ForWorker(executable, runId, creationFlags);
+        var launched = WindowsWorkerLaunchStrategySelector.UsesCreateProcess(strategy)
+            ? windowsProcessLauncher.CreateDetachedProcess(request)
+            : windowsProcessLauncher.CreateExternalProcess(request);
+        WriteLaunchResult(log, launched);
+        if (strategy == WindowsWorkerLaunchStrategy.ExternalWin32ProcessCreate)
+        {
+            log.Write("environmentBlockPassed", true);
+        }
+
+        if (!launched.Success)
+        {
+            log.Write("failClosed", true);
+            log.Write(
+                "failClosedReason",
+                strategy == WindowsWorkerLaunchStrategy.ExternalWin32ProcessCreate
+                    ? "Restrictive job object detected and Win32_Process.Create could not start a worker outside the calling process job."
+                    : "The selected CreateProcess launch path failed.");
+            throw new RunnerException("WORKER_START_FAILED", FormatPublicFailure(launched), ExitCodes.RuntimeError);
+        }
+
+        return ReadLaunchResult(launched.ProcessId!.Value);
+    }
+
+    private static WorkerLaunchResult LaunchUnix(string executable, string runId, LauncherLogWriter log)
+    {
+        log.Write("os", "Unix");
+        log.Write("selectedStrategy", "unix-detached-exec");
+        log.Write("outsideJobIntended", true);
+        log.Write("launchApi", "Process.Start");
+
         const string shell = "/bin/sh";
         if (!File.Exists(shell))
         {
+            log.Write("success", false);
+            log.Write("failClosed", true);
+            log.Write("failClosedReason", "sh was not found at /bin/sh.");
             throw new RunnerException("WORKER_START_FAILED", "sh was not found at /bin/sh.", ExitCodes.RuntimeError);
         }
 
@@ -86,6 +184,9 @@ public sealed class DetachedWorkerLauncher : IWorkerLauncher
                 process.StandardInput.Close();
                 process.StandardOutput.Close();
                 process.StandardError.Close();
+                log.Write("success", true);
+                log.Write("nativeErrorCode", 0);
+                log.Write("workerPid", process.Id);
                 return ReadLaunchResult(process.Id);
             }
             finally
@@ -96,6 +197,10 @@ public sealed class DetachedWorkerLauncher : IWorkerLauncher
         catch (Exception exception)
         {
             Trace.TraceError(exception.ToString());
+            log.Write("success", false);
+            log.Write("nativeErrorMessage", exception.Message);
+            log.Write("failClosed", true);
+            log.Write("failClosedReason", "Unix detached worker launch failed.");
             if (exception is RunnerException)
             {
                 throw;
@@ -104,25 +209,60 @@ public sealed class DetachedWorkerLauncher : IWorkerLauncher
         }
     }
 
-    private static bool TryCreateWindowsProcess(string executable, string runId, uint flags, out ProcessInformation information, out int error)
+    private static void WriteLaunchResult(LauncherLogWriter log, WindowsProcessLaunchResult launched)
     {
-        var commandLine = new StringBuilder();
-        commandLine.Append('"').Append(executable.Replace("\"", "\\\"", StringComparison.Ordinal)).Append('"');
-        commandLine.Append(" work --run ").Append(runId);
-        var startupInfo = new StartupInfo { Cb = Marshal.SizeOf<StartupInfo>() };
-        var started = CreateProcess(
-            executable,
-            commandLine,
-            IntPtr.Zero,
-            IntPtr.Zero,
-            false,
-            flags,
-            IntPtr.Zero,
-            Path.GetDirectoryName(executable),
-            ref startupInfo,
-            out information);
-        error = started ? 0 : Marshal.GetLastWin32Error();
-        return started;
+        log.Write("launchApi", launched.LaunchApi);
+        log.WriteHex("creationFlags", launched.CreationFlags);
+        log.Write("success", launched.Success);
+        log.Write("nativeErrorCode", launched.NativeErrorCode);
+        if (!string.IsNullOrWhiteSpace(launched.NativeErrorMessage))
+        {
+            log.Write("nativeErrorMessage", launched.NativeErrorMessage);
+        }
+
+        if (launched.WmiReturnValue is uint wmiReturnValue)
+        {
+            log.Write("wmiReturnValue", unchecked((int)wmiReturnValue));
+        }
+
+        if (launched.ProcessId is int processId)
+        {
+            log.Write("workerPid", processId);
+        }
+
+        log.Write("fallback", launched.FallbackUsed);
+        if (!string.IsNullOrWhiteSpace(launched.FallbackReason))
+        {
+            log.Write("fallbackReason", launched.FallbackReason);
+        }
+    }
+
+    private static string FormatPublicFailure(WindowsProcessLaunchResult launched)
+    {
+        if (launched.LaunchApi == "Win32_Process.Create" && launched.WmiReturnValue is uint wmiReturnValue)
+        {
+            return $"The review worker process did not start: Win32_Process.Create returned {wmiReturnValue} ({launched.NativeErrorMessage}).";
+        }
+
+        if (launched.NativeErrorCode != 0)
+        {
+            return $"The review worker process did not start: {launched.NativeErrorMessage} (Win32 error {launched.NativeErrorCode}).";
+        }
+
+        return $"The review worker process did not start: {launched.NativeErrorMessage}";
+    }
+
+    private int? TryReadRound(string runId)
+    {
+        try
+        {
+            return new JobStore(paths.StateRoot).Load(runId).Round;
+        }
+        catch (Exception exception)
+        {
+            Trace.TraceError(exception.ToString());
+            return null;
+        }
     }
 
     private static WorkerLaunchResult ReadLaunchResult(int processId)
@@ -137,53 +277,5 @@ public sealed class DetachedWorkerLauncher : IWorkerLauncher
             Trace.TraceError(exception.ToString());
             return new(processId, DateTimeOffset.UtcNow);
         }
-    }
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern bool CreateProcess(
-        string? lpApplicationName,
-        StringBuilder lpCommandLine,
-        IntPtr lpProcessAttributes,
-        IntPtr lpThreadAttributes,
-        bool bInheritHandles,
-        uint dwCreationFlags,
-        IntPtr lpEnvironment,
-        string? lpCurrentDirectory,
-        ref StartupInfo lpStartupInfo,
-        out ProcessInformation lpProcessInformation);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool CloseHandle(IntPtr handle);
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private struct StartupInfo
-    {
-        public int Cb;
-        public IntPtr LpReserved;
-        public IntPtr LpDesktop;
-        public IntPtr LpTitle;
-        public int DwX;
-        public int DwY;
-        public int DwXSize;
-        public int DwYSize;
-        public int DwXCountChars;
-        public int DwYCountChars;
-        public int DwFillAttribute;
-        public int DwFlags;
-        public short WShowWindow;
-        public short CbReserved2;
-        public IntPtr LpReserved2;
-        public IntPtr HStdInput;
-        public IntPtr HStdOutput;
-        public IntPtr HStdError;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct ProcessInformation
-    {
-        public IntPtr HProcess;
-        public IntPtr HThread;
-        public int DwProcessId;
-        public int DwThreadId;
     }
 }

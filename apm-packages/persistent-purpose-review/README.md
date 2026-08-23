@@ -10,7 +10,7 @@
 | `$persistent-purpose-review` | 利用するwork repositoryごと | purpose context選択、parent-owned remediation、terminal reporting |
 | `$pr-review-remediation` | baseline PR reviewが必要なrepositoryごと | Goal Contextを使わないPR review plan作成 |
 
-SkillはRunner binaryを内包、複製、自動download、installしません。このSkillは`purpose-review-runner` 0.2.0以上とprotocol v2を要求する。0.1.xは`start`/`continue`が最終review JSONを同期的に返すため、coding agentのforeground command寿命と両立しない。Runner未導入、0.2.0未満、またはprotocol非互換ならfail closedで停止します。
+SkillはRunner binaryを内包、複製、自動download、installしません。このSkillは`purpose-review-runner` 0.2.0以上とprotocol v2を要求する。0.1.xは`start`/`continue`が最終review JSONを同期的に返すため、coding agentのforeground command寿命と両立しない。Windowsのrestrictive Job Object配下でもworkerを親command終了後まで継続させるにはRunner 0.2.1以上が必要です。Runner未導入、0.2.0未満、またはprotocol非互換ならfail closedで停止します。
 
 ## Install
 

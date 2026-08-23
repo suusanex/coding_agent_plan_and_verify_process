@@ -24,7 +24,7 @@ static async Task<int> MainAsync(string[] args)
             paths,
             new ExecutableResolver(),
             new SystemProcessRunner(TimeSpan.FromMinutes(10)),
-            new DetachedWorkerLauncher());
+            new DetachedWorkerLauncher(paths));
         var result = await application.ExecuteAsync(command, CancellationToken.None);
         Console.WriteLine(JsonSerializer.Serialize(result.Output, JsonDefaults.Options));
         return result.ExitCode;
