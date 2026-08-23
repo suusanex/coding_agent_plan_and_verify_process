@@ -48,6 +48,10 @@
       "type": "string",
       "pattern": "^[a-f0-9]{64}$"
     },
+    "qualification_input_fingerprint": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$"
+    },
     "apm_yml_sha256": {
       "type": "string",
       "pattern": "^[a-f0-9]{64}$"
@@ -112,6 +116,10 @@
         "source_run_id": { "type": "string", "minLength": 1 },
         "candidate_commit": { "type": "string", "minLength": 1 },
         "canonical_fingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "qualification_input_fingerprint": {
+          "type": ["string", "null"],
+          "pattern": "^[a-f0-9]{64}$"
+        },
         "apm_yml_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
         "package_version": { "type": "string", "minLength": 1 },
         "apm_lock_sha256": { "type": "string", "minLength": 1 },

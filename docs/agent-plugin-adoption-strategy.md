@@ -47,7 +47,7 @@ External-model qualificationの要否と範囲は、fingerprintやpackage versio
 
 - documentation、wording、metadata、behaviorへ影響しないcanonical整理はlow / normalとし、deterministic CIを実行して次回実運用で観測する。
 - 特定agent behavior、decision rule、bounded contractの変更はtargeted runtime riskとし、必要に応じて影響scenarioだけを実行する。無関係なauthorization、standard/full routeを再実行しない。
-- authorization、route orchestration、runtime adapter/projection、Skill・agent discovery/materialization、Adaptive handoff、shared routing semantics、runtime/client compatibilityの変更はfull runtime riskとし、full qualificationを要求または強く推奨する。
+- authorization、route orchestration、runtime adapter/projection、Skill・agent discovery/materialization、Adaptive handoff、shared routing semantics、runtime/client compatibilityの変更はfull runtime riskとし、full qualificationを要求または強く推奨する。Strict gateではPlan Coverageだけでなく、Adaptiveとprofile finalizerのruntime-relevant input identityも一致させる。
 - 新runtimeやdirect pluginをsupported installation pathへ昇格するpromotion reviewではfull qualificationを要求する。
 - historical baselineを合理的にcarry forwardできない広範なsemantics変更もfull qualification対象とする。
 

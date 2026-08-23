@@ -19,6 +19,8 @@ $decisionOwnershipPath = Join-Path $packageRoot 'tests/decision-ownership-scenar
 $failures = [System.Collections.Generic.List[string]]::new()
 $script:validationContext = $null
 
+. (Join-Path $PSScriptRoot 'PlanCoverageRuntimeQualification.Common.ps1')
+
 function Add-Failure([string]$Message) {
     $prefix = if ([string]::IsNullOrWhiteSpace($script:validationContext)) { '' } else { "[$script:validationContext] " }
     $failures.Add("$prefix$Message")
@@ -91,6 +93,11 @@ function Test-SchemaShape($Result) {
     if ($Result.apm_yml_sha256 -notmatch '^[a-f0-9]{64}$') {
         Add-Failure 'apm_yml_sha256 must be 64-char lowercase hex'
     }
+    if ($Result.psobject.Properties.Name -contains 'qualification_input_fingerprint' -and
+        $null -ne $Result.qualification_input_fingerprint -and
+        [string]$Result.qualification_input_fingerprint -notmatch '^[a-f0-9]{64}$') {
+        Add-Failure 'qualification_input_fingerprint must be null or 64-char lowercase hex'
+    }
     if ($Result.runtime.qualified_client_surface -cne 'github-copilot-cli') {
         Add-Failure 'qualified_client_surface must be github-copilot-cli'
     }
@@ -147,6 +154,7 @@ function Assert-InfrastructurePresent {
         (Join-Path $rqRoot 'copilot-cli/full-coverage/seed/src/ConsumerGate.ps1'),
         (Join-Path $rqRoot 'copilot-cli/full-coverage/seed/src/StartupFlow.ps1'),
         (Join-Path $packageRoot 'scripts/run-plan-coverage-copilot-qualification.ps1'),
+        (Join-Path $packageRoot 'scripts/PlanCoverageRuntimeQualification.Common.ps1'),
         $docsPath,
         $authPath,
         $decisionOwnershipPath
@@ -201,6 +209,7 @@ function Test-ResultJsonSchema([string]$JsonText) {
         }
     }
     catch {
+        Write-Host "TRACE: $($_.Exception.ToString())"
         Add-Failure "Result schema validation failed: $($_.Exception.Message)"
     }
 }
@@ -224,12 +233,22 @@ function Test-SourceRunIdentity($Result) {
     if ([string]$sr.apm_yml_sha256 -notmatch '^[a-f0-9]{64}$') {
         Add-Failure 'source_run.apm_yml_sha256 must be 64-char lowercase hex'
     }
+    $resultHasQualificationInput = $Result.psobject.Properties.Name -contains 'qualification_input_fingerprint'
+    $sourceHasQualificationInput = $sr.psobject.Properties.Name -contains 'qualification_input_fingerprint'
+    if ($resultHasQualificationInput -ne $sourceHasQualificationInput) {
+        Add-Failure 'result and source_run must either both record qualification_input_fingerprint or both omit it'
+    }
+    if ($sourceHasQualificationInput -and $null -ne $sr.qualification_input_fingerprint -and
+        [string]$sr.qualification_input_fingerprint -notmatch '^[a-f0-9]{64}$') {
+        Add-Failure 'source_run.qualification_input_fingerprint must be null or 64-char lowercase hex'
+    }
 
     $pairs = @(
         @('canonical_fingerprint', 'canonical_fingerprint'),
         @('candidate_commit', 'candidate_commit'),
         @('plan_coverage_package_version', 'package_version'),
         @('apm_yml_sha256', 'apm_yml_sha256'),
+        @('qualification_input_fingerprint', 'qualification_input_fingerprint'),
         @('apm_lock_sha256', 'apm_lock_sha256'),
         @('client_version', 'client_version'),
         @('apm_version', 'apm_version'),
@@ -253,15 +272,37 @@ function Test-SourceRunIdentity($Result) {
     if ([string]$Result.distribution_smoke.command -cne [string]$sr.distribution_smoke.command) {
         Add-Failure 'result.distribution_smoke.command must equal source_run.distribution_smoke.command'
     }
+    if ([string]$Result.distribution_smoke.rationale -cne [string]$sr.distribution_smoke.rationale) {
+        Add-Failure 'result.distribution_smoke.rationale must equal source_run.distribution_smoke.rationale'
+    }
+}
+
+function Test-ScenarioEvidenceInvariants($Result) {
+    $byId = @{}
+    foreach ($scenario in @($Result.scenarios)) {
+        $id = [string]$scenario.id
+        if ($byId.ContainsKey($id)) {
+            Add-Failure "Duplicate scenario $id"
+            continue
+        }
+        $byId[$id] = $scenario
+    }
+    if ($Result.overall_status -ceq 'PENDING') {
+        if ($Result.distribution_smoke.status -cne 'PASS') {
+            Add-Failure "PENDING evidence distribution_smoke status is $($Result.distribution_smoke.status), expected PASS"
+        }
+        foreach ($scenario in @($Result.scenarios)) {
+            if ($scenario.status -cne 'PASS') {
+                Add-Failure "PENDING evidence scenario $($scenario.id) status is $($scenario.status), expected PASS for every recorded targeted scenario"
+            }
+        }
+    }
 }
 
 function Test-FullQualificationEvidence($Result) {
     $byId = @{}
     foreach ($scenario in @($Result.scenarios)) {
         $id = [string]$scenario.id
-        if ($byId.ContainsKey($id)) {
-            Add-Failure "Duplicate scenario $id"
-        }
         $byId[$id] = $scenario
     }
 
@@ -332,6 +373,7 @@ Assert-InfrastructurePresent
 $currentFingerprint = Get-CanonicalFingerprint $canonicalRoot
 $currentPackageVersion = Get-PackageVersion $apmYmlPath
 $currentApmYmlSha256 = Get-Sha256File $apmYmlPath
+$currentQualificationInputFingerprint = Get-PlanCoverageQualificationInputFingerprint $repoRoot
 $resolvedResults = @(Resolve-ResultPaths)
 $hasCurrentQualifiedEvidence = $false
 
@@ -348,11 +390,14 @@ foreach ($resolvedResult in $resolvedResults) {
     $result = $resultJson | ConvertFrom-Json
     Test-SchemaShape $result
     Test-SourceRunIdentity $result
+    Test-ScenarioEvidenceInvariants $result
 
     $isCurrentSnapshot = (
         [string]$result.canonical_fingerprint -ceq $currentFingerprint -and
         [string]$result.plan_coverage_package_version -ceq $currentPackageVersion -and
-        [string]$result.apm_yml_sha256 -ceq $currentApmYmlSha256
+        [string]$result.apm_yml_sha256 -ceq $currentApmYmlSha256 -and
+        $result.psobject.Properties.Name -contains 'qualification_input_fingerprint' -and
+        [string]$result.qualification_input_fingerprint -ceq $currentQualificationInputFingerprint
     )
     $snapshotRelation = if ($isCurrentSnapshot) {
         'CURRENT_SNAPSHOT'
@@ -398,13 +443,14 @@ if ($docsText -cmatch '(?i)VS Code Agent mode[^\n]*qualified' -and $docsText -cn
 
 if ($RequireQualified -and -not $hasCurrentQualifiedEvidence) {
     $script:validationContext = $null
-    Add-Failure 'No full QUALIFIED evidence matches the current canonical fingerprint, package version, and apm.yml hash.'
+    Add-Failure 'No full QUALIFIED evidence matches the current canonical fingerprint, package version, apm.yml hash, and runtime-relevant qualification input fingerprint.'
 }
 
 $script:validationContext = $null
 Write-Host "current_canonical_fingerprint=$currentFingerprint"
 Write-Host "current_package_version=$currentPackageVersion"
 Write-Host "current_apm_yml_sha256=$currentApmYmlSha256"
+Write-Host "current_qualification_input_fingerprint=$currentQualificationInputFingerprint"
 
 if ($failures.Count -gt 0) {
     Write-Host 'Plan Coverage runtime qualification validator: FAIL'

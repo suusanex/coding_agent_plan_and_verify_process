@@ -10,8 +10,11 @@
 | evidence verdict | `overall_status`。そのrunが取得時snapshotについてfull qualificationを満たしたかを示す。`QUALIFIED`を別snapshotへ移植しない |
 | snapshot relation | evidence取得時snapshotとcurrent checkoutの関係。validatorは`CURRENT_SNAPSHOT`、`HISTORICAL_BASELINE`、`DIFFERENT_SNAPSHOT`として表示するが、通常モードでは差異だけをfailureにしない |
 | support assessment | validなhistorical baseline、targeted delta evidence、deterministic checks、変更のruntime regression riskを基に、現行package/runtimeを引き続きsupportedと扱えるかを判断するpolicy。evidence verdictを書き換えない |
+| qualification input fingerprint | Plan Coverage canonical/manifest、Adaptive Implementation canonical/manifest/profile overlay、Codex profile finalizer manifest/runtime scriptをordinal path順でhashしたidentity。親repositoryの無関係な変更を含めず、runtime-relevant dependencyの変更をstrict gateへ反映する |
 
 Canonical authorityは`apm-packages/plan-coverage-residual-flow/.apm/`、package manifestは`apm-packages/plan-coverage-residual-flow/apm.yml`である。canonical fingerprintはLF正規化した`.apm/**`のpathとcontentをordinal path順でSHA-256化し、証拠取得snapshotを一意に結び付ける。またcanonical sourceの変化をdeterministicに検出する。ただし、fingerprintまたはpackage versionの変化だけをexternal-model qualificationの再実行理由にはしない。
+
+`apm_lock_sha256`は実行時install resolutionのprovenanceとして保持するが、parent refやruntime非関連のresolution差分まで含み得るためcurrent strict identityには流用しない。Strict gateでは、無関係なparent repository変更を除外しつつAdaptive/profile projection変更を含めるpurpose-builtなqualification input fingerprintを使う。
 
 `overall_status`はevidence verdict専用であり、current support stateを兼用しない。historical `QUALIFIED`は取得時snapshotについてのvalidなbaselineとして保持できるが、current snapshotで取得した証拠とは主張しない。`PENDING`はtargeted runや未完了runをfull qualificationへ昇格させないために使い、`UNOBSERVABLE`や`NOT_RUN`をPASSへ昇格させない。
 
@@ -31,8 +34,8 @@ Evidence directoryは`apm-packages/plan-coverage-residual-flow/tests/runtime-qua
 
 | Evidence | 取得時identity | evidence verdict | 役割 |
 | --- | --- | --- | --- |
-| `2026-08-10-copilot-cli.json` | package 0.13.0 / fingerprint `98a49a…` | `QUALIFIED`; A-H、STD-001、FULL-001、Adaptive connectionを含むfull PASS | immutable historical baseline |
-| `2026-08-11-copilot-cli-pending.json` | package 0.14.0 / fingerprint `c12b3a…` | `PENDING`; DO-001〜DO-003はPASS、無関係なscenarioはこのrunでは未実行 | Decision Ownershipのtargeted delta evidence |
+| `2026-08-10-copilot-cli.json` | package 0.13.0 / fingerprint `98a49a…`; qualification input identityは当時未記録 | `QUALIFIED`; A-H、STD-001、FULL-001、Adaptive connectionを含むfull PASS | immutable historical baseline。未記録identityをcurrent値で補完しない |
+| `2026-08-11-copilot-cli-pending.json` | package 0.14.0 / fingerprint `c12b3a…`; qualification input identityは当時未記録 | `PENDING`; DO-001〜DO-003はPASS、無関係なscenarioはこのrunでは未実行 | Decision Ownershipのtargeted delta evidence。未記録identityをcurrent値で補完しない |
 
 現行0.14.0のDecision Ownership変更は`targeted runtime risk`として評価する。変更対象に対応するDO-001〜DO-003がtargeted external-model runでPASSし、0.13.0のfull baselineと通常のdeterministic checksを併用できるため、GitHub Copilot CLI support assessmentは`CARRY_FORWARD_WITH_TARGETED_DELTA`とする。0.13.0 evidenceを0.14.0へre-bindせず、0.14.0 targeted resultをfull `QUALIFIED`へ昇格せず、A-H、STD-001、FULL-001の全面再実行も要求しない。
 
@@ -70,7 +73,7 @@ Documentation、wording、metadata、behaviorへ影響しないcanonical整理�
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-runtime-qualification.ps1
 ```
 
-通常モードは全committed resultのschema shape、fingerprint形式、scenario invariant、`source_run` frozen identity、top-level metadataとの一致、forged/re-bound evidenceをfail-closedで検査する。historical `QUALIFIED`とcurrent fingerprint/package versionの差異は`HISTORICAL_BASELINE`として表示するが、それだけではfailureにしない。
+通常モードは全committed resultのschema shape、fingerprint形式、全verdict共通のduplicate scenario禁止、targeted `PENDING`の全recorded scenario PASS、`source_run` frozen identity、top-level metadataとの一致、forged/re-bound evidenceをfail-closedで検査する。`distribution_smoke`はrationaleを含む全fieldをfrozen identityとして扱う。historical `QUALIFIED`とcurrent identityの差異は`HISTORICAL_BASELINE`として表示するが、それだけではfailureにしない。
 
 Promotion review等でcurrent snapshotのfull qualificationを明示的に要求する場合だけstrict gateを使う。
 
@@ -78,11 +81,13 @@ Promotion review等でcurrent snapshotのfull qualificationを明示的に要求
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-runtime-qualification.ps1 -RequireQualified
 ```
 
-Strict gateはcurrent canonical fingerprint、package version、`apm.yml` hashに一致し、A-H、DO-001〜DO-003、STD-001、FULL-001、distribution smoke、Adaptive connectionがfull PASSの`QUALIFIED` evidenceを要求する。baseline carry-forwardをcurrent full evidenceの代用にはしない。
+Strict gateはcurrent canonical fingerprint、package version、`apm.yml` hash、runtime-relevant qualification input fingerprintに一致し、A-H、DO-001〜DO-003、STD-001、FULL-001、distribution smoke、Adaptive connectionがfull PASSの`QUALIFIED` evidenceを要求する。Adaptiveやprofile projectionだけが変化した場合も古いfull evidenceをcurrentとは判定しない。Baseline carry-forwardやqualification input identity未記録のhistorical evidenceをcurrent full evidenceの代用にはしない。
 
 ## Runnerとre-evaluation
 
-Live runはtemporary run rootの`run-metadata.json`へcandidate commit、canonical fingerprint、package version、lock hash、client/runtime identityを凍結する。`-ReevaluateFromRunRoot`はそのidentityを必ず保持し、current checkout値へre-bindしない。再評価後の`overall_status`はsource snapshot自身のscenario evidenceから決め、current checkoutとの差異はinformationalなsnapshot relationとして出力する。
+Live runはtemporary run rootの`run-metadata.json`へcandidate commit、canonical fingerprint、qualification input fingerprint、package version、lock hash、client/runtime identityを凍結する。`-ReevaluateFromRunRoot`はそのidentityを必ず保持し、current checkout値へre-bindしない。再評価結果は同じ`source_run_id`の既存JSON/Markdown pathを置換し、日をまたいでもduplicate resultを作らない。再評価後の`overall_status`はsource snapshot自身のscenario evidenceから決め、current checkoutとの差異はinformationalなsnapshot relationとして出力する。
+
+Targeted scopeの全recorded scenarioがPASSした場合、evidence verdictはfull suite未実行を示す`PENDING`のまま、runner commandは成功終了する。Scenario failureを含む`FAIL`だけをcommand failureとする。
 
 External-model invocationはManualOnlyであり、通常CIには含めない。
 
@@ -96,6 +101,8 @@ External-model invocationはManualOnlyであり、通常CIには含めない。
 
 - historical evidenceのfingerprint、package version、candidate commit、client/runtime identityを書き換えない。
 - `result.*`と`source_run.*`のidentity不整合、top-level fingerprintだけのre-bind、metadata矛盾をfail-closedで拒否する。
+- `distribution_smoke`のstatus、command、rationaleをtop-levelと`source_run`で一致させる。
+- `PENDING` targeted evidenceにFAIL、NOT_RUN、UNOBSERVABLE、duplicate scenarioを混入させない。
 - historical runをcurrent qualificationとして扱わず、targeted evidenceをfull evidenceとして扱わない。
 - raw transcriptやhook logを捏造せず、`UNOBSERVABLE` / `NOT_RUN`をPASSにしない。
 - Agent Plugins PoC evidenceは別experimentとして保持し、APM runtime evidenceへ移植しない。direct-load parity claim自体がsnapshot比較を目的とする場合はfingerprint一致を引き続き要求する。

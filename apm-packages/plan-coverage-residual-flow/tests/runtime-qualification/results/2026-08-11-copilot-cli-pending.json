@@ -20,7 +20,7 @@
   "distribution_smoke": {
     "status": "PASS",
     "command": "./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1",
-    "rationale": "Fresh APM install smoke passed during the targeted DO-001 through DO-003 external-model run."
+    "rationale": "Fresh APM install smoke passed during the targeted external-model run."
   },
   "overall_status": "PENDING",
   "qualification_matrix_notes": "The targeted GitHub Copilot CLI external-model run passed DO-001 through DO-003 after the kept evidence was re-evaluated with the fixed stdout-only oracle. Historical 0.13.0 qualification remains immutable evidence. This package stays PENDING until a fresh run also passes A-H, STD-001, and FULL-001.",

@@ -66,10 +66,12 @@ $adaptiveAgents = @(
 $allTrackedAgents = @($planCoverageOwnedAgents + $adaptiveAgents + @('design-pair-implementation-execution'))
 
 . (Join-Path $PSScriptRoot 'plan-coverage-copilot-scenario-lib.ps1')
+. (Join-Path $PSScriptRoot 'PlanCoverageRuntimeQualification.Common.ps1')
 
 # --- main ---
 
 $canonicalFingerprint = Get-CanonicalFingerprint $canonicalRoot
+$qualificationInputFingerprint = Get-PlanCoverageQualificationInputFingerprint $repoRoot
 $apmYmlSha = Get-Sha256File $apmYmlPath
 $packageVersion = Get-PackageVersion $apmYmlPath
 $candidateCommitRaw = & git -C $repoRoot rev-parse HEAD 2>$null
@@ -84,6 +86,7 @@ Plan Coverage GitHub Copilot CLI runtime qualification
 - package: plan-coverage-residual-flow $packageVersion
 - candidate: $candidateCommit
 - canonical_fingerprint: $canonicalFingerprint
+- qualification_input_fingerprint: $qualificationInputFingerprint
 - model: $(if ($Model) { $Model } else { 'client-selected' })
 - scenarios: A-H authorization + DO-001..DO-003 decision ownership + STD-001 + FULL-001
 - isolation: temporary COPILOT_HOME per scenario (no personal skills/agents/hooks/plugins)
@@ -339,6 +342,7 @@ if (-not [string]::IsNullOrWhiteSpace($ReevaluateFromRunRoot)) {
             @('canonical_fingerprint', 'canonical_fingerprint'),
             @('plan_coverage_package_version', 'package_version'),
             @('apm_yml_sha256', 'apm_yml_sha256'),
+            @('qualification_input_fingerprint', 'qualification_input_fingerprint'),
             @('apm_lock_sha256', 'apm_lock_sha256'),
             @('client_version', 'client_version')
         )) {
@@ -410,14 +414,17 @@ if (-not [string]::IsNullOrWhiteSpace($ReevaluateFromRunRoot)) {
     if (-not $adaptiveOk) { $fullSuitePass = $false }
 
     $sourceFp = [string]$meta.canonical_fingerprint
+    $sourceQualificationInputFingerprint = if ($meta.psobject.Properties.Name -contains 'qualification_input_fingerprint') { [string]$meta.qualification_input_fingerprint } else { $null }
     $fingerprintMatchesCurrent = ($sourceFp -ceq $canonicalFingerprint)
+    $qualificationInputMatchesCurrent = (-not [string]::IsNullOrWhiteSpace($sourceQualificationInputFingerprint) -and $sourceQualificationInputFingerprint -ceq $qualificationInputFingerprint)
     $packageMatches = ([string]$meta.package_version -ceq $packageVersion)
     # overall_statusはsource run自身のevidence verdictであり、current checkoutのsupport判定ではない。
     $overall = if ($fullSuitePass) { 'QUALIFIED' } elseif ($recordedScenariosPass) { 'PENDING' } else { 'FAIL' }
 
     $notes = 'Re-evaluated from kept worktree without new external model calls. source_run identity frozen from run-metadata.json. '
-    if (-not $fingerprintMatchesCurrent -or -not $packageMatches) {
-        $notes += "Evidence remains bound to source snapshot fingerprint=$sourceFp package=$($meta.package_version); current checkout fingerprint=$canonicalFingerprint package=$packageVersion is a separate support assessment. "
+    if (-not $fingerprintMatchesCurrent -or -not $packageMatches -or -not $qualificationInputMatchesCurrent) {
+        $recordedInputIdentity = if ([string]::IsNullOrWhiteSpace($sourceQualificationInputFingerprint)) { 'UNRECORDED' } else { $sourceQualificationInputFingerprint }
+        $notes += "Evidence remains bound to source snapshot fingerprint=$sourceFp package=$($meta.package_version) qualification_input=$recordedInputIdentity; current checkout fingerprint=$canonicalFingerprint package=$packageVersion qualification_input=$qualificationInputFingerprint is a separate support assessment. "
     }
     if ($adaptiveOk -and -not $handoffOk) {
         $notes += 'Adaptive connection satisfied via HIGH COMPLETED_BY_HIGH_MODEL durable evidence; HIGH->STANDARD handoff was NOT_REQUIRED (no STANDARD remainder). '
@@ -427,16 +434,17 @@ if (-not [string]::IsNullOrWhiteSpace($ReevaluateFromRunRoot)) {
     $clientVersion = [string]$meta.client_version
     $result = [ordered]@{
         schema_version = 1
-        date = (Get-Date -Format 'yyyy-MM-dd')
+        date = [string]$base.date
         runtime = $base.runtime
         client_version = $clientVersion
         model_requested = $(if ($meta.psobject.Properties.Name -contains 'model_requested') { $meta.model_requested } else { $base.model_requested })
         model_observed = $(if ($meta.model_observed) { $meta.model_observed } else { $base.model_observed })
         apm_version = $(if ($meta.apm_version) { $meta.apm_version } else { $base.apm_version })
-        # Frozen to the original live run — never re-bind from current checkout.
+        # 元のlive run identityへ凍結し、current checkoutから再bindしない。
         candidate_commit = [string]$meta.candidate_commit
         plan_coverage_package_version = [string]$meta.package_version
         canonical_fingerprint = $sourceFp
+        qualification_input_fingerprint = $sourceQualificationInputFingerprint
         apm_yml_sha256 = [string]$meta.apm_yml_sha256
         install_targets = @($meta.install_targets)
         apm_lock_sha256 = [string]$meta.apm_lock_sha256
@@ -448,6 +456,7 @@ if (-not [string]::IsNullOrWhiteSpace($ReevaluateFromRunRoot)) {
             source_run_id = [string]$meta.source_run_id
             candidate_commit = [string]$meta.candidate_commit
             canonical_fingerprint = $sourceFp
+            qualification_input_fingerprint = $sourceQualificationInputFingerprint
             apm_yml_sha256 = [string]$meta.apm_yml_sha256
             package_version = [string]$meta.package_version
             apm_lock_sha256 = [string]$meta.apm_lock_sha256
@@ -463,8 +472,9 @@ if (-not [string]::IsNullOrWhiteSpace($ReevaluateFromRunRoot)) {
     }
 
     New-Item -ItemType Directory -Path $ResultsDir -Force | Out-Null
-    $jsonPath = Join-Path $ResultsDir "$($result.date)-copilot-cli.json"
-    $mdPath = Join-Path $ResultsDir "$($result.date)-copilot-cli.md"
+    $outputPaths = Get-ReevaluationOutputPaths $existingResultPath
+    $jsonPath = $outputPaths.JsonPath
+    $mdPath = $outputPaths.MarkdownPath
     Write-Utf8File $jsonPath (ConvertTo-JsonCompat $result)
     $md = @"
 # Plan Coverage GitHub Copilot CLI runtime qualification
@@ -480,8 +490,11 @@ if (-not [string]::IsNullOrWhiteSpace($ReevaluateFromRunRoot)) {
 - candidate_commit: $($meta.candidate_commit)
 - plan_coverage_package_version: $($meta.package_version)
 - canonical_fingerprint: $sourceFp
+- qualification_input_fingerprint: $(if ($sourceQualificationInputFingerprint) { $sourceQualificationInputFingerprint } else { 'UNRECORDED' })
 - current_checkout_fingerprint: $canonicalFingerprint
 - fingerprint_matches_current: $fingerprintMatchesCurrent
+- current_qualification_input_fingerprint: $qualificationInputFingerprint
+- qualification_input_matches_current: $qualificationInputMatchesCurrent
 - package_matches_current: $packageMatches
 - distribution_smoke: $distStatus
 - adaptive_connection_satisfied: $adaptiveOk
@@ -496,8 +509,8 @@ $(($scenarioResults | ForEach-Object { "| $($_.id) | $($_.kind) | $($_.status) |
     Write-Utf8File $mdPath ($md.Replace("`r`n", "`n"))
     Write-Host "Wrote $jsonPath"
     Write-Host "Wrote $mdPath"
-    Write-Host "overall_status=$overall fingerprint_matches_current=$fingerprintMatchesCurrent package_matches_current=$packageMatches"
-    if ($overall -cne 'QUALIFIED') { exit 1 }
+    Write-Host "overall_status=$overall fingerprint_matches_current=$fingerprintMatchesCurrent package_matches_current=$packageMatches qualification_input_matches_current=$qualificationInputMatchesCurrent"
+    if (-not (Test-QualificationCommandSucceeded $overall)) { exit 1 }
     exit 0
 }
 
@@ -576,6 +589,7 @@ try {
         source_run_id = $runId
         candidate_commit = $candidateCommit
         canonical_fingerprint = $canonicalFingerprint
+        qualification_input_fingerprint = $qualificationInputFingerprint
         apm_yml_sha256 = $apmYmlSha
         package_version = $packageVersion
         apm_lock_sha256 = $lockSha
@@ -717,6 +731,7 @@ try {
         candidate_commit = $candidateCommit
         plan_coverage_package_version = $packageVersion
         canonical_fingerprint = $canonicalFingerprint
+        qualification_input_fingerprint = $qualificationInputFingerprint
         apm_yml_sha256 = $apmYmlSha
         install_targets = @('copilot', 'codex', 'agent-skills')
         apm_lock_sha256 = $lockSha
@@ -728,6 +743,7 @@ try {
             source_run_id = $runId
             candidate_commit = $candidateCommit
             canonical_fingerprint = $canonicalFingerprint
+            qualification_input_fingerprint = $qualificationInputFingerprint
             apm_yml_sha256 = $apmYmlSha
             package_version = $packageVersion
             apm_lock_sha256 = $lockSha
@@ -758,6 +774,7 @@ try {
 - candidate_commit: $candidateCommit
 - plan_coverage_package_version: $packageVersion
 - canonical_fingerprint: $canonicalFingerprint
+- qualification_input_fingerprint: $qualificationInputFingerprint
 - install_targets: copilot,codex,agent-skills
 - distribution_smoke: $($distributionSmoke.status)
 - platform: $($result.platform)
@@ -782,7 +799,7 @@ $(($scenarioResults | ForEach-Object { "| $($_.id) | $($_.kind) | $($_.status) |
     Write-Host "Wrote $mdPath"
     Write-Host "overall_status=$overall"
 
-    if ($overall -cne 'QUALIFIED') {
+    if (-not (Test-QualificationCommandSucceeded $overall)) {
         exit 1
     }
 }
