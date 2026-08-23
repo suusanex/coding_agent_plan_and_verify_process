@@ -160,10 +160,16 @@ if (-not $SkipNegativeMutations) {
         } 'JSON Schema'
         Assert-QualificationMutationFails 'uncommitted-pass' {
             param($record)
+            $record.assessments[0].status = 'PASS'
+            $record.assessments[0].evidenceMode = 'LIVE'
+            $record.assessments[0].evidenceRefs = @('tests/agent-plugins/results/2026-08-23-runtime-qualification.md')
             $record.candidateCommit = 'UNCOMMITTED'
         } 'committed candidate snapshot'
         Assert-QualificationMutationFails 'unknown-pass-candidate' {
             param($record)
+            $record.assessments[0].status = 'PASS'
+            $record.assessments[0].evidenceMode = 'LIVE'
+            $record.assessments[0].evidenceRefs = @('tests/agent-plugins/results/2026-08-23-runtime-qualification.md')
             $record.candidateCommit = '0000000000000000000000000000000000000000'
         } 'candidate commit does not exist'
         Assert-QualificationMutationFails 'missing-evidence-file' {
