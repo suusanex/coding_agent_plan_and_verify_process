@@ -46,10 +46,6 @@ public sealed class StateStore
     public RunState Load(string runId)
     {
         var statePath = Path.Combine(GetRunDirectory(runId), "state.json");
-        if (!File.Exists(statePath))
-        {
-            throw new RunnerException("STATE_NOT_FOUND", $"Run state was not found for {runId}.");
-        }
         try
         {
             var state = JsonSerializer.Deserialize<RunState>(SharedStateFile.ReadAllText(statePath), JsonDefaults.Options)
@@ -64,6 +60,10 @@ public sealed class StateStore
         catch (RunnerException)
         {
             throw;
+        }
+        catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
+        {
+            throw new RunnerException("STATE_NOT_FOUND", $"Run state was not found for {runId}.", ExitCodes.ContractError, exception);
         }
         catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
         {

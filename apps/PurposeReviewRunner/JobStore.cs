@@ -23,10 +23,6 @@ public sealed class JobStore
     public JobState Load(string runId)
     {
         var path = JobPath(runId);
-        if (!File.Exists(path))
-        {
-            throw new RunnerException("JOB_NOT_FOUND", $"Job state was not found for {runId}.");
-        }
         try
         {
             var job = JsonSerializer.Deserialize<JobState>(SharedStateFile.ReadAllText(path), JsonDefaults.Options)
@@ -41,6 +37,10 @@ public sealed class JobStore
         catch (RunnerException)
         {
             throw;
+        }
+        catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
+        {
+            throw new RunnerException("JOB_NOT_FOUND", $"Job state was not found for {runId}.", ExitCodes.ContractError, exception);
         }
         catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
         {

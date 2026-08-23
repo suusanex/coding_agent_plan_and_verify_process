@@ -45,6 +45,33 @@ public sealed class JobStoreConcurrencyTests
         Assert.IsTrue(
             exception.InnerException is IOException or UnauthorizedAccessException,
             exception.InnerException?.ToString());
+        blockingReader.Dispose();
+        Assert.IsNull(store.Load(job.RunId).Pid);
+    }
+
+    [TestMethod]
+    public void FailedReplacementLeavesPreviousJobState()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Inconclusive("Replacement sharing failures that leave dest untouched are the Windows durability case.");
+            return;
+        }
+
+        using var directory = new TemporaryDirectory();
+        var store = new JobStore(directory.Paths.StateRoot);
+        var job = CreateJob(directory.Paths.StateRoot);
+        store.Save(job);
+        var path = Path.Combine(store.GetRunDirectory(job.RunId), "job.json");
+
+        using var blockingReader = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var exception = Assert.ThrowsExactly<RunnerException>(() =>
+            store.Save(job with { Pid = 9, ProcessStartTimeUtc = DateTimeOffset.UtcNow }));
+        Assert.AreEqual("STATE_WRITE_FAILED", exception.Code);
+
+        var reloaded = store.Load(job.RunId);
+        Assert.IsNull(reloaded.Pid);
+        Assert.AreEqual(JobStatuses.Running, reloaded.JobStatus);
     }
 
     [TestMethod]
@@ -64,10 +91,6 @@ public sealed class JobStoreConcurrencyTests
                 try
                 {
                     _ = store.Load(job.RunId);
-                }
-                catch (RunnerException exception) when (exception.Code is "JOB_NOT_FOUND" or "JOB_INVALID")
-                {
-                    // rename の隙間で status polling が一時的に読めないのは許容し、次の問い合わせで取り直す。
                 }
                 catch (Exception exception)
                 {
