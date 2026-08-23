@@ -28,6 +28,10 @@ public static class Program
             {
                 await Task.Delay(TimeSpan.FromMinutes(1));
             }
+            else if (args.Contains("--dump-stdin-bytes", StringComparer.Ordinal))
+            {
+                await DumpStdinBytesAsync(args);
+            }
             else if (args.FirstOrDefault() == "exec")
             {
                 await RunCodexAsync(args);
@@ -47,6 +51,14 @@ public static class Program
             Console.Error.WriteLine(exception.ToString());
             return 9;
         }
+    }
+
+    private static async Task DumpStdinBytesAsync(string[] args)
+    {
+        var path = ValueAfter(args, "--dump-stdin-bytes");
+        await using var input = Console.OpenStandardInput();
+        await using var output = File.Create(path);
+        await input.CopyToAsync(output);
     }
 
     private static async Task RunCodexAsync(string[] args)

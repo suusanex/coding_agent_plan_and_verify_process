@@ -18,6 +18,9 @@ public interface IProcessRunner
 
 public sealed class SystemProcessRunner : IProcessRunner
 {
+    // Encoding.UTF8 は BOM 付き。stdin 先頭の EF BB BF を provider が拒否しないよう BOM なしにする。
+    private static readonly Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
     private readonly TimeSpan timeout;
 
     public SystemProcessRunner(TimeSpan timeout) => this.timeout = timeout;
@@ -88,8 +91,11 @@ public sealed class SystemProcessRunner : IProcessRunner
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8
+            // Windows の既定 stdin encoding はコンソールコードページ（日本語環境では CP932）なので、
+            // UTF-8 を要求する provider へ日本語 prompt を渡すと offset 0 から不正バイトになる。
+            StandardInputEncoding = Utf8NoBom,
+            StandardOutputEncoding = Utf8NoBom,
+            StandardErrorEncoding = Utf8NoBom
         };
         if (isCommandScript)
         {

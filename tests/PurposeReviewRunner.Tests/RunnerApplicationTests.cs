@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -392,6 +393,39 @@ public sealed class RunnerApplicationTests
         Assert.AreEqual(ExitCodes.RuntimeError, result.ExitCode);
         Assert.AreEqual(JobStatuses.Failed, result.Output.JobStatus);
         Assert.IsEmpty(Directory.GetFiles(fixture.Paths.StateRoot, "state.json", SearchOption.AllDirectories));
+    }
+
+    [TestMethod]
+    public async Task ProcessRunnerWritesUtf8WithoutBomToStandardInput()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "purpose-review-runner-stdin-utf8-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var dumpPath = Path.Combine(root, "stdin.bin");
+        var executable = Path.Combine(
+            Path.GetDirectoryName(typeof(FakeProviderMarker).Assembly.Location)!,
+            OperatingSystem.IsWindows() ? "purpose-review-fake-provider.exe" : "purpose-review-fake-provider");
+        var prompt = PromptBuilder.BuildStart(root, [("goal.md", "PURPOSE")]);
+        var runner = new SystemProcessRunner(TimeSpan.FromSeconds(15));
+
+        try
+        {
+            var result = await runner.RunAsync(
+                new ProcessRequest(executable, ["--dump-stdin-bytes", dumpPath], root, prompt),
+                CancellationToken.None);
+
+            Assert.AreEqual(0, result.ExitCode, result.StandardError);
+            var actual = await File.ReadAllBytesAsync(dumpPath);
+            CollectionAssert.AreEqual(new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(prompt), actual);
+            // あ (U+3042) の UTF-8 は E3 81 82。CP932 なら 82 A0、UTF-8 BOM なら EF BB BF。
+            Assert.AreEqual(0xE3, actual[0]);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
     }
 
     [TestMethod]
