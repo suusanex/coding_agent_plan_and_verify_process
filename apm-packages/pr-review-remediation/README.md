@@ -1,43 +1,34 @@
 # PR Review Remediation
 
-`$pr-review-remediation`は、Goal Contextを使わないbaseline PR review workflowです。Ready PRのGitHub Copilot reviewとread-only local reviewを集約し、別turnで修正するためのreview planを作成して停止します。
+`$pr-review-remediation`は、Goal Contextを使わないbaseline PR review workflowです。Ready PRに紐付くremote review evidenceを集約し、別turnで修正するためのreview planを作成して停止します。repository外のlocal agent reviewerは起動しません。
 
-目的達成review、元のimplementation parentによる修正、同じreviewer sessionでの再reviewが必要な場合は、別packageの[$persistent-purpose-review](../persistent-purpose-review/README.md)を使います。baseline packageはGoal Context欠落時の暗黙fallbackではありません。
+目的達成review、元のimplementation parentによる修正、同じreviewer sessionでの再reviewが必要な場合は、別packageの[$persistent-purpose-review](../persistent-purpose-review/README.md)を使います。
 
 ## Install
 
 対象repository rootで導入します。
 
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target copilot,codex,agent-skills
 $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
 dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
 ```
 
-APMは`pr-review-remediation` Skill、`local-reviewer`、`review-planner`を導入します。finalizerはCodex用profileのmodel、reasoning、read-only sandboxを補完します。
+APMは`pr-review-remediation` Skillと`review-planner`を導入します。finalizerはCodex用planner profileのmodel、reasoning、read-only sandboxを補完します。
 
 ## Phase 1
 
-```text
-$pr-review-remediation
-
-このReady PRをreviewし、修正planを作成してください。productionは変更せず、plan作成後に停止してください。
-```
-
 1. repository、current branch、Ready PR、base/head OIDを確定する。
-2. 必要な権限がある場合だけ`gh pr edit <number> --add-reviewer @copilot`でCopilot reviewを要求する。失敗時はpolling前に停止する。
+2. `gh pr edit <number> --add-reviewer @copilot`等でGitHub上のreviewを要求する。失敗時はpolling前に停止する。
 3. `collect-pr-review-context.cs`でremote PR identity、review/comment/check、patchを取得する。
-4. `local-reviewer`がread-onlyでcode/test/operation findingsを作成する。
-5. `review-planner`が全sourceを`Apply | Hold | Reject`へ整理し、implementation intentとvalidationを含むreview planを作成する。
-6. `READY_FOR_ADAPTIVE_IMPLEMENTATION | HUMAN_DECISION_REQUIRED | BLOCKED`を返して停止する。Phase 1ではproduction、commit、pushを変更しない。
-
-collector例:
+4. `review-planner`がremote sourceを`Apply | Hold | Reject`へ整理し、implementation intentとvalidationを含むreview planを作成する。
+5. `READY_FOR_ADAPTIVE_IMPLEMENTATION | HUMAN_DECISION_REQUIRED | BLOCKED`を返して停止する。Phase 1ではproduction、commit、pushを変更しない。
 
 ```powershell
 dotnet run --file .agents/skills/pr-review-remediation/scripts/collect-pr-review-context.cs -- --repo owner/name --pr 123 --out .review/pr-123
 ```
 
-timeout、Draft、identity drift、GitHub CLI失敗、不正JSON、未取得reviewを「指摘なし」と読み替えません。
+timeout、Draft、identity drift、review要求・GitHub CLI・permission failure、未取得reviewを「指摘なし」と読み替えません。
 
 ## Phase 2
 
@@ -49,10 +40,9 @@ timeout、Draft、identity drift、GitHub CLI失敗、不正JSON、未取得revi
 | --- | --- |
 | Baseline Skill | `.apm/skills/pr-review-remediation/SKILL.md` |
 | PR context collector | Skillの`scripts/collect-pr-review-context.cs` |
-| Local reviewer | `.apm/agents/local-reviewer.agent.md` |
 | Review planner | `.apm/agents/review-planner.agent.md` |
-| Codex profile overlays | `codex-profile-overlays.json` |
-| Deterministic evidence | `tests/pr-review-remediation/PRR-001/` |
+| Codex profile overlay | `codex-profile-overlays.json` |
+| Deterministic scenarios | `tests/fixtures/remote-review-scenarios.json` |
 
 ## Validation
 
@@ -69,4 +59,15 @@ apm update
 apm uninstall pr-review-remediation
 ```
 
-0.6.0では旧purpose review契約を削除しました。旧state schemaや実行部品とのmigration、aliasは提供しません。purpose reviewを利用するrepositoryには`persistent-purpose-review` packageとuser-level Runnerを別途導入します。
+0.7.0ではlocal-reviewer経路とGoal Context/multi-round planner契約を削除しました。purpose reviewを利用するrepositoryには`persistent-purpose-review` packageとuser-level Runnerを別途導入します。
+
+## Agent Plugin artifact
+
+process semanticsの正本はこのpackageの`.apm/**`です。Agent Plugin artifactはpackage rootへchecked-inせず、repository共通builderでtemporary stageへ生成します。
+
+```powershell
+pwsh -NoProfile -File scripts/agent-plugins/build-agent-plugin.ps1 -Package pr-review-remediation
+pwsh -NoProfile -File scripts/agent-plugins/validate-agent-plugin-package.ps1 -Package pr-review-remediation
+```
+
+APMがsupported distributionです。direct deploymentのstatusとevidenceは`tests/agent-plugin/qualification.json`に記録し、未観測のbehaviorをPASSへ昇格させません。

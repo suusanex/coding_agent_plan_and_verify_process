@@ -1,32 +1,20 @@
-# Migration from `codex_copilot_pr_review_agent`
+# Migration from local reviewer baseline
 
-## Source baseline
+## 0.7.0 boundary
 
-- Repository: `suusanex/codex_copilot_pr_review_agent`
-- Source commit: `8c3a92b9d63dcf2384f07360e4f845ced0f02156`
-- Destination baseline: `suusanex/coding_agent_plan_and_verify_process` commit `d9f7317298fdcd39dec29dd662d38bcd82ecfd0f`
+0.7.0はbaseline PR Reviewをremote GitHub PR evidence専用へ変更します。
 
-## Component disposition
+| Former component | 0.7.0 disposition |
+| --- | --- |
+| Ready PR preparation | Retained |
+| `collect-pr-review-context.cs` | Retained as remote evidence authority |
+| GitHub Copilot Code Review request/wait | Retained and fail-closed |
+| `local-reviewer` agent | Removed |
+| local review template/raw artifact/execution metadata | Removed |
+| `review-planner` | Retained with remote-only inputs |
+| Goal Context/multi-round planner mode | Removed from baseline package |
+| implementation agent | Remains in separately installed Adaptive Implementation |
 
-| Source component | Disposition | Destination |
-| --- | --- | --- |
-| PR branch/commit/push/creation preparation | Retained and tightened | `pr-review-remediation` Skill Phase 1 |
-| `collect-pr-review-context.cs` | Migrated and normalized | Skill `scripts/` |
-| Copilot delayed review wait | Retained and correlated to head/review ID | collector `copilotReviewWait` |
-| `local-reviewer` | Migrated as canonical read-only agent | root `.github/agents/` |
-| `review-planner` | Migrated and made Adaptive-ready | root `.github/agents/` |
-| review plan template | Replaced with finding ledger and canonical Implementation Intent | Skill `templates/review-plan.md` |
-| installer/profile synchronization | Reworked for monorepo package conventions | package sync helper; existing Adaptive helper is an optional Phase 2 add-on |
-| implementation agent | Removed | separately installed `adaptive-implementation-execution` for optional Phase 2 |
-| implementation result report | Removed | existing Adaptive output/handoff |
+Local reviewerを別runtimeで置き換えません。旧local findingsや旧実model fixtureをcurrent inputとして再利用せず、Git historyだけをhistorical recordとします。
 
-The former `spark-implementer` is not retained as an agent, alias, compatibility route, fallback, template owner, or profile. Its implementation responsibility is transferred to the existing Adaptive Implementation flow; the overall review remediation process still includes implementation and validation in a separate parent turn.
-
-## Historical deferred scope
-
-- Goal Context integration
-- `purpose-reviewer`
-- automatic next-turn startup
-- source repository archive or redirect decision
-
-現在の目的reviewは、互換性を持たない別package `persistent-purpose-review`とuser-level `purpose-review-runner`が担当します。
+目的reviewは互換性を持たない別package `persistent-purpose-review`とuser-level `purpose-review-runner`が担当します。

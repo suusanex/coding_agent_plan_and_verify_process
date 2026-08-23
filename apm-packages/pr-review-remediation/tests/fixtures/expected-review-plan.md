@@ -10,9 +10,9 @@
 
 | Source ID | Source | Location | Summary | Decision | Reason | Duplicate of | Conflicts with | Scope / Acceptance mapping |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| LR-001 | Local Codex | `src/Fixture.cs:1` | Missing behavior test | Apply | Protect the changed behavior | N/A | N/A | scope item 1 / AC-001 |
-| 1001 | GitHub Copilot | `src/Fixture.cs:1` | Add regression coverage | Apply | Same root cause | LR-001 | N/A | scope item 1 / AC-001 |
-| 501 | PR comment | PR | Preserve public contract | Hold | Needs confirmation only if public API changes | N/A | N/A | constraint C-001 |
+| review:1001 | GitHub PR review | `src/Fixture.cs:1` | Add regression coverage | Apply | Preserve the changed behavior | N/A | N/A | SI-001 / AC-001 |
+| inline-comment:2001 | GitHub inline comment | `src/Fixture.cs:1` | Same missing coverage | Apply | Same root cause | review:1001 | N/A | SI-001 / AC-001 |
+| pr-comment:501 | PR comment | PR | Preserve public contract | Hold | Needs product confirmation if API changes | N/A | N/A | constraint C-001 |
 
 ## Implementation Intent
 
@@ -20,7 +20,7 @@
 implementation_intent:
   goal: Preserve the intended return-value change with regression coverage.
   scope:
-    - Add focused tests for the changed behavior.
+    - SI-001: Add focused tests for the changed behavior.
   non_goals:
     - Public API redesign.
   acceptance:
@@ -32,7 +32,7 @@ implementation_intent:
   plan_reference: .review/pr-123/review-plan.md
 ```
 
-## Separate Parent Turn Handoff
+## Explicit Implementation Turn Handoff
 
 ```text
 $adaptive-implementation-execution を使って .review/pr-123/review-plan.md を実装してください。

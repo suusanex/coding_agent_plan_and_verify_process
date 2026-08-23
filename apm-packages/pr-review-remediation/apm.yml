@@ -1,8 +1,9 @@
 name: pr-review-remediation
-version: 0.6.0
-description: Baseline PR review collection and remediation planning without Goal Context purpose review
+version: 0.7.0
+description: Remote GitHub PR review evidence collection and remediation planning without local reviewer execution
 type: hybrid
 targets:
+  - copilot
   - codex
   - agent-skills
 includes: auto
