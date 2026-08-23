@@ -2,7 +2,8 @@
 
 ## Identity
 
-- Candidate commit: `0ff5900beb62d8c42226a5cad2779c56747d50c2`
+- Repository-wide baseline candidate: `0ff5900beb62d8c42226a5cad2779c56747d50c2`
+- PR Review follow-up candidate: `3b21a9e6dfa6f6e5123f2ad2ff5cceac6926c79a`
 - Pull request: `#131`
 - GitHub Copilot CLI: `1.0.80`
 - APM: `0.26.0`
@@ -43,3 +44,11 @@ Copilot reviewの4件は、`ForEach-Object Name`、`ForEach-Object distribution`
 - Plan Coverage direct: Adaptive compositionとshared instruction materializationの既知gapが残る。
 
 discoveryだけをbehavior PASSへ昇格していない。HOLD packageもcanonical artifactのdeterministic validationはPASSしている。
+
+## PR Review follow-up qualification
+
+review指摘を反映したcandidate `3b21a9e6dfa6f6e5123f2ad2ff5cceac6926c79a`、canonical fingerprint `340913aecbb90c5abfcb2146f66b64217e934b5daa6f1df2b6944d32d17f210b`を対象に再実行した。
+
+- APM: candidate SHAからfresh temporary repositoryへ`copilot,codex,agent-skills` install、Finalizer apply/check、collector helpを実行してPASSした。APM 0.26.0のsubprocess readerにcp932 decode tracebackが出たが、installはexit code 0で完了し、projectionとlockの検証もPASSした。
+- Agent Plugin direct: candidateから生成したbundleをCopilot CLI 1.0.80へ`--plugin-dir`で読み込み、repo-owned deterministic scenario `REMOTE-002`を`pr-review-remediation:review-planner`へ送信した。plannerは`review:fixture-remote-002`をnoActionとして保持し、verdict `REVIEW_COMPLETE`、Apply 0、`implementation_intent`なし、Adaptive開始promptなし、`Production code changed: No`で停止した。
+- Fail-closed: 同candidate headのPR #131で再reviewを要求してcollectorを実行したところ、180秒以内にterminal reviewを取得できず、`waitStatus: timeout`、`timedOut: true`、`isComplete: false`を記録した。これを「指摘なし」または`REVIEW_COMPLETE`へ変換せず、direct no-action scenarioとは分離した。

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "package": "pr-review-remediation",
   "canonicalFingerprint": "340913aecbb90c5abfcb2146f66b64217e934b5daa6f1df2b6944d32d17f210b",
-  "candidateCommit": "UNCOMMITTED",
+  "candidateCommit": "3b21a9e6dfa6f6e5123f2ad2ff5cceac6926c79a",
   "runtime": {
     "surface": "github-copilot-cli",
     "clientVersion": "1.0.80",
@@ -11,17 +11,21 @@
   "assessments": [
     {
       "distribution": "apm",
-      "status": "NOT_RUN",
-      "evidenceMode": "NONE",
-      "reason": "The REVIEW_COMPLETE terminal contract candidate has not yet been qualified through the APM distribution.",
-      "evidenceRefs": []
+      "status": "PASS",
+      "evidenceMode": "LIVE",
+      "reason": "The REVIEW_COMPLETE candidate passed a remote APM install for copilot, codex, and agent-skills while preserving the remote-only collector and planner surface.",
+      "evidenceRefs": [
+        "tests/agent-plugins/results/2026-08-23-runtime-qualification.md"
+      ]
     },
     {
       "distribution": "agent-plugin-direct",
-      "status": "NOT_RUN",
-      "evidenceMode": "NONE",
-      "reason": "The REVIEW_COMPLETE terminal contract candidate has not yet been qualified through direct plugin deployment.",
-      "evidenceRefs": []
+      "status": "PASS",
+      "evidenceMode": "LIVE",
+      "reason": "The direct review-planner returned REVIEW_COMPLETE for the repository-owned REMOTE-002 no-action scenario without implementation intent, Adaptive handoff, or production changes.",
+      "evidenceRefs": [
+        "tests/agent-plugins/results/2026-08-23-runtime-qualification.md"
+      ]
     }
   ]
 }

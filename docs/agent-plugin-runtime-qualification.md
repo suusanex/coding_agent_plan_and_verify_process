@@ -22,7 +22,7 @@
 | Persistent Purpose Review | PASS / LIVE | HOLD / PARTIAL | Runner 0.2.2は別配布。Copilot same-run flowは確認 |
 | Plan Coverage | PASS / PARTIAL | HOLD / PARTIAL | immutable behavior evidenceを維持し、direct gapは未解消 |
 
-candidate `0ff5900beb62d8c42226a5cad2779c56747d50c2`の実行結果は[`tests/agent-plugins/results/2026-08-23-runtime-qualification.md`](../tests/agent-plugins/results/2026-08-23-runtime-qualification.md)に記録する。
+repository-wide baseline candidate `0ff5900beb62d8c42226a5cad2779c56747d50c2`と、PR Review follow-up candidate `3b21a9e6dfa6f6e5123f2ad2ff5cceac6926c79a`の実行結果は[`tests/agent-plugins/results/2026-08-23-runtime-qualification.md`](../tests/agent-plugins/results/2026-08-23-runtime-qualification.md)に記録する。
 
 ## Manual qualification rules
 
