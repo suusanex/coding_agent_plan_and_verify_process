@@ -19,6 +19,7 @@
     "platform",
     "distribution_smoke",
     "overall_status",
+    "source_run",
     "scenarios"
   ],
   "properties": {
@@ -54,6 +55,7 @@
     "install_targets": {
       "type": "array",
       "minItems": 3,
+      "uniqueItems": true,
       "items": {
         "type": "string",
         "enum": ["copilot", "codex", "agent-skills"]
@@ -61,19 +63,7 @@
     },
     "apm_lock_sha256": { "type": "string", "minLength": 1 },
     "platform": { "type": "string", "minLength": 1 },
-    "distribution_smoke": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["status", "command", "rationale"],
-      "properties": {
-        "status": {
-          "type": "string",
-          "enum": ["PASS", "FAIL", "NOT_RUN", "UNOBSERVABLE"]
-        },
-        "command": { "type": "string", "minLength": 1 },
-        "rationale": { "type": "string", "minLength": 1 }
-      }
-    },
+    "distribution_smoke": { "$ref": "#/$defs/distribution_smoke" },
     "overall_status": {
       "type": "string",
       "enum": ["QUALIFIED", "PENDING", "FAIL"]
@@ -87,6 +77,19 @@
     }
   },
   "$defs": {
+    "distribution_smoke": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "command", "rationale"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["PASS", "FAIL", "NOT_RUN", "UNOBSERVABLE"]
+        },
+        "command": { "type": "string", "minLength": 1 },
+        "rationale": { "type": "string", "minLength": 1 }
+      }
+    },
     "source_run": {
       "type": "object",
       "additionalProperties": false,
@@ -98,7 +101,12 @@
         "package_version",
         "apm_lock_sha256",
         "install_targets",
-        "client_version"
+        "client_version",
+        "apm_version",
+        "model_requested",
+        "model_observed",
+        "platform",
+        "distribution_smoke"
       ],
       "properties": {
         "source_run_id": { "type": "string", "minLength": 1 },
@@ -110,6 +118,7 @@
         "install_targets": {
           "type": "array",
           "minItems": 3,
+          "uniqueItems": true,
           "items": { "type": "string", "enum": ["copilot", "codex", "agent-skills"] }
         },
         "client_version": { "type": "string", "minLength": 1 },
@@ -117,7 +126,7 @@
         "model_requested": { "type": ["string", "null"] },
         "model_observed": { "type": "string" },
         "platform": { "type": "string" },
-        "distribution_smoke": { "type": "object" }
+        "distribution_smoke": { "$ref": "#/$defs/distribution_smoke" }
       }
     },
     "adaptive_phase": {

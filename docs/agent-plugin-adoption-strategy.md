@@ -43,16 +43,15 @@ workflow 名、`validate-*` / `run-*` script 名、この文書、qualification 
 
 ## Qualification の再実行トリガー
 
-次の relevant change があった場合、direct-load qualification の再実行を検討する。
+External-model qualificationの要否と範囲は、fingerprintやpackage versionの変化ではなく、変更内容のruntime regression riskで決める。
 
-- Agent Plugins spec / relevant component support が更新された。
-- GitHub Copilot CLI、Codex、または対象 runtime の plugin、agents、skills、instructions、dependency handling が更新された。
-- 新しい runtime で local/direct Agent Plugin consumption が利用可能になった、または仕様が変わった。
-- APM の pack、dependency materialization、runtime projection が変更された。
-- `.apm/**`、package structure、runtime adapter、dependency boundary を変更した。
-- direct plugin を supported installation path へ昇格できる可能性が生じ、promotion review を開始した。
+- documentation、wording、metadata、behaviorへ影響しないcanonical整理はlow / normalとし、deterministic CIを実行して次回実運用で観測する。
+- 特定agent behavior、decision rule、bounded contractの変更はtargeted runtime riskとし、必要に応じて影響scenarioだけを実行する。無関係なauthorization、standard/full routeを再実行しない。
+- authorization、route orchestration、runtime adapter/projection、Skill・agent discovery/materialization、Adaptive handoff、shared routing semantics、runtime/client compatibilityの変更はfull runtime riskとし、full qualificationを要求または強く推奨する。
+- 新runtimeやdirect pluginをsupported installation pathへ昇格するpromotion reviewではfull qualificationを要求する。
+- historical baselineを合理的にcarry forwardできない広範なsemantics変更もfull qualification対象とする。
 
-外部 model を常時消費する scheduled CI は必須にしない。再 qualification は relevant change または promotion review に結び付いた明示的な作業とする。
+`.apm/**`変更はrisk評価の入力だが、それ単独ではexternal-model qualificationの再実行理由にならない。通常PR CIと外部modelを常時消費するscheduled CIは分離し、再qualificationはrisk評価またはpromotion reviewに結び付いた明示的な作業とする。
 
 ## Supported deployment への昇格条件
 
