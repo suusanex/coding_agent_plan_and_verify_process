@@ -351,3 +351,14 @@ standalone full-coverage E2Eは、currentまたはinstalled Living Record / clos
 Change Risk Triage smokeはchange-facts inputとCI-only oracleを分離し、result schemaとagent hashもCIで検証します。外部modelにはoracleを渡さず、`CRT-001`〜`CRT-003`各3回のfresh-session一致確認をmanual evidenceとして分離し、`NOT RUN`や`UNOBSERVABLE`をPASSにしません。
 
 remote APM install smokeはpackageの変更をremote refで検証するときだけ実行します。
+
+## Agent Plugin artifact
+
+process semanticsの正本はこのpackageの`.apm/**`です。Agent Plugin artifactはpackage rootへchecked-inせず、repository共通builderでtemporary stageへ生成します。
+
+```powershell
+pwsh -NoProfile -File scripts/agent-plugins/build-agent-plugin.ps1 -Package plan-coverage-residual-flow
+pwsh -NoProfile -File scripts/agent-plugins/validate-agent-plugin-package.ps1 -Package plan-coverage-residual-flow
+```
+
+APMがsupported distributionです。direct deploymentのstatusとevidenceは`tests/agent-plugin/qualification.json`に記録し、未観測のbehaviorをPASSへ昇格させません。

@@ -556,11 +556,6 @@ static void ValidateJsonArray(string json, string source)
     }
 }
 
-static JsonElement? TryCloneProperty(JsonElement element, string propertyName)
-{
-    return element.TryGetProperty(propertyName, out var property) ? property.Clone() : null;
-}
-
 static string GetString(JsonElement element, string propertyName)
 {
     if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(propertyName, out var property))

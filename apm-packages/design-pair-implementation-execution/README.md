@@ -115,3 +115,14 @@ static validator は mandatory turn stop、waiting schema、post-map user eviden
 - upstream Plan の文言が `DP-Dxx` へ変換された場合: entry を `Upstream Binding Constraints` または `Upstream User Initial Positions` へ戻し、post-map confirmation evidence が得られるまで Locked Decision を作りません。
 - resume で interaction stage、presentation evidence、user response evidence が欠ける場合: AI が補完せず `BLOCKED` / artifact repair とします。
 - 利用者が全 Target を Adaptive に委ねたい場合: Target Map 提示後の明示応答を記録すれば、個別対話や人工的な Locked Decision は不要です。
+
+## Agent Plugin artifact
+
+process semanticsの正本はこのpackageの`.apm/**`です。Agent Plugin artifactはpackage rootへchecked-inせず、repository共通builderでtemporary stageへ生成します。
+
+```powershell
+pwsh -NoProfile -File scripts/agent-plugins/build-agent-plugin.ps1 -Package design-pair-implementation-execution
+pwsh -NoProfile -File scripts/agent-plugins/validate-agent-plugin-package.ps1 -Package design-pair-implementation-execution
+```
+
+APMがsupported distributionです。direct deploymentのstatusとevidenceは`tests/agent-plugin/qualification.json`に記録し、未観測のbehaviorをPASSへ昇格させません。

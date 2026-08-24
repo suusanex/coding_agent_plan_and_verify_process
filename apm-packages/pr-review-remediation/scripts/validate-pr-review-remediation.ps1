@@ -2,85 +2,100 @@
 param()
 
 $ErrorActionPreference = 'Stop'
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
 $packageRoot = Join-Path $repoRoot 'apm-packages/pr-review-remediation'
 $scratchRoot = Join-Path ([IO.Path]::GetTempPath()) ('pr-review-remediation-validation-' + [guid]::NewGuid().ToString('N'))
 $safeToDelete = $false
 
-function Assert-File([string]$RelativePath) {
-    $path = Join-Path $repoRoot $RelativePath
-    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing file: $RelativePath" }
-}
-
 function Assert-Contains([string]$RelativePath, [string]$Pattern, [string]$Description) {
-    Assert-File $RelativePath
-    if ((Get-Content -Raw -LiteralPath (Join-Path $repoRoot $RelativePath)) -notmatch $Pattern) {
-        throw "$RelativePath does not contain $Description"
-    }
+    $text = Get-Content -Raw -LiteralPath (Join-Path $repoRoot $RelativePath)
+    if ($text -notmatch $Pattern) { throw "Missing ${Description}: $RelativePath" }
 }
 
-function Invoke-Native([string]$FilePath, [string[]]$Arguments, [string]$Description) {
-    & $FilePath @Arguments
-    if ($LASTEXITCODE -ne 0) { throw "$Description failed with exit code $LASTEXITCODE" }
+function Assert-NotContains([string]$RelativePath, [string]$Pattern, [string]$Description) {
+    $text = Get-Content -Raw -LiteralPath (Join-Path $repoRoot $RelativePath)
+    if ($text -match $Pattern) { throw "Forbidden ${Description}: $RelativePath" }
 }
 
 try {
-    $null = New-Item -ItemType Directory -Path $scratchRoot
-    $resolvedScratch = (Resolve-Path -LiteralPath $scratchRoot).Path
-    $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
-    if (-not $resolvedScratch.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase)) {
-        throw "Unsafe scratch path: $resolvedScratch"
-    }
-    $safeToDelete = $true
-
-    foreach ($path in @(
+    foreach ($relative in @(
         'apm-packages/pr-review-remediation/apm.yml',
         'apm-packages/pr-review-remediation/README.md',
         'apm-packages/pr-review-remediation/codex-profile-overlays.json',
-        'apm-packages/pr-review-remediation/.apm/agents/local-reviewer.agent.md',
         'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md',
         'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md',
         'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs',
-        'tests/pr-review-remediation/PRR-001/run.schema.json',
-        'tests/pr-review-remediation/PRR-001/run.json',
-        'tests/pr-review-remediation/PRR-001/local-review-findings.md',
-        'tests/pr-review-remediation/PRR-001/review-plan.md'
-    )) { Assert-File $path }
+        'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md',
+        'apm-packages/pr-review-remediation/tests/fixtures/remote-review-scenarios.json',
+        'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md',
+        'apm-packages/pr-review-remediation/tests/fixtures/expected-review-complete.md'
+    )) {
+        if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $relative) -PathType Leaf)) { throw "Missing package file: $relative" }
+    }
 
-    $agentNames = @(Get-ChildItem -LiteralPath (Join-Path $packageRoot '.apm/agents') -Filter '*.agent.md' -File | Sort-Object Name | ForEach-Object Name)
-    if (($agentNames -join '|') -ne 'local-reviewer.agent.md|review-planner.agent.md') { throw "Unexpected baseline agents: $($agentNames -join ', ')" }
-    $skillNames = @(Get-ChildItem -LiteralPath (Join-Path $packageRoot '.apm/skills') -Directory | Sort-Object Name | ForEach-Object Name)
-    if (($skillNames -join '|') -ne 'pr-review-remediation') { throw "Unexpected baseline Skills: $($skillNames -join ', ')" }
-    $scriptNames = @(Get-ChildItem -LiteralPath (Join-Path $packageRoot 'scripts') -File | Sort-Object Name | ForEach-Object Name)
-    $expectedScripts = 'run-pr-review-remediation-agent-smoke.ps1|validate-pr-review-remediation-agent-smoke.ps1|validate-pr-review-remediation-apm-smoke.ps1|validate-pr-review-remediation.ps1'
-    if (($scriptNames -join '|') -ne $expectedScripts) { throw "Unexpected baseline scripts: $($scriptNames -join ', ')" }
-    $fixtureNames = @(Get-ChildItem -LiteralPath (Join-Path $repoRoot 'tests/pr-review-remediation') -Directory | Sort-Object Name | ForEach-Object Name)
-    if (($fixtureNames -join '|') -ne 'PRR-001') { throw "Unexpected baseline fixtures: $($fixtureNames -join ', ')" }
+    $agents = @(Get-ChildItem -LiteralPath (Join-Path $packageRoot '.apm/agents') -Filter '*.agent.md' -File | ForEach-Object Name)
+    if (($agents -join '|') -ne 'review-planner.agent.md') { throw "Unexpected baseline agents: $($agents -join ', ')" }
+    $scripts = @(Get-ChildItem -LiteralPath (Join-Path $packageRoot 'scripts') -Filter '*.ps1' -File | Sort-Object Name | ForEach-Object Name)
+    if (($scripts -join '|') -ne 'validate-pr-review-remediation-apm-smoke.ps1|validate-pr-review-remediation.ps1') {
+        throw "Unexpected package scripts: $($scripts -join ', ')"
+    }
 
-    Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?m)^version:\s*0\.6\.0\s*$' 'baseline-only package version'
-    Assert-Contains 'apm-packages/pr-review-remediation/README.md' '\$persistent-purpose-review' 'successor purpose review route'
-    Assert-Contains 'apm-packages/pr-review-remediation/README.md' '(?m)^\$moduleRoot\s*=\s*"\.\\apm_modules\\suusanex\\coding_agent_plan_and_verify_process"\s*$' 'installed module root assignment'
+    Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?ms)^version:\s*0\.7\.0\s*$.*^\s*- copilot\s*$.*^\s*- codex\s*$.*^\s*- agent-skills\s*$' '0.7.0 multi-target manifest'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'Production code changed: No' 'Phase 1 non-mutation contract'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' '別の明示turn' 'separate Adaptive turn boundary'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'Apply \| Hold \| Reject' 'remote finding decision contract'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'waitStatus: timeout' 'timeout fail-closed contract'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'REVIEW_COMPLETE' 'no-remediation terminal contract'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md' 'Source Coverage' 'remote source coverage contract'
+    Assert-Contains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-complete.md' 'Verdict: REVIEW_COMPLETE' 'no-remediation expected verdict'
+    Assert-NotContains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-complete.md' 'implementation_intent|adaptive-implementation-execution|Ordered Remediation Plan' 'no-remediation implementation handoff'
+
+    foreach ($relative in @(
+        'apm-packages/pr-review-remediation/README.md',
+        'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md',
+        'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md',
+        'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md'
+    )) {
+        Assert-NotContains $relative 'local-review-findings|Local Codex|Goal Context multi-round|purpose-review-findings' 'retired local/purpose planner input'
+    }
 
     $profiles = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'codex-profile-overlays.json') | ConvertFrom-Json
-    $profileNames = @($profiles.profiles.agent)
-    if (($profileNames -join '|') -ne 'local-reviewer|review-planner') {
-        throw "Unexpected profile set: $($profileNames -join ', ')"
+    $profileNames = @($profiles.profiles | ForEach-Object agent)
+    if (($profileNames -join '|') -ne 'review-planner') { throw "Unexpected Codex profiles: $($profileNames -join ', ')" }
+    if ([string]$profiles.profiles[0].sandbox_mode -cne 'read-only') { throw 'review-planner profile must be read-only.' }
+
+    $catalog = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'tests/fixtures/remote-review-scenarios.json') | ConvertFrom-Json
+    $expected = @{
+        'REMOTE-001' = 'READY_FOR_ADAPTIVE_IMPLEMENTATION'
+        'REMOTE-002' = 'REVIEW_COMPLETE'
+        'REMOTE-003' = 'HUMAN_DECISION_REQUIRED'
+        'REMOTE-004' = 'BLOCKED'
+        'REMOTE-005' = 'BLOCKED'
+        'REMOTE-006' = 'HUMAN_DECISION_REQUIRED'
+        'REMOTE-007' = 'READY_FOR_ADAPTIVE_IMPLEMENTATION'
+    }
+    if (@($catalog.scenarios).Count -ne $expected.Count) { throw 'Unexpected remote scenario count.' }
+    foreach ($scenario in @($catalog.scenarios)) {
+        if (-not $expected.ContainsKey([string]$scenario.id)) { throw "Unknown remote scenario: $($scenario.id)" }
+        if ([string]$scenario.expectedVerdict -cne $expected[[string]$scenario.id]) { throw "Wrong verdict for $($scenario.id)" }
     }
 
     $collector = Join-Path $packageRoot '.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs'
-    $publishRoot = Join-Path $resolvedScratch 'collector'
-    Invoke-Native 'dotnet' @('publish', $collector, '--output', $publishRoot, '--disable-build-servers') 'collector publish'
-    $collectorExecutable = Join-Path $publishRoot ($(if ($IsWindows) { 'collect-pr-review-context.exe' } else { 'collect-pr-review-context' }))
-    Invoke-Native $collectorExecutable @('--help') 'collector help'
+    $null = New-Item -ItemType Directory -Path $scratchRoot -Force
+    $resolvedScratch = (Resolve-Path -LiteralPath $scratchRoot).Path
+    if (-not $resolvedScratch.StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()), [StringComparison]::OrdinalIgnoreCase)) { throw "Unsafe scratch path: $resolvedScratch" }
+    $safeToDelete = $true
+    & dotnet publish $collector --output (Join-Path $resolvedScratch 'collector')
+    if ($LASTEXITCODE -ne 0) { throw 'Collector publish failed.' }
+    & dotnet run --file $collector -- --help
+    if ($LASTEXITCODE -ne 0) { throw 'Collector help failed.' }
 
-    Invoke-Native 'pwsh' @('-NoProfile', '-File', (Join-Path $packageRoot 'scripts/validate-pr-review-remediation-agent-smoke.ps1'), '-RepositoryRoot', $repoRoot) 'PRR-001 evidence validation'
-    Assert-Contains 'apm-packages/pr-review-remediation/scripts/run-pr-review-remediation-agent-smoke.ps1' '\[switch\]\$DescribePayload' 'external-model payload inspection gate'
-
-    Write-Output 'PR Review Remediation baseline validation: PASS'
+    Write-Output 'PR Review Remediation remote-only validation: PASS'
 }
 finally {
     if ($safeToDelete -and (Test-Path -LiteralPath $scratchRoot)) {
-        Remove-Item -LiteralPath $scratchRoot -Recurse -Force
+        $resolved = [IO.Path]::GetFullPath($scratchRoot)
+        if (-not $resolved.StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()), [StringComparison]::OrdinalIgnoreCase)) { throw "Refusing to remove unsafe scratch path: $resolved" }
+        Remove-Item -LiteralPath $resolved -Recurse -Force
     }
 }

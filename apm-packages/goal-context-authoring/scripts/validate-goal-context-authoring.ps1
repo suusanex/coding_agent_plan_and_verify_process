@@ -72,6 +72,8 @@ try {
     )) { Assert-File $file }
 
     Assert-Contains 'apm.yml' '(?m)^name:\s*goal-context-authoring\s*$' 'package identity'
+    Assert-Contains 'apm.yml' '(?m)^version:\s*0\.2\.0\s*$' 'package version'
+    Assert-Contains 'apm.yml' '(?ms)^targets:\s*$.*^\s+- copilot\s*$.*^\s+- codex\s*$.*^\s+- agent-skills\s*$' 'multi-runtime targets'
     Assert-Contains '.apm/skills/goal-context-authoring/SKILL.md' 'no required filename, extension, frontmatter, headings' 'free-form interoperability boundary'
     Assert-Contains '.apm/skills/goal-context-authoring/references/generation-prompt.md' 'Preserve both downstream uses with equal importance' 'equal preservation of purpose and settled planning context'
     Assert-Contains '.apm/skills/goal-context-authoring/references/generation-prompt.md' '(?s)implementation\s+capabilities already established in the source.*capability itself was explicitly stated, clearly accepted, or directly\s+established by the accepted discussion' 'source-confirmed settled capability boundary'

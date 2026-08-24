@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "scenarios": [
+    { "id": "REMOTE-001", "condition": "review-with-findings", "expectedVerdict": "READY_FOR_ADAPTIVE_IMPLEMENTATION" },
+    { "id": "REMOTE-002", "condition": "review-complete-no-actionable-findings", "expectedVerdict": "REVIEW_COMPLETE" },
+    { "id": "REMOTE-003", "condition": "review-timeout-without-human-decision", "expectedVerdict": "HUMAN_DECISION_REQUIRED" },
+    { "id": "REMOTE-004", "condition": "review-request-permission-failure", "expectedVerdict": "BLOCKED" },
+    { "id": "REMOTE-005", "condition": "head-drift-during-collection", "expectedVerdict": "BLOCKED" },
+    { "id": "REMOTE-006", "condition": "duplicate-and-conflicting-remote-findings", "expectedVerdict": "HUMAN_DECISION_REQUIRED" },
+    { "id": "REMOTE-007", "condition": "plan-ready-separate-adaptive-turn", "expectedVerdict": "READY_FOR_ADAPTIVE_IMPLEMENTATION" }
+  ]
+}

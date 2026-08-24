@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "package": "plan-coverage-residual-flow",
+  "canonicalFingerprint": "c12b3a9031845b746637930df2ce82deb1570b2181866a40f5981a32aa696010",
+  "distributionFingerprint": "b5d961cd96f2102e276ba1fd6c2d5213c81a261db9ae04a0ca9e995a48eaaf8a",
+  "candidateCommit": "0ff5900beb62d8c42226a5cad2779c56747d50c2",
+  "runtime": {
+    "surface": "github-copilot-cli",
+    "clientVersion": "1.0.80",
+    "apmVersion": "0.26.0"
+  },
+  "assessments": [
+    {
+      "distribution": "apm",
+      "status": "PASS",
+      "evidenceMode": "PARTIAL",
+      "reason": "The candidate remote APM install and full-coverage smoke passed; immutable full baseline plus targeted delta evidence support the unchanged behavior fingerprint.",
+      "evidenceRefs": [
+        "tests/agent-plugins/results/2026-08-23-runtime-qualification.md",
+        "apm-packages/plan-coverage-residual-flow/tests/runtime-qualification/results/2026-08-10-copilot-cli.json",
+        "apm-packages/plan-coverage-residual-flow/tests/runtime-qualification/results/2026-08-11-copilot-cli-pending.json"
+      ]
+    },
+    {
+      "distribution": "agent-plugin-direct",
+      "status": "HOLD",
+      "evidenceMode": "PARTIAL",
+      "reason": "Copilot discovered the candidate bundle, but existing PoC evidence retains Adaptive composition and shared instruction materialization gaps; semantic parity is not claimed.",
+      "evidenceRefs": [
+        "tests/agent-plugins/results/2026-08-23-runtime-qualification.md",
+        "apm-packages/plan-coverage-residual-flow/tests/agent-plugin-poc/results/2026-08-11-copilot-plugin-poc.json"
+      ]
+    }
+  ]
+}

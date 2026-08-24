@@ -31,7 +31,7 @@ try {
     Push-Location -LiteralPath $resolvedScratch
     $locationPushed = $true
     try {
-        & $ApmExecutable install $packageSpec --target 'codex,agent-skills' --https
+        & $ApmExecutable install $packageSpec --target 'copilot,codex,agent-skills' --https
         if ($LASTEXITCODE -ne 0) { throw "remote APM install failed with exit code $LASTEXITCODE" }
     }
     finally {
@@ -43,7 +43,6 @@ try {
     foreach ($relative in @(
         'SKILL.md',
         'scripts/collect-pr-review-context.cs',
-        'templates/local-review-findings.md',
         'templates/review-plan.md',
         'references/usage.md',
         'references/migration.md',
@@ -62,14 +61,16 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Codex profile finalizer check failed.' }
 
     $profileRoot = Join-Path $resolvedScratch '.codex/agents'
-    foreach ($profile in @('local-reviewer.toml', 'review-planner.toml')) {
+    foreach ($profile in @('review-planner.toml')) {
         $path = Join-Path $profileRoot $profile
         Assert-File $path "profile $profile"
         $text = Get-Content -Raw -LiteralPath $path
         if ($text -notmatch '(?m)^sandbox_mode\s*=\s*"read-only"\s*$') { throw "$profile is not read-only." }
     }
     $installedProfiles = @(Get-ChildItem -LiteralPath $profileRoot -Filter '*.toml' -File | Sort-Object Name | ForEach-Object Name)
-    if (($installedProfiles -join '|') -ne 'local-reviewer.toml|review-planner.toml') { throw "Unexpected installed profiles: $($installedProfiles -join ', ')" }
+    if (($installedProfiles -join '|') -ne 'review-planner.toml') { throw "Unexpected installed profiles: $($installedProfiles -join ', ')" }
+
+    Assert-File (Join-Path $resolvedScratch '.github/agents/review-planner.agent.md') 'Copilot review-planner projection'
     & dotnet run --file (Join-Path $skillRoot 'scripts/collect-pr-review-context.cs') -- --help
     if ($LASTEXITCODE -ne 0) { throw 'Installed collector help failed.' }
 

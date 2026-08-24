@@ -1,0 +1,5 @@
+# Purpose
+
+このfixture repositoryは、portableなPersistent Purpose Review Skillと独立したPurpose Review Runnerの境界を正確に説明する。APMをsupported distributionとし、Agent Plugin direct deploymentはRunnerを内包しないため、外部Runnerとの明示compositionを確認できるまでHOLDとする。
+
+READMEは、Runnerがpluginへ内包される、またはdirect pluginだけでsame-session/durable reviewが成立する、と主張してはならない。

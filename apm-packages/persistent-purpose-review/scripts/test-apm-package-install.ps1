@@ -24,7 +24,7 @@ try {
     Push-Location -LiteralPath $resolvedScratch
     $locationPushed = $true
     try {
-        & $apmCommand.Source install $packageRoot --target 'codex,agent-skills'
+        & $apmCommand.Source install $packageRoot --target 'copilot,codex,agent-skills'
         if ($LASTEXITCODE -ne 0) { throw "apm install failed with exit code $LASTEXITCODE" }
     }
     finally {

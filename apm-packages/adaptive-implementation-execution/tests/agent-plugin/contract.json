@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "package": "adaptive-implementation-execution",
+  "installTargets": ["copilot", "codex", "agent-skills"],
+  "ownedSkills": ["adaptive-implementation-execution"],
+  "ownedAgents": ["high-implementation-starter", "standard-implementation-completer"],
+  "ownedInstructions": [],
+  "dependencies": ["codex-profile-finalizer"],
+  "runtimeBoundary": "Portable Skill and agents; Codex model mapping remains in the profile finalizer."
+}

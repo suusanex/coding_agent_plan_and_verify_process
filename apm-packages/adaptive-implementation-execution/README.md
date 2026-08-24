@@ -110,3 +110,14 @@ Design Pair導入前のtracked Adaptive handoffは、旧必須fieldがすべて�
 - [Usage guide](docs/usage-guide.md)
 - [Validation scenarios](docs/examples/adaptive-routing-validation.md)
 - [Manual Copilot smoke](docs/examples/copilot-manual-smoke.md)
+
+## Agent Plugin artifact
+
+process semanticsの正本はこのpackageの`.apm/**`です。Agent Plugin artifactはpackage rootへchecked-inせず、repository共通builderでtemporary stageへ生成します。
+
+```powershell
+pwsh -NoProfile -File scripts/agent-plugins/build-agent-plugin.ps1 -Package adaptive-implementation-execution
+pwsh -NoProfile -File scripts/agent-plugins/validate-agent-plugin-package.ps1 -Package adaptive-implementation-execution
+```
+
+APMがsupported distributionです。direct deploymentのstatusとevidenceは`tests/agent-plugin/qualification.json`に記録し、未観測のbehaviorをPASSへ昇格させません。

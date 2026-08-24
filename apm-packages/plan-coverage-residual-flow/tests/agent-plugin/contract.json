@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "package": "plan-coverage-residual-flow",
+  "installTargets": ["copilot", "codex", "agent-skills"],
+  "ownedSkills": ["plan-coverage-residual-flow"],
+  "ownedAgents": [
+    "architecture-elaboration",
+    "architecture-slice-readiness",
+    "black-box-behavior-spec-kernel",
+    "change-risk-triage",
+    "code-review-focus-kernel",
+    "coverage-gap-resolution-slice",
+    "coverage-gap-triage",
+    "cross-slice-verification-kernel",
+    "implementation-contract-kernel",
+    "implementation-contract-review-kernel",
+    "implementation-execution",
+    "implementation-handoff-review",
+    "plan-kernel",
+    "plan-slice-decomposition",
+    "residual-decision-gate",
+    "runtime-contract-kernel",
+    "test-design-kernel",
+    "verification-kernel"
+  ],
+  "ownedInstructions": ["plan-coverage-shared.instructions.md"],
+  "dependencies": ["adaptive-implementation-execution"],
+  "runtimeBoundary": "Adaptive composition and shared instruction materialization remain runtime adapter responsibilities."
+}

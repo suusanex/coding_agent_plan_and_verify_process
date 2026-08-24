@@ -26,7 +26,7 @@ try {
     $locationPushed = $true
     try {
         # Exercise the package-root apm install path, including apm.yml and target resolution.
-        & $apmCommand.Source install $packageRoot --target 'codex,agent-skills'
+        & $apmCommand.Source install $packageRoot --target 'copilot,codex,agent-skills'
         if ($LASTEXITCODE -ne 0) {
             throw "apm install failed with exit code $LASTEXITCODE"
         }

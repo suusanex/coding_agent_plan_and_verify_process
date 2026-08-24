@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "package": "goal-context-authoring",
+  "installTargets": ["copilot", "codex", "agent-skills"],
+  "ownedSkills": ["goal-context-authoring"],
+  "ownedAgents": [],
+  "ownedInstructions": [],
+  "dependencies": [],
+  "runtimeBoundary": "Human semantic review is optional and cannot be claimed by deterministic or model smoke validation."
+}

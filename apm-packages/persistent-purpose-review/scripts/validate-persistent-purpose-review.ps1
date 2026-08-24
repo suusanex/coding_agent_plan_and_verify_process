@@ -18,8 +18,11 @@ $manifest = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'apm.yml')
 $skill = Get-Content -Raw -LiteralPath $skillPath
 $readme = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'README.md')
 
-if ($manifest -notmatch '(?m)^name:\s*persistent-purpose-review\s*$' -or $manifest -notmatch '(?m)^version:\s*0\.2\.2\s*$') {
+if ($manifest -notmatch '(?m)^name:\s*persistent-purpose-review\s*$' -or $manifest -notmatch '(?m)^version:\s*0\.3\.0\s*$') {
     throw 'APM package identity is invalid.'
+}
+if ($manifest -notmatch '(?ms)^targets:\s*$.*^\s+- copilot\s*$.*^\s+- codex\s*$.*^\s+- agent-skills\s*$') {
+    throw 'APM package targets are invalid.'
 }
 if ($skill -notmatch 'purpose-review-runner version' -or $skill -notmatch 'protocolVersion.*`2`' -or $skill -notmatch 'runnerVersion' -or $skill -notmatch '0\.2\.2') {
     throw 'Skill does not fail closed on the Runner protocol boundary.'

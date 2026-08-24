@@ -2,13 +2,9 @@
 
 ## Phase 1 Verdict
 
-- Verdict: READY_FOR_ADAPTIVE_IMPLEMENTATION / APPROVED_FOR_ADAPTIVE_IMPLEMENTATION (Goal Context multi-round approval only) / REVIEW_COMPLETE (Goal Context multi-round mode only) / HUMAN_DECISION_REQUIRED / BLOCKED
+- Verdict: READY_FOR_ADAPTIVE_IMPLEMENTATION / REVIEW_COMPLETE / HUMAN_DECISION_REQUIRED / BLOCKED
 - Production code changed: No
-- Process status: Review planning complete / Review complete / Human decision required / Blocked
-- Review mode: Baseline / Goal Context
-- Review round: N/A / round-NNN
-- Previous round: N/A / round-NNN
-- Previous Adaptive result: N/A
+- Process status: Review planning complete / Review complete, no remediation required / Human decision required / Blocked
 
 ## PR Identity
 
@@ -18,57 +14,40 @@
 - Head branch / OID:
 - Context directory:
 
-## Review Input Status
+## Remote Review Input Status
 
-- Local Codex review: Collected / Missing / Blocked
-- Copilot wait status: completed / timeout / disabled
-- Copilot observed review state: reviewAndInline / reviewOnly / inlineOnly / none
-- PR comments: Collected / Missing
-- Inline comments: Collected / Missing
-- Checks: Collected / Missing
-- Goal Context selection: N/A / SELECTED / Missing / Invalid / Ambiguous
-- Purpose review: N/A / PURPOSE_REVIEWED / HUMAN_DECISION_REQUIRED / BLOCKED
+- Review request: Requested / Failed / Not requested
+- Review wait: completed / timeout / disabled / failed
+- Observed review state: reviewAndInline / reviewOnly / inlineOnly / none / UNOBSERVABLE
+- PR reviews: Collected / Missing / Blocked
+- PR comments: Collected / Missing / Blocked
+- Inline comments: Collected / Missing / Blocked
+- Checks: Collected / Missing / Blocked
 - Missing input decision:
-
-## Goal Context Boundary
-
-- Selected Goal Context: N/A
-- Goal Context SHA-256: N/A
-- Original problem: N/A
-- Desired outcome: N/A
-- User scenarios: N/A
-- MVP guardrails: N/A
-- Non-goals: N/A
-- Rejected alternatives: N/A
-- Superficially compliant but wrong / negative conditions: N/A
-- Open questions / human decisions: N/A
 
 ## Finding Decision Ledger
 
-`PUR-*` rows are Goal Context mode only; omit them in Baseline mode.
-
 | Source ID | Source | Location | Summary | Decision | Reason | Duplicate of | Conflicts with | Scope / Acceptance mapping |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| LR-001 | Local Codex |  |  | Apply / Hold / Reject |  | N/A | N/A | SI-001 / AC-001 |
-| PUR-001 | Purpose (Goal Context mode only) |  |  | Apply / Hold / Reject |  | N/A | N/A | SI-001 / AC-001 |
+| review:123 | GitHub PR review |  |  | Apply / Hold / Reject |  | N/A | N/A | SI-001 / AC-001 |
 
-## Finding Delta (Goal Context multi-round mode only)
+## Source Coverage
 
-Omit this section in Baseline and single-round mode. Tracking IDs are stable across rounds and are not inferred from text similarity alone.
-
-| Tracking ID | State | Current finding IDs | Source IDs | Prior evidence | Reason |
-| --- | --- | --- | --- | --- | --- |
-| TRK-001 | new / persistent / resolved / reopened |  |  | N/A / round-NNN |  |
+| Source ID | Finding / noAction | Reason |
+| --- | --- | --- |
+| review:123 |  |  |
 
 ## Ordered Remediation Plan
 
-Goal Context multi-round modeでは、この実行可能planを`READY_FOR_ADAPTIVE_IMPLEMENTATION`の場合だけround artifactへ含めます。`HUMAN_DECISION_REQUIRED`ではこのtemplateを保存せず、Adaptive handoffも出しません。人間が継続を明示した後は`APPROVED_FOR_ADAPTIVE_IMPLEMENTATION`として`round-NNN/approved-review-plan.md`を参照し、cycle managerの`resolve`で承認情報とhashを記録します。
+`REVIEW_COMPLETE`の場合はこのsectionを`N/A - no remediation required`とし、stepを生成しません。
 
 | Step | Scope ID | Acceptance ID | Finding IDs | Change | Expected files / symbols | Acceptance | Validation |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | SI-001 | AC-001 |  |  |  |  |  |
 
 ## Implementation Intent
+
+`REVIEW_COMPLETE`の場合はこのsectionを省略します。
 
 ```yaml
 implementation_intent:
@@ -80,11 +59,8 @@ implementation_intent:
     - AC-001:
   constraints:
   validation:
-  plan_reference: <multi-round READYではround-NNN/review-plan.md、人間承認後はround-NNN/approved-review-plan.md>
-  goal_context_reference:
+  plan_reference: .review/pr-123/review-plan.md
 ```
-
-multi-round modeでは、`scope`の全項目を`SI-*`、`acceptance`の全項目を`AC-*`で始め、Ordered Remediation PlanのID集合と双方向に完全一致させます。intentだけへ追加作業を記載しません。
 
 ## Uncollected / Unverified
 
@@ -92,21 +68,15 @@ multi-round modeでは、`scope`の全項目を`SI-*`、`acceptance`の全項目
 
 ## Human-required Work
 
-- 人手での作業が必要:
+- 人手での作業が必要: N/A
 
 ## Explicit Implementation Turn Handoff
 
-- Multi-round role threads: fixed / N/A for single-round
-- Target Implementation Thread ID: <Codex task UUID / N/A for single-round>
-- Target Implementation Thread URI: <codex://threads/... / N/A for single-round>
-- Return Review Thread ID: <Codex task UUID / N/A for single-round>
-- Return Review Thread URI: <codex://threads/... / N/A for single-round>
-- Plan SHA-256 source: <round manifest artifact binding / explicit single-round handoff record>
+`REVIEW_COMPLETE`の場合はこのsectionを省略します。
 
 ```text
-$adaptive-implementation-execution を使って <review-plan-path> を、上記Implementation Threadの新しい明示ターンとして実装してください。
-review-plan.md の implementation_intent を source of truth とし、既存 Adaptive Implementation の router、agents、verdict、handoff、validation contract を変更または複製しないでください。
-既存会話の探索・設計コンテキストは利用できますが、scopeとacceptanceはartifactを正本としてください。完了後は上記Review Threadへ戻るためのURI、Adaptive result reference、変更後head OIDを報告してください。
+$adaptive-implementation-execution を使って .review/pr-123/review-plan.md を実装してください。
+review-plan.md の implementation_intent を source of truth とし、既存Adaptive Implementationのrouter、agents、verdict、handoff、validation contractを変更または複製しないでください。
 ```
 
-基礎版のsingle-round利用ではrole thread IDを要求せず、従来どおり別の明示ターンへartifactを渡します。multi-roundで固定taskを再開できない場合は、新taskへ自動移管せず`BLOCKED`として停止し、cycle外の手動対応を利用者へ求めます。Phase 1の停止はレビュー反映プロセス全体の完了ではありません。Adaptive Implementationはこの親ターンから自動起動しません。
+Phase 1の停止はレビュー反映プロセス全体の完了ではありません。Adaptive Implementationはこの親ターンから自動起動しません。

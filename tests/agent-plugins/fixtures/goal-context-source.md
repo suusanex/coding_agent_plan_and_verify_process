@@ -1,0 +1,7 @@
+# Source material
+
+複数のprocess packageはAPMでは導入できるが、Agent Pluginとして直接配布した場合の互換性がpackageごとに観測されていない。利用者は、process semanticsの正本を増やさずに、同一sourceからAPMとAgent Pluginの両方を生成・検証できる状態を望んでいる。
+
+APMは引き続きsupported distributionとする。Agent Plugin direct deploymentは、packageごとに実runtimeで観測できた範囲だけをPASSとし、依存runtimeを単一pluginへ無断で内包しない。観測不能または外部runtimeの制約がある場合はHOLD理由を残す。
+
+Goal Contextの出力形式、filename、見出し、frontmatter、approval recordは指定しない。sourceにない承認や運用実績を補ってはならない。

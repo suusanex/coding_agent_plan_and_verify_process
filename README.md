@@ -45,10 +45,10 @@ Design Pair manifestもAdaptive Skillとcanonical agentsをdependencyとして�
 
 ### PRレビューと修正を改善したい
 
-[PR Review Remediation](apm-packages/pr-review-remediation/README.md)の`$pr-review-remediation`は、Goal Contextを使わないbaseline PR review planを作り、別turnの修正前で停止します。
+[PR Review Remediation](apm-packages/pr-review-remediation/README.md)の`$pr-review-remediation`は、Ready PRに紐付くremote review evidenceだけからbaseline PR review planを作り、別turnの修正前で停止します。repository外のlocal agent reviewerは起動しません。
 
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target copilot,codex,agent-skills
 $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
 dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
 ```
@@ -56,7 +56,7 @@ dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\fina
 実装後の目的達成reviewと修正を元のimplementation parent内で完了したい場合は、[Persistent Purpose Review](apm-packages/persistent-purpose-review/README.md)と、OS user単位で導入する[Purpose Review Runner](apps/PurposeReviewRunner/README.md)を使います。
 
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persistent-purpose-review --target codex,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persistent-purpose-review --target copilot,codex,agent-skills
 purpose-review-runner version
 ```
 
@@ -66,7 +66,7 @@ Runnerが同じpurpose reviewer session、non-modifying reviewer、最大3round�
 
 [Plan Coverage Check and Residual Decision Flow](apm-packages/plan-coverage-residual-flow/README.md)は、bounded Planをsource of truthとしてcoverageを追跡し、必要なimplementation / runtime / test design guardrail、Adaptive Implementation、verification、Residual Decisionをつなぎます。広い要求も`full-coverage` routeでArchitecture Slice ReadinessからResidual Decisionまで扱います。
 
-Plan Coverageの現時点のsupported installationはAPM経由です。Agent Plugins bundleは同じcanonical sourceから継続的に生成・検証する将来のdeployment candidateであり、direct plugin installを通常導入方法として扱いません。[Agent Plugins採用方針](docs/agent-plugin-adoption-strategy.md)で、APM・runtime qualification・direct deploymentの境界と昇格条件を定義しています。
+各process packageの現時点のsupported installationはAPM経由です。Agent Plugins bundleは同じpackage-local canonical sourceから6 packageすべてで継続的に生成・検証し、direct plugin installを一律に通常導入方法とは扱いません。[Agent Plugins採用方針](docs/agent-plugin-adoption-strategy.md)と[runtime qualification matrix](docs/agent-plugin-runtime-qualification.md)で、APM・runtime qualification・direct deploymentの境界と昇格条件を定義しています。
 
 導入先repositoryのrootで、必要なpackageをAPMから導入します。
 
@@ -102,8 +102,8 @@ APM installがportable agentsとSkillを導入し、finalizerが必要なCodex p
 
    ```powershell
    apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target copilot,codex,agent-skills
-   apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target codex,agent-skills
-   apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persistent-purpose-review --target codex,agent-skills
+   apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target copilot,codex,agent-skills
+   apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persistent-purpose-review --target copilot,codex,agent-skills
    $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
    dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
    ```
@@ -117,7 +117,7 @@ APM installがportable agentsとSkillを導入し、finalizerが必要なCodex p
 [Goal Context Authoring](apm-packages/goal-context-authoring/README.md)は、chat historyを含む自然言語資料からfree-form Goal Contextを作る任意toolです。chat専用ではなく、Goal Contextという文書形式自体もこのpackageへ依存しません。
 
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/goal-context-authoring --target codex,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/goal-context-authoring --target copilot,codex,agent-skills
 ```
 
 ### Completion Notification / Runtime / Inbox

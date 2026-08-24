@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "package": "design-pair-implementation-execution",
+  "installTargets": ["copilot", "codex", "agent-skills"],
+  "ownedSkills": ["design-pair-implementation-execution"],
+  "ownedAgents": [],
+  "ownedInstructions": [],
+  "dependencies": ["adaptive-implementation-execution"],
+  "runtimeBoundary": "Adaptive Implementation is composed as a separate canonical package and is never copied into this plugin."
+}
