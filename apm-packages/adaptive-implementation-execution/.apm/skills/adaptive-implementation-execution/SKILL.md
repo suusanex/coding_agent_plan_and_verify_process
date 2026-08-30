@@ -142,6 +142,8 @@ scope内の全acceptance itemが`Complete`で、各itemにimplementationまた�
 - Allowed edit surfaceが全Authorized surfaceを包含する
 - Design Pair / upstream bindingと矛盾しない
 - 残る不確実性がlocalかつreversibleである
+- 初回transferは`reentry_count: 0`で、`previous_reentry_trigger`と`reentry_progress_evidence`の全fieldが`N/A`
+- re-entry後の再transferは、`reentry_count`とtrigger linkageがStep 5で受理したDecision-Surface Re-entry Handoffに一致する
 
 不足がある場合は次ownerへ渡さず、handoff修正またはimplementation継続を求めます。
 
@@ -172,7 +174,7 @@ ownerはWork PackagesとAllowed edit surface内で実装・検証します。cla
 
 ### NEEDS_DECISION_SURFACE_REENTRY
 
-valid handoffの実装中に新しいdecision surfaceが開いた場合だけ受理します。元のBounded Residual Implementation Handoff、Decision-Surface Re-entry Handoff、Original Implementation Intent、current worktreeを保持し、route identity一致を確認してDecision-Surface Implementation Ownerへ直列に戻します。
+valid handoffの実装中に新しいdecision surfaceが開いた場合だけ受理します。Decision-Surface Re-entry Handoffの`trigger`が空白でも`N/A`でもなく、`reentry_count`が直前に受理したBounded Residual Implementation Handoffの値に1を加えた値であることを検証します。元のBounded Residual Implementation Handoff、Decision-Surface Re-entry Handoff、Original Implementation Intent、current worktreeを保持し、route identity一致を確認してDecision-Surface Implementation Ownerへ直列に戻します。triggerまたはcountが不正ならfail closedで停止し、次ownerを起動しません。
 
 re-entryは失敗ではありません。戻ったownerは新しいdecision surfaceと必要なimplementation / verificationを所有します。再transferは、`reentry_count`を直前のre-entry handoffと一致させ、`previous_reentry_trigger`と`reentry_progress_evidence.trigger`をそのtriggerへ一致させ、actual codeによる`resolution`、確認結果である`verification`、`same_unresolved_cause_rehanded_off: false`を記録し、通常のtransfer gateを改めてすべて満たす場合に許可します。Remaining workやAllowed edit surfaceが前回より広がること自体はtransfer拒否理由にしません。
 
