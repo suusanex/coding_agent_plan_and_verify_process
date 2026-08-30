@@ -84,7 +84,7 @@ dotnet run --file ./scripts/validate-process-package-boundaries.cs -- validate
 dotnet run --file ./scripts/validate-process-package-boundaries.cs -- self-test
 ```
 
-GitHub Actionsにはjob単位のpath filterがないため、このアプリが`git diff`から必要なdistribution closureとAgent Plugin packageだけを選択します。一般的なglob engineは実装せず、repositoryで公開しているpackage pathと共有validator pathだけをordinal比較します。第三者path-filter Actionは追加のsupply-chain dependencyになるため採用しません。
+GitHub Actionsにはjob単位のpath filterがないため、このアプリが`git diff`から必要なdistribution closureとAgent Plugin packageだけを選択します。分類器自身を変更した場合は、分類漏れを自己検証できないため全distribution closure、全Agent Plugin package、Plan Coverageの全専門jobを実行します。一般的なglob engineは実装せず、repositoryで公開しているpackage pathと共有validator pathだけをordinal比較します。第三者path-filter Actionは追加のsupply-chain dependencyになるため採用しません。
 
 ### Notification runtime and decorator
 

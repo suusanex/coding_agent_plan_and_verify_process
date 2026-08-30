@@ -9,6 +9,16 @@ return await ProgramEntry.RunAsync(args);
 
 internal static class ProgramEntry
 {
+    private const string ClassifierPath = "scripts/validate-process-package-boundaries.cs";
+    private const string DependencyVersionPinPattern = @"(?:Plan Coverage|Adaptive)(?: package)? version\s+\d+(?:\.\d+)+(?:[-+][0-9A-Za-z.-]+)?";
+
+    private static readonly string[] ConnectedPackages =
+    [
+        "adaptive-implementation-execution",
+        "design-pair-implementation-execution",
+        "plan-coverage-residual-flow"
+    ];
+
     private static readonly string[] PortablePackages =
     [
         "adaptive-implementation-execution",
@@ -134,7 +144,7 @@ internal static class ProgramEntry
         var planCoverageValidator = Read(repositoryRoot, "apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1");
         Reject(adaptiveValidator, @"apm-packages/codex-profile-finalizer|\.github/workflows/", "Adaptive package-local validator must not inspect dependency internals or workflow wiring.", failures);
         Reject(designPairValidator, @"apm-packages/(?:adaptive-implementation-execution|plan-coverage-residual-flow)/(?:(?:\.apm|scripts|docs|apm\.yml))|apm-packages/codex-profile-finalizer|\.github/workflows/", "Design Pair package-local validator must not inspect provider or peer internals.", failures);
-        Reject(designPairValidator, @"Plan Coverage package version|Adaptive package version 0\.6\.0", "Design Pair package-local validator must not pin current dependency versions.", failures);
+        Reject(designPairValidator, DependencyVersionPinPattern, "Design Pair package-local validator must not pin current dependency versions.", failures);
         Reject(planCoverageValidator, @"scripts/validate-adaptive-implementation-execution\.ps1|design-pair-implementation-execution/scripts/validate\.ps1|boundedResidualOwner|\.github/workflows/", "Plan Coverage package-local validator must not inspect provider validators, provider agent bodies, or workflow wiring.", failures);
 
         var adaptiveWorkflow = Read(repositoryRoot, ".github/workflows/validate-adaptive-implementation-execution.yml");
@@ -147,6 +157,21 @@ internal static class ProgramEntry
         {
             Require(compatibilityWorkflow, Regex.Escape(smoke), $"Compatibility workflow must own {smoke}.", failures);
         }
+        foreach (var triggerInput in new[]
+        {
+            ".github/workflows/validate-adaptive-implementation-execution.yml",
+            ".github/workflows/validate-design-pair-implementation-execution.yml",
+            ".github/workflows/validate-plan-coverage-residual-flow.yml",
+            ".github/workflows/validate-agent-plugin-packages.yml",
+            "apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1",
+            "apm-packages/design-pair-implementation-execution/scripts/validate.ps1",
+            "apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1"
+        })
+        {
+            RequireOccurrences(compatibilityWorkflow, triggerInput, 2, $"Compatibility workflow must trigger for pull requests and main pushes that change {triggerInput}.", failures);
+        }
+        RequireOccurrences(planCoverageWorkflow, ClassifierPath, 2, "Plan Coverage workflow must trigger for pull requests and main pushes that change the scope classifier.", failures);
+        RequireOccurrences(agentPluginWorkflow, ClassifierPath, 2, "Agent Plugin workflow must trigger for pull requests and main pushes that change the scope classifier.", failures);
         Reject(agentPluginWorkflow, @"validate-no-root-projections\.ps1", "Agent Plugin workflow must not duplicate repository layout validation.", failures);
 
         if (failures.Count > 0)
@@ -157,6 +182,18 @@ internal static class ProgramEntry
 
     private static void RunSelfTest()
     {
+        if (!Regex.IsMatch("Adaptive package version 0.7.0", DependencyVersionPinPattern, RegexOptions.CultureInvariant))
+        {
+            throw new InvalidOperationException("Dependency version pin pattern must reject future version values.");
+        }
+
+        AssertScope(
+            [ClassifierPath],
+            ConnectedPackages,
+            PortablePackages,
+            true,
+            true,
+            true);
         AssertScope(
             ["apm-packages/design-pair-implementation-execution/docs/usage-guide.md"],
             [],
@@ -207,6 +244,27 @@ internal static class ProgramEntry
             true,
             false);
         AssertScope(
+            ["apm-packages/plan-coverage-residual-flow/scripts/plan-coverage-copilot-scenario-lib.ps1"],
+            [],
+            [],
+            false,
+            true,
+            false);
+        AssertScope(
+            ["apm-packages/plan-coverage-residual-flow/scripts/run-plan-coverage-copilot-qualification.ps1"],
+            [],
+            [],
+            false,
+            true,
+            false);
+        AssertScope(
+            ["apm-packages/plan-coverage-residual-flow/scripts/PlanCoverageAgentPlugin.Common.ps1"],
+            [],
+            [],
+            false,
+            false,
+            true);
+        AssertScope(
             ["apm-packages/plan-coverage-residual-flow/tests/full-coverage-standalone/PCF-001/expected.json"],
             [],
             [],
@@ -246,6 +304,16 @@ internal static class ProgramEntry
 
         foreach (var path in paths)
         {
+            if (path == ClassifierPath)
+            {
+                distribution.UnionWith(ConnectedPackages);
+                agentPlugins.UnionWith(PortablePackages);
+                planE2E = true;
+                planRuntimeEvidence = true;
+                planPluginPoc = true;
+                continue;
+            }
+
             var adaptiveDistribution = IsCanonicalOrManifest(path, "adaptive-implementation-execution") ||
                 path == "apm-packages/adaptive-implementation-execution/codex-profile-overlays.json" ||
                 path == "apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-apm-smoke.ps1" ||
@@ -292,7 +360,9 @@ internal static class ProgramEntry
                 path == "docs/plan-coverage-runtime-qualification.md" ||
                 path.StartsWith("apm-packages/plan-coverage-residual-flow/tests/runtime-qualification/", StringComparison.Ordinal) ||
                 path.Contains("plan-coverage-runtime-qualification", StringComparison.Ordinal) ||
-                path.EndsWith("PlanCoverageRuntimeQualification.Common.ps1", StringComparison.Ordinal))
+                path.EndsWith("PlanCoverageRuntimeQualification.Common.ps1", StringComparison.Ordinal) ||
+                path == "apm-packages/plan-coverage-residual-flow/scripts/plan-coverage-copilot-scenario-lib.ps1" ||
+                path == "apm-packages/plan-coverage-residual-flow/scripts/run-plan-coverage-copilot-qualification.ps1")
             {
                 planRuntimeEvidence = true;
             }
@@ -301,7 +371,8 @@ internal static class ProgramEntry
                 path == "docs/plan-coverage-agent-plugin-poc.md" ||
                 path == "docs/agent-plugin-adoption-strategy.md" ||
                 path.StartsWith("apm-packages/plan-coverage-residual-flow/tests/agent-plugin-poc/", StringComparison.Ordinal) ||
-                (path.StartsWith("apm-packages/plan-coverage-residual-flow/scripts/", StringComparison.Ordinal) && path.Contains("agent-plugin", StringComparison.OrdinalIgnoreCase)))
+                (path.StartsWith("apm-packages/plan-coverage-residual-flow/scripts/", StringComparison.Ordinal) &&
+                    (path.Contains("agent-plugin", StringComparison.OrdinalIgnoreCase) || path.EndsWith("PlanCoverageAgentPlugin.Common.ps1", StringComparison.Ordinal))))
             {
                 planPluginPoc = true;
             }
@@ -403,6 +474,14 @@ internal static class ProgramEntry
     private static void Reject(string text, string pattern, string message, List<string> failures)
     {
         if (Regex.IsMatch(text, pattern, RegexOptions.CultureInvariant))
+        {
+            failures.Add(message);
+        }
+    }
+
+    private static void RequireOccurrences(string text, string value, int expectedCount, string message, List<string> failures)
+    {
+        if (Regex.Matches(text, Regex.Escape(value), RegexOptions.CultureInvariant).Count < expectedCount)
         {
             failures.Add(message);
         }

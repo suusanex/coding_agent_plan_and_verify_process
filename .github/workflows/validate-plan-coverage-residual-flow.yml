@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/validate-plan-coverage-residual-flow.yml'
+      - 'scripts/validate-process-package-boundaries.cs'
       - 'apm-packages/plan-coverage-residual-flow/**'
       - 'docs/plan-coverage-process-and-agents.md'
       - 'docs/plan-coverage-purpose.md'
@@ -18,6 +19,7 @@ on:
       - main
     paths:
       - '.github/workflows/validate-plan-coverage-residual-flow.yml'
+      - 'scripts/validate-process-package-boundaries.cs'
       - 'apm-packages/plan-coverage-residual-flow/**'
       - 'docs/plan-coverage-process-and-agents.md'
       - 'docs/plan-coverage-purpose.md'
