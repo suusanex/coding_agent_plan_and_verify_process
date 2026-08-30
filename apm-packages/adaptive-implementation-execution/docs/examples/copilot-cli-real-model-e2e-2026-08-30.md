@@ -19,6 +19,7 @@
 | natural-owner-completion | first owner completes without exception reason | NOT RUN | NOT RUN |
 | bounded-residual-completion | residual owner completes locked work | NOT RUN | NOT RUN |
 | decision-surface-reentry | new decision surface returns with durable state | NOT RUN | NOT RUN |
+| progress-based-retransfer | resolved re-entry trigger may transfer again even when the remaining or allowed surface expands | NOT RUN | NOT RUN |
 | invalid-old-schema | 0.5 handoff fails closed | NOT RUN | NOT RUN |
 
 ## Qualification decision

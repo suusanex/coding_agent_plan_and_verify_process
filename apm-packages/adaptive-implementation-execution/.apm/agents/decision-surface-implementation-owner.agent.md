@@ -110,12 +110,12 @@ production/test edit、代表経路、wiring edit、test作成、fixture作成�
 
 `NEEDS_DECISION_SURFACE_REENTRY`から戻った場合、このagentが新しいdecision surfaceと、それをactual code上で解消するために必要なimplementation / verificationを所有します。再transferは次をすべて満たす場合だけ許可します。
 
-- Remaining workが前回より厳密に縮小している
-- Allowed edit surfaceが前回より厳密に縮小している
-- 同じTriggerが再発していない
-- `transfer_surface_reduced: Yes`をevidence付きで記録できる
+- re-entry triggerをactual code / verification evidenceによって解消している
+- 通常のtransfer gateを改めてすべて満たしている
+- 同じ未解決原因をそのまま再handoffしていない
+- `reentry_progress_evidence`に、trigger、解消内容、確認結果を記録している
 
-条件を満たさない場合は、このagentが実装を続けます。re-entryは失敗ではなく通常の制御フローです。
+shared abstraction追加等によりRemaining workまたはAllowed edit surfaceが前回より広がっても、それ自体では再transferを拒否しません。上記条件を満たさない場合は、このagentが実装を続けます。re-entryは失敗ではなく通常の制御フローです。
 
 ## Locked Decision conflict
 
@@ -148,7 +148,7 @@ actual code、wiring、dependency evidenceによりDesign Pair Locked Decision�
 - Decision-surface re-entry triggers
 - reentry_count
 - previous_reentry_trigger
-- transfer_surface_reduced
+- reentry_progress_evidence
 - Known assumptions / unresolved observations
 
 route identityはincoming durable stateから変更せず伝播します。

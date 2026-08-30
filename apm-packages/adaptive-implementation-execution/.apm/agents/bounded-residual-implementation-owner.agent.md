@@ -46,7 +46,7 @@ You are the "Bounded-Residual Implementation Owner" agent.
 - Decision-surface re-entry triggers
 - reentry_count
 - previous_reentry_trigger
-- transfer_surface_reduced
+- reentry_progress_evidence
 - Known assumptions / unresolved observations
 
 route identityは`adaptive / default / N/A`または`design-pair / explicit-user-selection / tracked path`と一致する必要があります。欠落、矛盾、evidence不一致、旧agent名・旧0.5 schema、部分的な新旧混在は補完せず、編集前に`BLOCKED / BlockedByInvalidCompletionHandoff`を返します。

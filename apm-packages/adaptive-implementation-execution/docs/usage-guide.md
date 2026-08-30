@@ -73,7 +73,7 @@ Bounded-Residual Implementation Ownerはvalid handoffのWork PackageとAllowed e
 
 Decision-Surface Re-entry Handoffには、invalidating evidenceではなく「新しいdecision surfaceを開いたevidence」、current worktree、completed work、files、validation、required decision、route identityを記録します。
 
-re-entry後はDecision-Surface Implementation Ownerが必要なimplementation / verificationを含めて所有します。再transferはRemaining workとAllowed edit surfaceが厳密に縮小し、同じtriggerが再発していない場合だけ許可します。
+re-entry後はDecision-Surface Implementation Ownerが必要なimplementation / verificationを含めて所有します。再transferは、前回triggerをactual code / verification evidenceで解消し、通常のtransfer gateを再度満たし、同じ未解決原因をそのまま戻していない場合に許可します。shared abstraction追加等でRemaining workやAllowed edit surfaceが広がっても、それ自体ではtransferを拒否しません。
 
 ## Runtime topology and model mapping
 
@@ -82,7 +82,7 @@ re-entry後はDecision-Surface Implementation Ownerが必要なimplementation / 
 | Decision-Surface Implementation Owner | `decision-surface-implementation-owner` | Terra |
 | Bounded-Residual Implementation Owner | `bounded-residual-implementation-owner` | Luna |
 
-この表はadapter mappingです。parent / subagent、別process、VS Code handoff button、Copilot CLI `--agent`のどれを使ってもsemantic ownershipは変わりません。
+この表はadapter mappingです。parent / subagent、別process、VS Code handoff button、Copilot CLI `--agent`のどれを使ってもsemantic ownershipは変わりません。dedicated routerはimplementation editを行いませんが、runtime adapterがtop-level parent自身へDecision-Surface Implementation Ownerを割り当て、orchestrationとimplementation ownershipを兼務させる構成は許容します。
 
 ## Route identity
 

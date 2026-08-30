@@ -12,6 +12,7 @@ $tempParent = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
 $tempRoot = Join-Path $tempParent ('plan-coverage-rq-validator-test-' + [Guid]::NewGuid().ToString('N'))
 
 . (Join-Path $PSScriptRoot 'PlanCoverageRuntimeQualification.Common.ps1')
+. (Join-Path $PSScriptRoot 'plan-coverage-copilot-scenario-lib.ps1')
 
 function Invoke-Validator([string[]]$Arguments) {
     $output = @(& pwsh -NoProfile -File $validatorPath @Arguments 2>&1 | ForEach-Object { [string]$_ })
@@ -120,11 +121,47 @@ try {
     Assert-Result $strictCurrent 0 'snapshot_relation=CURRENT_SNAPSHOT' 'strict gate accepts exact-current full evidence fixture'
 
     $legacyAdaptiveField = Get-Content -Raw -LiteralPath $exactCurrentPath | ConvertFrom-Json
-    $legacyAdaptiveField.scenarios[8].adaptive_connection | Add-Member -NotePropertyName high_execution -NotePropertyValue $legacyAdaptiveField.scenarios[8].adaptive_connection.decision_surface_execution
+    $standardSliceScenario = @($legacyAdaptiveField.scenarios | Where-Object { $_.id -ceq 'STD-001' })[0]
+    if ($null -eq $standardSliceScenario) {
+        throw 'STD-001 scenario is missing from the current-contract fixture.'
+    }
+    $standardSliceScenario.adaptive_connection | Add-Member -NotePropertyName high_execution -NotePropertyValue $standardSliceScenario.adaptive_connection.decision_surface_execution
     $legacyAdaptiveFieldPath = Join-Path $tempRoot 'legacy-adaptive-field.json'
     Write-JsonFixture $legacyAdaptiveFieldPath $legacyAdaptiveField
     $legacyAdaptiveFieldResult = Invoke-Validator @('-ResultPath', $legacyAdaptiveFieldPath, '-RequireQualified')
     Assert-Result $legacyAdaptiveFieldResult 1 'adaptive_connection contains historical 0.5 field high_execution' 'strict gate rejects historical Adaptive fields on the current snapshot'
+
+    $ownerEvidenceRoot = Join-Path $tempRoot 'owner-evidence'
+    New-Item -ItemType Directory -Path (Join-Path $ownerEvidenceRoot 'plans') -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $ownerEvidenceRoot 'src') -Force | Out-Null
+    Write-Utf8File (Join-Path $ownerEvidenceRoot 'src/Load-AppConfig.ps1') ('function Load-AppConfig { throw "implemented production path" }' + ('x' * 80))
+    Write-Utf8File (Join-Path $ownerEvidenceRoot 'plans/bounded-only.md') @'
+# Bounded-only completion
+
+- Model / owner sequence: bounded-residual-implementation-owner -> `IMPLEMENTATION_COMPLETED`
+
+### Implementation Self-Map
+
+- `src/Load-AppConfig.ps1`
+'@
+    $boundedOnlyEvidence = Get-AdaptiveConnectionEvidence $ownerEvidenceRoot @('bounded-residual-implementation-owner') $true
+    if ($boundedOnlyEvidence.decision_surface_observed -or $boundedOnlyEvidence.connection_satisfied) {
+        throw 'Bounded-residual completion must not be accepted as Decision-Surface owner execution evidence.'
+    }
+    Write-Utf8File (Join-Path $ownerEvidenceRoot 'plans/decision-surface-completion.md') @'
+# Decision-surface completion
+
+- Model / owner sequence: decision-surface-implementation-owner -> `IMPLEMENTATION_COMPLETED`
+
+### Implementation Self-Map
+
+- `src/Load-AppConfig.ps1`
+'@
+    $decisionSurfaceEvidence = Get-AdaptiveConnectionEvidence $ownerEvidenceRoot @() $true
+    if (-not $decisionSurfaceEvidence.decision_surface_observed -or -not $decisionSurfaceEvidence.connection_satisfied) {
+        throw 'Explicit Decision-Surface owner completion evidence must satisfy the direct-completion route.'
+    }
+    Write-Host 'PASS: Adaptive owner evidence requires an explicit Decision-Surface owner association'
 
     $staleQualificationInput = Get-Content -Raw -LiteralPath $exactCurrentPath | ConvertFrom-Json
     $staleQualificationInput.qualification_input_fingerprint = '1111111111111111111111111111111111111111111111111111111111111111'

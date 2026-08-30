@@ -10,7 +10,7 @@
 - Ownership transfer basis: bounded-residual-work-only
 - reentry_count: 0
 - previous_reentry_trigger: N/A
-- transfer_surface_reduced: N/A
+- reentry_progress_evidence: N/A
 
 route identityはincoming durable stateから変更せず伝播する。current schemaの欠落、矛盾、Design Pair evidence不一致、旧agent名・旧0.5 schema、新旧混在schemaはnormalizationせず`BLOCKED / BlockedByInvalidCompletionHandoff`とする。
 
@@ -49,6 +49,8 @@ route identityはincoming durable stateから変更せず伝播する。current 
 | | | |
 
 code edit有無や量をtransfer条件にしない。inspection-onlyの場合は、残作業が新しい非局所判断を必要としない根拠を記録する。
+
+re-entry後の再transferでは、`reentry_progress_evidence`へ前回trigger、そのdecision surfaceを解消したcode / verification evidence、同じ未解決原因を再handoffしていない根拠を記録する。Remaining workまたはAllowed edit surfaceの縮小は要求しない。
 
 ## Applicability evidence
 

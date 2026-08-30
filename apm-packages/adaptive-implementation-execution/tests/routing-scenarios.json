@@ -51,6 +51,9 @@
               "Production sequence was implemented through the existing composition root",
               "Focused tests demonstrated the selected state ownership"
             ],
+            "reentry_count": 0,
+            "previous_reentry_trigger": "N/A",
+            "reentry_progress_evidence": "N/A",
             "decision_surface_assessment": {
               "responsibility_ownership": { "status": "Resolved", "evidence": "QueueConsumer owns one-item consumption" },
               "cross_file_ownership": { "status": "Resolved", "evidence": "Composition root owns registration and QueueConsumer owns behavior" },
@@ -210,7 +213,7 @@
     },
     {
       "id": "G",
-      "name": "retransfer-requires-strict-reduction",
+      "name": "retransfer-allows-expanded-surface-after-progress",
       "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
       "events": [
         { "kind": "start", "owner": "decision-surface-implementation-owner" },
@@ -222,20 +225,16 @@
           "kind": "verdict",
           "owner": "decision-surface-implementation-owner",
           "verdict": "READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION",
-          "expected_rejected": true,
           "handoff_ref": "A",
-          "transfer_surface_reduced": false
+          "reentry_count": 1,
+          "reentry_progress_evidence": "Implemented the required shared abstraction and verified that the original signature trigger is resolved",
+          "remaining_work_strict_subset": false,
+          "allowed_edit_surface_strict_subset": false
         },
-        {
-          "kind": "verdict",
-          "owner": "decision-surface-implementation-owner",
-          "verdict": "IMPLEMENTATION_COMPLETED",
-          "acceptance_complete": true,
-          "implementation_evidence": ["Owner retained implementation after unsafe retransfer"],
-          "validation_evidence": ["Focused tests passed"]
-        }
+        { "kind": "start", "owner": "bounded-residual-implementation-owner" },
+        { "kind": "verdict", "owner": "bounded-residual-implementation-owner", "verdict": "IMPLEMENTATION_COMPLETED", "changed_locked_decision": false }
       ],
-      "expected": { "final_state": "Completed", "bounded_residual_starts": 1 }
+      "expected": { "final_state": "Completed", "bounded_residual_starts": 2 }
     },
     {
       "id": "H",
@@ -279,6 +278,36 @@
         }
       ],
       "expected": { "final_state": "Blocked", "bounded_residual_starts": 0 }
+    },
+    {
+      "id": "K",
+      "name": "retransfer-rejects-unresolved-reentry-trigger",
+      "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
+      "events": [
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
+        { "kind": "verdict", "owner": "decision-surface-implementation-owner", "verdict": "READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION", "handoff_ref": "A" },
+        { "kind": "start", "owner": "bounded-residual-implementation-owner" },
+        { "kind": "verdict", "owner": "bounded-residual-implementation-owner", "verdict": "NEEDS_DECISION_SURFACE_REENTRY", "new_decision_surface_required": true, "edit_type_only": false, "tracked_state_ref": "D" },
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
+        {
+          "kind": "verdict",
+          "owner": "decision-surface-implementation-owner",
+          "verdict": "READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION",
+          "expected_rejected": true,
+          "handoff_ref": "A",
+          "reentry_count": 1,
+          "reentry_progress_evidence": ""
+        },
+        {
+          "kind": "verdict",
+          "owner": "decision-surface-implementation-owner",
+          "verdict": "IMPLEMENTATION_COMPLETED",
+          "acceptance_complete": true,
+          "implementation_evidence": ["Owner resolved the remaining implementation without another invalid handoff"],
+          "validation_evidence": ["Focused tests passed"]
+        }
+      ],
+      "expected": { "final_state": "Completed", "bounded_residual_starts": 1 }
     }
   ]
 }

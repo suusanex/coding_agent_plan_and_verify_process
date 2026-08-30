@@ -34,7 +34,7 @@ parent / routerは次だけを担当します。
 - re-entry時に元intent、両handoff、route identityを保持する
 - 最終状態と未検証事項を集約する
 
-parent / routerであることはimplementation ownershipを意味しません。production codeやtestsを横取りして直接実装せず、write-heavy ownerを並列に起動しません。
+dedicated routerとして動作するruntime roleはimplementation editを行わず、write-heavy ownerを並列に起動しません。ただし、top-level parent自身へ`Decision-Surface Implementation Owner`を割り当て、orchestration responsibilityとsemantic ownershipを同じruntime instanceが兼ねる構成は許容します。parentというruntime位置だけを理由にimplementation ownershipを付与または禁止してはいけません。
 
 ## Accepted inputs
 
@@ -174,7 +174,7 @@ ownerはWork PackagesとAllowed edit surface内で実装・検証します。cla
 
 valid handoffの実装中に新しいdecision surfaceが開いた場合だけ受理します。元のBounded Residual Implementation Handoff、Decision-Surface Re-entry Handoff、Original Implementation Intent、current worktreeを保持し、route identity一致を確認してDecision-Surface Implementation Ownerへ直列に戻します。
 
-re-entryは失敗ではありません。戻ったownerは新しいdecision surfaceと必要なimplementation / verificationを所有します。再transferはRemaining workとAllowed edit surfaceが厳密に縮小し、同じTriggerが再発せず、`transfer_surface_reduced: Yes`を示せる場合だけ許可します。
+re-entryは失敗ではありません。戻ったownerは新しいdecision surfaceと必要なimplementation / verificationを所有します。再transferは、re-entry triggerをactual code / verification evidenceによって解消し、通常のtransfer gateを改めてすべて満たし、同じ未解決原因をそのまま再handoffしていないことを`reentry_progress_evidence`で示せる場合に許可します。Remaining workやAllowed edit surfaceが前回より広がること自体はtransfer拒否理由にしません。
 
 invalid handoff、route identity欠落、単なるedit typeにはre-entryを使いません。
 

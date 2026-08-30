@@ -87,9 +87,9 @@ Checks:
 
 Decision surface assessmentに`Open`があるhandoffを拒否し、同じownerがimplementationを続ける。
 
-## VAL-007: Strictly smaller retransfer
+## VAL-007: Progress-based retransfer
 
-re-entry後の再transferはRemaining workとAllowed edit surfaceが厳密に縮小し、same triggerが再発していない場合だけ許可する。
+re-entry後の再transferは、前回triggerの解消evidenceと通常transfer gateの再充足を要求する。shared abstraction追加等でRemaining workやAllowed edit surfaceが広がることは許容する。同じ未解決原因を解消証拠なしで再handoffする場合は拒否する。
 
 ## VAL-008: Route identity
 

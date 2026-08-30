@@ -41,6 +41,12 @@ function Get-Handoff([object] $Event) {
         $surface = [string]$Event.handoff_override.decision_surface
         $handoff.decision_surface_assessment.$surface.status = [string]$Event.handoff_override.status
     }
+    if (Has-Property $Event 'reentry_count') {
+        $handoff.reentry_count = [int]$Event.reentry_count
+    }
+    if (Has-Property $Event 'reentry_progress_evidence') {
+        $handoff.reentry_progress_evidence = [string]$Event.reentry_progress_evidence
+    }
     return $handoff
 }
 
@@ -71,6 +77,11 @@ function Get-HandoffErrors([object] $Handoff) {
     }
     if (@($Handoff.implementation_evidence).Count -eq 0) {
         $errors.Add('implementation or inspection evidence is empty')
+    }
+    foreach ($field in @('reentry_count', 'previous_reentry_trigger', 'reentry_progress_evidence')) {
+        if (-not (Has-Property $Handoff $field)) {
+            $errors.Add("handoff is missing '$field'")
+        }
     }
 
     $actualSurfaceNames = @($Handoff.decision_surface_assessment.PSObject.Properties.Name)
@@ -193,8 +204,13 @@ function Get-ScenarioErrors([object] $Scenario) {
                 switch ($event.verdict) {
                     'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION' {
                         $handoffErrors = @(Get-HandoffErrors (Get-Handoff $event))
-                        if ($afterReentry -and $event.transfer_surface_reduced -ne $true) {
-                            $handoffErrors += 'transfer surface did not strictly shrink after re-entry'
+                        if ($afterReentry) {
+                            $handoff = Get-Handoff $event
+                            if ([int]$handoff.reentry_count -lt 1 -or
+                                [string]::IsNullOrWhiteSpace([string]$handoff.reentry_progress_evidence) -or
+                                [string]$handoff.reentry_progress_evidence -ceq 'N/A') {
+                                $handoffErrors += 're-entry trigger resolution evidence is missing'
+                            }
                         }
                         if ($handoffErrors.Count -gt 0) {
                             if ($event.expected_rejected -ne $true) {
@@ -291,10 +307,10 @@ function Get-ScenarioErrors([object] $Scenario) {
 if ($document.schema_version -ne 4 -or $document.contract -cne 'adaptive-implementation-execution') {
     $failures.Add('routing fixture schema or contract is invalid')
 }
-if (@($document.scenarios).Count -lt 10) {
+if (@($document.scenarios).Count -lt 11) {
     $failures.Add('routing fixture does not cover the required scenario breadth')
 }
-if ((Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'routing-scenarios.json')) -match 'high-implementation-starter|standard-implementation-completer|READY_FOR_STANDARD_COMPLETION|COMPLETED_BY_HIGH_MODEL|HIGH_MODEL code changes|Direct completion reason') {
+if ((Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'routing-scenarios.json')) -match 'high-implementation-starter|standard-implementation-completer|READY_FOR_STANDARD_COMPLETION|COMPLETED_BY_HIGH_MODEL|HIGH_MODEL code changes|Direct completion reason|transfer_surface_reduced') {
     $failures.Add('routing fixture contains removed 0.5 ownership vocabulary')
 }
 

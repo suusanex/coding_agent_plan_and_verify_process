@@ -952,8 +952,7 @@ function Get-AdaptiveConnectionEvidence([string]$Worktree, [string[]]$HookAgents
     foreach ($p in $plans) {
         $c = $p.Content
         if ($c -cmatch '(?m)^- Implementation route:.*decision-surface-implementation-owner.*IMPLEMENTATION_COMPLETED' -or
-            $c -cmatch '(?m)^- Model / owner sequence:.*decision-surface-implementation-owner' -or
-            $c -cmatch 'IMPLEMENTATION_COMPLETED') {
+            $c -cmatch '(?m)^- Model / owner sequence:.*decision-surface-implementation-owner.*IMPLEMENTATION_COMPLETED') {
             if (-not $decisionSurfaceCompletedHit) { $decisionSurfaceCompletedHit = $p }
         }
         if ($c -cmatch 'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION' -and $c -cmatch '(?i)bounded-residual-implementation-handoff|Bounded Residual Implementation Handoff|READY_FOR_BOUNDED_RESIDUAL') {
