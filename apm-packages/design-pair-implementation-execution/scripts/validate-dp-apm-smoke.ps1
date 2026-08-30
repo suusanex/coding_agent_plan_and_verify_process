@@ -13,6 +13,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
+$packageRoot = Split-Path -Parent $PSScriptRoot
+$repoRoot = (Resolve-Path (Join-Path $packageRoot '../..')).Path
 
 function Invoke-Native([string]$FilePath, [string[]]$Arguments, [string]$Description) {
     & $FilePath @Arguments
@@ -33,6 +35,17 @@ function Assert-Contains([string]$Path, [string]$Pattern, [string]$Description) 
         throw "$Description does not contain the required contract: $Path"
     }
 }
+
+function Get-ManifestVersion([string]$Path) {
+    $match = [regex]::Match((Get-Content -Raw -LiteralPath $Path), '(?m)^version:\s*(?<version>\S+)\s*$')
+    if (-not $match.Success) {
+        throw "Cannot resolve package version from manifest: $Path"
+    }
+    return $match.Groups['version'].Value
+}
+
+$expectedDesignPairVersion = Get-ManifestVersion (Join-Path $packageRoot 'apm.yml')
+$expectedAdaptiveVersion = Get-ManifestVersion (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution/apm.yml')
 
 # APM 0.26.0 is required for multi-target Design Pair install smoke.
 $null = & $ApmExecutable --version
@@ -89,14 +102,14 @@ try {
     Assert-File $lockPath 'remote APM lock'
     $lock = Get-Content -Raw -LiteralPath $lockPath
     $designPairBlock = [regex]::Match($lock.Replace("`r`n", "`n"), '(?ms)^- .*?name: design-pair-implementation-execution\n(?<block>.*?)(?=^- |\z)')
-    # design-pair-implementation-execution 0.4.0 lock entry
-    if (-not $designPairBlock.Success -or $designPairBlock.Groups['block'].Value -cnotmatch '(?m)^  version:\s*0\.4\.0\s*$') {
-        throw 'Remote APM lock does not contain Design Pair package version 0.4.0.'
+    $expectedDesignPairPattern = [regex]::Escape($expectedDesignPairVersion)
+    if (-not $designPairBlock.Success -or $designPairBlock.Groups['block'].Value -cnotmatch "(?m)^  version:\s*$expectedDesignPairPattern\s*`$") {
+        throw "Remote APM lock does not contain Design Pair package version $expectedDesignPairVersion."
     }
     $adaptiveBlock = [regex]::Match($lock.Replace("`r`n", "`n"), '(?ms)^- .*?name: adaptive-implementation-execution\n(?<block>.*?)(?=^- |\z)')
-    # adaptive-implementation-execution 0.6.0 transitive lock entry
-    if (-not $adaptiveBlock.Success -or $adaptiveBlock.Groups['block'].Value -cnotmatch '(?m)^  version:\s*0\.6\.0\s*$') {
-        throw 'Remote APM lock does not contain transitive Adaptive package version 0.6.0.'
+    $expectedAdaptivePattern = [regex]::Escape($expectedAdaptiveVersion)
+    if (-not $adaptiveBlock.Success -or $adaptiveBlock.Groups['block'].Value -cnotmatch "(?m)^  version:\s*$expectedAdaptivePattern\s*`$") {
+        throw "Remote APM lock does not contain transitive Adaptive package version $expectedAdaptiveVersion."
     }
 
     Write-Host 'Design Pair APM install smoke: PASS'

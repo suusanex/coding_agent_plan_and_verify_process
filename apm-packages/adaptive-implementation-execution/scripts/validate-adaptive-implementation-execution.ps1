@@ -83,9 +83,7 @@ $requiredFiles = @(
     'apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-08-30.md',
     'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-apm-smoke.ps1',
     'apm-packages/adaptive-implementation-execution/tests/agent-plugin/contract.json',
-    'apm-packages/adaptive-implementation-execution/tests/agent-plugin/qualification.json',
-    'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs',
-    '.github/workflows/validate-adaptive-implementation-execution.yml'
+    'apm-packages/adaptive-implementation-execution/tests/agent-plugin/qualification.json'
 )
 foreach ($file in $requiredFiles) { Assert-FileExists $file }
 
@@ -192,13 +190,6 @@ $routingOutput = & pwsh -NoProfile -File (Get-RepoPath $routingValidator) 2>&1 |
 if ($LASTEXITCODE -ne 0) {
     Add-Failure "Routing scenario validator failed: $routingOutput"
 }
-
-Assert-Contains 'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs' 'decision-surface-implementation-owner' 'finalizer decision-surface role'
-Assert-Contains 'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs' 'bounded-residual-implementation-owner' 'finalizer bounded-residual role'
-Assert-NotContains 'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs' 'high-implementation-starter|standard-implementation-completer|distinct HIGH and STANDARD' 'removed finalizer model-tier role names'
-
-Assert-Contains '.github/workflows/validate-adaptive-implementation-execution.yml' 'validate-adaptive-implementation-execution\.ps1' 'Adaptive CI validator'
-Assert-Contains '.github/workflows/validate-adaptive-implementation-execution.yml' 'validate-adaptive-implementation-apm-smoke\.ps1' 'Adaptive remote install smoke'
 
 if ($failures.Count -gt 0) {
     Write-Error ("Adaptive Implementation validation failed:`n- " + ($failures -join "`n- "))

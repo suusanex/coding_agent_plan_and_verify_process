@@ -49,7 +49,7 @@
 - APM source/install 経路、Adaptive attestation、dependency boundary を壊していないこと。
 - committed qualification / PoC result のschema、invariant、canonical/distribution fingerprint、candidate evidence比較を検証すること。
 
-通常CIは6 packageをmatrixでpackし、package-local contract、canonical equivalence、lock integrity、dependency非inline、negative mutation、root projection不在、committed qualification recordを検査する。
+通常CIは変更されたpackageだけをmatrixでpackし、package-local contract、canonical equivalence、lock integrity、dependency非inline、negative mutation、committed qualification recordを検査する。共通builder、schema、qualification基盤を変更した場合だけ全6 packageを実行する。root projection不在は全PRで起動するRepository Layout workflowが一度だけ検査する。
 
 次の項目は通常 regression CI ではなく、明示的な runtime qualification evidence として扱う。
 
@@ -65,7 +65,7 @@ External-model qualificationの要否と範囲は、fingerprintやpackage versio
 
 - documentation、wording、metadata、behaviorへ影響しないcanonical整理はlow / normalとし、deterministic CIを実行して次回実運用で観測する。
 - 特定agent behavior、decision rule、bounded contractの変更はtargeted runtime riskとし、必要に応じて影響scenarioだけを実行する。無関係なauthorization、standard/full routeを再実行しない。
-- authorization、route orchestration、runtime adapter/projection、Skill・agent discovery/materialization、Adaptive handoff、shared routing semantics、runtime/client compatibilityの変更はfull runtime riskとし、full qualificationを要求または強く推奨する。Strict gateではPlan Coverageだけでなく、Adaptiveとprofile finalizerのruntime-relevant input identityも一致させる。
+- authorization、route orchestration、runtime adapter/projection、Skill・agent discovery/materialization、複数routeに共通するAdaptive invocation protocol・route identity・materialization、shared routing semantics、runtime/client compatibilityの変更はfull runtime riskとし、full qualificationを要求または強く推奨する。compatibleなhandoff fieldや限定connection behaviorだけの変更はtargetedとする。Strict gateではPlan Coverageだけでなく、Adaptiveとprofile finalizerのruntime-relevant input identityも一致させる。
 - 新runtimeやdirect pluginをsupported installation pathへ昇格するpromotion reviewではfull qualificationを要求する。
 - historical baselineを合理的にcarry forwardできない広範なsemantics変更もfull qualification対象とする。
 

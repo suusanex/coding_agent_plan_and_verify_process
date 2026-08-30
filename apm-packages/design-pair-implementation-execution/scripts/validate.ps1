@@ -54,10 +54,6 @@ function Assert-NotContains {
 }
 
 $requiredFiles = @(
-    'apm-packages/adaptive-implementation-execution/.apm/agents/decision-surface-implementation-owner.agent.md',
-    'apm-packages/adaptive-implementation-execution/.apm/agents/bounded-residual-implementation-owner.agent.md',
-    'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md',
-    '.github/workflows/validate-design-pair-implementation-execution.yml',
     'apm-packages/design-pair-implementation-execution/apm.yml',
     'apm-packages/design-pair-implementation-execution/README.md',
     'apm-packages/design-pair-implementation-execution/.apm/skills/design-pair-implementation-execution/SKILL.md',
@@ -71,21 +67,7 @@ $requiredFiles = @(
     'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/fixture/src/RetryPolicy.cs',
     'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/fixture/src/RetryingClient.cs',
     'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/fixture/tests/RetryPolicyTests.cs',
-    'apm-packages/design-pair-implementation-execution/scripts/validate.ps1',
-    'apm-packages/adaptive-implementation-execution/apm.yml',
-    'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/SKILL.md',
-    'apm-packages/adaptive-implementation-execution/.apm/skills/adaptive-implementation-execution/refs/handoff.md',
-    'apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-08-30.md',
-    'apm-packages/adaptive-implementation-execution/docs/install-guide.md',
-    'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json',
-    'apm-packages/codex-profile-finalizer/apm.yml',
-    'apm-packages/codex-profile-finalizer/.apm/.gitkeep',
-    'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs',
-    'apm-packages/codex-profile-finalizer/tests/validate-finalizer.ps1',
-    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md',
-    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/plan-coverage-lite.md',
-    'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md',
-    'README.md'
+    'apm-packages/design-pair-implementation-execution/scripts/validate.ps1'
 )
 
 foreach ($file in $requiredFiles) {
@@ -108,9 +90,6 @@ Assert-NotContains $manifest '(?m)^\s*-\s+vscode\s*$' 'invalid bare vscode targe
 Assert-Contains $manifest 'path:\s*apm-packages/adaptive-implementation-execution\s*$' 'Adaptive package boundary dependency'
 Assert-NotContains $manifest '\.github/agents/' 'no root .github/agents dependency'
 Assert-NotContains $manifest 'implementation-execution\.agent\.md' 'legacy implementation orchestration dependency'
-Assert-Contains 'apm-packages/plan-coverage-residual-flow/apm.yml' '(?m)^version:\s*0\.15\.0\s*$' 'Plan Coverage package version 0.15.0'
-Assert-Contains 'apm-packages/adaptive-implementation-execution/apm.yml' '(?m)^version:\s*0\.6\.0\s*$' 'Adaptive package version 0.6.0'
-Assert-Contains 'apm-packages/adaptive-implementation-execution/apm.yml' '(?m)^\s*-\s+copilot\s*$' 'Adaptive package copilot target parity'
 
 $maxWindowsPackagePathLength = 112
 $packageRelativeRoot = 'apm-packages/design-pair-implementation-execution'
@@ -226,8 +205,6 @@ foreach ($field in @(
 Assert-Contains $handoff 'Decision ID.*Target ID.*Decision.*Affected files / symbols.*Rationale.*Validation expectations.*Conflict conditions.*User message / turn reference.*Confirmed content quote or faithful summary.*Confirmation occurred after Target Map presentation' 'complete Locked Decision schema'
 Assert-Contains $handoff 'section に Decision ID、presented Target ID、実際の user message / turn reference、確認内容.*Confirmation occurred after Target Map presentation: Yes.*binding' 'explicit post-map binding rule'
 Assert-Contains $handoff '(?s)## Target Disposition Evidence.*Target ID.*Final disposition.*User message / turn reference.*Confirmed content quote or faithful summary.*Confirmation after Target Map' 'Target disposition evidence schema…7603 tokens truncated…ow/.apm/agents/implementation-handoff-review.agent.md' '新規 intake.*だけ `adaptive / default` を初期化' 'handoff review fresh-intake-only default'
-Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md' 'design_pair_interaction_stage' 'handoff review interaction stage propagation'
-Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md' 'waiting中はAdaptiveやverificationを次stepにしない' 'handoff review waiting downstream block'
 
 foreach ($id in 1..31) {
     $scenarioId = 'DP-VAL-{0:D3}' -f $id
@@ -248,14 +225,6 @@ Assert-Contains 'apm-packages/design-pair-implementation-execution/README.md' '�
 Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/usage-guide.md' 'AWAITING_USER_INPUT / disposition-confirmation.*再停止' 'usage guide multi-turn stop'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/usage-guide.md' '正式 target は `copilot`、`codex`、`agent-skills`' 'usage guide formal Copilot target'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' '(?s)DP-VAL-008: Copilot support boundary.*formal target 名 `copilot`.*GitHub Copilot CLI.*real multi-turn evidence' 'DP-VAL-008 Copilot formal support'
-Assert-Contains 'apm-packages/adaptive-implementation-execution/apm.yml' '(?m)^\s*-\s+copilot\s*$' 'Adaptive install guide copilot target parity'
-Assert-Contains 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md' '(?s)Design Pair:.*implementation_route:\s*design-pair.*design_pair_handoff:\s*plans/<slug>-design-pair-implementation-handoff\.md' 'Adaptive usage guide documents Design Pair route handoff path'
-Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'The `design-pair-implementation-execution` package remains a separate package' 'Plan Coverage target-neutral Design Pair package boundary'
-Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'both packages are installed for the same target and the user explicitly selects Design Pair' 'Plan Coverage same-target explicit Design Pair selection boundary'
-Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'keep `plan-coverage-residual-flow` selection evidence separate from Design Pair implementation route selection evidence' 'Plan Coverage and Design Pair selection evidence separation'
-Assert-Contains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'While Design Pair is waiting, do not fall back to Adaptive' 'Plan Coverage Design Pair waiting fallback boundary'
-Assert-NotContains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'Plan Coverage parent runtime qualif(?:ication).*Design Pair.*Adaptive.*GitHub Copilot CLI' 'removed Plan Coverage Copilot qualification claim'
-Assert-NotContains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'Plan Coverage Copilot CLI\s+issue' 'removed Plan Coverage Copilot qualification issue handoff'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'without adding a stop instruction' 'manual smoke verifies skill-owned stop'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'Human action required' 'manual smoke human participation boundary'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'GitHub Copilot CLI' 'manual smoke Copilot CLI surface'
@@ -331,34 +300,13 @@ Assert-Contains "$copilotEvidenceDir/nodp.txt" '`default`' 'no-Design-Pair defau
 Assert-Contains "$copilotEvidenceDir/nodp.txt" 'Design Pair started:\*\* No' 'no-Design-Pair did not start Design Pair'
 Assert-Contains "$copilotEvidenceDir/conf.txt" 'HUMAN_DECISION_REQUIRED' 'conflict log stop verdict'
 Assert-Contains "$copilotEvidenceDir/conf.txt" 'DP-D01' 'conflict log Locked Decision id'
-Assert-Contains 'README.md' 'apm-packages/design-pair-implementation-execution' 'root Design Pair package link'
-
 $dpApmSmoke = 'apm-packages/design-pair-implementation-execution/scripts/validate-dp-apm-smoke.ps1'
 Assert-FileExists $dpApmSmoke
 Assert-Contains $dpApmSmoke 'APM 0\.26\.0 is required' 'Design Pair APM smoke pins APM 0.26.0'
 Assert-Contains $dpApmSmoke 'copilot,codex,agent-skills' 'Design Pair APM smoke installs all targets'
 Assert-Contains $dpApmSmoke '\.agents/skills/design-pair-implementation-execution/SKILL\.md' 'Design Pair APM smoke verifies Design Pair Skill deployment'
 Assert-Contains $dpApmSmoke 'deployed Design Pair skill name' 'Design Pair APM smoke verifies deployed skill identity'
-Assert-Contains $dpApmSmoke '\.agents/skills/adaptive-implementation-execution/SKILL\.md' 'Design Pair APM smoke verifies transitive Adaptive Skill'
-Assert-Contains $dpApmSmoke '\.github/agents/decision-surface-implementation-owner\.agent\.md' 'Design Pair APM smoke verifies transitive Decision-Surface Implementation Owner agent'
-Assert-Contains $dpApmSmoke '\.github/agents/bounded-residual-implementation-owner\.agent\.md' 'Design Pair APM smoke verifies transitive Bounded-Residual Implementation Owner agent'
-Assert-Contains $dpApmSmoke 'finalize-codex-agent-profiles\.cs' 'Design Pair APM smoke verifies installed profile finalizer'
-Assert-Contains $dpApmSmoke 'design-pair-implementation-execution.*0\.4\.0' 'Design Pair APM smoke verifies lock version'
-Assert-Contains $dpApmSmoke 'adaptive-implementation-execution.*0\.6\.0' 'Design Pair APM smoke verifies transitive Adaptive lock version'
-
-$dpWorkflow = '.github/workflows/validate-design-pair-implementation-execution.yml'
-Assert-Contains $dpWorkflow 'validate-dp-apm-smoke\.ps1' 'Design Pair workflow runs remote APM install smoke'
-Assert-Contains $dpWorkflow 'microsoft/apm-action@v1' 'Design Pair workflow sets up APM'
-Assert-Contains $dpWorkflow "apm-version:\s*'0\.26\.0'" 'Design Pair workflow pins APM 0.26.0'
-
-$adaptiveHighAgent = 'apm-packages/adaptive-implementation-execution/.apm/agents/decision-surface-implementation-owner.agent.md'
-$adaptiveStandardAgent = 'apm-packages/adaptive-implementation-execution/.apm/agents/bounded-residual-implementation-owner.agent.md'
-Assert-Contains $adaptiveHighAgent '(?m)^name:\s*decision-surface-implementation-owner\s*$' 'portable Decision-Surface Implementation Owner agent identity'
-Assert-Contains $adaptiveHighAgent '(?m)^description:' 'portable Decision-Surface Implementation Owner description'
-Assert-Contains $adaptiveStandardAgent '(?m)^name:\s*bounded-residual-implementation-owner\s*$' 'portable Bounded-Residual Implementation Owner agent identity'
-Assert-Contains $adaptiveStandardAgent '(?m)^description:' 'portable Bounded-Residual Implementation Owner description'
-Assert-Contains 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json' 'decision-surface-implementation-owner' 'Adaptive Decision-Surface Implementation Owner profile overlay'
-Assert-Contains 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json' 'bounded-residual-implementation-owner' 'Adaptive Bounded-Residual Implementation Owner profile overlay'
+Assert-Contains $dpApmSmoke 'Get-ManifestVersion.*apm\.yml' 'Design Pair APM smoke derives lock versions from manifests'
 
 if ($failures.Count -gt 0) {
     Write-Error ("Design Pair Implementation validation failed:`n- " + ($failures -join "`n- "))

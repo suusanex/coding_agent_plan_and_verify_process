@@ -5,10 +5,6 @@ on:
     paths:
       - '.github/workflows/validate-plan-coverage-residual-flow.yml'
       - 'apm-packages/plan-coverage-residual-flow/**'
-      - 'apm-packages/codex-profile-finalizer/**'
-      - 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json'
-      - 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1'
-      - 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1'
       - 'docs/plan-coverage-process-and-agents.md'
       - 'docs/plan-coverage-purpose.md'
       - 'docs/plan-coverage-runtime-qualification.md'
@@ -23,10 +19,6 @@ on:
     paths:
       - '.github/workflows/validate-plan-coverage-residual-flow.yml'
       - 'apm-packages/plan-coverage-residual-flow/**'
-      - 'apm-packages/codex-profile-finalizer/**'
-      - 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json'
-      - 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1'
-      - 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1'
       - 'docs/plan-coverage-process-and-agents.md'
       - 'docs/plan-coverage-purpose.md'
       - 'docs/plan-coverage-runtime-qualification.md'
@@ -40,7 +32,36 @@ permissions:
   contents: read
 
 jobs:
-  validate-deterministic-contract:
+  classify:
+    runs-on: ubuntu-latest
+    outputs:
+      plan_e2e: ${{ steps.scope.outputs.plan_e2e }}
+      plan_runtime_evidence: ${{ steps.scope.outputs.plan_runtime_evidence }}
+      plan_plugin_poc: ${{ steps.scope.outputs.plan_plugin_poc }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Validate scope classification
+        shell: pwsh
+        run: dotnet run --file ./scripts/validate-process-package-boundaries.cs -- self-test
+      - id: scope
+        name: Resolve Plan Coverage validation scope
+        shell: pwsh
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: >-
+          dotnet run --file ./scripts/validate-process-package-boundaries.cs -- scope
+          --base $env:BASE_SHA
+          --head $env:HEAD_SHA
+          --github-output $env:GITHUB_OUTPUT
+
+  validate-package-contract:
+    needs: classify
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,12 +70,6 @@ jobs:
       - name: Validate invocation authorization contract
         shell: pwsh
         run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1
-      - name: Validate standalone full-coverage lifecycle
-        shell: pwsh
-        run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1
-      - name: Validate committed runtime qualification evidence contract
-        shell: pwsh
-        run: ./apm-packages/plan-coverage-residual-flow/scripts/test-plan-coverage-runtime-qualification-validator.ps1
       - name: Check branch or PR whitespace
         shell: pwsh
         env:
@@ -78,7 +93,29 @@ jobs:
             git show --check --format= HEAD
           }
 
-  validate-install:
+  validate-full-coverage-e2e:
+    needs: classify
+    if: needs.classify.outputs.plan_e2e == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate standalone full-coverage lifecycle
+        shell: pwsh
+        run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1
+
+  validate-runtime-evidence:
+    needs: classify
+    if: needs.classify.outputs.plan_runtime_evidence == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate committed runtime qualification evidence contract
+        shell: pwsh
+        run: ./apm-packages/plan-coverage-residual-flow/scripts/test-plan-coverage-runtime-qualification-validator.ps1
+
+  validate-agent-plugin-poc:
+    needs: classify
+    if: needs.classify.outputs.plan_plugin_poc == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -92,13 +129,3 @@ jobs:
       - name: Validate deterministic Agent Plugins bundle, provenance, and PoC contracts
         shell: pwsh
         run: ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-agent-plugin.ps1
-      - name: Validate fresh package installation and standalone lifecycle
-        shell: pwsh
-        env:
-          PACKAGE_REPOSITORY: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
-          PACKAGE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          GITHUB_APM_PAT: ${{ github.token }}
-        run: |
-          ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1 `
-            -Repository $env:PACKAGE_REPOSITORY `
-            -Ref $env:PACKAGE_REF

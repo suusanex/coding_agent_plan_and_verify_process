@@ -64,6 +64,17 @@ function Copy-DirectoryContents([string]$Source, [string]$Destination) {
     Copy-Item -Path (Join-Path $Source '*') -Destination $Destination -Recurse -Force
 }
 
+function Get-ManifestVersion([string]$Path) {
+    $match = [regex]::Match((Get-NormalizedText $Path), '(?m)^version:\s*(?<version>\S+)\s*$')
+    if (-not $match.Success) {
+        throw "Cannot resolve package version from manifest: $Path"
+    }
+    return $match.Groups['version'].Value
+}
+
+$expectedPackageVersion = Get-ManifestVersion (Join-Path $packageRoot 'apm.yml')
+$expectedAdaptiveVersion = Get-ManifestVersion (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution/apm.yml')
+
 try {
     New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
     Push-Location $tempRoot
@@ -94,7 +105,7 @@ try {
             $stageFinalizerResolved = (Resolve-Path -LiteralPath $stageFinalizer).Path
             $adaptiveManifest = @"
 name: adaptive-implementation-execution
-version: 0.6.0
+version: $expectedAdaptiveVersion
 description: Adaptive serial implementation ownership driven by remaining decision surfaces, with bounded residual completion after evidence-backed transfer
 type: hybrid
 targets:
@@ -111,7 +122,7 @@ dependencies:
 
             $packageManifest = @"
 name: plan-coverage-residual-flow
-version: 0.15.0
+version: $expectedPackageVersion
 description: Plan Coverage Check and Residual Decision Flow with durable Design Pair waiting state, full-coverage Slice Living Records, Architecture Slice Readiness, Guardrail Focus, and residual decision gating
 type: hybrid
 targets:
@@ -218,8 +229,9 @@ dependencies:
         }
 
         $block = $lockBlock.Groups['block'].Value
-        if ($block -cnotmatch '(?m)^  version:\s*0\.15\.0\s*$') {
-            throw 'Fresh APM lock does not contain Plan Coverage package version 0.15.0.'
+        $expectedVersionPattern = [regex]::Escape($expectedPackageVersion)
+        if ($block -cnotmatch "(?m)^  version:\s*$expectedVersionPattern\s*`$") {
+            throw "Fresh APM lock does not contain Plan Coverage package version $expectedPackageVersion."
         }
 
         $installedHash = Get-NormalizedTextSha256 $installedSkillPath

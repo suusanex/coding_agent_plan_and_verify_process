@@ -45,11 +45,11 @@ Evidence directoryは`apm-packages/plan-coverage-residual-flow/tests/runtime-qua
 
 ### Low / normal
 
-Documentation、wording、metadata、behaviorへ影響しないcanonical整理、またはisolatedでdeterministic validationが十分な変更を対象とする。deterministic CIとinstall smokeを実行し、external-model regressionは原則実行せず、次回実運用でruntime behaviorを観測する。
+Documentation、wording、metadata、behaviorへ影響しないcanonical整理、またはisolatedでdeterministic validationが十分な変更を対象とする。変更したownerのdeterministic CIを実行し、distribution inputを変更した場合だけ該当closureのinstall smokeを実行する。external-model regressionは原則実行せず、次回実運用でruntime behaviorを観測する。
 
 ### Targeted runtime risk
 
-特定agent behavior、decision rule、bounded contract、新しい限定runtime behaviorを対象とする。deterministic CIに加え、必要に応じて変更影響に対応するscenarioだけをtargeted runtime smokeとして実行する。影響根拠のないauthorization、STD、FULL等は再実行しない。
+特定agent behavior、decision rule、bounded contract、新しい限定runtime behaviorを対象とする。Adaptive接続では、compatibleなhandoff field変更、Adaptive側の内部ownership semantics変更、またはPlan Coverage側の限定connection behaviorだけに影響する変更を含む。deterministic CIに加え、必要に応じて変更したconnection scenarioだけをtargeted runtime smokeとして実行する。影響根拠のないauthorization、STD、FULL等は再実行しない。
 
 ### Full runtime risk
 
@@ -58,12 +58,12 @@ Documentation、wording、metadata、behaviorへ影響しないcanonical整理�
 - invocation authorization / explicit-invocation-only境界
 - route selection、route orchestration、standard/full route全体のshared semantics
 - runtime adapter / projection、Skill・agent discovery、materializationの根幹
-- Adaptive Implementation connection / handoff
+- Plan Coverage全routeに共通するAdaptive invocation protocol、route identity、materialization、shared orchestration semantics
 - runtime/client compatibility boundary
 - 新runtimeを正式supported runtimeへ昇格するpromotion review
 - historical baselineを合理的にcarry forwardできない広範なsemantics変更
 
-分類根拠は変更内容とruntime regression riskであり、`.apm/**`変更、package version bump、fingerprint mismatchそのものではない。full risk以外ではtargeted evidenceを優先し、無関係なfull suiteを要求しない。
+Adaptiveというdependency名やconnection fileの変更だけではFullにしない。分類根拠は変更内容とruntime regression riskであり、`.apm/**`変更、package version bump、fingerprint mismatchそのものではない。full risk以外ではtargeted evidenceを優先し、無関係なfull suiteを要求しない。
 
 ## Validator mode
 
