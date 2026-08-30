@@ -13,6 +13,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
+$packageRoot = Split-Path -Parent $PSScriptRoot
+$repoRoot = (Resolve-Path (Join-Path $packageRoot '../..')).Path
 
 function Invoke-Native([string]$FilePath, [string[]]$Arguments, [string]$Description) {
     & $FilePath @Arguments
@@ -71,6 +73,16 @@ function Assert-Hashes([hashtable]$Expected) {
     }
 }
 
+function Get-ManifestVersion([string]$Path) {
+    $match = [regex]::Match((Get-Content -Raw -LiteralPath $Path), '(?m)^version:\s*(?<version>\S+)\s*$')
+    if (-not $match.Success) {
+        throw "Cannot resolve package version from manifest: $Path"
+    }
+    return $match.Groups['version'].Value
+}
+
+$expectedPackageVersion = Get-ManifestVersion (Join-Path $packageRoot 'apm.yml')
+
 $apmVersion = & $ApmExecutable --version 2>&1 | Out-String
 if ($LASTEXITCODE -ne 0) {
     throw "APM executable failed: $ApmExecutable"
@@ -120,8 +132,9 @@ try {
     Assert-File $lockPath 'remote APM lock'
     $lock = Get-Content -Raw -LiteralPath $lockPath
     $lockBlock = [regex]::Match($lock.Replace("`r`n", "`n"), '(?ms)^- .*?name: adaptive-implementation-execution\n(?<block>.*?)(?=^- |\z)')
-    if (-not $lockBlock.Success -or $lockBlock.Groups['block'].Value -cnotmatch '(?m)^  version:\s*0\.6\.0\s*$') {
-        throw 'Remote APM lock does not contain Adaptive package version 0.6.0.'
+    $expectedVersionPattern = [regex]::Escape($expectedPackageVersion)
+    if (-not $lockBlock.Success -or $lockBlock.Groups['block'].Value -cnotmatch "(?m)^  version:\s*$expectedVersionPattern\s*`$") {
+        throw "Remote APM lock does not contain Adaptive package version $expectedPackageVersion."
     }
     $deployedSkill = Join-Path $skillRoot 'SKILL.md'
     Assert-Contains $deployedSkill '(?m)^disable-model-invocation:\s*true\s*$' 'deployed skill explicit-only model invocation'

@@ -4,43 +4,61 @@ on:
   pull_request:
     paths:
       - '.github/workflows/validate-agent-plugin-packages.yml'
+      - 'scripts/validate-process-package-boundaries.cs'
       - 'apm-packages/**/.apm/**'
       - 'apm-packages/**/apm.yml'
       - 'apm-packages/**/tests/agent-plugin/**'
-      - 'apm-packages/**/docs/**'
-      - 'apm-packages/**/tests/**'
       - 'scripts/agent-plugins/**'
       - 'tests/agent-plugins/**'
-      - 'docs/agent-plugin-adoption-strategy.md'
   push:
     branches: [main]
     paths:
       - '.github/workflows/validate-agent-plugin-packages.yml'
+      - 'scripts/validate-process-package-boundaries.cs'
       - 'apm-packages/**/.apm/**'
       - 'apm-packages/**/apm.yml'
       - 'apm-packages/**/tests/agent-plugin/**'
-      - 'apm-packages/**/docs/**'
-      - 'apm-packages/**/tests/**'
       - 'scripts/agent-plugins/**'
       - 'tests/agent-plugins/**'
-      - 'docs/agent-plugin-adoption-strategy.md'
 
 permissions:
   contents: read
 
 jobs:
+  classify:
+    runs-on: ubuntu-latest
+    outputs:
+      has-packages: ${{ steps.scope.outputs.has_agent_plugins }}
+      matrix: ${{ steps.scope.outputs.agent_plugin_matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Validate scope classification
+        shell: pwsh
+        run: dotnet run --file ./scripts/validate-process-package-boundaries.cs -- self-test
+      - id: scope
+        name: Resolve affected Agent Plugin packages
+        shell: pwsh
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: >-
+          dotnet run --file ./scripts/validate-process-package-boundaries.cs -- scope
+          --base $env:BASE_SHA
+          --head $env:HEAD_SHA
+          --github-output $env:GITHUB_OUTPUT
+
   validate-package:
+    needs: classify
+    if: needs.classify.outputs.has-packages == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        package:
-          - adaptive-implementation-execution
-          - design-pair-implementation-execution
-          - goal-context-authoring
-          - pr-review-remediation
-          - persistent-purpose-review
-          - plan-coverage-residual-flow
+      matrix: ${{ fromJSON(needs.classify.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,11 +73,3 @@ jobs:
       - name: Validate qualification record
         shell: pwsh
         run: ./scripts/agent-plugins/validate-agent-plugin-qualification.ps1 -Package '${{ matrix.package }}'
-
-  validate-repository-boundary:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Validate source repository ownership boundary
-        shell: pwsh
-        run: ./scripts/validate-no-root-projections.ps1

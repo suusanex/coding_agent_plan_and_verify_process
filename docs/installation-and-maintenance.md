@@ -69,6 +69,23 @@ READMEは利用コンテキストごとに責務を分けます。canonical pack
 
 repository rootから、変更したownership surfaceに対応するcheckを実行します。
 
+| Check owner | Trigger input | Proves | Does not prove |
+| --- | --- | --- | --- |
+| package-local validator | owning packageのcanonical contract、manifest、owned docs、fixture | package自身のsemanticsとowned assetの整合 | dependency package内部やremote materialization |
+| `validate-process-package-boundaries.cs` | Adaptive / Design Pair / Plan Coverage / Codex profile finalizerの公開境界 | manifest dependency direction、route・handoff・re-entry・profile mappingの互換性 | provider validator内部実装や具体package version一致 |
+| Process Package Compatibility distribution matrix | `.apm/**`、manifest、profile overlay、finalizer、install smoke | Adaptive単体、Design Pair transitive closure、Plan Coverage installed-root lifecycleの該当failure mode | external-model runtime semantics |
+| Agent Plugin package matrix | package-local Agent Plugin input | 変更packageのbundle、provenance、qualification record | 他packageの同一検査 |
+| Repository Layout workflow | 全pull request | source rootにruntime projectionが存在しないこと | package semantics |
+
+cross-package compatibilityと変更scopeはBCLだけのFile-based Appで検証します。
+
+```powershell
+dotnet run --file ./scripts/validate-process-package-boundaries.cs -- validate
+dotnet run --file ./scripts/validate-process-package-boundaries.cs -- self-test
+```
+
+GitHub Actionsにはjob単位のpath filterがないため、このアプリが`git diff`から必要なdistribution closureとAgent Plugin packageだけを選択します。分類器自身を変更した場合は、分類漏れを自己検証できないため全distribution closure、全Agent Plugin package、Plan Coverageの全専門jobを実行します。一般的なglob engineは実装せず、repositoryで公開しているpackage pathと共有validator pathだけをordinal比較します。第三者path-filter Actionは追加のsupply-chain dependencyになるため採用しません。
+
 ### Notification runtime and decorator
 
 ```powershell
@@ -90,6 +107,7 @@ repository rootから、変更したownership surfaceに対応するcheckを実�
 ```powershell
 ./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1
 ./apm-packages/design-pair-implementation-execution/scripts/validate.ps1
+dotnet run --file ./scripts/validate-process-package-boundaries.cs -- validate
 ```
 
 ### PR Review Remediation
@@ -140,4 +158,4 @@ READMEやMarkdown linkを変更した場合は、相対linkのtargetが存在す
 
 ## CI trigger policy
 
-README navigation workflowは、リンク先だけの削除やrenameも検出するためpath filterを設けず、すべてのpull requestと`main`へのpushで実行します。package固有workflowでpath filterを使う場合は、READMEだけでなく、そのREADMEから参照するpackage-owned docs、scripts、schemaも起動対象へ含めます。documentation ownershipを移した場合は、validatorのassertion targetとworkflow triggerを同じ変更で確認します。
+README navigation workflowは、リンク先だけの削除やrenameも検出するためpath filterを設けず、すべてのpull requestと`main`へのpushで実行します。package固有workflowはowning packageだけを起動対象とし、別packageの変更を理由にpackage-local validatorを再実行しません。公開境界の変更はProcess Package Compatibility workflow、distribution inputの変更は同workflowの該当closure、Agent Plugin inputの変更は変更packageだけを起動します。純粋な説明変更やroot README変更からremote install smokeを起動しません。documentation ownershipを移した場合は、validatorのassertion targetとworkflow triggerを同じ変更で確認します。

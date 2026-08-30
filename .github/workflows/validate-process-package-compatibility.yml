@@ -1,0 +1,133 @@
+name: Validate Process Package Compatibility
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/validate-process-package-compatibility.yml'
+      - '.github/workflows/validate-adaptive-implementation-execution.yml'
+      - '.github/workflows/validate-design-pair-implementation-execution.yml'
+      - '.github/workflows/validate-plan-coverage-residual-flow.yml'
+      - '.github/workflows/validate-agent-plugin-packages.yml'
+      - 'scripts/validate-process-package-boundaries.cs'
+      - 'apm-packages/adaptive-implementation-execution/.apm/**'
+      - 'apm-packages/adaptive-implementation-execution/apm.yml'
+      - 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json'
+      - 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md'
+      - 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-apm-smoke.ps1'
+      - 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1'
+      - 'apm-packages/design-pair-implementation-execution/.apm/**'
+      - 'apm-packages/design-pair-implementation-execution/apm.yml'
+      - 'apm-packages/design-pair-implementation-execution/scripts/validate-dp-apm-smoke.ps1'
+      - 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1'
+      - 'apm-packages/plan-coverage-residual-flow/.apm/**'
+      - 'apm-packages/plan-coverage-residual-flow/apm.yml'
+      - 'apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1'
+      - 'apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1'
+      - 'apm-packages/codex-profile-finalizer/.apm/**'
+      - 'apm-packages/codex-profile-finalizer/apm.yml'
+      - 'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/validate-process-package-compatibility.yml'
+      - '.github/workflows/validate-adaptive-implementation-execution.yml'
+      - '.github/workflows/validate-design-pair-implementation-execution.yml'
+      - '.github/workflows/validate-plan-coverage-residual-flow.yml'
+      - '.github/workflows/validate-agent-plugin-packages.yml'
+      - 'scripts/validate-process-package-boundaries.cs'
+      - 'apm-packages/adaptive-implementation-execution/.apm/**'
+      - 'apm-packages/adaptive-implementation-execution/apm.yml'
+      - 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json'
+      - 'apm-packages/adaptive-implementation-execution/docs/usage-guide.md'
+      - 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-apm-smoke.ps1'
+      - 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1'
+      - 'apm-packages/design-pair-implementation-execution/.apm/**'
+      - 'apm-packages/design-pair-implementation-execution/apm.yml'
+      - 'apm-packages/design-pair-implementation-execution/scripts/validate-dp-apm-smoke.ps1'
+      - 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1'
+      - 'apm-packages/plan-coverage-residual-flow/.apm/**'
+      - 'apm-packages/plan-coverage-residual-flow/apm.yml'
+      - 'apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1'
+      - 'apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1'
+      - 'apm-packages/codex-profile-finalizer/.apm/**'
+      - 'apm-packages/codex-profile-finalizer/apm.yml'
+      - 'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs'
+
+permissions:
+  contents: read
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    outputs:
+      has-distribution: ${{ steps.scope.outputs.has_distribution }}
+      matrix: ${{ steps.scope.outputs.distribution_matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Validate scope classification
+        shell: pwsh
+        run: dotnet run --file ./scripts/validate-process-package-boundaries.cs -- self-test
+      - id: scope
+        name: Resolve affected distribution closures
+        shell: pwsh
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: >-
+          dotnet run --file ./scripts/validate-process-package-boundaries.cs -- scope
+          --base $env:BASE_SHA
+          --head $env:HEAD_SHA
+          --github-output $env:GITHUB_OUTPUT
+
+  validate-compatibility:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Validate public cross-package contracts and workflow ownership
+        run: dotnet run --file ./scripts/validate-process-package-boundaries.cs -- validate
+
+  validate-distribution:
+    needs: classify
+    if: needs.classify.outputs.has-distribution == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.classify.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: microsoft/apm-action@v1
+        with:
+          setup-only: 'true'
+          apm-version: '0.26.0'
+      - name: Validate remote package distribution closure
+        shell: pwsh
+        env:
+          PACKAGE_REPOSITORY: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+          PACKAGE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          GITHUB_APM_PAT: ${{ github.token }}
+        run: |
+          switch ('${{ matrix.package }}') {
+            'adaptive-implementation-execution' {
+              ./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-apm-smoke.ps1 -Repository $env:PACKAGE_REPOSITORY -Ref $env:PACKAGE_REF
+            }
+            'design-pair-implementation-execution' {
+              ./apm-packages/design-pair-implementation-execution/scripts/validate-dp-apm-smoke.ps1 -Repository $env:PACKAGE_REPOSITORY -Ref $env:PACKAGE_REF
+            }
+            'plan-coverage-residual-flow' {
+              ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1 -Repository $env:PACKAGE_REPOSITORY -Ref $env:PACKAGE_REF
+            }
+            default {
+              throw "Unsupported distribution package: ${{ matrix.package }}"
+            }
+          }

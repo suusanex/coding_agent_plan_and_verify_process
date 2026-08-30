@@ -234,7 +234,6 @@ $standaloneE2ERelativePath = 'apm-packages/plan-coverage-residual-flow/scripts/v
 $standaloneFixtureReadmeRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/full-coverage-standalone/PCF-001/README.md'
 $standaloneFixtureExpectedRelativePath = 'apm-packages/plan-coverage-residual-flow/tests/full-coverage-standalone/PCF-001/expected.json'
 $apmSmokeRelativePath = 'apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1'
-$workflowRelativePath = '.github/workflows/validate-plan-coverage-residual-flow.yml'
 
 $requiredFiles = @(
     $skillRelativePath,
@@ -265,8 +264,7 @@ $requiredFiles = @(
     $standaloneE2ERelativePath,
     $standaloneFixtureReadmeRelativePath,
     $standaloneFixtureExpectedRelativePath,
-    $apmSmokeRelativePath,
-    $workflowRelativePath
+    $apmSmokeRelativePath
 )
 $requiredFiles += $changeRiskInputRelativePaths
 $requiredFiles += $changeRiskInvalidResultRelativePaths
@@ -355,12 +353,6 @@ if ($failures.Count -eq 0) {
         Assert-True (-not (Test-Path -LiteralPath (Join-Path $repoRoot "$canonicalAgentsRelativeRoot/$adaptiveAgentName.agent.md"))) "Adaptive agent $adaptiveAgentName must not be copied into Plan Coverage .apm/agents"
     }
 
-    $adaptiveValidator = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1')
-    $designPairValidator = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1')
-    Assert-Matches $adaptiveValidator 'decision-surface-implementation-owner\.agent\.md' 'Adaptive validator must own the decision-surface-implementation-owner agent contract'
-    Assert-Matches $adaptiveValidator 'bounded-residual-implementation-owner\.agent\.md' 'Adaptive validator must own the bounded-residual-implementation-owner agent contract'
-    Assert-Matches $designPairValidator 'Plan Coverage package version 0\.15\.0' 'Design Pair validator package version pin must be 0.15.0'
-
     Assert-Matches $skill 'package-owned canonical agent definitions' 'Skill must identify package-owned canonical agents as the contract authority'
     Assert-Matches $skill 'Do not treat `\.github/agents` or `\.codex/agents` as independent contract authorities' 'Skill must reject runtime projections as independent contract authorities'
     Assert-Matches $skill 'Do not require a source checkout of `apm-packages/\.\.\./\.apm/agents/` as a runtime dependency' 'Skill must not require package source checkout at runtime'
@@ -381,7 +373,6 @@ if ($failures.Count -eq 0) {
     $handoffReview = Get-NormalizedText (Join-Path $repoRoot "$canonicalAgentsRelativeRoot/implementation-handoff-review.agent.md")
     $verificationKernel = Get-NormalizedText (Join-Path $repoRoot "$canonicalAgentsRelativeRoot/verification-kernel.agent.md")
     $gapResolution = Get-NormalizedText (Join-Path $repoRoot "$canonicalAgentsRelativeRoot/coverage-gap-resolution-slice.agent.md")
-    $boundedResidualOwner = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution/.apm/agents/bounded-residual-implementation-owner.agent.md')
     $packageReadme = Get-NormalizedText (Join-Path $repoRoot $packageReadmeRelativePath)
     $purposeDocumentation = Get-NormalizedText (Join-Path $repoRoot $purposeDocumentationRelativePath)
     $processDocumentation = Get-NormalizedText (Join-Path $repoRoot $processDocumentationRelativePath)
@@ -423,6 +414,9 @@ if ($failures.Count -eq 0) {
     Assert-Matches $handoffReview '(?m)^#### Check 11\. Architecture baseline compatibility\s*$' 'implementation handoff review must own the architecture compatibility gate'
     Assert-Matches $handoffReview '\| Slice ID \| Readiness verdict \| Baseline authority \| Baseline identity \| Observed semantics \| Match / Drift / Unclear \| Required action \|' 'implementation handoff review must emit architecture compatibility evidence'
     Assert-Matches $handoffReview '`ArchitectureNotRequired`.*Lightweight architecture baseline' 'ArchitectureNotRequired must retain baseline comparison'
+    Assert-Matches $handoffReview '新規 intake.*だけ `adaptive / default` を初期化' 'implementation handoff review must initialize the Adaptive default only for fresh intake'
+    Assert-Matches $handoffReview '`design_pair_handoff`、`design_pair_interaction_stage`、`design_pair_user_evidence`を下流へ伝播' 'implementation handoff review must propagate Design Pair route state and user evidence downstream'
+    Assert-Matches $handoffReview 'waiting中はAdaptiveやverificationを次stepにしない' 'implementation handoff review must block Adaptive and verification while Design Pair is waiting'
     Assert-Matches $sharedInstructions 'Decision ownership is durable.*SliceLocalContract.*NeedsHumanDecision' 'shared guardrails must preserve upstream decision ownership'
     Assert-Matches $decomposition '(?s)Unresolved Decision Ownership.*Classification.*Decision owner.*Human input required.*Resolution phase' 'decomposition must project decision ownership into every executable slice'
     Assert-Matches $implementationContract '(?m)^## Decision Ownership Gate\s*$' 'implementation contract must define the Decision Ownership Gate'
@@ -489,8 +483,6 @@ if ($failures.Count -eq 0) {
     if ([string]::IsNullOrWhiteSpace($gapResolutionLivingMode)) { throw 'coverage-gap-resolution-slice must define a bounded Slice Living Record implementation-contract precondition.' }
     Assert-NotMatches $gapResolutionLivingMode 'plans/<ticket-or-slug>-implementation-contract-kernel\.md' 'Living Record gap resolution must not authorize or target a separate implementation-contract artifact'
     Assert-Matches $gapResolutionLivingMode '(?s)Implementation Contract Decisions.*別の implementation contract artifactを作成せず.*implementation-contract-kernel\.agent\.md.*output_contract: section-delta.*resume condition' 'Living Record gap resolution must request the implementation-contract semantic owner and wait for parent-applied deltas'
-    Assert-Matches $boundedResidualOwner '(?s)UNPERSISTED_PARENT_PAYLOAD.*reentry_handoff_path.*output_contract: parent-persisted-handoff-payload.*Artifact Exceptions.*起動してはいけません' 'bounded-residual owner re-entry must return an unpersisted payload and leave gate/persistence writes to the Plan Coverage parent'
-
     Assert-Matches $packageReadme '(?s)full-coverage.*each Slice Living Record.*slice-local risk and required kernel section deltas.*architecture baseline compatibility: Match.*Adaptive Implementation.*independent verification.*Full-Coverage Close Record.*cross-slice-verification.*residual-decision-gate' 'package README must describe the Living Record lifecycle in order'
     Assert-Matches $packageReadme 'base artifact budget.*parent control-plane 5件.*sliceごとにLiving Record 1件.*final close 1件' 'package README must document the artifact budget'
     Assert-Matches $packageReadme 'pre-redesign run.*explicit legacy/separate mode.*silent migration' 'package README must document legacy resume compatibility'
@@ -519,7 +511,6 @@ if ($failures.Count -eq 0) {
     Assert-NotMatches $activeDocumentation 'formal targets .*copilot.*codex.*agent-skills|Plan Coverage parent runtime qualif(?:ication)|Plan Coverage Copilot CLI\s+issue' 'PR #90 Plan Coverage-specific qualification wording must not remain in active documentation'
 
     $retiredFlowRelativePaths = @(
-        'README.md',
         $packageReadmeRelativePath,
         $skillRelativePath,
         $purposeDocumentationRelativePath,
@@ -742,7 +733,6 @@ if ($failures.Count -eq 0) {
     $standaloneFixtureReadme = Get-NormalizedText (Join-Path $repoRoot $standaloneFixtureReadmeRelativePath)
     $standaloneFixtureExpected = Get-NormalizedText (Join-Path $repoRoot $standaloneFixtureExpectedRelativePath)
     $apmSmoke = Get-NormalizedText (Join-Path $repoRoot $apmSmokeRelativePath)
-    $workflow = Get-NormalizedText (Join-Path $repoRoot $workflowRelativePath)
     Assert-Matches $packageReadme 'Standalone full-coverage E2E fixture' 'package README must link the standalone full-coverage E2E fixture'
     Assert-Matches $packageReadme 'validate-plan-coverage-full-coverage-e2e\.ps1' 'package README must document the standalone E2E command'
     Assert-Matches $packageReadme '外部modelは実行しない.*自律実行した証拠ではありません' 'package README must separate deterministic evidence from external-model evidence'
@@ -768,8 +758,6 @@ if ($failures.Count -eq 0) {
     Assert-Matches $apmSmoke '(?s)validate-plan-coverage-full-coverage-e2e\.ps1.*-InstalledRoot' 'remote APM smoke must execute standalone E2E against the installed closure'
     Assert-Matches $apmSmoke 'copilot,codex,agent-skills' 'APM smoke must install all Plan Coverage targets'
     Assert-Matches $apmSmoke 'decision-surface-implementation-owner' 'APM smoke must verify Adaptive assets arrive transitively'
-    Assert-Matches $workflow 'validate-plan-coverage-full-coverage-e2e\.ps1' 'Plan Coverage workflow must execute standalone E2E in source mode'
-
 }
 
 if ($failures.Count -gt 0) {
