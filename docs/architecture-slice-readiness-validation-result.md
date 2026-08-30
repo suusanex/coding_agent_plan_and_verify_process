@@ -2,10 +2,10 @@
 
 ## Execution metadata
 
-- Executed at: `2026-08-30T12:55:51+09:00`
+- Executed at: `2026-08-30T13:01:27+09:00`
 - Executor: Issue #132 の Adaptive implementation ownership 更新後に行った ASR-001〜ASR-008 の deterministic fixture comparison
 - Branch: `issue-132-adaptive-implementation-ownership`
-- Reviewed source: `cecc3280f17485036d8f8a9017ac4b7fe4944059`; Architecture Slice Readiness、baseline compatibility、`Match / Drift / Unclear` authorization semantics は変更されていない
+- Reviewed source: `e2d5b446ef91f7e2255d147845a80c32eb08561f`; Architecture Slice Readiness、baseline compatibility、`Match / Drift / Unclear` authorization semantics は変更されていない
 - Scope: ASR-001〜ASR-008 fixture comparison、current contract hashes、de-escalation / decomposition authorization、shared implementation ownership propagation、および既存 architecture semantics。production code と外部systemは変更していない
 
 ### Contract revisions evaluated
