@@ -3,11 +3,11 @@
     "id": "adaptive-implementation",
     "input_message": "$completion-notification-decorator\n$adaptive-implementation-execution\n\nこのPlanを実装してください。",
     "primary_process": "adaptive-implementation-execution",
-    "observed_status": "COMPLETED_BY_HIGH_MODEL",
+    "observed_status": "IMPLEMENTATION_COMPLETED",
     "title": "implementation completed",
     "repository": "sample/adaptive-repository",
     "result_uri": "https://github.com/sample/adaptive-repository/pull/101",
-    "primary_output": "Verdict: COMPLETED_BY_HIGH_MODEL\nAcceptance evidence: all in-scope items complete.\nFinal review status: Not performed by this flow"
+    "primary_output": "Verdict: IMPLEMENTATION_COMPLETED\nAcceptance evidence: all in-scope items complete.\nFinal review status: Not performed by this flow"
   },
   {
     "id": "plan-coverage",

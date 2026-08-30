@@ -39,11 +39,11 @@ Implement durable producer publication and consumer startup/replay for this repo
 - Do not select Design Pair.
 - You MUST invoke repository custom agents (`.github/agents/*.agent.md`) via the task/agent tool when available, including at least:
   `plan-kernel`, `change-risk-triage` (full-coverage escalation), `architecture-slice-readiness`,
-  `plan-slice-decomposition`, per-slice Adaptive `high-implementation-starter` then
-  `standard-implementation-completer` after valid handoff, `verification-kernel`,
+  `plan-slice-decomposition`, per-slice Adaptive `decision-surface-implementation-owner` then
+  `bounded-residual-implementation-owner` after valid handoff, `verification-kernel`,
   `cross-slice-verification-kernel`, and `residual-decision-gate`.
 - Use canonical Slice Living Records (`plans/*-slice-SL-*.md`) for implementation-ready slices (at least two).
-- Connect each implementation-ready slice to Adaptive Implementation under the Adaptive package contract. Start from HIGH; hand off to STANDARD only after `READY_FOR_STANDARD_COMPLETION`. `COMPLETED_BY_HIGH_MODEL` is a valid Adaptive terminal when no STANDARD remainder remains.
+- Connect each implementation-ready slice to Adaptive Implementation under the Adaptive package contract. Start from the decision-surface owner; hand off to the bounded-residual owner only after `READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION`. `IMPLEMENTATION_COMPLETED` is a valid Adaptive terminal when no bounded-residual remainder remains.
 - Do not weaken or rewrite `tests/verify-full-001.ps1` or the per-slice verifiers. They are external oracles.
 - No human product decision is required; stop only on true blocking residual.
 - Do not ask clarifying questions; execute until verifiers pass and residual close is possible.

@@ -299,7 +299,7 @@ function Test-ScenarioEvidenceInvariants($Result) {
     }
 }
 
-function Test-FullQualificationEvidence($Result) {
+function Test-FullQualificationEvidence($Result, [bool]$RequireCurrentAdaptiveContract) {
     $byId = @{}
     foreach ($scenario in @($Result.scenarios)) {
         $id = [string]$scenario.id
@@ -334,30 +334,54 @@ function Test-FullQualificationEvidence($Result) {
             continue
         }
         if ($ac.connection_satisfied) { $adaptiveOk = $true }
-        foreach ($phaseName in @('high_execution', 'handoff', 'standard_execution')) {
-            if (-not ($ac.psobject.Properties.Name -contains $phaseName)) {
-                Add-Failure "$id adaptive_connection missing phase $phaseName"
-                continue
+        if ($RequireCurrentAdaptiveContract) {
+            $currentPhaseNames = @('decision_surface_execution', 'bounded_residual_handoff', 'bounded_residual_execution')
+            $currentBooleanNames = @('bounded_residual_transfer_satisfied', 'decision_surface_observed', 'bounded_residual_observed', 'bounded_residual_handoff_observed')
+            foreach ($fieldName in @($currentPhaseNames + $currentBooleanNames)) {
+                if (-not ($ac.psobject.Properties.Name -contains $fieldName)) {
+                    Add-Failure "$id adaptive_connection missing current-contract field $fieldName"
+                }
             }
-            $phase = $ac.$phaseName
-            $phaseStatus = [string]$phase.status
-            if ($phaseStatus -like 'OBSERVED_*' -and [string]::IsNullOrWhiteSpace([string]$phase.evidence)) {
-                Add-Failure "$id.$phaseName OBSERVED_* requires evidence path/ref"
+            foreach ($legacyFieldName in @('high_execution', 'handoff', 'standard_execution', 'high_to_standard_handoff_satisfied', 'high_observed', 'standard_observed', 'handoff_observed')) {
+                if ($ac.psobject.Properties.Name -contains $legacyFieldName) {
+                    Add-Failure "$id adaptive_connection contains historical 0.5 field $legacyFieldName"
+                }
             }
-            if ($phaseName -ceq 'standard_execution' -and $phaseStatus -like 'OBSERVED_*' -and
-                [string]$phase.evidence -match 'READY_FOR_STANDARD_COMPLETION' -and
-                [string]$phase.evidence -notmatch 'standard-implementation-completer|COMPLETED_BY_STANDARD|hooks/session') {
-                Add-Failure "$id.standard_execution must not treat READY_FOR_STANDARD_COMPLETION alone as STANDARD execution"
+            foreach ($phaseName in $currentPhaseNames) {
+                if (-not ($ac.psobject.Properties.Name -contains $phaseName)) { continue }
+                $phase = $ac.$phaseName
+                $phaseStatus = [string]$phase.status
+                if ($phaseStatus -like 'OBSERVED_*' -and [string]::IsNullOrWhiteSpace([string]$phase.evidence)) {
+                    Add-Failure "$id.$phaseName OBSERVED_* requires evidence path/ref"
+                }
+                if ($phaseName -ceq 'bounded_residual_execution' -and $phaseStatus -like 'OBSERVED_*' -and
+                    [string]$phase.evidence -match 'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION' -and
+                    [string]$phase.evidence -notmatch 'bounded-residual-implementation-owner|IMPLEMENTATION_COMPLETED|hooks/session') {
+                    Add-Failure "$id.bounded_residual_execution must not treat transfer readiness alone as bounded-residual execution"
+                }
+            }
+            if ($ac.decision_surface_observed -and $ac.decision_surface_execution.status -notlike 'OBSERVED_*') {
+                Add-Failure "$id decision_surface_observed=true but decision_surface_execution is not OBSERVED_*"
+            }
+            if ($ac.bounded_residual_observed -and $ac.bounded_residual_execution.status -notlike 'OBSERVED_*') {
+                Add-Failure "$id bounded_residual_observed=true but bounded_residual_execution is not OBSERVED_*"
+            }
+            if ($ac.bounded_residual_handoff_observed -and $ac.bounded_residual_handoff.status -notlike 'OBSERVED_*') {
+                Add-Failure "$id bounded_residual_handoff_observed=true but bounded_residual_handoff is not OBSERVED_*"
             }
         }
-        if ($ac.high_observed -and $ac.high_execution.status -notlike 'OBSERVED_*') {
-            Add-Failure "$id high_observed=true but high_execution is not OBSERVED_*"
-        }
-        if ($ac.standard_observed -and $ac.standard_execution.status -notlike 'OBSERVED_*') {
-            Add-Failure "$id standard_observed=true but standard_execution is not OBSERVED_*"
-        }
-        if ($ac.handoff_observed -and $ac.handoff.status -notlike 'OBSERVED_*') {
-            Add-Failure "$id handoff_observed=true but handoff is not OBSERVED_*"
+        else {
+            # Historical 0.5 evidence remains readable, but it cannot satisfy a current snapshot.
+            foreach ($phaseName in @('high_execution', 'handoff', 'standard_execution')) {
+                if (-not ($ac.psobject.Properties.Name -contains $phaseName)) {
+                    Add-Failure "$id historical adaptive_connection missing phase $phaseName"
+                    continue
+                }
+                $phase = $ac.$phaseName
+                if ([string]$phase.status -like 'OBSERVED_*' -and [string]::IsNullOrWhiteSpace([string]$phase.evidence)) {
+                    Add-Failure "$id historical $phaseName OBSERVED_* requires evidence path/ref"
+                }
+            }
         }
         if ($ac.design_pair_auto_selected) {
             Add-Failure "Design Pair auto-selection evidence present in $id"
@@ -410,7 +434,7 @@ foreach ($resolvedResult in $resolvedResults) {
     }
 
     if ($result.overall_status -ceq 'QUALIFIED') {
-        Test-FullQualificationEvidence $result
+        Test-FullQualificationEvidence $result $isCurrentSnapshot
     }
     if ($isCurrentSnapshot -and $result.overall_status -ceq 'QUALIFIED' -and $failures.Count -eq $failuresBeforeResult) {
         $hasCurrentQualifiedEvidence = $true

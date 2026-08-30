@@ -1,6 +1,6 @@
 # Codex delegation must化 修正ゴール
 
-> Status update (2026-07-14): この文書の `slice-impl` / `standard-implementer` 記述は、delegation must化を導入した時点の historical baseline です。Issue #44 以降の標準実装 route は、各非自明な READY scope / slice を `high-implementation-starter` から開始し、valid `READY_FOR_STANDARD_COMPLETION` handoff 後だけ `standard-implementation-completer` を使い、`NEEDS_HIGH_MODEL_REENTRY` は HIGH_MODEL に戻します。旧 agent 名は当時の explicit legacy compatibility invocation に限られます。
+> Status update (2026-08-30): この文書の`slice-impl` / `standard-implementer`記述と、後続のHIGH / STANDARD固定分業はhistorical baselineです。Issue #132以降の標準実装routeは`decision-surface-implementation-owner`から開始し、actual code evidenceによって残作業がboundedになった場合だけ`bounded-residual-implementation-owner`へtransferし、新しいdecision surfaceが開いた場合は前者へ戻します。semantic ownershipはmodel tierとparent / subagent topologyから独立しています。
 
 > Historical record only. The aggregate Codex-first package references below are retained for audit traceability and are not current installation or routing guidance.
 

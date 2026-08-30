@@ -478,7 +478,7 @@ gap を修正したり、verification を完了させたり、coverage-gap-resol
 
 ## Relationship to other agents
 
-- **通常の前段 agent**: `high-implementation-starter.agent.md`、必要な場合は `standard-implementation-completer.agent.md`
+- **通常の前段 agent**: `decision-surface-implementation-owner.agent.md`、必要な場合は `bounded-residual-implementation-owner.agent.md`
 - **任意の前段 gate**: `implementation-handoff-review.agent.md`
 - **後段**: human code review
 - **任意の後段**: `verification-kernel.agent.md`

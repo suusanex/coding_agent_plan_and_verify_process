@@ -97,6 +97,20 @@ try {
     $exactCurrent.source_run.apm_yml_sha256 = $currentApmYmlSha256
     $exactCurrent | Add-Member -NotePropertyName qualification_input_fingerprint -NotePropertyValue $currentQualificationInputFingerprint
     $exactCurrent.source_run | Add-Member -NotePropertyName qualification_input_fingerprint -NotePropertyValue $currentQualificationInputFingerprint
+    foreach ($scenario in @($exactCurrent.scenarios | Where-Object { $_.id -in @('STD-001', 'FULL-001') })) {
+        $historicalAdaptiveConnection = $scenario.adaptive_connection
+        $scenario.adaptive_connection = [pscustomobject][ordered]@{
+            decision_surface_execution          = $historicalAdaptiveConnection.high_execution
+            bounded_residual_handoff             = $historicalAdaptiveConnection.handoff
+            bounded_residual_execution           = $historicalAdaptiveConnection.standard_execution
+            connection_satisfied                 = $historicalAdaptiveConnection.connection_satisfied
+            bounded_residual_transfer_satisfied  = $historicalAdaptiveConnection.high_to_standard_handoff_satisfied
+            design_pair_auto_selected             = $historicalAdaptiveConnection.design_pair_auto_selected
+            decision_surface_observed             = $historicalAdaptiveConnection.high_observed
+            bounded_residual_observed             = $historicalAdaptiveConnection.standard_observed
+            bounded_residual_handoff_observed     = $historicalAdaptiveConnection.handoff_observed
+        }
+    }
     $targetedCurrent = Get-Content -Raw -LiteralPath $targetedCurrentPath | ConvertFrom-Json
     $decisionOwnershipScenarios = @($targetedCurrent.scenarios | Where-Object { [string]$_.id -like 'DO-*' })
     $exactCurrent.scenarios = @($exactCurrent.scenarios) + $decisionOwnershipScenarios
@@ -104,6 +118,13 @@ try {
     Write-JsonFixture $exactCurrentPath $exactCurrent
     $strictCurrent = Invoke-Validator @('-ResultPath', $exactCurrentPath, '-RequireQualified')
     Assert-Result $strictCurrent 0 'snapshot_relation=CURRENT_SNAPSHOT' 'strict gate accepts exact-current full evidence fixture'
+
+    $legacyAdaptiveField = Get-Content -Raw -LiteralPath $exactCurrentPath | ConvertFrom-Json
+    $legacyAdaptiveField.scenarios[8].adaptive_connection | Add-Member -NotePropertyName high_execution -NotePropertyValue $legacyAdaptiveField.scenarios[8].adaptive_connection.decision_surface_execution
+    $legacyAdaptiveFieldPath = Join-Path $tempRoot 'legacy-adaptive-field.json'
+    Write-JsonFixture $legacyAdaptiveFieldPath $legacyAdaptiveField
+    $legacyAdaptiveFieldResult = Invoke-Validator @('-ResultPath', $legacyAdaptiveFieldPath, '-RequireQualified')
+    Assert-Result $legacyAdaptiveFieldResult 1 'adaptive_connection contains historical 0.5 field high_execution' 'strict gate rejects historical Adaptive fields on the current snapshot'
 
     $staleQualificationInput = Get-Content -Raw -LiteralPath $exactCurrentPath | ConvertFrom-Json
     $staleQualificationInput.qualification_input_fingerprint = '1111111111111111111111111111111111111111111111111111111111111111'

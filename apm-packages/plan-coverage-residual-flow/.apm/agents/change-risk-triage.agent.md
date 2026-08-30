@@ -27,7 +27,7 @@ You are the "Change Risk Triage" agent.
 
 この process は、必要な品質ガードを削るためのものではありません。目的は、対象にする runtime slice を絞ることで token cost と不要な再探索を抑えつつ、選択した high-risk runtime slice については guardrail chain を維持することです。
 
-この agent は、implementation-internal な責務配置、class / interface 分割、test seam、または残作業の completion delegability を事前分類しません。それらは READY 後に `high-implementation-starter` が actual code と verification evidence を使って判断する implementation phase の責務です。
+この agent は、implementation-internal な責務配置、class / interface 分割、test seam、または残作業の transfer eligibility を事前分類しません。それらは READY 後に `decision-surface-implementation-owner` が actual code と verification evidence を使って判断する implementation phase の責務です。
 
 `full-coverage` は、現在の bounded Plan をそのまま 1 つの implementation pass に流すには広すぎる、曖昧すぎる、または相互接続が強すぎるため、実装前に Plan を slice に分割する必要がある、という診断です。
 

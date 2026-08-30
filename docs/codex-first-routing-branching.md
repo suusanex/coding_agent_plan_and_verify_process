@@ -60,9 +60,9 @@ delegation_suitability     : cheap / standard / high agent へ分けやすいか
 | `PARENT_DIRECT_WORK` | 親が直接作業する例外経路。理由記録が必要で、cost-saving delegation には数えない |
 | `TRIVIAL_PARENT_FIX` | 明示的な低リスク局所修正だけ親が直接行う。これも cost-saving delegation には数えない |
 
-通常の非自明な READY implementation は `high-implementation-starter` から始め、complete な handoff 後だけ `standard-implementation-completer`、re-entry は HIGH_MODEL へ serial delegation します。通常 verification は `standard-verifier` が担当します。write-heavy parallel editing を標準化しないことは、親が直接実装してよいことを意味しません。
+通常の非自明なREADY implementationは`decision-surface-implementation-owner`から始め、decision surfaceがactual code evidenceによって解消されたcomplete handoff後だけ`bounded-residual-implementation-owner`へtransferし、新しいdecision surfaceが開いた場合は前者へserial re-entryします。通常verificationは`standard-verifier`が担当します。semantic ownershipはparent / subagent topologyやconcrete model tierから独立しており、write-heavy parallel editingを標準化しないことは親が直接実装してよいことを意味しません。
 
-通常の READY implementation の前には、Risk gate が `plans/<slug>-change-risk-triage.md` を作成し、state artifact の `risk_triage_artifact_status` を `Complete` にします。その後、`implementation-handoff-review` または明示的に同等の pre-implementation gate が parent authorization artifact を作成します。`Expansion required: Yes` の場合は、`behavior_case_coverage_ledger_status = Complete` になるまで `high-implementation-starter` へ渡してはいけません。
+通常のREADY implementationの前には、Risk gateが`plans/<slug>-change-risk-triage.md`を作成し、state artifactの`risk_triage_artifact_status`を`Complete`にします。その後、`implementation-handoff-review`または明示的に同等のpre-implementation gateがparent authorization artifactを作成します。`Expansion required: Yes`の場合は、`behavior_case_coverage_ledger_status = Complete`になるまで`decision-surface-implementation-owner`へ渡してはいけません。
 
 ## 典型的な分岐例
 
@@ -76,7 +76,7 @@ small-bounded / medium-bounded
   -> risk: plans/<slug>-change-risk-triage.md を作成
   -> implementation handoff review: parent authorization artifact を作成
   -> execution_mode: ROUTE_ONLY then DELEGATED_WORK
-  -> implementation: high-implementation-starter -> conditional standard-implementation-completer -> high re-entry
+  -> implementation: decision-surface-implementation-owner -> conditional bounded-residual-implementation-owner -> decision-surface re-entry
   -> verification: standard-verifier
 
 needs-plan-behavior-expansion

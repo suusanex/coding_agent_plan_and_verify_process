@@ -41,7 +41,7 @@ $ResultsDir = [System.IO.Path]::GetFullPath($ResultsDir)
 
 # Shared scenario lib expects these names (same as #106 runner).
 $planCoverageOwnedAgents = @($script:PlanCoverageOwnedAgentNames)
-$adaptiveAgents = @('high-implementation-starter', 'standard-implementation-completer')
+$adaptiveAgents = @('decision-surface-implementation-owner', 'bounded-residual-implementation-owner')
 $allTrackedAgents = @($planCoverageOwnedAgents + $adaptiveAgents + @('design-pair-implementation-execution'))
 # $Repository/$Ref used by Install-PlanCoverageInto in lib — keep empty so local staging path is used if ever called.
 $Repository = $null
@@ -325,8 +325,8 @@ function Get-BoundaryInventory {
         [ordered]@{ item = 'Plan Coverage custom agents'; classification = 'copilot-plugin-extension'; canonical_owner = '.apm/agents'; bundle_representation = 'agents/*.agent.md'; runtime_representation = 'Copilot plugin agents/ or APM .github/agents'; direct_plugin = 'yes-on-copilot'; apm_path = 'yes'; reason = 'not AP v1 portable core' }
         [ordered]@{ item = 'Plan Coverage shared instruction'; classification = 'apm-projection-materialization'; canonical_owner = '.apm/instructions'; bundle_representation = 'instructions/'; runtime_representation = '.github/instructions via APM'; direct_plugin = 'path-gap'; apm_path = 'yes'; reason = '.github/instructions not seeded under direct plugin' }
         [ordered]@{ item = 'Adaptive Implementation Skill'; classification = 'transitive-portable-dependency'; canonical_owner = 'adaptive package'; bundle_representation = 'absent-from-PC-bundle; standalone-pack-ok'; runtime_representation = 'APM transitive install'; direct_plugin = 'separate-bundle'; apm_path = 'yes'; reason = 'attested in install lock; not inlined by PC pack' }
-        [ordered]@{ item = 'Adaptive HIGH agent'; classification = 'copilot-plugin-extension'; canonical_owner = 'adaptive .apm/agents'; bundle_representation = 'absent-from-PC-bundle'; runtime_representation = 'APM .github/agents from Adaptive package'; direct_plugin = 'no-in-PC-bundle'; apm_path = 'yes'; reason = 'package-owned canonical post-#111; separate Adaptive plugin or APM materialization' }
-        [ordered]@{ item = 'Adaptive STANDARD agent'; classification = 'copilot-plugin-extension'; canonical_owner = 'adaptive .apm/agents'; bundle_representation = 'absent-from-PC-bundle'; runtime_representation = 'APM .github/agents from Adaptive package'; direct_plugin = 'no-in-PC-bundle'; apm_path = 'yes'; reason = 'package-owned canonical post-#111; separate Adaptive plugin or APM materialization' }
+        [ordered]@{ item = 'Adaptive Decision-Surface Implementation Owner agent'; classification = 'copilot-plugin-extension'; canonical_owner = 'adaptive .apm/agents'; bundle_representation = 'absent-from-PC-bundle'; runtime_representation = 'APM .github/agents from Adaptive package'; direct_plugin = 'no-in-PC-bundle'; apm_path = 'yes'; reason = 'package-owned canonical post-#111; separate Adaptive plugin or APM materialization' }
+        [ordered]@{ item = 'Adaptive Bounded-Residual Implementation Owner agent'; classification = 'copilot-plugin-extension'; canonical_owner = 'adaptive .apm/agents'; bundle_representation = 'absent-from-PC-bundle'; runtime_representation = 'APM .github/agents from Adaptive package'; direct_plugin = 'no-in-PC-bundle'; apm_path = 'yes'; reason = 'package-owned canonical post-#111; separate Adaptive plugin or APM materialization' }
         [ordered]@{ item = 'concrete model selection'; classification = 'codex-runtime-adapter'; canonical_owner = 'owning package overlay + finalizer'; bundle_representation = 'absent'; runtime_representation = 'Codex TOML overlays'; direct_plugin = 'n/a'; apm_path = 'yes'; reason = 'runtime-specific compatibility finalization' }
         [ordered]@{ item = 'explicit invocation authorization'; classification = 'agent-plugins-portable'; canonical_owner = 'SKILL.md'; bundle_representation = 'Skill text'; runtime_representation = 'Skill behavior'; direct_plugin = 'yes'; apm_path = 'yes'; reason = 'canonical Skill contract' }
         [ordered]@{ item = 'handoff state'; classification = 'currently-unqualified'; canonical_owner = 'process artifacts'; bundle_representation = 'n/a'; runtime_representation = 'plans/* durable artifacts'; direct_plugin = 'process'; apm_path = 'yes'; reason = 'artifact contract' }
@@ -338,24 +338,24 @@ function Get-BoundaryInventory {
 
 function Get-AdaptivePackagingFromBuild($BuildResult, [string]$BundlePath) {
     $adaptiveInBundle = Test-Path -LiteralPath (Join-Path $BundlePath 'skills/adaptive-implementation-execution/SKILL.md') -PathType Leaf
-    $highInBundle = Test-Path -LiteralPath (Join-Path $BundlePath 'agents/high-implementation-starter.agent.md') -PathType Leaf
-    $stdInBundle = Test-Path -LiteralPath (Join-Path $BundlePath 'agents/standard-implementation-completer.agent.md') -PathType Leaf
+    $decisionSurfaceOwnerInBundle = Test-Path -LiteralPath (Join-Path $BundlePath 'agents/decision-surface-implementation-owner.agent.md') -PathType Leaf
+    $boundedResidualOwnerInBundle = Test-Path -LiteralPath (Join-Path $BundlePath 'agents/bounded-residual-implementation-owner.agent.md') -PathType Leaf
     $att = $null
     if ($BuildResult -and $BuildResult.adaptive_attestation) {
         $att = $BuildResult.adaptive_attestation
     }
     return [ordered]@{
         attestation                    = $att
-        install_lock_attests_skill_high_standard = $(if ($att) { [string]$att.status -ceq 'PASS' } else { $null })
+        install_lock_attests_skill_and_semantic_owners = $(if ($att) { [string]$att.status -ceq 'PASS' } else { $null })
         path_dep_pack_refused          = $(if ($att) { [bool]$att.path_dep_pack_refused } else { $null })
-        plan_coverage_bundle_includes_adaptive = ($adaptiveInBundle -or $highInBundle -or $stdInBundle)
+        plan_coverage_bundle_includes_adaptive = ($adaptiveInBundle -or $decisionSurfaceOwnerInBundle -or $boundedResidualOwnerInBundle)
         adaptive_standalone_pack_ok    = $(if ($att -and $att.standalone_adaptive_bundle_root) {
                 Test-Path -LiteralPath (Join-Path $att.standalone_adaptive_bundle_root 'skills/adaptive-implementation-execution/SKILL.md')
             } else { $null })
         present_in_plan_coverage_bundle = [ordered]@{
-            skill    = $adaptiveInBundle
-            high     = $highInBundle
-            standard = $stdInBundle
+            skill                  = $adaptiveInBundle
+            decision_surface_owner = $decisionSurfaceOwnerInBundle
+            bounded_residual_owner = $boundedResidualOwnerInBundle
         }
     }
 }
@@ -679,8 +679,8 @@ try {
 
         # Adaptive gap if routes need it — prefer packaging attestation language from build.
         if ($copilotDirect.adaptive_connection -cne 'PASS') {
-            if ($adaptivePackaging.install_lock_attests_skill_high_standard -eq $true -and -not $adaptivePackaging.plan_coverage_bundle_includes_adaptive) {
-                $capabilityGaps.Add('Adaptive Skill/HIGH/STANDARD attested in source-install lock deployed_files/hashes but not inlined by apm pack of Plan Coverage (path-dep pack refused; Adaptive packs standalone)') | Out-Null
+            if ($adaptivePackaging.install_lock_attests_skill_and_semantic_owners -eq $true -and -not $adaptivePackaging.plan_coverage_bundle_includes_adaptive) {
+                $capabilityGaps.Add('Adaptive Skill and semantic owner agents are attested in source-install lock deployed_files/hashes but not inlined by apm pack of Plan Coverage (path-dep pack refused; Adaptive packs standalone)') | Out-Null
             }
             elseif (-not (Test-Path -LiteralPath (Join-Path $BundleRoot 'skills/adaptive-implementation-execution'))) {
                 $capabilityGaps.Add('Adaptive Implementation not present in plugin bundle (transitive package / APM projection)') | Out-Null
@@ -717,8 +717,8 @@ try {
     }
     else {
         $rationale.Add('Strict Agent Plugins v1 bundle synthesized at pack stage (no checked-in package-root plugin.json); APM local-source install semantics preserved') | Out-Null
-        if ($adaptivePackaging.install_lock_attests_skill_high_standard -eq $true) {
-            $rationale.Add('Adaptive Skill/HIGH/STANDARD attested in source-install lock deployed_files/hashes; apm pack refuses path deps; Plan Coverage pack does not inline Adaptive; Adaptive standalone pack succeeds') | Out-Null
+        if ($adaptivePackaging.install_lock_attests_skill_and_semantic_owners -eq $true) {
+            $rationale.Add('Adaptive Skill and semantic owner agents are attested in source-install lock deployed_files/hashes; apm pack refuses path deps; Plan Coverage pack does not inline Adaptive; Adaptive standalone pack succeeds') | Out-Null
         }
     }
     if ($copilotDirect.status -ceq 'NOT_RUN') {
@@ -789,7 +789,7 @@ try {
             poc      = [string]$copilotDirect.adaptive_connection
         }
         adaptive_packaging             = [ordered]@{
-            install_lock_attests_skill_high_standard = $adaptivePackaging.install_lock_attests_skill_high_standard
+            install_lock_attests_skill_and_semantic_owners = $adaptivePackaging.install_lock_attests_skill_and_semantic_owners
             path_dep_pack_refused                    = $adaptivePackaging.path_dep_pack_refused
             plan_coverage_bundle_includes_adaptive   = $adaptivePackaging.plan_coverage_bundle_includes_adaptive
             adaptive_standalone_pack_ok              = $adaptivePackaging.adaptive_standalone_pack_ok

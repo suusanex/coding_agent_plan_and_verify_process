@@ -34,7 +34,7 @@ implementation_route_source: explicit-user-selection
 - completed handoff を `adaptive-implementation-execution` へ渡す
 - Adaptive 実行後、比較評価用の結果を同じ tracked handoff に追記する
 
-production code / tests の実装、HIGH_MODEL / STANDARD_MODEL の orchestration、delegation、re-entry、verification boundary は再実装しない。Design Pair phase の完了前に production code / tests を編集してはいけない。
+production code / tests の実装、decision-surface-implementation-owner / bounded-residual-implementation-owner の orchestration、delegation、re-entry、verification boundary は再実装しない。Design Pair phase の完了前に production code / tests を編集してはいけない。
 
 ## Accepted upstream routes
 
@@ -230,7 +230,7 @@ AIの推奨、Target Map、Plan、Issue、repository docs、過去会話、AI su
 - `Locked Decisions`: Target Map 提示後に利用者が明示的に確定した Decision ID 付き binding constraint
 - `Target Disposition Evidence`: `Locked`、`Discussed-Unlocked`、`Adaptive-Owned`をTarget単位で許可したpost-map user evidence
 - `Discussed but Unlocked`: 参考情報
-- `Adaptive-Owned`: HIGH_MODEL の通常裁量
+- `Adaptive-Owned`: decision-surface-implementation-owner の通常裁量
 - `Known Evidence` / `Known Assumptions`: 参考情報
 - `Upstream Decisions Required`: blocking / non-blocking の上流判断
 
@@ -269,13 +269,13 @@ Target 未選択を空集合として PASS にしない。Target Map 提示後�
 
 Adaptive Implementation に対する invariant:
 
-> HIGH_MODEL は通常の adaptive implementation と同じ authority を維持する。original Plan / Implementation Intent、repository policy、`Upstream Binding Constraints` は既存の binding input として守る。Design Pair が今回新たに作る binding decision は、handoff の有効な `Locked Decisions` だけとし、それ以外の実装判断は実コードと verification evidence に基づいて自由に行う。
+> decision-surface-implementation-owner は通常の adaptive implementation と同じ authority を維持する。original Plan / Implementation Intent、repository policy、`Upstream Binding Constraints` は既存の binding input として守る。Design Pair が今回新たに作る binding decision は、handoff の有効な `Locked Decisions` だけとし、それ以外の実装判断は実コードと verification evidence に基づいて自由に行う。
 
-Target Map、`Discussed but Unlocked`、`Adaptive-Owned`、Known Evidence、Known Assumptions、Knowledge Candidates は参考情報であり、HIGH_MODEL の裁量または edit surface を拘束しない。
+Target Map、`Discussed but Unlocked`、`Adaptive-Owned`、Known Evidence、Known Assumptions、Knowledge Candidates は参考情報であり、decision-surface-implementation-owner の裁量または edit surface を拘束しない。
 
-Design Pair 由来の Locked Decisions は Decision ID と origin を保持し、HIGH_MODEL の追加 locked decisions と統合して Implementation Completion Handoff へ渡す。STANDARD_MODEL はその統合済み一覧を守る。
+Design Pair 由来の Locked Decisions は Decision ID と origin を保持し、decision-surface-implementation-owner の追加 locked decisions と統合して Bounded Residual Implementation Handoff へ渡す。bounded-residual-implementation-owner はその統合済み一覧を守る。
 
-Locked Decision と actual code が衝突した場合、HIGH_MODEL は黙って変更せず `HUMAN_DECISION_REQUIRED`、`REPLAN_REQUIRED`、または適切な既存 stop verdict で停止する。automatic Design Pair re-entry は行わない。
+Locked Decision と actual code が衝突した場合、decision-surface-implementation-owner は黙って変更せず `HUMAN_DECISION_REQUIRED`、`REPLAN_REQUIRED`、または適切な既存 stop verdict で停止する。automatic Design Pair re-entry は行わない。
 
 ## Evaluation record
 

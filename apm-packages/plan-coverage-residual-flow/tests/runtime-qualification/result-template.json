@@ -13,7 +13,7 @@
   "model_observed": "client-selected-or-unobserved",
   "apm_version": "UNOBSERVABLE",
   "candidate_commit": "UNOBSERVABLE",
-  "plan_coverage_package_version": "0.14.0",
+  "plan_coverage_package_version": "0.15.0",
   "canonical_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
   "qualification_input_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
   "apm_yml_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -33,7 +33,7 @@
     "canonical_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
     "qualification_input_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
     "apm_yml_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-    "package_version": "0.14.0",
+    "package_version": "0.15.0",
     "apm_lock_sha256": "NOT_RUN",
     "install_targets": ["copilot", "codex", "agent-skills"],
     "client_version": "UNOBSERVABLE",
@@ -293,9 +293,9 @@
       "transcript_sha256": null,
       "hook_log_sha256": null,
       "adaptive_connection": {
-        "high_observed": false,
-        "standard_observed": false,
-        "handoff_observed": false,
+        "decision_surface_observed": false,
+        "bounded_residual_observed": false,
+        "bounded_residual_handoff_observed": false,
         "design_pair_auto_selected": false
       },
       "evidence_boundary": "Hook subagent events + artifact delta + fixture verifier; skill load may be UNOBSERVABLE."
@@ -319,9 +319,9 @@
       "transcript_sha256": null,
       "hook_log_sha256": null,
       "adaptive_connection": {
-        "high_observed": false,
-        "standard_observed": false,
-        "handoff_observed": false,
+        "decision_surface_observed": false,
+        "bounded_residual_observed": false,
+        "bounded_residual_handoff_observed": false,
         "design_pair_auto_selected": false
       },
       "evidence_boundary": "Hook subagent events + artifact delta + fixture verifier; skill load may be UNOBSERVABLE."

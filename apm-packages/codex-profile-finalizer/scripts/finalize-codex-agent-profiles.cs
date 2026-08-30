@@ -158,11 +158,16 @@ internal static class CodexProfileFinalizer
 
         if (string.Equals(document.Package, "adaptive-implementation-execution", StringComparison.Ordinal))
         {
-            var high = document.Profiles.SingleOrDefault(x => string.Equals(x.Agent, "high-implementation-starter", StringComparison.Ordinal));
-            var standard = document.Profiles.SingleOrDefault(x => string.Equals(x.Agent, "standard-implementation-completer", StringComparison.Ordinal));
-            if (high is null || standard is null || string.Equals(high.Model, standard.Model, StringComparison.Ordinal))
+            var decisionSurfaceOwner = document.Profiles.SingleOrDefault(
+                x => string.Equals(x.Agent, "decision-surface-implementation-owner", StringComparison.Ordinal));
+            var boundedResidualOwner = document.Profiles.SingleOrDefault(
+                x => string.Equals(x.Agent, "bounded-residual-implementation-owner", StringComparison.Ordinal));
+            if (decisionSurfaceOwner is null ||
+                boundedResidualOwner is null ||
+                string.Equals(decisionSurfaceOwner.Model, boundedResidualOwner.Model, StringComparison.Ordinal))
             {
-                failures.Add($"Adaptive overlay {metadataPath} must define distinct HIGH and STANDARD models.");
+                failures.Add(
+                    $"Adaptive overlay {metadataPath} must define both semantic owners with distinct model mappings.");
                 return;
             }
         }

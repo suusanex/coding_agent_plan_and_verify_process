@@ -20,7 +20,7 @@ APM process packageは基本的に利用するwork repositoryごとに導入し�
 
 ### 実装を改善したい
 
-[Adaptive Implementation Execution](apm-packages/adaptive-implementation-execution/README.md)は、既にPlanやimplementation intentがある状態から、HIGH_MODELで非局所decisionを閉じ、decision-closedなproduction implementation、tests、validationをSTANDARD_MODEL主体で進めます。
+[Adaptive Implementation Execution](apm-packages/adaptive-implementation-execution/README.md)は、既にPlanやimplementation intentがある状態から、未解決decision surfaceが残る間は実装と局所検証を同じsemantic ownerが担い、actual code evidenceによって残作業がboundedになった場合だけ別ownerへ直列transferします。
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target copilot,codex,agent-skills
@@ -82,7 +82,7 @@ APM installがportable agentsとSkillを導入し、finalizerが必要なCodex p
 
 | Process | 主な入口 | 他processとの関係 |
 | --- | --- | --- |
-| Adaptive Implementation | 既存Planからの実装 | decision closureとimplementation orchestrationを所有する |
+| Adaptive Implementation | 既存Planからの実装 | decision surfaceに応じたimplementation ownershipと直列transferを所有する |
 | Design Pair | 実装前のTarget Map対話 | Adaptiveの任意pre-stage。実装はAdaptiveへ渡す |
 | PR Review Remediation | Ready PRのbaseline review / remediation plan | baselineの別turn修正だけAdaptiveを任意追加する |
 | Persistent Purpose Review | 実装後の目的達成review / remediation | Runnerが同一reviewer session、元のparentが修正を所有する |

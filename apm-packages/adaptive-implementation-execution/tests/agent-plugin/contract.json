@@ -3,7 +3,7 @@
   "package": "adaptive-implementation-execution",
   "installTargets": ["copilot", "codex", "agent-skills"],
   "ownedSkills": ["adaptive-implementation-execution"],
-  "ownedAgents": ["high-implementation-starter", "standard-implementation-completer"],
+  "ownedAgents": ["bounded-residual-implementation-owner", "decision-surface-implementation-owner"],
   "ownedInstructions": [],
   "dependencies": ["codex-profile-finalizer"],
   "runtimeBoundary": "Portable Skill and agents; Codex model mapping remains in the profile finalizer."

@@ -65,38 +65,38 @@ try {
     Assert-File $adaptiveSkill 'transitive Adaptive Skill'
     Assert-Contains $adaptiveSkill '(?m)^disable-model-invocation:\s*true\s*$' 'transitive Adaptive skill explicit-only invocation'
 
-    $copilotHigh = Join-Path $scratch '.github/agents/high-implementation-starter.agent.md'
-    $copilotStandard = Join-Path $scratch '.github/agents/standard-implementation-completer.agent.md'
-    Assert-File $copilotHigh 'transitive Copilot HIGH agent'
-    Assert-File $copilotStandard 'transitive Copilot STANDARD agent'
-    Assert-Contains $copilotHigh '(?m)^model:\s*GPT-5\.6 Terra \(copilot\)\s*$' 'transitive Copilot HIGH model'
-    Assert-Contains $copilotHigh '(?m)^disable-model-invocation:\s*true\s*$' 'transitive Copilot HIGH explicit-only invocation'
-    Assert-Contains $copilotStandard '(?m)^model:\s*GPT-5\.6 Luna \(copilot\)\s*$' 'transitive Copilot STANDARD model'
-    Assert-Contains $copilotStandard '(?m)^disable-model-invocation:\s*true\s*$' 'transitive Copilot STANDARD explicit-only invocation'
+    $copilotHigh = Join-Path $scratch '.github/agents/decision-surface-implementation-owner.agent.md'
+    $copilotStandard = Join-Path $scratch '.github/agents/bounded-residual-implementation-owner.agent.md'
+    Assert-File $copilotHigh 'transitive Copilot Decision-Surface Implementation Owner agent'
+    Assert-File $copilotStandard 'transitive Copilot Bounded-Residual Implementation Owner agent'
+    Assert-Contains $copilotHigh '(?m)^model:\s*GPT-5\.6 Terra \(copilot\)\s*$' 'transitive Copilot Decision-Surface Implementation Owner model'
+    Assert-Contains $copilotHigh '(?m)^disable-model-invocation:\s*true\s*$' 'transitive Copilot Decision-Surface Implementation Owner explicit-only invocation'
+    Assert-Contains $copilotStandard '(?m)^model:\s*GPT-5\.6 Luna \(copilot\)\s*$' 'transitive Copilot Bounded-Residual Implementation Owner model'
+    Assert-Contains $copilotStandard '(?m)^disable-model-invocation:\s*true\s*$' 'transitive Copilot Bounded-Residual Implementation Owner explicit-only invocation'
 
     $finalizer = @(Get-ChildItem -LiteralPath (Join-Path $scratch 'apm_modules') -Recurse -File -Filter 'finalize-codex-agent-profiles.cs' | Select-Object -First 1).FullName
     Assert-File $finalizer 'installed Codex profile finalizer'
     Invoke-Native 'dotnet' @('run', '--file', $finalizer, '--', $scratch) 'Codex profile completion'
     Invoke-Native 'dotnet' @('run', '--file', $finalizer, '--', $scratch, '--check') 'Codex profile check'
-    $codexHigh = Join-Path $scratch '.codex/agents/high-implementation-starter.toml'
-    $codexStandard = Join-Path $scratch '.codex/agents/standard-implementation-completer.toml'
-    Assert-File $codexHigh 'transitive Codex HIGH profile'
-    Assert-File $codexStandard 'transitive Codex STANDARD profile'
-    Assert-Contains $codexHigh '(?m)^model\s*=\s*"gpt-5\.6-terra"\s*$' 'Codex HIGH model'
-    Assert-Contains $codexStandard '(?m)^model\s*=\s*"gpt-5\.6-luna"\s*$' 'Codex STANDARD model'
+    $codexHigh = Join-Path $scratch '.codex/agents/decision-surface-implementation-owner.toml'
+    $codexStandard = Join-Path $scratch '.codex/agents/bounded-residual-implementation-owner.toml'
+    Assert-File $codexHigh 'transitive Codex Decision-Surface Implementation Owner profile'
+    Assert-File $codexStandard 'transitive Codex Bounded-Residual Implementation Owner profile'
+    Assert-Contains $codexHigh '(?m)^model\s*=\s*"gpt-5\.6-terra"\s*$' 'Codex Decision-Surface Implementation Owner model'
+    Assert-Contains $codexStandard '(?m)^model\s*=\s*"gpt-5\.6-luna"\s*$' 'Codex Bounded-Residual Implementation Owner model'
 
     $lockPath = Join-Path $scratch 'apm.lock.yaml'
     Assert-File $lockPath 'remote APM lock'
     $lock = Get-Content -Raw -LiteralPath $lockPath
     $designPairBlock = [regex]::Match($lock.Replace("`r`n", "`n"), '(?ms)^- .*?name: design-pair-implementation-execution\n(?<block>.*?)(?=^- |\z)')
-    # design-pair-implementation-execution 0.3.1 lock entry
-    if (-not $designPairBlock.Success -or $designPairBlock.Groups['block'].Value -cnotmatch '(?m)^  version:\s*0\.3\.1\s*$') {
-        throw 'Remote APM lock does not contain Design Pair package version 0.3.1.'
+    # design-pair-implementation-execution 0.4.0 lock entry
+    if (-not $designPairBlock.Success -or $designPairBlock.Groups['block'].Value -cnotmatch '(?m)^  version:\s*0\.4\.0\s*$') {
+        throw 'Remote APM lock does not contain Design Pair package version 0.4.0.'
     }
     $adaptiveBlock = [regex]::Match($lock.Replace("`r`n", "`n"), '(?ms)^- .*?name: adaptive-implementation-execution\n(?<block>.*?)(?=^- |\z)')
-    # adaptive-implementation-execution 0.5.0 transitive lock entry
-    if (-not $adaptiveBlock.Success -or $adaptiveBlock.Groups['block'].Value -cnotmatch '(?m)^  version:\s*0\.5\.0\s*$') {
-        throw 'Remote APM lock does not contain transitive Adaptive package version 0.5.0.'
+    # adaptive-implementation-execution 0.6.0 transitive lock entry
+    if (-not $adaptiveBlock.Success -or $adaptiveBlock.Groups['block'].Value -cnotmatch '(?m)^  version:\s*0\.6\.0\s*$') {
+        throw 'Remote APM lock does not contain transitive Adaptive package version 0.6.0.'
     }
 
     Write-Host 'Design Pair APM install smoke: PASS'

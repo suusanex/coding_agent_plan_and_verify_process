@@ -1,210 +1,254 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "contract": "adaptive-implementation-execution",
-  "required_decision_closure": [
+  "required_decision_surfaces": [
     "responsibility_ownership",
-    "public_shared_internal_contract",
-    "dependency_direction",
-    "production_sequence_wiring_architecture",
-    "state_error_cancellation_retry_semantics",
-    "test_architecture_seam_strategy"
+    "cross_file_ownership",
+    "public_contract",
+    "shared_internal_contract",
+    "dependency_direction_new_dependency",
+    "production_sequence",
+    "di_factory_entrypoint_structure",
+    "state_ownership",
+    "error_semantics",
+    "cancellation_semantics",
+    "retry_semantics",
+    "test_architecture_seam_harness",
+    "binding_compliance"
   ],
   "required_reentry_state": [
     "original_implementation_intent",
-    "implementation_completion_handoff",
-    "high_model_reentry_handoff",
+    "bounded_residual_handoff",
+    "decision_surface_reentry_handoff",
     "implementation_route",
     "implementation_route_source",
     "design_pair_handoff",
     "locked_decisions",
     "current_worktree_state",
-    "invalidating_evidence",
+    "decision_surface_evidence",
     "completed_work",
     "files_changed",
     "validation",
     "new_decision",
     "reentry_count",
-    "trigger",
-    "delegation_surface_reduced"
+    "trigger"
   ],
   "scenarios": [
     {
       "id": "A",
-      "name": "zero-high-code-edits-delegation",
+      "name": "implementation-evidence-before-transfer",
       "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
       "events": [
-        { "kind": "start", "owner": "high-implementation-starter" },
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
         {
           "kind": "verdict",
-          "owner": "high-implementation-starter",
-          "verdict": "READY_FOR_STANDARD_COMPLETION",
+          "owner": "decision-surface-implementation-owner",
+          "verdict": "READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION",
           "handoff": {
             "valid": true,
-            "delegation_basis": "non-local-decisions-closed",
-            "high_model_code_changes": false,
-            "decision_closure": {
-              "responsibility_ownership": { "status": "Locked", "evidence": "QueueConsumer owns one-item consumption" },
-              "public_shared_internal_contract": { "status": "Locked", "evidence": "IQueueConsumer signature is unchanged" },
-              "dependency_direction": { "status": "N/A", "evidence": "No new dependency or dependency edge is needed" },
-              "production_sequence_wiring_architecture": { "status": "Locked", "evidence": "Existing composition root and scoped lifetime are retained" },
-              "state_error_cancellation_retry_semantics": { "status": "N/A", "evidence": "The acceptance scope adds no state, retry, or cancellation contract" },
-              "test_architecture_seam_strategy": { "status": "Locked", "evidence": "Existing fake queue seam and focused test project are retained" }
+            "ownership_transfer_basis": "bounded-residual-work-only",
+            "implementation_evidence": [
+              "Production sequence was implemented through the existing composition root",
+              "Focused tests demonstrated the selected state ownership"
+            ],
+            "decision_surface_assessment": {
+              "responsibility_ownership": { "status": "Resolved", "evidence": "QueueConsumer owns one-item consumption" },
+              "cross_file_ownership": { "status": "Resolved", "evidence": "Composition root owns registration and QueueConsumer owns behavior" },
+              "public_contract": { "status": "Resolved", "evidence": "IQueueConsumer signature is exercised by the caller" },
+              "shared_internal_contract": { "status": "N/A", "evidence": "No shared internal contract changes" },
+              "dependency_direction_new_dependency": { "status": "N/A", "evidence": "No new dependency or edge" },
+              "production_sequence": { "status": "Resolved", "evidence": "Implemented sequence passed the focused test" },
+              "di_factory_entrypoint_structure": { "status": "Resolved", "evidence": "Existing scoped registration is exercised" },
+              "state_ownership": { "status": "Resolved", "evidence": "Consumer retains no state between calls" },
+              "error_semantics": { "status": "Resolved", "evidence": "Existing exception propagation is preserved" },
+              "cancellation_semantics": { "status": "N/A", "evidence": "No cancellable operation in scope" },
+              "retry_semantics": { "status": "N/A", "evidence": "No retry behavior in scope" },
+              "test_architecture_seam_harness": { "status": "Resolved", "evidence": "Existing fake queue seam executed the production entrypoint" },
+              "binding_compliance": { "status": "N/A", "evidence": "No Design Pair or additional binding input" }
             },
             "acceptance_status": [
-              { "acceptance_item": "AC-1", "status": "Incomplete", "work_ids": ["RW-1"], "evidence": "Decision closure is complete; production implementation remains" }
+              { "acceptance_item": "AC-1", "status": "Incomplete", "work_ids": ["RW-1"], "evidence": "Core sequence is proven; equivalent cases remain" }
             ],
             "remaining_work": [
               {
                 "work_id": "RW-1",
                 "acceptance_items": ["AC-1"],
-                "responsibility": "Implement QueueConsumer behavior and tests",
+                "responsibility": "Complete equivalent mappings and tests",
                 "authorized_surface": ["src/Queue", "tests/Queue"],
-                "expected_behavior": "Consume one queued item with the locked contract",
-                "locked_boundaries": ["IQueueConsumer signature", "DI lifetime and location"],
-                "local_freedom": ["private helpers", "branch structure", "fixture organization"],
+                "expected_behavior": "Apply the proven sequence to remaining queue item kinds",
+                "locked_boundaries": ["IQueueConsumer signature", "scoped registration", "error propagation"],
+                "local_freedom": ["private helpers", "branch organization", "fixture organization"],
                 "completion_check": ["dotnet test --filter QueueConsumer"]
               }
             ],
             "allowed_edit_surface": ["src/Queue", "tests/Queue"]
           }
         },
-        { "kind": "start", "owner": "standard-implementation-completer" },
-        { "kind": "verdict", "owner": "standard-implementation-completer", "verdict": "COMPLETED", "changed_locked_decision": false }
+        { "kind": "start", "owner": "bounded-residual-implementation-owner" },
+        { "kind": "verdict", "owner": "bounded-residual-implementation-owner", "verdict": "IMPLEMENTATION_COMPLETED", "changed_locked_decision": false }
       ],
-      "expected": { "final_state": "Completed", "standard_starts": 1, "high_model_code_changes": false }
+      "expected": { "final_state": "Completed", "bounded_residual_starts": 1 }
     },
     {
       "id": "B",
-      "name": "standard-local-choice",
+      "name": "inspection-only-transfer-is-allowed-not-required",
       "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
       "events": [
-        { "kind": "start", "owner": "high-implementation-starter" },
-        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "READY_FOR_STANDARD_COMPLETION", "handoff_ref": "A" },
-        { "kind": "start", "owner": "standard-implementation-completer" },
-        {
-          "kind": "verdict",
-          "owner": "standard-implementation-completer",
-          "verdict": "COMPLETED",
-          "local_choices": ["private-helper", "branch-organization", "test-data-builder"],
-          "changed_locked_decision": false
-        }
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
+        { "kind": "verdict", "owner": "decision-surface-implementation-owner", "verdict": "READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION", "handoff_ref": "A", "inspection_only": true },
+        { "kind": "start", "owner": "bounded-residual-implementation-owner" },
+        { "kind": "verdict", "owner": "bounded-residual-implementation-owner", "verdict": "IMPLEMENTATION_COMPLETED", "changed_locked_decision": false }
       ],
-      "expected": { "final_state": "Completed", "standard_starts": 1, "required_local_choices": ["private-helper", "branch-organization", "test-data-builder"] }
+      "expected": { "final_state": "Completed", "bounded_residual_starts": 1 }
     },
     {
       "id": "C",
-      "name": "locked-wiring-implementation",
+      "name": "decision-surface-owner-completes-naturally",
       "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
       "events": [
-        { "kind": "start", "owner": "high-implementation-starter" },
-        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "READY_FOR_STANDARD_COMPLETION", "handoff_ref": "A" },
-        { "kind": "start", "owner": "standard-implementation-completer" },
-        { "kind": "verdict", "owner": "standard-implementation-completer", "verdict": "COMPLETED", "locked_wiring_implemented": true, "changed_locked_decision": false }
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
+        {
+          "kind": "verdict",
+          "owner": "decision-surface-implementation-owner",
+          "verdict": "IMPLEMENTATION_COMPLETED",
+          "acceptance_complete": true,
+          "implementation_evidence": ["Production and test implementation resolved the final decision surface"],
+          "validation_evidence": ["dotnet test --filter QueueConsumer passed"]
+        }
       ],
-      "expected": { "final_state": "Completed", "standard_starts": 1, "locked_wiring_implemented": true }
+      "expected": { "final_state": "Completed", "bounded_residual_starts": 0 }
     },
     {
       "id": "D",
-      "name": "locked-boundary-invalidated",
+      "name": "new-decision-surface-reentry",
       "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
       "events": [
-        { "kind": "start", "owner": "high-implementation-starter" },
-        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "READY_FOR_STANDARD_COMPLETION", "handoff_ref": "A" },
-        { "kind": "start", "owner": "standard-implementation-completer" },
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
+        { "kind": "verdict", "owner": "decision-surface-implementation-owner", "verdict": "READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION", "handoff_ref": "A" },
+        { "kind": "start", "owner": "bounded-residual-implementation-owner" },
         {
           "kind": "verdict",
-          "owner": "standard-implementation-completer",
-          "verdict": "NEEDS_HIGH_MODEL_REENTRY",
-          "locked_non_local_decision_change_required": true,
+          "owner": "bounded-residual-implementation-owner",
+          "verdict": "NEEDS_DECISION_SURFACE_REENTRY",
+          "new_decision_surface_required": true,
           "edit_type_only": false,
           "tracked_state": {
             "original_implementation_intent": "plans/example-implementation-intent.md",
-            "implementation_completion_handoff": "plans/example-implementation-completion-handoff.md",
-            "high_model_reentry_handoff": "plans/example-high-model-reentry-handoff.md",
+            "bounded_residual_handoff": "plans/example-bounded-residual-implementation-handoff.md",
+            "decision_surface_reentry_handoff": "plans/example-decision-surface-reentry-handoff.md",
             "implementation_route": "adaptive",
             "implementation_route_source": "default",
             "design_pair_handoff": "N/A",
-            "locked_decisions": ["HIGH-D01"],
-            "current_worktree_state": "decision-closed implementation changes retained",
-            "invalidating_evidence": "locked signature cannot satisfy the existing caller",
+            "locked_decisions": ["DSI-D01"],
+            "current_worktree_state": "bounded residual changes retained",
+            "decision_surface_evidence": "locked signature cannot satisfy the existing caller",
             "completed_work": ["RW-1-partial"],
             "files_changed": ["src/Queue/QueueConsumer.cs"],
             "validation": ["dotnet test --filter QueueConsumer"],
             "new_decision": "revise the shared signature",
             "reentry_count": 1,
-            "trigger": "locked shared signature invalidated",
-            "delegation_surface_reduced": true
+            "trigger": "shared signature invalidated"
           }
         },
-        { "kind": "start", "owner": "high-implementation-starter" },
-        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "COMPLETED_BY_HIGH_MODEL", "direct_completion_reason": "post-reentry-high-ownership", "direct_completion_evidence": "HIGH owns completion after the locked signature was revised" }
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
+        {
+          "kind": "verdict",
+          "owner": "decision-surface-implementation-owner",
+          "verdict": "IMPLEMENTATION_COMPLETED",
+          "acceptance_complete": true,
+          "implementation_evidence": ["Revised and implemented the shared signature"],
+          "validation_evidence": ["Focused tests passed"]
+        }
       ],
-      "expected": { "final_state": "Completed", "standard_starts": 1 }
+      "expected": { "final_state": "Completed", "bounded_residual_starts": 1 }
     },
     {
       "id": "E",
-      "name": "initial-high-completion-without-reason",
+      "name": "open-decision-surface-rejects-transfer",
       "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
       "events": [
-        { "kind": "start", "owner": "high-implementation-starter" },
-        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "COMPLETED_BY_HIGH_MODEL", "expected_rejected": true }
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
+        {
+          "kind": "verdict",
+          "owner": "decision-surface-implementation-owner",
+          "verdict": "READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION",
+          "expected_rejected": true,
+          "handoff_ref": "A",
+          "handoff_override": { "decision_surface": "production_sequence", "status": "Open" }
+        },
+        {
+          "kind": "verdict",
+          "owner": "decision-surface-implementation-owner",
+          "verdict": "IMPLEMENTATION_COMPLETED",
+          "acceptance_complete": true,
+          "implementation_evidence": ["Owner continued implementation until the sequence was resolved"],
+          "validation_evidence": ["Focused test passed"]
+        }
       ],
-      "expected": { "final_state": "HighActive", "standard_starts": 0 }
+      "expected": { "final_state": "Completed", "bounded_residual_starts": 0 }
     },
     {
       "id": "F",
-      "name": "valid-tiny-direct-completion",
+      "name": "edit-type-only-reentry-is-rejected",
       "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
       "events": [
-        { "kind": "start", "owner": "high-implementation-starter" },
-        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "COMPLETED_BY_HIGH_MODEL", "direct_completion_reason": "tiny-local-change", "direct_completion_evidence": "No independently meaningful Work Package remains", "meaningful_work_package_remaining": false }
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
+        { "kind": "verdict", "owner": "decision-surface-implementation-owner", "verdict": "READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION", "handoff_ref": "A" },
+        { "kind": "start", "owner": "bounded-residual-implementation-owner" },
+        {
+          "kind": "verdict",
+          "owner": "bounded-residual-implementation-owner",
+          "verdict": "NEEDS_DECISION_SURFACE_REENTRY",
+          "expected_rejected": true,
+          "new_decision_surface_required": false,
+          "edit_type_only": true,
+          "tracked_state_ref": "D"
+        },
+        { "kind": "verdict", "owner": "bounded-residual-implementation-owner", "verdict": "IMPLEMENTATION_COMPLETED", "changed_locked_decision": false }
       ],
-      "expected": { "final_state": "Completed", "standard_starts": 0 }
+      "expected": { "final_state": "Completed", "bounded_residual_starts": 1 }
     },
     {
       "id": "G",
-      "name": "unresolved-decision-closure",
+      "name": "retransfer-requires-strict-reduction",
       "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
       "events": [
-        { "kind": "start", "owner": "high-implementation-starter" },
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
+        { "kind": "verdict", "owner": "decision-surface-implementation-owner", "verdict": "READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION", "handoff_ref": "A" },
+        { "kind": "start", "owner": "bounded-residual-implementation-owner" },
+        { "kind": "verdict", "owner": "bounded-residual-implementation-owner", "verdict": "NEEDS_DECISION_SURFACE_REENTRY", "new_decision_surface_required": true, "edit_type_only": false, "tracked_state_ref": "D" },
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
         {
           "kind": "verdict",
-          "owner": "high-implementation-starter",
-          "verdict": "READY_FOR_STANDARD_COMPLETION",
+          "owner": "decision-surface-implementation-owner",
+          "verdict": "READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION",
           "expected_rejected": true,
           "handoff_ref": "A",
-          "handoff_override": { "decision_concern": "dependency_direction", "status": "Unresolved" }
+          "transfer_surface_reduced": false
+        },
+        {
+          "kind": "verdict",
+          "owner": "decision-surface-implementation-owner",
+          "verdict": "IMPLEMENTATION_COMPLETED",
+          "acceptance_complete": true,
+          "implementation_evidence": ["Owner retained implementation after unsafe retransfer"],
+          "validation_evidence": ["Focused tests passed"]
         }
       ],
-      "expected": { "final_state": "HighActive", "standard_starts": 0 }
+      "expected": { "final_state": "Completed", "bounded_residual_starts": 1 }
     },
     {
       "id": "H",
-      "name": "reentry-redelegation-without-reduction",
-      "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
-      "events": [
-        { "kind": "start", "owner": "high-implementation-starter" },
-        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "READY_FOR_STANDARD_COMPLETION", "handoff_ref": "A" },
-        { "kind": "start", "owner": "standard-implementation-completer" },
-        { "kind": "verdict", "owner": "standard-implementation-completer", "verdict": "NEEDS_HIGH_MODEL_REENTRY", "locked_non_local_decision_change_required": true, "edit_type_only": false, "tracked_state_ref": "D" },
-        { "kind": "start", "owner": "high-implementation-starter" },
-        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "READY_FOR_STANDARD_COMPLETION", "expected_rejected": true, "handoff_ref": "A", "delegation_surface_reduced": false },
-        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "COMPLETED_BY_HIGH_MODEL", "direct_completion_reason": "post-reentry-high-ownership", "direct_completion_evidence": "Delegation surface did not strictly shrink" }
-      ],
-      "expected": { "final_state": "Completed", "standard_starts": 1 }
-    },
-    {
-      "id": "I",
       "name": "invalid-route-identity",
       "route": { "implementation_route": "adaptive", "implementation_route_source": null, "design_pair_handoff": "N/A" },
       "events": [
         { "kind": "verdict", "owner": "none", "write_owner": "none", "verdict": "BLOCKED", "stop_reason": "BlockedByInvalidCompletionHandoff", "adaptive_default_inferred": false }
       ],
-      "expected": { "final_state": "Blocked", "standard_starts": 0 }
+      "expected": { "final_state": "Blocked", "bounded_residual_starts": 0 }
     },
     {
-      "id": "J",
-      "name": "design-pair-preservation",
+      "id": "I",
+      "name": "design-pair-decision-preservation",
       "route": {
         "implementation_route": "design-pair",
         "implementation_route_source": "explicit-user-selection",
@@ -212,12 +256,29 @@
         "locked_decision_ids": ["DESIGN-A-D01", "DESIGN-B-D01"]
       },
       "events": [
-        { "kind": "start", "owner": "high-implementation-starter" },
-        { "kind": "verdict", "owner": "high-implementation-starter", "verdict": "READY_FOR_STANDARD_COMPLETION", "handoff_ref": "A", "locked_decision_ids": ["DESIGN-A-D01", "DESIGN-B-D01"] },
-        { "kind": "start", "owner": "standard-implementation-completer" },
-        { "kind": "verdict", "owner": "standard-implementation-completer", "verdict": "COMPLETED", "locked_decision_ids": ["DESIGN-A-D01", "DESIGN-B-D01"], "changed_locked_decision": false }
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
+        { "kind": "verdict", "owner": "decision-surface-implementation-owner", "verdict": "READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION", "handoff_ref": "A", "locked_decision_ids": ["DESIGN-A-D01", "DESIGN-B-D01"] },
+        { "kind": "start", "owner": "bounded-residual-implementation-owner" },
+        { "kind": "verdict", "owner": "bounded-residual-implementation-owner", "verdict": "IMPLEMENTATION_COMPLETED", "locked_decision_ids": ["DESIGN-A-D01", "DESIGN-B-D01"], "changed_locked_decision": false }
       ],
-      "expected": { "final_state": "Completed", "standard_starts": 1 }
+      "expected": { "final_state": "Completed", "bounded_residual_starts": 1 }
+    },
+    {
+      "id": "J",
+      "name": "old-0-5-handoff-is-rejected",
+      "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
+      "events": [
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
+        {
+          "kind": "verdict",
+          "owner": "decision-surface-implementation-owner",
+          "verdict": "BLOCKED",
+          "stop_reason": "BlockedByInvalidCompletionHandoff",
+          "old_schema_detected": true,
+          "compatibility_normalization_applied": false
+        }
+      ],
+      "expected": { "final_state": "Blocked", "bounded_residual_starts": 0 }
     }
   ]
 }

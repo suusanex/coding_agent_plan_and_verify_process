@@ -122,7 +122,7 @@ N/A - no explicit review-only fallback was invoked.
 ## Implementation Evidence
 
 - Implementation route: adaptive / default
-- Model / owner sequence: HIGH_MODEL -> `COMPLETED_BY_HIGH_MODEL`
+- Model / owner sequence: decision-surface-implementation-owner -> `IMPLEMENTATION_COMPLETED`
 - Files / symbols changed: `src/ProducerState.ps1` / `Restore-ProducerSnapshot`
 - Validation performed: implementation-local syntax/load check passed.
 - Acceptance evidence: `SL1-FR-001` implemented; independent verifier remained separate.

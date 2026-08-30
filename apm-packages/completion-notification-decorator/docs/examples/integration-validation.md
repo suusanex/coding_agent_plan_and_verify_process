@@ -6,7 +6,7 @@
 
 | Fixture | Primary process | Preserved verdict | Direct result |
 | --- | --- | --- | --- |
-| `adaptive-implementation` | `adaptive-implementation-execution` | `COMPLETED_BY_HIGH_MODEL` | repository-specific PR |
+| `adaptive-implementation` | `adaptive-implementation-execution` | `IMPLEMENTATION_COMPLETED` | repository-specific PR |
 | `plan-coverage` | `plan-coverage-residual-flow` | `READY_TO_CLOSE_WITH_NO_RESIDUALS` | repository-specific Issue |
 
 The validator derives each process package and Skill path from `primary_process`, then requires the canonical `apm.yml` and `.apm/skills/<primary_process>/SKILL.md` to exist and declare the same name. It also requires `observed_status` to appear as a verdict token in that canonical Skill and the fixture output to begin with the exact `Verdict: <observed_status>` line. Negative self-tests ensure an invented process, an unknown verdict, and a mismatched output verdict are rejected.

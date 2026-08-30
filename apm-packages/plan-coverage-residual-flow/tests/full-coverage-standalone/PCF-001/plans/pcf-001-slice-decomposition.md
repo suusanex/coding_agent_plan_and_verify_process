@@ -201,8 +201,8 @@ Split producer recovery/atomic publication from consumer startup/idempotent repl
 - Slice Living Records: 2
 - Final close artifact: 1
 - Base expected total: 8
-- Conditional artifacts: Behavior Spec (`Expansion required: Yes`); Slice Architecture (`ReadyForSliceDecomposition`); tracked `SL-002` Implementation Completion Handoff (`READY_FOR_STANDARD_COMPLETION`); tracked `SL-002` High-model Re-entry Handoff (`NEEDS_HIGH_MODEL_REENTRY`)
-- Exceptions: `plans/pcf-001-slice-SL-002-implementation-completion-handoff.md` / `cross-thread-handoff`, pre-applied before STANDARD delegation; `plans/pcf-001-slice-SL-002-high-model-reentry-handoff.md` / `cross-thread-handoff`, applied by the parent after STANDARD returned an unpersisted payload and before the parent saved it
+- Conditional artifacts: Behavior Spec (`Expansion required: Yes`); Slice Architecture (`ReadyForSliceDecomposition`); tracked `SL-002` Bounded Residual Implementation Handoff (`READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION`); tracked `SL-002` Decision-Surface Re-entry Handoff (`NEEDS_DECISION_SURFACE_REENTRY`)
+- Exceptions: `plans/pcf-001-slice-SL-002-bounded-residual-implementation-handoff.md` / `cross-thread-handoff`, pre-applied before bounded-residual-implementation-owner delegation; `plans/pcf-001-slice-SL-002-decision-surface-reentry-handoff.md` / `cross-thread-handoff`, applied by the parent after bounded-residual-implementation-owner returned an unpersisted payload and before the parent saved it
 
 ## Final cross-slice verification requirements
 

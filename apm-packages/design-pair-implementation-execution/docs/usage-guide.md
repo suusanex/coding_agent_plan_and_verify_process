@@ -19,7 +19,7 @@ implementation_route_source: explicit-user-selection
 
 agent / router は difficulty、risk、task size、architecture 特性から Design Pair を選択、推奨、提案しません。
 
-fresh installではAdaptive packageとDesign Pair packageをco-installします。GitHub Copilot CLIでは`--target copilot,agent-skills`、Codexでは`--target codex,agent-skills`を使います。CodexでAPMがmodel-less agent TOMLを生成する環境では共通 finalizerのwriteと`--check`まで実行します。Design Pair skillが存在するだけでは、後段のHIGH / STANDARD model mappingが完成したとは扱いません。
+fresh installではAdaptive packageとDesign Pair packageをco-installします。GitHub Copilot CLIでは`--target copilot,agent-skills`、Codexでは`--target codex,agent-skills`を使います。CodexでAPMがmodel-less agent TOMLを生成する環境では共通 finalizerのwriteと`--check`まで実行します。Design Pair skillが存在するだけでは、後段の decision-surface-implementation-owner / bounded-residual-implementation-owner model mappingが完成したとは扱いません。
 
 ## Ordinary Plan Mode
 
@@ -38,16 +38,16 @@ goal、scope、acceptance が不足する場合は production code / tests を�
 3. `implementation-handoff-review` または equivalent Inline Ready Gate が READY の場合だけ Design Pair を開始する。
 4. Target Map 提示後は `AWAITING_USER_INPUT / target-selection` と handoff path を parent state に保存し、その turn を終了する。
 5. user discussion 後に最終 disposition がなければ `AWAITING_USER_INPUT / disposition-confirmation` を保存して再停止する。
-6. tracked Design Pair handoff が `interaction_stage: complete` かつ `READY_FOR_ADAPTIVE_IMPLEMENTATION` になった後だけ、Adaptive Implementation を HIGH_MODEL から開始する。
+6. tracked Design Pair handoff が `interaction_stage: complete` かつ `READY_FOR_ADAPTIVE_IMPLEMENTATION` になった後だけ、Adaptive Implementation を decision-surface-implementation-owner から開始する。
 7. verification-kernel、coverage gap handling、residual-decision-gate へ戻る。
 
-Design Pair package の正式 target は `copilot`、`codex`、`agent-skills` です。Plan Coverage 経由でも Design Pair route は両 package を同じ target へ導入し、利用者が Design Pair を明示選択した場合だけ使います。GitHub Copilot CLI では tracked handoff を durable authority とし、READY 後は `--agent high-implementation-starter` で Adaptive を開始します。Plan Coverage parent と Design Pair を組み合わせた runtime qualification は Plan Coverage 側の Copilot CLI 認定 issue で実施します。
+Design Pair package の正式 target は `copilot`、`codex`、`agent-skills` です。Plan Coverage 経由でも Design Pair route は両 package を同じ target へ導入し、利用者が Design Pair を明示選択した場合だけ使います。GitHub Copilot CLI では tracked handoff を durable authority とし、READY 後は `--agent decision-surface-implementation-owner` で Adaptive を開始します。Plan Coverage parent と Design Pair を組み合わせた runtime qualification は Plan Coverage 側の Copilot CLI 認定 issue で実施します。
 
 ## Resume
 
 `implementation_route`、`implementation_route_source`、`design_pair_handoff`、`design_pair_interaction_stage`はdurable artifactから再読します。Design Pair resume では Target Map presentation、Target 選択要求、post-map user response、disposition、Locked confirmation evidence も検証します。欠ける、矛盾する、またはwaiting中なのにREADYへ正規化されている場合、upstream textから補完せず`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてartifact repairを要求します。3 route項目を`adaptive / default / N/A`へ自動初期化できるのはfresh intakeだけです。
 
-STANDARD_MODELからHIGH_MODELへre-entryする場合は、High-model Re-entry Handoffに両route fieldとDesign Pair handoff pathをincoming completion handoffから変更せずコピーします。parentは元のcompletion handoffとre-entry handoffの両方をHIGH_MODELへ渡し、route identityが一致しない場合は再実行前に`BLOCKED` / `BlockedByInvalidCompletionHandoff`で停止します。HIGH_MODELとSTANDARD_MODELは通常完了を含む非invalid resultで同じ3項目を返します。invalid-artifact `BLOCKED`だけはraw observed valueまたは`<missing>`とrepair evidenceを返し、parentは完全なpairを要求せず停止resultとして受理します。
+bounded-residual-implementation-ownerからdecision-surface-implementation-ownerへre-entryする場合は、Decision-Surface Re-entry Handoffに両route fieldとDesign Pair handoff pathをincoming completion handoffから変更せずコピーします。parentは元のcompletion handoffとre-entry handoffの両方をdecision-surface-implementation-ownerへ渡し、route identityが一致しない場合は再実行前に`BLOCKED` / `BlockedByInvalidCompletionHandoff`で停止します。decision-surface-implementation-ownerとbounded-residual-implementation-ownerは通常完了を含む非invalid resultで同じ3項目を返します。invalid-artifact `BLOCKED`だけはraw observed valueまたは`<missing>`とrepair evidenceを返し、parentは完全なpairを要求せず停止resultとして受理します。
 
 ## Target Map discussion
 
@@ -91,11 +91,11 @@ tracked handoff は `plans/<slug>-design-pair-implementation-handoff.md` に保�
 - advisory: Target Map、Discussed but Unlocked、Adaptive-Owned、Known Evidence、Known Assumptions、Knowledge Candidates
 - not an allowed edit surface: Target Map と `Affected files / symbols`
 
-HIGH_MODEL は advisory 情報を参考にできますが、Locked Decisions 以外の実装判断 authority を維持します。
+decision-surface-implementation-owner は advisory 情報を参考にできますが、Locked Decisions 以外の実装判断 authority を維持します。
 
 ## Conflict handling
 
-Locked Decision が actual code、production wiring、dependency evidence、または upstream acceptance と衝突した場合、HIGH_MODEL は Decision ID、code evidence、worktree state、checks、必要な人間判断を報告して停止します。Locked Decision を黙って変更せず、automatic Design Pair re-entry も行いません。
+Locked Decision が actual code、production wiring、dependency evidence、または upstream acceptance と衝突した場合、decision-surface-implementation-owner は Decision ID、code evidence、worktree state、checks、必要な人間判断を報告して停止します。Locked Decision を黙って変更せず、automatic Design Pair re-entry も行いません。
 
 ## Completion boundary
 

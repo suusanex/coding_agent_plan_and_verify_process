@@ -539,7 +539,7 @@ notifyプログラムが起動
 completion_notification:
   schema_version: 1
   primary_process: adaptive-implementation-execution
-  observed_status: COMPLETED_BY_HIGH_MODEL
+  observed_status: IMPLEMENTATION_COMPLETED
   title: implementation completed
   result_uri: null
 ```
@@ -587,9 +587,9 @@ notification_status: FAILED
        ↓
 Codex親ターン
   └─ Adaptive Implementationを従来どおり実行
-       ├─ high-implementation-starter
-       ├─ 必要ならstandard-implementation-completer
-       ├─ 必要ならHIGH_MODEL re-entry
+       ├─ decision-surface-implementation-owner
+       ├─ 必要ならbounded-residual-implementation-owner
+       ├─ 必要ならdecision-surface re-entry
        └─ terminal verdict
        ↓
 親ターン終了
@@ -938,7 +938,7 @@ MVPでは、少なくとも次を満たす。
   "schema_version": 1,
   "source": "codex",
   "primary_process": "adaptive-implementation-execution",
-  "observed_status": "COMPLETED_BY_HIGH_MODEL",
+  "observed_status": "IMPLEMENTATION_COMPLETED",
   "occurred_at": "2026-07-25T14:32:00+09:00",
   "title": "repository-name: implementation completed",
   "repository": "owner/name",

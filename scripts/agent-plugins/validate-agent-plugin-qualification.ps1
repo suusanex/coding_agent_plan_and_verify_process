@@ -38,17 +38,10 @@ function Get-QualificationEvidenceFailure([string]$Reference) {
     return $null
 }
 
-function Get-QualificationCandidateFailures([string]$CandidateCommit, [string]$DistributionFingerprint, [string]$ExpectedPackage) {
+function Get-QualificationCandidateFailures([string]$CandidateCommit) {
     $failures = [Collections.Generic.List[string]]::new()
     if ($CandidateCommit -ceq 'UNCOMMITTED') {
         Add-QualificationFailure $failures 'PASS evidence requires a committed candidate snapshot'
-        return $failures
-    }
-
-    $packageRoot = Join-Path $repoRoot "apm-packages/$ExpectedPackage"
-    $currentFingerprint = Get-AgentPluginDistributionFingerprint $packageRoot
-    if ($DistributionFingerprint -cne $currentFingerprint) {
-        Add-QualificationFailure $failures 'distribution fingerprint is not current'
     }
     return $failures
 }
@@ -76,6 +69,10 @@ function Get-AgentPluginQualificationFailures([string]$Path, [string]$ExpectedPa
     $packageRoot = Join-Path $repoRoot "apm-packages/$ExpectedPackage"
     $currentFingerprint = Get-AgentPluginCanonicalFingerprint (Join-Path $packageRoot '.apm')
     if ([string]$result.canonicalFingerprint -cne $currentFingerprint) { Add-QualificationFailure $failures 'canonical fingerprint is not current' }
+    $currentDistributionFingerprint = Get-AgentPluginDistributionFingerprint $packageRoot
+    if ([string]$result.distributionFingerprint -cne $currentDistributionFingerprint) {
+        Add-QualificationFailure $failures 'distribution fingerprint is not current'
+    }
 
     $distributions = @($result.assessments | ForEach-Object { $_.distribution })
     if (($distributions | Sort-Object) -join '|' -cne 'agent-plugin-direct|apm') {
@@ -83,7 +80,7 @@ function Get-AgentPluginQualificationFailures([string]$Path, [string]$ExpectedPa
     }
     $passAssessments = @($result.assessments | Where-Object { [string]$_.status -ceq 'PASS' })
     if ($passAssessments.Count -gt 0) {
-        foreach ($failure in Get-QualificationCandidateFailures ([string]$result.candidateCommit) ([string]$result.distributionFingerprint) $ExpectedPackage) {
+        foreach ($failure in Get-QualificationCandidateFailures ([string]$result.candidateCommit)) {
             Add-QualificationFailure $failures $failure
         }
     }

@@ -21,11 +21,11 @@ Implement a single-process configuration loader for this repository.
 - You MUST drive the route by invoking repository custom agents (`.github/agents/*.agent.md`) via the task/agent tool when available, in this observable order:
   1. `plan-kernel` (or equivalent lite Plan Coverage artifact creation owned by plan-kernel semantics)
   2. `change-risk-triage` (must select standard-slice)
-  3. `high-implementation-starter` first for non-local decisions / initial implementation ownership
-  4. after a valid `READY_FOR_STANDARD_COMPLETION` handoff, `standard-implementation-completer`
+  3. `decision-surface-implementation-owner` first for non-local decisions / initial implementation ownership
+  4. after a valid `READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION` handoff, `bounded-residual-implementation-owner`
   5. `verification-kernel`
   6. `residual-decision-gate`
-- Start Adaptive from HIGH. If HIGH returns `READY_FOR_STANDARD_COMPLETION`, hand off to STANDARD and record handoff evidence under `plans/`. `COMPLETED_BY_HIGH_MODEL` is a valid Adaptive terminal when no STANDARD remainder remains.
+- Start Adaptive from the decision-surface owner. If it returns `READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION`, hand off to the bounded-residual owner and record handoff evidence under `plans/`. `IMPLEMENTATION_COMPLETED` is a valid Adaptive terminal when no bounded-residual remainder remains.
 - Leave Plan Coverage artifacts under `plans/` according to the canonical Plan Coverage contract.
 - Do not weaken or rewrite `tests/verify-std-001.ps1`. That verifier is the external oracle.
 - Do not ask clarifying questions; execute to close.

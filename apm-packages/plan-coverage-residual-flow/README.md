@@ -30,7 +30,7 @@ dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\fina
 suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
 ```
 
-manifestはPlan Coverage package-owned `.apm` primitivesを`includes: auto`で配布し、Adaptive Implementationはseparate package boundary（`apm-packages/adaptive-implementation-execution`）へのdependencyで解決します。HIGH / STANDARD agentsとAdaptive Implementation SkillのownershipはAdaptive package側に残り、Plan Coverageへ複製しません。共通finalizerがpackage-owned overlayを検証してCodex concrete profileを補完するため、Plan Coverageの通常導入でAdaptive packageやfinalizer packageを別途installする必要はありません。implementation stageでDesign Pairを使う場合だけ、[Design Pair Implementation Execution](../design-pair-implementation-execution/README.md)も対象repositoryへ導入し、flow開始時に明示選択します。
+manifestはPlan Coverage package-owned `.apm` primitivesを`includes: auto`で配布し、Adaptive Implementationはseparate package boundary（`apm-packages/adaptive-implementation-execution`）へのdependencyで解決します。decision-surface / bounded-residual owner agentsとAdaptive Implementation SkillのownershipはAdaptive package側に残り、Plan Coverageへ複製しません。共通finalizerがpackage-owned overlayを検証してCodex concrete profileを補完するため、Plan Coverageの通常導入でAdaptive packageやfinalizer packageを別途installする必要はありません。implementation stageでDesign Pairを使う場合だけ、[Design Pair Implementation Execution](../design-pair-implementation-execution/README.md)も対象repositoryへ導入し、flow開始時に明示選択します。
 
 ## Canonical source and runtime projections
 
@@ -51,9 +51,11 @@ Runtime / checked-in projections:
 - root runtime files（`.github` / `.codex` / `.agents`）をsource of truthとして直接編集しない
 - projection driftはstatic validatorとAPM install smokeで検出する
 - Adaptive Implementationは別package ownership
-- Codex concrete HIGH / STANDARD profile overlayはAdaptive package-owned `codex-profile-overlays.json`で管理し、共通finalizerが適用する
+- Codex concrete decision-surface / bounded-residual profile overlayはAdaptive package-owned `codex-profile-overlays.json`で管理し、共通finalizerが適用する
 
 既存の異なるmodel mappingをpackage既定値へ変更する場合だけ、内容とownershipを確認して`--force`を使います。cross-package installerの詳細とvalidationは[Installation and Maintenance](../../docs/installation-and-maintenance.md#apm-installation-and-codex-profile-finalizer)を参照してください。
+
+Plan Coverage parent/routerは、各phase agentを直列に起動し、artifactとCoverage Ledgerを集約するorchestrator/topologyです。これは、Adaptive Implementation側のsemantic ownership（`decision-surface-implementation-owner` / `bounded-residual-implementation-owner`という、残っているdecision surfaceの有無で分かれる責務）とは別の関心事です。Plan Coverage parentの呼び出し形状（parent/subagent、別process等）やmodel tier割り当てを、Adaptive側のsemantic roleと混同してはいけません。
 
 ## Core model
 
@@ -98,7 +100,7 @@ Guardrail Focus candidates、Plan readiness、次gateへのhandoffを記録し�
 3. `change-risk-triage`がbounded runtime sequenceを先に組み立て、execution model、Guardrail Focus、minimum sufficient process profileを選ぶ。
 4. `full-coverage`は`Why standard-slice is insufficient` escalation gateが`Satisfied`の場合だけ`architecture-slice-readiness`へ進む。readinessが`StandardSliceSufficient`なら通常の`standard-slice`へ戻し、decompositionが必要な場合だけ後続gateへ進む。
 5. 必要なimplementation contract、runtime contract、test design、implementation handoff reviewを作る。
-6. 非自明な実装は`high-implementation-starter`から開始し、valid handoff後だけ`standard-implementation-completer`へ直列委譲する。
+6. 非自明な実装は`decision-surface-implementation-owner`から開始し、valid handoff後だけ`bounded-residual-implementation-owner`へ直列委譲する。
 7. human reviewの重点を整理する場合は、任意で`code-review-focus-kernel`を実行する。
 8. `verification-kernel`がparent Plan coverageとproduction bindingを検証する。full-coverageでは全slice検証後に`cross-slice-verification-kernel`も実行する。
 9. `CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES`は対象Slice Living Recordへtriage / repair deltaを適用し、slice検証とcross-slice検証を再実行する。Residual Decisionへ直接進めない。
@@ -138,10 +140,10 @@ source codeとartifactは変更せず、READYまたはBLOCKED verdictを出し�
 Adaptive Implementationへ渡す場合:
 
 ```text
-high-implementation-starter.agent.md を使って非自明な実装をHIGH_MODELから開始してください。
-completeなREADY_FOR_STANDARD_COMPLETION handoffがある場合だけ
-standard-implementation-completer.agent.mdへ直列委譲し、
-NEEDS_HIGH_MODEL_REENTRYはHIGH_MODELへ戻してください。
+decision-surface-implementation-owner.agent.md を使って非自明な実装を開始してください。
+completeなREADY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION handoffがある場合だけ
+bounded-residual-implementation-owner.agent.mdへ直列委譲し、
+NEEDS_DECISION_SURFACE_REENTRYはdecision-surface-implementation-ownerへ戻してください。
 bounded Planをsource of truthとし、Guardrail Focusをimplementation scopeにしないでください。
 ```
 
@@ -205,7 +207,7 @@ full-coverage
 
 agent semanticsとverdict vocabularyは維持されますが、各agentはowned section deltaだけを返し、Plan Coverage parent/routerだけがLiving Recordとcanonical Coverage Ledgerをrepositoryへ書きます。`StandardSliceSufficient`はdecomposition不要の成功verdictであり、original triageを監査証跡として残したまま`selected_process: standard-slice`へ戻します。`ArchitectureNotRequired`は複数sliceが必要だが独立architecture artifactが不要な場合だけ維持します。implementation-contract review-only fallbackは`Implementation Contract Decisions / Independent Review`へ、gap repairは`Gap Repair Evidence`へ投影します。implementation-realization gapでcurrent `Implementation Contract Decisions`が不足する場合、repair agentは別artifactやsectionを作成せず、parentへ`implementation-contract-kernel`のsection-delta実行を要求し、parent適用後にrepairを再開します。current architecture baselineとのcompatibilityが`Match`の場合だけAdaptive Implementationへ進み、`Drift`はArchitecture Slice Readiness / Elaborationへ戻し、`Unclear`はfail closedしてreadinessを再実行します。`ArchitectureNotRequired`でもLightweight architecture baselineとの比較を省略しません。全sliceのindependent verificationとpending ledger delta 0の後、`plans/<slug>-full-coverage-close.md`へCross-Slice Verificationを適用し、FixNow候補がある場合は対象sliceのtriage / repair / re-verificationとcross-slice rerunを完了してからResidual Decisionへ進みます。
 
-base artifact budgetはparent control-plane 5件、sliceごとにLiving Record 1件、final close 1件です。Black-box Behavior Spec、Slice Architecture、Design Pair handoffは条件付きで別集計します。別artifactはArtifact Creation Gateの`cross-thread-handoff`、`parallel-write-isolation`、`human-approval-wait`、`external-audit-evidence`、`record-size-limit`のいずれかを正確なpath付きで先にLiving Recordへ適用した場合だけ作成できます。tracked Implementation Completion HandoffもHigh-model Re-entry Handoffも例外ではありません。re-entryではSTANDARDが未保存payloadを返し、parentが例外行を適用してからtracked fileを保存してHIGHを再開します。pre-redesign runはexplicit legacy/separate modeのままresumeでき、silent migrationや同一run内のmode混在は行いません。
+base artifact budgetはparent control-plane 5件、sliceごとにLiving Record 1件、final close 1件です。Black-box Behavior Spec、Slice Architecture、Design Pair handoffは条件付きで別集計します。別artifactはArtifact Creation Gateの`cross-thread-handoff`、`parallel-write-isolation`、`human-approval-wait`、`external-audit-evidence`、`record-size-limit`のいずれかを正確なpath付きで先にLiving Recordへ適用した場合だけ作成できます。tracked Bounded Residual Implementation HandoffもDecision-Surface Re-entry Handoffも例外ではありません。re-entryではbounded-residual-implementation-ownerが未保存payloadを返し、parentが例外行を適用してからtracked fileを保存してdecision-surface-implementation-ownerを再開します。pre-redesign runはexplicit legacy/separate modeのままresumeでき、silent migrationや同一run内のmode混在は行いません。
 
 ## Agent reference
 
@@ -221,8 +223,8 @@ base artifact budgetはparent control-plane 5件、sliceごとにLiving Record 1
 | `runtime-contract-kernel` | Guardrail Focusのruntime contractを固定する |
 | `test-design-kernel` | Guardrail Focusのtest pointsとproduction binding checkを設計する |
 | `implementation-handoff-review` | implementation前のPlan coverageとauthorizationを確認する |
-| `high-implementation-starter` | 非自明な実装をHIGH_MODELで開始する |
-| `standard-implementation-completer` | complete handoff後のbounded remainderだけを完了する |
+| `decision-surface-implementation-owner` | unresolved decision surfaceが残る間、code inspection/production/tests/wiring/verificationを含むimplementation feedback loopを所有する（Adaptive package） |
+| `bounded-residual-implementation-owner` | decision surface解消後のbounded residual completionを所有する（Adaptive package） |
 | `code-review-focus-kernel` | human review用の差分と重点surfaceを整理する |
 | `verification-kernel` | parent Plan coverage、behavior evidence、production bindingを検証する |
 | `cross-slice-verification-kernel` | cross-slice contracts、runtime postconditions、forbidden statesを統合検証する |

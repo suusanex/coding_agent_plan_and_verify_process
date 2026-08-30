@@ -3,13 +3,13 @@
   "package": "adaptive-implementation-execution",
   "profiles": [
     {
-      "agent": "high-implementation-starter",
+      "agent": "decision-surface-implementation-owner",
       "model": "gpt-5.6-terra",
       "model_reasoning_effort": "high",
       "sandbox_mode": "workspace-write"
     },
     {
-      "agent": "standard-implementation-completer",
+      "agent": "bounded-residual-implementation-owner",
       "model": "gpt-5.6-luna",
       "model_reasoning_effort": "high",
       "sandbox_mode": "workspace-write"
