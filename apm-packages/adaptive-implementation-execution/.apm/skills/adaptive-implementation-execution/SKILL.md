@@ -174,7 +174,7 @@ ownerはWork PackagesとAllowed edit surface内で実装・検証します。cla
 
 valid handoffの実装中に新しいdecision surfaceが開いた場合だけ受理します。元のBounded Residual Implementation Handoff、Decision-Surface Re-entry Handoff、Original Implementation Intent、current worktreeを保持し、route identity一致を確認してDecision-Surface Implementation Ownerへ直列に戻します。
 
-re-entryは失敗ではありません。戻ったownerは新しいdecision surfaceと必要なimplementation / verificationを所有します。再transferは、re-entry triggerをactual code / verification evidenceによって解消し、通常のtransfer gateを改めてすべて満たし、同じ未解決原因をそのまま再handoffしていないことを`reentry_progress_evidence`で示せる場合に許可します。Remaining workやAllowed edit surfaceが前回より広がること自体はtransfer拒否理由にしません。
+re-entryは失敗ではありません。戻ったownerは新しいdecision surfaceと必要なimplementation / verificationを所有します。再transferは、`reentry_count`を直前のre-entry handoffと一致させ、`previous_reentry_trigger`と`reentry_progress_evidence.trigger`をそのtriggerへ一致させ、actual codeによる`resolution`、確認結果である`verification`、`same_unresolved_cause_rehanded_off: false`を記録し、通常のtransfer gateを改めてすべて満たす場合に許可します。Remaining workやAllowed edit surfaceが前回より広がること自体はtransfer拒否理由にしません。
 
 invalid handoff、route identity欠落、単なるedit typeにはre-entryを使いません。
 

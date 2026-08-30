@@ -89,7 +89,7 @@ Decision surface assessmentに`Open`があるhandoffを拒否し、同じowner�
 
 ## VAL-007: Progress-based retransfer
 
-re-entry後の再transferは、前回triggerの解消evidenceと通常transfer gateの再充足を要求する。shared abstraction追加等でRemaining workやAllowed edit surfaceが広がることは許容する。同じ未解決原因を解消証拠なしで再handoffする場合は拒否する。
+re-entry後の再transferは、直前のhandoffと一致する`reentry_count`、そのtriggerと一致する`previous_reentry_trigger` / `reentry_progress_evidence.trigger`、code上の`resolution`、`verification`、`same_unresolved_cause_rehanded_off: false`、通常transfer gateの再充足を要求する。fixtureはRemaining workとAllowed edit surfaceを実際に拡大して許容を確認し、非空のevidenceがあっても同じ未解決原因を再handoffする場合やcountが一致しない場合は拒否する。
 
 ## VAL-008: Route identity
 

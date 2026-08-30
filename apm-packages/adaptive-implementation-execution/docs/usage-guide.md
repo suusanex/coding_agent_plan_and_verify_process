@@ -73,7 +73,7 @@ Bounded-Residual Implementation Ownerはvalid handoffのWork PackageとAllowed e
 
 Decision-Surface Re-entry Handoffには、invalidating evidenceではなく「新しいdecision surfaceを開いたevidence」、current worktree、completed work、files、validation、required decision、route identityを記録します。
 
-re-entry後はDecision-Surface Implementation Ownerが必要なimplementation / verificationを含めて所有します。再transferは、前回triggerをactual code / verification evidenceで解消し、通常のtransfer gateを再度満たし、同じ未解決原因をそのまま戻していない場合に許可します。shared abstraction追加等でRemaining workやAllowed edit surfaceが広がっても、それ自体ではtransferを拒否しません。
+re-entry後はDecision-Surface Implementation Ownerが必要なimplementation / verificationを含めて所有します。再transferでは、`reentry_count`を直前のre-entry handoffと一致させ、そのtriggerを`previous_reentry_trigger`と`reentry_progress_evidence.trigger`へ伝播し、`resolution`、`verification`、`same_unresolved_cause_rehanded_off: false`を記録した上で通常のtransfer gateを再度満たします。shared abstraction追加等でRemaining workやAllowed edit surfaceが広がっても、それ自体ではtransferを拒否しません。
 
 ## Runtime topology and model mapping
 

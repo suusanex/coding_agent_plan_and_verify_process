@@ -54,6 +54,7 @@ route identityは`adaptive / default / N/A`または`design-pair / explicit-user
 さらに次を確認します。
 
 - `Ownership transfer basis: bounded-residual-work-only`
+- re-entry後は`reentry_count`が直前のre-entry handoffと一致し、`previous_reentry_trigger`と`reentry_progress_evidence.trigger`がそのtriggerに一致し、`resolution`、`verification`、`same_unresolved_cause_rehanded_off: false`がある
 - Decision surface assessmentの全concernが`Resolved`または理由付き`N/A`で、`Open`がない
 - assessmentがactual code / implementation / verification evidenceへ接続されている
 - `Blocked` acceptance itemがない

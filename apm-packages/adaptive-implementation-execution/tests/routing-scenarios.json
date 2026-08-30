@@ -53,7 +53,12 @@
             ],
             "reentry_count": 0,
             "previous_reentry_trigger": "N/A",
-            "reentry_progress_evidence": "N/A",
+            "reentry_progress_evidence": {
+              "trigger": "N/A",
+              "resolution": "N/A",
+              "verification": "N/A",
+              "same_unresolved_cause_rehanded_off": "N/A"
+            },
             "decision_surface_assessment": {
               "responsibility_ownership": { "status": "Resolved", "evidence": "QueueConsumer owns one-item consumption" },
               "cross_file_ownership": { "status": "Resolved", "evidence": "Composition root owns registration and QueueConsumer owns behavior" },
@@ -227,9 +232,30 @@
           "verdict": "READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION",
           "handoff_ref": "A",
           "reentry_count": 1,
-          "reentry_progress_evidence": "Implemented the required shared abstraction and verified that the original signature trigger is resolved",
-          "remaining_work_strict_subset": false,
-          "allowed_edit_surface_strict_subset": false
+          "previous_reentry_trigger": "shared signature invalidated",
+          "reentry_progress_evidence": {
+            "trigger": "shared signature invalidated",
+            "resolution": "Implemented the required shared abstraction and updated the locked contract",
+            "verification": "Focused production-path and contract tests passed",
+            "same_unresolved_cause_rehanded_off": false
+          },
+          "additional_acceptance_status": [
+            { "acceptance_item": "AC-2", "status": "Incomplete", "work_ids": ["RW-2"], "evidence": "The shared abstraction is proven; equivalent adapters remain" }
+          ],
+          "additional_remaining_work": [
+            {
+              "work_id": "RW-2",
+              "acceptance_items": ["AC-2"],
+              "responsibility": "Apply the resolved shared abstraction to equivalent adapters",
+              "authorized_surface": ["src/Shared", "tests/Shared"],
+              "expected_behavior": "Use the locked shared contract without reopening ownership or signature decisions",
+              "locked_boundaries": ["Shared abstraction signature", "ownership boundary", "error propagation"],
+              "local_freedom": ["private adapter helpers", "fixture organization"],
+              "completion_check": ["dotnet test --filter SharedAdapters"]
+            }
+          ],
+          "additional_allowed_edit_surface": ["src/Shared", "tests/Shared"],
+          "expected_surface_expansion": true
         },
         { "kind": "start", "owner": "bounded-residual-implementation-owner" },
         { "kind": "verdict", "owner": "bounded-residual-implementation-owner", "verdict": "IMPLEMENTATION_COMPLETED", "changed_locked_decision": false }
@@ -296,7 +322,13 @@
           "expected_rejected": true,
           "handoff_ref": "A",
           "reentry_count": 1,
-          "reentry_progress_evidence": ""
+          "previous_reentry_trigger": "shared signature invalidated",
+          "reentry_progress_evidence": {
+            "trigger": "shared signature invalidated",
+            "resolution": "The shared signature is still unresolved",
+            "verification": "Focused verification still reports the same signature failure",
+            "same_unresolved_cause_rehanded_off": true
+          }
         },
         {
           "kind": "verdict",
@@ -306,6 +338,111 @@
           "implementation_evidence": ["Owner resolved the remaining implementation without another invalid handoff"],
           "validation_evidence": ["Focused tests passed"]
         }
+      ],
+      "expected": { "final_state": "Completed", "bounded_residual_starts": 1 }
+    },
+    {
+      "id": "L",
+      "name": "reentry-rejects-empty-trigger",
+      "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
+      "events": [
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
+        { "kind": "verdict", "owner": "decision-surface-implementation-owner", "verdict": "READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION", "handoff_ref": "A" },
+        { "kind": "start", "owner": "bounded-residual-implementation-owner" },
+        {
+          "kind": "verdict",
+          "owner": "bounded-residual-implementation-owner",
+          "verdict": "NEEDS_DECISION_SURFACE_REENTRY",
+          "expected_rejected": true,
+          "new_decision_surface_required": true,
+          "edit_type_only": false,
+          "tracked_state_ref": "D",
+          "tracked_state_trigger": ""
+        },
+        { "kind": "verdict", "owner": "bounded-residual-implementation-owner", "verdict": "IMPLEMENTATION_COMPLETED", "changed_locked_decision": false }
+      ],
+      "expected": { "final_state": "Completed", "bounded_residual_starts": 1 }
+    },
+    {
+      "id": "M",
+      "name": "retransfer-rejects-mismatched-reentry-count",
+      "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
+      "events": [
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
+        { "kind": "verdict", "owner": "decision-surface-implementation-owner", "verdict": "READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION", "handoff_ref": "A" },
+        { "kind": "start", "owner": "bounded-residual-implementation-owner" },
+        { "kind": "verdict", "owner": "bounded-residual-implementation-owner", "verdict": "NEEDS_DECISION_SURFACE_REENTRY", "new_decision_surface_required": true, "edit_type_only": false, "tracked_state_ref": "D" },
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
+        {
+          "kind": "verdict",
+          "owner": "decision-surface-implementation-owner",
+          "verdict": "READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION",
+          "expected_rejected": true,
+          "handoff_ref": "A",
+          "reentry_count": 2,
+          "previous_reentry_trigger": "shared signature invalidated",
+          "reentry_progress_evidence": {
+            "trigger": "shared signature invalidated",
+            "resolution": "Implemented the required shared abstraction",
+            "verification": "Focused tests passed",
+            "same_unresolved_cause_rehanded_off": false
+          }
+        },
+        {
+          "kind": "verdict",
+          "owner": "decision-surface-implementation-owner",
+          "verdict": "IMPLEMENTATION_COMPLETED",
+          "acceptance_complete": true,
+          "implementation_evidence": ["Owner completed the work after rejecting the mismatched history"],
+          "validation_evidence": ["Focused tests passed"]
+        }
+      ],
+      "expected": { "final_state": "Completed", "bounded_residual_starts": 1 }
+    },
+    {
+      "id": "N",
+      "name": "initial-transfer-rejects-nonzero-reentry-count",
+      "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
+      "events": [
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
+        {
+          "kind": "verdict",
+          "owner": "decision-surface-implementation-owner",
+          "verdict": "READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION",
+          "expected_rejected": true,
+          "handoff_ref": "A",
+          "reentry_count": 1
+        },
+        {
+          "kind": "verdict",
+          "owner": "decision-surface-implementation-owner",
+          "verdict": "IMPLEMENTATION_COMPLETED",
+          "acceptance_complete": true,
+          "implementation_evidence": ["Owner completed the work after rejecting invalid initial history"],
+          "validation_evidence": ["Focused tests passed"]
+        }
+      ],
+      "expected": { "final_state": "Completed", "bounded_residual_starts": 0 }
+    },
+    {
+      "id": "O",
+      "name": "reentry-rejects-nonincrementing-count",
+      "route": { "implementation_route": "adaptive", "implementation_route_source": "default", "design_pair_handoff": "N/A" },
+      "events": [
+        { "kind": "start", "owner": "decision-surface-implementation-owner" },
+        { "kind": "verdict", "owner": "decision-surface-implementation-owner", "verdict": "READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION", "handoff_ref": "A" },
+        { "kind": "start", "owner": "bounded-residual-implementation-owner" },
+        {
+          "kind": "verdict",
+          "owner": "bounded-residual-implementation-owner",
+          "verdict": "NEEDS_DECISION_SURFACE_REENTRY",
+          "expected_rejected": true,
+          "new_decision_surface_required": true,
+          "edit_type_only": false,
+          "tracked_state_ref": "D",
+          "tracked_state_reentry_count": 0
+        },
+        { "kind": "verdict", "owner": "bounded-residual-implementation-owner", "verdict": "IMPLEMENTATION_COMPLETED", "changed_locked_decision": false }
       ],
       "expected": { "final_state": "Completed", "bounded_residual_starts": 1 }
     }

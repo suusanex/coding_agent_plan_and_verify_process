@@ -113,7 +113,8 @@ production/test edit、代表経路、wiring edit、test作成、fixture作成�
 - re-entry triggerをactual code / verification evidenceによって解消している
 - 通常のtransfer gateを改めてすべて満たしている
 - 同じ未解決原因をそのまま再handoffしていない
-- `reentry_progress_evidence`に、trigger、解消内容、確認結果を記録している
+- `reentry_count`が直前のre-entry handoffと一致し、`previous_reentry_trigger`と`reentry_progress_evidence.trigger`がそのtriggerと一致する
+- `reentry_progress_evidence`にresolution、verification、`same_unresolved_cause_rehanded_off: false`を記録している
 
 shared abstraction追加等によりRemaining workまたはAllowed edit surfaceが前回より広がっても、それ自体では再transferを拒否しません。上記条件を満たさない場合は、このagentが実装を続けます。re-entryは失敗ではなく通常の制御フローです。
 

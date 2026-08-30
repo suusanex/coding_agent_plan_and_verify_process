@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "adaptive-implementation-execution",
-  "canonicalFingerprint": "a0fe790bafcd30688467d25f7d2f10a2539a54fdefa08fe9f461859ba495cacd",
-  "distributionFingerprint": "2632d2bda7a7f2ef2416f6e0487a3ef1b6b449c7cc05a39f5bc00249483d7aab",
+  "canonicalFingerprint": "04cc688c27e3318ba92d6456a6cb72f0aa790baae2cd2f65f3f8aa630d1a18a0",
+  "distributionFingerprint": "f528308a74a917322474061cea35a9a40d123b248099aa89fbf995189f5a36bc",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
