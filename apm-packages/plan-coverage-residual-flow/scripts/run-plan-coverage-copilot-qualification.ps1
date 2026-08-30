@@ -60,8 +60,8 @@ $planCoverageOwnedAgents = @(
     'residual-decision-gate'
 )
 $adaptiveAgents = @(
-    'high-implementation-starter',
-    'standard-implementation-completer'
+    'decision-surface-implementation-owner',
+    'bounded-residual-implementation-owner'
 )
 $allTrackedAgents = @($planCoverageOwnedAgents + $adaptiveAgents + @('design-pair-implementation-execution'))
 
@@ -409,7 +409,7 @@ if (-not [string]::IsNullOrWhiteSpace($ReevaluateFromRunRoot)) {
         if (-not $byId.ContainsKey($id)) { continue }
         $ac = $byId[$id].adaptive_connection
         if ($ac -and $ac.connection_satisfied) { $adaptiveOk = $true }
-        if ($ac -and $ac.high_to_standard_handoff_satisfied) { $handoffOk = $true }
+        if ($ac -and $ac.bounded_residual_transfer_satisfied) { $handoffOk = $true }
     }
     if (-not $adaptiveOk) { $fullSuitePass = $false }
 
@@ -427,7 +427,7 @@ if (-not [string]::IsNullOrWhiteSpace($ReevaluateFromRunRoot)) {
         $notes += "Evidence remains bound to source snapshot fingerprint=$sourceFp package=$($meta.package_version) qualification_input=$recordedInputIdentity; current checkout fingerprint=$canonicalFingerprint package=$packageVersion qualification_input=$qualificationInputFingerprint is a separate support assessment. "
     }
     if ($adaptiveOk -and -not $handoffOk) {
-        $notes += 'Adaptive connection satisfied via HIGH COMPLETED_BY_HIGH_MODEL durable evidence; HIGH->STANDARD handoff was NOT_REQUIRED (no STANDARD remainder). '
+        $notes += 'Adaptive connection satisfied via decision-surface-owner IMPLEMENTATION_COMPLETED durable evidence; decision-surface-owner->bounded-residual-owner handoff was NOT_REQUIRED (no bounded-residual remainder). '
     }
     $notes += 'Qualified client surface is GitHub Copilot CLI only.'
 
@@ -498,7 +498,7 @@ if (-not [string]::IsNullOrWhiteSpace($ReevaluateFromRunRoot)) {
 - package_matches_current: $packageMatches
 - distribution_smoke: $distStatus
 - adaptive_connection_satisfied: $adaptiveOk
-- high_to_standard_handoff_satisfied: $handoffOk
+- bounded_residual_transfer_satisfied: $handoffOk
 
 ## Scenarios
 
@@ -699,7 +699,7 @@ try {
         if (-not $byId.ContainsKey($id)) { continue }
         $ac = $byId[$id].adaptive_connection
         if ($ac -and $ac.connection_satisfied) { $adaptiveOk = $true }
-        if ($ac -and $ac.high_to_standard_handoff_satisfied) { $handoffOk = $true }
+        if ($ac -and $ac.bounded_residual_transfer_satisfied) { $handoffOk = $true }
     }
     if (-not $selectedFilter -and -not $adaptiveOk) { $allPass = $false }
 
@@ -712,7 +712,7 @@ try {
     $clientVersionClean = ($copilotVersion -replace '[\r\n].*', '').Trim()
     $notes = 'Qualified client surface is GitHub Copilot CLI only. Codex was not re-qualified in this run beyond existing static/historical evidence. VS Code Agent mode was not runtime-qualified. '
     if ($adaptiveOk -and -not $handoffOk) {
-        $notes += 'Adaptive connection satisfied via HIGH COMPLETED_BY_HIGH_MODEL durable evidence where STANDARD remainder was not required. '
+        $notes += 'Adaptive connection satisfied via decision-surface-owner IMPLEMENTATION_COMPLETED durable evidence where bounded-residual remainder was not required. '
     }
     $notes += "source_run_id=$runId bound via run-metadata.json."
 

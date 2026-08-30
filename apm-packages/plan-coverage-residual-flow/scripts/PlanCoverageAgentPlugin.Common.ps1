@@ -27,8 +27,8 @@ $script:PlanCoverageOwnedAgentNames = @(
 
 $script:AdaptiveRequiredLockMarkers = @(
     'adaptive-implementation-execution/SKILL.md',
-    'high-implementation-starter.agent.md',
-    'standard-implementation-completer.agent.md'
+    'decision-surface-implementation-owner.agent.md',
+    'bounded-residual-implementation-owner.agent.md'
 )
 
 $script:AgentPluginsV1SchemaId = 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json'
@@ -174,7 +174,7 @@ function Write-ApPluginManifestJson {
 
 function Resolve-ApAdaptiveAgentSources([string]$RepoRoot) {
     $packageAgents = Join-Path $RepoRoot 'apm-packages/adaptive-implementation-execution/.apm/agents'
-    $names = @('high-implementation-starter.agent.md', 'standard-implementation-completer.agent.md')
+    $names = @('decision-surface-implementation-owner.agent.md', 'bounded-residual-implementation-owner.agent.md')
     $resolved = @()
     foreach ($name in $names) {
         $pkgPath = Join-Path $packageAgents $name
@@ -252,7 +252,7 @@ function New-ApDependencyStage {
     $adaptiveManifest = @"
 name: adaptive-implementation-execution
 version: $adaptiveVersion
-description: Adaptive serial implementation routing from ordinary Plans or completed post-map Design Pair handoffs through high-model non-local decision closure and standard-model implementation ownership
+description: Adaptive serial implementation ownership driven by remaining decision surfaces, with bounded residual completion after evidence-backed transfer
 type: hybrid
 targets:
   - copilot

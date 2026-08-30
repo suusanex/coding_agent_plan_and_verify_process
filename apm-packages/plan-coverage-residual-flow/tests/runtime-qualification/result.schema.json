@@ -258,15 +258,43 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "high_execution": { "$ref": "#/$defs/adaptive_phase" },
-            "handoff": { "$ref": "#/$defs/adaptive_phase" },
-            "standard_execution": { "$ref": "#/$defs/adaptive_phase" },
+            "decision_surface_execution": { "$ref": "#/$defs/adaptive_phase" },
+            "bounded_residual_handoff": { "$ref": "#/$defs/adaptive_phase" },
+            "bounded_residual_execution": { "$ref": "#/$defs/adaptive_phase" },
+            "bounded_residual_transfer_satisfied": { "type": "boolean" },
+            "decision_surface_observed": { "type": "boolean" },
+            "bounded_residual_observed": { "type": "boolean" },
+            "bounded_residual_handoff_observed": { "type": "boolean" },
+            "high_execution": {
+              "$ref": "#/$defs/adaptive_phase",
+              "description": "Historical Adaptive 0.5 evidence only; current snapshots reject this field."
+            },
+            "handoff": {
+              "$ref": "#/$defs/adaptive_phase",
+              "description": "Historical Adaptive 0.5 evidence only; current snapshots reject this field."
+            },
+            "standard_execution": {
+              "$ref": "#/$defs/adaptive_phase",
+              "description": "Historical Adaptive 0.5 evidence only; current snapshots reject this field."
+            },
             "connection_satisfied": { "type": "boolean" },
-            "high_to_standard_handoff_satisfied": { "type": "boolean" },
+            "high_to_standard_handoff_satisfied": {
+              "type": "boolean",
+              "description": "Historical Adaptive 0.5 evidence only; current snapshots reject this field."
+            },
             "design_pair_auto_selected": { "type": "boolean" },
-            "high_observed": { "type": "boolean" },
-            "standard_observed": { "type": "boolean" },
-            "handoff_observed": { "type": "boolean" }
+            "high_observed": {
+              "type": "boolean",
+              "description": "Historical Adaptive 0.5 evidence only; current snapshots reject this field."
+            },
+            "standard_observed": {
+              "type": "boolean",
+              "description": "Historical Adaptive 0.5 evidence only; current snapshots reject this field."
+            },
+            "handoff_observed": {
+              "type": "boolean",
+              "description": "Historical Adaptive 0.5 evidence only; current snapshots reject this field."
+            }
           }
         },
         "evidence_boundary": { "type": "string" }

@@ -1,32 +1,31 @@
 {
   "schemaVersion": 1,
   "package": "design-pair-implementation-execution",
-  "canonicalFingerprint": "3abd6ef9cfd7fea06943a2ef025f019ee6b0bb1edb7ba82910fe022a6d9dd434",
-  "distributionFingerprint": "a154cb67bd26d7e435818777afd197459774151b5a3e88dcef38f1af886cbd94",
-  "candidateCommit": "0ff5900beb62d8c42226a5cad2779c56747d50c2",
+  "canonicalFingerprint": "38b87240833b9613187016d42fbd0b0ae323e50c10d261a42aa592f0cd057fce",
+  "distributionFingerprint": "a84899dcc1be81dd4ed3b2936ec03bc8a24859ac89607d176987c23f0b7bcc77",
+  "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
-    "clientVersion": "1.0.80",
+    "clientVersion": "NOT RUN",
     "apmVersion": "0.26.0"
   },
   "assessments": [
     {
       "distribution": "apm",
-      "status": "PASS",
-      "evidenceMode": "PARTIAL",
-      "reason": "The candidate remote APM dependency closure passed and the unchanged canonical fingerprint permits reuse of existing multi-turn Copilot evidence.",
+      "status": "NOT_RUN",
+      "evidenceMode": "NONE",
+      "reason": "The Adaptive 0.6.0 semantic owner contract changes the post-READY route, so prior Design Pair runtime evidence cannot qualify this candidate.",
       "evidenceRefs": [
-        "tests/agent-plugins/results/2026-08-23-runtime-qualification.md",
-        "apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/results/20260805-copilot-issue69.md"
+        "apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md"
       ]
     },
     {
       "distribution": "agent-plugin-direct",
       "status": "HOLD",
-      "evidenceMode": "PARTIAL",
-      "reason": "Copilot discovered the Design Pair bundle, but the intentionally separate Adaptive plugin was not explicitly composed and behavior-qualified.",
+      "evidenceMode": "NONE",
+      "reason": "Direct plugin composition with the Adaptive 0.6.0 semantic owners has not been behavior-qualified.",
       "evidenceRefs": [
-        "tests/agent-plugins/results/2026-08-23-runtime-qualification.md"
+        "apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md"
       ]
     }
   ]

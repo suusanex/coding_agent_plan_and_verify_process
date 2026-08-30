@@ -15,8 +15,8 @@
 
 | Package | APM / Copilot | Agent Plugin direct | Boundary |
 | --- | --- | --- | --- |
-| Adaptive Implementation | PASS / PARTIAL | HOLD / PARTIAL | candidate installはPASS。direct代表routeは未実行 |
-| Design Pair | PASS / PARTIAL | HOLD / PARTIAL | Adaptiveをinlineせず、direct compositionは未実行 |
+| Adaptive Implementation | NOT_RUN / NONE | HOLD / NONE | 0.6.0でownership contractとagent identityを刷新したため再認定待ち。0.4.0 / 0.5.0 evidenceは再利用しない |
+| Design Pair | NOT_RUN / NONE | HOLD / NONE | Adaptive 0.6.0へのpost-READY routeを再認定待ち。過去のmulti-turn evidenceは履歴として保持 |
 | Goal Context Authoring | PASS / LIVE | PASS / LIVE | free-form生成とbundle validatorを確認 |
 | PR Review Remediation | PASS / LIVE | PASS / LIVE | PR #131のremote reviewをplanner停止点まで確認 |
 | Persistent Purpose Review | PASS / LIVE | HOLD / PARTIAL | Runner 0.2.2は別配布。Copilot same-run flowは確認 |

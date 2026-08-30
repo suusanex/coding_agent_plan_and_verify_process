@@ -86,7 +86,7 @@ user-facing responseでは`<DP-Txx> Internal design discussion` blockにCode loc
 
 ## Adaptive-Owned
 
-| Topic / Target ID | Why left to HIGH_MODEL | Useful evidence |
+| Topic / Target ID | Why left to decision-surface-implementation-owner | Useful evidence |
 | --- | --- | --- |
 
 ## No-Change

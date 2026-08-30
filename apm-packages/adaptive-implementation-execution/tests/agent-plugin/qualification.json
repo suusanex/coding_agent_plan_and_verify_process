@@ -1,32 +1,31 @@
 {
   "schemaVersion": 1,
   "package": "adaptive-implementation-execution",
-  "canonicalFingerprint": "97eab47ecd7ebf3a875ebad29126aff7854afeed17346fc42caae7ba980334af",
-  "distributionFingerprint": "295ccbddf8a5f6a28d48cce0e80a2b3b8c773d3ab042d0874ff1f948dfcc6269",
-  "candidateCommit": "0ff5900beb62d8c42226a5cad2779c56747d50c2",
+  "canonicalFingerprint": "c93a038467ed381c6601652542695158ab75eb499802b8802bff262a7718fb18",
+  "distributionFingerprint": "e289b6ae8aae3989c6c16978f171f3fbbecdd2ce97478d5989c8bbd799fe0ef3",
+  "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
-    "clientVersion": "1.0.80",
+    "clientVersion": "NOT RUN",
     "apmVersion": "0.26.0"
   },
   "assessments": [
     {
       "distribution": "apm",
-      "status": "PASS",
-      "evidenceMode": "PARTIAL",
-      "reason": "The candidate remote APM install passed and the unchanged canonical fingerprint permits reuse of the existing HIGH-to-STANDARD routing evidence.",
+      "status": "NOT_RUN",
+      "evidenceMode": "NONE",
+      "reason": "Adaptive 0.6.0 changes the ownership contract and agent identities, so prior APM runtime evidence cannot qualify the candidate.",
       "evidenceRefs": [
-        "tests/agent-plugins/results/2026-08-23-runtime-qualification.md",
-        "apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-08-09.md"
+        "apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-08-30.md"
       ]
     },
     {
       "distribution": "agent-plugin-direct",
       "status": "HOLD",
       "evidenceMode": "PARTIAL",
-      "reason": "Copilot discovered the candidate bundle, but a representative HIGH-to-handoff-to-STANDARD route was not rerun through direct plugin deployment.",
+      "reason": "The direct plugin bundle requires a new decision-surface ownership route qualification for Adaptive 0.6.0.",
       "evidenceRefs": [
-        "tests/agent-plugins/results/2026-08-23-runtime-qualification.md"
+        "apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-08-30.md"
       ]
     }
   ]

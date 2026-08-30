@@ -9,7 +9,7 @@ description: Legacy compatibility entry for a single bounded parent Plan impleme
 
 You are the "Implementation Execution" agent.
 
-> Compatibility status: legacy. New non-trivial Plan Coverage implementation must start with `high-implementation-starter.agent.md` and may use `standard-implementation-completer.agent.md` only after a valid `READY_FOR_STANDARD_COMPLETION` handoff. Use this agent only when a caller explicitly selects the legacy single-pass contract or a human-guided compatibility route.
+> Compatibility status: legacy. New non-trivial Plan Coverage implementation must start with `decision-surface-implementation-owner.agent.md` and may use `bounded-residual-implementation-owner.agent.md` only after a valid `READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION` handoff. Use this agent only when a caller explicitly selects the legacy single-pass contract or a human-guided compatibility route.
 
 出力ドキュメントは日本語で記述してください。ただし、agent 名・技術用語・status 語彙・verdict 値・表のカラム名・Handoff Packet のフィールドキーは英語のままとします。
 

@@ -137,8 +137,8 @@ try {
 
     # After pack with Adaptive-attested lock authority proven separately: bundle must not silently claim Adaptive.
     $adaptiveInBundle = (Test-Path -LiteralPath (Join-Path $bundleRoot 'skills/adaptive-implementation-execution/SKILL.md') -PathType Leaf)
-    $highInBundle = (Test-Path -LiteralPath (Join-Path $bundleRoot 'agents/high-implementation-starter.agent.md') -PathType Leaf)
-    $standardInBundle = (Test-Path -LiteralPath (Join-Path $bundleRoot 'agents/standard-implementation-completer.agent.md') -PathType Leaf)
+    $decisionSurfaceOwnerInBundle = (Test-Path -LiteralPath (Join-Path $bundleRoot 'agents/decision-surface-implementation-owner.agent.md') -PathType Leaf)
+    $boundedResidualOwnerInBundle = (Test-Path -LiteralPath (Join-Path $bundleRoot 'agents/bounded-residual-implementation-owner.agent.md') -PathType Leaf)
 
     # Optional: Adaptive package packs standalone (separate plugin artifact).
     $adaptiveBundleRoot = $null
@@ -200,13 +200,13 @@ try {
             path_dep_pack_refused     = $pathDepPackAttempt.refused
             path_dep_pack_detail      = $pathDepPackAttempt.detail
             present_in_plan_coverage_bundle = [ordered]@{
-                skill    = $adaptiveInBundle
-                high     = $highInBundle
-                standard = $standardInBundle
+                skill                  = $adaptiveInBundle
+                decision_surface_owner = $decisionSurfaceOwnerInBundle
+                bounded_residual_owner = $boundedResidualOwnerInBundle
             }
             standalone_adaptive_bundle_root = $adaptiveBundleRoot
-            conclusion                = $(if (-not $adaptiveInBundle -and -not $highInBundle -and -not $standardInBundle -and $pathDepPackAttempt.refused) {
-                    'Adaptive Skill/HIGH/STANDARD are attested in source-install lock deployed_files/hashes, but apm pack of Plan Coverage (git:parent / no local path dep) does not inline them into the plugin bundle; local path deps are refused by pack. Adaptive packs successfully as its own plugin bundle. APM dependency materialization or a separate Adaptive plugin remains required.'
+            conclusion                = $(if (-not $adaptiveInBundle -and -not $decisionSurfaceOwnerInBundle -and -not $boundedResidualOwnerInBundle -and $pathDepPackAttempt.refused) {
+                    'Adaptive Skill and semantic owner agents are attested in source-install lock deployed_files/hashes, but apm pack of Plan Coverage (git:parent / no local path dep) does not inline them into the plugin bundle; local path deps are refused by pack. Adaptive packs successfully as its own plugin bundle. APM dependency materialization or a separate Adaptive plugin remains required.'
                 } else {
                     'Unexpected Adaptive pack composition — review build logs.'
                 })

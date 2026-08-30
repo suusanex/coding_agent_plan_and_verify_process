@@ -252,7 +252,7 @@ Ready verdict は、unresolved implementation-realization item が downstream �
 `Recommended next step` は通常:
 
 - `runtime-contract-kernel.agent.md`（`READY_FOR_RUNTIME_CONTRACT` の場合）
-- `implementation-handoff-review.agent.md`、その後 `high-implementation-starter.agent.md`（`READY_FOR_IMPLEMENTATION` かつ downstream prerequisites が揃っている場合）
+- `implementation-handoff-review.agent.md`、その後 `decision-surface-implementation-owner.agent.md`（`READY_FOR_IMPLEMENTATION` かつ downstream prerequisites が揃っている場合）
 - `implementation-contract-review-kernel.agent.md`（self-check verdict を explicit review-only fallback で確認する必要がある場合のみ）
 - human decision または upstream artifact 修正（blocking verdict の場合）
 

@@ -39,6 +39,36 @@ function Write-AgentPackage([string] $PackageRoot, [string] $PackageName, [strin
     Set-Content -LiteralPath (Join-Path $PackageRoot 'codex-profile-overlays.json') -Value $json
 }
 
+function Write-AdaptivePackage([string] $Root, [string] $DecisionModel, [string] $ResidualModel) {
+    $packageRoot = Join-Parts $Root @('apm_modules', 'owner', 'repo', 'apm-packages', 'adaptive-implementation-execution')
+    $agentRoot = Join-Parts $packageRoot @('.apm', 'agents')
+    New-Item -ItemType Directory -Path $agentRoot -Force | Out-Null
+    Set-Content -LiteralPath (Join-Path $packageRoot 'apm.yml') -Value "name: adaptive-implementation-execution`n"
+    foreach ($agent in @('decision-surface-implementation-owner', 'bounded-residual-implementation-owner')) {
+        $agentText = @("---", "name: $agent", "description: Fixture description", "---", "", "You are the fixture agent.") -join [Environment]::NewLine
+        Set-Content -LiteralPath (Join-Path $agentRoot ($agent + '.agent.md')) -Value $agentText
+    }
+    $json = @{
+        schemaVersion = 1
+        package = 'adaptive-implementation-execution'
+        profiles = @(
+            @{
+                agent = 'decision-surface-implementation-owner'
+                model = $DecisionModel
+                model_reasoning_effort = 'high'
+                sandbox_mode = 'workspace-write'
+            },
+            @{
+                agent = 'bounded-residual-implementation-owner'
+                model = $ResidualModel
+                model_reasoning_effort = 'high'
+                sandbox_mode = 'workspace-write'
+            }
+        )
+    } | ConvertTo-Json -Depth 5
+    Set-Content -LiteralPath (Join-Path $packageRoot 'codex-profile-overlays.json') -Value $json
+}
+
 try {
     $moduleRoot = Join-Parts $root @('apm_modules', 'owner', 'repo', 'apm-packages', 'fixture-package')
     $duplicate = Join-Parts $root @('apm_modules', 'owner', 'repo', 'apm-packages', 'fixture-copy')
@@ -121,6 +151,29 @@ developer_instructions = "You are the fixture agent."
     $invalidResult = Invoke-Finalizer @($root)
     Assert-True ($invalidResult.ExitCode -ne 0) 'Invalid overlay unexpectedly succeeded.'
     Assert-True ($invalidResult.Output -match 'JsonException|StackTrace|at System\.') 'Invalid overlay did not include exception diagnostics.'
+
+    $adaptiveRoot = Join-Path ([IO.Path]::GetTempPath()) ('codex-profile-finalizer-adaptive-' + [guid]::NewGuid().ToString('N'))
+    try {
+        New-Item -ItemType Directory -Path (Join-Parts $adaptiveRoot @('.codex', 'agents')) -Force | Out-Null
+        Write-AdaptivePackage $adaptiveRoot 'gpt-5.6-terra' 'gpt-5.6-luna'
+        foreach ($agent in @('decision-surface-implementation-owner', 'bounded-residual-implementation-owner')) {
+            Set-Content -LiteralPath (Join-Parts $adaptiveRoot @('.codex', 'agents', ($agent + '.toml'))) -Value @"
+name = '$agent'
+description = "Fixture description"
+developer_instructions = "You are the fixture agent."
+"@
+        }
+        Assert-True ((Invoke-Finalizer @($adaptiveRoot)).ExitCode -eq 0) 'Adaptive semantic owner profiles were not applied.'
+
+        $adaptiveOverlay = Join-Parts $adaptiveRoot @('apm_modules', 'owner', 'repo', 'apm-packages', 'adaptive-implementation-execution', 'codex-profile-overlays.json')
+        (Get-Content -Raw -LiteralPath $adaptiveOverlay) -replace 'gpt-5\.6-luna', 'gpt-5.6-terra' | Set-Content -LiteralPath $adaptiveOverlay
+        $sameModel = Invoke-Finalizer @($adaptiveRoot, '--check')
+        Assert-True ($sameModel.ExitCode -ne 0) 'Adaptive semantic owners unexpectedly accepted the same model mapping.'
+        Assert-True ($sameModel.Output -match 'semantic owners with distinct model mappings') 'Adaptive same-model failure was not explicit.'
+    }
+    finally {
+        if (Test-Path -LiteralPath $adaptiveRoot) { Remove-Item -LiteralPath $adaptiveRoot -Recurse -Force }
+    }
 
     Write-Output 'Codex profile finalizer validation: PASS'
 }

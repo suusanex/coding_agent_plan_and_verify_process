@@ -73,7 +73,7 @@ try {
             # rewrite Adaptive agent deps to absolute paths so multi-target projection
             # structure can still be validated without remote git parent context.
             # Local path installs cannot resolve git:parent. Stage package copies and
-            # place Adaptive HIGH/STANDARD agents under staged Adaptive .apm/agents so
+            # place Adaptive decision-surface/bounded-residual owner agents under staged Adaptive .apm/agents so
             # includes:auto can distribute them without monorepo parent context.
             $stageRoot = Join-Path $tempParent ('plan-coverage-residual-flow-stage-' + [Guid]::NewGuid().ToString('N'))
            $stagePackage = Join-Path $stageRoot 'apm-packages\plan-coverage-residual-flow'
@@ -85,7 +85,7 @@ try {
             Copy-DirectoryContents (Join-Path $repoRoot 'apm-packages\codex-profile-finalizer') $stageFinalizer
             $stageAdaptiveAgents = Join-Path $stageAdaptive '.apm\agents'
             New-Item -ItemType Directory -Path $stageAdaptiveAgents -Force | Out-Null
-            foreach ($adaptiveAgent in @('high-implementation-starter.agent.md', 'standard-implementation-completer.agent.md')) {
+            foreach ($adaptiveAgent in @('decision-surface-implementation-owner.agent.md', 'bounded-residual-implementation-owner.agent.md')) {
                 Copy-Item -LiteralPath (Join-Path $repoRoot "apm-packages\adaptive-implementation-execution\.apm\agents\$adaptiveAgent") -Destination (Join-Path $stageAdaptiveAgents $adaptiveAgent) -Force
             }
 
@@ -94,8 +94,8 @@ try {
             $stageFinalizerResolved = (Resolve-Path -LiteralPath $stageFinalizer).Path
             $adaptiveManifest = @"
 name: adaptive-implementation-execution
-version: 0.5.0
-description: Adaptive serial implementation routing from ordinary Plans or completed post-map Design Pair handoffs through high-model non-local decision closure and standard-model implementation ownership
+version: 0.6.0
+description: Adaptive serial implementation ownership driven by remaining decision surfaces, with bounded residual completion after evidence-backed transfer
 type: hybrid
 targets:
   - copilot
@@ -111,7 +111,7 @@ dependencies:
 
             $packageManifest = @"
 name: plan-coverage-residual-flow
-version: 0.14.0
+version: 0.15.0
 description: Plan Coverage Check and Residual Decision Flow with durable Design Pair waiting state, full-coverage Slice Living Records, Architecture Slice Readiness, Guardrail Focus, and residual decision gating
 type: hybrid
 targets:
@@ -199,10 +199,10 @@ dependencies:
 
     $adaptiveRequired = @(
         '.agents/skills/adaptive-implementation-execution/SKILL.md',
-        '.github/agents/high-implementation-starter.agent.md',
-        '.github/agents/standard-implementation-completer.agent.md',
-        '.codex/agents/high-implementation-starter.toml',
-        '.codex/agents/standard-implementation-completer.toml'
+        '.github/agents/decision-surface-implementation-owner.agent.md',
+        '.github/agents/bounded-residual-implementation-owner.agent.md',
+        '.codex/agents/decision-surface-implementation-owner.toml',
+        '.codex/agents/bounded-residual-implementation-owner.toml'
     )
     foreach ($relativePath in $adaptiveRequired) {
         if (-not (Test-Path -LiteralPath (Join-Path $tempRoot $relativePath) -PathType Leaf)) {
@@ -218,8 +218,8 @@ dependencies:
         }
 
         $block = $lockBlock.Groups['block'].Value
-        if ($block -cnotmatch '(?m)^  version:\s*0\.14\.0\s*$') {
-            throw 'Fresh APM lock does not contain Plan Coverage package version 0.14.0.'
+        if ($block -cnotmatch '(?m)^  version:\s*0\.15\.0\s*$') {
+            throw 'Fresh APM lock does not contain Plan Coverage package version 0.15.0.'
         }
 
         $installedHash = Get-NormalizedTextSha256 $installedSkillPath

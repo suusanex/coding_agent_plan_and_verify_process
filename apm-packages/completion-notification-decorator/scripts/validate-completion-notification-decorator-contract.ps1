@@ -55,7 +55,7 @@ $skillPath = Join-Path $packageRoot '.apm/skills/completion-notification-decorat
 $openAiPath = Join-Path $packageRoot '.apm/skills/completion-notification-decorator/agents/openai.yaml'
 $contractPath = Join-Path $packageRoot '.apm/skills/completion-notification-decorator/references/envelope-authoring-contract.md'
 Assert-Contains $manifestPath 'name: completion-notification-decorator' 'canonical package name'
-Assert-Contains $manifestPath 'version: 0.2.0' 'package version'
+Assert-Contains $manifestPath 'version: 0.2.1' 'package version'
 Assert-Contains $skillPath 'exactly one explicitly co-selected Codex primary process' 'explicit single-primary trigger'
 Assert-Contains $skillPath 'Do not select, start, route, reproduce, or replace that process.' 'non-orchestrator boundary'
 Assert-Contains $skillPath 'Preserve its terminal verdict vocabulary exactly.' 'verdict preservation rule'
@@ -79,7 +79,7 @@ foreach ($fixture in $fixtures) { $fixtureFailures = @(Get-ContractFailures $fix
 $negative = @(
     [pscustomobject]@{ id = 'missing-process'; primary_process = 'not-a-real-primary-process'; observed_status = 'NOT_A_REAL_VERDICT'; primary_output = 'Verdict: NOT_A_REAL_VERDICT' },
     [pscustomobject]@{ id = 'invalid-verdict'; primary_process = 'adaptive-implementation-execution'; observed_status = 'NOT_A_REAL_VERDICT'; primary_output = 'Verdict: NOT_A_REAL_VERDICT' },
-    [pscustomobject]@{ id = 'mismatched-output'; primary_process = 'adaptive-implementation-execution'; observed_status = 'COMPLETED_BY_HIGH_MODEL'; primary_output = 'Verdict: READY_TO_CLOSE' }
+    [pscustomobject]@{ id = 'mismatched-output'; primary_process = 'adaptive-implementation-execution'; observed_status = 'IMPLEMENTATION_COMPLETED'; primary_output = 'Verdict: READY_TO_CLOSE' }
 )
 foreach ($fixture in $negative) { if (@(Get-ContractFailures $fixture).Count -eq 0) { $failures.Add("Negative fixture unexpectedly passed: $($fixture.id)") } }
 

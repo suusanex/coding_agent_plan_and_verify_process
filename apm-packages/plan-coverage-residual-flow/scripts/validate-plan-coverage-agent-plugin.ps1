@@ -614,9 +614,9 @@ try {
         Assert-True ([string]$att.status -ceq 'PASS') 'Adaptive lock attestation status must be PASS'
         Assert-True ([bool]$att.path_dep_pack_refused) 'Expected apm pack to refuse local path dependency'
         Assert-True (-not [bool]$att.present_in_plan_coverage_bundle.skill) 'Plan Coverage plugin bundle unexpectedly contains Adaptive Skill'
-        Assert-True (-not [bool]$att.present_in_plan_coverage_bundle.high) 'Plan Coverage plugin bundle unexpectedly contains HIGH agent'
-        Assert-True (-not [bool]$att.present_in_plan_coverage_bundle.standard) 'Plan Coverage plugin bundle unexpectedly contains STANDARD agent'
-        Write-Host "OK Adaptive attestation: lock proves Skill/HIGH/STANDARD; pack does not inline them; path-dep pack refused."
+        Assert-True (-not [bool]$att.present_in_plan_coverage_bundle.decision_surface_owner) 'Plan Coverage plugin bundle unexpectedly contains the decision-surface owner agent'
+        Assert-True (-not [bool]$att.present_in_plan_coverage_bundle.bounded_residual_owner) 'Plan Coverage plugin bundle unexpectedly contains the bounded-residual owner agent'
+        Write-Host "OK Adaptive attestation: lock proves Skill and semantic owner agents; pack does not inline them; path-dep pack refused."
         if ($att.standalone_adaptive_bundle_root) {
             $adSkill = Join-Path $att.standalone_adaptive_bundle_root 'skills/adaptive-implementation-execution/SKILL.md'
             Assert-True (Test-Path -LiteralPath $adSkill -PathType Leaf) 'Adaptive standalone pack missing Skill'

@@ -21,4 +21,4 @@ The three runs for an input pass only when the execution-model set, recommended 
 
 Use `result-template.md` for the observation record. `NOT RUN` and `UNOBSERVABLE` do not count as passes. This manual smoke is the only evidence that can claim external-model profile stability.
 
-The current nine-run observation and raw schema-constrained outputs are stored under `results/`, with `results/2026-08-09.md` as the summary.
+The nine-run observation and raw schema-constrained outputs stored under `results/`, with `results/2026-08-09.md` as the summary, are historical evidence for the agent revision recorded in that summary. The current agent revision changes the downstream Adaptive semantic owner contract, so those observations do not qualify the current contract. Use `result-template.md` to record a new nine-run qualification before claiming current external-model profile stability.

@@ -2,192 +2,110 @@
 
 ## Suitable tasks
 
-- 通常 Plan Mode で scope と acceptance は決まり、actual code調査で非局所decisionを閉じられる変更
-- small-bounded または medium-bounded な production implementation
-- HIGH_MODELが責務、contract、dependency、wiring、semantics、test architectureを確定し、STANDARD_MODELがproduction implementationとtestsを主体的に完了できる変更
-- code inspectionだけでdecision closureできるか、最小のimplementation evidenceが必要かをHIGH_MODELが判断すべき変更
+- scopeとacceptanceが決まっているnon-trivial implementation
+- 実装中にresponsibility、contract、wiring、state、error、test seam等が判明し得る変更
+- decision surface解消後にbounded residual workを別modelへtransferできる可能性がある変更
 
 ## Unsuitable tasks
 
-- goal、scope、acceptance が判断できない request
-- Plan Coverage Flow が必要な広い requirement coverage / runtime boundary / residual decision work
-- final code review や総合 architecture review だけを行いたい request
-- write-heavy agent を並列実行したい request
-- CHEAP_MODEL に一般的な production implementation を任せたい request
-- organization policyやmodel pickerでrequested modelを利用できず、明示的な代替判断も記録できないCopilot運用
+- goal、scope、acceptanceを判断できないrequest
+- final code reviewや総合architecture reviewだけを行うrequest
+- write-heavy ownerを並列実行したいrequest
+- requested modelを利用できず、adapter mapping変更も記録できない運用
 
-## Start after ordinary Plan Mode
+## Start
 
-APM install で skill と portable custom agents を導入します。この skill は、利用者が `/adaptive-implementation-execution` で slash 起動した場合だけ選択します。通常の「実装して」「このPlanを実装して」、および「Adaptive Implementationを使って」などの自然文での名前言及だけでは選択しません。導入されているだけで repository 内の実装作業へ自動適用しません。skill frontmatter は `disable-model-invocation: true` と `user-invocable: true` とし、model 判断による暗黙起動を禁止したまま利用者の slash 明示起動を維持します。
-
-現行 APM が model 未設定の custom agent TOML を生成した場合は、導入済みmoduleの共通 finalizerで concrete model 設定を補完し、`--check` で確認します。この補完は runtime configuration の互換処理であり、skill の選択や使用を強制しません。
-
-## Start in GitHub Copilot Chat in VS Code
-
-1. Adaptive packageを`--target copilot,agent-skills`、またはCodex併用なら`--target copilot,codex,agent-skills`で導入する。
-2. VS CodeでCopilot Chatを開き、agent pickerから`high-implementation-starter`を選ぶ。
-3. ordinary Plan / Implementation Intent、fresh route identity、必要ならtracked Design Pair handoff pathを渡す。
-4. HIGHがvalidなtracked `READY_FOR_STANDARD_COMPLETION`を返した場合だけhandoff buttonで`standard-implementation-completer`へ移る。
-5. STANDARDがtracked `NEEDS_HIGH_MODEL_REENTRY`を返した場合だけ、両handoff pathを渡して`high-implementation-starter`へ戻る。
-
-model mappingはHIGH decision closure / re-entryが`GPT-5.6 Terra (copilot)`、decision-closed STANDARD implementationが`GPT-5.6 Luna (copilot)`です。Lunaからfresh intakeを開始しません。`COMPLETED_BY_HIGH_MODEL`またはstop verdictではhandoff buttonを使わず停止します。buttonが表示されていること自体はauthorizationではありません。
-
-両custom agentは`disable-model-invocation: true`を指定し、agent pickerには表示したまま、他agentのmodel判断ではsubagentとして起動されないようにします。HIGH startは利用者がpickerから明示選択し、STANDARDへの遷移はvalidなtracked handoff確認後のhandoff buttonに限定します。
-
-Copilot plan、organization policy、extension version、model pickerによりrequested modelを利用できない場合は、別tierへ黙って実行しません。mapping変更を明示的に決めるかpolicy管理者へ確認し、requested / observed modelと差異をmanual evidenceへ記録します。
-
-```text
-/adaptive-implementation-execution 直前の Plan を実装してください。
-Plan の scope / non-goals / acceptance を維持し、final review は別工程として残してください。
-```
-
-repository-tracked Plan の例:
+skillは利用者が`/adaptive-implementation-execution`で明示起動した場合だけ選択します。
 
 ```text
 /adaptive-implementation-execution plans/issue-123.md を実装してください。
 ```
 
-Design Pair route の例:
+Copilotではagent pickerから`decision-surface-implementation-owner`を選びます。fresh intakeで`bounded-residual-implementation-owner`から開始しません。
+
+## Ownership loop
+
+Decision-Surface Implementation Ownerは次を繰り返します。
 
 ```text
-/adaptive-implementation-execution plans/issue-123-design-pair-implementation-handoff.md を追加 input として開始してください。
-Locked Decisions だけを binding とし、その他の実装判断は actual code と verification evidence から行ってください。
+read relevant code
+  -> implement production code / tests needed to exercise decisions
+  -> run focused verification
+  -> inspect consequences
+  -> reassess remaining decision surfaces
 ```
 
-Design Pair route は利用者が明示選択した場合だけ使います。Design Pair handoff の Target Map や `Affected files / symbols` は allowed edit surface ではありません。GitHub Copilot CLI でも Design Pair package が post-map 対話と tracked handoff を生成し、valid な `READY_FOR_ADAPTIVE_IMPLEMENTATION` handoff だけを Adaptive input として受け取ります。
+少なくとも次を`Resolved`または理由付き`N/A`にします。
 
-Adaptive は production code / tests を編集する前に、Design Pair handoff が `READY_FOR_ADAPTIVE_IMPLEMENTATION` かつ `Interaction stage: complete` であること、Target Map の提示・選択要求、提示後の actual user response、一件以上の selected Target または explicit all-Adaptive delegation、pending human-owned Target なし、各 Locked Decision の post-map confirmation を検証します。`AWAITING_USER_INPUT`、空集合を暗黙に all-Adaptive とした handoff、上流 Plan や AI summary から user response を再構成した handoffは `BLOCKED / BlockedByInvalidCompletionHandoff` で停止します。
+- responsibility / ownership
+- cross-file ownership
+- public / shared internal contract
+- dependency direction / new dependency
+- production sequence
+- DI / factory / entrypoint structure
+- state / error / cancellation / retry semantics
+- test architecture / seam / harness
+- Design Pair / upstream binding compliance
 
-Selected / Delegated-to-Adaptiveの各Targetには、Target Map rowと一致するfinal disposition、actual post-map user turn、confirmed content、confirmation `Yes`を持つ`Target Disposition Evidence`を一件だけ要求します。明示的な複数Target委任とall-Adaptiveでは同じturn referenceを再利用できますが、Targetごとのrowは必要です。AIによる未委任Targetの`Adaptive-Owned`化、最終応答のない`Discussed-Unlocked`化、欠落・重複・架空・pre-map evidenceは拒否します。
+単に案を説明できるだけでは`Resolved`ではありません。implementationやverificationで覆る合理的可能性がある場合は、ownerが実装を続けます。
 
-selected Targetごとに、user-facing assistant turn reference、具体的code location、current invariant、alternatives / trade-offs、非binding proposalまたはNo proposal理由、validation expectationを持つ`Selected Target Discussion Evidence`も検証します。抽象的な論点名やartifact linkだけの場合は編集前に停止します。
+## Transfer
 
-Target Map presentation evidenceについても、全Targetの具体的file / symbol、current invariant、内部設計判断候補、relevant evidenceをuser-facingに提示したturnを要求します。artifact内だけに詳細がある場合は不十分です。
+次を満たす場合だけ`READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION`を返します。
 
-同時に、Target Map IDの一意性、全summary IDのMap実在、Selected / Delegated-to-Adaptive / No-Change / Upstream-Decision-Required / Pending集合の相互排他と完全被覆、各row Dispositionとの一致を再検証します。Locked DecisionはSelectedかつ`Locked` rowだけを参照できます。all-AdaptiveではSelected / Pendingが`None`、Locked Decisionsなし、全rowが`Adaptive-Owned`でdelegated集合と完全一致する必要があります。架空ID、重複ID、未分類Target、row / summary不一致は編集前に拒否します。
+- Decision surface assessmentに`Open`がない
+- actual code、今回のimplementation、verification evidenceがassessmentを裏付ける
+- 残作業がlocked contract / semanticsの適用だけで完了できる
+- Work Package、Allowed edit surface、acceptance mappingが完全
+- 残る不確実性がlocalかつreversible
 
-Design Pair が今回作る binding decision は、完全な confirmation evidence を持つ `Locked Decisions` だけです。original Plan、repository policy、`Upstream Binding Constraints` は別の binding input として維持し、`Upstream User Initial Positions` は未確認の初期位置として参考情報に留めます。
+code editなしのtransferも許容しますが、既存patternから答えが実質一意で、新しいdecision surfaceが開かないことをactual code evidenceで示す必要があります。
 
-durable routeやresume evidenceがない通常Adaptiveのfresh intakeは、`implementation_route: adaptive`、`implementation_route_source: default`、`design_pair_handoff: N/A`の3項目を初期化します。parentはHIGH_MODELへ3項目を常に渡し、Design Pair handoff pathを省略しません。
+transfer rateやowner別LOC shareは成功指標ではありません。自然なtransfer pointがなければ最初のownerが`IMPLEMENTATION_COMPLETED`を返します。
 
-短い caller intent の例:
+## Bounded residual completion
 
-```text
-/adaptive-implementation-execution
-Goal: CSV import の空行を無視する。
-Scope: ImportService と既存 tests。
-Non-goals: parser library の交換、public API 変更。
-Acceptance: 空行を含む既存形式が成功し、invalid row の既存 error は維持される。
-Validation: focused unit tests と solution build。
+Bounded-Residual Implementation Ownerはvalid handoffのWork PackageとAllowed edit surface内だけを実装します。locked contractに従うclass/interface、method body、wiring、tests、fixtures等を実装できます。
+
+作業中に新しい非局所decision surfaceが判明した場合は推測せず`NEEDS_DECISION_SURFACE_REENTRY`を返します。単に新規fileやwiring editが必要という理由ではre-entryしません。
+
+## Re-entry
+
+Decision-Surface Re-entry Handoffには、invalidating evidenceではなく「新しいdecision surfaceを開いたevidence」、current worktree、completed work、files、validation、required decision、route identityを記録します。
+
+re-entry後はDecision-Surface Implementation Ownerが必要なimplementation / verificationを含めて所有します。再transferでは、`reentry_count`を直前のre-entry handoffと一致させ、そのtriggerを`previous_reentry_trigger`と`reentry_progress_evidence.trigger`へ伝播し、`resolution`、`verification`、`same_unresolved_cause_rehanded_off: false`を記録した上で通常のtransfer gateを再度満たします。shared abstraction追加等でRemaining workやAllowed edit surfaceが広がっても、それ自体ではtransferを拒否しません。
+
+## Runtime topology and model mapping
+
+| Semantic role | Portable agent | Default adapter model |
+| --- | --- | --- |
+| Decision-Surface Implementation Owner | `decision-surface-implementation-owner` | Terra |
+| Bounded-Residual Implementation Owner | `bounded-residual-implementation-owner` | Luna |
+
+この表はadapter mappingです。parent / subagent、別process、VS Code handoff button、Copilot CLI `--agent`のどれを使ってもsemantic ownershipは変わりません。dedicated routerはimplementation editを行いませんが、runtime adapterがtop-level parent自身へDecision-Surface Implementation Ownerを割り当て、orchestrationとimplementation ownershipを兼務させる構成は許容します。
+
+## Route identity
+
+fresh Adaptive intake:
+
+```yaml
+implementation_route: adaptive
+implementation_route_source: default
+design_pair_handoff: N/A
 ```
 
-## What HIGH_MODEL does
+Design Pair:
 
-`high-implementation-starter`はrelevant code、tests、production wiring、signatures、call sitesを読み、非局所decisionを`Locked`または理由付き`N/A`へ閉じます。code inspectionだけで十分ならcodeを変更せず`READY_FOR_STANDARD_COMPLETION`を返せます。
-
-actual implementationを試さないとdecisionを閉じられない場合だけ、最小の自然なproduction/test変更とfocused checksを行います。委譲用のTODO skeletonは作りません。
-
-次が残る間は HIGH_MODEL が続行します。
-
-- responsibility placement
-- API / signature / schema
-- dependency / module / interface choice
-- DI / entrypoint / production wiring
-- error / cancellation / retry / state ownership
-- test seam / mock boundary / harness
-- cross-fileまたはhigh-impactなimplementation trade-off
-
-上記がすべて閉じ、meaningfulなWork Packageが残る場合はSTANDARDへ委譲します。初回`COMPLETED_BY_HIGH_MODEL`には`tiny-local-change`、`design-implementation-inseparable`、`standard-model-unavailable`、`delegation-materially-increases-risk-or-cost`のいずれかと根拠が必要です。re-entry後は`post-reentry-high-ownership`を使用できます。
-
-## What STANDARD_MODEL does
-
-`standard-implementation-completer`はhandoffのWork PackagesとAllowed edit surface envelope内でproduction implementation、tests、validationを主体として担当します。
-
-自律判断できるlocal freedom:
-
-- method body、branch順序、validation / mappingの局所構造
-- private helper、file-local type、局所refactor
-- tests、fixtures、test data builders、locked architecture内のmock設定
-- locked済みsignatureと配置を持つclass/interfaceの作成
-- HIGHが方式、location、lifetimeを確定したDI / factory / entrypoint wiringの実装
-- locked boundariesを変えないfocused failure修正
-
-有効なhandoffで実装または検証を開始した後にlocked non-local decisionを変える必要が判明した場合だけ、局所的にねじ込まず`NEEDS_HIGH_MODEL_REENTRY`を返します。新規file、locked class/interface、決定済みwiringの実装という編集種別だけではre-entryしません。handoffの欠落・矛盾・evidence不一致はinvalid artifactとして`BLOCKED` / `BlockedByInvalidCompletionHandoff`で停止します。
-
-## Acceptance mapping in a handoff
-
-`READY_FOR_STANDARD_COMPLETION` handoffは、`Incomplete` acceptance itemとWork PackageをWork IDで双方向に対応させます。各Work PackageはResponsibility、Authorized surface、Expected behavior、Locked boundaries、Local freedom、Completion checkを持ち、Allowed edit surfaceはそのunion envelopeです。Decision closureに`Unresolved`または`Blocked` acceptance itemがあればSTANDARD_MODELへ渡しません。
-
-## Re-entry example
-
-HIGH_MODELがDI lifetimeとregistration locationをlockした後、STANDARD_MODELがregistration codeを実装する例:
-
-```text
-READY_FOR_STANDARD_COMPLETION
-  -> standard-implementation-completer starts
-  -> creates the locked class and registration
-  -> runs implementation tests
-  -> COMPLETED
+```yaml
+implementation_route: design-pair
+implementation_route_source: explicit-user-selection
+design_pair_handoff: plans/<slug>-design-pair-implementation-handoff.md
 ```
 
-locked signatureではexisting callerを成立させられない、DI lifetime自体を変える必要がある、ownershipやretry semantics、test seam strategyを変更する必要がある場合はre-entryします。re-entry handoffにはoriginal Implementation Intent、invalidating evidence、変更済みfiles、checks、必要なdecision、current worktree state、route identityを記録します。
+resumeではdurable stateを維持します。欠落や矛盾をAdaptive defaultへ補完しません。旧0.5 handoffや旧agent名もmigrationせずfail closedにします。
 
-例外は`Verdict: BLOCKED`かつ`Stop reason: BlockedByInvalidCompletionHandoff`だけです。欠落したidentityを捏造せず、各fieldのraw observed valueまたは`<missing>`とrepair evidenceを返します。parentはこのresultに完全なpairを要求せず受理して停止します。外部blockerを理由とする`BLOCKED`では完全なunchanged identityが必要です。
+## Completion boundary
 
-一度 re-entry した後は HIGH_MODEL が完了まで担当します。再委譲は、前回より `Remaining work` と `Allowed edit surface` がともに厳密に縮小し、同じ trigger が再発していない場合だけ許可します。
+どちらのownerも、全acceptance itemがCompleteでimplementationまたはvalidation evidenceがある場合だけ`IMPLEMENTATION_COMPLETED`を返します。
 
-初回 HIGH_MODEL handoff は `reentry_count: 0` とします。STANDARD_MODEL は re-entry 時に incoming value へ1を加え、今回の `Trigger` と incoming `previous_reentry_trigger` を返します。HIGH_MODEL が再委譲する場合は count を維持し、今回の `Trigger` を新しい `previous_reentry_trigger` に設定します。
-
-## Inline and tracked handoff
-
-### inline
-
-同一 run / 同一 parent orchestration / 同一model内でagentを直列実行できるCodex通常経路です。repository fileを増やしません。
-
-### tracked
-
-次の場合に `plans/<slug>-implementation-completion-handoff.md` を作成します。
-
-- session boundary または resume が必要
-- 別 thread / 別 model / 別作業者へ移行する
-- GitHub Copilot Chat in VS CodeでTerra -> LunaまたはLuna -> Terraへagent handoffする
-- execution time limit により同一 run で続けられない
-
-tracked handoff は実コードの代替設計書ではありません。ただしCopilotのmodel間遷移では会話履歴だけをstate sourceにせず、Original Implementation Intent、route identity、Design Pair handoff path / Decision IDs、Locked Decisions、remaining work、allowed surface、validation、re-entry trigger、current worktree stateを保持します。completionは`plans/<slug>-implementation-completion-handoff.md`、re-entryは`plans/<slug>-high-model-reentry-handoff.md`を使います。
-
-### pre-Design-Pair tracked handoffのresume
-
-旧schemaの必須fieldをすべて持ち、`Design Pair handoff`、`Design Pair Decision compliance`、Origin / Decision ID columnsがすべてなく、Design Pair evidenceも一切ないhandoffだけを互換normalizationできます。
-
-- routeは`adaptive / default`とし、`route_metadata_normalization: legacy-adaptive-handoff`を記録する
-- 旧Locked decisionsへ出現順の`LEGACY-HIGH-D01`形式でIDを付ける
-- originは`HIGH_MODEL`とする
-- 補完したAffected files / symbolsはAllowed edit surfaceに使わない
-- normalization recordをtracked handoffへ追記してからSTANDARD_MODELへ渡す
-- legacy handoffの旧来の狭いRemaining workとAllowed edit surfaceを維持し、0.5 fieldsを推測しない
-
-0.5 fieldsを欠く0.4系current-schema handoff、部分的に新しいDesign Pair fieldを持つhandoff、Design Pair selection evidenceがあるhandoff、旧必須fieldが不足するhandoffはnormalizationしません。production code / testsを編集せず、`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてHIGH_MODELによるhandoff再発行またはartifact repairを要求します。fixtureは`docs/examples/legacy-adaptive-handoff.md`です。
-
-## Verification and final review
-
-HIGH_MODEL と STANDARD_MODEL は、それぞれの変更に関連する build、focused test、lint、format、type check を可能な範囲で実行します。
-
-この flow の `COMPLETED_BY_HIGH_MODEL` または `COMPLETED` は、acceptance status table の全 in-scope item が evidence 付きで `Complete` になった implementation scope の完了を表します。final code review、human review、総合 architecture review、独立 verification の完了は表しません。
-
-最終報告は次を分けます。
-
-- 完了済み implementation
-- 実行済み checks
-- 未検証事項
-- 人手での作業が必要な項目
-- final review status
-
-## Changing model assignment
-
-Codexの抽象tierと具体的modelの対応は`codex-profile-overlays.json`で変更します。
-
-- `model`: runtime で利用可能な model
-- `model_reasoning_effort`: role に必要な reasoning
-- `sandbox_mode`: implementation agent では `workspace-write`
-
-Copilotのconcrete modelはroot `.github/agents/*.agent.md`のfrontmatterで指定します。共通 finalizerは package-owned overlay を source として target の `.codex/agents/*.toml` の profile fields だけを補完し、root agent files や Skill を配布しません。Skill と root portable agents の導入は APM の責務であり、skill選択後の実行契約は`SKILL.md`とroot agentsをsource of truthとします。
+これはimplementation completionだけを表します。final code review、architecture review、independent verificationの完了ではありません。

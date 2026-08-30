@@ -2,11 +2,11 @@
 
 ## Execution metadata
 
-- Executed at: `2026-08-11T17:17:08+09:00`
-- Executor: deterministic ASR-001 through ASR-008 fixture comparison after the Issue #117 decision-ownership contract update
-- Branch: `issue-117`
-- Reviewed source: `95d639f` plus the uncommitted Issue #117 review fixes; Architecture Slice Readiness, baseline compatibility, and `Match / Drift / Unclear` authorization semantics remain unchanged
-- Scope: ASR-001 through ASR-008 fixture comparison, current contract hashes, de-escalation and decomposition authorization, shared decision-ownership propagation, and existing architecture semantics only; no production code or external system changes
+- Executed at: `2026-08-30T13:01:27+09:00`
+- Executor: Issue #132 の Adaptive implementation ownership 更新後に行った ASR-001〜ASR-008 の deterministic fixture comparison
+- Branch: `issue-132-adaptive-implementation-ownership`
+- Reviewed source: `e2d5b446ef91f7e2255d147845a80c32eb08561f`; Architecture Slice Readiness、baseline compatibility、`Match / Drift / Unclear` authorization semantics は変更されていない
+- Scope: ASR-001〜ASR-008 fixture comparison、current contract hashes、de-escalation / decomposition authorization、shared implementation ownership propagation、および既存 architecture semantics。production code と外部systemは変更していない
 
 ### Contract revisions evaluated
 
@@ -17,9 +17,9 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | `apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-slice-readiness.agent.md` | `d461dd63ba06ce232caac055303a7fce180248bbc6b60516c71bd5d8f3ba5683` |
 | `apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-elaboration.agent.md` | `8f53674b988131d847d8c32ca01d850c90820fddb40595a6ca6ff54382948344` |
 | `apm-packages/plan-coverage-residual-flow/.apm/agents/plan-slice-decomposition.agent.md` | `29330fdd7bec03eb4d0232b241d45c1527489b9fe2810e715b89321f8904cbaf` |
-| `apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md` | `4bd68e6d28b4917afc5d07c942d98eb917c45f2d560ea381d81ffab4daa79548` |
-| `apm-packages/plan-coverage-residual-flow/.apm/instructions/plan-coverage-shared.instructions.md` | `480cfff9d19945ff4c76e4e77ce3110fa654d020f6ff241efb35eabcbe32a917` |
-| `plan-coverage-residual-flow/SKILL.md` | `1af2651ed0ff9978abb2bc779b62e49e99b6b4acef229356a0a9eb183d6565f3` |
+| `apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md` | `53768f9e7fef7b565180ba2a08f67361196957114551c0f5a45895935444c2b7` |
+| `apm-packages/plan-coverage-residual-flow/.apm/instructions/plan-coverage-shared.instructions.md` | `55c92fef5dd9e19777736d43a932a032b05c893d7afe8c67f794d3f205d84a39` |
+| `plan-coverage-residual-flow/SKILL.md` | `e29a0a2074cf0d7a56602ed13c3be73047d62e087946a8ceb5191dda096eafc1` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 | `coverage-ledger.md` template | `b1a532b4ab59dbaa1471d8bd1beb6af5e7f570f3086719c8fcbe452f7f493962` |
 | `plan-coverage-lite.md` template | `e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90` |
@@ -50,6 +50,8 @@ The Issue #84 review rerun separates the legacy missing-gate return in ASR-003 f
 The PR #102 rerun re-compares ASR-001 through ASR-006 against their expected outputs after the shared guardrail assigns non-local decision closure to HIGH and decision-closed implementation to STANDARD. That ownership change does not alter slice architecture readiness, freshness, or compatibility outcomes, so the six retained run IDs and expected results remain valid while the current shared-instruction hash and execution metadata are refreshed.
 
 The Issue #117 rerun re-compares ASR-001 through ASR-008 after the decomposition, handoff-review, and shared-instruction contracts preserve decision ownership into the Slice Living Record path. The change adds no Architecture Slice Readiness verdict, freshness, or baseline-compatibility rule, so all retained deterministic fixture outcomes remain valid while the three affected current-contract hashes and execution metadata are refreshed.
+
+Issue #132 の再実行では、Adaptive implementation ownership を `Decision-Surface Implementation Owner` と `Bounded-Residual Implementation Owner` の境界へ更新した後に ASR-001〜ASR-008 を再比較した。この変更は Architecture Slice Readiness の verdict、freshness、baseline compatibility、de-escalation、decomposition authorization を変更しないため、既存fixtureのrun IDと期待結果を維持し、影響した3つのcurrent contract hashとexecution metadataだけを更新した。
 
 | Fixture | Run ID | Complete evidence root |
 | --- | --- | --- |
@@ -192,7 +194,7 @@ Immediate next agent: runtime-contract-kernel.agent.md
 | Slice Architecture template path | PASS | canonical template exists and all affected manifests reference an existing path |
 | Durable fixture artifacts | PASS | ASR-001〜008 input/output/run files exist and every run reference resolves |
 | Expected / actual comparison | PASS | validator compared every `actual.json` with `expected.json` and checked values against full Markdown outputs |
-| Current contract revision hashes | PASS | all nine surviving normalized contract hashes above match the files revalidated after integrating Issue #84 and PR #102; deleted PR #80 contract hashes are retained only as historical evidence |
+| Current contract revision hashes | PASS | all nine surviving normalized contract hashes above match the files revalidated after the Issue #132 ownership update; deleted PR #80 contract hashes are retained only as historical evidence |
 | `git diff --check` | PASS | no whitespace errors; Windows line-ending warnings only |
 
 ## Limitations

@@ -21,8 +21,8 @@ Expected:
 - `implementation_route: adaptive`
 - `implementation_route_source: default`
 - `design_pair_handoff: N/A`
-- parentがHIGH_MODELへ3項目を渡し、pathを省略しない
-- `adaptive-implementation-execution` が HIGH_MODEL から開始する
+- parentがdecision-surface-implementation-ownerへ3項目を渡し、pathを省略しない
+- `adaptive-implementation-execution` が decision-surface-implementation-owner から開始する
 - Design Pair artifact を要求しない
 - Design Pair を推奨または提案しない
 
@@ -38,8 +38,8 @@ Expected:
 
 - bounded Target Map が production symbols、tests、wiring、関連 surface を説明する
 - tracked handoff に Decision ID と explicit human confirmation がある
-- HIGH_MODEL は Locked Decision を守り、signature と test seam を実コード evidence から判断できる
-- decision surface がなくなれば STANDARD_MODEL へ委譲できる
+- decision-surface-implementation-owner は Locked Decision を守り、signature と test seam を実コード evidence から判断できる
+- decision surface がなくなれば bounded-residual-implementation-owner へ委譲できる
 
 ## DP-VAL-003: Discussed-Unlocked is advisory
 
@@ -47,7 +47,7 @@ Input: 代替案を議論するが `Discussed-Unlocked` とする。
 
 Expected:
 
-- HIGH_MODEL が actual code / tests の evidence から別案を選んでも Locked Decision 違反にならない
+- decision-surface-implementation-owner が actual code / tests の evidence から別案を選んでも Locked Decision 違反にならない
 - handoff は discussion を binding section に移動しない
 
 ## DP-VAL-004: Locked Decision conflict
@@ -56,7 +56,7 @@ Input: actual production wiring により `DP-D01` を維持できない。
 
 Expected:
 
-- HIGH_MODEL は `DP-D01` を黙って変更しない
+- decision-surface-implementation-owner は `DP-D01` を黙って変更しない
 - `HUMAN_DECISION_REQUIRED`、`REPLAN_REQUIRED`、または適切な stop verdict を返す
 - Decision ID、code evidence、files changed、worktree state、checks、必要な判断を報告する
 - automatic Design Pair re-entry を行わない
@@ -97,7 +97,7 @@ Expected:
 
 - package target は `copilot`、`codex`、`agent-skills`
 - manifest に formal target 名 `copilot` がある（`github-copilot` や bare `vscode` ではない）
-- docs は GitHub Copilot CLI からの Design Pair 明示起動、mandatory post-map stop、durable handoff resume、READY 後の **new process** `--agent high-implementation-starter` を対応済みと宣言する
+- docs は GitHub Copilot CLI からの Design Pair 明示起動、mandatory post-map stop、durable handoff resume、READY 後の **new process** `--agent decision-surface-implementation-owner` を対応済みと宣言する
 - formal acceptance は GitHub Copilot CLI の real multi-turn evidence であり、VS Code UI 操作を必須にしない
 - process contract を Copilot 用に複製せず、canonical Design Pair skill と Adaptive agents を直接利用する
 - real multi-turn smoke record が Target Map stop、Target Disposition Evidence、5集合整合、READY 後 Adaptive 開始、waiting 中 new-session resume、all-Adaptive、Design Pair 未指定 default、Locked Decision conflict stop を残す
@@ -115,11 +115,11 @@ Expected:
 - invalid-artifact `BLOCKED`は各identity fieldのraw observed valueまたは`<missing>`を返し、欠落値を推測しない
 - parentはこのstop resultだけ完全なroute pairを要求せず受理する
 - `design-pair` evidenceがある場合、tracked handoffの欠落も停止理由にする
-- invalid artifactを`NEEDS_HIGH_MODEL_REENTRY`として扱わない
+- invalid artifactを`NEEDS_DECISION_SURFACE_REENTRY`として扱わない
 - fresh intakeでdurable route / resume evidenceがない場合だけ`adaptive / default`を初期化できる
-- current-schemaのtracked `Implementation Completion Handoff`は両route fieldをheaderへ保存する
-- HIGH_MODELは両fieldを必須handoffとして伝播し、STANDARD_MODELは片方でも欠けるhandoffを編集前に拒否する
-- STANDARD_MODELのHigh-model Re-entry Handoffは両route fieldとDesign Pair handoff pathを変更せず保持し、parentは元completion handoffとともにHIGH_MODELへ再投入する
+- current-schemaのtracked `Bounded Residual Implementation Handoff`は両route fieldをheaderへ保存する
+- decision-surface-implementation-ownerは両fieldを必須handoffとして伝播し、bounded-residual-implementation-ownerは片方でも欠けるhandoffを編集前に拒否する
+- bounded-residual-implementation-ownerのDecision-Surface Re-entry Handoffは両route fieldとDesign Pair handoff pathを変更せず保持し、parentは元completion handoffとともにdecision-surface-implementation-ownerへ再投入する
 - partial current-schema handoffにはlegacy normalizationを適用しない
 
 ## DP-VAL-010: Independent canonical package installation
@@ -140,22 +140,22 @@ Expected:
 
 - Adaptive packageとDesign Pair packageをco-installする
 - APMがmodel-less TOMLを生成する場合は`finalize-codex-agent-profiles.cs`で補完する
-- finalizerの`--check`がHIGH / STANDARDの別agent・別model mapping、reasoning、sandboxを検証する
+- finalizerの`--check`がdecision-surface-implementation-owner / bounded-residual-implementation-ownerの別agent・別model mapping、reasoning、sandboxを検証する
 - Design Pair package単体のinstallを完成済みCodex execution profileと表現しない
 
 ## DP-VAL-012: Portable agent route contract
 
-Input: repository-local `.github/agents` がないone-off launcherまたはAPM installからportable HIGH / STANDARD TOMLを実行する。
+Input: repository-local `.github/agents` がないone-off launcherまたはAPM installからportable decision-surface-implementation-owner / bounded-residual-implementation-owner TOMLを実行する。
 
 Expected:
 
 - 両agentは`adaptive / default / N/A`と`design-pair / explicit-user-selection / current tracked path`の2組だけを許可する
 - route field欠落、組み合わせ矛盾、Design Pair evidence不一致は編集前に`BLOCKED` / `BlockedByInvalidCompletionHandoff`で停止する
 - `design-pair`でcurrent Design Pair handoff pathがない場合はAdaptiveへfallbackしない
-- STANDARD re-entryはroute pairとDesign Pair handoff pathをHIGHへ伝播する
+- bounded-residual-implementation-ownerのre-entryはroute pairとDesign Pair handoff pathをdecision-surface-implementation-ownerへ伝播する
 - 両agentは通常完了を含む非invalid resultで完全なroute identityを返す
 - invalid-artifact `BLOCKED`だけはraw observed valueまたは`<missing>`とrepair evidenceを返す
-- STANDARDは有効なhandoffのauthorization後に構造判断を発見した場合だけ`NEEDS_HIGH_MODEL_REENTRY`を返す
+- bounded-residual-implementation-ownerは有効なhandoffのauthorization後に構造判断を発見した場合だけ`NEEDS_DECISION_SURFACE_REENTRY`を返す
 
 ## DP-VAL-013: Initial Design Pair turn must stop
 
@@ -258,7 +258,7 @@ Input: summaryにTarget Mapへ存在しない`DP-T99`がある、または同じ
 Expected:
 
 - readinessをFAILとする
-- Adaptive / HIGH_MODELを開始しない
+- Adaptive / decision-surface-implementation-ownerを開始しない
 - 架空IDまたは重複する集合と該当summary fieldをartifact repair evidenceとして返す
 
 ## DP-VAL-023: Unclassified Target fails closed
@@ -330,7 +330,7 @@ Input: `Selected Target IDs: DP-T01`かつrowが`Locked`または`Discussed-Unlo
 Expected:
 
 - Design Pair readinessをFAILとする
-- Adaptive / HIGH_MODELは`BlockedByInvalidCompletionHandoff`で編集前に停止する
+- Adaptive / decision-surface-implementation-ownerは`BlockedByInvalidCompletionHandoff`で編集前に停止する
 - Target MapまたはAI summaryの詳細をdiscussion evidenceとして暗黙補完しない
 
 ## DP-VAL-030: Initial Target Map presentation is concrete and user-facing
@@ -360,7 +360,7 @@ Input: 利用者は`DP-T01`だけをLockedと明示し、`DP-T02` / `DP-T03`を�
 Expected:
 
 - Design Pair readinessをFAILとする
-- Adaptive / HIGH_MODELは`BlockedByInvalidCompletionHandoff`で編集前に停止する
+- Adaptive / decision-surface-implementation-ownerは`BlockedByInvalidCompletionHandoff`で編集前に停止する
 - AI recommendation、Target Map、Plan、summaryから委任evidenceを補完しない
 
 ## DP-VAL-033: Discussed-Unlocked requires final user disposition
@@ -371,7 +371,7 @@ Expected:
 
 - `Pending-User-Disposition`と`AWAITING_USER_INPUT / disposition-confirmation`を維持する
 - actual post-map user turnとconfirmed contentを持つ`Target Disposition Evidence`が作られるまでREADYにしない
-- Adaptive / HIGH_MODELはinvalidなREADY handoffを編集前に拒否する
+- Adaptive / decision-surface-implementation-ownerはinvalidなREADY handoffを編集前に拒否する
 
 ## DP-VAL-034: Explicit multi-Target delegation is evidenced per Target
 
@@ -402,6 +402,6 @@ dotnet publish ./apm-packages/codex-profile-finalizer/scripts/finalize-codex-age
 git diff --check
 ```
 
-Static validation は package layout、routing contract、handoff schema、Target集合不変条件、Adaptive propagation、Plan Coverage / full-coverage integration、canonical Codex adapter、Copilot support boundary を検証します。実モデルを使う対話、HIGH -> STANDARD -> HIGH runtime orchestration、品質比較はrun-specific recordがない限り `NOT RUN` です。
+Static validation は package layout、routing contract、handoff schema、Target集合不変条件、Adaptive propagation、Plan Coverage / full-coverage integration、canonical Codex adapter、Copilot support boundary を検証します。実モデルを使う対話、decision-surface-implementation-owner -> bounded-residual-implementation-owner -> decision-surface-implementation-owner runtime orchestration、品質比較はrun-specific recordがない限り `NOT RUN` です。
 
 GitHub Copilot CLI の Design Pair multi-turn evidence は `../../tests/manual-model-smoke/results/20260805-copilot-issue69.md` に記録されています。Codex multi-turn evidence は同ディレクトリの既存 PASS record を維持します。追加 run では disposable fixture で DP-VAL-013、015、017、019、021 相当を実行し、result template へ CLI version、model、revision、Plan、turn sequence、artifact path、verdict sequence を記録してください。static PASS を runtime PASS として転記してはいけません。

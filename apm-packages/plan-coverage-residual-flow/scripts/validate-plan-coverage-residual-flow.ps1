@@ -339,26 +339,27 @@ if ($failures.Count -eq 0) {
 
     $manifest = Get-NormalizedText (Join-Path $repoRoot $manifestRelativePath)
     Assert-Matches $manifest '(?m)^name:\s*plan-coverage-residual-flow\s*$' 'package name must remain stable'
-    Assert-Matches $manifest '(?m)^version:\s*0\.14\.0\s*$' 'package version must be 0.14.0'
+    Assert-Matches $manifest '(?m)^version:\s*0\.15\.0\s*$' 'package version must be 0.15.0'
     Assert-Matches $manifest '(?m)^includes:\s*auto\s*$' 'package must distribute package-owned .apm primitives via includes: auto'
     Assert-Matches $manifest '(?ms)dependencies:\s*\n\s*apm:\s*\n(?:\s*#[^\n]*\n)*\s*-\s*git:\s*parent\s*\n\s*path:\s*apm-packages/adaptive-implementation-execution\s*$' 'Adaptive dependency must use the Adaptive package boundary only'
     Assert-NotMatches $manifest '\.github/agents/' 'Plan Coverage manifest must not re-own agents via root .github/agents dependencies'
     Assert-NotMatches $manifest '\.github/instructions/' 'Plan Coverage manifest must not re-own shared instructions via root .github/instructions dependencies'
-    Assert-NotMatches $manifest 'high-implementation-starter|standard-implementation-completer' 'Plan Coverage must not duplicate Adaptive HIGH / STANDARD agent ownership'
+    Assert-NotMatches $manifest 'decision-surface-implementation-owner|bounded-residual-implementation-owner' 'Plan Coverage must not duplicate Adaptive decision-surface / bounded-residual agent ownership'
     Assert-NotMatches $manifest 'adaptive-implementation-execution/\.apm/skills/' 'Plan Coverage must depend on the Adaptive package root, not an internal Skill path'
 
     foreach ($agentName in $planCoverageOwnedAgentNames) {
         $canonicalAgentRelativePath = "$canonicalAgentsRelativeRoot/$agentName.agent.md"
         Assert-True (Test-Path -LiteralPath (Join-Path $repoRoot $canonicalAgentRelativePath) -PathType Leaf) "Missing canonical Plan Coverage agent: $canonicalAgentRelativePath"
     }
-    foreach ($adaptiveAgentName in @('high-implementation-starter', 'standard-implementation-completer')) {
+    foreach ($adaptiveAgentName in @('decision-surface-implementation-owner', 'bounded-residual-implementation-owner')) {
         Assert-True (-not (Test-Path -LiteralPath (Join-Path $repoRoot "$canonicalAgentsRelativeRoot/$adaptiveAgentName.agent.md"))) "Adaptive agent $adaptiveAgentName must not be copied into Plan Coverage .apm/agents"
     }
 
     $adaptiveValidator = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1')
     $designPairValidator = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/design-pair-implementation-execution/scripts/validate.ps1')
-    Assert-Matches $adaptiveValidator "plan-coverage-residual-flow/apm\.yml'; Version = '0\\\.14\\\.0'" 'Adaptive validator package version pin must be 0.14.0'
-    Assert-Matches $designPairValidator 'Plan Coverage package version 0\.14\.0' 'Design Pair validator package version pin must be 0.14.0'
+    Assert-Matches $adaptiveValidator 'decision-surface-implementation-owner\.agent\.md' 'Adaptive validator must own the decision-surface-implementation-owner agent contract'
+    Assert-Matches $adaptiveValidator 'bounded-residual-implementation-owner\.agent\.md' 'Adaptive validator must own the bounded-residual-implementation-owner agent contract'
+    Assert-Matches $designPairValidator 'Plan Coverage package version 0\.15\.0' 'Design Pair validator package version pin must be 0.15.0'
 
     Assert-Matches $skill 'package-owned canonical agent definitions' 'Skill must identify package-owned canonical agents as the contract authority'
     Assert-Matches $skill 'Do not treat `\.github/agents` or `\.codex/agents` as independent contract authorities' 'Skill must reject runtime projections as independent contract authorities'
@@ -380,13 +381,16 @@ if ($failures.Count -eq 0) {
     $handoffReview = Get-NormalizedText (Join-Path $repoRoot "$canonicalAgentsRelativeRoot/implementation-handoff-review.agent.md")
     $verificationKernel = Get-NormalizedText (Join-Path $repoRoot "$canonicalAgentsRelativeRoot/verification-kernel.agent.md")
     $gapResolution = Get-NormalizedText (Join-Path $repoRoot "$canonicalAgentsRelativeRoot/coverage-gap-resolution-slice.agent.md")
-    $standardCompleter = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution/.apm/agents/standard-implementation-completer.agent.md')
+    $boundedResidualOwner = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/adaptive-implementation-execution/.apm/agents/bounded-residual-implementation-owner.agent.md')
     $packageReadme = Get-NormalizedText (Join-Path $repoRoot $packageReadmeRelativePath)
     $purposeDocumentation = Get-NormalizedText (Join-Path $repoRoot $purposeDocumentationRelativePath)
     $processDocumentation = Get-NormalizedText (Join-Path $repoRoot $processDocumentationRelativePath)
     $fullCoverageDocumentation = Get-NormalizedText (Join-Path $repoRoot $fullCoverageDocumentationRelativePath)
     $asrValidationDocumentation = Get-NormalizedText (Join-Path $repoRoot $asrValidationDocumentationRelativePath)
     $installationDocumentation = Get-NormalizedText (Join-Path $repoRoot $installationDocumentationRelativePath)
+    $runtimeQualificationSchema = Get-NormalizedText (Join-Path $packageRoot 'tests/runtime-qualification/result.schema.json')
+    $runtimeQualificationScenarioLib = Get-NormalizedText (Join-Path $packageRoot 'scripts/plan-coverage-copilot-scenario-lib.ps1')
+    $runtimeQualificationValidator = Get-NormalizedText (Join-Path $packageRoot 'scripts/validate-plan-coverage-runtime-qualification.ps1')
     $sliceLivingRecord = Get-NormalizedText (Join-Path $repoRoot $sliceLivingRecordRelativePath)
     $fullCoverageClose = Get-NormalizedText (Join-Path $repoRoot $fullCoverageCloseRelativePath)
     Assert-Matches $skill '(?m)^documentation_level: standard$' 'full-coverage must record the standard documentation level'
@@ -396,8 +400,8 @@ if ($failures.Count -eq 0) {
     Assert-Matches $skill 'Plan Coverage parent/router is the only repository writer for Slice Living Records and the canonical Coverage Ledger' 'Plan Coverage parent must own both canonical writes'
     Assert-Matches $skill 'base durable artifact budget is `5 \+ executable slice count \+ 1`.*at most `6 \+ executable slice count`' 'full-coverage artifact budget must be explicit'
     Assert-Matches $skill 'cross-thread-handoff.*parallel-write-isolation.*human-approval-wait.*external-audit-evidence.*record-size-limit' 'Artifact Creation Gate reason codes must be complete'
-    Assert-Matches $skill 'Before invoking Adaptive.*parent must first apply a matching `Artifact Exceptions` row.*`cross-thread-handoff`.*implementation-completion-handoff\.md' 'tracked completion handoff must pass the Artifact Creation Gate'
-    Assert-Matches $skill 'When invoking STANDARD.*artifact_mode: slice-living-record.*reentry_handoff_path: plans/<slug>-slice-SL-xxx-high-model-reentry-handoff\.md.*output_contract: parent-persisted-handoff-payload.*`NEEDS_HIGH_MODEL_REENTRY` uses delayed registration.*STANDARD returns.*unpersisted parent payload.*applies an `Artifact Exceptions` row.*persists the payload.*resumes `high-implementation-starter\.agent\.md`' 'tracked re-entry handoff must use delayed parent registration before persistence and HIGH resume'
+    Assert-Matches $skill 'Before invoking Adaptive.*parent must first apply a matching `Artifact Exceptions` row.*`cross-thread-handoff`.*bounded-residual-implementation-handoff\.md' 'tracked completion handoff must pass the Artifact Creation Gate'
+    Assert-Matches $skill 'When invoking the bounded-residual owner.*artifact_mode: slice-living-record.*reentry_handoff_path: plans/<slug>-slice-SL-xxx-decision-surface-reentry-handoff\.md.*output_contract: parent-persisted-handoff-payload.*`NEEDS_DECISION_SURFACE_REENTRY` uses delayed registration.*returns the complete Decision-Surface Re-entry Handoff.*unpersisted parent payload.*applies an `Artifact Exceptions` row.*persists the payload.*resumes `decision-surface-implementation-owner\.agent\.md`' 'tracked re-entry handoff must use delayed parent registration before persistence and decision-surface-owner resume'
     Assert-Matches $skill 'CROSS_SLICE_PARTIAL_WITH_FIX_CANDIDATES.*do not run `residual-decision-gate\.agent\.md`.*coverage-gap-triage\.agent\.md.*coverage-gap-resolution-slice\.agent\.md.*rerun `verification-kernel\.agent\.md`.*rerun `cross-slice-verification-kernel\.agent\.md`' 'FixNow candidates must complete the Living Record repair and re-verification loop before residual decision'
     Assert-Matches $skill 'pre-redesign artifact with no mode.*existing artifact set clearly matches the old contract.*do not silently migrate' 'legacy resume must be recognized without forced migration'
     Assert-Matches $decomposition 'canonical Living Record baseline' 'decomposition must produce Living Record baselines'
@@ -411,8 +415,11 @@ if ($failures.Count -eq 0) {
     Assert-Matches $skill 'Architecture baseline compatibility' 'Plan Coverage parent must own the pre-slice architecture compatibility check'
     Assert-Matches $skill 'Only a current-baseline `Match` may proceed.*`Drift` returns to Architecture Slice Readiness / Elaboration.*`Unclear` fails closed' 'Plan Coverage must fail closed on architecture Drift or Unclear'
     Assert-Matches $sharedInstructions 'Only `Match` may proceed to implementation.*`Drift` returns to Architecture Slice Readiness / Elaboration.*`Unclear` fails closed' 'shared guardrails must require Match before full-coverage implementation'
-    Assert-Matches $sharedInstructions 'HIGH closes non-local decisions from actual code evidence and delegates when all remaining uncertainty is local and reversible' 'shared guardrails must assign non-local decision closure to HIGH'
-    Assert-Matches $sharedInstructions '`standard-implementation-completer` on `STANDARD_MODEL` owns production implementation, tests, and validation inside locked boundaries and authorized Work Packages.*locked non-local decision must change' 'shared guardrails must assign decision-closed implementation to STANDARD and use the non-local re-entry boundary'
+    Assert-Matches $sharedInstructions 'owns the implementation feedback loop.*for as long as an unresolved decision surface remains' 'shared guardrails must assign decision-surface implementation ownership for as long as the decision surface remains open'
+    Assert-Matches $sharedInstructions '`bounded-residual-implementation-owner` owns only the bounded residual completion.*locked contracts and semantics.*`NEEDS_DECISION_SURFACE_REENTRY` only when a new or previously locked decision surface must be reopened' 'shared guardrails must assign bounded-residual completion and use the decision-surface re-entry boundary'
+    Assert-Matches $runtimeQualificationSchema '(?s)"decision_surface_execution".*"bounded_residual_handoff".*"bounded_residual_execution".*"bounded_residual_transfer_satisfied"' 'runtime qualification schema must expose semantic-owner connection fields'
+    Assert-Matches $runtimeQualificationScenarioLib '(?s)decision_surface_execution = \$decisionSurface.*bounded_residual_handoff = \$handoff.*bounded_residual_execution = \$boundedResidual' 'runtime qualification scenarios must emit semantic-owner connection evidence'
+    Assert-Matches $runtimeQualificationValidator 'contains historical 0\.5 field' 'runtime qualification validator must reject historical Adaptive fields for current snapshots'
     Assert-Matches $handoffReview '(?m)^#### Check 11\. Architecture baseline compatibility\s*$' 'implementation handoff review must own the architecture compatibility gate'
     Assert-Matches $handoffReview '\| Slice ID \| Readiness verdict \| Baseline authority \| Baseline identity \| Observed semantics \| Match / Drift / Unclear \| Required action \|' 'implementation handoff review must emit architecture compatibility evidence'
     Assert-Matches $handoffReview '`ArchitectureNotRequired`.*Lightweight architecture baseline' 'ArchitectureNotRequired must retain baseline comparison'
@@ -441,6 +448,8 @@ if ($failures.Count -eq 0) {
     Assert-Matches $changeRisk '(?m)^## Why standard-slice is insufficient\s*$' 'Change Risk Triage must emit the full-coverage escalation evidence section'
     Assert-Matches $changeRisk '(?s)Candidate bounded sequence.*Independent implementation slices required.*Shared semantics that must remain fixed before decomposition.*Why one bounded parent pass is insufficient.*Failure mode that decomposition prevents.*Escalation gate result' 'Change Risk Triage must emit all escalation gate fields'
     Assert-Matches $changeRisk '(?s)Recommendation confidence: High / Medium / Low.*Evidence that would lower the profile:.*Evidence that would raise the profile:' 'Change Risk Triage must emit profile confidence audit fields'
+    Assert-Matches $changeRisk '`decision-surface-implementation-owner` が actual code と verification evidence を使って判断する' 'Change Risk Triage must defer implementation ownership assessment to the decision-surface owner'
+    Assert-NotMatches $changeRisk 'high-implementation-starter|standard-implementation-completer|completion delegability' 'Change Risk Triage must not retain the removed Adaptive ownership contract'
     foreach ($directNonGround in @('authentication / authorization', 'OS API', 'P/Invoke', 'startup wiring', '一つのdurable store', 'local UI asynchronous operation', 'stub / fake', '複数project')) {
         Assert-Matches $changeRisk ([regex]::Escape($directNonGround)) "Change Risk Triage must reject '$directNonGround' as a direct full-coverage ground"
     }
@@ -480,13 +489,13 @@ if ($failures.Count -eq 0) {
     if ([string]::IsNullOrWhiteSpace($gapResolutionLivingMode)) { throw 'coverage-gap-resolution-slice must define a bounded Slice Living Record implementation-contract precondition.' }
     Assert-NotMatches $gapResolutionLivingMode 'plans/<ticket-or-slug>-implementation-contract-kernel\.md' 'Living Record gap resolution must not authorize or target a separate implementation-contract artifact'
     Assert-Matches $gapResolutionLivingMode '(?s)Implementation Contract Decisions.*別の implementation contract artifactを作成せず.*implementation-contract-kernel\.agent\.md.*output_contract: section-delta.*resume condition' 'Living Record gap resolution must request the implementation-contract semantic owner and wait for parent-applied deltas'
-    Assert-Matches $standardCompleter '(?s)output_contract: parent-persisted-handoff-payload.*UNPERSISTED_PARENT_PAYLOAD.*Artifact Exceptions.*reentry_handoff_path.*編集しません' 'STANDARD re-entry must return an unpersisted payload and leave gate/persistence writes to the Plan Coverage parent'
+    Assert-Matches $boundedResidualOwner '(?s)UNPERSISTED_PARENT_PAYLOAD.*reentry_handoff_path.*output_contract: parent-persisted-handoff-payload.*Artifact Exceptions.*起動してはいけません' 'bounded-residual owner re-entry must return an unpersisted payload and leave gate/persistence writes to the Plan Coverage parent'
 
     Assert-Matches $packageReadme '(?s)full-coverage.*each Slice Living Record.*slice-local risk and required kernel section deltas.*architecture baseline compatibility: Match.*Adaptive Implementation.*independent verification.*Full-Coverage Close Record.*cross-slice-verification.*residual-decision-gate' 'package README must describe the Living Record lifecycle in order'
     Assert-Matches $packageReadme 'base artifact budget.*parent control-plane 5件.*sliceごとにLiving Record 1件.*final close 1件' 'package README must document the artifact budget'
     Assert-Matches $packageReadme 'pre-redesign run.*explicit legacy/separate mode.*silent migration' 'package README must document legacy resume compatibility'
     Assert-Matches $packageReadme 'implementation-realization gap.*Implementation Contract Decisions.*別artifactやsectionを作成せず.*section-delta' 'package README must document implementation-contract owner re-entry for Living Record repairs'
-    Assert-Matches $packageReadme 'High-model Re-entry Handoff.*STANDARDが未保存payload.*parentが例外行を適用.*tracked fileを保存.*HIGHを再開' 'package README must document delayed re-entry handoff registration'
+    Assert-Matches $packageReadme 'Decision-Surface Re-entry Handoff.*bounded-residual-implementation-ownerが未保存payload.*parentが例外行を適用.*tracked fileを保存.*decision-surface-implementation-ownerを再開' 'package README must document delayed re-entry handoff registration'
     Assert-Matches $packageReadme 'apm-packages/plan-coverage-residual-flow/\.apm/' 'package README must identify package .apm as canonical authoring source'
     Assert-Matches $packageReadme 'canonical contractを修正するときは `\.apm` を修正する|canonical.*\.apm' 'package README must direct contract edits to .apm'
     Assert-Matches $packageReadme 'Adaptive Implementationは別package ownership|Adaptive Implementation.*separate package|Adaptive package' 'package README must keep Adaptive ownership separate'
@@ -609,6 +618,8 @@ if ($failures.Count -eq 0) {
     Assert-Matches $changeRiskReadme 'Never provide `oracles.json`' 'Change Risk Triage manual smoke must hide oracle answers from model sessions'
     Assert-Matches $changeRiskReadme 'CI does not invoke an external model' 'Change Risk Triage CI evidence must remain separate from external-model observations'
     Assert-Matches $changeRiskReadme '`NOT RUN` and `UNOBSERVABLE` do not count as passes' 'Change Risk Triage manual smoke must not count missing observations as passes'
+    Assert-Matches $changeRiskReadme 'historical evidence for the agent revision recorded in that summary' 'Change Risk Triage must identify dated observations as historical evidence'
+    Assert-Matches $changeRiskReadme 'those observations do not qualify the current contract' 'Change Risk Triage must not reuse historical observations for the current contract'
     Assert-True ($changeRiskResultSchema.additionalProperties -eq $false) 'Change Risk Triage result schema must reject unknown top-level fields'
     Assert-True ((@($changeRiskResultSchema.required) -ccontains 'bounded_runtime_sequence') -and (@($changeRiskResultSchema.required) -ccontains 'escalation_gate_result')) 'Change Risk Triage result schema must require bounded sequence and escalation evidence'
     Assert-True (@($changeRiskResultSchema.properties.execution_models.items.enum).Count -eq 7) 'Change Risk Triage result schema must enumerate all seven execution models'
@@ -663,7 +674,8 @@ if ($failures.Count -eq 0) {
     if ($hashMatch.Success) {
         $actualChangeRiskHash = Get-NormalizedTextSha256 (Join-Path $repoRoot $changeRiskRelativePath)
         Assert-True ($actualChangeRiskHash -ceq $hashMatch.Groups['hash'].Value) 'Change Risk Triage agent hash pin is stale'
-        Assert-Matches $changeRiskResultSummary ([regex]::Escape($actualChangeRiskHash)) 'Change Risk Triage result summary must identify the pinned normalized agent revision'
+        Assert-Matches $changeRiskResultSummary 'e46425255412840c59fe57a36d1705b76c43ca90629fa85bed6b40630b694077' 'Change Risk Triage historical result summary must preserve its observed agent revision'
+        Assert-True ($actualChangeRiskHash -cne 'e46425255412840c59fe57a36d1705b76c43ca90629fa85bed6b40630b694077') 'Change Risk Triage current contract must not reuse the historical agent revision'
     }
 
     $scenarios = @(Get-Content -Raw -LiteralPath (Join-Path $repoRoot $scenarioRelativePath) | ConvertFrom-Json)
@@ -755,7 +767,7 @@ if ($failures.Count -eq 0) {
     Assert-Matches $standaloneE2E 'foreach \(\$verdict in @\(''Drift'', ''Unclear''\)\)' 'standalone E2E validator must fail closed for architecture Drift and Unclear'
     Assert-Matches $apmSmoke '(?s)validate-plan-coverage-full-coverage-e2e\.ps1.*-InstalledRoot' 'remote APM smoke must execute standalone E2E against the installed closure'
     Assert-Matches $apmSmoke 'copilot,codex,agent-skills' 'APM smoke must install all Plan Coverage targets'
-    Assert-Matches $apmSmoke 'high-implementation-starter' 'APM smoke must verify Adaptive assets arrive transitively'
+    Assert-Matches $apmSmoke 'decision-surface-implementation-owner' 'APM smoke must verify Adaptive assets arrive transitively'
     Assert-Matches $workflow 'validate-plan-coverage-full-coverage-e2e\.ps1' 'Plan Coverage workflow must execute standalone E2E in source mode'
 
 }

@@ -1,569 +1,407 @@
 [CmdletBinding()]
-param(
-    [string]$FixturePath = (Join-Path $PSScriptRoot 'routing-scenarios.json')
-)
+param()
 
 $ErrorActionPreference = 'Stop'
-$script:canonicalRequiredDecisionClosure = @(
-    'responsibility_ownership',
-    'public_shared_internal_contract',
-    'dependency_direction',
-    'production_sequence_wiring_architecture',
-    'state_error_cancellation_retry_semantics',
-    'test_architecture_seam_strategy'
-)
-$script:canonicalRequiredReentryState = @(
-    'original_implementation_intent',
-    'implementation_completion_handoff',
-    'high_model_reentry_handoff',
-    'implementation_route',
-    'implementation_route_source',
-    'design_pair_handoff',
-    'locked_decisions',
-    'current_worktree_state',
-    'invalidating_evidence',
-    'completed_work',
-    'files_changed',
-    'validation',
-    'new_decision',
-    'reentry_count',
-    'trigger',
-    'delegation_surface_reduced'
-)
-$script:requiredWorkPackageFields = @(
-    'work_id',
-    'acceptance_items',
-    'responsibility',
-    'authorized_surface',
-    'expected_behavior',
-    'locked_boundaries',
-    'local_freedom',
-    'completion_check'
-)
-$script:allowedDirectCompletionReasons = @(
-    'tiny-local-change',
-    'design-implementation-inseparable',
-    'standard-model-unavailable',
-    'delegation-materially-increases-risk-or-cost',
-    'post-reentry-high-ownership'
-)
-$script:allowedLocalChoices = @('private-helper', 'branch-organization', 'test-data-builder')
+$document = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'routing-scenarios.json') | ConvertFrom-Json -Depth 30
+$failures = [System.Collections.Generic.List[string]]::new()
 
-function Has-Property([object]$Object, [string]$Name) {
-    return $null -ne $Object -and $Name -in $Object.PSObject.Properties.Name
+function Has-Property([object] $Object, [string] $Name) {
+    $null -ne $Object -and $null -ne $Object.PSObject.Properties[$Name]
 }
 
-function Test-SequenceEqual([object[]]$Actual, [object[]]$Expected) {
-    return (@($Actual) -join "`n") -ceq (@($Expected) -join "`n")
+function Copy-Object([object] $Value) {
+    $Value | ConvertTo-Json -Depth 30 | ConvertFrom-Json -Depth 30
 }
 
-function Copy-Object([object]$Value) {
-    return ($Value | ConvertTo-Json -Depth 40 | ConvertFrom-Json)
-}
-
-function Get-Scenario([object]$Document, [string]$Id) {
-    return @($Document.scenarios | Where-Object id -CEQ $Id)[0]
-}
-
-function Get-ReferenceHandoff([object]$Document) {
-    $events = @((Get-Scenario $Document 'A').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION')
-    if ($events.Count -ne 1 -or -not (Has-Property $events[0] 'handoff')) {
-        return $null
+function Test-SequenceEqual([object[]] $Left, [object[]] $Right) {
+    if ($Left.Count -ne $Right.Count) { return $false }
+    for ($index = 0; $index -lt $Left.Count; $index++) {
+        if ([string]$Left[$index] -cne [string]$Right[$index]) { return $false }
     }
-    return Copy-Object $events[0].handoff
+    return $true
 }
 
-function Get-ResolvedHandoff([object]$Event, [object]$Document) {
+function Test-StrictSetSuperset([object[]] $Current, [object[]] $Previous) {
+    $currentSet = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $previousSet = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($entry in $Current) { [void]$currentSet.Add([string]$entry) }
+    foreach ($entry in $Previous) { [void]$previousSet.Add([string]$entry) }
+    if ($currentSet.Count -le $previousSet.Count) { return $false }
+    foreach ($entry in $previousSet) {
+        if (-not $currentSet.Contains($entry)) { return $false }
+    }
+    return $true
+}
+
+function Get-Scenario([string] $Id) {
+    @($document.scenarios | Where-Object id -CEQ $Id)[0]
+}
+
+function Get-Handoff([object] $Event) {
     $handoff = if (Has-Property $Event 'handoff') {
         Copy-Object $Event.handoff
     }
     elseif ($Event.handoff_ref -ceq 'A') {
-        Get-ReferenceHandoff $Document
+        $source = @((Get-Scenario 'A').events | Where-Object verdict -CEQ 'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION')[0]
+        Copy-Object $source.handoff
     }
     else {
-        $null
+        return $null
     }
 
-    if ($null -ne $handoff -and (Has-Property $Event 'handoff_override')) {
-        $concern = [string]$Event.handoff_override.decision_concern
-        if ([string]::IsNullOrWhiteSpace($concern) -or
-            -not (Has-Property $handoff 'decision_closure') -or
-            -not (Has-Property $handoff.decision_closure $concern)) {
-            $handoff | Add-Member -NotePropertyName resolution_error -NotePropertyValue "handoff override references unknown decision concern '$concern'"
-        }
-        else {
-            $handoff.decision_closure.$concern.status = [string]$Event.handoff_override.status
-        }
+    if (Has-Property $Event 'handoff_override') {
+        $surface = [string]$Event.handoff_override.decision_surface
+        $handoff.decision_surface_assessment.$surface.status = [string]$Event.handoff_override.status
+    }
+    if (Has-Property $Event 'reentry_count') {
+        $handoff.reentry_count = [int]$Event.reentry_count
+    }
+    if (Has-Property $Event 'previous_reentry_trigger') {
+        $handoff.previous_reentry_trigger = [string]$Event.previous_reentry_trigger
+    }
+    if (Has-Property $Event 'reentry_progress_evidence') {
+        $handoff.reentry_progress_evidence = Copy-Object $Event.reentry_progress_evidence
+    }
+    if (Has-Property $Event 'additional_acceptance_status') {
+        $handoff.acceptance_status = @($handoff.acceptance_status) + @(Copy-Object $Event.additional_acceptance_status)
+    }
+    if (Has-Property $Event 'additional_remaining_work') {
+        $handoff.remaining_work = @($handoff.remaining_work) + @(Copy-Object $Event.additional_remaining_work)
+    }
+    if (Has-Property $Event 'additional_allowed_edit_surface') {
+        $handoff.allowed_edit_surface = @($handoff.allowed_edit_surface) + @($Event.additional_allowed_edit_surface)
     }
     return $handoff
 }
 
-function Get-ResolvedTrackedState([object]$Event, [object]$Document) {
-    if (Has-Property $Event 'tracked_state') {
-        return $Event.tracked_state
+function Get-TrackedState([object] $Event) {
+    $trackedState = if (Has-Property $Event 'tracked_state') {
+        Copy-Object $Event.tracked_state
     }
-    if ($Event.tracked_state_ref -ceq 'D') {
-        $source = (Get-Scenario $Document 'D').events | Where-Object verdict -CEQ 'NEEDS_HIGH_MODEL_REENTRY'
-        return Copy-Object $source.tracked_state
+    elseif ($Event.tracked_state_ref -ceq 'D') {
+        $source = @((Get-Scenario 'D').events | Where-Object verdict -CEQ 'NEEDS_DECISION_SURFACE_REENTRY')[0]
+        Copy-Object $source.tracked_state
     }
-    return $null
+    else {
+        return $null
+    }
+    if (Has-Property $Event 'tracked_state_trigger') {
+        $trackedState.trigger = [string]$Event.tracked_state_trigger
+    }
+    if (Has-Property $Event 'tracked_state_reentry_count') {
+        $trackedState.reentry_count = [int]$Event.tracked_state_reentry_count
+    }
+    return $trackedState
 }
 
-function Test-AuthorizedSurface([string]$Surface, [string[]]$Envelope) {
+function Test-AuthorizedSurface([string] $Surface, [string[]] $Envelope) {
     foreach ($entry in $Envelope) {
-        if ($Surface -ceq $entry -or $Surface.StartsWith($entry + '/', [StringComparison]::Ordinal)) {
-            return $true
-        }
+        if ($Surface -ceq $entry -or $Surface.StartsWith($entry + '/', [StringComparison]::Ordinal)) { return $true }
     }
     return $false
 }
 
-function Get-HandoffErrors([object]$Handoff) {
+function Get-HandoffErrors([object] $Handoff) {
     $errors = [System.Collections.Generic.List[string]]::new()
     if ($null -eq $Handoff -or $Handoff.valid -ne $true) {
-        $errors.Add('handoff is absent or not marked valid')
+        $errors.Add('handoff is absent or invalid')
         return $errors
     }
-    if (Has-Property $Handoff 'resolution_error') {
-        $errors.Add([string]$Handoff.resolution_error)
+    if ($Handoff.ownership_transfer_basis -cne 'bounded-residual-work-only') {
+        $errors.Add('ownership transfer basis is invalid')
     }
-    if ($Handoff.delegation_basis -cne 'non-local-decisions-closed') {
-        $errors.Add('delegation basis is not non-local-decisions-closed')
+    if (@($Handoff.implementation_evidence).Count -eq 0) {
+        $errors.Add('implementation or inspection evidence is empty')
     }
-    if (-not (Has-Property $Handoff 'high_model_code_changes') -or $Handoff.high_model_code_changes -isnot [bool]) {
-        $errors.Add('HIGH_MODEL code changes is not an explicit boolean')
+    foreach ($field in @('reentry_count', 'previous_reentry_trigger', 'reentry_progress_evidence')) {
+        if (-not (Has-Property $Handoff $field)) {
+            $errors.Add("handoff is missing '$field'")
+        }
+    }
+    foreach ($field in @('trigger', 'resolution', 'verification', 'same_unresolved_cause_rehanded_off')) {
+        if (-not (Has-Property $Handoff.reentry_progress_evidence $field)) {
+            $errors.Add("re-entry progress evidence is missing '$field'")
+        }
     }
 
-    foreach ($concern in $script:canonicalRequiredDecisionClosure) {
-        if (-not (Has-Property $Handoff.decision_closure $concern)) {
-            $errors.Add("decision closure is missing '$concern'")
+    $actualSurfaceNames = @($Handoff.decision_surface_assessment.PSObject.Properties.Name)
+    if (-not (Test-SequenceEqual @($document.required_decision_surfaces) $actualSurfaceNames)) {
+        $errors.Add('decision surface assessment does not exactly match the canonical concern set')
+    }
+    foreach ($surface in @($document.required_decision_surfaces)) {
+        if (-not (Has-Property $Handoff.decision_surface_assessment $surface)) {
+            $errors.Add("decision surface assessment is missing '$surface'")
             continue
         }
-        $closure = $Handoff.decision_closure.$concern
-        $status = [string]$closure.status
-        if ($status -notin @('Locked', 'N/A')) {
-            $errors.Add("decision closure '$concern' has invalid status '$status'")
+        $assessment = $Handoff.decision_surface_assessment.$surface
+        if ([string]$assessment.status -cnotin @('Resolved', 'N/A')) {
+            $errors.Add("decision surface '$surface' has invalid status '$($assessment.status)'")
         }
-        if ([string]::IsNullOrWhiteSpace([string]$closure.evidence)) {
-            $errors.Add("decision closure '$concern' has no evidence or N/A reason")
+        if ([string]::IsNullOrWhiteSpace([string]$assessment.evidence)) {
+            $errors.Add("decision surface '$surface' has no evidence or N/A reason")
         }
     }
 
     $workPackages = @($Handoff.remaining_work)
-    if ($workPackages.Count -eq 0) {
-        $errors.Add('no Work Package remains')
-    }
     $envelope = @($Handoff.allowed_edit_surface)
-    if ($envelope.Count -eq 0) {
-        $errors.Add('Allowed edit surface envelope is empty')
-    }
+    if ($workPackages.Count -eq 0) { $errors.Add('no bounded residual Work Package remains') }
+    if ($envelope.Count -eq 0) { $errors.Add('Allowed edit surface is empty') }
+    $requiredFields = @('work_id', 'acceptance_items', 'responsibility', 'authorized_surface', 'expected_behavior', 'locked_boundaries', 'local_freedom', 'completion_check')
+    $workById = @{}
     foreach ($workPackage in $workPackages) {
-        foreach ($field in $script:requiredWorkPackageFields) {
-            $fieldValue = if (Has-Property $workPackage $field) { $workPackage.$field } else { $null }
-            if ($null -eq $fieldValue `
-                -or @($fieldValue).Count -eq 0 `
-                -or ($fieldValue -is [string] -and [string]::IsNullOrWhiteSpace($fieldValue))) {
+        foreach ($field in $requiredFields) {
+            if (-not (Has-Property $workPackage $field) -or @($workPackage.$field).Count -eq 0) {
                 $errors.Add("Work Package is missing '$field'")
             }
         }
+        if ($workById.ContainsKey([string]$workPackage.work_id)) {
+            $errors.Add("duplicate Work ID '$($workPackage.work_id)'")
+        }
+        else {
+            $workById[[string]$workPackage.work_id] = $workPackage
+        }
         foreach ($surface in @($workPackage.authorized_surface)) {
             if (-not (Test-AuthorizedSurface ([string]$surface) $envelope)) {
-                $errors.Add("authorized surface '$surface' is outside the Allowed edit surface envelope")
+                $errors.Add("authorized surface '$surface' is outside the envelope")
             }
         }
     }
 
     $acceptanceRows = @($Handoff.acceptance_status)
-    if ($acceptanceRows.Count -eq 0) {
-        $errors.Add('Acceptance status is empty')
-    }
-    $workById = @{}
-    foreach ($workPackage in $workPackages) {
-        $workId = [string]$workPackage.work_id
-        if ($workById.ContainsKey($workId)) {
-            $errors.Add("duplicate Work ID '$workId'")
-            continue
-        }
-        $workById[$workId] = $workPackage
-    }
+    if ($acceptanceRows.Count -eq 0) { $errors.Add('Acceptance status is empty') }
     foreach ($row in $acceptanceRows) {
-        $status = [string]$row.status
-        if ($status -cnotin @('Complete', 'Incomplete')) {
-            $errors.Add("acceptance item '$($row.acceptance_item)' has unsupported status '$status'")
+        if ([string]$row.status -cnotin @('Complete', 'Incomplete')) {
+            $errors.Add("unsupported acceptance status '$($row.status)'")
         }
-        if ($status -ceq 'Complete' -and [string]::IsNullOrWhiteSpace([string]$row.evidence)) {
+        if ($row.status -ceq 'Complete' -and [string]::IsNullOrWhiteSpace([string]$row.evidence)) {
             $errors.Add("complete acceptance item '$($row.acceptance_item)' has no evidence")
         }
-        if ($status -ceq 'Incomplete' -and @($row.work_ids).Count -eq 0) {
+        if ($row.status -ceq 'Incomplete' -and @($row.work_ids).Count -eq 0) {
             $errors.Add("incomplete acceptance item '$($row.acceptance_item)' has no Work ID")
         }
         foreach ($workId in @($row.work_ids)) {
             if (-not $workById.ContainsKey([string]$workId)) {
-                $errors.Add("acceptance item '$($row.acceptance_item)' maps to unknown Work ID '$workId'")
+                $errors.Add("acceptance item maps to unknown Work ID '$workId'")
                 continue
             }
-            $referencedWork = $workById[[string]$workId]
-            if ([string]$row.acceptance_item -cnotin @($referencedWork.acceptance_items)) {
-                $errors.Add("acceptance item '$($row.acceptance_item)' maps to Work ID '$workId', but that Work Package does not declare the acceptance item")
+            if ([string]$row.acceptance_item -cnotin @($workById[[string]$workId].acceptance_items)) {
+                $errors.Add("acceptance mapping for Work ID '$workId' is not bidirectional")
             }
         }
     }
     foreach ($workPackage in $workPackages) {
         foreach ($acceptanceItem in @($workPackage.acceptance_items)) {
-            $matchingRows = @($acceptanceRows | Where-Object acceptance_item -CEQ $acceptanceItem)
-            if ($matchingRows.Count -ne 1 -or $matchingRows[0].status -cne 'Incomplete' -or [string]$workPackage.work_id -cnotin @($matchingRows[0].work_ids)) {
-                $errors.Add("Work ID '$($workPackage.work_id)' is not bidirectionally mapped to incomplete acceptance item '$acceptanceItem'")
+            $matching = @($acceptanceRows | Where-Object acceptance_item -CEQ $acceptanceItem)
+            if ($matching.Count -ne 1 -or $matching[0].status -cne 'Incomplete' -or [string]$workPackage.work_id -cnotin @($matching[0].work_ids)) {
+                $errors.Add("Work ID '$($workPackage.work_id)' is not mapped to incomplete acceptance '$acceptanceItem'")
             }
         }
     }
     return $errors
 }
 
-function Get-ScenarioErrors([object]$Scenario, [object]$Document) {
+function Get-ScenarioErrors([object] $Scenario) {
     $errors = [System.Collections.Generic.List[string]]::new()
-    $prefix = "Scenario $($Scenario.id)"
     $phase = 'Fresh'
-    $standardStarts = 0
+    $boundedStarts = 0
     $afterReentry = $false
-
+    $previousAcceptedHandoff = $null
+    $pendingReentryTrigger = $null
+    $pendingReentryCount = $null
     $route = $Scenario.route
-    $validAdaptiveRoute = $route.implementation_route -ceq 'adaptive' `
-        -and $route.implementation_route_source -ceq 'default' `
-        -and $route.design_pair_handoff -ceq 'N/A'
-    $validDesignPairRoute = $route.implementation_route -ceq 'design-pair' `
-        -and $route.implementation_route_source -ceq 'explicit-user-selection' `
-        -and -not [string]::IsNullOrWhiteSpace([string]$route.design_pair_handoff) `
-        -and $route.design_pair_handoff -cne 'N/A'
+    $validAdaptive = $route.implementation_route -ceq 'adaptive' -and $route.implementation_route_source -ceq 'default' -and $route.design_pair_handoff -ceq 'N/A'
+    $validDesignPair = $route.implementation_route -ceq 'design-pair' -and $route.implementation_route_source -ceq 'explicit-user-selection' -and -not [string]::IsNullOrWhiteSpace([string]$route.design_pair_handoff) -and $route.design_pair_handoff -cne 'N/A'
 
-    if (-not ($validAdaptiveRoute -or $validDesignPairRoute)) {
+    if (-not ($validAdaptive -or $validDesignPair)) {
         $events = @($Scenario.events)
-        if ($events.Count -ne 1 `
-            -or $events[0].verdict -cne 'BLOCKED' `
-            -or $events[0].stop_reason -cne 'BlockedByInvalidCompletionHandoff' `
-            -or $events[0].write_owner -cne 'none' `
-            -or $events[0].adaptive_default_inferred -ne $false) {
-            $errors.Add("$prefix must fail closed on invalid route identity without inferring Adaptive or assigning a write owner.")
+        if ($events.Count -ne 1 -or $events[0].verdict -cne 'BLOCKED' -or $events[0].stop_reason -cne 'BlockedByInvalidCompletionHandoff' -or $events[0].write_owner -cne 'none' -or $events[0].adaptive_default_inferred -ne $false) {
+            $errors.Add('invalid route did not fail closed without a write owner')
         }
         $phase = 'Blocked'
     }
     else {
         foreach ($event in @($Scenario.events)) {
             if ($phase -in @('Completed', 'Blocked')) {
-                $errors.Add("$prefix emitted an event after terminal state $phase.")
+                $errors.Add("event emitted after terminal state '$phase'")
                 continue
             }
             if ($event.kind -ceq 'start') {
-                if ($event.owner -ceq 'high-implementation-starter' -and $phase -in @('Fresh', 'HighReentryReady')) {
-                    $phase = 'HighActive'
+                if ($event.owner -ceq 'decision-surface-implementation-owner' -and $phase -in @('Fresh', 'DecisionSurfaceReentryReady')) {
+                    $phase = 'DecisionSurfaceActive'
                 }
-                elseif ($event.owner -ceq 'standard-implementation-completer' -and $phase -ceq 'StandardReady') {
-                    $standardStarts++
-                    $phase = 'StandardActive'
+                elseif ($event.owner -ceq 'bounded-residual-implementation-owner' -and $phase -ceq 'BoundedResidualReady') {
+                    $boundedStarts++
+                    $phase = 'BoundedResidualActive'
                 }
                 else {
-                    $errors.Add("$prefix started '$($event.owner)' from invalid state $phase.")
+                    $errors.Add("owner '$($event.owner)' started from invalid state '$phase'")
                 }
-                continue
-            }
-            if ($event.kind -cne 'verdict') {
-                $errors.Add("$prefix has an unknown event kind '$($event.kind)'.")
                 continue
             }
 
-            if ($event.owner -ceq 'high-implementation-starter') {
-                if ($phase -cne 'HighActive') {
-                    $errors.Add("$prefix emitted a HIGH verdict from invalid state $phase.")
+            if ($event.owner -ceq 'decision-surface-implementation-owner') {
+                if ($phase -cne 'DecisionSurfaceActive') {
+                    $errors.Add("decision-surface verdict emitted from '$phase'")
                     continue
                 }
-                if ($event.verdict -ceq 'COMPLETED_BY_HIGH_MODEL') {
-                    $reasonValid = $event.direct_completion_reason -cin $script:allowedDirectCompletionReasons `
-                        -and -not [string]::IsNullOrWhiteSpace([string]$event.direct_completion_evidence) `
-                        -and ($event.direct_completion_reason -cne 'post-reentry-high-ownership' -or $afterReentry) `
-                        -and ($event.direct_completion_reason -cne 'tiny-local-change' -or $event.meaningful_work_package_remaining -eq $false)
-                    if (-not $reasonValid) {
-                        if ($event.expected_rejected -ne $true) {
-                            $errors.Add("$prefix accepted HIGH direct completion without a valid phase-appropriate reason and evidence.")
-                        }
-                    }
-                    else {
-                        $phase = 'Completed'
-                    }
-                }
-                elseif ($event.verdict -ceq 'READY_FOR_STANDARD_COMPLETION') {
-                    $handoffErrors = @(Get-HandoffErrors (Get-ResolvedHandoff $event $Document))
-                    if ($afterReentry -and $event.delegation_surface_reduced -ne $true) {
-                        $handoffErrors += 'delegation surface did not strictly shrink after re-entry'
-                    }
-                    if ($handoffErrors.Count -gt 0) {
-                        if ($event.expected_rejected -ne $true) {
-                            $errors.Add("$prefix accepted an invalid completion handoff: $($handoffErrors -join '; ').")
-                        }
-                    }
-                    else {
-                        if ($validDesignPairRoute -and -not (Test-SequenceEqual @($event.locked_decision_ids) @($route.locked_decision_ids))) {
-                            $errors.Add("$prefix changed Design Pair Decision IDs in the completion handoff.")
-                        }
-                        $phase = 'StandardReady'
-                    }
-                }
-                else {
-                    $errors.Add("$prefix has an unsupported HIGH verdict '$($event.verdict)'.")
-                }
-            }
-            elseif ($event.owner -ceq 'standard-implementation-completer') {
-                if ($phase -cne 'StandardActive') {
-                    $errors.Add("$prefix emitted a STANDARD verdict from invalid state $phase.")
-                    continue
-                }
-                if ($event.verdict -ceq 'COMPLETED') {
-                    if (Has-Property $event 'local_choices') {
-                        foreach ($choice in @($event.local_choices)) {
-                            if ($choice -cnotin $script:allowedLocalChoices) {
-                                $errors.Add("$prefix used an unauthorized local choice '$choice'.")
+                switch ($event.verdict) {
+                    'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION' {
+                        $handoff = Get-Handoff $event
+                        $handoffErrors = @(Get-HandoffErrors $handoff)
+                        if ($afterReentry) {
+                            $progress = $handoff.reentry_progress_evidence
+                            if ([int]$handoff.reentry_count -ne [int]$pendingReentryCount -or
+                                [string]$handoff.previous_reentry_trigger -cne [string]$pendingReentryTrigger -or
+                                [string]$progress.trigger -cne [string]$pendingReentryTrigger -or
+                                [string]::IsNullOrWhiteSpace([string]$progress.resolution) -or
+                                [string]$progress.resolution -ceq 'N/A' -or
+                                [string]::IsNullOrWhiteSpace([string]$progress.verification) -or
+                                [string]$progress.verification -ceq 'N/A' -or
+                                $progress.same_unresolved_cause_rehanded_off -ne $false) {
+                                $handoffErrors += 're-entry trigger resolution evidence is missing'
+                            }
+                            if ($event.expected_surface_expansion -eq $true) {
+                                $currentWorkIds = @($handoff.remaining_work | ForEach-Object { [string]$_.work_id })
+                                $previousWorkIds = @($previousAcceptedHandoff.remaining_work | ForEach-Object { [string]$_.work_id })
+                                if (-not (Test-StrictSetSuperset $currentWorkIds $previousWorkIds) -or
+                                    -not (Test-StrictSetSuperset @($handoff.allowed_edit_surface) @($previousAcceptedHandoff.allowed_edit_surface))) {
+                                    $handoffErrors += 'expected expanded remaining work and allowed edit surface were not present'
+                                }
                             }
                         }
-                    }
-                    if ($event.changed_locked_decision -eq $true) {
-                        $errors.Add("$prefix allowed STANDARD to change a locked decision.")
-                    }
-                    if ($validDesignPairRoute -and -not (Test-SequenceEqual @($event.locked_decision_ids) @($route.locked_decision_ids))) {
-                        $errors.Add("$prefix failed to preserve Design Pair Decision IDs through STANDARD completion.")
-                    }
-                    $phase = 'Completed'
-                }
-                elseif ($event.verdict -ceq 'NEEDS_HIGH_MODEL_REENTRY') {
-                    if ($event.locked_non_local_decision_change_required -ne $true -or $event.edit_type_only -eq $true) {
-                        $errors.Add("$prefix used NEEDS_HIGH_MODEL_REENTRY without a locked non-local decision change.")
-                    }
-                    $trackedState = Get-ResolvedTrackedState $event $Document
-                    foreach ($field in $script:canonicalRequiredReentryState) {
-                        if (-not (Has-Property $trackedState $field)) {
-                            $errors.Add("$prefix re-entry state is missing '$field'.")
+                        elseif ([int]$handoff.reentry_count -ne 0 -or
+                            [string]$handoff.previous_reentry_trigger -cne 'N/A' -or
+                            [string]$handoff.reentry_progress_evidence.trigger -cne 'N/A' -or
+                            [string]$handoff.reentry_progress_evidence.resolution -cne 'N/A' -or
+                            [string]$handoff.reentry_progress_evidence.verification -cne 'N/A' -or
+                            [string]$handoff.reentry_progress_evidence.same_unresolved_cause_rehanded_off -cne 'N/A') {
+                            $handoffErrors += 'initial re-entry history must start at zero with N/A evidence'
+                        }
+                        if ($handoffErrors.Count -gt 0) {
+                            if ($event.expected_rejected -ne $true) {
+                                $errors.Add('invalid transfer was accepted: ' + ($handoffErrors -join '; '))
+                            }
+                        }
+                        else {
+                            if ($validDesignPair -and -not (Test-SequenceEqual @($event.locked_decision_ids) @($route.locked_decision_ids))) {
+                                $errors.Add('Design Pair Decision IDs changed during transfer')
+                            }
+                            $previousAcceptedHandoff = Copy-Object $handoff
+                            $pendingReentryTrigger = $null
+                            $pendingReentryCount = $null
+                            $afterReentry = $false
+                            $phase = 'BoundedResidualReady'
                         }
                     }
-                    if ($trackedState.implementation_route -cne $route.implementation_route `
-                        -or $trackedState.implementation_route_source -cne $route.implementation_route_source `
-                        -or $trackedState.design_pair_handoff -cne $route.design_pair_handoff) {
-                        $errors.Add("$prefix changed route identity in re-entry state.")
+                    'IMPLEMENTATION_COMPLETED' {
+                        if ($event.acceptance_complete -ne $true -or @($event.implementation_evidence).Count -eq 0 -or @($event.validation_evidence).Count -eq 0) {
+                            $errors.Add('implementation completion lacks acceptance or evidence')
+                        }
+                        else {
+                            $phase = 'Completed'
+                        }
                     }
-                    $afterReentry = $true
-                    $phase = 'HighReentryReady'
+                    'BLOCKED' {
+                        if ($event.stop_reason -cne 'BlockedByInvalidCompletionHandoff' -or
+                            $event.old_schema_detected -ne $true -or
+                            $event.compatibility_normalization_applied -ne $false) {
+                            $errors.Add('old-schema BLOCKED result is incomplete or normalized')
+                        }
+                        else {
+                            $phase = 'Blocked'
+                        }
+                    }
+                    default { $errors.Add("unsupported decision-surface verdict '$($event.verdict)'") }
                 }
-                else {
-                    $errors.Add("$prefix has an unsupported STANDARD verdict '$($event.verdict)'.")
+            }
+            elseif ($event.owner -ceq 'bounded-residual-implementation-owner') {
+                if ($phase -cne 'BoundedResidualActive') {
+                    $errors.Add("bounded-residual verdict emitted from '$phase'")
+                    continue
+                }
+                switch ($event.verdict) {
+                    'IMPLEMENTATION_COMPLETED' {
+                        if ($event.changed_locked_decision -eq $true) {
+                            $errors.Add('bounded residual owner changed a locked decision')
+                        }
+                        elseif ($validDesignPair -and -not (Test-SequenceEqual @($event.locked_decision_ids) @($route.locked_decision_ids))) {
+                            $errors.Add('Design Pair Decision IDs changed during completion')
+                        }
+                        else {
+                            $phase = 'Completed'
+                        }
+                    }
+                    'NEEDS_DECISION_SURFACE_REENTRY' {
+                        $trackedState = Get-TrackedState $event
+                        $reentryErrors = [System.Collections.Generic.List[string]]::new()
+                        if ($event.new_decision_surface_required -ne $true -or $event.edit_type_only -eq $true) {
+                            $reentryErrors.Add('re-entry lacks a new decision surface')
+                        }
+                        foreach ($field in @($document.required_reentry_state)) {
+                            if (-not (Has-Property $trackedState $field)) {
+                                $reentryErrors.Add("re-entry state is missing '$field'")
+                            }
+                        }
+                        if ([string]::IsNullOrWhiteSpace([string]$trackedState.trigger) -or [string]$trackedState.trigger -ceq 'N/A') {
+                            $reentryErrors.Add('re-entry trigger is empty or N/A')
+                        }
+                        if ($null -eq $previousAcceptedHandoff -or
+                            [int]$trackedState.reentry_count -ne ([int]$previousAcceptedHandoff.reentry_count + 1)) {
+                            $reentryErrors.Add('re-entry count does not increment the accepted handoff')
+                        }
+                        if ($trackedState.implementation_route -cne $route.implementation_route -or $trackedState.implementation_route_source -cne $route.implementation_route_source -or $trackedState.design_pair_handoff -cne $route.design_pair_handoff) {
+                            $reentryErrors.Add('re-entry route identity changed')
+                        }
+                        if ($reentryErrors.Count -gt 0) {
+                            if ($event.expected_rejected -ne $true) {
+                                $errors.Add('invalid re-entry was accepted: ' + ($reentryErrors -join '; '))
+                            }
+                        }
+                        else {
+                            $afterReentry = $true
+                            $pendingReentryTrigger = [string]$trackedState.trigger
+                            $pendingReentryCount = [int]$trackedState.reentry_count
+                            $phase = 'DecisionSurfaceReentryReady'
+                        }
+                    }
+                    default { $errors.Add("unsupported bounded-residual verdict '$($event.verdict)'") }
                 }
             }
             else {
-                $errors.Add("$prefix has an invalid verdict owner '$($event.owner)'.")
+                $errors.Add("invalid verdict owner '$($event.owner)'")
             }
         }
     }
 
     if ($phase -cne $Scenario.expected.final_state) {
-        $errors.Add("$prefix ended in $phase; expected $($Scenario.expected.final_state).")
+        $errors.Add("ended in '$phase'; expected '$($Scenario.expected.final_state)'")
     }
-    if ($standardStarts -ne [int]$Scenario.expected.standard_starts) {
-        $errors.Add("$prefix started STANDARD $standardStarts time(s); expected $($Scenario.expected.standard_starts).")
-    }
-    if (Has-Property $Scenario.expected 'high_model_code_changes') {
-        $readyEvent = @($Scenario.events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION')[0]
-        $handoff = Get-ResolvedHandoff $readyEvent $Document
-        if ($handoff.high_model_code_changes -ne $Scenario.expected.high_model_code_changes) {
-            $errors.Add("$prefix did not preserve the expected HIGH_MODEL code-change state.")
-        }
-    }
-    if (Has-Property $Scenario.expected 'required_local_choices') {
-        $completion = @($Scenario.events | Where-Object verdict -CEQ 'COMPLETED')[0]
-        foreach ($choice in @($Scenario.expected.required_local_choices)) {
-            if ($choice -cnotin @($completion.local_choices)) {
-                $errors.Add("$prefix did not exercise required STANDARD local choice '$choice'.")
-            }
-        }
-    }
-    if (Has-Property $Scenario.expected 'locked_wiring_implemented') {
-        $completion = @($Scenario.events | Where-Object verdict -CEQ 'COMPLETED')[0]
-        if ($completion.locked_wiring_implemented -ne $Scenario.expected.locked_wiring_implemented) {
-            $errors.Add("$prefix did not exercise locked wiring implementation.")
-        }
+    if ($boundedStarts -ne [int]$Scenario.expected.bounded_residual_starts) {
+        $errors.Add("bounded residual owner started $boundedStarts time(s); expected $($Scenario.expected.bounded_residual_starts)")
     }
     return $errors
 }
 
-function Assert-RejectedMutation([string]$Name, [object]$Document, [scriptblock]$Mutate, [string]$ExpectedErrorPattern = '') {
-    $copy = Copy-Object $Document
-    & $Mutate $copy
-    $scenario = Get-Scenario $copy $Name.Substring(0, 1)
-    $errors = @(Get-ScenarioErrors $scenario $copy)
-    if ($errors.Count -eq 0) {
-        throw "Mutation '$Name' was incorrectly accepted."
-    }
-    if (-not [string]::IsNullOrWhiteSpace($ExpectedErrorPattern) -and
-        ($errors.Count -ne 1 -or $errors[0] -cnotmatch $ExpectedErrorPattern)) {
-        throw "Mutation '$Name' was rejected for the wrong reason: $($errors -join '; ')"
-    }
+if ($document.schema_version -ne 4 -or $document.contract -cne 'adaptive-implementation-execution') {
+    $failures.Add('routing fixture schema or contract is invalid')
+}
+if (@($document.scenarios).Count -lt 15) {
+    $failures.Add('routing fixture does not cover the required scenario breadth')
+}
+if ((Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'routing-scenarios.json')) -match 'high-implementation-starter|standard-implementation-completer|READY_FOR_STANDARD_COMPLETION|COMPLETED_BY_HIGH_MODEL|HIGH_MODEL code changes|Direct completion reason|transfer_surface_reduced') {
+    $failures.Add('routing fixture contains removed 0.5 ownership vocabulary')
 }
 
-if (-not (Test-Path -LiteralPath $FixturePath -PathType Leaf)) {
-    throw "Routing fixture was not found: $FixturePath"
-}
-
-$document = Get-Content -Raw -LiteralPath $FixturePath | ConvertFrom-Json
-if ($document.schema_version -ne 3 -or $document.contract -cne 'adaptive-implementation-execution') {
-    throw 'Routing fixture identity or schema version is invalid.'
-}
-if (-not (Test-SequenceEqual @($document.required_decision_closure) $script:canonicalRequiredDecisionClosure)) {
-    throw 'Routing fixture must declare the complete decision-closure concern set in contract order.'
-}
-if (-not (Test-SequenceEqual @($document.required_reentry_state) $script:canonicalRequiredReentryState)) {
-    throw 'Routing fixture must declare the complete canonical re-entry state in contract order.'
-}
-if (-not (Test-SequenceEqual @($document.scenarios.id) @('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'))) {
-    throw 'Routing scenarios must contain the ordered A-J contract.'
-}
-
-$failures = [System.Collections.Generic.List[string]]::new()
 foreach ($scenario in @($document.scenarios)) {
-    foreach ($errorMessage in @(Get-ScenarioErrors $scenario $document)) {
-        $failures.Add($errorMessage)
+    foreach ($error in @(Get-ScenarioErrors $scenario)) {
+        $failures.Add("Scenario $($scenario.id): $error")
     }
 }
+
 if ($failures.Count -gt 0) {
-    throw ("Adaptive routing scenario validation failed:`n- " + ($failures -join "`n- "))
+    Write-Error ("Adaptive routing scenario validation failed:`n- " + ($failures -join "`n- "))
+    exit 1
 }
 
-Assert-RejectedMutation 'A-missing-high-code-change-state' $document {
-    param($copy)
-    $handoff = ((Get-Scenario $copy 'A').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION').handoff
-    $handoff.PSObject.Properties.Remove('high_model_code_changes')
-}
-Assert-RejectedMutation 'A-incomplete-work-package' $document {
-    param($copy)
-    $workPackage = ((Get-Scenario $copy 'A').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION').handoff.remaining_work[0]
-    $workPackage.PSObject.Properties.Remove('completion_check')
-}
-Assert-RejectedMutation 'A-broken-acceptance-mapping' $document {
-    param($copy)
-    $acceptance = ((Get-Scenario $copy 'A').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION').handoff.acceptance_status[0]
-    $acceptance.work_ids = @('RW-missing')
-}
-Assert-RejectedMutation 'B-change-locked-decision' $document {
-    param($copy)
-    ((Get-Scenario $copy 'B').events | Where-Object verdict -CEQ 'COMPLETED').changed_locked_decision = $true
-}
-Assert-RejectedMutation 'C-edit-type-only-reentry' $document {
-    param($copy)
-    $scenario = Get-Scenario $copy 'C'
-    $event = $scenario.events | Where-Object verdict -CEQ 'COMPLETED'
-    $event.verdict = 'NEEDS_HIGH_MODEL_REENTRY'
-    $event | Add-Member -NotePropertyName locked_non_local_decision_change_required -NotePropertyValue $false
-    $event | Add-Member -NotePropertyName edit_type_only -NotePropertyValue $true
-    $event | Add-Member -NotePropertyName tracked_state_ref -NotePropertyValue 'D'
-    $scenario.expected.final_state = 'HighReentryReady'
-    $scenario.expected.PSObject.Properties.Remove('locked_wiring_implemented')
-} 'without a locked non-local decision change'
-Assert-RejectedMutation 'D-missing-reentry-state' $document {
-    param($copy)
-    $event = (Get-Scenario $copy 'D').events | Where-Object verdict -CEQ 'NEEDS_HIGH_MODEL_REENTRY'
-    $event.tracked_state.PSObject.Properties.Remove('validation')
-}
-Assert-RejectedMutation 'E-accept-reasonless-completion' $document {
-    param($copy)
-    ((Get-Scenario $copy 'E').events | Where-Object verdict -CEQ 'COMPLETED_BY_HIGH_MODEL').expected_rejected = $false
-}
-Assert-RejectedMutation 'F-use-post-reentry-reason-initially' $document {
-    param($copy)
-    ((Get-Scenario $copy 'F').events | Where-Object verdict -CEQ 'COMPLETED_BY_HIGH_MODEL').direct_completion_reason = 'post-reentry-high-ownership'
-}
-Assert-RejectedMutation 'F-tiny-with-meaningful-work-remaining' $document {
-    param($copy)
-    ((Get-Scenario $copy 'F').events | Where-Object verdict -CEQ 'COMPLETED_BY_HIGH_MODEL').meaningful_work_package_remaining = $true
-}
-Assert-RejectedMutation 'G-accept-unresolved-decision' $document {
-    param($copy)
-    ((Get-Scenario $copy 'G').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION').expected_rejected = $false
-}
-Assert-RejectedMutation 'G-ambiguous-reference-handoff' $document {
-    param($copy)
-    $scenarioA = Get-Scenario $copy 'A'
-    $referenceEvent = @($scenarioA.events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION')[0]
-    $scenarioA.events = @($scenarioA.events) + (Copy-Object $referenceEvent)
-    $event = (Get-Scenario $copy 'G').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION'
-    $event.handoff_override.status = 'Locked'
-    $event.expected_rejected = $false
-} 'handoff is absent or not marked valid'
-Assert-RejectedMutation 'G-missing-reference-handoff' $document {
-    param($copy)
-    $scenarioA = Get-Scenario $copy 'A'
-    $scenarioA.events = @($scenarioA.events | Where-Object verdict -CNE 'READY_FOR_STANDARD_COMPLETION')
-    $event = (Get-Scenario $copy 'G').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION'
-    $event.handoff_override.status = 'Locked'
-    $event.expected_rejected = $false
-} 'handoff is absent or not marked valid'
-Assert-RejectedMutation 'G-unknown-decision-concern' $document {
-    param($copy)
-    $event = (Get-Scenario $copy 'G').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION'
-    $event.handoff_override.decision_concern = 'unknown_concern'
-    $event.handoff_override.status = 'Locked'
-    $event.expected_rejected = $false
-} 'handoff override references unknown decision concern'
-Assert-RejectedMutation 'G-unsupported-acceptance-status' $document {
-    param($copy)
-    $referenceHandoff = ((Get-Scenario $copy 'A').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION').handoff
-    $referenceHandoff.acceptance_status = @($referenceHandoff.acceptance_status) + [pscustomobject]@{
-        acceptance_item = 'AC-pending'
-        status = 'Pending'
-        work_ids = @()
-        evidence = ''
-    }
-    $event = (Get-Scenario $copy 'G').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION'
-    $event.handoff_override.status = 'Locked'
-    $event.expected_rejected = $false
-} 'unsupported status'
-Assert-RejectedMutation 'G-duplicate-work-id' $document {
-    param($copy)
-    $referenceHandoff = ((Get-Scenario $copy 'A').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION').handoff
-    $referenceHandoff.remaining_work = @($referenceHandoff.remaining_work) + (Copy-Object $referenceHandoff.remaining_work[0])
-    $event = (Get-Scenario $copy 'G').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION'
-    $event.handoff_override.status = 'Locked'
-    $event.expected_rejected = $false
-} 'duplicate Work ID'
-Assert-RejectedMutation 'G-empty-work-package-responsibility' $document {
-    param($copy)
-    $referenceHandoff = ((Get-Scenario $copy 'A').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION').handoff
-    $referenceHandoff.remaining_work[0].responsibility = '  '
-    $event = (Get-Scenario $copy 'G').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION'
-    $event.handoff_override.status = 'Locked'
-    $event.expected_rejected = $false
-} "Work Package is missing 'responsibility'"
-Assert-RejectedMutation 'G-asymmetric-acceptance-edge' $document {
-    param($copy)
-    $referenceHandoff = ((Get-Scenario $copy 'A').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION').handoff
-    $secondWork = Copy-Object $referenceHandoff.remaining_work[0]
-    $secondWork.work_id = 'RW-2'
-    $secondWork.acceptance_items = @('AC-2')
-    $referenceHandoff.remaining_work = @($referenceHandoff.remaining_work) + $secondWork
-    $referenceHandoff.acceptance_status[0].work_ids = @('RW-1', 'RW-2')
-    $referenceHandoff.acceptance_status = @($referenceHandoff.acceptance_status) + [pscustomobject]@{
-        acceptance_item = 'AC-2'
-        status = 'Incomplete'
-        work_ids = @('RW-2')
-        evidence = 'Decision closure is complete; test implementation remains'
-    }
-    $event = (Get-Scenario $copy 'G').events | Where-Object verdict -CEQ 'READY_FOR_STANDARD_COMPLETION'
-    $event.handoff_override.status = 'Locked'
-    $event.expected_rejected = $false
-} 'does not declare the acceptance item'
-Assert-RejectedMutation 'H-redelegate-without-reduction' $document {
-    param($copy)
-    ((Get-Scenario $copy 'H').events | Where-Object { $_.verdict -ceq 'READY_FOR_STANDARD_COMPLETION' -and $_.expected_rejected -eq $true }).expected_rejected = $false
-}
-Assert-RejectedMutation 'I-infer-adaptive-default' $document {
-    param($copy)
-    (Get-Scenario $copy 'I').events[0].adaptive_default_inferred = $true
-}
-Assert-RejectedMutation 'J-change-locked-decision' $document {
-    param($copy)
-    ((Get-Scenario $copy 'J').events | Where-Object verdict -CEQ 'COMPLETED').changed_locked_decision = $true
-}
-
+$global:LASTEXITCODE = 0
 Write-Output 'Adaptive routing scenario validation: PASS'

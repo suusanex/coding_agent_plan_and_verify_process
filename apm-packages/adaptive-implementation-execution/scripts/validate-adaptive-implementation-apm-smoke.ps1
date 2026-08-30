@@ -120,45 +120,47 @@ try {
     Assert-File $lockPath 'remote APM lock'
     $lock = Get-Content -Raw -LiteralPath $lockPath
     $lockBlock = [regex]::Match($lock.Replace("`r`n", "`n"), '(?ms)^- .*?name: adaptive-implementation-execution\n(?<block>.*?)(?=^- |\z)')
-    if (-not $lockBlock.Success -or $lockBlock.Groups['block'].Value -cnotmatch '(?m)^  version:\s*0\.5\.0\s*$') {
-        throw 'Remote APM lock does not contain Adaptive package version 0.5.0.'
+    if (-not $lockBlock.Success -or $lockBlock.Groups['block'].Value -cnotmatch '(?m)^  version:\s*0\.6\.0\s*$') {
+        throw 'Remote APM lock does not contain Adaptive package version 0.6.0.'
     }
     $deployedSkill = Join-Path $skillRoot 'SKILL.md'
     Assert-Contains $deployedSkill '(?m)^disable-model-invocation:\s*true\s*$' 'deployed skill explicit-only model invocation'
     Assert-Contains $deployedSkill '(?m)^user-invocable:\s*true\s*$' 'deployed skill remains user-invocable'
     Assert-Contains $deployedSkill 'Do not select for ordinary implement-this-plan requests' 'deployed skill rejects plain implementation requests'
-    Assert-Contains $deployedSkill 'do not select from natural-language mentions' 'deployed skill rejects natural-language name mentions'
+    Assert-Contains $deployedSkill 'or natural-language mentions' 'deployed skill rejects natural-language name mentions'
     Assert-Contains $deployedSkill '/adaptive-implementation-execution' 'deployed skill documents slash invocation'
     Assert-NotContains $deployedSkill 'or when the task clearly requires' 'deployed skill has no task-requires auto-selection description'
     Assert-NotContains $deployedSkill '\$adaptive-implementation-execution' 'deployed skill has no dollar-prefix invocation example'
-    Assert-Contains $deployedSkill 'Delegation basis: non-local-decisions-closed' 'deployed skill decision-closure delegation basis'
-    Assert-Contains $deployedSkill 'HIGH_MODEL code changes: Yes / No' 'deployed skill zero-code HIGH state'
-    Assert-Contains $deployedSkill 'Responsibility、Authorized surface、Expected behavior、Locked boundaries、Local freedom、Completion check' 'deployed skill Work Package schema'
+    Assert-Contains $deployedSkill 'Ownership transfer basis: bounded-residual-work-only' 'deployed skill bounded residual transfer basis'
+    Assert-Contains $deployedSkill 'Decision-Surface Implementation Owner.*implementation feedback loop' 'deployed decision-surface ownership'
+    Assert-Contains $deployedSkill 'acceptanceとWork Package mappingが双方向に一致する' 'deployed Work Package acceptance mapping'
+    Assert-Contains $deployedSkill 'Allowed edit surfaceが全Authorized surfaceを包含する' 'deployed Allowed edit surface authorization'
+    Assert-Contains $deployedSkill 'ownerはWork PackagesとAllowed edit surface内で実装・検証します' 'deployed Work Package execution boundary'
 
-    $copilotHigh = Join-Path $scratch '.github/agents/high-implementation-starter.agent.md'
-    $copilotStandard = Join-Path $scratch '.github/agents/standard-implementation-completer.agent.md'
-    Assert-NotContains $copilotHigh '(?m)^tools:' 'Copilot HIGH explicit tools frontmatter'
-    Assert-Contains $copilotHigh '(?m)^model:\s*GPT-5\.6 Terra \(copilot\)\s*$' 'Copilot HIGH model'
-    Assert-Contains $copilotHigh '(?m)^target:\s*vscode\s*$' 'Copilot HIGH target'
-    Assert-Contains $copilotHigh '(?m)^disable-model-invocation:\s*true\s*$' 'Copilot HIGH explicit-only invocation'
-    Assert-Contains $copilotHigh 'agent:\s*standard-implementation-completer' 'Copilot bounded completion handoff'
-    Assert-Contains $copilotHigh 'Delegation basis.*non-local-decisions-closed' 'Copilot HIGH zero-code decision closure'
-    Assert-NotContains $copilotStandard '(?m)^tools:' 'Copilot STANDARD explicit tools frontmatter'
-    Assert-Contains $copilotStandard '(?m)^model:\s*GPT-5\.6 Luna \(copilot\)\s*$' 'Copilot STANDARD model'
-    Assert-Contains $copilotStandard '(?m)^target:\s*vscode\s*$' 'Copilot STANDARD target'
-    Assert-Contains $copilotStandard '(?m)^disable-model-invocation:\s*true\s*$' 'Copilot STANDARD explicit-only invocation'
-    Assert-Contains $copilotStandard 'agent:\s*high-implementation-starter' 'Copilot HIGH re-entry handoff'
-    Assert-Contains $copilotStandard 'locked済みsignatureと配置を持つclass/interface' 'Copilot STANDARD locked class implementation ownership'
-    Assert-Contains $copilotStandard 'DI / factory / entrypoint wiringの実コード作成' 'Copilot STANDARD locked wiring ownership'
+    $copilotDecisionOwner = Join-Path $scratch '.github/agents/decision-surface-implementation-owner.agent.md'
+    $copilotResidualOwner = Join-Path $scratch '.github/agents/bounded-residual-implementation-owner.agent.md'
+    Assert-NotContains $copilotDecisionOwner '(?m)^tools:' 'Copilot decision-surface owner explicit tools frontmatter'
+    Assert-Contains $copilotDecisionOwner '(?m)^model:\s*GPT-5\.6 Terra \(copilot\)\s*$' 'Copilot decision-surface model'
+    Assert-Contains $copilotDecisionOwner '(?m)^target:\s*vscode\s*$' 'Copilot decision-surface target'
+    Assert-Contains $copilotDecisionOwner '(?m)^disable-model-invocation:\s*true\s*$' 'Copilot decision-surface explicit-only invocation'
+    Assert-Contains $copilotDecisionOwner 'agent:\s*bounded-residual-implementation-owner' 'Copilot bounded residual handoff'
+    Assert-Contains $copilotDecisionOwner 'Ownership transfer basis.*bounded-residual-work-only' 'Copilot decision-surface transfer basis'
+    Assert-NotContains $copilotResidualOwner '(?m)^tools:' 'Copilot bounded-residual explicit tools frontmatter'
+    Assert-Contains $copilotResidualOwner '(?m)^model:\s*GPT-5\.6 Luna \(copilot\)\s*$' 'Copilot bounded-residual model'
+    Assert-Contains $copilotResidualOwner '(?m)^target:\s*vscode\s*$' 'Copilot bounded-residual target'
+    Assert-Contains $copilotResidualOwner '(?m)^disable-model-invocation:\s*true\s*$' 'Copilot bounded-residual explicit-only invocation'
+    Assert-Contains $copilotResidualOwner 'agent:\s*decision-surface-implementation-owner' 'Copilot decision-surface re-entry handoff'
+    Assert-Contains $copilotResidualOwner 'locked済みsignatureと配置を持つclass/interface' 'Copilot locked class residual authority'
+    Assert-Contains $copilotResidualOwner 'DI / factory / entrypoint wiring' 'Copilot locked wiring residual authority'
 
-    $codexHigh = Join-Path $scratch '.codex/agents/high-implementation-starter.toml'
-    $codexStandard = Join-Path $scratch '.codex/agents/standard-implementation-completer.toml'
+    $codexDecisionOwner = Join-Path $scratch '.codex/agents/decision-surface-implementation-owner.toml'
+    $codexResidualOwner = Join-Path $scratch '.codex/agents/bounded-residual-implementation-owner.toml'
     $managedPaths = @(
         (Join-Path $skillRoot 'SKILL.md'),
-        $copilotHigh,
-        $copilotStandard,
-        $codexHigh,
-        $codexStandard
+        $copilotDecisionOwner,
+        $copilotResidualOwner,
+        $codexDecisionOwner,
+        $codexResidualOwner
     )
     $beforeReinstall = Get-Hashes $managedPaths
     Push-Location $scratch
@@ -174,10 +176,10 @@ try {
     Assert-File $finalizer 'installed Codex profile finalizer'
     Invoke-Native 'dotnet' @('run', '--file', $finalizer, '--', $scratch) 'Codex profile completion'
     Invoke-Native 'dotnet' @('run', '--file', $finalizer, '--', $scratch, '--check') 'Codex profile check'
-    Assert-Contains $codexHigh '(?m)^model\s*=\s*"gpt-5\.6-terra"\s*$' 'Codex HIGH model'
-    Assert-Contains $codexStandard '(?m)^model\s*=\s*"gpt-5\.6-luna"\s*$' 'Codex STANDARD model'
-    Assert-Contains $codexHigh 'non-local-decisions-closed' 'Codex HIGH decision-closure delegation basis'
-    Assert-Contains $codexStandard 'method bodyのアルゴリズム' 'Codex STANDARD local implementation autonomy'
+    Assert-Contains $codexDecisionOwner '(?m)^model\s*=\s*"gpt-5\.6-terra"\s*$' 'Codex decision-surface model'
+    Assert-Contains $codexResidualOwner '(?m)^model\s*=\s*"gpt-5\.6-luna"\s*$' 'Codex bounded-residual model'
+    Assert-Contains $codexDecisionOwner 'bounded-residual-work-only' 'Codex decision-surface transfer basis'
+    Assert-Contains $codexResidualOwner 'method body' 'Codex bounded-residual local autonomy'
 
     if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch 'AGENTS.md')).Hash -ne $agentsHash) {
         throw 'Remote APM install or Codex finalizer changed AGENTS.md.'
@@ -188,9 +190,9 @@ try {
 
     $collisionAgentDir = Join-Path $collision '.github/agents'
     New-Item -ItemType Directory -Path $collisionAgentDir -Force | Out-Null
-    $customHigh = Join-Path $collisionAgentDir 'high-implementation-starter.agent.md'
-    Set-Content -LiteralPath $customHigh -Value 'USER_CUSTOM_HIGH_AGENT'
-    $customHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $customHigh).Hash
+    $customDecisionOwner = Join-Path $collisionAgentDir 'decision-surface-implementation-owner.agent.md'
+    Set-Content -LiteralPath $customDecisionOwner -Value 'USER_CUSTOM_DECISION_SURFACE_AGENT'
+    $customHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $customDecisionOwner).Hash
     Push-Location $collision
     try {
         Invoke-Native $ApmExecutable @('install', $packageSpec, '--target', 'copilot', '--https') 'collision-protection APM install'
@@ -198,10 +200,10 @@ try {
     finally {
         Pop-Location
     }
-    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $customHigh).Hash -ne $customHash) {
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $customDecisionOwner).Hash -ne $customHash) {
         throw 'APM overwrote an existing unmanaged Copilot custom agent without --force.'
     }
-    Assert-File (Join-Path $collisionAgentDir 'standard-implementation-completer.agent.md') 'non-conflicting Copilot STANDARD agent'
+    Assert-File (Join-Path $collisionAgentDir 'bounded-residual-implementation-owner.agent.md') 'non-conflicting Copilot bounded-residual agent'
 
     $global:LASTEXITCODE = 0
     Write-Output 'Adaptive Implementation remote APM smoke: PASS'

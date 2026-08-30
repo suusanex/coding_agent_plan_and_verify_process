@@ -155,7 +155,7 @@ function Install-PlanCoverageInto([string]$TargetRoot) {
             Copy-DirectoryContents (Join-Path $repoRoot 'apm-packages\adaptive-implementation-execution') $stageAdaptive
             $stageAdaptiveAgents = Join-Path $stageAdaptive '.apm\agents'
             New-Item -ItemType Directory -Path $stageAdaptiveAgents -Force | Out-Null
-            foreach ($adaptiveAgent in @('high-implementation-starter.agent.md', 'standard-implementation-completer.agent.md')) {
+            foreach ($adaptiveAgent in @('decision-surface-implementation-owner.agent.md', 'bounded-residual-implementation-owner.agent.md')) {
                 $src = Join-Path $repoRoot ".github\agents\$adaptiveAgent"
                 if (Test-Path -LiteralPath $src -PathType Leaf) {
                     Copy-Item -LiteralPath $src -Destination (Join-Path $stageAdaptiveAgents $adaptiveAgent) -Force
@@ -412,9 +412,9 @@ function Get-AgentsFromArtifactPaths([string[]]$Paths) {
         if ($norm -match 'verification-kernel' -and $norm -notmatch 'cross-slice') { Add-ObservedAgent $observed 'verification-kernel' }
         if ($norm -match 'cross-slice-verification|full-coverage-close') { Add-ObservedAgent $observed 'cross-slice-verification-kernel' }
         if ($norm -match 'residual-decision') { Add-ObservedAgent $observed 'residual-decision-gate' }
-        if ($norm -match 'implementation-completion-handoff|high-model-reentry|implementation-execution') {
-            Add-ObservedAgent $observed 'high-implementation-starter'
-            Add-ObservedAgent $observed 'standard-implementation-completer'
+        if ($norm -match 'bounded-residual-implementation-handoff|decision-surface-reentry-handoff|implementation-execution') {
+            Add-ObservedAgent $observed 'decision-surface-implementation-owner'
+            Add-ObservedAgent $observed 'bounded-residual-implementation-owner'
         }
         if ($norm -match 'plan-coverage-lite|plans/[a-z0-9-]+\.md$') {
             Add-ObservedAgent $observed 'plan-kernel'
@@ -941,33 +941,32 @@ function Test-ProductionBindingPresent([string]$Worktree, [string[]]$RelativePat
 
 function Get-AdaptiveConnectionEvidence([string]$Worktree, [string[]]$HookAgents, [bool]$VerifierPassed) {
     $plans = @(Get-PlanFileEvidence $Worktree)
-    $highHook = $HookAgents -contains 'high-implementation-starter'
-    $stdHook = $HookAgents -contains 'standard-implementation-completer'
+    $decisionSurfaceHook = $HookAgents -contains 'decision-surface-implementation-owner'
+    $boundedResidualHook = $HookAgents -contains 'bounded-residual-implementation-owner'
 
-    $completedByHighHit = $null
-    $readyForStandardHit = $null
-    $standardCompletedHit = $null
+    $decisionSurfaceCompletedHit = $null
+    $boundedResidualHandoffHit = $null
+    $boundedResidualCompletedHit = $null
     $selfMapHit = $null
 
     foreach ($p in $plans) {
         $c = $p.Content
-        if ($c -cmatch '(?m)^- Implementation route:.*high-implementation-starter.*COMPLETED_BY_HIGH_MODEL' -or
-            $c -cmatch '(?m)^- Model / owner sequence:.*high-implementation-starter \(HIGH\)' -or
-            $c -cmatch 'COMPLETED_BY_HIGH_MODEL') {
-            if (-not $completedByHighHit) { $completedByHighHit = $p }
+        if ($c -cmatch '(?m)^- Implementation route:.*decision-surface-implementation-owner.*IMPLEMENTATION_COMPLETED' -or
+            $c -cmatch '(?m)^- Model / owner sequence:.*decision-surface-implementation-owner.*IMPLEMENTATION_COMPLETED') {
+            if (-not $decisionSurfaceCompletedHit) { $decisionSurfaceCompletedHit = $p }
         }
-        if ($c -cmatch 'READY_FOR_STANDARD_COMPLETION' -and $c -cmatch '(?i)implementation-completion-handoff|Implementation Completion Handoff|READY_FOR_STANDARD') {
+        if ($c -cmatch 'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION' -and $c -cmatch '(?i)bounded-residual-implementation-handoff|Bounded Residual Implementation Handoff|READY_FOR_BOUNDED_RESIDUAL') {
             # Require handoff-ish context, not a random glossary mention.
-            if ($c -cmatch '(?m)^- Formal .*handoff' -or $c -cmatch 'implementation-completion-handoff' -or $c -cmatch '(?m)^- Handoff verdict:.*READY_FOR_STANDARD_COMPLETION' -or $c -cmatch 'READY_FOR_STANDARD_COMPLETION') {
-                if ($c -cmatch 'READY_FOR_STANDARD_COMPLETION' -and ($c -cmatch 'handoff' -or $c -cmatch 'Handoff' -or $p.Path -match 'handoff')) {
-                    if (-not $readyForStandardHit) { $readyForStandardHit = $p }
+            if ($c -cmatch '(?m)^- Formal .*handoff' -or $c -cmatch 'bounded-residual-implementation-handoff' -or $c -cmatch '(?m)^- Handoff verdict:.*READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION' -or $c -cmatch 'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION') {
+                if ($c -cmatch 'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION' -and ($c -cmatch 'handoff' -or $c -cmatch 'Handoff' -or $p.Path -match 'handoff')) {
+                    if (-not $boundedResidualHandoffHit) { $boundedResidualHandoffHit = $p }
                 }
             }
         }
-        if ($c -cmatch '(?m)^- Implementation route:.*standard-implementation-completer' -or
-            $c -cmatch '(?m)^- Model / owner sequence:.*standard-implementation-completer' -or
-            $c -cmatch 'COMPLETED_BY_STANDARD_MODEL') {
-            if (-not $standardCompletedHit) { $standardCompletedHit = $p }
+        if ($c -cmatch '(?m)^- Implementation route:.*bounded-residual-implementation-owner' -or
+            $c -cmatch '(?m)^- Model / owner sequence:.*bounded-residual-implementation-owner' -or
+            $c -cmatch 'IMPLEMENTATION_COMPLETED_BY_BOUNDED_RESIDUAL_OWNER') {
+            if (-not $boundedResidualCompletedHit) { $boundedResidualCompletedHit = $p }
         }
         if ($c -cmatch '### Implementation Self-Map' -and $c -cmatch 'src/') {
             if (-not $selfMapHit) { $selfMapHit = $p }
@@ -981,70 +980,70 @@ function Get-AdaptiveConnectionEvidence([string]$Worktree, [string[]]$HookAgents
         'src/StartupFlow.ps1'
     )
 
-    $high = [ordered]@{ status = 'NOT_OBSERVED'; evidence = $null; sha256 = $null; verdict = $null; reason = $null }
-    if ($highHook) {
-        $high.status = 'OBSERVED_FROM_HOOK'
-        $high.evidence = 'hooks/session: agentName=high-implementation-starter'
-        $high.reason = 'structured hook/session agent observation'
+    $decisionSurface = [ordered]@{ status = 'NOT_OBSERVED'; evidence = $null; sha256 = $null; verdict = $null; reason = $null }
+    if ($decisionSurfaceHook) {
+        $decisionSurface.status = 'OBSERVED_FROM_HOOK'
+        $decisionSurface.evidence = 'hooks/session: agentName=decision-surface-implementation-owner'
+        $decisionSurface.reason = 'structured hook/session agent observation'
     }
-    elseif ($completedByHighHit -and $selfMapHit -and $prodOk -and $VerifierPassed) {
-        $high.status = 'OBSERVED_FROM_DURABLE_ARTIFACT'
-        $high.evidence = $completedByHighHit.Path
-        $high.sha256 = $completedByHighHit.Sha256
-        $high.verdict = 'COMPLETED_BY_HIGH_MODEL'
-        $high.reason = 'Living Record / plan records high-implementation-starter COMPLETED_BY_HIGH_MODEL with Implementation Self-Map and production binding; external verifier PASS'
+    elseif ($decisionSurfaceCompletedHit -and $selfMapHit -and $prodOk -and $VerifierPassed) {
+        $decisionSurface.status = 'OBSERVED_FROM_DURABLE_ARTIFACT'
+        $decisionSurface.evidence = $decisionSurfaceCompletedHit.Path
+        $decisionSurface.sha256 = $decisionSurfaceCompletedHit.Sha256
+        $decisionSurface.verdict = 'IMPLEMENTATION_COMPLETED'
+        $decisionSurface.reason = 'Living Record / plan records decision-surface-implementation-owner IMPLEMENTATION_COMPLETED with Implementation Self-Map and production binding; external verifier PASS'
     }
 
     $handoff = [ordered]@{ status = 'NOT_OBSERVED'; evidence = $null; sha256 = $null; verdict = $null; reason = $null }
-    $standard = [ordered]@{ status = 'NOT_OBSERVED'; evidence = $null; sha256 = $null; verdict = $null; reason = $null }
+    $boundedResidual = [ordered]@{ status = 'NOT_OBSERVED'; evidence = $null; sha256 = $null; verdict = $null; reason = $null }
 
-    if ($readyForStandardHit) {
+    if ($boundedResidualHandoffHit) {
         $handoff.status = 'OBSERVED_FROM_DURABLE_ARTIFACT'
-        $handoff.evidence = $readyForStandardHit.Path
-        $handoff.sha256 = $readyForStandardHit.Sha256
-        $handoff.verdict = 'READY_FOR_STANDARD_COMPLETION'
-        $handoff.reason = 'durable handoff artifact/section records READY_FOR_STANDARD_COMPLETION'
-        if ($stdHook) {
-            $standard.status = 'OBSERVED_FROM_HOOK'
-            $standard.evidence = 'hooks/session: agentName=standard-implementation-completer'
+        $handoff.evidence = $boundedResidualHandoffHit.Path
+        $handoff.sha256 = $boundedResidualHandoffHit.Sha256
+        $handoff.verdict = 'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION'
+        $handoff.reason = 'durable handoff artifact/section records READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION'
+        if ($boundedResidualHook) {
+            $boundedResidual.status = 'OBSERVED_FROM_HOOK'
+            $boundedResidual.evidence = 'hooks/session: agentName=bounded-residual-implementation-owner'
         }
-        elseif ($standardCompletedHit -and $VerifierPassed) {
-            $standard.status = 'OBSERVED_FROM_DURABLE_ARTIFACT'
-            $standard.evidence = $standardCompletedHit.Path
-            $standard.sha256 = $standardCompletedHit.Sha256
-            $standard.reason = 'durable artifact records STANDARD completion after handoff; verifier PASS'
+        elseif ($boundedResidualCompletedHit -and $VerifierPassed) {
+            $boundedResidual.status = 'OBSERVED_FROM_DURABLE_ARTIFACT'
+            $boundedResidual.evidence = $boundedResidualCompletedHit.Path
+            $boundedResidual.sha256 = $boundedResidualCompletedHit.Sha256
+            $boundedResidual.reason = 'durable artifact records bounded-residual-implementation-owner completion after handoff; verifier PASS'
         }
         else {
-            $standard.status = 'NOT_OBSERVED'
-            $standard.reason = 'READY_FOR_STANDARD_COMPLETION present but STANDARD execution evidence missing'
+            $boundedResidual.status = 'NOT_OBSERVED'
+            $boundedResidual.reason = 'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION present but bounded-residual-implementation-owner execution evidence missing'
         }
     }
-    elseif ($high.status -like 'OBSERVED_*' -and $completedByHighHit -and ($completedByHighHit.Content -cmatch 'no STANDARD' -or $completedByHighHit.Content -cmatch 'COMPLETED_BY_HIGH_MODEL' -or $completedByHighHit.Content -cmatch 'HIGH\) only')) {
+    elseif ($decisionSurface.status -like 'OBSERVED_*' -and $decisionSurfaceCompletedHit -and ($decisionSurfaceCompletedHit.Content -cmatch 'no bounded-residual' -or $decisionSurfaceCompletedHit.Content -cmatch 'IMPLEMENTATION_COMPLETED' -or $decisionSurfaceCompletedHit.Content -cmatch 'decision-surface-implementation-owner\) only')) {
         $handoff.status = 'NOT_REQUIRED'
-        $handoff.evidence = $completedByHighHit.Path
-        $handoff.sha256 = $completedByHighHit.Sha256
-        $handoff.verdict = 'COMPLETED_BY_HIGH_MODEL'
-        $handoff.reason = 'HIGH completed the bounded remainder; STANDARD delegation not required'
-        $standard.status = 'NOT_REQUIRED'
-        $standard.evidence = $completedByHighHit.Path
-        $standard.sha256 = $completedByHighHit.Sha256
-        $standard.reason = 'no STANDARD remainder after HIGH completion'
+        $handoff.evidence = $decisionSurfaceCompletedHit.Path
+        $handoff.sha256 = $decisionSurfaceCompletedHit.Sha256
+        $handoff.verdict = 'IMPLEMENTATION_COMPLETED'
+        $handoff.reason = 'decision-surface-implementation-owner completed the bounded remainder; bounded-residual delegation not required'
+        $boundedResidual.status = 'NOT_REQUIRED'
+        $boundedResidual.evidence = $decisionSurfaceCompletedHit.Path
+        $boundedResidual.sha256 = $decisionSurfaceCompletedHit.Sha256
+        $boundedResidual.reason = 'no bounded-residual remainder after decision-surface-implementation-owner completion'
     }
-    elseif ($stdHook) {
-        $standard.status = 'OBSERVED_FROM_HOOK'
-        $standard.evidence = 'hooks/session: agentName=standard-implementation-completer'
-        $standard.reason = 'STANDARD observed without separate handoff artifact'
+    elseif ($boundedResidualHook) {
+        $boundedResidual.status = 'OBSERVED_FROM_HOOK'
+        $boundedResidual.evidence = 'hooks/session: agentName=bounded-residual-implementation-owner'
+        $boundedResidual.reason = 'bounded-residual owner observed without separate handoff artifact'
     }
 
-    $highObserved = $high.status -like 'OBSERVED_*'
-    $stdObserved = $standard.status -like 'OBSERVED_*'
+    $decisionSurfaceObserved = $decisionSurface.status -like 'OBSERVED_*'
+    $boundedResidualObserved = $boundedResidual.status -like 'OBSERVED_*'
     $handoffObserved = $handoff.status -like 'OBSERVED_*'
-    $highToStd = $handoffObserved -and $stdObserved -and $highObserved
-    # Adaptive package connection: HIGH executed with durable/hook evidence, and either
-    # HIGH->STANDARD handoff completed or HIGH-only completion was explicitly recorded.
-    $connectionOk = $highObserved -and (
-        $highToStd -or
-        ($handoff.status -ceq 'NOT_REQUIRED' -and $standard.status -ceq 'NOT_REQUIRED' -and $VerifierPassed)
+    $boundedResidualTransfer = $handoffObserved -and $boundedResidualObserved -and $decisionSurfaceObserved
+    # Adaptive package connection: decision-surface owner executed with durable/hook evidence, and either
+    # decision-surface->bounded-residual handoff completed or decision-surface-only completion was explicitly recorded.
+    $connectionOk = $decisionSurfaceObserved -and (
+        $boundedResidualTransfer -or
+        ($handoff.status -ceq 'NOT_REQUIRED' -and $boundedResidual.status -ceq 'NOT_REQUIRED' -and $VerifierPassed)
     )
 
     $hasDesignPair = Test-DesignPairAutoSelected $HookAgents @() ''
@@ -1054,15 +1053,15 @@ function Get-AdaptiveConnectionEvidence([string]$Worktree, [string[]]$HookAgents
     }
 
     return [ordered]@{
-        high_execution = $high
-        handoff = $handoff
-        standard_execution = $standard
+        decision_surface_execution = $decisionSurface
+        bounded_residual_handoff = $handoff
+        bounded_residual_execution = $boundedResidual
         connection_satisfied = [bool]$connectionOk
-        high_to_standard_handoff_satisfied = [bool]$highToStd
+        bounded_residual_transfer_satisfied = [bool]$boundedResidualTransfer
         design_pair_auto_selected = [bool]$hasDesignPair
-        high_observed = [bool]$highObserved
-        standard_observed = [bool]$stdObserved
-        handoff_observed = [bool]$handoffObserved
+        decision_surface_observed = [bool]$decisionSurfaceObserved
+        bounded_residual_observed = [bool]$boundedResidualObserved
+        bounded_residual_handoff_observed = [bool]$handoffObserved
     }
 }
 
@@ -1119,8 +1118,8 @@ function Evaluate-StdScenario($Run, [string]$Worktree, [string]$OracleMeta) {
     $checks += [pscustomobject]@{ name = 'oracle-intact'; status = $(if ($oracleFailures.Count -eq 0) { 'PASS' } else { 'FAIL' }); detail = ($oracleFailures -join '; ') }
     $checks += [pscustomobject]@{ name = 'plan-kernel'; status = $(if ($hasPlan) { 'PASS' } else { 'FAIL' }) }
     $checks += [pscustomobject]@{ name = 'change-risk-triage'; status = $(if ($hasRisk) { 'PASS' } else { 'FAIL' }) }
-    # Adaptive connection is suite-level (at least one E2E). STD records structured evidence without failing solely on HIGH-only absence.
-    $checks += [pscustomobject]@{ name = 'adaptive-connection-evidence'; status = 'PASS'; detail = "connection_satisfied=$adaptiveOk; high=$($adaptive.high_execution.status); handoff=$($adaptive.handoff.status); standard=$($adaptive.standard_execution.status); high_to_standard=$($adaptive.high_to_standard_handoff_satisfied)" }
+    # Adaptive connection is suite-level (at least one E2E). STD records structured evidence without requiring a transfer.
+    $checks += [pscustomobject]@{ name = 'adaptive-connection-evidence'; status = 'PASS'; detail = "connection_satisfied=$adaptiveOk; decision_surface=$($adaptive.decision_surface_execution.status); handoff=$($adaptive.bounded_residual_handoff.status); bounded_residual=$($adaptive.bounded_residual_execution.status); transfer=$($adaptive.bounded_residual_transfer_satisfied)" }
     $checks += [pscustomobject]@{ name = 'verification-kernel'; status = $(if ($hasVerify) { 'PASS' } else { 'FAIL' }) }
     $checks += [pscustomobject]@{ name = 'residual-decision-gate'; status = $(if ($hasResidual) { 'PASS' } else { 'FAIL' }) }
     $checks += [pscustomobject]@{ name = 'no-design-pair-auto'; status = $(if (-not $hasDesignPair) { 'PASS' } else { 'FAIL' }) }
@@ -1146,14 +1145,14 @@ function Evaluate-StdScenario($Run, [string]$Worktree, [string]$OracleMeta) {
         stop_reason = $(if ($status -ceq 'PASS') { 'fixture-verified' } else { ($failed | ForEach-Object { $_.name }) -join ',' })
         status = $status
         rationale = $(if ($status -ceq 'PASS') {
-                "STD-001 fixture verifier passed; Adaptive connection_satisfied=$($adaptive.connection_satisfied) high_to_standard_handoff=$($adaptive.high_to_standard_handoff_satisfied); no Design Pair auto-selection."
+                "STD-001 fixture verifier passed; Adaptive connection_satisfied=$($adaptive.connection_satisfied) bounded_residual_transfer=$($adaptive.bounded_residual_transfer_satisfied); no Design Pair auto-selection."
             } else {
                 "Failed checks: $((@($failed | ForEach-Object { $_.name })) -join ', ')"
             })
         transcript_sha256 = $Run.TranscriptSha
         hook_log_sha256 = $Run.HookSha
         adaptive_connection = $adaptive
-        evidence_boundary = 'agents_observed=hook/session structured only; Adaptive HIGH/STANDARD/handoff separated into durable phases; free-text mention is not observation.'
+        evidence_boundary = 'agents_observed=hook/session structured only; Adaptive decision-surface/bounded-residual/handoff separated into durable phases; free-text mention is not observation.'
     }
 }
 
@@ -1186,7 +1185,7 @@ function Evaluate-FullScenario($Run, [string]$Worktree, [string]$OracleMeta) {
     $checks += [pscustomobject]@{ name = 'living-records'; status = $(if ($living.Count -ge 2) { 'PASS' } else { 'FAIL' }); detail = ($living -join ',') }
     $checks += [pscustomobject]@{ name = 'cross-slice-verification'; status = $(if ($hasCross) { 'PASS' } else { 'FAIL' }) }
     $checks += [pscustomobject]@{ name = 'residual-decision-gate'; status = $(if ($hasResidual) { 'PASS' } else { 'FAIL' }) }
-    $checks += [pscustomobject]@{ name = 'adaptive-connection'; status = $(if ($adaptive.connection_satisfied) { 'PASS' } else { 'FAIL' }); detail = "high=$($adaptive.high_execution.status); handoff=$($adaptive.handoff.status); standard=$($adaptive.standard_execution.status); high_to_standard=$($adaptive.high_to_standard_handoff_satisfied)" }
+    $checks += [pscustomobject]@{ name = 'adaptive-connection'; status = $(if ($adaptive.connection_satisfied) { 'PASS' } else { 'FAIL' }); detail = "decision_surface=$($adaptive.decision_surface_execution.status); handoff=$($adaptive.bounded_residual_handoff.status); bounded_residual=$($adaptive.bounded_residual_execution.status); transfer=$($adaptive.bounded_residual_transfer_satisfied)" }
     $checks += [pscustomobject]@{ name = 'no-design-pair-auto'; status = $(if (-not $hasDesignPair) { 'PASS' } else { 'FAIL' }) }
     $checks += [pscustomobject]@{ name = 'plan-created'; status = $(if ($hasPlan) { 'PASS' } else { 'FAIL' }) }
 
@@ -1210,14 +1209,14 @@ function Evaluate-FullScenario($Run, [string]$Worktree, [string]$OracleMeta) {
         stop_reason = $(if ($status -ceq 'PASS') { 'fixture-verified' } else { ($failed | ForEach-Object { $_.name }) -join ',' })
         status = $status
         rationale = $(if ($status -ceq 'PASS') {
-                "FULL-001 verifiers passed; Adaptive connection_satisfied=$($adaptive.connection_satisfied) high_to_standard_handoff=$($adaptive.high_to_standard_handoff_satisfied); no Design Pair auto-selection."
+                "FULL-001 verifiers passed; Adaptive connection_satisfied=$($adaptive.connection_satisfied) bounded_residual_transfer=$($adaptive.bounded_residual_transfer_satisfied); no Design Pair auto-selection."
             } else {
                 "Failed checks: $((@($failed | ForEach-Object { $_.name })) -join ', ')"
             })
         transcript_sha256 = $Run.TranscriptSha
         hook_log_sha256 = $Run.HookSha
         adaptive_connection = $adaptive
-        evidence_boundary = 'agents_observed=hook/session structured only; Adaptive HIGH/STANDARD/handoff are separate durable phases; READY_FOR_STANDARD_COMPLETION alone is not STANDARD execution.'
+        evidence_boundary = 'agents_observed=hook/session structured only; Adaptive decision-surface/bounded-residual/handoff are separate durable phases; READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION alone is not bounded-residual-implementation-owner execution.'
     }
 }
 

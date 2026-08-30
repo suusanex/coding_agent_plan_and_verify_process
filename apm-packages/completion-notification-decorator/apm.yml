@@ -1,5 +1,5 @@
 name: completion-notification-decorator
-version: 0.2.0
+version: 0.2.1
 description: Install the always-on Codex completion notification runtime and optionally enrich notifications for one explicitly selected primary process
 type: hybrid
 targets:

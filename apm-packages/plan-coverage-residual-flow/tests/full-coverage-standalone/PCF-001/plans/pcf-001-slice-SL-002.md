@@ -111,8 +111,8 @@ N/A - no explicit review-only fallback was invoked.
 ## Implementation Evidence
 
 - Implementation route: adaptive / default
-- Model / owner sequence: HIGH_MODEL -> `READY_FOR_STANDARD_COMPLETION` -> STANDARD_MODEL -> `NEEDS_HIGH_MODEL_REENTRY` payload -> Plan Coverage parent Artifact Creation Gate -> HIGH_MODEL -> `COMPLETED_BY_HIGH_MODEL`
-- Re-entry persistence sequence: STANDARD_MODEL returned an unpersisted payload -> Plan Coverage parent applied the exact-path Artifact Exceptions row -> parent persisted the tracked handoff -> HIGH_MODEL resumed.
+- Model / owner sequence: decision-surface-implementation-owner -> `READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION` -> bounded-residual-implementation-owner -> `NEEDS_DECISION_SURFACE_REENTRY` payload -> Plan Coverage parent Artifact Creation Gate -> decision-surface-implementation-owner -> `IMPLEMENTATION_COMPLETED`
+- Re-entry persistence sequence: bounded-residual-implementation-owner returned an unpersisted payload -> Plan Coverage parent applied the exact-path Artifact Exceptions row -> parent persisted the tracked handoff -> decision-surface-implementation-owner resumed.
 - Files / symbols changed: `src/ConsumerGate.ps1`, `src/StartupFlow.ps1`
 - Validation performed: implementation-local syntax/load check passed after `SL-001=PARENT_PLAN_VERIFIED`.
 - Acceptance evidence: accepting and rejecting production paths implemented; independent verifier remained separate.
@@ -166,5 +166,5 @@ N/A - no explicit review-only fallback was invoked.
 
 | Path | Reason code | Why separate artifact is required | Owner | Canonical or supplemental | Lifecycle |
 | --- | --- | --- | --- | --- | --- |
-| `plans/pcf-001-slice-SL-002-implementation-completion-handoff.md` | `cross-thread-handoff` | HIGH to STANDARD cross-model delegation requires tracked state | Plan Coverage parent / Adaptive implementation | supplemental | created only after this row was applied; retained through verification |
-| `plans/pcf-001-slice-SL-002-high-model-reentry-handoff.md` | `cross-thread-handoff` | STANDARD to HIGH re-entry requires tracked state after the trigger is known | Plan Coverage parent / Adaptive implementation | supplemental | parent persisted only after payload returned and this row was applied; retained through verification |
+| `plans/pcf-001-slice-SL-002-bounded-residual-implementation-handoff.md` | `cross-thread-handoff` | decision-surface to bounded-residual cross-model delegation requires tracked state | Plan Coverage parent / Adaptive implementation | supplemental | created only after this row was applied; retained through verification |
+| `plans/pcf-001-slice-SL-002-decision-surface-reentry-handoff.md` | `cross-thread-handoff` | bounded-residual to decision-surface re-entry requires tracked state after the trigger is known | Plan Coverage parent / Adaptive implementation | supplemental | parent persisted only after payload returned and this row was applied; retained through verification |

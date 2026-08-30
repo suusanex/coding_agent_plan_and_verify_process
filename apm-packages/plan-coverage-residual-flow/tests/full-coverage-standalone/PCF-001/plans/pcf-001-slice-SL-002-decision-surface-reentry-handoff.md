@@ -1,11 +1,11 @@
-# High-model Re-entry Handoff
+# Decision-Surface Re-entry Handoff
 
 - Slice ID: `SL-002`
 - Living Record: `plans/pcf-001-slice-SL-002.md`
-- Verdict: `NEEDS_HIGH_MODEL_REENTRY`
+- Verdict: `NEEDS_DECISION_SURFACE_REENTRY`
 - Handoff persistence: tracked
 - Persistence state: persisted by Plan Coverage parent after Artifact Creation Gate
-- Trigger: production startup wiring required a structural decision outside the STANDARD_MODEL completion surface
+- Trigger: production startup wiring required a structural decision outside the bounded-residual-implementation-owner completion surface
 - reentry_count: 1
 - previous_reentry_trigger: N/A
 - implementation_route: adaptive
@@ -16,11 +16,11 @@
 - Work completed before stop: consumer gate implementation completed within the bounded surface
 - Files changed: `src/ConsumerGate.ps1`
 - Validation performed: consumer-local verifier passed before startup integration
-- Evidence that invalidated the handoff: startup binding required a HIGH_MODEL-owned wiring decision
+- Evidence that invalidated the handoff: startup binding required a decision-surface-implementation-owner-owned wiring decision
 - New decision required: bind the approved consumer transition at the production startup entrypoint
 - Suggested inspection points: `src/StartupFlow.ps1`, `tests/verify-sl-002.ps1`
 - Worktree state: bounded `SL-002` changes present
 - Design Pair Decision IDs preserved: N/A
 - Locked Decision conflict evidence, if any: none
-- Artifact gate sequence: STANDARD_MODEL returned this content as `UNPERSISTED_PARENT_PAYLOAD`; Plan Coverage parent applied the exact-path Artifact Exceptions row; parent persisted this file; HIGH_MODEL resumed.
-- Status: consumed by HIGH_MODEL and retained as supplemental evidence
+- Artifact gate sequence: bounded-residual-implementation-owner returned this content as `UNPERSISTED_PARENT_PAYLOAD`; Plan Coverage parent applied the exact-path Artifact Exceptions row; parent persisted this file; decision-surface-implementation-owner resumed.
+- Status: consumed by decision-surface-implementation-owner and retained as supplemental evidence

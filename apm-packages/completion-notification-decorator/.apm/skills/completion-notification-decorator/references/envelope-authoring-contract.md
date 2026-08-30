@@ -4,7 +4,7 @@ Append exactly one fenced JSON object after the unchanged primary-process respon
 
 ````markdown
 ```completion-notification
-{"schema_version":1,"primary_process":"adaptive-implementation-execution","observed_status":"COMPLETED_BY_HIGH_MODEL","title":"implementation completed","repository":"owner/repository","result_uri":"https://github.com/owner/repository/pull/123"}
+{"schema_version":1,"primary_process":"adaptive-implementation-execution","observed_status":"IMPLEMENTATION_COMPLETED","title":"implementation completed","repository":"owner/repository","result_uri":"https://github.com/owner/repository/pull/123"}
 ```
 ````
 

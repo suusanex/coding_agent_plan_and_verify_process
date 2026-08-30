@@ -36,7 +36,7 @@ plan-kernel
   -> test-design-kernel (when Guardrail Focus / selected runtime contracts exist)
   -> ★ implementation-handoff-review  ← この agent
   -> design-pair-implementation-execution (explicit selection only)
-  -> high-implementation-starter / human implementation
+  -> decision-surface-implementation-owner / human implementation
   -> (optional) code-review-focus-kernel
   -> human code review
   -> verification-kernel
@@ -76,7 +76,7 @@ Guardrail Focus coverage の guardrail chain が整っていても、parent Plan
 - **Slice decomposition aware**: full-coverage decomposition 由来の slice では、Plan → Slice → RC / TP → XC の接続を確認する。cross-slice contract を slice 内で完了扱いしている handoff は blocking として扱う。
 - **Full-coverage architecture baseline compatibility**: full-coverage decomposition由来の各sliceでは、Plan Coverage parentが再確認したcurrent Architecture Slice Readiness evidenceを必須とし、slice-local pre-implementation decisionsをapproved Slice Architectureまたは`ArchitectureNotRequired` readiness artifactのLightweight architecture baselineと比較する。`Match`だけをimplementation allowedとし、`Drift`はArchitecture Slice Readiness / Elaborationへ戻し、stale・missing・contradicted・証明不足を含む`Unclear`はfail closedしてArchitecture Slice Readinessを再実行する。
 - **Parent Plan Coverage Ledger required**: Plan の FR / AC を Guardrail Focus RC / TP / slice / cross-slice contract / deferred residual / out-of-scope のいずれかへ分類する。Guardrail Focus coverage に含まれなかった parent Plan item を黙って落としてはいけない。
-- **Implementation route propagation**: durable route artifact、resume evidence、Design Pair evidenceがないfresh intakeだけ`implementation_route: adaptive` / `implementation_route_source: default`を初期化する。resumeではupstream durable artifactの両route fieldを必須とし、欠落または矛盾があればAdaptiveへ補完せず`BLOCKED_BY_ARTIFACT_MISMATCH`とする。唯一の互換例外はcanonical `Legacy Adaptive handoff normalization`を満たすexact pre-Design-Pair Adaptive completion handoffとする。Design Pair はupstream durable artifactに`implementation_route: design-pair` / `implementation_route_source: explicit-user-selection`とexplicit user evidenceがある場合だけ保持する。`design_pair_handoff`、`design_pair_interaction_stage`、`design_pair_user_evidence`を下流へ伝播し、waiting中はAdaptiveやverificationを次stepにしない。riskやarchitectureから自動選択、推奨、提案してはいけない。
+- **Implementation route propagation**: durable route artifact、resume evidence、Design Pair evidenceがないfresh intakeだけ`implementation_route: adaptive` / `implementation_route_source: default`を初期化する。resumeではupstream durable artifactの両route fieldを必須とし、欠落または矛盾があればAdaptiveへ補完せず`BLOCKED_BY_ARTIFACT_MISMATCH`とする。互換normalizationの例外はない。旧agent名（`high-implementation-starter`、`standard-implementation-completer`）や旧0.5 handoff schemaを含むartifactも同様に`BLOCKED_BY_ARTIFACT_MISMATCH`とする。Design Pair はupstream durable artifactに`implementation_route: design-pair` / `implementation_route_source: explicit-user-selection`とexplicit user evidenceがある場合だけ保持する。`design_pair_handoff`、`design_pair_interaction_stage`、`design_pair_user_evidence`を下流へ伝播し、waiting中はAdaptiveやverificationを次stepにしない。riskやarchitectureから自動選択、推奨、提案してはいけない。
 - **Canonical coverage ledger aware**: `plans/<ticket-or-slug>-coverage-ledger.md` が存在する場合は canonical Parent Plan Coverage Ledger として読み、今回の handoff で変わった行だけを `Coverage Ledger Delta` に記録する。canonical ledger がない場合は、この artifact に full Parent Plan Coverage Ledger を作成する。full ledger と delta が矛盾する場合は `BLOCKED_BY_ARTIFACT_MISMATCH` とする。
 - **Behavior Case Coverage Ledger conditional required**: Plan の `Expansion required: Yes` の場合は、Black-box Behavior Spec artifact を条件付き必須入力とし、relevant Case IDs をすべて Behavior Case Coverage Ledger に記録する。Guardrail Focus readiness を Behavior Case / parent Plan readiness の代替にしてはいけない。
 - **Inline Ready Gate equivalence**: `documentation_level: lite` の Plan Coverage Lite artifact では、Inline Ready Gate が明示的に `implementation-handoff-review` 相当として PASS している場合だけ、この agent の separate artifact を省略できる。相当 gate は source of truth、FR / AC coverage、Case-to-Plan mapping、risk checklist、implementation scope、human decision、必要な Behavior Case Coverage Ledger、Implementation allowed の全 required row が PASS または根拠付き N/A である必要がある。この equivalence は bounded implementation pass の authorization だけであり、parent Plan close readiness ではない。
@@ -492,7 +492,7 @@ READY_FOR_BOUNDED_PARENT_PLAN_PASS | READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DEC
 
 ## 引き継ぎ必須 inputs
 
-<!-- high-implementation-starter.agent.md または人間の実装者に渡すべき artifacts を列挙する -->
+<!-- decision-surface-implementation-owner.agent.md または人間の実装者に渡すべき artifacts を列挙する -->
 - plans/<ticket-or-slug>.md（Plan Kernel — 唯一の基準）
 - plans/<ticket-or-slug>-black-box-behavior-spec.md（Expansion required: Yes の場合）
 - plans/<ticket-or-slug>-change-risk-triage.md
@@ -556,14 +556,14 @@ canonical coverage ledger が存在する場合は "See: plans/<ticket-or-slug>-
 - Decisions made: <verdict、ブロッキング判定、注記判定の要約>
 - Do not redo unless new evidence appears: <下流が反証を示すまで信頼してよいマッピング / 判定>
 - Remaining work: <ブロッキング問題、注記、NeedsHumanDecision、欠落 artifact など>
-- Recommended next step: <design-pair-implementation-execution（explicit selection only）/ high-implementation-starter.agent.md / 差し戻し先 agent / 人手判断>
+- Recommended next step: <design-pair-implementation-execution（explicit selection only）/ decision-surface-implementation-owner.agent.md / 差し戻し先 agent / 人手判断>
 ```
 
 ## Output rules
 
 - **ブロッキング問題**: 箇条書きで、何が問題か、どの artifact のどの項目かを明記する。理由なく長くしない。
 - **非ブロッキング注記**: 軽微な改善候補のみ。実装者が無視しても安全に進めるレベルにとどめる。
-- **引き継ぎ必須 inputs**: explicit Design Pair route の場合は `design-pair-implementation-execution`、通常 route は `high-implementation-starter.agent.md`、または人間の実装者が受け取るべき artifact の一覧。Plan が source of truth であることを明示する。
+- **引き継ぎ必須 inputs**: explicit Design Pair route の場合は `design-pair-implementation-execution`、通常 route は `decision-surface-implementation-owner.agent.md`、または人間の実装者が受け取るべき artifact の一覧。Plan が source of truth であることを明示する。
 - **欠落または不一致のマッピング**: Check 1〜5 および Check 10 で発見した具体的な接続の欠落を表形式で示す。問題がなければ "None" と記載する。
   - `Slice ID` は、full-coverage decomposition 由来の slice に関係する欠落または不一致の場合だけ `SL-xxx` を記載する。該当しない場合は `none`。
   - `Cross-slice Contract ID` は、欠落または不一致が `XC-xxx` に関係する場合だけ記載する。該当しない場合は `none`。
@@ -594,7 +594,7 @@ canonical coverage ledger が存在する場合は "See: plans/<ticket-or-slug>-
 
 verdict を出力し、`引き継ぎ必須 inputs` と `Handoff Packet` を記録した後に停止してください。
 
-- `READY_FOR_BOUNDED_PARENT_PLAN_PASS` / `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS` の場合: explicit Design Pair route は `design-pair-implementation-execution`、通常 route は `high-implementation-starter.agent.md`、または人間の実装者への handoff に必要な情報を `引き継ぎ必須 inputs`、`Readiness scope`、`Parent Plan Coverage Ledger`、`Residual Decision Ledger`、`Handoff Packet` に記録し、停止してください。非自明な実装を STANDARD_MODEL へ直接渡してはいけません。
+- `READY_FOR_BOUNDED_PARENT_PLAN_PASS` / `READY_FOR_BOUNDED_PARENT_PLAN_PASS_WITH_DECLARED_RESIDUAL_RISKS` の場合: explicit Design Pair route は `design-pair-implementation-execution`、通常 route は `decision-surface-implementation-owner.agent.md`、または人間の実装者への handoff に必要な情報を `引き継ぎ必須 inputs`、`Readiness scope`、`Parent Plan Coverage Ledger`、`Residual Decision Ledger`、`Handoff Packet` に記録し、停止してください。非自明な実装を `bounded-residual-implementation-owner` へ直接渡してはいけません。
 - `BLOCKED_BY_UNMAPPED_PARENT_ACCEPTANCE` / `BLOCKED_BY_ARTIFACT_MISMATCH` / `BLOCKED_BY_HUMAN_DECISION` / `BLOCKED` の場合: blocking issues を記録し、修正すべき artifact と担当 agent、または必要な human decision を示して停止してください。修正は行いません。
 
 ## Status vocabulary
@@ -619,7 +619,7 @@ Handoff Packet の `Remaining work`、`ブロッキング問題`、`非ブロッ
 ## Relationship to other agents
 
 - **通常の直前の agent**: Guardrail Focus がある場合は `test-design-kernel.agent.md`、Guardrail Focus がない標準 route では risk / contract gate — この agent の入力を生成する
-- **直後の agent**: explicit Design Pair route では `design-pair-implementation-execution`、通常 route では `high-implementation-starter.agent.md`、または人間の実装者 — この agent の `引き継ぎ必須 inputs` と `Handoff Packet` を受け取る。standalone Adaptive はこの agent を invoke しない
+- **直後の agent**: explicit Design Pair route では `design-pair-implementation-execution`、通常 route では `decision-surface-implementation-owner.agent.md`、または人間の実装者 — この agent の `引き継ぎ必須 inputs` と `Handoff Packet` を受け取る。standalone Adaptive はこの agent を invoke しない
 - **任意の実装後 gate**: `code-review-focus-kernel.agent.md` — human code review 用の読み順と重点箇所を整理する
 - **この agent は代替しない**: `plan-kernel.agent.md`（Plan readiness）、`verification-kernel.agent.md`（実装後の production binding 検証）
 - **BLOCKED 時の修正先**:

@@ -39,15 +39,15 @@ Confirm:
 
 - `.agents/skills/design-pair-implementation-execution/SKILL.md`
 - `.agents/skills/adaptive-implementation-execution/SKILL.md`
-- `.github/agents/high-implementation-starter.agent.md`
-- `.github/agents/standard-implementation-completer.agent.md`
+- `.github/agents/decision-surface-implementation-owner.agent.md`
+- `.github/agents/bounded-residual-implementation-owner.agent.md`
 
 ### Install (Codex)
 
 ```powershell
 apm install <source>/apm-packages/adaptive-implementation-execution#<full-sha> --target codex,agent-skills
 apm install <source>/apm-packages/design-pair-implementation-execution#<full-sha> --target codex,agent-skills
-# complete Codex HIGH/STANDARD models when APM emits model-less TOML stubs
+# complete Codex decision-surface-implementation-owner / bounded-residual-implementation-owner models when APM emits model-less TOML stubs
 dotnet run --file <moduleRoot>/apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs -- .
 dotnet run --file <moduleRoot>/apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs -- . --check
 ```
@@ -105,7 +105,7 @@ After reviewing the Turn 2 trade-offs, send a final disposition that names the T
 - only then does the existing Adaptive Implementation route start;
 - the final record distinguishes Design Pair readiness, Adaptive result, validation, and final review status.
 
-On GitHub Copilot CLI, after READY, start Adaptive in a **new CLI process** with explicit `--agent high-implementation-starter`. Do not treat same-session skill continuation as the canonical Adaptive entry evidence. Do not claim VS Code handoff-button routing. Record requested and observed models when available from CLI output or debug logs.
+On GitHub Copilot CLI, after READY, start Adaptive in a **new CLI process** with explicit `--agent decision-surface-implementation-owner`. Do not treat same-session skill continuation as the canonical Adaptive entry evidence. Do not claim VS Code handoff-button routing. Record requested and observed models when available from CLI output or debug logs.
 
 To exercise the no-discussion shortcut in a separate run, respond after Turn 1 with an explicit all-Target Adaptive delegation. The handoff may become READY without Locked Decisions if every other readiness check passes and every Target has a matching `Adaptive-Owned` disposition evidence row.
 
@@ -122,10 +122,10 @@ Record separate runs or additional turns for:
 
 1. **Explicit all-Adaptive** after Target Map (no Locked Decisions; every Target Adaptive-Owned with disposition evidence).
 2. **Design Pair not selected** — ordinary Adaptive / default route; Design Pair must not auto-start.
-3. **Locked Decision conflict** — Adaptive HIGH with `--agent high-implementation-starter` stops without silently changing the Locked Decision.
+3. **Locked Decision conflict** — Adaptive decision-surface-implementation-owner with `--agent decision-surface-implementation-owner` stops without silently changing the Locked Decision.
 4. **Waiting-state new-session resume** — new process reads `AWAITING_USER_INPUT` handoff and continues after a fresh human response.
 
-STANDARD delegation and HIGH re-entry after a valid Design Pair READY handoff may cite the Adaptive package Copilot CLI E2E when that package already proves HIGH→STANDARD→re-entry on the same agents; record the citation and any Design Pair-origin gap as `NOT RUN` only when not re-executed here.
+bounded-residual-implementation-owner delegation and decision-surface-implementation-owner re-entry after a valid Design Pair READY handoff may cite the Adaptive package Copilot CLI E2E when that package already proves decision-surface-implementation-owner→bounded-residual-implementation-owner→re-entry on the same agents; record the citation and any Design Pair-origin gap as `NOT RUN` only when not re-executed here.
 
 ## Plan Coverage boundary (static / ordinary route)
 
