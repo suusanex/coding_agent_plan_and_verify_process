@@ -133,7 +133,9 @@ try {
     Assert-NotContains $deployedSkill '\$adaptive-implementation-execution' 'deployed skill has no dollar-prefix invocation example'
     Assert-Contains $deployedSkill 'Ownership transfer basis: bounded-residual-work-only' 'deployed skill bounded residual transfer basis'
     Assert-Contains $deployedSkill 'Decision-Surface Implementation Owner.*implementation feedback loop' 'deployed decision-surface ownership'
-    Assert-Contains $deployedSkill 'Work Package、Allowed edit surface、acceptance mapping' 'deployed Work Package authorization'
+    Assert-Contains $deployedSkill 'acceptanceとWork Package mappingが双方向に一致する' 'deployed Work Package acceptance mapping'
+    Assert-Contains $deployedSkill 'Allowed edit surfaceが全Authorized surfaceを包含する' 'deployed Allowed edit surface authorization'
+    Assert-Contains $deployedSkill 'ownerはWork PackagesとAllowed edit surface内で実装・検証します' 'deployed Work Package execution boundary'
 
     $copilotDecisionOwner = Join-Path $scratch '.github/agents/decision-surface-implementation-owner.agent.md'
     $copilotResidualOwner = Join-Path $scratch '.github/agents/bounded-residual-implementation-owner.agent.md'
