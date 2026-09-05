@@ -81,7 +81,7 @@ try {
     Assert-Contains '.apm/skills/goal-context-authoring/references/generation-prompt.md' '(?s)Use this check only to recover decisions already present in the\s+source, not to create new requirements, invent an MVP, or fill unresolved\s+design gaps' 'source-bounded completeness guardrail'
     Assert-Contains '.apm/skills/goal-context-authoring/references/generation-prompt.md' 'Do not let implementation-relevant settled decisions disappear\s+into broad goal prose' 'explicit settled capability visibility'
     Assert-Contains '.apm/skills/goal-context-authoring/references/generation-prompt.md' '(?s)Do not invent missing decisions.*assistant proposal,\s+general best practice, likely implementation, or user silence' 'no invention or promotion guardrail'
-    Assert-Contains '.apm/skills/goal-context-authoring/references/generation-prompt.md' 'Do not turn the output into an exhaustive specification' 'non-exhaustive generation boundary'
+    Assert-Contains '.apm/skills/goal-context-authoring/references/generation-prompt.md' '(?s)Do not add requirements, designs, implementation steps, acceptance criteria,\s+or tests absent from the source.*Do not omit settled content because it is detailed' 'source-bounded generation without omission of settled detail'
     Assert-Contains '.apm/skills/goal-context-authoring/references/generation-prompt.md' 'The output is free-form' 'free-form generation instruction'
     Assert-Contains '.apm/skills/goal-context-authoring/references/goal-context-contract.md' 'No consumer may require' 'consumer non-requirement contract'
     Assert-Contains '.apm/skills/goal-context-authoring/references/goal-context-template.md' 'not a schema' 'optional template boundary'

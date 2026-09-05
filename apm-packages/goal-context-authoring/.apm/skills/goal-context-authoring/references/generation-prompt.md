@@ -34,8 +34,12 @@ omission could reasonably cause later planning to:
 - violate a stated boundary or invariant; or
 - rely on a premise without knowing that it still needs verification.
 
-Preserve enough reason and scope for each decision to prevent it from
-being applied more broadly than intended.
+Preserve source-supported reasons, scope, conditions, and exceptions for
+each decision so it is not applied more broadly than intended. Every
+substantive statement, including the purpose, success outcomes, reasons,
+and premises, must be supported by the source. Rephrasing and reorganization
+may clarify existing meaning but must not add new meaning. Do not supply
+a reason that was not recorded.
 
 When identifying settled decisions and constraints, include implementation
 capabilities already established in the source as necessary to carry out an
@@ -47,8 +51,12 @@ merely because they seem useful or would be good design.
 Clearly distinguish, in natural language:
 - decisions and constraints explicitly stated or clearly accepted by the user;
 - premises or working assumptions that may need revalidation;
-- proposals that were discussed but not accepted;
-- unresolved matters intentionally left for later planning.
+- proposals that were discussed but not accepted or whose acceptance is unclear;
+- unresolved matters and contradictions present in the source, whether or
+  not they were intentionally deferred.
+
+Preserve partial uncertainty without discarding the established context.
+Do not enumerate new open design questions that never appeared in the source.
 
 Before finalizing, check the accepted concrete use cases in the source
 material. Ask whether a later planner, using only the Goal Context, could
@@ -57,7 +65,8 @@ use case because a settled capability or constraint was omitted. If so,
 include the missing item only when it is already source-confirmed under the
 rules above. Use this check only to recover decisions already present in the
 source, not to create new requirements, invent an MVP, or fill unresolved
-design gaps.
+design gaps. Also check in the reverse direction: verify that each output
+statement's meaning, decision status, and scope are supported by the source.
 
 Keep settled decisions sufficiently explicit that a later designer can
 identify what must remain fixed independently from the general purpose
@@ -67,13 +76,14 @@ into broad goal prose merely because they are lower-level than the goal.
 Do not invent missing decisions or silently convert an assistant proposal,
 general best practice, likely implementation, or user silence into an
 accepted requirement. Apply later user corrections over superseded
-statements.
+statements only where correction or replacement is clear; otherwise retain
+the unresolved conflict rather than choosing a resolution.
 
-Do not turn the output into an exhaustive specification, Issue body,
-implementation plan, acceptance checklist, task list, test plan, or
-complete contract inventory. Include technical detail only when it was
-actually settled in the source conversation or is necessary to understand
-the scope and reason of a settled decision.
+Do not add requirements, designs, implementation steps, acceptance criteria,
+or tests absent from the source to make the document appear complete.
+Do not omit settled content because it is detailed or because preserving
+it makes the output resemble a specification, plan, or checklist. Saving
+the text in an Issue or Markdown file does not change its content scope.
 
 Preserve relevant user situations, boundaries, rejected outcomes,
 corrections, and uncertainty when they are actually present.
@@ -83,6 +93,14 @@ context and the settled planning context easy to distinguish. Do not
 require or mechanically add frontmatter, prescribed headings, tables,
 provenance tags, lifecycle status, approval fields, or a human-review
 record. A short paragraph is valid when it is sufficient.
+
+For longer material, optional groupings are: the problem, desired outcomes,
+and accepted use cases; settled architecture, technologies, approaches,
+and constraints; rejected alternatives with their recorded reasons and
+scope; and premises, unaccepted proposals, and unresolved matters. Omit
+empty groups. Keep independently changeable decisions separate, with their
+status, conditions, and exceptions beside them. Preserve the source's
+degree of commitment, such as required, recommended, or provisional.
 
 Exclude secrets, credentials, authentication material, and unnecessary
 personal data. If the available material is too incomplete to establish
