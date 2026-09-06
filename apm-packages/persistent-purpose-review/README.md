@@ -21,6 +21,12 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persisten
 purpose-review-runner version
 ```
 
+### Reviewer configuration
+
+`$persistent-purpose-review`はreviewerのprovider、model、reasoning effortを選択しません。これらはOS user単位の`purpose-review-runner` configで指定します。Windowsでは通常`%APPDATA%\purpose-review-runner\config.json`です。configの`provider`、`model`、`reasoningEffort`と、必要に応じて`executable`、optional `profile`を設定します。利用可能なproviderと設定例は[Purpose Review Runner](../../apps/PurposeReviewRunner/README.md)とその`config.example.json`を参照してください。
+
+`start`にはreview単位の`--model`や`--effort` overrideはありません。Runnerは`start`時のprovider設定をrun stateへsnapshotするため、その後にuser-level configを変更しても既存runへは反映されません。同じ`runId`で`continue`する再reviewは、同じreviewer sessionと同じprovider/model/reasoning effortで継続します。
+
 ## Use
 
 通常の実装指示へ次を加えます。
