@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PurposeReviewRunner;
@@ -282,6 +283,105 @@ public sealed class RunnerApplicationTests
 
         Assert.AreEqual("REVIEW_PARSE_FAILED", exception.Code);
         Assert.AreEqual(ExitCodes.ContractError, exception.ExitCode);
+    }
+
+    [TestMethod]
+    public async Task SystemLevelOutcomeWithoutImplementationStepsSurvivesPublicAndStoredResults()
+    {
+        using var fixture = new RunnerFixture("codex");
+        fixture.WriteRepositoryFile("goal.md", "User-approved structure controls downstream generation.");
+        const string outcome = "The user-approved structure remains authoritative for all downstream generation and cannot be overwritten by an LLM outline.";
+        fixture.Process.Reviews.Enqueue("""
+            BEGIN_PURPOSE_REVIEW
+            {"status":"FINDINGS","findings":[{"id":"PUR-001","severity":"HIGH","title":"Authority is inverted across the pipeline","summary":"Generation overrides the structure approved by the user.","evidence":"goal.md; the approved structure flows through OutlineGenerator.cs and SectionWriter.cs, but the generated outline replaces it.","requiredOutcome":"The user-approved structure remains authoritative for all downstream generation and cannot be overwritten by an LLM outline."}],"message":"The conflict spans the pipeline; implementation design belongs to the parent."}
+            END_PURPOSE_REVIEW
+            """);
+        var start = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
+        var stored = await fixture.Application.ExecuteAsync(new StatusCommand(start.Output.RunId!), CancellationToken.None);
+
+        Assert.AreEqual(ReviewStatuses.Findings, stored.Output.Status);
+        Assert.AreEqual(outcome, stored.Output.Findings.Single().RequiredOutcome);
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(stored.Output, JsonDefaults.Options));
+        Assert.AreEqual(3, document.RootElement.GetProperty("protocolVersion").GetInt32());
+        var finding = document.RootElement.GetProperty("findings")[0];
+        Assert.AreEqual(outcome, finding.GetProperty("requiredOutcome").GetString());
+        Assert.IsFalse(finding.TryGetProperty("requiredChange", out _));
+    }
+
+    [TestMethod]
+    [DataRow("missing")]
+    [DataRow("null")]
+    [DataRow("empty")]
+    [DataRow("whitespace")]
+    [DataRow("legacy")]
+    [DataRow("mixed")]
+    public void ReviewerProtocolRejectsMissingOutcomeAndLegacyChangeFields(string mutation)
+    {
+        var response = JsonSerializer.SerializeToNode(new ReviewerResponse(ReviewStatuses.Findings, [Finding("PUR-001")], null), JsonDefaults.Options)!;
+        var finding = response["findings"]![0]!.AsObject();
+        switch (mutation)
+        {
+            case "missing":
+                finding.Remove("requiredOutcome");
+                break;
+            case "null":
+                finding["requiredOutcome"] = null;
+                break;
+            case "empty":
+                finding["requiredOutcome"] = "";
+                break;
+            case "whitespace":
+                finding["requiredOutcome"] = "  ";
+                break;
+            case "legacy":
+                finding.Remove("requiredOutcome");
+                finding["requiredChange"] = "Add a check.";
+                break;
+            case "mixed":
+                finding["requiredChange"] = "Add a check.";
+                break;
+        }
+        var exception = Assert.ThrowsExactly<RunnerException>(() => ReviewProtocol.Parse(
+            "BEGIN_PURPOSE_REVIEW\n" + response.ToJsonString(JsonDefaults.Options) + "\nEND_PURPOSE_REVIEW"));
+
+        Assert.AreEqual("REVIEW_PARSE_FAILED", exception.Code);
+    }
+
+    [TestMethod]
+    public async Task ContinueRejectsProtocolTwoStateWithoutStartingAnotherReview()
+    {
+        using var fixture = new RunnerFixture("codex");
+        fixture.WriteRepositoryFile("goal.md", "goal");
+        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
+        var start = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
+        var store = new StateStore(fixture.Paths.StateRoot);
+        store.Save(store.Load(start.Output.RunId!) with { ProtocolVersion = 2 });
+
+        var exception = await Assert.ThrowsExactlyAsync<RunnerException>(() => fixture.Application.ExecuteAsync(
+            new ContinueCommand(start.Output.RunId!), CancellationToken.None));
+
+        Assert.AreEqual("STATE_INCOMPATIBLE", exception.Code);
+        Assert.HasCount(1, fixture.Process.Requests);
+    }
+
+    [TestMethod]
+    public async Task StatusRejectsProtocolTwoResultEvenWithoutFindings()
+    {
+        using var fixture = new RunnerFixture("codex");
+        fixture.WriteRepositoryFile("goal.md", "goal");
+        fixture.Process.Reviews.Enqueue(Review("COMPLETE"));
+        var start = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
+        var store = new JobStore(fixture.Paths.StateRoot);
+        var original = store.LoadResult(start.Output.RunId!);
+        store.SaveResult(start.Output.RunId!, original with { Output = original.Output with { ProtocolVersion = 2 } });
+
+        var exception = await Assert.ThrowsExactlyAsync<RunnerException>(() => fixture.Application.ExecuteAsync(
+            new StatusCommand(start.Output.RunId!), CancellationToken.None));
+
+        Assert.AreEqual("STATE_INCOMPATIBLE", exception.Code);
+        Assert.HasCount(1, fixture.Process.Requests);
+        using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(store.GetRunDirectory(start.Output.RunId!), "result.json")));
+        Assert.AreEqual(2, document.RootElement.GetProperty("output").GetProperty("protocolVersion").GetInt32());
     }
 
     [TestMethod]

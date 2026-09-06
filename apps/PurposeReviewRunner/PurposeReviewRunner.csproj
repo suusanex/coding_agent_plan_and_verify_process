@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>purpose-review-runner</AssemblyName>
     <RootNamespace>PurposeReviewRunner</RootNamespace>
-    <Version>0.2.3</Version>
+    <Version>0.3.0</Version>
     <PublishSingleFile>true</PublishSingleFile>
     <PublishTrimmed>false</PublishTrimmed>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>

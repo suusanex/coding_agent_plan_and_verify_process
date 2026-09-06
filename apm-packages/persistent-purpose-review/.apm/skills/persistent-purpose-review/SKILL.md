@@ -16,7 +16,7 @@ description: Use after implementation when the original implementation parent mu
 ## Ownership
 
 - production、tests、docsを変更できるのは、このSkillを開始した元のimplementation parentだけ。
-- reviewerは目的達成の判断だけを担当し、repositoryを変更しない。
+- reviewerは目的達成の判断と`requiredOutcome`による必要成果の提示を担当し、repositoryを変更しない。具体的な修正設計と実装はparentが所有する。
 - reviewerはshellでGit差分や履歴を調査できる。変更禁止はshell経由にも適用する役割契約であり、技術的に変更不能であることを意味しない。
 - Runnerがprovider、session handle、round、non-modifying reviewer契約、result parse、最大3roundを所有する。providerが副作用なくwrite/edit系toolを禁止できる場合は、その制約をRunnerが利用する。
 - provider CLI構文、session ID、round counter、model、reasoning effortを親から指定または再実装しない。
@@ -42,7 +42,7 @@ context pathはrepository相対またはabsoluteでよい。Runner自身にsourc
 purpose-review-runner version
 ```
 
-stdoutの単一JSONを読み、`protocolVersion`が`2`であること、および`runnerVersion`が`0.2.3`以上であることを確認する。`runnerVersion`はmajor.minor.patchとして比較する。command未導入、非0 exit、JSON不正、`protocolVersion`非互換、`runnerVersion`欠落、`0.2.3`未満、または比較不能なら`Blocked`として停止する。別commandやprovider CLIで代替しない。`apm update`はRunner binaryを更新しないため、旧Runnerのまま続行しない。
+stdoutの単一JSONを読み、`protocolVersion`が`3`であること、および`runnerVersion`が`0.3.0`以上であることを確認する。`runnerVersion`はmajor.minor.patchとして比較する。command未導入、非0 exit、JSON不正、`protocolVersion`非互換、`runnerVersion`欠落、`0.3.0`未満、または比較不能なら`Blocked`として停止する。別commandやprovider CLIで代替しない。`apm update`はRunner binaryを更新しないため、旧Runnerのまま続行しない。
 
 ## Start review
 
@@ -68,7 +68,7 @@ purpose-review-runner status --run <run-id>
 - `BLOCKED`: blockerと再開条件を報告して停止する。
 - `ERROR`または非0 exit: error codeと安全なmessageを報告して停止する。新session、retry、context replay、別providerへの切替を行わない。
 
-findingは元の目的と明示的な採用判断に照合し、`requiredChange`の方式を無条件に実装しない。必要な振る舞いと制約を満たす修正を選び、追加だけでなく削除・縮小・既存経路への統合を検討する。誤り・過剰要求の根拠がある場合は、実装修正を行わず同じrunで再reviewを求めてもよい。必要な説明は既存の作業記録などに根拠と判断を簡潔に残し、過去のreviewer output全文を複製しない。未決定の目的・scopeを親の判断だけで変更する必要がある場合は、選択理由をユーザーへ報告して停止する。
+findingと`requiredOutcome`は元の目的と明示的な採用判断に照合する。`requiredOutcome`は成立すべき状態・振る舞い・制約であり、修正手順ではない。parentが具体的な修正方式を設計し、追加だけでなく削除・縮小・既存経路への統合を検討する。複数componentにまたがる責務・authorityの問題を、局所的なpatch指示がないという理由で却下しない。誤り・過剰要求の根拠がある場合は、実装修正を行わず同じrunで再reviewを求めてもよい。必要な説明は既存の作業記録などに根拠と判断を簡潔に残し、過去のreviewer output全文を複製しない。未決定の目的・scopeを親の判断だけで変更する必要がある場合は、選択理由をユーザーへ報告して停止する。
 
 ## Continue after remediation
 

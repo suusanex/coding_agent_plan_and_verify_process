@@ -5,9 +5,9 @@ namespace PurposeReviewRunner;
 
 public static class Protocol
 {
-    public const int Version = 2;
+    public const int Version = 3;
     public const int MaximumRounds = 3;
-    public const string RunnerVersion = "0.2.3";
+    public const string RunnerVersion = "0.3.0";
 }
 
 public static class ExitCodes
@@ -50,7 +50,7 @@ public sealed record ReviewFinding(
     string Title,
     string Summary,
     string Evidence,
-    string RequiredChange);
+    string RequiredOutcome);
 
 public sealed record ReviewerResponse(
     string Status,

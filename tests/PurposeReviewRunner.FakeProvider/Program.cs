@@ -127,7 +127,7 @@ public static class Program
 
     private static string Review(bool resumed) => resumed
         ? "BEGIN_PURPOSE_REVIEW\n{\"status\":\"COMPLETE\",\"findings\":[],\"message\":null}\nEND_PURPOSE_REVIEW"
-        : "BEGIN_PURPOSE_REVIEW\n{\"status\":\"FINDINGS\",\"findings\":[{\"id\":\"PUR-001\",\"severity\":\"HIGH\",\"title\":\"Purpose gap\",\"summary\":\"summary\",\"evidence\":\"evidence\",\"requiredChange\":\"change\"}],\"message\":null}\nEND_PURPOSE_REVIEW";
+        : "BEGIN_PURPOSE_REVIEW\n{\"status\":\"FINDINGS\",\"findings\":[{\"id\":\"PUR-001\",\"severity\":\"HIGH\",\"title\":\"Purpose gap\",\"summary\":\"summary\",\"evidence\":\"evidence\",\"requiredOutcome\":\"change\"}],\"message\":null}\nEND_PURPOSE_REVIEW";
 
     private static string ValueAfter(string[] args, string option)
     {

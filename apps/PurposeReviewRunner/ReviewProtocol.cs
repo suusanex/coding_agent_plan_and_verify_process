@@ -66,10 +66,10 @@ public static partial class ReviewProtocol
         {
             if (finding is null || string.IsNullOrWhiteSpace(finding.Id) || !ids.Add(finding.Id) ||
                 string.IsNullOrWhiteSpace(finding.Title) || string.IsNullOrWhiteSpace(finding.Summary) ||
-                string.IsNullOrWhiteSpace(finding.Evidence) || string.IsNullOrWhiteSpace(finding.RequiredChange) ||
+                string.IsNullOrWhiteSpace(finding.Evidence) || string.IsNullOrWhiteSpace(finding.RequiredOutcome) ||
                 !AllowedSeverities.Contains(finding.Severity))
             {
-                throw Invalid("Each finding requires a unique id, supported severity, title, summary, evidence, and requiredChange.");
+                throw Invalid("Each finding requires a unique id, supported severity, title, summary, evidence, and requiredOutcome.");
             }
         }
         return response;

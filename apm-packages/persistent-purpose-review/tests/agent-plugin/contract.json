@@ -6,5 +6,5 @@
   "ownedAgents": [],
   "ownedInstructions": [],
   "dependencies": [],
-  "runtimeBoundary": "purpose-review-runner 0.2.3以上は独立して導入する外部CLIであり、pluginには含まれない。"
+  "runtimeBoundary": "purpose-review-runner 0.3.0以上は独立して導入する外部CLIであり、pluginには含まれない。"
 }

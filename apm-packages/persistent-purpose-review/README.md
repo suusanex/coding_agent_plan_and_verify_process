@@ -10,7 +10,7 @@
 | `$persistent-purpose-review` | 利用するwork repositoryごと | purpose context選択、parent-owned remediation、terminal reporting |
 | `$pr-review-remediation` | baseline PR reviewが必要なrepositoryごと | Goal Contextを使わないPR review plan作成 |
 
-SkillはRunner binaryを内包、複製、自動download、installしません。このSkillは`purpose-review-runner` 0.2.3以上とprotocol v2を要求します。0.2.3で調査用shellの許可と、修正による目的逸脱・前回指摘の訂正を含むレビュー依頼を導入しました。0.2.2以前にはこの契約がありません。Runner未導入、0.2.3未満、またはprotocol非互換ならfail closedで停止します。
+SkillはRunner binaryを内包、複製、自動download、installしません。このSkillは`purpose-review-runner` 0.3.0以上とprotocol v3を要求します。0.3.0ではfindingの必須項目を`requiredChange`から`requiredOutcome`へ変更しました。reviewerは必要成果を示し、具体的な修正設計はparentが所有します。0.2.3で導入したshell調査と目的逸脱レビューは維持します。Runner未導入、0.3.0未満、またはprotocol非互換ならfail closedで停止します。
 
 ## Install
 
@@ -35,6 +35,8 @@ contextは元の問題・期待成果、承認されたscope・採用判断、�
 
 reviewerはshellでGit差分・履歴と現在の実装を調査し、目的の未達成、表面的な充足、周辺機構への偏り、修正による逸脱を毎round評価します。前回指摘も訂正・撤回の対象です。parentは指摘された方式へ無条件に追従せず、目的に必要な振る舞いと制約に照合して修正します。削除・縮小も修正候補です。変更禁止はshell経由にも適用する役割契約です。
 
+`requiredOutcome`は目的達成のために成立すべき状態・振る舞い・制約を示します。例えば「ユーザーが確定した構成が下流生成のauthorityとなり、LLMの生成outlineに上書きされないこと」で十分です。関数単位の修正指示は不要であり、複数componentにまたがる責務・authorityの逆転もfindingとして扱います。実装方式が未確定という理由だけでは却下しません。
+
 `start`と`continue`は短時間でjobを登録するだけです。結果は同じ`runId`の`status`をpollingして取得します。`FINDINGS`では元のparentだけが修正とvalidationを行い、同じ`runId`で`continue`します。`COMPLETE`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`、`ERROR`で終了します。polling中のCLI失敗では`status`だけをやり直します。
 
 ## Update and remove
@@ -44,7 +46,7 @@ apm update
 apm uninstall persistent-purpose-review
 ```
 
-APM packageの更新・削除はRunner binary、user-level config、既存run stateを変更しません。`apm update`だけではreviewerのshell許可やレビュー依頼文は更新されません。Runner 0.2.3以上への更新はGitHub Release側で別に行います。進行中のrunの途中でRunnerを差し替えず、更新後の新しい作業から利用します。
+APM packageの更新・削除はRunner binary、user-level config、既存run stateを変更しません。`apm update`だけではRunnerの結果形式やレビュー依頼文は更新されません。Runner 0.3.0以上への更新はGitHub Release側で別に行います。v2のrunは開始時のRunnerで完了させ、更新後の新しい作業からv3を利用します。旧findingの自動変換、進行中runの移行、移行のためのsession再作成は行いません。
 
 ## Validation
 

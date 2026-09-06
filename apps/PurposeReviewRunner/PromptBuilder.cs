@@ -62,10 +62,11 @@ public static class PromptBuilder
         builder.AppendLine();
         builder.AppendLine("以下の形式のblockを正確に1つだけ返してください。JSONはvalidでなければならず、このblock以外の出力を含めないでください。");
         builder.AppendLine("BEGIN_PURPOSE_REVIEW");
-        builder.AppendLine("{\"status\":\"FINDINGS|COMPLETE|HUMAN_DECISION_REQUIRED|BLOCKED\",\"findings\":[{\"id\":\"PUR-001\",\"severity\":\"CRITICAL|HIGH|MEDIUM|LOW\",\"title\":\"...\",\"summary\":\"...\",\"evidence\":\"...\",\"requiredChange\":\"...\"}],\"message\":\"...\"}");
+        builder.AppendLine("{\"status\":\"FINDINGS|COMPLETE|HUMAN_DECISION_REQUIRED|BLOCKED\",\"findings\":[{\"id\":\"PUR-001\",\"severity\":\"CRITICAL|HIGH|MEDIUM|LOW\",\"title\":\"...\",\"summary\":\"...\",\"evidence\":\"...\",\"requiredOutcome\":\"...\"}],\"message\":\"...\"}");
         builder.AppendLine("END_PURPOSE_REVIEW");
         builder.AppendLine("FINDINGSの場合はfindingを1件以上含めてください。COMPLETEの場合はfindingを含めないでください。HUMAN_DECISION_REQUIREDまたはBLOCKEDの場合は、空でないmessageが必要です。");
-        builder.AppendLine("summaryには目的への影響、evidenceにはpurpose sourceの該当箇所と実装のpath・位置または観測結果を記載してください。requiredChangeには満たすべき振る舞いと制約を記載し、特定方式を必須にする場合はその根拠を示してください。追加実装だけでなく削除・縮小・既存経路への統合も修正候補です。");
+        builder.AppendLine("summaryには目的への影響、evidenceにはpurpose sourceの該当箇所と実装のpath・位置または観測結果を記載してください。requiredOutcomeには目的達成のために成立すべき状態・振る舞い・制約を記載してください。修正する関数、patch、promptの書換え、チェックの追加などの実装方式まで決める必要はありません。具体的な修正設計と実装はimplementation parentの責任です。");
+        builder.AppendLine("複数componentにまたがる責務やauthorityの逆転もpurpose findingです。単一の局所的なバグへ分解できないことや、具体的な修正方法が未確定であることを理由にfindingを省略しないでください。actionableとは、目的との不一致と満たすべき成果が根拠付きで特定され、parentが修正方針を判断できることです。既に承認された実装上の制約はsourceの根拠とともに保持し、reviewer自身の方式提案を必須成果へ混入させないでください。");
         builder.AppendLine("messageには確認した比較基準と対象、目的達成の判断根拠、未検証事項・比較の限界を簡潔に記載してください。COMPLETEはactionableなfindingがなく、今回のscopeの主要成果と否定条件を評価する十分な証拠がある場合だけ選んでください。テスト成功や指摘の不在だけを達成の証拠にしないでください。");
         builder.AppendLine("必要な証拠を取得できず判断不能な場合はBLOCKED、目的やscopeの競合・選択にユーザー判断が必要な場合はHUMAN_DECISION_REQUIREDとし、理由をmessageへ記載してください。コードから確定できる未実装や目的違反はFINDINGSであり、証拠不足と混同しないでください。既に承認された対象外事項や、判定を左右しない未検証事項まで新しいblockerにしないでください。");
     }
