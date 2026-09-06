@@ -84,8 +84,9 @@ public static class Program
     {
         var resumed = args.Contains("--resume", StringComparer.Ordinal);
         Require(!args.Contains("--sandbox", StringComparer.Ordinal) && !args.Contains("read-only", StringComparer.Ordinal), "Grok filesystem sandbox was specified.");
-        Require(ValueAfter(args, "--tools") == "read,view,grep", "Grok tool allowlist was not fixed.");
-        Require(ValueAfter(args, "--disallowed-tools") == "write,shell,task,edit_file,run_shell_command", "Grok write tools were not denied.");
+        Require(ValueAfter(args, "--tools").Split(',').Contains("shell", StringComparer.Ordinal), "Grok shell tool was not available.");
+        Require(ValueAfter(args, "--permission-mode") == "bypassPermissions", "Grok shell execution could wait for approval.");
+        Require(ValueAfter(args, "--disallowed-tools") == "write,task,edit_file", "Grok edit/delegation restrictions or shell access were incorrect.");
         Require(args.Contains("--no-subagents", StringComparer.Ordinal), "Grok subagents were not disabled.");
         ValidatePayload(File.ReadAllText(ValueAfter(args, "--prompt-file")), resumed);
         Console.WriteLine(Review(resumed));
@@ -96,8 +97,11 @@ public static class Program
         var sessionArgument = args.Single(value => value.StartsWith("--session-id=", StringComparison.Ordinal) || value.StartsWith("--resume=", StringComparison.Ordinal));
         var resumed = sessionArgument.StartsWith("--resume=", StringComparison.Ordinal);
         var sessionId = sessionArgument[(sessionArgument.IndexOf('=') + 1)..];
-        Require(args.Contains("--available-tools=view,grep", StringComparer.Ordinal), "Copilot tool allowlist was not fixed.");
-        Require(args.Contains("--deny-tool=write", StringComparer.Ordinal) && args.Contains("--deny-tool=shell", StringComparer.Ordinal), "Copilot write tools were not denied.");
+        var availableTools = args.Single(value => value.StartsWith("--available-tools=", StringComparison.Ordinal))["--available-tools=".Length..].Split(',');
+        var shell = OperatingSystem.IsWindows() ? "powershell" : "bash";
+        Require(availableTools.Contains(shell, StringComparer.Ordinal) && availableTools.Contains("read_" + shell, StringComparer.Ordinal), "Copilot native shell or output reading was not available.");
+        Require(args.Contains("--allow-tool=shell", StringComparer.Ordinal) && !args.Contains("--deny-tool=shell", StringComparer.Ordinal), "Copilot shell execution was not allowed.");
+        Require(args.Contains("--deny-tool=write", StringComparer.Ordinal) && args.Contains("--deny-tool=task", StringComparer.Ordinal), "Copilot edit/delegation tools were not denied.");
         Require(!args.Contains("--attachment", StringComparer.Ordinal) && !args.Contains("-p", StringComparer.Ordinal), "Copilot payload must not use command-line or attachment transport.");
         await using var standardInput = Console.OpenStandardInput();
         using var reader = new StreamReader(
@@ -123,7 +127,7 @@ public static class Program
 
     private static string Review(bool resumed) => resumed
         ? "BEGIN_PURPOSE_REVIEW\n{\"status\":\"COMPLETE\",\"findings\":[],\"message\":null}\nEND_PURPOSE_REVIEW"
-        : "BEGIN_PURPOSE_REVIEW\n{\"status\":\"FINDINGS\",\"findings\":[{\"id\":\"PUR-001\",\"severity\":\"HIGH\",\"title\":\"Purpose gap\",\"summary\":\"summary\",\"evidence\":\"evidence\",\"requiredChange\":\"change\"}],\"message\":null}\nEND_PURPOSE_REVIEW";
+        : "BEGIN_PURPOSE_REVIEW\n{\"status\":\"FINDINGS\",\"findings\":[{\"id\":\"PUR-001\",\"severity\":\"HIGH\",\"title\":\"Purpose gap\",\"summary\":\"summary\",\"evidence\":\"evidence\",\"requiredOutcome\":\"change\"}],\"message\":null}\nEND_PURPOSE_REVIEW";
 
     private static string ValueAfter(string[] args, string option)
     {

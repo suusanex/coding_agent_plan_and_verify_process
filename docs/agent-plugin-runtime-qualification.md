@@ -19,7 +19,7 @@
 | Design Pair | NOT_RUN / NONE | HOLD / NONE | Adaptive 0.6.0へのpost-READY routeを再認定待ち。過去のmulti-turn evidenceは履歴として保持 |
 | Goal Context Authoring | PASS / LIVE | PASS / LIVE | free-form生成とbundle validatorを確認 |
 | PR Review Remediation | PASS / LIVE | PASS / LIVE | PR #131のremote reviewをplanner停止点まで確認 |
-| Persistent Purpose Review | PASS / LIVE | HOLD / PARTIAL | Runner 0.2.2は別配布。Copilot same-run flowは確認 |
+| Persistent Purpose Review | NOT_RUN / NONE | HOLD / NONE | Runner 0.3.0 / protocol v3とSkill 0.4.0の組合せは実モデル評価未実施。旧LIVE証拠は再利用しない |
 | Plan Coverage | PASS / PARTIAL | HOLD / PARTIAL | immutable behavior evidenceを維持し、direct gapは未解消 |
 
 repository-wide baseline candidate `0ff5900beb62d8c42226a5cad2779c56747d50c2`と、PR Review follow-up candidate `3b21a9e6dfa6f6e5123f2ad2ff5cceac6926c79a`の実行結果は[`tests/agent-plugins/results/2026-08-23-runtime-qualification.md`](../tests/agent-plugins/results/2026-08-23-runtime-qualification.md)に記録する。

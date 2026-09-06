@@ -174,9 +174,10 @@ public sealed class GrokProviderAdapter : ProviderAdapterBase, IProviderAdapter
         {
             var arguments = new List<string>
             {
-                "--cwd", request.Repository, "--no-memory", "--no-subagents", "--permission-mode", "plan",
-                "--disable-web-search", "--tools", "read,view,grep",
-                "--disallowed-tools", "write,shell,task,edit_file,run_shell_command", "--model", request.Provider.Model,
+                // 調査用shellを許可待ちにしない。shell経由の変更禁止はreviewerの役割契約で扱う。
+                "--cwd", request.Repository, "--no-memory", "--no-subagents", "--permission-mode", "bypassPermissions",
+                "--disable-web-search", "--tools", "read,view,grep,shell",
+                "--disallowed-tools", "write,task,edit_file", "--model", request.Provider.Model,
                 "--reasoning-effort", request.Provider.ReasoningEffort, "--output-format", "plain", "--verbatim"
             };
             if (!string.IsNullOrWhiteSpace(request.Provider.Profile))
@@ -206,8 +207,10 @@ public sealed class CopilotProviderAdapter : ProviderAdapterBase, IProviderAdapt
             "--no-auto-update", "--no-ask-user", "--disable-builtin-mcps", "--disallow-temp-dir",
             "--no-color", "--silent", "--output-format", "json", "--stream", "off",
             "--model", request.Provider.Model, "--effort", request.Provider.ReasoningEffort,
-            "--available-tools=view,grep", "--allow-tool=view", "--allow-tool=grep",
-            "--deny-tool=write", "--deny-tool=shell", "--deny-tool=task", "--deny-tool=edit"
+            // availabilityには実tool名、permissionにはshell種別を指定する。両OSのshellとsession操作を公開する。
+            "--available-tools=view,grep,bash,powershell,read_bash,read_powershell,list_bash,list_powershell,write_bash,write_powershell,stop_bash,stop_powershell",
+            "--allow-tool=view", "--allow-tool=grep", "--allow-tool=shell",
+            "--deny-tool=write", "--deny-tool=task", "--deny-tool=edit"
         };
         if (!string.IsNullOrWhiteSpace(request.Provider.Profile))
         {

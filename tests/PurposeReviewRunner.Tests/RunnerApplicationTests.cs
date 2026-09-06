@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PurposeReviewRunner;
@@ -97,13 +98,16 @@ public sealed class RunnerApplicationTests
     }
 
     [TestMethod]
-    public async Task RoundThreeFindingsBecomeTerminalHumanDecisionRequired()
+    [DataRow(null)]
+    [DataRow("Compared base abc and HEAD def; prior uncommitted content is unavailable. PUR-002 was withdrawn.")]
+    public async Task RoundThreeFindingsBecomeTerminalHumanDecisionRequired(string? reviewMessage)
     {
         using var fixture = new RunnerFixture("grok");
         fixture.WriteRepositoryFile("goal.md", "goal");
         fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
         fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
-        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue("BEGIN_PURPOSE_REVIEW\n" + JsonSerializer.Serialize(
+            new ReviewerResponse(ReviewStatuses.Findings, [Finding("PUR-001")], reviewMessage), JsonDefaults.Options) + "\nEND_PURPOSE_REVIEW");
         var first = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
         await fixture.Application.ExecuteAsync(new ContinueCommand(first.Output.RunId!), CancellationToken.None);
         var third = await fixture.Application.ExecuteAsync(new ContinueCommand(first.Output.RunId!), CancellationToken.None);
@@ -112,6 +116,13 @@ public sealed class RunnerApplicationTests
         Assert.IsTrue(third.Output.Terminal);
         Assert.AreEqual(3, third.Output.Round);
         Assert.AreEqual(1, third.Output.Findings.Count);
+        StringAssert.Contains(third.Output.Message!, "maximum of three review rounds");
+        if (reviewMessage is not null)
+        {
+            StringAssert.Contains(third.Output.Message!, reviewMessage);
+        }
+        var stored = await fixture.Application.ExecuteAsync(new StatusCommand(first.Output.RunId!), CancellationToken.None);
+        Assert.AreEqual(third.Output.Message, stored.Output.Message);
         await Assert.ThrowsExactlyAsync<RunnerException>(
             () => fixture.Application.ExecuteAsync(new ContinueCommand(first.Output.RunId!), CancellationToken.None));
     }
@@ -131,9 +142,23 @@ public sealed class RunnerApplicationTests
         var startSession = startArguments.Single(value => value.StartsWith("--session-id=", StringComparison.Ordinal));
         var resumeSession = resumeArguments.Single(value => value.StartsWith("--resume=", StringComparison.Ordinal));
         Assert.AreEqual(startSession["--session-id=".Length..], resumeSession["--resume=".Length..]);
-        CollectionAssert.Contains(startArguments, "--available-tools=view,grep");
-        CollectionAssert.Contains(startArguments, "--deny-tool=write");
-        CollectionAssert.Contains(startArguments, "--deny-tool=shell");
+        foreach (var arguments in new[] { startArguments, resumeArguments })
+        {
+            var availableTools = arguments.Single(value => value.StartsWith("--available-tools=", StringComparison.Ordinal))
+                ["--available-tools=".Length..].Split(',');
+            foreach (var tool in new[] { "view", "grep", "bash", "powershell", "read_bash", "read_powershell", "list_bash", "list_powershell", "write_bash", "write_powershell", "stop_bash", "stop_powershell" })
+            {
+                CollectionAssert.Contains(availableTools, tool);
+            }
+            foreach (var tool in new[] { "create", "edit", "apply_patch", "task" })
+            {
+                CollectionAssert.DoesNotContain(availableTools, tool);
+            }
+            CollectionAssert.Contains(arguments, "--allow-tool=shell");
+            CollectionAssert.DoesNotContain(arguments, "--deny-tool=shell");
+            CollectionAssert.Contains(arguments, "--deny-tool=write");
+            CollectionAssert.Contains(arguments, "--deny-tool=task");
+        }
         CollectionAssert.Contains(startArguments, "--disable-builtin-mcps");
         CollectionAssert.DoesNotContain(startArguments, "--attachment");
         CollectionAssert.DoesNotContain(startArguments, "-p");
@@ -167,10 +192,20 @@ public sealed class RunnerApplicationTests
         CollectionAssert.DoesNotContain(startArguments, "read-only");
         CollectionAssert.DoesNotContain(resumeArguments, "--sandbox");
         CollectionAssert.DoesNotContain(resumeArguments, "read-only");
-        CollectionAssert.Contains(startArguments, "--tools");
-        CollectionAssert.Contains(startArguments, "read,view,grep");
-        CollectionAssert.Contains(startArguments, "--disallowed-tools");
-        CollectionAssert.Contains(startArguments, "write,shell,task,edit_file,run_shell_command");
+        foreach (var arguments in new[] { startArguments, resumeArguments })
+        {
+            Assert.AreEqual("bypassPermissions", arguments[Array.IndexOf(arguments, "--permission-mode") + 1]);
+            var availableTools = arguments[Array.IndexOf(arguments, "--tools") + 1].Split(',');
+            var deniedTools = arguments[Array.IndexOf(arguments, "--disallowed-tools") + 1].Split(',');
+            CollectionAssert.Contains(availableTools, "shell");
+            CollectionAssert.DoesNotContain(deniedTools, "shell");
+            CollectionAssert.DoesNotContain(deniedTools, "run_shell_command");
+            foreach (var tool in new[] { "write", "task", "edit_file" })
+            {
+                CollectionAssert.Contains(deniedTools, tool);
+                CollectionAssert.DoesNotContain(availableTools, tool);
+            }
+        }
         CollectionAssert.Contains(startArguments, "--no-memory");
         CollectionAssert.Contains(startArguments, "--no-subagents");
         CollectionAssert.Contains(startArguments, "--disable-web-search");
@@ -248,6 +283,105 @@ public sealed class RunnerApplicationTests
 
         Assert.AreEqual("REVIEW_PARSE_FAILED", exception.Code);
         Assert.AreEqual(ExitCodes.ContractError, exception.ExitCode);
+    }
+
+    [TestMethod]
+    public async Task SystemLevelOutcomeWithoutImplementationStepsSurvivesPublicAndStoredResults()
+    {
+        using var fixture = new RunnerFixture("codex");
+        fixture.WriteRepositoryFile("goal.md", "User-approved structure controls downstream generation.");
+        const string outcome = "The user-approved structure remains authoritative for all downstream generation and cannot be overwritten by an LLM outline.";
+        fixture.Process.Reviews.Enqueue("""
+            BEGIN_PURPOSE_REVIEW
+            {"status":"FINDINGS","findings":[{"id":"PUR-001","severity":"HIGH","title":"Authority is inverted across the pipeline","summary":"Generation overrides the structure approved by the user.","evidence":"goal.md; the approved structure flows through OutlineGenerator.cs and SectionWriter.cs, but the generated outline replaces it.","requiredOutcome":"The user-approved structure remains authoritative for all downstream generation and cannot be overwritten by an LLM outline."}],"message":"The conflict spans the pipeline; implementation design belongs to the parent."}
+            END_PURPOSE_REVIEW
+            """);
+        var start = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
+        var stored = await fixture.Application.ExecuteAsync(new StatusCommand(start.Output.RunId!), CancellationToken.None);
+
+        Assert.AreEqual(ReviewStatuses.Findings, stored.Output.Status);
+        Assert.AreEqual(outcome, stored.Output.Findings.Single().RequiredOutcome);
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(stored.Output, JsonDefaults.Options));
+        Assert.AreEqual(3, document.RootElement.GetProperty("protocolVersion").GetInt32());
+        var finding = document.RootElement.GetProperty("findings")[0];
+        Assert.AreEqual(outcome, finding.GetProperty("requiredOutcome").GetString());
+        Assert.IsFalse(finding.TryGetProperty("requiredChange", out _));
+    }
+
+    [TestMethod]
+    [DataRow("missing")]
+    [DataRow("null")]
+    [DataRow("empty")]
+    [DataRow("whitespace")]
+    [DataRow("legacy")]
+    [DataRow("mixed")]
+    public void ReviewerProtocolRejectsMissingOutcomeAndLegacyChangeFields(string mutation)
+    {
+        var response = JsonSerializer.SerializeToNode(new ReviewerResponse(ReviewStatuses.Findings, [Finding("PUR-001")], null), JsonDefaults.Options)!;
+        var finding = response["findings"]![0]!.AsObject();
+        switch (mutation)
+        {
+            case "missing":
+                finding.Remove("requiredOutcome");
+                break;
+            case "null":
+                finding["requiredOutcome"] = null;
+                break;
+            case "empty":
+                finding["requiredOutcome"] = "";
+                break;
+            case "whitespace":
+                finding["requiredOutcome"] = "  ";
+                break;
+            case "legacy":
+                finding.Remove("requiredOutcome");
+                finding["requiredChange"] = "Add a check.";
+                break;
+            case "mixed":
+                finding["requiredChange"] = "Add a check.";
+                break;
+        }
+        var exception = Assert.ThrowsExactly<RunnerException>(() => ReviewProtocol.Parse(
+            "BEGIN_PURPOSE_REVIEW\n" + response.ToJsonString(JsonDefaults.Options) + "\nEND_PURPOSE_REVIEW"));
+
+        Assert.AreEqual("REVIEW_PARSE_FAILED", exception.Code);
+    }
+
+    [TestMethod]
+    public async Task ContinueRejectsProtocolTwoStateWithoutStartingAnotherReview()
+    {
+        using var fixture = new RunnerFixture("codex");
+        fixture.WriteRepositoryFile("goal.md", "goal");
+        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
+        var start = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
+        var store = new StateStore(fixture.Paths.StateRoot);
+        store.Save(store.Load(start.Output.RunId!) with { ProtocolVersion = 2 });
+
+        var exception = await Assert.ThrowsExactlyAsync<RunnerException>(() => fixture.Application.ExecuteAsync(
+            new ContinueCommand(start.Output.RunId!), CancellationToken.None));
+
+        Assert.AreEqual("STATE_INCOMPATIBLE", exception.Code);
+        Assert.HasCount(1, fixture.Process.Requests);
+    }
+
+    [TestMethod]
+    public async Task StatusRejectsProtocolTwoResultEvenWithoutFindings()
+    {
+        using var fixture = new RunnerFixture("codex");
+        fixture.WriteRepositoryFile("goal.md", "goal");
+        fixture.Process.Reviews.Enqueue(Review("COMPLETE"));
+        var start = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
+        var store = new JobStore(fixture.Paths.StateRoot);
+        var original = store.LoadResult(start.Output.RunId!);
+        store.SaveResult(start.Output.RunId!, original with { Output = original.Output with { ProtocolVersion = 2 } });
+
+        var exception = await Assert.ThrowsExactlyAsync<RunnerException>(() => fixture.Application.ExecuteAsync(
+            new StatusCommand(start.Output.RunId!), CancellationToken.None));
+
+        Assert.AreEqual("STATE_INCOMPATIBLE", exception.Code);
+        Assert.HasCount(1, fixture.Process.Requests);
+        using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(store.GetRunDirectory(start.Output.RunId!), "result.json")));
+        Assert.AreEqual(2, document.RootElement.GetProperty("output").GetProperty("protocolVersion").GetInt32());
     }
 
     [TestMethod]

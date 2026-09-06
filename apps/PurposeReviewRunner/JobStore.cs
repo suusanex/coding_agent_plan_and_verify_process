@@ -57,7 +57,16 @@ public sealed class JobStore
         }
         try
         {
-            var result = JsonSerializer.Deserialize<JobResult>(SharedStateFile.ReadAllText(path), JsonDefaults.Options)
+            using var document = JsonDocument.Parse(SharedStateFile.ReadAllText(path));
+            // findingの形式が異なる旧protocolの結果は、空findingの場合も新形式として返さない。
+            if (document.RootElement.ValueKind != JsonValueKind.Object ||
+                !document.RootElement.TryGetProperty("output", out var output) || output.ValueKind != JsonValueKind.Object ||
+                !output.TryGetProperty("protocolVersion", out var version) || version.ValueKind != JsonValueKind.Number ||
+                !version.TryGetInt32(out var protocolVersion) || protocolVersion != Protocol.Version)
+            {
+                throw new RunnerException("STATE_INCOMPATIBLE", "Job result protocol is incompatible.");
+            }
+            var result = document.Deserialize<JobResult>(JsonDefaults.Options)
                 ?? throw new JsonException("Result JSON was empty.");
             return result;
         }
