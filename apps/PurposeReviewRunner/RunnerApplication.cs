@@ -342,7 +342,10 @@ public sealed class RunnerApplication
             review = review with
             {
                 Status = ReviewStatuses.HumanDecisionRequired,
-                Message = "Actionable findings remain after the fixed maximum of three review rounds."
+                // 比較限界や指摘の訂正理由を、round上限の通知で失わないようにする。
+                Message = string.IsNullOrWhiteSpace(review.Message)
+                    ? "Actionable findings remain after the fixed maximum of three review rounds."
+                    : review.Message + "\nActionable findings remain after the fixed maximum of three review rounds."
             };
         }
         stateStore.Save(terminalState with { Status = review.Status });

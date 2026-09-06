@@ -1,32 +1,28 @@
 {
   "schemaVersion": 1,
   "package": "persistent-purpose-review",
-  "canonicalFingerprint": "56df277d058c7db2bc92ea0dd88686c25f1ba2b4fe81771e759246a784673d3e",
-  "distributionFingerprint": "87c06ae17f1d4d2f21c084e6b4fe6c565ebe23da6ac2c751988fa47c0291c733",
-  "candidateCommit": "0ff5900beb62d8c42226a5cad2779c56747d50c2",
+  "canonicalFingerprint": "9592c07cd9e876bdbbd1704458c871542cf19436c2fcbb9f185675db553bea7f",
+  "distributionFingerprint": "278f1f87def668e4c9e42bfec76db5128e65fe735d695f7606dd3da26217d5e9",
+  "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
-    "clientVersion": "1.0.80",
-    "apmVersion": "0.26.0"
+    "clientVersion": "NOT_RUN",
+    "apmVersion": "NOT_RUN"
   },
   "assessments": [
     {
       "distribution": "apm",
-      "status": "PASS",
-      "evidenceMode": "LIVE",
-      "reason": "The three-target APM projection passed and the independent Runner 0.2.2 completed a live Copilot durable FINDINGS-to-COMPLETE same-run flow.",
-      "evidenceRefs": [
-        "tests/agent-plugins/results/2026-08-23-runtime-qualification.md"
-      ]
+      "status": "NOT_RUN",
+      "evidenceMode": "NONE",
+      "reason": "Runner 0.2.3とSkill 0.3.1の組合せで実モデル評価は未実施。過去の0.2.2のLIVE結果を変更後のshell調査・目的逸脱検出の証拠として扱わない。",
+      "evidenceRefs": []
     },
     {
       "distribution": "agent-plugin-direct",
       "status": "HOLD",
-      "evidenceMode": "PARTIAL",
-      "reason": "Copilot discovered the portable Skill bundle, but the independently installed Runner is intentionally excluded and direct deployment cannot represent the complete runtime composition.",
-      "evidenceRefs": [
-        "tests/agent-plugins/results/2026-08-23-runtime-qualification.md"
-      ]
+      "evidenceMode": "NONE",
+      "reason": "独立したRunnerはpluginに含まれない。変更後のSkillと外部Runnerを組み合わせたdirect deploymentの実モデル評価は未実施。",
+      "evidenceRefs": []
     }
   ]
 }

@@ -6,7 +6,11 @@
 
 `Environment.SpecialFolder.ApplicationData`配下の`purpose-review-runner/config.json`を作成します。Windowsでは通常`%APPDATA%\purpose-review-runner\config.json`です。例は`config.example.json`を参照してください。
 
-設定可能なのは`provider`、`executable`、`model`、`reasoningEffort`、optional `profile`だけです。`provider`は`codex`、`grok`、`copilot`を選べます。same-session、non-modifying reviewer、最大3round、異常時停止は変更できません。filesystem sandboxによるread-only強制は要件ではありません。GrokとCopilotは副作用なくwrite/edit系toolを禁止できるため、その制約を使います。Codexには同等の安定したtool restrictionが無いので、promptの「ファイルを変更しないでください」契約だけでnon-modifying reviewerを成立させます。`--ignore-user-config`下のCodex default sandboxはread-onlyのため、別sandboxへの置換ではなく`--dangerously-bypass-approvals-and-sandbox`でsandbox自体を無効化します。この契約はRunner 0.1.1以上が必要です。長時間reviewをforeground commandの寿命から分離するasync job契約はRunner 0.2.0以上が必要です。Windowsのrestrictive Job Object配下でもworkerを独立起動するにはRunner 0.2.1以上が必要です。Copilot CLIへMarkdown attachmentではなくBOMなしUTF-8の標準入力でpromptを渡すにはRunner 0.2.2以上が必要です。reviewerへ送る自然言語instructionは日本語です。BEGIN_PURPOSE_REVIEWなどのmachine-readable contractは英語のままです。
+設定可能なのは`provider`、`executable`、`model`、`reasoningEffort`、optional `profile`だけです。`provider`は`codex`、`grok`、`copilot`を選べます。same-session、non-modifying reviewer、最大3round、異常時停止は変更できません。filesystem sandboxによるread-only強制は要件ではありません。reviewerはshellで`git diff`、`git log`、`git show`などの調査を行えます。source、tests、docs、Git状態、設定、外部サービスを変更しない役割契約はshell経由にも適用されます。shellからの変更を技術的に防止する保証ではありません。
+
+Grokは`--tools read,view,grep,shell`と`--permission-mode bypassPermissions`で調査用shellを利用できるようにし、write/edit系toolと委任は引き続き制限します。Copilotは`bash`・`powershell`とそのsession操作toolを公開し、`--allow-tool=shell`で実行を許可します。tool公開と実行許可は別の設定です。Codexは従来どおり`--dangerously-bypass-approvals-and-sandbox`とpromptの変更禁止契約を使います。独自の差分収集器やshell command判定器は追加せず、既存のprovider CLIとGitを利用します。設定の根拠は[Grokのpermission仕様](https://github.com/xai-org/grok-build/blob/main/crates/codegen/xai-grok-pager/docs/user-guide/22-permissions-and-safety.md)と[Copilotのtool仕様](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#tool-availability-values)です。
+
+shell調査と目的逸脱レビューにはRunner 0.2.3以上が必要です。既存のasync jobは0.2.0、Windowsのrestrictive Job Objectからの独立起動は0.2.1、CopilotへのBOMなしUTF-8標準入力prompt転送は0.2.2で導入しました。reviewerへ送る自然言語instructionは日本語、BEGIN_PURPOSE_REVIEWなどのmachine-readable contractは英語です。
 
 ## Usage
 
@@ -22,6 +26,16 @@ purpose-review-runner continue --run <run-id>
 stdoutはprotocol v2の単一JSONです。`FINDINGS`の場合だけ元のimplementation parentが修正・検証し、同じ`run-id`を`continue`します。`COMPLETE`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`、`ERROR`では停止します。`RUNNING`なら`status`を繰り返します。1回のCLI呼び出しが失敗しても、新しいrunを作らず同じ`status`を問い合わせ直します。
 
 `start`は1件以上のcontextを要求します。相対pathはrepository root基準で解決し、absolute pathも受理します。context本文をproviderへ渡すのはRound 1だけです。`continue`は保存済みsessionをresumeし、contextや前回outputを再送しません。
+
+## Review criteria and evidence
+
+contextは元の問題・期待成果、承認されたscope・採用判断、実装方針として区別します。ユーザーが明示したsourceや目的変更を優先し、計画の新しさだけで当初目的を上書きしません。毎round、利用経路での成果、表面的な充足、優先順位、non-goals、MVP境界、棄却案、周辺機構への偏りを評価します。変更量や設計の好みだけをfindingにせず、目的に必要な補助機構や承認済み手動工程を誤って問題にしません。
+
+reviewerはcontextで明示されたbaseを優先し、なければtaskとGit履歴から比較基準を特定します。確認したbaseのcommit ID、HEAD、未コミット変更の有無を同じsessionで保持し、初回baseからの累積差分と前回round後の変更を調査します。staged、unstaged、関連するuntracked fileも含み、workspaceの評価とPRへ含まれる変更の評価を区別します。前回の未コミット状態が残っていない場合、HEAD間のdiffを完全なround差分とみなしません。Gitや比較基準がない場合も調査可能な現在の実装を評価し、比較限界を報告します。review専用commit、stash、独自snapshotは作りません。
+
+前回指摘も再評価し、誤り・過剰要求を訂正または撤回します。`requiredChange`は必要な振る舞いと制約を示し、特定方式が必須なら根拠を付けます。削除・縮小・既存経路への統合も修正候補です。`message`には比較基準、目的判断の根拠、未検証事項と、解消・訂正・撤回したfinding IDと理由を記載します。parentの疑義が既存の作業記録にある場合も独立に調査します。結果schemaはprotocol v2のままで、過去出力の再送は不要です。
+
+`COMPLETE`はfindingがなく、今回のscopeの主要成果と否定条件を判断する十分な証拠がある場合に限ります。必要な証拠を取得できなければ`BLOCKED`、目的やscopeの選択が必要なら`HUMAN_DECISION_REQUIRED`です。承認済みの対象外事項や、判定を左右しない未検証事項を新しいblockerにはしません。
 
 output schema v2は`protocolVersion`、`runnerVersion`、`runId`、`round`、`jobStatus`、`status`、`terminal`、`findings`と、必要時の`message`または`error`で構成します。`jobStatus`は`RUNNING`、`SUCCEEDED`、`FAILED`です。実行中の`status`は`RUNNING`です。診断はstderrへ出し、stdoutへ別形式のtextを混在させません。exit codeは0がjob受付または有効なreview結果、1がprovider/process実行失敗、2が引数・config・state・protocol違反です。非0でもstdoutはstatus `ERROR`のschema v2です。
 
@@ -47,3 +61,5 @@ dotnet test tests/PurposeReviewRunner.Tests/PurposeReviewRunner.Tests.csproj --f
 GitHub ReleaseのarchiveをPATH上のuser-owned directoryへ展開し、configをOS userごとに一度作成します。APM SkillはRunner binaryを内包または自動導入しません。
 
 Codex CLIとGrok Build CLIはsemantic persistenceをfresh control付きで確認済みです。GitHub Copilot CLIはsession/resumeの成立を確認済みですが、fresh controlが正解を推測したため同じ強さのsemantic qualificationは与えていません。
+
+上記は過去のsession継続実験の証拠です。0.2.3のshell許可とレビュー依頼文による逸脱検出力を実測したことは意味しません。実モデルでの追加評価は[評価シナリオ](../../tests/PurposeReviewRunner.Tests/purpose-review-scenarios.md)を使い、結果をdeterministic testとは分けて記録します。

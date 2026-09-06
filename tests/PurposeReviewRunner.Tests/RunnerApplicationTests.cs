@@ -97,13 +97,16 @@ public sealed class RunnerApplicationTests
     }
 
     [TestMethod]
-    public async Task RoundThreeFindingsBecomeTerminalHumanDecisionRequired()
+    [DataRow(null)]
+    [DataRow("Compared base abc and HEAD def; prior uncommitted content is unavailable. PUR-002 was withdrawn.")]
+    public async Task RoundThreeFindingsBecomeTerminalHumanDecisionRequired(string? reviewMessage)
     {
         using var fixture = new RunnerFixture("grok");
         fixture.WriteRepositoryFile("goal.md", "goal");
         fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
         fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
-        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue("BEGIN_PURPOSE_REVIEW\n" + JsonSerializer.Serialize(
+            new ReviewerResponse(ReviewStatuses.Findings, [Finding("PUR-001")], reviewMessage), JsonDefaults.Options) + "\nEND_PURPOSE_REVIEW");
         var first = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
         await fixture.Application.ExecuteAsync(new ContinueCommand(first.Output.RunId!), CancellationToken.None);
         var third = await fixture.Application.ExecuteAsync(new ContinueCommand(first.Output.RunId!), CancellationToken.None);
@@ -112,6 +115,13 @@ public sealed class RunnerApplicationTests
         Assert.IsTrue(third.Output.Terminal);
         Assert.AreEqual(3, third.Output.Round);
         Assert.AreEqual(1, third.Output.Findings.Count);
+        StringAssert.Contains(third.Output.Message!, "maximum of three review rounds");
+        if (reviewMessage is not null)
+        {
+            StringAssert.Contains(third.Output.Message!, reviewMessage);
+        }
+        var stored = await fixture.Application.ExecuteAsync(new StatusCommand(first.Output.RunId!), CancellationToken.None);
+        Assert.AreEqual(third.Output.Message, stored.Output.Message);
         await Assert.ThrowsExactlyAsync<RunnerException>(
             () => fixture.Application.ExecuteAsync(new ContinueCommand(first.Output.RunId!), CancellationToken.None));
     }
@@ -131,9 +141,23 @@ public sealed class RunnerApplicationTests
         var startSession = startArguments.Single(value => value.StartsWith("--session-id=", StringComparison.Ordinal));
         var resumeSession = resumeArguments.Single(value => value.StartsWith("--resume=", StringComparison.Ordinal));
         Assert.AreEqual(startSession["--session-id=".Length..], resumeSession["--resume=".Length..]);
-        CollectionAssert.Contains(startArguments, "--available-tools=view,grep");
-        CollectionAssert.Contains(startArguments, "--deny-tool=write");
-        CollectionAssert.Contains(startArguments, "--deny-tool=shell");
+        foreach (var arguments in new[] { startArguments, resumeArguments })
+        {
+            var availableTools = arguments.Single(value => value.StartsWith("--available-tools=", StringComparison.Ordinal))
+                ["--available-tools=".Length..].Split(',');
+            foreach (var tool in new[] { "view", "grep", "bash", "powershell", "read_bash", "read_powershell", "list_bash", "list_powershell", "write_bash", "write_powershell", "stop_bash", "stop_powershell" })
+            {
+                CollectionAssert.Contains(availableTools, tool);
+            }
+            foreach (var tool in new[] { "create", "edit", "apply_patch", "task" })
+            {
+                CollectionAssert.DoesNotContain(availableTools, tool);
+            }
+            CollectionAssert.Contains(arguments, "--allow-tool=shell");
+            CollectionAssert.DoesNotContain(arguments, "--deny-tool=shell");
+            CollectionAssert.Contains(arguments, "--deny-tool=write");
+            CollectionAssert.Contains(arguments, "--deny-tool=task");
+        }
         CollectionAssert.Contains(startArguments, "--disable-builtin-mcps");
         CollectionAssert.DoesNotContain(startArguments, "--attachment");
         CollectionAssert.DoesNotContain(startArguments, "-p");
@@ -167,10 +191,20 @@ public sealed class RunnerApplicationTests
         CollectionAssert.DoesNotContain(startArguments, "read-only");
         CollectionAssert.DoesNotContain(resumeArguments, "--sandbox");
         CollectionAssert.DoesNotContain(resumeArguments, "read-only");
-        CollectionAssert.Contains(startArguments, "--tools");
-        CollectionAssert.Contains(startArguments, "read,view,grep");
-        CollectionAssert.Contains(startArguments, "--disallowed-tools");
-        CollectionAssert.Contains(startArguments, "write,shell,task,edit_file,run_shell_command");
+        foreach (var arguments in new[] { startArguments, resumeArguments })
+        {
+            Assert.AreEqual("bypassPermissions", arguments[Array.IndexOf(arguments, "--permission-mode") + 1]);
+            var availableTools = arguments[Array.IndexOf(arguments, "--tools") + 1].Split(',');
+            var deniedTools = arguments[Array.IndexOf(arguments, "--disallowed-tools") + 1].Split(',');
+            CollectionAssert.Contains(availableTools, "shell");
+            CollectionAssert.DoesNotContain(deniedTools, "shell");
+            CollectionAssert.DoesNotContain(deniedTools, "run_shell_command");
+            foreach (var tool in new[] { "write", "task", "edit_file" })
+            {
+                CollectionAssert.Contains(deniedTools, tool);
+                CollectionAssert.DoesNotContain(availableTools, tool);
+            }
+        }
         CollectionAssert.Contains(startArguments, "--no-memory");
         CollectionAssert.Contains(startArguments, "--no-subagents");
         CollectionAssert.Contains(startArguments, "--disable-web-search");

@@ -1,5 +1,5 @@
 name: persistent-purpose-review
-version: 0.3.0
+version: 0.3.1
 description: Same-session purpose review and parent-owned remediation through an independently installed CLI Runner
 type: hybrid
 targets:
