@@ -2,6 +2,43 @@
 
 `purpose-review-runner`は、同じpurpose reviewer sessionを最大3roundまで維持する.NET 10 CLIです。reviewerの目的判断と、provider CLIのsession lifecycleを分離します。
 
+## Install / Update
+
+通常利用者の配布経路は GitHub Release とする。現在の version に対応する Release の asset を取得し、archive の内容を PATH 上の user-owned directory へ展開する。
+
+- Windows: `purpose-review-runner-win-x64.zip`
+- Linux: `purpose-review-runner-linux-x64.tar.gz`
+
+展開したディレクトリを PATH に追加し、実行ファイルを `purpose-review-runner` として呼び出せる状態にする。install path は既存の PATH 上の user-owned directory 方針に従い、環境固有の canonical path は定めない。
+
+初回だけ、Release に同梱される `config.example.json` を参照して user-level config を作成する。設定ファイルは Runner binary の配置先とは別に管理する。`Environment.SpecialFolder.ApplicationData` 配下の `purpose-review-runner/config.json` を使用し、Windows では通常 `%APPDATA%\purpose-review-runner\config.json` となる。state も binary の配置先とは別の user-level location（`Environment.SpecialFolder.LocalApplicationData` 配下）に保存される。
+
+更新時は、同じ install directory に新しい version の Release archive を展開して、既存の Runner files を置き換える。通常の binary update では既存の config/state を作り直したり移行したりしない。更新後は次で version と protocol を確認する。
+
+```powershell
+purpose-review-runner version
+```
+
+## Release / Maintainer
+
+Runner version の正本は `apps/PurposeReviewRunner/Contracts.cs` の `Protocol.RunnerVersion` と `apps/PurposeReviewRunner/PurposeReviewRunner.csproj` の `<Version>` である。両者を確認し、既存の tag contract に従って `purpose-review-runner-v<runner-version>` tag を作成して push する。例えば version が `0.3.0` なら次の tag となる。
+
+```powershell
+git tag purpose-review-runner-v0.3.0
+git push origin purpose-review-runner-v0.3.0
+```
+
+`purpose-review-runner-v*` tag push で `.github/workflows/release-purpose-review-runner.yml` が起動する。workflow は test、Windows `win-x64` / Linux `linux-x64` の self-contained publish、tag と Runner version の整合確認、sample config の同梱、archive、checksum、GitHub Release 作成まで担当する。tag と Runner version が一致しない場合は検証で失敗し、Release は作成されない。
+
+Release には次の asset が生成される。
+
+- `purpose-review-runner-win-x64.zip`
+- `purpose-review-runner-linux-x64.tar.gz`
+- `config.example.json`
+- `SHA256SUMS`
+
+同じ version の tag または Release が既に存在する場合は、重複発行せず既存の状態を調査する。
+
 ## Configuration
 
 `Environment.SpecialFolder.ApplicationData`配下の`purpose-review-runner/config.json`を作成します。Windowsでは通常`%APPDATA%\purpose-review-runner\config.json`です。例は`config.example.json`を参照してください。
@@ -45,7 +82,9 @@ stateは`Environment.SpecialFolder.LocalApplicationData`配下の`purpose-review
 
 各runのtranscriptは同じ`LocalApplicationData`のrun directory配下にある`transcript/round-01-prompt.md`、`round-01-response.md`のようなround別ファイルへ保存します。promptとreviewer responseは全文をローカル保存するため、purpose contextやrepository由来の情報を含み得ます。実装対象repositoryには生成されず、`LocalApplicationData`のrun directory内だけに保存されます。これはRunnerが生成してprovider adapterへ渡したreview payloadと、reviewer response本文の監査用であり、provider内部のsystem promptやnetwork payloadを記録するものではありません。
 
-## Build and publish
+## Build locally
+
+以下は開発・検証用、または Release 前のローカル build／unreleased build の手動検証用である。通常利用者が `dotnet publish` の成果物を手動配布する用途ではなく、通常利用には上記の GitHub Release archive を使用する。
 
 ```powershell
 dotnet test tests/PurposeReviewRunner.Tests/PurposeReviewRunner.Tests.csproj
