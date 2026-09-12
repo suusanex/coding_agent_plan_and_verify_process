@@ -11,7 +11,6 @@
 | `apps/PurposeReviewRunner` | OS user単位のconfigでpurpose reviewerを起動し、同じsessionを最大3roundまで維持する。長時間reviewはworkerへ分離し、`status`で結果を取得する | versioned Runner binary、user-level config、minimal run/job state |
 | `apm-packages/persistent-purpose-review` | 元のimplementation parentへcontext選択、修正、同一runの再reviewを教える | repository-local `$persistent-purpose-review` Skill |
 | `apm-packages/*/codex-profile-overlays.json` | owning packageごとのprofile推奨値を宣言する | agent、model、reasoning、sandbox |
-| Goal Context validators | Goal Context authoring packageやfree-form文書を確認する | readability、package structure、APM install smoke |
 | `scripts/validate-architecture-slice-readiness.ps1` | architecture readinessのagents、manifest、templates、routingを確認する | ASR contractとfixture evidence |
 
 ## Safe local installation pattern
@@ -77,6 +76,8 @@ repository rootから、変更したownership surfaceに対応するcheckを実�
 | Agent Plugin package matrix | package-local Agent Plugin input | 変更packageのbundle、provenance、qualification record | 他packageの同一検査 |
 | Repository Layout workflow | 全pull request | source rootにruntime projectionが存在しないこと | package semantics |
 
+Goal Context Authoringはgeneration promptを中心資産とし、package固有のvalidatorやsemantic regression testを持ちません。promptや生成結果の意味品質は、このvalidation matrixの対象には含めません。
+
 cross-package compatibilityと変更scopeはBCLだけのFile-based Appで検証します。
 
 ```powershell
@@ -93,13 +94,6 @@ GitHub Actionsにはjob単位のpath filterがないため、このアプリが`
 ./apm-packages/completion-notification-decorator/scripts/validate-completion-notification-decorator-contract.ps1
 ./apm-packages/completion-notification-decorator/scripts/validate-completion-notification-decorator.ps1
 ./apm-packages/completion-notification-decorator/scripts/test-apm-package-install.ps1
-```
-
-### Goal Context Authoring
-
-```powershell
-./apm-packages/goal-context-authoring/scripts/validate-goal-context-authoring.ps1
-./apm-packages/goal-context-authoring/scripts/test-apm-package-install.ps1
 ```
 
 ### Adaptive Implementation and Design Pair
