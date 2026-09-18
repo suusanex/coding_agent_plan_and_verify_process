@@ -12,11 +12,11 @@ GitHub Copilot / CodexでPlan-first開発を行うためのAPM processes、agent
 - bounded Planから実装、検証、残件判断までのcoverageを維持する。
 - Goal Context作成や、Codex完了eventの保存・閲覧を補助する。
 
-APM process packageは基本的に利用するwork repositoryごとに導入します。Notification RuntimeはPCのuser-level設定、Codex Local InboxはWindows applicationであり、導入scopeが異なります。
+APM process packageは基本的に利用するwork repositoryごとに導入します。Persistent Purpose Review Skillは実行環境へ`--global`、Notification RuntimeはPCのuser-level設定、Codex Local InboxはWindows applicationであり、導入scopeが異なります。
 
 ## Quickstart: 目的から選ぶ
 
-以下の`apm install`は、導入先repositoryのrootで実行します。`$moduleRoot`はAPMが作る導入済みmoduleを指します。
+以下の`apm install`は、特に断らない限り導入先repositoryのrootで実行します。`$moduleRoot`はAPMが作る導入済みmoduleを指します。
 
 ### 実装を改善したい
 
@@ -53,13 +53,13 @@ $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
 dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
 ```
 
-実装後の目的達成reviewと修正を元のimplementation parent内で完了したい場合は、[Persistent Purpose Review](apm-packages/persistent-purpose-review/README.md)を使います。Skillは実装担当エージェントにレビュー工程を教え、独立reviewerの起動はOS user単位の[Purpose Review Runner](apps/PurposeReviewRunner/README.md)が担当します。順序は「RunnerをPCへ一度導入 → 対象repositoryへSkill導入」です。Runner未導入のまま`apm install`だけしてもreviewは始まりません。
+実装後の目的達成reviewと修正を元のimplementation parent内で完了したい場合は、[Persistent Purpose Review](apm-packages/persistent-purpose-review/README.md)を使います。Skillは実装担当エージェントにレビュー工程を教え、独立reviewerの起動はOS user単位の[Purpose Review Runner](apps/PurposeReviewRunner/README.md)が担当します。順序は「RunnerをPCへ一度導入 → 実行環境へSkillを`--global`で導入」です。Runner未導入のまま`apm install`だけしてもreviewは始まりません。
 
 1. [Purpose Review Runner](apps/PurposeReviewRunner/README.md)のInstallとconfigを完了します。[最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)からWindowsは`purpose-review-runner-win-x64.zip`、Linuxは`purpose-review-runner-linux-x64.tar.gz`を取得します。
-2. 対象repositoryへSkillを導入し、Runnerを確認します。
+2. 実行環境へSkillを導入し、Runnerを確認します。紹介するのはこの方式です。ほかのオプションは[APMの資料](https://microsoft.github.io/apm/reference/cli/install/)を参照してください。
 
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persistent-purpose-review --target copilot,codex,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persistent-purpose-review --target agent-skills --global
 purpose-review-runner version
 ```
 
@@ -93,7 +93,7 @@ APM installがportable agentsとSkillを導入し、finalizerが必要なCodex p
 
 ## 通常使うprocessを一通り入れる
 
-通常セットはAdaptive Implementation、Design Pair、PR Review Remediation、Plan Coverageです。Persistent Purpose Reviewはpurpose reviewが必要なrepositoryへ追加します。その場合は先に[Purpose Review Runner](apps/PurposeReviewRunner/README.md)をOS user単位で一度導入し、その後にrepositoryへSkillを入れます。Plan CoverageがAdaptiveと共通finalizerをdependencyとして導入するため、全部入りではAdaptive packageやfinalizer packageを重ねてinstallしません。
+通常セットはAdaptive Implementation、Design Pair、PR Review Remediation、Plan Coverageです。Persistent Purpose Reviewはpurpose reviewが必要な実行環境へ追加します。その場合は先に[Purpose Review Runner](apps/PurposeReviewRunner/README.md)をOS user単位で一度導入し、その後にSkillを`--global`で入れます。Plan CoverageがAdaptiveと共通finalizerをdependencyとして導入するため、全部入りではAdaptive packageやfinalizer packageを重ねてinstallしません。
 
 1. 導入先repositoryのrootでPlan Coverageをinstallします。
 
@@ -106,12 +106,11 @@ APM installがportable agentsとSkillを導入し、finalizerが必要なCodex p
    ```powershell
    apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target copilot,codex,agent-skills
    apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target copilot,codex,agent-skills
-   apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persistent-purpose-review --target copilot,codex,agent-skills
    $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
    dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
    ```
 
-   Persistent Purpose Reviewを含める場合、この`apm install`の前に[Purpose Review Runner](apps/PurposeReviewRunner/README.md)のInstallとconfigを完了しておきます。Skill導入後に`purpose-review-runner version`で確認します。
+   Persistent Purpose Reviewを含める場合、このrepository向けinstallとは別に、[Persistent Purpose Review](apm-packages/persistent-purpose-review/README.md)の手順でRunnerとSkillを実行環境へ導入します。
 
 各用途のQuickstartを個別に実行する場合も、APMの導入結果を確認してからfinalizerを実行します。異なる明示済みprofileを更新する場合だけ、保守文書の手順に従って`--force`を使います。
 

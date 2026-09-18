@@ -48,7 +48,7 @@ if ($skill -notmatch '同じreviewer session' -or $skill -notmatch 'automatic ro
 if ($skill -match 'codex exec|grok --|copilot -|--session-id|--resume|--sandbox|--model|reasoning-effort') {
     throw 'Skill duplicates provider or session protocol details owned by the Runner.'
 }
-if ($readme -notmatch 'OS userごとに一度' -or $readme -notmatch 'work repositoryごと' -or $readme -notmatch '\$pr-review-remediation') {
+if ($readme -notmatch 'OS userごとに一度' -or $readme -notmatch '--target agent-skills --global' -or $readme -notmatch '\$pr-review-remediation') {
     throw 'Package README does not preserve the three installation and ownership boundaries.'
 }
 if ($readme -match 'sandbox' -or $skill -match 'sandbox') {

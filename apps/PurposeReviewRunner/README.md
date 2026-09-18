@@ -159,7 +159,7 @@ Copilot:
 | 対象 | 手順 |
 | --- | --- |
 | Runner | [最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)のarchiveを、同じinstall directoryへ展開して既存ファイルを置き換える |
-| Skill | 対象repositoryで`apm update` |
+| Skill | 実行環境のuser-scopeで更新する。手順は[Persistent Purpose Review README](../../apm-packages/persistent-purpose-review/README.md)と[APMの資料](https://microsoft.github.io/apm/reference/cli/install/)を参照 |
 | config / state | 通常はそのまま。作り直したり移行したりしない |
 
 更新後は`purpose-review-runner version`でprotocolとversionを確認します。protocol移行などの特殊ケースは[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
