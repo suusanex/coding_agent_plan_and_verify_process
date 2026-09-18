@@ -12,6 +12,9 @@ on:
       - '.github/workflows/release-purpose-review-runner.yml'
       - 'README.md'
       - 'docs/installation-and-maintenance.md'
+      - 'docs/purpose-review-runner-technical-reference.md'
+      - 'docs/purpose-review-runner-maintenance.md'
+      - 'docs/purpose-review-runner-compatibility.md'
   push:
     branches:
       - main
@@ -25,6 +28,9 @@ on:
       - '.github/workflows/release-purpose-review-runner.yml'
       - 'README.md'
       - 'docs/installation-and-maintenance.md'
+      - 'docs/purpose-review-runner-technical-reference.md'
+      - 'docs/purpose-review-runner-maintenance.md'
+      - 'docs/purpose-review-runner-compatibility.md'
 
 permissions:
   contents: read

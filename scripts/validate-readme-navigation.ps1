@@ -40,6 +40,14 @@ Require 'apm-packages/plan-coverage-residual-flow/README.md' 'apm install .*plan
 Require 'apm-packages/adaptive-implementation-execution/README.md' 'codex-profile-overlays\.json' 'Adaptive overlay contract'
 Require 'apm-packages/pr-review-remediation/README.md' 'finalize-codex-agent-profiles\.cs' 'PR Review finalizer command'
 Require 'apm-packages/persistent-purpose-review/README.md' 'purpose-review-runner version' 'Persistent Purpose Review Runner preflight'
+Require 'apm-packages/persistent-purpose-review/README.md' '実装完了後は \$persistent-purpose-review' 'Persistent Purpose Review usage instruction'
+Require 'apps/PurposeReviewRunner/README.md' 'releases/latest' 'Runner latest release link'
+Require 'apps/PurposeReviewRunner/README.md' 'docs/purpose-review-runner-technical-reference\.md' 'Runner technical reference link'
+Require 'apps/PurposeReviewRunner/README.md' 'docs/purpose-review-runner-maintenance\.md' 'Runner maintainer reference link'
+Require 'apps/PurposeReviewRunner/README.md' 'docs/purpose-review-runner-compatibility\.md' 'Runner compatibility link'
+Require 'docs/purpose-review-runner-technical-reference.md' 'protocolVersion' 'Runner protocol reference'
+Require 'docs/purpose-review-runner-maintenance.md' 'purpose-review-runner-v' 'Runner release tag contract'
+Require 'docs/purpose-review-runner-compatibility.md' '0\.3\.0' 'Runner compatibility version gate'
 
 foreach ($path in @(
     'README.md',
