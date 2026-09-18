@@ -1,65 +1,129 @@
 # Persistent Purpose Review
 
-`$persistent-purpose-review`は、元のimplementation parentが独立purpose reviewerのfindingを自分で修正し、同じreviewer sessionへ再reviewを依頼するAPM Skillです。session lifecycleは別配布の`purpose-review-runner`が決定的に管理します。
+`$persistent-purpose-review`は、実装が仕様やGoal Contextの目的を満たしたかを独立reviewerに確認させ、findingがあれば元の実装エージェントが直して同じreviewerに再確認させるAPM Skillです。
 
-## Ownership boundary
+向いているのは、仕様・Goal Context・承認済み判断に対して「本当に目的を満たしたか」を実装完了後に確認したいときです。baseline PR code reviewの代替ではなく、最初から明確なpurpose contextがない仕事にも向きません。詳細は[何に向いているか](#何に向いているか)を参照してください。
 
-| Component | Installation scope | Responsibility |
-| --- | --- | --- |
-| `purpose-review-runner` | 開発PCのOS userごとに一度 | provider CLI起動、same-session、non-modifying reviewer、最大3round、state、machine-readable result |
-| `$persistent-purpose-review` | 利用するwork repositoryごと | purpose context選択、parent-owned remediation、terminal reporting |
-| `$pr-review-remediation` | baseline PR reviewが必要なrepositoryごと | Goal Contextを使わないPR review plan作成 |
+Skillは実装担当エージェントにレビュー工程を教えます。独立reviewerの起動と同一sessionの維持は、PCへ一度だけ入れるローカルCLI [Purpose Review Runner](../../apps/PurposeReviewRunner/README.md)が担当します。両方必要です。RunnerはOS userごとに一度、Skillはwork repositoryごとです。
 
-SkillはRunner binaryを内包、複製、自動download、installしません。このSkillは`purpose-review-runner` 0.3.0以上とprotocol v3を要求します。0.3.0ではfindingの必須項目を`requiredChange`から`requiredOutcome`へ変更しました。reviewerは必要成果を示し、具体的な修正設計はparentが所有します。0.2.3で導入したshell調査と目的逸脱レビューは維持します。Runner未導入、0.3.0未満、またはprotocol非互換ならfail closedで停止します。
+通常はRunnerの`start` / `status` / `continue`を手で呼ぶ必要はありません。実装エージェントがこのSkillに従い、Runnerを呼び出します。
 
-## Install
+## 前提条件
 
-先に[Purpose Review Runner](../../apps/PurposeReviewRunner/README.md)のversioned GitHub ReleaseをOS user単位で導入し、configを作成します。その後、対象repository rootでSkillを導入します。
+Quickstartの前に次を満たしてください。満たさないままconfigだけ書くと、provider CLIが見つからずそこで止まります。
+
+- [APM CLI](https://github.com/microsoft/apm)が使えること
+- reviewerとして使うprovider CLIが導入済みで、そのCLI自身の認証が済んでいること。選べるのはCodex / Grok / Copilotです。RunnerはAPI keyやOAuthを代行しません
+- Runnerの対応OSがWindows x64またはLinux x64であること
+- Skillを実行する実装側エージェントがCodex、Copilot、またはAgent Skills経由であること
+
+このSkillは`purpose-review-runner` 0.3.0以上とprotocol v3を要求します。未導入や非互換ならfail closedで停止します。過去runの継続が必要な場合は[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
+
+## 5分Quickstart
+
+上から順に実行すると、初回のpurpose reviewまで到達できます。Runnerの展開・configの詳細、他provider例、トラブル時は[Purpose Review Runner README](../../apps/PurposeReviewRunner/README.md)が正本です。
+
+### 1. Runnerを導入する
+
+1. [最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)から、Windowsは`purpose-review-runner-win-x64.zip`、Linuxは`purpose-review-runner-linux-x64.tar.gz`を取得します。
+2. [Purpose Review Runner README の Install](../../apps/PurposeReviewRunner/README.md#install)を、ダウンロードしたdirectoryで上から実行します。展開、PATH追加、configコピーと編集、`version`確認まで同じ例につながっています。configはbinaryの隣には置きません。
+3. Codexを使う場合、コピーされる内容は次の現行例です。Grok / Copilot ならRunner READMEの構文例に置き換えます。
+
+```json
+{
+  "schemaVersion": 1,
+  "provider": "codex",
+  "executable": "codex",
+  "model": "gpt-5.6-terra",
+  "reasoningEffort": "high",
+  "profile": null
+}
+```
+
+### 2. Skillを導入する
+
+対象repositoryのrootで実行します。
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persistent-purpose-review --target copilot,codex,agent-skills
 purpose-review-runner version
 ```
 
-### Reviewer configuration
+`version`が単一JSONを返し、`protocolVersion`が`3`、`runnerVersion`が`0.3.0`以上であることを確認します。
 
-`$persistent-purpose-review`はreviewerのprovider、model、reasoning effortを選択しません。これらはOS user単位の`purpose-review-runner` configで指定します。Windowsでは通常`%APPDATA%\purpose-review-runner\config.json`です。configの`provider`、`model`、`reasoningEffort`と、必要に応じて`executable`、optional `profile`を設定します。利用可能なproviderと設定例は[Purpose Review Runner](../../apps/PurposeReviewRunner/README.md)とその`config.example.json`を参照してください。
+### 3. 実装エージェントへ指示する
 
-`start`にはreview単位の`--model`や`--effort` overrideはありません。Runnerは`start`時のprovider設定をrun stateへsnapshotするため、その後にuser-level configを変更しても既存runへは反映されません。同じ`runId`で`continue`する再reviewは、同じreviewer sessionと同じprovider/model/reasoning effortで継続します。
-
-## Use
-
-通常の実装指示へ次を加えます。
+通常の実装指示へ次を加えます。これが主経路です。あとはimplementation parentがRunnerを呼び、findingがあれば直し、同じreviewerに再確認します。
 
 ```text
 実装完了後は $persistent-purpose-review に従ってpurpose reviewを完了してください。
 ```
 
-Goal Contextやaccepted decision documentが会話で明示済みなら、そのpathも指定できます。補完関係にある複数文書はすべてcontextとして渡せます。現在のsourceが競合する場合だけ、parentがreview開始前に質問します。
+purpose contextがある場合はpathも渡します。補完関係にある複数文書はすべて指定できます。
 
-contextは元の問題・期待成果、承認されたscope・採用判断、実装方針を区別して選びます。新しい計画であることだけを理由に当初目的を置き換えません。明示されたbaseやPRがある場合はcontext内に比較対象を記載しますが、PRやレビュー専用commitの作成は不要です。
+```text
+実装完了後は $persistent-purpose-review に従ってpurpose reviewを完了してください。
+purpose contextは docs/goal-context.md です。
+```
 
-reviewerはshellでGit差分・履歴と現在の実装を調査し、目的の未達成、表面的な充足、周辺機構への偏り、修正による逸脱を毎round評価します。前回指摘も訂正・撤回の対象です。parentは指摘された方式へ無条件に追従せず、目的に必要な振る舞いと制約に照合して修正します。削除・縮小も修正候補です。変更禁止はshell経由にも適用する役割契約です。
+```text
+実装完了後は $persistent-purpose-review に従ってpurpose reviewを完了してください。
+purpose contextは plans/accepted-plan.md と docs/accepted-decisions.md です。
+```
 
-`requiredOutcome`は目的達成のために成立すべき状態・振る舞い・制約を示します。例えば「ユーザーが確定した構成が下流生成のauthorityとなり、LLMの生成outlineに上書きされないこと」で十分です。関数単位の修正指示は不要であり、複数componentにまたがる責務・authorityの逆転もfindingとして扱います。実装方式が未確定という理由だけでは却下しません。
+明示されたbaseやPRがある場合はcontext内に比較対象を記載します。PRやレビュー専用commitの作成は不要です。現在のsourceが競合する場合だけ、parentがreview開始前に質問します。
 
-`start`と`continue`は短時間でjobを登録するだけです。結果は同じ`runId`の`status`をpollingして取得します。`FINDINGS`では元のparentだけが修正とvalidationを行い、同じ`runId`で`continue`します。`COMPLETE`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`、`ERROR`で終了します。polling中のCLI失敗では`status`だけをやり直します。
+### 4. 成功時の見え方
 
-## Update and remove
+```text
+実装完了
+  → Skillがreviewを開始する
+  → FINDINGSがあれば元の実装エージェントが修正し、同じreviewerへ再reviewする
+  → COMPLETEなら成功
+```
+
+最大3roundです。なお残る場合は`HUMAN_DECISION_REQUIRED`で止まり、人手の判断が必要です。JSON schemaを先に読む必要はありません。
+
+reviewerはnon-modifying reviewerです。変更禁止を指示しますが、OS-levelのread-only isolationではありません。修正は元のimplementation parentだけが行います。
+
+## 何に向いているか
+
+- 向いている: 仕様・Goal Context・承認済み判断に対して、実装が利用経路で目的を満たしたか確認したい。
+- 向いている: 同じreviewerが修正後も再確認し、表面的な充足や修正による逸脱も見たい。
+- 向いていない: Ready PRのbaseline code reviewの代替。[`$pr-review-remediation`](../pr-review-remediation/README.md)を使います。
+- 向いていない: 最初から明確なpurpose contextが存在しない仕事。
+
+## 更新
+
+| 対象 | 手順 |
+| --- | --- |
+| Skill | 対象repositoryで`apm update` |
+| Runner | [最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)のarchiveを差し替える |
+| config / state | 通常はそのまま |
+
+`apm update`だけではRunner binary、user-level config、既存run stateは変わりません。Runner 0.3.0以上への更新はGitHub Release側で別に行います。protocol移行などの特殊ケースは[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
 
 ```powershell
 apm update
+```
+
+## 削除
+
+Skillが不要になったときだけ実行します。上の更新手順ではありません。Runner binary、user-level config、既存run stateは削除しません。
+
+```powershell
 apm uninstall persistent-purpose-review
 ```
 
-APM packageの更新・削除はRunner binary、user-level config、既存run stateを変更しません。`apm update`だけではRunnerの結果形式やレビュー依頼文は更新されません。Runner 0.3.0以上への更新はGitHub Release側で別に行います。v2のrunは開始時のRunnerで完了させ、更新後の新しい作業からv3を利用します。旧findingの自動変換、進行中runの移行、移行のためのsession再作成は行いません。
+## 関連文書
 
-## Validation
-
-```powershell
-pwsh -NoProfile -File apm-packages/persistent-purpose-review/scripts/validate-persistent-purpose-review.ps1
-pwsh -NoProfile -File apm-packages/persistent-purpose-review/scripts/test-apm-package-install.ps1
-```
+| 文書 | 役割 |
+| --- | --- |
+| このREADME | 利用者の入口とSkillの利用方法 |
+| [Purpose Review Runner README](../../apps/PurposeReviewRunner/README.md) | Runnerのインストール、設定、update、troubleshooting |
+| [Technical reference](../../docs/purpose-review-runner-technical-reference.md) | protocol、state、worker、provider adapter |
+| [Compatibility](../../docs/purpose-review-runner-compatibility.md) | version履歴とv2/v3非互換 |
+| [Maintainer reference](../../docs/purpose-review-runner-maintenance.md) | build、release、validation |
 
 ## Agent Plugin artifact
 

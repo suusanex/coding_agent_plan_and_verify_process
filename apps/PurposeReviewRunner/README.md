@@ -1,106 +1,199 @@
 # Purpose Review Runner
 
-`purpose-review-runner`は、同じpurpose reviewer sessionを最大3roundまで維持する.NET 10 CLIです。reviewerの目的判断と、provider CLIのsession lifecycleを分離します。
+`purpose-review-runner`は、独立したpurpose reviewerを起動し、同じreviewer sessionを最大3roundまで維持するローカルCLIです。実装担当エージェントへレビュー工程を教えるのは[`$persistent-purpose-review`](../../apm-packages/persistent-purpose-review/README.md)です。両方必要です。RunnerはPCへOS userごとに一度導入します。
 
-## Install / Update
+通常はRunnerコマンドを手で呼ぶ必要はありません。主経路はSkillが`start` / `status` / `continue`を扱います。このREADMEはインストール、設定、更新、troubleshootingの正本です。手動CLIは[Advanced usage](#advanced-usage)にあります。
 
-通常利用者の配布経路は GitHub Release とする。現在の version に対応する Release の asset を取得し、archive の内容を PATH 上の user-owned directory へ展開する。
+このRunnerは0.3.0以上が必要です。過去runの継続は[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
 
-- Windows: `purpose-review-runner-win-x64.zip`
-- Linux: `purpose-review-runner-linux-x64.tar.gz`
+## Install
 
-展開したディレクトリを PATH に追加し、実行ファイルを `purpose-review-runner` として呼び出せる状態にする。install path は既存の PATH 上の user-owned directory 方針に従い、環境固有の canonical path は定めない。
+配布の正本は[GitHub Releases](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases)です。通常は[最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)を使います。現在の最新は[purpose-review-runner-v0.3.0](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/tag/purpose-review-runner-v0.3.0)です。
 
-初回だけ、Release に同梱される `config.example.json` を参照して user-level config を作成する。設定ファイルは Runner binary の配置先とは別に管理する。`Environment.SpecialFolder.ApplicationData` 配下の `purpose-review-runner/config.json` を使用し、Windows では通常 `%APPDATA%\purpose-review-runner\config.json` となる。state も binary の配置先とは別の user-level location（`Environment.SpecialFolder.LocalApplicationData` 配下）に保存される。
+| OS | asset |
+| --- | --- |
+| Windows x64 | [purpose-review-runner-win-x64.zip](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest/download/purpose-review-runner-win-x64.zip) |
+| Linux x64 | [purpose-review-runner-linux-x64.tar.gz](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest/download/purpose-review-runner-linux-x64.tar.gz) |
 
-更新時は、同じ install directory に新しい version の Release archive を展開して、既存の Runner files を置き換える。通常の binary update では既存の config/state を作り直したり移行したりしない。更新後は次で version と protocol を確認する。
+install pathの正本は定めません。次の例は、展開・PATH追加・config作成・確認までを同じ変数でつなぎます。別のdirectoryを使う場合は`$installDir` / `$install_dir`だけ置き換えてください。
+
+archiveには実行ファイルと[config.example.json](config.example.json)が含まれます。**configはRunner binaryの隣には置きません。** 展開先のexampleをuser-levelの設定ディレクトリへコピーします。
+
+assetをダウンロードしたdirectoryで、次を実行します。
+
+### Windows
 
 ```powershell
+$installDir = Join-Path $env:LOCALAPPDATA 'Programs\purpose-review-runner'
+New-Item -ItemType Directory -Force -Path $installDir | Out-Null
+Expand-Archive -Force .\purpose-review-runner-win-x64.zip -DestinationPath $installDir
+
+$userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+if ([string]::IsNullOrEmpty($userPath)) { $userPath = '' }
+if (($userPath -split ';') -notcontains $installDir) {
+    $updatedPath = @($userPath, $installDir) | Where-Object { $_ }
+    [Environment]::SetEnvironmentVariable('Path', ($updatedPath -join ';'), 'User')
+}
+$env:Path = "$installDir;$env:Path"
+
+$configDir = Join-Path $env:APPDATA 'purpose-review-runner'
+$configPath = Join-Path $configDir 'config.json'
+New-Item -ItemType Directory -Force -Path $configDir | Out-Null
+Copy-Item (Join-Path $installDir 'config.example.json') $configPath
+
+# Codexの現行例を使うなら、開いた内容を保存するだけでよい。Grok / Copilot なら下の構文例に置き換える。
+notepad $configPath
+
 purpose-review-runner version
 ```
 
-## Release / Maintainer
+新しいPowerShellを開いても`purpose-review-runner`が見つからない場合は、一度サインアウトするか、同じ`$installDir`をUser PATHへ追加したことを確認します。
 
-Runner version の正本は `apps/PurposeReviewRunner/Contracts.cs` の `Protocol.RunnerVersion` と `apps/PurposeReviewRunner/PurposeReviewRunner.csproj` の `<Version>` である。両者を確認し、既存の tag contract に従って `purpose-review-runner-v<runner-version>` tag を作成して push する。例えば version が `0.3.0` なら次の tag となる。
+### Linux
 
-```powershell
-git tag purpose-review-runner-v0.3.0
-git push origin purpose-review-runner-v0.3.0
+```bash
+install_dir="$HOME/.local/bin/purpose-review-runner"
+mkdir -p "$install_dir"
+tar -xzf purpose-review-runner-linux-x64.tar.gz -C "$install_dir"
+
+export PATH="$install_dir:$PATH"
+# 以降のshellでも使う場合は、次の1行を ~/.profile または ~/.bashrc へ追加する
+# export PATH="$HOME/.local/bin/purpose-review-runner:$PATH"
+
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/purpose-review-runner"
+mkdir -p "$config_dir"
+cp "$install_dir/config.example.json" "$config_dir/config.json"
+
+# Codexの現行例を使うなら、開いた内容を保存するだけでよい。Grok / Copilot なら下の構文例に置き換える。
+${EDITOR:-nano} "$config_dir/config.json"
+
+purpose-review-runner version
 ```
 
-`purpose-review-runner-v*` tag push で `.github/workflows/release-purpose-review-runner.yml` が起動する。workflow は test、Windows `win-x64` / Linux `linux-x64` の self-contained publish、tag と Runner version の整合確認、sample config の同梱、archive、checksum、GitHub Release 作成まで担当する。tag と Runner version が一致しない場合は検証で失敗し、Release は作成されない。
+stdoutの単一JSONで`protocolVersion`が`3`、`runnerVersion`が`0.3.0`以上であることを確認します。`~/.local/bin`がPATHにあっても、その下の専用directoryは自動では検索されません。
 
-Release には次の asset が生成される。
+## Config
 
-- `purpose-review-runner-win-x64.zip`
-- `purpose-review-runner-linux-x64.tar.gz`
-- `config.example.json`
-- `SHA256SUMS`
+設定ファイルはbinaryの配置先とは別に、`Environment.SpecialFolder.ApplicationData`配下の`purpose-review-runner/config.json`です。初回のコピーと編集は上のInstall例が担当します。
 
-同じ version の tag または Release が既に存在する場合は、重複発行せず既存の状態を調査する。
+| OS | 実際のpath |
+| --- | --- |
+| Windows | `%APPDATA%\purpose-review-runner\config.json` |
+| Linux | `$XDG_CONFIG_HOME/purpose-review-runner/config.json`。未設定時は`~/.config/purpose-review-runner/config.json` |
 
-## Configuration
+Linuxのpathは.NETの`Environment.SpecialFolder.ApplicationData`に従います。Unixでは`$XDG_CONFIG_HOME`、未設定時は`$HOME/.config`です。stateは`Environment.SpecialFolder.LocalApplicationData`配下で、Windowsでは`%LOCALAPPDATA%\purpose-review-runner\`、Linuxでは`$XDG_DATA_HOME`または`~/.local/share/purpose-review-runner\`です。
 
-`Environment.SpecialFolder.ApplicationData`配下の`purpose-review-runner/config.json`を作成します。Windowsでは通常`%APPDATA%\purpose-review-runner\config.json`です。例は`config.example.json`を参照してください。
+### 設定項目
 
-設定可能なのは`provider`、`executable`、`model`、`reasoningEffort`、optional `profile`だけです。`provider`は`codex`、`grok`、`copilot`を選べます。same-session、non-modifying reviewer、最大3round、異常時停止は変更できません。filesystem sandboxによるread-only強制は要件ではありません。reviewerはshellで`git diff`、`git log`、`git show`などの調査を行えます。source、tests、docs、Git状態、設定、外部サービスを変更しない役割契約はshell経由にも適用されます。shellからの変更を技術的に防止する保証ではありません。
+現行の配布例です。Codexを使う場合はこのまま使えます。
 
-Grokは`--tools read,view,grep,shell`と`--permission-mode bypassPermissions`で調査用shellを利用できるようにし、write/edit系toolと委任は引き続き制限します。Copilotは`bash`・`powershell`とそのsession操作toolを公開し、`--allow-tool=shell`で実行を許可します。tool公開と実行許可は別の設定です。Codexは従来どおり`--dangerously-bypass-approvals-and-sandbox`とpromptの変更禁止契約を使います。独自の差分収集器やshell command判定器は追加せず、既存のprovider CLIとGitを利用します。設定の根拠は[Grokのpermission仕様](https://github.com/xai-org/grok-build/blob/main/crates/codegen/xai-grok-pager/docs/user-guide/22-permissions-and-safety.md)と[Copilotのtool仕様](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#tool-availability-values)です。
+```json
+{
+  "schemaVersion": 1,
+  "provider": "codex",
+  "executable": "codex",
+  "model": "gpt-5.6-terra",
+  "reasoningEffort": "high",
+  "profile": null
+}
+```
 
-`requiredOutcome`による成果中心のfindingはRunner 0.3.0 / protocol v3で導入しました。shell調査と目的逸脱レビューは0.2.3、async jobは0.2.0、Windowsのrestrictive Job Objectからの独立起動は0.2.1、CopilotへのBOMなしUTF-8標準入力prompt転送は0.2.2で導入しました。reviewerへ送る自然言語instructionは日本語、BEGIN_PURPOSE_REVIEWなどのmachine-readable contractは英語です。
+| 項目 | 意味 |
+| --- | --- |
+| `schemaVersion` | config形式のversion。現在は`1` |
+| `provider` | reviewer実装。`codex`、`grok`、`copilot`のいずれか |
+| `executable` | PATH上のコマンド名、または実行ファイルの絶対path |
+| `model` | そのprovider CLIへ渡すモデル名 |
+| `reasoningEffort` | `none`、`minimal`、`low`、`medium`、`high`、`xhigh`、`max` |
+| `profile` | 任意。未使用なら`null`。Codexは`-p`、Grok / Copilotは`--agent`へ渡します |
 
-## Usage
+provider CLI自身の認証が事前に必要です。RunnerはAPI keyやOAuth設定を代行しません。
+
+`start`にはreview単位の`--model`や`--effort` overrideはありません。reviewerには変更禁止を指示しますが、OS-levelのread-only isolationではありません。実装方式とprovider差分は[technical reference](../../docs/purpose-review-runner-technical-reference.md)を参照してください。
+
+### Providerごとの構文例
+
+次の`model`名は構文例です。推奨モデルではありません。利用可能なモデルは各provider CLIの現行一覧を使ってください。
+
+Codex:
+
+```json
+{
+  "schemaVersion": 1,
+  "provider": "codex",
+  "executable": "codex",
+  "model": "gpt-5.6-terra",
+  "reasoningEffort": "high",
+  "profile": null
+}
+```
+
+Grok:
+
+```json
+{
+  "schemaVersion": 1,
+  "provider": "grok",
+  "executable": "grok",
+  "model": "grok-4.6",
+  "reasoningEffort": "high",
+  "profile": null
+}
+```
+
+Copilot:
+
+```json
+{
+  "schemaVersion": 1,
+  "provider": "copilot",
+  "executable": "copilot",
+  "model": "gpt-5.6",
+  "reasoningEffort": "high",
+  "profile": null
+}
+```
+
+## Update
+
+| 対象 | 手順 |
+| --- | --- |
+| Runner | [最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)のarchiveを、同じinstall directoryへ展開して既存ファイルを置き換える |
+| Skill | 対象repositoryで`apm update` |
+| config / state | 通常はそのまま。作り直したり移行したりしない |
+
+更新後は`purpose-review-runner version`でprotocolとversionを確認します。protocol移行などの特殊ケースは[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
+
+## Troubleshooting
+
+内部実装ではなく、症状から確認します。reviewはバックグラウンドworkerで実行されるため、長時間でも親CLIに依存しません。1 roundはprovider timeoutまで約10分かかることがあります。`RUNNING`が続くこと自体は障害ではありません。
+
+| 症状 | 確認 | 対処 |
+| --- | --- | --- |
+| `purpose-review-runner`が見つからない | PATHと展開先。`Get-Command purpose-review-runner`または`command -v purpose-review-runner` | [Install](#install)のPATH追加を、展開に使った同じdirectoryでやり直す |
+| `CONFIG_NOT_FOUND` | エラーメッセージのpath。binaryの隣を見ていないか | [Install](#install)のconfigコピーを、展開先の`config.example.json`からやり直す |
+| `EXECUTABLE_NOT_FOUND` / provider CLIが見つからない | configの`executable`とPATH | provider CLIを導入し、コマンド名または絶対pathを設定する |
+| provider側の認証切れ | 同じ`executable`を単体実行して認証状態を確認する | そのprovider CLI自身で再認証する。Runner側にsecretは書かない |
+| `RUNNING`が長い | `status --run <run-id>`を繰り返す。新しいrunを作っていないか | 同じ`run-id`の`status`だけをやり直す。1 roundは約10分かかることがある |
+| Runner versionが古い / protocol非互換 | `purpose-review-runner version` | [最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)へ差し替える。`apm update`では直らない |
+| `HUMAN_DECISION_REQUIRED` | `message`とfinding。目的やscopeの選択が必要か | 人手で判断する。automatic round 4や別reviewerへの切替はしない |
+
+## Advanced usage
+
+Skillが使えない場合や診断時だけ、次を手で実行します。通常利用者の主経路ではありません。公開fieldsとstateの詳細は[technical reference](../../docs/purpose-review-runner-technical-reference.md)を参照してください。
 
 ```powershell
-purpose-review-runner version
 purpose-review-runner start --repository C:\path\to\repo --context docs\goal-context.md --context C:\path\to\accepted-decisions.md
 purpose-review-runner status --run <run-id>
 purpose-review-runner continue --run <run-id>
 ```
 
-`start`と`continue`はprovider完了をforegroundで待ちません。durable jobを登録して独立したworker processを起動し、`jobStatus`が`RUNNING`のJSONを返します。結果は同じ`run-id`で`status`を短時間pollingして取得します。`status`はreviewを再実行しません。workerは起動時に親のstdin/stdout/stderrを継承しません。この分離はimplementation parentやproviderの種類に依存しません。Windowsでは現在プロセスがJob Object内かどうかを見て起動経路を選びます。Jobに入っていなければdetached `CreateProcess`です。Job内ならimmediate Jobのbreakaway可否に関わらず、呼び出し元Job chainを継承しない`Win32_Process.Create`に`CREATE_BREAKAWAY_FROM_JOB`を付けて起動します。nested JobのancestorやWMI provider host側Jobへ残す経路は使いません。独立起動できなければ同じJobへ残さず`WORKER_START_FAILED`で停止します。
+## 関連文書
 
-stdoutはprotocol v3の単一JSONです。`FINDINGS`の場合だけ元のimplementation parentが修正・検証し、同じ`run-id`を`continue`します。`COMPLETE`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`、`ERROR`では停止します。`RUNNING`なら`status`を繰り返します。1回のCLI呼び出しが失敗しても、新しいrunを作らず同じ`status`を問い合わせ直します。
-
-`start`は1件以上のcontextを要求します。相対pathはrepository root基準で解決し、absolute pathも受理します。context本文をproviderへ渡すのはRound 1だけです。`continue`は保存済みsessionをresumeし、contextや前回outputを再送しません。
-
-## Review criteria and evidence
-
-contextは元の問題・期待成果、承認されたscope・採用判断、実装方針として区別します。ユーザーが明示したsourceや目的変更を優先し、計画の新しさだけで当初目的を上書きしません。毎round、利用経路での成果、表面的な充足、優先順位、non-goals、MVP境界、棄却案、周辺機構への偏りを評価します。変更量や設計の好みだけをfindingにせず、目的に必要な補助機構や承認済み手動工程を誤って問題にしません。
-
-reviewerはcontextで明示されたbaseを優先し、なければtaskとGit履歴から比較基準を特定します。確認したbaseのcommit ID、HEAD、未コミット変更の有無を同じsessionで保持し、初回baseからの累積差分と前回round後の変更を調査します。staged、unstaged、関連するuntracked fileも含み、workspaceの評価とPRへ含まれる変更の評価を区別します。前回の未コミット状態が残っていない場合、HEAD間のdiffを完全なround差分とみなしません。Gitや比較基準がない場合も調査可能な現在の実装を評価し、比較限界を報告します。review専用commit、stash、独自snapshotは作りません。
-
-前回指摘も再評価し、誤り・過剰要求を訂正または撤回します。`requiredOutcome`は成立すべき状態・振る舞い・制約を示す必須項目です。具体的な修正方式はparentが設計し、追加・削除・縮小・既存経路への統合などから選びます。複数componentにまたがる責務やauthorityの逆転もfindingであり、関数単位の修正指示に落とす必要はありません。actionableとは、目的との不一致と必要成果が根拠付きで特定され、parentが修正方針を判断できることです。`message`には比較基準、目的判断の根拠、未検証事項と、解消・訂正・撤回したfinding IDと理由を記載します。parentの疑義が既存の作業記録にある場合も独立に調査します。過去出力の再送は不要です。
-
-`COMPLETE`はfindingがなく、今回のscopeの主要成果と否定条件を判断する十分な証拠がある場合に限ります。必要な証拠を取得できなければ`BLOCKED`、目的やscopeの選択が必要なら`HUMAN_DECISION_REQUIRED`です。承認済みの対象外事項や、判定を左右しない未検証事項を新しいblockerにはしません。
-
-output schema v3は`protocolVersion`、`runnerVersion`、`runId`、`round`、`jobStatus`、`status`、`terminal`、`findings`と、必要時の`message`または`error`で構成します。findingは`id`、`severity`、`title`、`summary`、`evidence`、`requiredOutcome`を要求します。`requiredOutcome`の欠落・null・空白、旧`requiredChange`や両項目の混在は不正結果です。成果の具体的な内容はreviewerが判断し、parserは修正手順や関数名を要求しません。`jobStatus`は`RUNNING`、`SUCCEEDED`、`FAILED`です。実行中の`status`は`RUNNING`です。診断はstderrへ出し、stdoutへ別形式のtextを混在させません。exit codeは0がjob受付または有効なreview結果、1がprovider/process実行失敗、2が引数・config・state・protocol違反です。非0でもstdoutはstatus `ERROR`のschema v3です。
-
-v3はv2と非互換です。既存のv2 runは開始時のRunnerで完了させ、RunnerとSkillの更新後の新しい作業からv3を利用します。v2 stateの`continue`やv2保存結果の`status`は`STATE_INCOMPATIBLE`で停止します。旧結果の自動変換、stateの移行、sessionの再構築は行いません。configとjob lifecycleのschemaは変更しません。
-
-stateは`Environment.SpecialFolder.LocalApplicationData`配下の`purpose-review-runner/runs/<run-id>/`へ保存します。`state.json`はreview制御（session、provider snapshot、round、review status）、`job.json`はjob lifecycle、`result.json`は公開結果です。session handleは公開outputへ出しません。config変更は既存runへ反映されません。worker起動処理の診断は同じrun directoryの`launcher.log`へ出します。`worker.log`は`work` processが起動してからの診断です。内部コマンド`work`はSkillから使いません。`PURPOSE_REVIEW_RUNNER_CONFIG_PATH`と`PURPOSE_REVIEW_RUNNER_STATE_ROOT`を両方指定すると、通常の`%APPDATA%` / `%LOCALAPPDATA%`の代わりにそのconfigとstateをworkerも参照します。launcher.logにはJob flags、Job limit query の失敗、選択した起動経路、native / WMI error、worker PIDを残します。provider prompt、response、token、credential、environment全件は記録しません。
-
-各runのtranscriptは同じ`LocalApplicationData`のrun directory配下にある`transcript/round-01-prompt.md`、`round-01-response.md`のようなround別ファイルへ保存します。promptとreviewer responseは全文をローカル保存するため、purpose contextやrepository由来の情報を含み得ます。実装対象repositoryには生成されず、`LocalApplicationData`のrun directory内だけに保存されます。これはRunnerが生成してprovider adapterへ渡したreview payloadと、reviewer response本文の監査用であり、provider内部のsystem promptやnetwork payloadを記録するものではありません。
-
-## Build locally
-
-以下は開発・検証用、または Release 前のローカル build／unreleased build の手動検証用である。通常利用者が `dotnet publish` の成果物を手動配布する用途ではなく、通常利用には上記の GitHub Release archive を使用する。
-
-```powershell
-dotnet test tests/PurposeReviewRunner.Tests/PurposeReviewRunner.Tests.csproj
-dotnet publish apps/PurposeReviewRunner/PurposeReviewRunner.csproj -c Release -r win-x64 --self-contained true
-dotnet publish apps/PurposeReviewRunner/PurposeReviewRunner.csproj -c Release -r linux-x64 --self-contained true
-```
-
-通常の unit / CI test は Job Object と WMI をスタブします。Linux CI は detached worker の process-level 寿命確認を維持します。Windows の実 Job Object / 実 WMI 経路は opt-in qualification です。
-
-```powershell
-$env:PURPOSE_REVIEW_RUNNER_WINDOWS_JOB_QUALIFICATION = '1'
-dotnet test tests/PurposeReviewRunner.Tests/PurposeReviewRunner.Tests.csproj --filter "FullyQualifiedName~RestrictiveJobObjectDoesNotKillDurableWorker|FullyQualifiedName~DetachedStartReturnsBeforeProviderAndStatusReadsDurableResult"
-```
-
-GitHub ReleaseのarchiveをPATH上のuser-owned directoryへ展開し、configをOS userごとに一度作成します。APM SkillはRunner binaryを内包または自動導入しません。
-
-Codex CLIとGrok Build CLIはsemantic persistenceをfresh control付きで確認済みです。GitHub Copilot CLIはsession/resumeの成立を確認済みですが、fresh controlが正解を推測したため同じ強さのsemantic qualificationは与えていません。
-
-上記は過去のsession継続実験の証拠です。現在のshell許可と`requiredOutcome`を含むレビュー依頼文による逸脱検出力を実測したことは意味しません。実モデルでの追加評価は[評価シナリオ](../../tests/PurposeReviewRunner.Tests/purpose-review-scenarios.md)を使い、結果をdeterministic testとは分けて記録します。
+| 文書 | 役割 |
+| --- | --- |
+| [Persistent Purpose Review README](../../apm-packages/persistent-purpose-review/README.md) | 利用者の入口とSkillの利用方法 |
+| このREADME | Runnerのインストール、設定、update、troubleshooting |
+| [Technical reference](../../docs/purpose-review-runner-technical-reference.md) | protocol、state、worker、provider adapter |
+| [Compatibility](../../docs/purpose-review-runner-compatibility.md) | version履歴とv2/v3非互換 |
+| [Maintainer reference](../../docs/purpose-review-runner-maintenance.md) | 開発・リリース・validation。buildとRelease手順はこちら |
