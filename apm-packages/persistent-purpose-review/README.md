@@ -4,7 +4,7 @@
 
 向いているのは、仕様・Goal Context・承認済み判断に対して「本当に目的を満たしたか」を実装完了後に確認したいときです。baseline PR code reviewの代替ではなく、最初から明確なpurpose contextがない仕事にも向きません。詳細は[何に向いているか](#何に向いているか)を参照してください。
 
-Skillは実装担当エージェントにレビュー工程を教えます。独立reviewerの起動と同一sessionの維持は、PCへ一度だけ入れるローカルCLI [Purpose Review Runner](../../apps/PurposeReviewRunner/README.md)が担当します。両方必要です。RunnerはOS userごとに一度、Skillはwork repositoryごとです。
+Skillは実装担当エージェントにレビュー工程を教えます。独立reviewerの起動と同一sessionの維持は、PCへ一度だけ入れるローカルCLI [Purpose Review Runner](../../apps/PurposeReviewRunner/README.md)が担当します。両方必要です。RunnerはOS userごとに一度、Skillは実行環境へ`--global`で導入します。
 
 通常はRunnerの`start` / `status` / `continue`を手で呼ぶ必要はありません。実装エージェントがこのSkillに従い、Runnerを呼び出します。
 
@@ -42,12 +42,14 @@ Quickstartの前に次を満たしてください。満たさないままconfig�
 
 ### 2. Skillを導入する
 
-対象repositoryのrootで実行します。
+実行環境へuser-scopeで導入します。
 
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persistent-purpose-review --target copilot,codex,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persistent-purpose-review --target agent-skills --global
 purpose-review-runner version
 ```
+
+紹介するのはこの方式です。`--target`や導入先scopeなど、ほかのオプションは[APMの資料](https://microsoft.github.io/apm/reference/cli/install/)を参照してください。
 
 `version`が単一JSONを返し、`protocolVersion`が`3`、`runnerVersion`が`0.3.0`以上であることを確認します。
 
@@ -97,23 +99,15 @@ reviewerはnon-modifying reviewerです。変更禁止を指示しますが、OS
 
 | 対象 | 手順 |
 | --- | --- |
-| Skill | 対象repositoryで`apm update` |
+| Skill | 導入時と同じく実行環境のuser-scopeで更新する。コマンドとほかのオプションは[APMの資料](https://microsoft.github.io/apm/reference/cli/install/)を参照 |
 | Runner | [最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)のarchiveを差し替える |
 | config / state | 通常はそのまま |
 
 `apm update`だけではRunner binary、user-level config、既存run stateは変わりません。Runner 0.3.0以上への更新はGitHub Release側で別に行います。protocol移行などの特殊ケースは[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
 
-```powershell
-apm update
-```
-
 ## 削除
 
-Skillが不要になったときだけ実行します。上の更新手順ではありません。Runner binary、user-level config、既存run stateは削除しません。
-
-```powershell
-apm uninstall persistent-purpose-review
-```
+Skillが不要になったときだけ、導入時と同じuser-scopeでアンインストールします。コマンドとほかのオプションは[APMの資料](https://microsoft.github.io/apm/reference/cli/install/)を参照してください。Runner binary、user-level config、既存run stateは削除しません。
 
 ## 関連文書
 
