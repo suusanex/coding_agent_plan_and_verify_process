@@ -4,11 +4,17 @@
 
 通常はRunnerコマンドを手で呼ぶ必要はありません。主経路はSkillが`start` / `status` / `continue`を扱います。このREADMEはインストール、設定、更新、troubleshootingの正本です。手動CLIは[Advanced usage](#advanced-usage)にあります。
 
-このRunnerは0.3.0以上が必要です。過去runの継続は[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
+このRunnerは0.4.0以上が必要です。過去runの継続は[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
+
+## 実装reviewと実環境検証の境界
+
+Runner 0.4.0以降は、実装reviewの合格と、review後に人が行う実環境検証の完了を分けて扱います。エージェントが実行できない、実行を許可されていない、または承認された後工程で行うtestだけが残る場合、対象、理由、実施主体と時点、環境と手順、期待結果と合否基準、記録先と失敗時の戻し先が申し送られていれば、未実施だけを理由に`FINDINGS`や`BLOCKED`にはしません。他に実装上の問題がなければ`COMPLETE`になり得ます。
+
+`COMPLETE`は、そのtestの成功、実環境での目的達成、リリース条件の充足を認定するstatusではありません。reviewerは未検証事項と人手で必要な作業を`message`へ残し、手動testがあっても残りの実装、呼び出し経路、異常系、目的逸脱を確認します。現工程で実行可能かつ許可済みの必要なtest、既知の失敗、実装欠陥、review前の実測を明示的に要求する条件はこの扱いで免除されません。
 
 ## Install
 
-配布の正本は[GitHub Releases](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases)です。通常は[最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)を使います。現在の最新は[purpose-review-runner-v0.3.0](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/tag/purpose-review-runner-v0.3.0)です。
+配布の正本は[GitHub Releases](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases)です。通常は[最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)を使います。現在の最新は[purpose-review-runner-v0.4.0](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/tag/purpose-review-runner-v0.4.0)です。
 
 | OS | asset |
 | --- | --- |
@@ -70,7 +76,7 @@ ${EDITOR:-nano} "$config_dir/config.json"
 purpose-review-runner version
 ```
 
-stdoutの単一JSONで`protocolVersion`が`3`、`runnerVersion`が`0.3.0`以上であることを確認します。`~/.local/bin`がPATHにあっても、その下の専用directoryは自動では検索されません。
+stdoutの単一JSONで`protocolVersion`が`3`、`runnerVersion`が`0.4.0`以上であることを確認します。`~/.local/bin`がPATHにあっても、その下の専用directoryは自動では検索されません。
 
 ## Config
 

@@ -17,7 +17,7 @@ Quickstartの前に次を満たしてください。満たさないままconfig�
 - Runnerの対応OSがWindows x64またはLinux x64であること
 - Skillを実行する実装側エージェントがCodex、Copilot、またはAgent Skills経由であること
 
-このSkillは`purpose-review-runner` 0.3.0以上とprotocol v3を要求します。未導入や非互換ならfail closedで停止します。過去runの継続が必要な場合は[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
+このSkillは`purpose-review-runner` 0.4.0以上とprotocol v3を要求します。未導入や非互換ならfail closedで停止します。過去runの継続が必要な場合は[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
 
 ## 5分Quickstart
 
@@ -51,7 +51,7 @@ purpose-review-runner version
 
 紹介するのはこの方式です。`--target`や導入先scopeなど、ほかのオプションは[APMの資料](https://microsoft.github.io/apm/reference/cli/install/)を参照してください。
 
-`version`が単一JSONを返し、`protocolVersion`が`3`、`runnerVersion`が`0.3.0`以上であることを確認します。
+`version`が単一JSONを返し、`protocolVersion`が`3`、`runnerVersion`が`0.4.0`以上であることを確認します。
 
 ### 3. 実装エージェントへ指示する
 
@@ -88,6 +88,21 @@ purpose contextは plans/accepted-plan.md と docs/accepted-decisions.md です�
 
 reviewerはnon-modifying reviewerです。変更禁止を指示しますが、OS-levelのread-only isolationではありません。修正は元のimplementation parentだけが行います。
 
+## 手動testが残る場合
+
+実装reviewと実環境検証の完了は別に扱います。エージェントが直接実行できない、実行を許可されていない、または承認された工程上review後に行うtestは、次の申し送りがあれば、未実施だけを理由にreviewを不合格にしません。
+
+- 確認する目的・要件。
+- エージェントが実行できない理由、または後工程とする根拠。
+- 実施主体と実施時点。
+- 必要な環境・準備と具体的な操作手順。
+- 期待結果と合否基準。
+- 結果の記録先と、失敗時に修正へ戻す方法。
+
+reviewerは手動testの有無で調査を止めず、実装、接続、異常系、目的逸脱を引き続き確認します。申し送りが不足していれば補完をfindingとしますが、解消条件はtest結果の取得ではありません。他に問題がなければ`COMPLETE`になり得ます。現工程で実行可能かつ許可済みの必要なtest、既知の失敗、実装欠陥、review前の実測を明示的に要求する条件は免除されません。
+
+`COMPLETE`後も、未検証事項と人手で必要な作業は最終報告に残ります。これはtest成功、実環境での目的達成、リリース条件の充足、案件全体の完了を意味しません。決定済みtestの人手実行は「人手での作業」であり、目的やscopeを決める`HUMAN_DECISION_REQUIRED`とは区別します。
+
 ## 何に向いているか
 
 - 向いている: 仕様・Goal Context・承認済み判断に対して、実装が利用経路で目的を満たしたか確認したい。
@@ -103,7 +118,7 @@ reviewerはnon-modifying reviewerです。変更禁止を指示しますが、OS
 | Runner | [最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)のarchiveを差し替える |
 | config / state | 通常はそのまま |
 
-`apm update`だけではRunner binary、user-level config、既存run stateは変わりません。Runner 0.3.0以上への更新はGitHub Release側で別に行います。protocol移行などの特殊ケースは[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
+`apm update`だけではRunner binary、user-level config、既存run stateは変わりません。Runner 0.4.0以上への更新はGitHub Release側で別に行います。protocol移行などの特殊ケースは[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
 
 ## 削除
 

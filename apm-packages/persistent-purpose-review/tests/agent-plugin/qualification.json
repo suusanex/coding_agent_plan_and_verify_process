@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "persistent-purpose-review",
-  "canonicalFingerprint": "95d3fc8dcf844642b020dde91d02416309b0936ed209e948afb024a99462f91c",
-  "distributionFingerprint": "d4fad478905aaa990c4c4b2ddc6da700c0fe21780bf6afa067c6682ad3f8745e",
+  "canonicalFingerprint": "a49c3a809e0d59c503dbaf60764b5061b53511c83382a9029d680cb05b4df7ad",
+  "distributionFingerprint": "6b72b09dd3d8164a2ac0663b4e4bb57ad50878d2fc40fbbc5c45a9850092fd6b",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
@@ -14,7 +14,7 @@
       "distribution": "apm",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "Runner 0.3.0 / protocol v3とSkill 0.4.0の組合せで実モデル評価は未実施。requiredOutcomeへの移行による目的レビューの検出力を過去のLIVE結果から推定しない。",
+      "reason": "Runner 0.4.0 / protocol v3とSkill 0.5.0の組合せで実モデル評価は未実施。手動test申し送りによる判定変更と目的レビューの検出力を過去のLIVE結果から推定しない。",
       "evidenceRefs": []
     },
     {

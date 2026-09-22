@@ -13,11 +13,11 @@ protocol versionの正本は `apps/PurposeReviewRunner/Contracts.cs` の `Protoc
 
 ## Release
 
-既存のtag contractに従い、`purpose-review-runner-v<runner-version>` tagを作成してpushします。例えばversionが`0.3.0`なら次です。
+既存のtag contractに従い、`purpose-review-runner-v<runner-version>` tagを作成してpushします。例えばversionが`0.4.0`なら次です。
 
 ```powershell
-git tag purpose-review-runner-v0.3.0
-git push origin purpose-review-runner-v0.3.0
+git tag purpose-review-runner-v0.4.0
+git push origin purpose-review-runner-v0.4.0
 ```
 
 `purpose-review-runner-v*` tag pushで`.github/workflows/release-purpose-review-runner.yml`が起動します。workflowは次を担当します。

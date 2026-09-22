@@ -55,6 +55,7 @@ public static class PromptBuilder
         builder.AppendLine("- 元の問題が利用者の実際の利用経路で解消され、intended outcomesが達成されるか。文言、schema、テスト、補助機構だけが整い、productionの接続や必要な成果が欠けるなど、表面的には妥当に見えるがpurposeを損なうbehaviorがないか。");
         builder.AppendLine("- 優先順位、non-goals、MVPと将来課題の境界、rejected alternativesと棄却理由を守っているか。主要成果が未達のまま周辺機構を厚くしていないか、目的にない要求や責務を追加していないか。");
         builder.AppendLine("- 各findingを目的の根拠と具体的な実装・差分の証拠へ結び付けられるか。変更量の多さ、抽象化の有無、設計の好みだけをfindingにせず、目的・制約への具体的な悪影響を示してください。目的達成に必要な補助機構や承認済みの手動工程・対象外事項を、過剰実装や未達成と誤認しないでください。");
+        builder.AppendLine("- 未実施の手動テストまたは承認済みの後工程テストを発見しても、そこで調査を止めず、実際の呼び出し経路、異常系、目的からの逸脱を含む残りの実装レビューを継続してください。必要な実装や接続の欠落、既知のテスト失敗、その他の実装欠陥は未実施テストと分けてfindingにしてください。");
     }
 
     private static void AppendOutputContract(StringBuilder builder)
@@ -67,7 +68,9 @@ public static class PromptBuilder
         builder.AppendLine("FINDINGSの場合はfindingを1件以上含めてください。COMPLETEの場合はfindingを含めないでください。HUMAN_DECISION_REQUIREDまたはBLOCKEDの場合は、空でないmessageが必要です。");
         builder.AppendLine("summaryには目的への影響、evidenceにはpurpose sourceの該当箇所と実装のpath・位置または観測結果を記載してください。requiredOutcomeには目的達成のために成立すべき状態・振る舞い・制約を記載してください。修正する関数、patch、promptの書換え、チェックの追加などの実装方式まで決める必要はありません。具体的な修正設計と実装はimplementation parentの責任です。");
         builder.AppendLine("複数componentにまたがる責務やauthorityの逆転もpurpose findingです。単一の局所的なバグへ分解できないことや、具体的な修正方法が未確定であることを理由にfindingを省略しないでください。actionableとは、目的との不一致と満たすべき成果が根拠付きで特定され、parentが修正方針を判断できることです。既に承認された実装上の制約はsourceの根拠とともに保持し、reviewer自身の方式提案を必須成果へ混入させないでください。");
-        builder.AppendLine("messageには確認した比較基準と対象、目的達成の判断根拠、未検証事項・比較の限界を簡潔に記載してください。COMPLETEはactionableなfindingがなく、今回のscopeの主要成果と否定条件を評価する十分な証拠がある場合だけ選んでください。テスト成功や指摘の不在だけを達成の証拠にしないでください。");
-        builder.AppendLine("必要な証拠を取得できず判断不能な場合はBLOCKED、目的やscopeの競合・選択にユーザー判断が必要な場合はHUMAN_DECISION_REQUIREDとし、理由をmessageへ記載してください。コードから確定できる未実装や目的違反はFINDINGSであり、証拠不足と混同しないでください。既に承認された対象外事項や、判定を左右しない未検証事項まで新しいblockerにしないでください。");
+        builder.AppendLine("messageには確認した比較基準と対象、目的達成の判断根拠、完了済みの検証、未検証事項、比較の限界、人手で必要な作業と申し送り先を区別して簡潔に記載してください。COMPLETEはactionableなfindingがなく、今回のscopeの主要成果と否定条件を実装と現在取得可能な証拠から評価できた場合に選んでください。テスト成功や指摘の不在だけを達成の証拠にしないでください。COMPLETEは未実施テストの成功、実環境での目的達成、リリース条件の充足を意味しません。");
+        builder.AppendLine("エージェントが直接実行できない、実行を許可されていない、または承認された工程上レビュー後に実施するテストは、未実施であることだけを理由にFINDINGSやBLOCKEDにしないでください。確認対象の目的・要件、実行できない理由または後工程とする根拠、実施主体と実施時点、必要な環境・準備と具体的な操作手順、期待結果と合否基準、結果の記録先と失敗時に修正へ戻す方法が申し送りされ、他に問題がなければCOMPLETEを選べます。再レビューでも、この条件を満たす同じ未実施テストを不合格理由として繰り返さないでください。");
+        builder.AppendLine("手動テストの申し送りが不足している場合はFINDINGSとし、requiredOutcomeには不足する申し送りが揃うことを記載してください。解消条件をテスト実行結果の取得へ置き換えないでください。決定済みのテストを人が実施するだけならHUMAN_DECISION_REQUIREDではありません。一方、現工程で実行可能かつ許可済みの必要なテストの省略、既知の失敗、仕様や外部interfaceが不明で実装の妥当性自体を評価できない場合、レビュー合格前の実測を明示的に要求する条件は手動テストの申し送りで免除しないでください。review前の実測条件と未実施が衝突し、条件を維持するか変更するかの選択が必要ならHUMAN_DECISION_REQUIREDにしてください。");
+        builder.AppendLine("必要な証拠を取得できず実装の妥当性を判断不能な場合はBLOCKED、目的やscopeの競合・選択にユーザー判断が必要な場合はHUMAN_DECISION_REQUIREDとし、理由をmessageへ記載してください。コードから確定できる未実装や目的違反はFINDINGSであり、証拠不足と混同しないでください。既に承認された対象外事項や、十分に申し送りされた後工程の実環境結果など、実装レビューの判定を左右しない未検証事項まで新しいblockerにしないでください。");
     }
 }

@@ -65,6 +65,31 @@ public sealed class RunnerApplicationTests
     }
 
     [TestMethod]
+    public void StartAndContinuePromptsSeparateManualTestHandoffFromImplementationReview()
+    {
+        var prompts = new[]
+        {
+            PromptBuilder.BuildStart("C:\\repository", [("goal.md", "PURPOSE")]),
+            PromptBuilder.BuildContinue(2)
+        };
+
+        foreach (var prompt in prompts)
+        {
+            StringAssert.Contains(prompt, "残りの実装レビューを継続してください");
+            StringAssert.Contains(prompt, "未実施であることだけを理由にFINDINGSやBLOCKEDにしないでください");
+            StringAssert.Contains(prompt, "確認対象の目的・要件");
+            StringAssert.Contains(prompt, "実施主体と実施時点");
+            StringAssert.Contains(prompt, "期待結果と合否基準");
+            StringAssert.Contains(prompt, "結果の記録先と失敗時に修正へ戻す方法");
+            StringAssert.Contains(prompt, "人手で必要な作業と申し送り先");
+            StringAssert.Contains(prompt, "COMPLETEは未実施テストの成功、実環境での目的達成、リリース条件の充足を意味しません");
+            StringAssert.Contains(prompt, "現工程で実行可能かつ許可済みの必要なテストの省略");
+            StringAssert.Contains(prompt, "決定済みのテストを人が実施するだけならHUMAN_DECISION_REQUIREDではありません");
+            StringAssert.Contains(prompt, "再レビューでも、この条件を満たす同じ未実施テストを不合格理由として繰り返さないでください");
+        }
+    }
+
+    [TestMethod]
     public async Task MalformedReviewerResponseIsSavedBeforeProtocolParse()
     {
         using var fixture = new RunnerFixture("grok");

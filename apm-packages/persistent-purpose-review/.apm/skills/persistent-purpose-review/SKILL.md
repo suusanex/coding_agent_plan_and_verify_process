@@ -36,13 +36,28 @@ context pathはrepository相対またはabsoluteでよい。Runner自身にsourc
 
 計画への適合だけを目的達成の根拠にしない。ユーザーが入力を限定していなければ、計画に残っていない背景・否定条件を補う現在のsourceも選ぶ。必要な目的情報が得られない場合は不足を明示し、推測で新しい要求を作らない。比較対象のbaseやPRが明示済みなら、その情報も選択したcontext内で識別できるようにする。PRやレビュー専用commitの作成は前提にしない。
 
+## Prepare validation and handoff
+
+review開始前に、今回の目的に必要なtestを現在の実行環境で実行可能かつ許可済みのものと、それ以外に分類する。実行可能かつ許可済みの必要なtestは実行し、既知の失敗を手動確認へ置き換えない。
+
+エージェントが直接実行できない、実行を許可されていない、または承認された工程上review後に実施するtestが残る場合、reviewerが調査できるrepository内の作業記録または選択済みcontextへ、次を申し送る。
+
+- 確認対象の目的・要件。
+- エージェントが実行できない理由、または後工程とする根拠。
+- 実施主体と実施時点。
+- 必要な環境・準備と具体的な操作手順。
+- 期待結果と合否基準。
+- 結果の記録先と、失敗時に修正へ戻す方法。
+
+「人手で確認してください」だけでは不十分とする。決定済みのtestを人が実行することは人手で必要な作業であり、目的やscopeについての人手判断とは区別する。申し送りを準備してもtest成功や実環境での目的達成を認定したことにはならない。
+
 ## Verify the Runner
 
 ```powershell
 purpose-review-runner version
 ```
 
-stdoutの単一JSONを読み、`protocolVersion`が`3`であること、および`runnerVersion`が`0.3.0`以上であることを確認する。`runnerVersion`はmajor.minor.patchとして比較する。command未導入、非0 exit、JSON不正、`protocolVersion`非互換、`runnerVersion`欠落、`0.3.0`未満、または比較不能なら`Blocked`として停止する。別commandやprovider CLIで代替しない。`apm update`はRunner binaryを更新しないため、旧Runnerのまま続行しない。
+stdoutの単一JSONを読み、`protocolVersion`が`3`であること、および`runnerVersion`が`0.4.0`以上であることを確認する。`runnerVersion`はmajor.minor.patchとして比較する。command未導入、非0 exit、JSON不正、`protocolVersion`非互換、`runnerVersion`欠落、`0.4.0`未満、または比較不能なら`Blocked`として停止する。別commandやprovider CLIで代替しない。`apm update`はRunner binaryを更新しないため、旧Runnerのまま続行しない。
 
 ## Start review
 
@@ -62,9 +77,9 @@ purpose-review-runner status --run <run-id>
 
 `status`はreviewを再実行しない。provider timeoutまで1 roundが約10分かかることがある。`RUNNING`が続くこと自体をrecovery理由にしない。
 
-- `FINDINGS`: findingを実装目的へ照合し、元のparentが必要なproduction/tests/docsを修正してrepository規約のvalidationを実行する。その後、同じ`runId`を`continue`する。
-- `COMPLETE`: purpose review完了として終了する。
-- `HUMAN_DECISION_REQUIRED`: finding、選択が必要な理由、実施済みvalidationを報告して停止する。
+- `FINDINGS`: findingを実装目的へ照合し、元のparentが必要なproduction/tests/docsまたは不足する手動testの申し送りを修正してrepository規約のvalidationを実行する。その後、同じ`runId`を`continue`する。申し送り不足の解消を未実施testの実行結果取得へ置き換えない。
+- `COMPLETE`: purpose review完了として終了する。`message`に未検証事項や人手で必要な作業があれば保持し、test成功や実環境検証完了とは報告しない。
+- `HUMAN_DECISION_REQUIRED`: finding、目的やscopeについて選択が必要な理由、実施済みvalidationを報告して停止する。決定済みのtestを人が実行するだけならこの状態へ読み替えない。
 - `BLOCKED`: blockerと再開条件を報告して停止する。
 - `ERROR`または非0 exit: error codeと安全なmessageを報告して停止する。新session、retry、context replay、別providerへの切替を行わない。
 
@@ -78,10 +93,10 @@ purpose-review-runner continue --run <run-id>
 
 `continue`もprovider完了を待たない。`continue`へcontext、previous output、provider設定、session IDを追加しない。同じreviewer sessionが保持する目的理解を利用する。返ったあとは再び`status --run <run-id>`でpollingする。再び`FINDINGS`なら親が修正・validationして同じcommandを使い、terminal statusまで繰り返す。
 
-再reviewは指摘への追従確認ではなく、元の目的に対する現在の実装全体と修正差分の評価である。`message`にある比較基準・未検証事項・findingの訂正や撤回理由も扱い、撤回を実装修正済みと報告しない。前回の未コミット状態を復元できないなどの比較限界は、確認済みと置き換えず最終報告へ引き継ぐ。
+再reviewは指摘への追従確認ではなく、元の目的に対する現在の実装全体と修正差分の評価である。`message`にある比較基準・未検証事項・findingの訂正や撤回理由も扱い、撤回を実装修正済みと報告しない。十分に申し送り済みの同じ手動testが未実施であることだけを、再度の不合格理由にしない。前回の未コミット状態を復元できないなどの比較限界は、確認済みと置き換えず最終報告へ引き継ぐ。
 
 Round 3でfindingが残る場合はRunnerが`HUMAN_DECISION_REQUIRED`を返す。automatic round 4、session reconstruction、transcript replay、別reviewer recoveryを行わない。
 
 ## Report
 
-完了済み、未検証、HumanDecisionRequiredまたはBlocked、人手で必要な作業を分ける。reviewerがrepositoryを変更しないことは役割契約であり、OS-level isolationの証明とは表現しない。
+完了済みの実装reviewと検証、未検証事項、HumanDecisionRequiredまたはBlocked、人手で必要な作業を分ける。未実施testは申し送りの内容と記録先を保持し、成功済み、実環境で目的達成済み、案件全体の完了とは表現しない。reviewerがrepositoryを変更しないことは役割契約であり、OS-level isolationの証明とは表現しない。
