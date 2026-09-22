@@ -35,7 +35,7 @@ timeout、Draft、base/headまたはhead repository identityのdrift、review要
 
 ## Adaptive Implementation
 
-Adaptive Implementationは標準の必須経路ではありません。利用者が明示的に`$adaptive-implementation-execution`を指定した場合だけremediation実装に利用できます。指定がなければ現在の親が実装し、Adaptiveの導入、起動、別turnを要求しません。明示利用した場合も、この親がreview coverage、validation、commit / push、最終報告まで継続します。
+Adaptive Implementationは標準の必須経路ではありません。利用者が明示的に`/adaptive-implementation-execution`を指定した場合だけremediation実装に利用できます。指定がなければ現在の親が実装し、Adaptiveの導入、起動、別turnを要求しません。明示利用した場合も、この親がreview coverage、validation、commit / push、最終報告まで継続します。
 
 ## Package contents
 
