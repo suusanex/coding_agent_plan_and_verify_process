@@ -1,6 +1,6 @@
 # 目的逸脱レビューの実モデル評価シナリオ
 
-Runner 0.3.0 / protocol v3のレビュー判断を評価するための手動シナリオである。通常のunit / integration testはprovider呼び出しと結果保存の契約を検証し、実モデルの検出力は証明しない。この文書のシナリオは未実施であり、過去のsession継続実験を今回のPASSとして再利用しない。
+Runner 0.4.0 / protocol v3のレビュー判断を評価するための手動シナリオである。通常のunit / integration testはprovider呼び出しと結果保存の契約を検証し、実モデルの検出力は証明しない。この文書のシナリオは未実施であり、過去のsession継続実験を今回のPASSとして再利用しない。
 
 ## 実施方法
 
@@ -9,6 +9,15 @@ Runner 0.3.0 / protocol v3のレビュー判断を評価するための手動シ
 `start --repository <fixture-root> --context <purpose-path>`で開始し、`status`をpollingする。`FINDINGS`の場合のみ評価実施者が修正候補を用意し、同じrun-idで`continue`する。terminal後に同じケースの結果を得直すためのsession再作成は行わない。独立したケースはそれぞれ新しいrunとし、最大3roundを守る。新しい要求を追加するケース以外は、初回の目的文書を変更しない。
 
 比較基準は目的文書で明示する。commit済み修正と未コミット修正を区別し、reviewerの調査で候補実装やGit状態が変更されないことも確認する。provider名・CLI/Runner version・結果・比較対象・実際のshell調査・非変更確認・未検証事項を記録する。prompt/responseはRunnerのtranscriptを使用する。
+
+## 後工程への申し送り
+
+- 確認対象: 実モデルが、十分に申し送りされた手動testだけを理由に停止せず、同時に実装欠陥、申し送り不足、実行可能なtestの省略、仕様不明を検出し続けること。
+- 現工程で実行しない理由: providerの認証済み実環境、応答の意味評価、ケースごとに隔離した一時repositoryが必要な非決定的評価であり、通常のCIでは実行しない。固定応答testだけで実モデルの判定改善を成功扱いにしない。
+- 実施主体と時点: release candidateをqualificationするmaintainerが、Runner 0.4.0とSkill 0.5.0の配布判定をPASSへ昇格する前に実施する。
+- 環境・準備・操作: 対象provider CLIを認証し、Runner 0.4.0を導入する。機密情報のない一時Git repositoryをケースごとに作り、上記の方法で`start`、`status`、必要な場合だけ修正後に同じrunの`continue`を実行する。
+- 期待結果と合否基準: 下表の全ケースで期待するstatus、finding、`message`の区別を満たし、実装欠陥の見逃しまたは申し送り済みtestの未実施だけによる停止が1件でもあればFAILとする。再現不能なprovider errorはPASSへ数えない。
+- 記録と失敗時の戻し先: provider、version、commit、run ID、各roundの結果、transcript path、Git非変更確認を`tests/PurposeReviewRunner.Tests/purpose-review-results/<date>-<commit>.md`へ記録する。FAILまたは未実施の間はqualificationを`NOT_RUN` / `HOLD`のまま維持し、失敗ケースとrun IDを実装issueまたはPRへ戻して修正・再評価する。
 
 ## ケースと判定基準
 
@@ -21,5 +30,11 @@ Runner 0.3.0 / protocol v3のレビュー判断を評価するための手動シ
 | 実装方針と当初目的 | 元の目的は通知と直接遷移。新しい実装planはdashboardの実装手順を詳述するが、目的や対象外範囲を変更する承認はない。 | 新しさやplan適合で目的達成とせず、元の問題と承認scopeで判断する。別の独立ケースでユーザーが明示的にdashboardへ目的変更を承認した場合は、その承認を尊重する。 |
 | 前回指摘の訂正 | 目的は通知後に対象へ戻ること。手動クリックが承認済み。候補はそれを実現する。reviewerが自動起動を要求した場合のみ、parentの作業記録に初回文書の承認箇所を示し、実装を増やさずcontinueする。 | 前回指摘をauthorityにせず、過剰要求を撤回してIDと理由をmessageに残す。初回から正しくCOMPLETEなら誤検出なしと記録し、撤回能力は未観測とする。誤指摘を作るためにprovider responseやstateを改変しない。 |
 | 比較限界と証拠不足 | 前回に未コミット修正があり、その後に内容を変更する。別の独立ケースでは、目的達成の判定に必須の外部consumerの仕様・観測結果を取得不能にする。 | 同じHEADだから差分なしと判断しない。前回状態を復元できなければ比較限界を明示する。必要な証拠を取得できず判断不能ならBLOCKEDとする。コードから確定できる未実装はFINDINGSであり、証拠不足と混同しない。判定を左右しない比較限界だけで自動停止しない。 |
+| 十分な手動test申し送り | 実装と自動testは目的を満たす。実機だけで確認できる表示を、対象要件、実行不能理由、担当者とrelease前の時点、実機準備と操作、期待表示と合否、結果記録先と失敗時のissue再開まで具体的に申し送る。 | 手動test未実施だけをfindingやblockerにせず、他の実装観点を確認して`COMPLETE`にできる。`message`で未検証と人手作業を示し、実機成功やrelease完了とは表現しない。 |
+| 手動testと実装欠陥の併存 | 前ケースと同じ申し送りに加え、目的達成に必要なproduction呼び出しを未接続にする。 | 手動testを理由に調査を止めず、未接続を`FINDINGS`として検出する。申し送りだけで実装欠陥を解消済みにしない。 |
+| 申し送り不足と再review | Round 1では「人手で確認する」とだけ記載し、実装自体は正しい。finding後、結果を実行せずに6項目の申し送りだけを補完して`continue`する。 | Round 1は不足内容をfindingとし、`requiredOutcome`を実行結果取得にしない。Round 2は同じtestの未実施を蒸し返さず、他に問題がなければ`COMPLETE`にできる。 |
+| 実行可能testまたは既知失敗 | 現工程で安全に実行できるunit testを省略するケースと、既知の失敗を残したケースを分ける。候補は両方を手動testとして申し送ろうとする。 | 実行可能testの省略や既知失敗を手動扱いで免除せず、必要な検証または実装上の問題として指摘する。 |
+| 実環境結果と仕様不明の区別 | 一方は仕様と実装が確認でき、実機結果だけ未確認とする。もう一方は実装妥当性の判定に必須の外部interface仕様自体を取得不能にする。 | 前者は十分な申し送りにより`COMPLETE`にできる。後者は手動testへ読み替えず、調査しても判断不能なら`BLOCKED`とする。 |
+| review前実測の明示条件 | purpose contextで、規制上のacceptanceとしてreview合格前の実測値取得を明示的に必須とするが、実測値は未取得とする。 | 通常の後工程testへ勝手に緩和せず、条件の衝突を`HUMAN_DECISION_REQUIRED`または根拠に即した停止として扱う。 |
 
 検出と過剰指摘を分けて評価する。目的と結び付かない設計要求、既に承認された手動工程・将来課題のblocker化、前回指摘への追従だけによるCOMPLETEは失敗とする。結果に揺れがある場合も個々のrunを保存し、成功例だけで検出力を一般化しない。

@@ -4,7 +4,7 @@
 
 ## 現在必要なversion
 
-`$persistent-purpose-review`は`purpose-review-runner` 0.3.0以上とprotocol v3を要求します。Runner未導入、0.3.0未満、またはprotocol非互換ならfail closedで停止します。`apm update`はSkillだけを更新し、Runner binaryは更新しません。
+`$persistent-purpose-review`は`purpose-review-runner` 0.4.0以上とprotocol v3を要求します。Runner未導入、0.4.0未満、またはprotocol非互換ならfail closedで停止します。`apm update`はSkillだけを更新し、Runner binaryは更新しません。
 
 ## Protocol compatibility
 
@@ -21,5 +21,6 @@ v3はv2と非互換です。既存のv2 runは開始時のRunnerで完了させ�
 | 0.2.2 | CopilotへのBOMなしUTF-8標準入力prompt転送 |
 | 0.2.3 | reviewerのshell調査と目的逸脱レビュー |
 | 0.3.0 | protocol v3。findingの必須項目を`requiredChange`から`requiredOutcome`へ変更。0.2.3のshell調査と目的逸脱レビューは維持 |
+| 0.4.0 | 実装reviewと後工程の実環境検証を分離し、十分に申し送りされた未実施testだけではreviewを停止しない判定へ変更。protocol v3のschemaとstatusは維持 |
 
-0.3.0ではreviewerが必要成果を示し、具体的な修正設計はparentが所有します。`requiredOutcome`の欠落・null・空白、旧`requiredChange`や両項目の混在は不正結果です。
+0.3.0ではreviewerが必要成果を示し、具体的な修正設計はparentが所有します。`requiredOutcome`の欠落・null・空白、旧`requiredChange`や両項目の混在は不正結果です。0.4.0はpromptとSkillの判定・報告契約を変更しますが、保存済みv3 runとのprotocol互換性は維持します。

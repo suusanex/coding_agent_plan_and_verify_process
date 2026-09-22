@@ -63,7 +63,7 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persisten
 purpose-review-runner version
 ```
 
-このSkillは`purpose-review-runner` 0.3.0以上とprotocol v3を要求し、`apm update`だけでは旧Runnerは更新されません。通常はRunnerコマンドを手で呼びません。実装指示へ「実装完了後は `$persistent-purpose-review` に従ってpurpose reviewを完了してください」を加えます。Goal Contextはfree-form textであり、`goal-context-authoring` packageへの依存を意味しません。baseline PR reviewの代替ではないため、Ready PRのbaseline planが必要な場合は上のPR Review Remediationを使います。
+このSkillは`purpose-review-runner` 0.4.0以上とprotocol v3を要求し、`apm update`だけでは旧Runnerは更新されません。通常はRunnerコマンドを手で呼びません。実装指示へ「実装完了後は `$persistent-purpose-review` に従ってpurpose reviewを完了してください」を加えます。Goal Contextはfree-form textであり、`goal-context-authoring` packageへの依存を意味しません。baseline PR reviewの代替ではないため、Ready PRのbaseline planが必要な場合は上のPR Review Remediationを使います。
 
 ### Planから実装・検証・残件判断まで抜けを防ぎたい
 

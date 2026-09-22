@@ -25,6 +25,8 @@ findingは`id`、`severity`、`title`、`summary`、`evidence`、`requiredOutcom
 
 `FINDINGS`の場合だけ元のimplementation parentが修正・検証し、同じ`run-id`を`continue`します。`COMPLETE`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`、`ERROR`では停止します。`RUNNING`なら`status`を繰り返します。
 
+`COMPLETE`は実装reviewの完了を表し、申し送り済みの未実施testが成功したことや、実環境検証・リリース条件が完了したことは表しません。エージェントが実行不能・実行不許可、または承認済み後工程のtestだけが残り、対象、理由、主体と時点、環境と手順、期待結果と合否基準、記録先と失敗時の戻し先が揃っていれば、reviewerは未実施だけをblockerにせず、未検証事項と人手作業を`message`に残せます。schemaとstatusはprotocol v3のままです。
+
 ## Exit codes
 
 | Exit code | 意味 |

@@ -18,13 +18,13 @@ $manifest = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'apm.yml')
 $skill = Get-Content -Raw -LiteralPath $skillPath
 $readme = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'README.md')
 
-if ($manifest -notmatch '(?m)^name:\s*persistent-purpose-review\s*$' -or $manifest -notmatch '(?m)^version:\s*0\.4\.0\s*$') {
+if ($manifest -notmatch '(?m)^name:\s*persistent-purpose-review\s*$' -or $manifest -notmatch '(?m)^version:\s*0\.5\.0\s*$') {
     throw 'APM package identity is invalid.'
 }
 if ($manifest -notmatch '(?ms)^targets:\s*$.*^\s+- copilot\s*$.*^\s+- codex\s*$.*^\s+- agent-skills\s*$') {
     throw 'APM package targets are invalid.'
 }
-if ($skill -notmatch 'purpose-review-runner version' -or $skill -notmatch 'protocolVersion.*`3`' -or $skill -notmatch 'runnerVersion' -or $skill -notmatch '0\.3\.0') {
+if ($skill -notmatch 'purpose-review-runner version' -or $skill -notmatch 'protocolVersion.*`3`' -or $skill -notmatch 'runnerVersion' -or $skill -notmatch '0\.4\.0') {
     throw 'Skill does not fail closed on the Runner protocol boundary.'
 }
 if ($skill -notmatch 'status --run' -or $skill -notmatch 'RUNNING' -or $skill -notmatch 'jobStatus') {
@@ -57,8 +57,14 @@ if ($readme -match 'sandbox' -or $skill -match 'sandbox') {
 if ($readme -notmatch 'non-modifying reviewer' -or $skill -notmatch 'repositoryを変更しない') {
     throw 'Package documents do not preserve the non-modifying reviewer contract.'
 }
-if ($readme -notmatch '0\.3\.0' -or $readme -notmatch 'apm update') {
-    throw 'Package README does not require Runner 0.3.0 or later after APM-only updates.'
+if ($readme -notmatch '0\.4\.0' -or $readme -notmatch 'apm update') {
+    throw 'Package README does not require Runner 0.4.0 or later after APM-only updates.'
+}
+if ($skill -notmatch '実行可能かつ許可済み' -or $skill -notmatch '確認対象の目的・要件' -or $skill -notmatch '結果の記録先' -or $skill -notmatch '実環境検証完了とは報告しない') {
+    throw 'Skill does not preserve the manual test handoff and reporting contract.'
+}
+if ($readme -notmatch '未実施だけを理由にreviewを不合格にしません' -or $readme -notmatch 'HUMAN_DECISION_REQUIRED' -or $readme -notmatch 'リリース条件の充足') {
+    throw 'Package README does not explain the implementation review and manual verification boundary.'
 }
 
 Write-Output 'Persistent Purpose Review package validation: PASS'
