@@ -49,9 +49,9 @@ Design Pair manifestもAdaptive Skillとcanonical agentsをdependencyとして�
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target copilot,codex,agent-skills
-$moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
-dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
 ```
+
+PR Review RemediationはSkillとcollectorだけを導入し、独立agent、Codex agent profile、共通finalizerを必要としません。
 
 実装後の目的達成reviewと修正を元のimplementation parent内で完了したい場合は、[Persistent Purpose Review](apm-packages/persistent-purpose-review/README.md)を使います。Skillは実装担当エージェントにレビュー工程を教え、独立reviewerの起動はOS user単位の[Purpose Review Runner](apps/PurposeReviewRunner/README.md)が担当します。順序は「RunnerをPCへ一度導入 → 実行環境へSkillを`--global`で導入」です。Runner未導入のまま`apm install`だけしてもreviewは始まりません。
 
@@ -101,7 +101,7 @@ APM installがportable agentsとSkillを導入し、finalizerが必要なCodex p
    apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow --target copilot,codex,agent-skills
    ```
 
-2. 同じ導入先repositoryでDesign PairとPR Review Remediationを追加します。必要なAPM installをすべて終えてから、共通finalizerを一度実行します。
+2. 同じ導入先repositoryでDesign PairとPR Review Remediationを追加します。Design Pairが利用するAdaptive agentsのため、必要なAPM installをすべて終えてから共通finalizerを一度実行します。PR Review Remediation自体はfinalizerを必要としません。
 
    ```powershell
    apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target copilot,codex,agent-skills
@@ -112,7 +112,7 @@ APM installがportable agentsとSkillを導入し、finalizerが必要なCodex p
 
    Persistent Purpose Reviewを含める場合、このrepository向けinstallとは別に、[Persistent Purpose Review](apm-packages/persistent-purpose-review/README.md)の手順でRunnerとSkillを実行環境へ導入します。
 
-各用途のQuickstartを個別に実行する場合も、APMの導入結果を確認してからfinalizerを実行します。異なる明示済みprofileを更新する場合だけ、保守文書の手順に従って`--force`を使います。
+Adaptive、Design Pair、Plan CoverageのQuickstartを個別に実行する場合は、APMの導入結果を確認してからfinalizerを実行します。PR Review Remediation単体では実行しません。異なる明示済みprofileを更新する場合だけ、保守文書の手順に従って`--force`を使います。
 
 ## 開発支援ツール
 

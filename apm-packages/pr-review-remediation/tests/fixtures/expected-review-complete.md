@@ -1,9 +1,9 @@
 # PR Review Remediation Result
 
-## Planning Verdict
+## Review Evaluation
 
-- Verdict: REVIEW_COMPLETE
-- Planning status: Complete
+- State: REVIEW_COMPLETE
+- Evaluation status: Complete
 - Execution owner: NO_REMEDIATION
 - Adaptive explicitly selected by user: No
 - Adaptive selection evidence: 親が利用者指示に明示選択がないことを確認
@@ -11,9 +11,9 @@
 
 ## Finding Decision Ledger
 
-| Source ID | Source | Location | Summary | Planner recommendation | Final decision | Reason | Resolution / Evidence | Duplicate of | Conflicts with | Scope / Acceptance mapping |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| review:1001 | GitHub PR review | PR | actionableではないfinding | Reject | Reject | validationにより報告内容が成立しないことを確認した | 既存のfocused testが成功 | N/A | N/A | N/A |
+| Source ID | Source | Location | Summary | Decision | Reason | Resolution / Evidence | Duplicate of | Conflicts with | Scope / Acceptance mapping |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| review:1001 | GitHub PR review | PR | actionableではないfinding | Reject | validationにより報告内容が成立しないことを確認した | 既存のfocused testが成功 | N/A | N/A | N/A |
 
 ## Source Coverage
 

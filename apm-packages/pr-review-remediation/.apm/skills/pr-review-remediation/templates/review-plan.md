@@ -1,10 +1,10 @@
 # PR Review Remediation Result
 
-## Planning Verdict
+## Review Evaluation
 
-- Verdict: REMEDIATION_REQUIRED / REVIEW_COMPLETE / HUMAN_DECISION_REQUIRED / BLOCKED
-- Planning status: Complete / Human decision required / Blocked
-- Production / tests / docs changed during planning: No
+- State: REMEDIATION_REQUIRED / REVIEW_COMPLETE / HUMAN_DECISION_REQUIRED / BLOCKED
+- Evaluation status: Complete / Human decision required / Blocked
+- Production / tests / docs changed during evaluation: No
 - Execution owner: CURRENT_PARENT / EXPLICIT_ADAPTIVE / NO_REMEDIATION / NONE
 - Adaptive explicitly selected by user: Yes / No / Unresolved
 - Adaptive selection evidence: 利用者指示のreference / 親が明示選択なしを確認 / N/A
@@ -37,9 +37,9 @@
 
 ## Finding Decision Ledger
 
-| Source ID | Source | Location | Summary | Planner recommendation | Final decision | Reason | Resolution / Evidence | Duplicate of | Conflicts with | Scope / Acceptance mapping |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| review:123 | GitHub PR review |  |  | Apply / Hold / Reject | Apply / Reject / Human decision required / Pending |  |  | N/A | N/A | SI-001 / AC-001 |
+| Source ID | Source | Location | Summary | Decision | Reason | Resolution / Evidence | Duplicate of | Conflicts with | Scope / Acceptance mapping |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| review:123 | GitHub PR review |  |  | Apply / Reject / Human decision required / Pending |  |  | N/A | N/A | SI-001 / AC-001 |
 
 親はterminal verdictの前にすべての`Pending`を解消します。`Hold`または`Human decision required`を通常完了へ混ぜません。
 
@@ -76,7 +76,7 @@ implementation_intent:
 
 ## Execution Result
 
-このsectionは親が最終判断、remediation、validation、Git操作の後に更新します。
+このsectionは親がremediation、validation、Git操作の後に更新します。
 
 - Final verdict: REVIEW_COMPLETE / HUMAN_DECISION_REQUIRED / BLOCKED / Pending
 - Production / tests / docs changed: Yes / No / Pending

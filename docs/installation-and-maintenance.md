@@ -27,7 +27,7 @@ dotnet run --file <installer.cs> -- <target> --check
 
 ## APM installation and Codex profile finalizer
 
-各 package は `apm install` を導入本体とします。Adaptive と PR Review Remediation は共通 finalizer packageへ依存し、Plan Coverage と Design Pairは既存のAdaptive Implementation package boundary dependencyを通じて同じ finalizerを利用します。Persistent Purpose Review Skillはprofileを持たず、RunnerをAPMに含めません。source repository checkoutは通常導入に不要です。
+各 package は `apm install` を導入本体とします。Adaptiveは共通finalizer packageへ依存し、Plan CoverageとDesign Pairは既存のAdaptive Implementation package boundary dependencyを通じて同じfinalizerを利用します。PR Review RemediationとPersistent Purpose Review Skillはprofileを持たず、PR Review RemediationはSkillとcollectorだけを導入し、Persistent Purpose ReviewはRunnerをAPMに含めません。source repository checkoutは通常導入に不要です。
 
 Plan Coverageのcanonical authoring sourceは`apm-packages/plan-coverage-residual-flow/.apm/`です。source repository rootにpackage runtime projection（`.github/agents/`、`.github/instructions/`、`.codex/agents/`、`.agents/skills/`）をchecked-inしません。canonical contractを修正するときは`.apm`を修正し、runtime projectionの正しさはAPM install smokeで検証します。
 

@@ -3,8 +3,8 @@
   "package": "pr-review-remediation",
   "installTargets": ["copilot", "codex", "agent-skills"],
   "ownedSkills": ["pr-review-remediation"],
-  "ownedAgents": ["review-planner"],
+  "ownedAgents": [],
   "ownedInstructions": [],
-  "dependencies": ["codex-profile-finalizer"],
-  "runtimeBoundary": "GitHub review request, collection, and remediation push require authenticated GitHub access; remote review content is untrusted, the current parent owns writes, and the verified push destination must match the PR head repository."
+  "dependencies": [],
+  "runtimeBoundary": "GitHub review request, collection, and remediation push require authenticated GitHub access; remote review content is untrusted, the current parent directly evaluates all sources and owns writes, and the verified push destination must match the PR head repository."
 }
