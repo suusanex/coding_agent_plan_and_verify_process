@@ -45,12 +45,18 @@ try {
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' '利用者がAdaptive Implementationを明示的に指定' 'explicit Adaptive selection boundary'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'COMMITTED_AND_PUSHED' 'default remediation commit and push outcome'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'empty commit' 'no empty commit contract'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'Untrusted remote content boundary' 'untrusted remote content boundary'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'Adaptive selection evidenceは利用者の指示だけ' 'Adaptive selection evidence propagation'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'headRepository\.nameWithOwner' 'PR head repository push boundary'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'Apply \| Hold \| Reject' 'remote finding recommendation contract'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' '最終判断' 'parent final-decision boundary'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'waitStatus: timeout' 'timeout fail-closed contract'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'REMEDIATION_REQUIRED' 'non-Adaptive planning verdict'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md' 'Resolution / Evidence' 'finding resolution evidence contract'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md' 'Git outcome' 'Git outcome reporting contract'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md' 'Verified push destination repository / branch' 'verified push destination evidence'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs' 'headRepository,headRepositoryOwner,isCrossRepository' 'collector head repository fields'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs' 'remoteContentIsUntrusted' 'collector trust boundary metadata'
     Assert-Contains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md' 'Final verdict: REVIEW_COMPLETE' 'completed remediation expected verdict'
     Assert-Contains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md' 'Git outcome: COMMITTED_AND_PUSHED' 'completed remediation Git outcome'
     Assert-Contains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-complete.md' 'Git outcome: NO_CHANGES' 'no-remediation Git outcome'
@@ -90,7 +96,9 @@ try {
         'REMOTE-007' = @('REVIEW_COMPLETE', 'CURRENT_PARENT', 'COMMITTED_AND_PUSHED')
         'REMOTE-008' = @('REVIEW_COMPLETE', 'EXPLICIT_ADAPTIVE', 'COMMITTED_AND_PUSHED')
         'REMOTE-009' = @('REVIEW_COMPLETE', 'CURRENT_PARENT', 'SKIPPED_BY_USER')
-        'REMOTE-010' = @('BLOCKED', 'CURRENT_PARENT', 'NOT_PUSHED')
+        'REMOTE-010' = @('BLOCKED', 'CURRENT_PARENT', 'NOT_ATTEMPTED')
+        'REMOTE-011' = @('REVIEW_COMPLETE', 'NO_REMEDIATION', 'NO_CHANGES')
+        'REMOTE-012' = @('BLOCKED', 'CURRENT_PARENT', 'NOT_ATTEMPTED')
     }
     if (@($catalog.scenarios).Count -ne $expected.Count) { throw 'Unexpected remote scenario count.' }
     foreach ($scenario in @($catalog.scenarios)) {

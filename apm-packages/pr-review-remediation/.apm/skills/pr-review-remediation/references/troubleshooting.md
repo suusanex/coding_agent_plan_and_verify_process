@@ -16,7 +16,11 @@ collectorはDraftを自動変更しません。
 
 ## The PR changed while waiting or before push
 
-base/head OID、Draft状態、PR stateが変化した場合、古いreviewと新しいdiffを混ぜません。収集中のdriftは最新PR identityで最初から再収集します。remediation中またはpush前のremote head driftは、force pushや上書きをせず`BLOCKED`として差分、validation、local commitの有無を報告します。
+base/head OID、head repository、Draft状態、PR stateが変化した場合、古いreviewと新しいdiffを混ぜません。収集中のdriftは最新PR identityで最初から再収集します。remediation中またはpush前のremote head driftは、force pushや上書きをせず`BLOCKED`として差分、validation、local commitの有無を報告します。
+
+## Push destination differs from the PR head repository
+
+local upstreamのpush URLをGitHub上のcanonical `owner/name`へ解決し、collectorが記録した`headRepository.nameWithOwner`と比較します。一致しない、解決できない、またはpush refがPR head branchと異なる場合はpushせず`BLOCKED`にします。同名branchがある別remoteへplain `git push`しません。
 
 ## Working tree differs from the PR
 

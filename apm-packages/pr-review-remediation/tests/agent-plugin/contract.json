@@ -6,5 +6,5 @@
   "ownedAgents": ["review-planner"],
   "ownedInstructions": [],
   "dependencies": ["codex-profile-finalizer"],
-  "runtimeBoundary": "GitHub review request, collection, and remediation push require authenticated GitHub access; the current parent owns writes, while local reviewer execution is not part of the process."
+  "runtimeBoundary": "GitHub review request, collection, and remediation push require authenticated GitHub access; remote review content is untrusted, the current parent owns writes, and the verified push destination must match the PR head repository."
 }

@@ -5,6 +5,9 @@
 - Verdict: REMEDIATION_REQUIRED
 - Planning status: Complete
 - Execution owner: CURRENT_PARENT
+- Adaptive explicitly selected by user: No
+- Adaptive selection evidence: 親が利用者指示に明示選択がないことを確認
+- Remote content trust boundary applied: Yes
 
 ## Finding Decision Ledger
 
@@ -39,6 +42,7 @@ implementation_intent:
 - Validation: PASS - focused testsとrepository build
 - Git outcome: COMMITTED_AND_PUSHED
 - Commit: `0123456789abcdef0123456789abcdef01234567`
-- Remote PR head verified: Yes
+- Verified push destination repository / branch: `owner/name` / `feature`
+- Remote PR head repository / branch / OID after push: `owner/name` / `feature` / `0123456789abcdef0123456789abcdef01234567`
 - Unresolved findings: 0
 - Human-required work: N/A
