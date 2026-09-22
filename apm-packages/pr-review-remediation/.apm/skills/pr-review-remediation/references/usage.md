@@ -9,10 +9,10 @@ dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\fina
 dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- . --check
 ```
 
-## Start Phase 1
+## Start
 
 ```text
-$pr-review-remediation を使って、このbranchのReady PRにGitHub上のreviewを要求し、remote review evidenceだけからreview-plan.mdを作成したところで停止してください。
+$pr-review-remediation を使って、このbranchのReady PRにGitHub上のreviewを要求し、各findingの評価、必要な修正、validation、commit、pushまで完了してください。
 ```
 
 PRを明示する場合:
@@ -21,14 +21,13 @@ PRを明示する場合:
 $pr-review-remediation を使って owner/name#123 を処理してください。出力先は .review/pr-123 としてください。
 ```
 
-## Start Phase 2
-
-Phase 1が`READY_FOR_ADAPTIVE_IMPLEMENTATION`になり、利用者が別turnで実装を明示した場合だけAdaptiveを導入して開始します。`REVIEW_COMPLETE`は修正不要の終端であり、Adaptiveを導入または開始しません。
+通常はこのSkillを開始した親がremediationを実装します。Adaptive Implementationを使う場合だけ、同じ依頼で明示します。
 
 ```text
-$adaptive-implementation-execution を使って .review/pr-123/review-plan.md を実装してください。
-review-plan.md の implementation_intent を source of truth としてください。
+$pr-review-remediation を使って owner/name#123 を処理し、採用したfindingの実装には $adaptive-implementation-execution を使ってください。review coverage、validation、commit、pushまで同じ作業内で完了してください。
 ```
+
+Adaptiveの明示指定がない依頼から、親がAdaptiveの導入または別turnを要求してはいけません。
 
 ## Artifacts
 
@@ -37,7 +36,7 @@ review-plan.md の implementation_intent を source of truth としてくださ�
 | `review-context.json` | collector | machine-readable remote PR/review/check context |
 | `review-context.md` | collector | human-readable remote context |
 | `pr-diff.patch` | collector | confirmed remote base/head patch |
-| `review-plan.md` | parent from review-planner output | Adaptive-ready remediation plan |
+| `review-plan.md` | parent from planner output | finding decision、remediation、validation、Git結果の記録 |
 
 `$persistent-purpose-review`は別run、別stateを所有し、このartifact集合へ目的review結果を混在させません。
 
@@ -47,4 +46,4 @@ review-plan.md の implementation_intent を source of truth としてくださ�
 pwsh -File apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation.ps1
 ```
 
-外部modelを通常CIから呼びません。runtime qualificationでは送信対象をrepo-owned fixtureまたは明示されたReady PRに限定し、取得できないreviewをPASSへ昇格させません。
+外部modelを通常CIから呼びません。runtime qualificationでは送信対象をrepo-owned fixtureまたは明示されたReady PRに限定し、取得できないreview、未実施のremediation、未確認のpushをPASSへ昇格させません。

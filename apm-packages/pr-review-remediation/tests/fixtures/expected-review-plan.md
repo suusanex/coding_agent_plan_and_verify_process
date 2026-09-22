@@ -1,39 +1,44 @@
-# PR Review Remediation Plan
+# PR Review Remediation Result
 
-## Phase 1 Verdict
+## Planning Verdict
 
-- Verdict: READY_FOR_ADAPTIVE_IMPLEMENTATION
-- Production code changed: No
-- Process status: Review planning complete
+- Verdict: REMEDIATION_REQUIRED
+- Planning status: Complete
+- Execution owner: CURRENT_PARENT
 
 ## Finding Decision Ledger
 
-| Source ID | Source | Location | Summary | Decision | Reason | Duplicate of | Conflicts with | Scope / Acceptance mapping |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| review:1001 | GitHub PR review | `src/Fixture.cs:1` | Add regression coverage | Apply | Preserve the changed behavior | N/A | N/A | SI-001 / AC-001 |
-| inline-comment:2001 | GitHub inline comment | `src/Fixture.cs:1` | Same missing coverage | Apply | Same root cause | review:1001 | N/A | SI-001 / AC-001 |
-| pr-comment:501 | PR comment | PR | Preserve public contract | Hold | Needs product confirmation if API changes | N/A | N/A | constraint C-001 |
+| Source ID | Source | Location | Summary | Planner recommendation | Final decision | Reason | Resolution / Evidence | Duplicate of | Conflicts with | Scope / Acceptance mapping |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| review:1001 | GitHub PR review | `src/Fixture.cs:1` | regression coverageを追加する | Apply | Apply | 変更した振る舞いを保護する必要がある | testを追加し、AC-001が成功 | N/A | N/A | SI-001 / AC-001 |
+| inline-comment:2001 | GitHub inline comment | `src/Fixture.cs:1` | 同じcoverage不足 | Apply | Apply | review:1001と同じ原因である | review:1001のremediationで解消 | review:1001 | N/A | SI-001 / AC-001 |
+| pr-comment:501 | PR comment | PR | public APIを再設計する | Reject | Reject | review対象のPR scope外であり、報告された不具合の解消に不要である | このsourceによるproduction変更なし | N/A | N/A | N/A |
 
 ## Implementation Intent
 
 ```yaml
 implementation_intent:
-  goal: Preserve the intended return-value change with regression coverage.
+  goal: 意図したreturn value変更をregression coverageで保護する。
   scope:
-    - SI-001: Add focused tests for the changed behavior.
+    - SI-001: 変更した振る舞いのfocused testを追加する。
   non_goals:
-    - Public API redesign.
+    - Public APIの再設計。
   acceptance:
-    - AC-001: Focused tests cover the changed true result and pass.
+    - AC-001: 変更後のtrue結果をfocused testがcoverし、成功する。
   constraints:
-    - C-001: Preserve the current public contract.
+    - C-001: 現在のpublic contractを維持する。
   validation:
-    - Run focused tests and the repository build.
+    - Focused testとrepository buildを実行する。
   plan_reference: .review/pr-123/review-plan.md
 ```
 
-## Explicit Implementation Turn Handoff
+## Execution Result
 
-```text
-$adaptive-implementation-execution を使って .review/pr-123/review-plan.md を実装してください。
-```
+- Final verdict: REVIEW_COMPLETE
+- Production / tests / docs changed: Yes
+- Validation: PASS - focused testsとrepository build
+- Git outcome: COMMITTED_AND_PUSHED
+- Commit: `0123456789abcdef0123456789abcdef01234567`
+- Remote PR head verified: Yes
+- Unresolved findings: 0
+- Human-required work: N/A

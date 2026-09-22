@@ -1,10 +1,14 @@
-# PR Review Remediation Plan
+# PR Review Remediation Result
 
-## Phase 1 Verdict
+## Planning Verdict
 
-- Verdict: READY_FOR_ADAPTIVE_IMPLEMENTATION / REVIEW_COMPLETE / HUMAN_DECISION_REQUIRED / BLOCKED
-- Production code changed: No
-- Process status: Review planning complete / Review complete, no remediation required / Human decision required / Blocked
+- Verdict: REMEDIATION_REQUIRED / REVIEW_COMPLETE / HUMAN_DECISION_REQUIRED / BLOCKED
+- Planning status: Complete / Human decision required / Blocked
+- Production / tests / docs changed during planning: No
+- Execution owner: CURRENT_PARENT / EXPLICIT_ADAPTIVE / NO_REMEDIATION / NONE
+- Adaptive selection evidence: N/A / 利用者の明示指定を記録
+
+`REMEDIATION_REQUIRED`は同じ親が処理を継続する内部状態です。terminal verdictとして利用者へ別turnを要求しません。
 
 ## PR Identity
 
@@ -13,6 +17,7 @@
 - Base branch / OID:
 - Head branch / OID:
 - Context directory:
+- Initial working tree:
 
 ## Remote Review Input Status
 
@@ -27,9 +32,11 @@
 
 ## Finding Decision Ledger
 
-| Source ID | Source | Location | Summary | Decision | Reason | Duplicate of | Conflicts with | Scope / Acceptance mapping |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| review:123 | GitHub PR review |  |  | Apply / Hold / Reject |  | N/A | N/A | SI-001 / AC-001 |
+| Source ID | Source | Location | Summary | Planner recommendation | Final decision | Reason | Resolution / Evidence | Duplicate of | Conflicts with | Scope / Acceptance mapping |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| review:123 | GitHub PR review |  |  | Apply / Hold / Reject | Apply / Reject / Human decision required / Pending |  |  | N/A | N/A | SI-001 / AC-001 |
+
+親はterminal verdictの前にすべての`Pending`を解消します。`Hold`または`Human decision required`を通常完了へ混ぜません。
 
 ## Source Coverage
 
@@ -39,7 +46,7 @@
 
 ## Ordered Remediation Plan
 
-`REVIEW_COMPLETE`の場合はこのsectionを`N/A - no remediation required`とし、stepを生成しません。
+`REVIEW_COMPLETE`で修正不要の場合はこのsectionを`N/A - no remediation required`とし、stepを生成しません。
 
 | Step | Scope ID | Acceptance ID | Finding IDs | Change | Expected files / symbols | Acceptance | Validation |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -47,7 +54,7 @@
 
 ## Implementation Intent
 
-`REVIEW_COMPLETE`の場合はこのsectionを省略します。
+`REVIEW_COMPLETE`で修正不要の場合はこのsectionを省略します。
 
 ```yaml
 implementation_intent:
@@ -62,6 +69,29 @@ implementation_intent:
   plan_reference: .review/pr-123/review-plan.md
 ```
 
+## Execution Result
+
+このsectionは親が最終判断、remediation、validation、Git操作の後に更新します。
+
+- Final verdict: REVIEW_COMPLETE / HUMAN_DECISION_REQUIRED / BLOCKED / Pending
+- Production / tests / docs changed: Yes / No / Pending
+- Unresolved findings: 0 / count / Pending
+- Human-required work: N/A / details
+
+### Validation Evidence
+
+| Command | Result | Covered findings / acceptance |
+| --- | --- | --- |
+|  | PASS / FAIL / NOT_RUN |  |
+
+### Git Result
+
+- Git outcome: COMMITTED_AND_PUSHED / NO_CHANGES / SKIPPED_BY_USER / NOT_PUSHED / NOT_ATTEMPTED / Pending
+- Commit:
+- Remote PR head before commit / push:
+- Remote PR head after push:
+- Unrelated local changes excluded:
+
 ## Uncollected / Unverified
 
 - N/A
@@ -69,14 +99,3 @@ implementation_intent:
 ## Human-required Work
 
 - 人手での作業が必要: N/A
-
-## Explicit Implementation Turn Handoff
-
-`REVIEW_COMPLETE`の場合はこのsectionを省略します。
-
-```text
-$adaptive-implementation-execution を使って .review/pr-123/review-plan.md を実装してください。
-review-plan.md の implementation_intent を source of truth とし、既存Adaptive Implementationのrouter、agents、verdict、handoff、validation contractを変更または複製しないでください。
-```
-
-Phase 1の停止はレビュー反映プロセス全体の完了ではありません。Adaptive Implementationはこの親ターンから自動起動しません。
