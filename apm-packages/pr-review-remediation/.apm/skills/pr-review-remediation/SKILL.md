@@ -17,7 +17,7 @@ repository外のlocal agent reviewerは起動しません。目的達成review�
 
 - このSkillを開始した現在の親エージェントがworkflow、findingの最終判断、production / tests / docsの変更、validation、Git操作、最終報告を所有します。
 - `review-planner`は読み取り専用です。remote evidenceを整理し、`Apply | Hold | Reject`のrecommendation、理由、source coverage、implementation intentを提供しますが、最終判断とrepository変更を所有しません。
-- 利用者がAdaptive Implementationを明示的に指定した場合だけ、remediation実装経路として`$adaptive-implementation-execution`を利用できます。明示指定がない場合はAdaptiveを起動せず、導入や別turnを要求せず、現在の親エージェント自身が実装します。
+- 利用者がAdaptive Implementationを明示的に指定した場合だけ、remediation実装経路として`/adaptive-implementation-execution`を利用できます。明示指定がない場合はAdaptiveを起動せず、導入や別turnを要求せず、現在の親エージェント自身が実装します。
 - Adaptiveを明示利用しても、この親がreview coverage、validation、Git操作、terminal verdictまで継続して所有し、plan作成またはAdaptive完了だけで停止しません。
 
 ## Required tools and inputs

@@ -43,6 +43,14 @@ try {
     Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?ms)^version:\s*0\.8\.0\s*$.*^\s*- copilot\s*$.*^\s*- codex\s*$.*^\s*- agent-skills\s*$' '0.8.0 multi-target manifest'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' '現在の親エージェント' 'current-parent remediation ownership'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' '利用者がAdaptive Implementationを明示的に指定' 'explicit Adaptive selection boundary'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' '/adaptive-implementation-execution' 'canonical Adaptive slash invocation'
+    foreach ($relative in @(
+        'apm-packages/pr-review-remediation/README.md',
+        'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md',
+        'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/references/usage.md'
+    )) {
+        Assert-NotContains $relative '\$adaptive-implementation-execution' 'dollar-prefix Adaptive invocation'
+    }
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'COMMITTED_AND_PUSHED' 'default remediation commit and push outcome'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'empty commit' 'no empty commit contract'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'Untrusted remote content boundary' 'untrusted remote content boundary'
