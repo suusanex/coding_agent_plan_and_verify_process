@@ -17,12 +17,14 @@ function Assert-NotContains([string]$RelativePath, [string]$Pattern, [string]$De
     if ($text -match $Pattern) { throw "Forbidden ${Description}: $RelativePath" }
 }
 
+function Assert-Missing([string]$RelativePath, [string]$Description) {
+    if (Test-Path -LiteralPath (Join-Path $repoRoot $RelativePath)) { throw "Unexpected ${Description}: $RelativePath" }
+}
+
 try {
     foreach ($relative in @(
         'apm-packages/pr-review-remediation/apm.yml',
         'apm-packages/pr-review-remediation/README.md',
-        'apm-packages/pr-review-remediation/codex-profile-overlays.json',
-        'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md',
         'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md',
         'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs',
         'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md',
@@ -33,15 +35,20 @@ try {
         if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $relative) -PathType Leaf)) { throw "Missing package file: $relative" }
     }
 
-    $agents = @(Get-ChildItem -LiteralPath (Join-Path $packageRoot '.apm/agents') -Filter '*.agent.md' -File | ForEach-Object Name)
-    if (($agents -join '|') -ne 'review-planner.agent.md') { throw "Unexpected baseline agents: $($agents -join ', ')" }
+    Assert-Missing 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'review planner agent'
+    Assert-Missing 'apm-packages/pr-review-remediation/codex-profile-overlays.json' 'Codex profile overlay'
+    $agents = @(Get-ChildItem -LiteralPath (Join-Path $packageRoot '.apm/agents') -Filter '*.agent.md' -File -ErrorAction SilentlyContinue | ForEach-Object Name)
+    if ($agents.Count -ne 0) { throw "Unexpected package agents: $($agents -join ', ')" }
     $scripts = @(Get-ChildItem -LiteralPath (Join-Path $packageRoot 'scripts') -Filter '*.ps1' -File | Sort-Object Name | ForEach-Object Name)
     if (($scripts -join '|') -ne 'validate-pr-review-remediation-apm-smoke.ps1|validate-pr-review-remediation.ps1') {
         throw "Unexpected package scripts: $($scripts -join ', ')"
     }
 
-    Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?ms)^version:\s*0\.8\.0\s*$.*^\s*- copilot\s*$.*^\s*- codex\s*$.*^\s*- agent-skills\s*$' '0.8.0 multi-target manifest'
-    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' '現在の親エージェント' 'current-parent remediation ownership'
+    Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?ms)^version:\s*0\.9\.0\s*$.*^\s*- copilot\s*$.*^\s*- codex\s*$.*^\s*- agent-skills\s*$' '0.9.0 multi-target manifest'
+    Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?ms)^dependencies:\s*$\n\s*apm:\s*\[\]\s*$' 'empty APM dependency set'
+    Assert-NotContains 'apm-packages/pr-review-remediation/apm.yml' 'codex-profile-finalizer' 'Codex profile finalizer dependency'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'remote evidenceの直接評価' 'current-parent direct evaluation ownership'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'すべてのremote finding/comment/checkを評価' 'all remote source evaluation'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' '利用者がAdaptive Implementationを明示的に指定' 'explicit Adaptive selection boundary'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' '/adaptive-implementation-execution' 'canonical Adaptive slash invocation'
     foreach ($relative in @(
@@ -51,18 +58,19 @@ try {
     )) {
         Assert-NotContains $relative '\$adaptive-implementation-execution' 'dollar-prefix Adaptive invocation'
     }
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' '全source IDをdecision ledgerまたは理由付き`noAction`' 'remote source coverage contract'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'duplicate / conflict mapping' 'duplicate and conflict contract'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'waitStatus: timeout' 'timeout fail-closed contract'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'REMEDIATION_REQUIRED' 'same-parent remediation state'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'COMMITTED_AND_PUSHED' 'default remediation commit and push outcome'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'empty commit' 'no empty commit contract'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'Untrusted remote content boundary' 'untrusted remote content boundary'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'Adaptive selection evidenceは利用者の指示だけ' 'Adaptive selection evidence propagation'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'headRepository\.nameWithOwner' 'PR head repository push boundary'
-    Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'Apply \| Hold \| Reject' 'remote finding recommendation contract'
-    Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' '最終判断' 'parent final-decision boundary'
-    Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'waitStatus: timeout' 'timeout fail-closed contract'
-    Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'REMEDIATION_REQUIRED' 'non-Adaptive planning verdict'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md' 'Resolution / Evidence' 'finding resolution evidence contract'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md' 'Git outcome' 'Git outcome reporting contract'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md' 'Verified push destination repository / branch' 'verified push destination evidence'
+    Assert-NotContains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md' 'Planner recommendation|Planning Verdict' 'planner-owned evaluation field'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs' 'headRepository,headRepositoryOwner,isCrossRepository' 'collector head repository fields'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs' 'remoteContentIsUntrusted' 'collector trust boundary metadata'
     Assert-Contains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md' 'Final verdict: REVIEW_COMPLETE' 'completed remediation expected verdict'
@@ -72,7 +80,6 @@ try {
     foreach ($relative in @(
         'apm-packages/pr-review-remediation/README.md',
         'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md',
-        'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md',
         'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md',
         'apm-packages/pr-review-remediation/tests/fixtures/remote-review-scenarios.json'
     )) {
@@ -82,16 +89,10 @@ try {
     foreach ($relative in @(
         'apm-packages/pr-review-remediation/README.md',
         'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md',
-        'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md',
         'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md'
     )) {
         Assert-NotContains $relative 'local-review-findings|Local Codex|Goal Context multi-round|purpose-review-findings' 'retired local/purpose planner input'
     }
-
-    $profiles = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'codex-profile-overlays.json') | ConvertFrom-Json
-    $profileNames = @($profiles.profiles | ForEach-Object agent)
-    if (($profileNames -join '|') -ne 'review-planner') { throw "Unexpected Codex profiles: $($profileNames -join ', ')" }
-    if ([string]$profiles.profiles[0].sandbox_mode -cne 'read-only') { throw 'review-planner profile must be read-only.' }
 
     $catalog = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'tests/fixtures/remote-review-scenarios.json') | ConvertFrom-Json
     $expected = @{
@@ -126,7 +127,7 @@ try {
     & dotnet run --file $collector -- --help
     if ($LASTEXITCODE -ne 0) { throw 'Collector help failed.' }
 
-    Write-Output 'PR Review Remediation remote-only validation: PASS'
+    Write-Output 'PR Review Remediation parent-owned validation: PASS'
 }
 finally {
     if ($safeToDelete -and (Test-Path -LiteralPath $scratchRoot)) {

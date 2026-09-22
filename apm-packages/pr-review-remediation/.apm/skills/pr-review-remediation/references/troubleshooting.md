@@ -34,14 +34,9 @@ local upstreamのpush URLをGitHub上のcanonical `owner/name`へ解決し、col
 
 Git outcomeを`NOT_PUSHED`とし、local commit、remote head、権限または競合エラーを報告します。正常完了に変換せず、force pushしません。
 
-## Review profile check fails
+## Unexpected planner or profile remains after update
 
-```powershell
-$moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
-dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- . --check
-```
-
-review-planner profileが競合する場合だけ`--force`を検討します。repository-wide設定を上書きしません。
+0.9.0は`review-planner`、planner用Codex profile、`codex-profile-finalizer` dependencyを導入しません。以前のversionが生成したruntime projectionはAPMのupdate / uninstall結果を確認し、ownershipが確認できないfileを推測で上書きまたは削除しません。
 
 ## Persistent purpose review is required
 

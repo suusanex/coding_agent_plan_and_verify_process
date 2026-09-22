@@ -15,6 +15,10 @@ function Assert-File([string]$Path, [string]$Description) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "Missing ${Description}: $Path" }
 }
 
+function Assert-Missing([string]$Path, [string]$Description) {
+    if (Test-Path -LiteralPath $Path) { throw "Unexpected ${Description}: $Path" }
+}
+
 try {
     $null = New-Item -ItemType Directory -Path (Join-Path $scratch '.codex') -Force
     $resolvedScratch = (Resolve-Path -LiteralPath $scratch).Path
@@ -51,41 +55,31 @@ try {
 
     $installedSkills = @(Get-ChildItem -LiteralPath (Join-Path $resolvedScratch '.agents/skills') -Directory | Sort-Object Name | ForEach-Object Name)
     if (($installedSkills -join '|') -ne 'pr-review-remediation') { throw "Unexpected installed Skills: $($installedSkills -join ', ')" }
+
+    Assert-Missing (Join-Path $resolvedScratch '.github/agents/review-planner.agent.md') 'Copilot review-planner projection'
+    Assert-Missing (Join-Path $resolvedScratch '.codex/agents/review-planner.toml') 'Codex review-planner profile'
     $parts = $Repository.Split('/')
     $moduleRoot = Join-Path $resolvedScratch ("apm_modules/{0}/{1}" -f $parts[0], $parts[1])
-    $finalizer = Join-Path $moduleRoot 'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs'
-    Assert-File $finalizer 'Codex profile finalizer'
-    & dotnet run --file $finalizer -- $resolvedScratch
-    if ($LASTEXITCODE -ne 0) { throw 'Codex profile finalization failed.' }
-    & dotnet run --file $finalizer -- $resolvedScratch --check
-    if ($LASTEXITCODE -ne 0) { throw 'Codex profile finalizer check failed.' }
+    Assert-Missing (Join-Path $moduleRoot 'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs') 'Codex profile finalizer dependency'
 
-    $profileRoot = Join-Path $resolvedScratch '.codex/agents'
-    foreach ($profile in @('review-planner.toml')) {
-        $path = Join-Path $profileRoot $profile
-        Assert-File $path "profile $profile"
-        $text = Get-Content -Raw -LiteralPath $path
-        if ($text -notmatch '(?m)^sandbox_mode\s*=\s*"read-only"\s*$') { throw "$profile is not read-only." }
-    }
-    $installedProfiles = @(Get-ChildItem -LiteralPath $profileRoot -Filter '*.toml' -File | Sort-Object Name | ForEach-Object Name)
-    if (($installedProfiles -join '|') -ne 'review-planner.toml') { throw "Unexpected installed profiles: $($installedProfiles -join ', ')" }
-
-    Assert-File (Join-Path $resolvedScratch '.github/agents/review-planner.agent.md') 'Copilot review-planner projection'
     & dotnet run --file (Join-Path $skillRoot 'scripts/collect-pr-review-context.cs') -- --help
     if ($LASTEXITCODE -ne 0) { throw 'Installed collector help failed.' }
 
     if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $resolvedScratch 'AGENTS.md')).Hash -ne $agentsHash) {
-        throw 'APM install or finalizer changed AGENTS.md.'
+        throw 'APM install changed AGENTS.md.'
     }
     if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $resolvedScratch '.codex/config.toml')).Hash -ne $configHash) {
-        throw 'APM install or finalizer changed .codex/config.toml.'
+        throw 'APM install changed .codex/config.toml.'
     }
     $lockText = Get-Content -Raw -LiteralPath (Join-Path $resolvedScratch 'apm.lock.yaml')
     if ($lockText -notmatch 'pr-review-remediation') {
-        throw 'APM lock does not represent the baseline-only dependency set.'
+        throw 'APM lock does not contain PR Review Remediation.'
+    }
+    if ($lockText -match 'codex-profile-finalizer') {
+        throw 'APM lock unexpectedly contains the Codex profile finalizer dependency.'
     }
 
-    Write-Output 'PR Review Remediation remote APM smoke: PASS'
+    Write-Output 'PR Review Remediation standalone APM smoke: PASS'
 }
 finally {
     if ($locationPushed) { Pop-Location }

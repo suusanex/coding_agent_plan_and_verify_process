@@ -1,9 +1,9 @@
 # PR Review Remediation Result
 
-## Planning Verdict
+## Review Evaluation
 
-- Verdict: REMEDIATION_REQUIRED
-- Planning status: Complete
+- State: REMEDIATION_REQUIRED
+- Evaluation status: Complete
 - Execution owner: CURRENT_PARENT
 - Adaptive explicitly selected by user: No
 - Adaptive selection evidence: 親が利用者指示に明示選択がないことを確認
@@ -11,11 +11,11 @@
 
 ## Finding Decision Ledger
 
-| Source ID | Source | Location | Summary | Planner recommendation | Final decision | Reason | Resolution / Evidence | Duplicate of | Conflicts with | Scope / Acceptance mapping |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| review:1001 | GitHub PR review | `src/Fixture.cs:1` | regression coverageを追加する | Apply | Apply | 変更した振る舞いを保護する必要がある | testを追加し、AC-001が成功 | N/A | N/A | SI-001 / AC-001 |
-| inline-comment:2001 | GitHub inline comment | `src/Fixture.cs:1` | 同じcoverage不足 | Apply | Apply | review:1001と同じ原因である | review:1001のremediationで解消 | review:1001 | N/A | SI-001 / AC-001 |
-| pr-comment:501 | PR comment | PR | public APIを再設計する | Reject | Reject | review対象のPR scope外であり、報告された不具合の解消に不要である | このsourceによるproduction変更なし | N/A | N/A | N/A |
+| Source ID | Source | Location | Summary | Decision | Reason | Resolution / Evidence | Duplicate of | Conflicts with | Scope / Acceptance mapping |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| review:1001 | GitHub PR review | `src/Fixture.cs:1` | regression coverageを追加する | Apply | 変更した振る舞いを保護する必要がある | testを追加し、AC-001が成功 | N/A | N/A | SI-001 / AC-001 |
+| inline-comment:2001 | GitHub inline comment | `src/Fixture.cs:1` | 同じcoverage不足 | Apply | review:1001と同じ原因である | review:1001のremediationで解消 | review:1001 | N/A | SI-001 / AC-001 |
+| pr-comment:501 | PR comment | PR | public APIを再設計する | Reject | review対象のPR scope外であり、報告された不具合の解消に不要である | このsourceによるproduction変更なし | N/A | N/A | N/A |
 
 ## Implementation Intent
 

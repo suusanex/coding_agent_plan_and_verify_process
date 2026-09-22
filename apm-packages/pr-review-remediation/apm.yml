@@ -1,6 +1,6 @@
 name: pr-review-remediation
-version: 0.8.0
-description: Remote GitHub PR review evidence collection and current-parent remediation without local reviewer execution
+version: 0.9.0
+description: Remote GitHub PR review evidence collection and direct current-parent remediation without local agent execution
 type: hybrid
 targets:
   - copilot
@@ -9,6 +9,4 @@ targets:
 includes: auto
 
 dependencies:
-  apm:
-    - git: parent
-      path: apm-packages/codex-profile-finalizer
+  apm: []

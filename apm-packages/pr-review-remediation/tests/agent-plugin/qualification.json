@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "pr-review-remediation",
-  "canonicalFingerprint": "865de982a982dbff5a923c9c3536e7d5f7cb7ed01df0b536e8678e49fb44a424",
-  "distributionFingerprint": "5024db7078517c170967f4cb98272a581bf2de185c0fb1ddfb5507a7a429f5a4",
+  "canonicalFingerprint": "811c849bc4e29f4cb226cd0ad979cac79178e43f7dc9f82f97d029f77e038b08",
+  "distributionFingerprint": "b8934f1d8f07c08177c9ba88b4a654bf12d704f6116f8f701c3b3c6945caedec",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
@@ -14,14 +14,14 @@
       "distribution": "apm",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "0.8.0で同一parentによるremediationとcommit / pushまでのownership contractを変更したため、以前のAPM runtime evidenceではcandidateを認定しない。",
+      "reason": "0.9.0でreview-plannerとCodex profile依存を削除し、current parentによるremote evidence直接評価へ変更したため、以前のAPM runtime evidenceではcandidateを認定しない。",
       "evidenceRefs": []
     },
     {
       "distribution": "agent-plugin-direct",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "0.8.0のparent-owned remediation、全finding coverage、Git outcomeをdirect plugin runtimeでは未評価のため、以前のPASSを引き継がない。",
+      "reason": "0.9.0のagentなしdistribution、parent-owned source evaluation、全finding coverage、Git outcomeをdirect plugin runtimeでは未評価のため、以前のPASSを引き継がない。",
       "evidenceRefs": []
     }
   ]
