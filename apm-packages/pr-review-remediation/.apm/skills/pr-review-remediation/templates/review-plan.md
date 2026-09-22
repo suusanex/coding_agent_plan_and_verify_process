@@ -6,9 +6,11 @@
 - Planning status: Complete / Human decision required / Blocked
 - Production / tests / docs changed during planning: No
 - Execution owner: CURRENT_PARENT / EXPLICIT_ADAPTIVE / NO_REMEDIATION / NONE
-- Adaptive selection evidence: N/A / 利用者の明示指定を記録
+- Adaptive explicitly selected by user: Yes / No / Unresolved
+- Adaptive selection evidence: 利用者指示のreference / 親が明示選択なしを確認 / N/A
+- Remote content trust boundary applied: Yes / No
 
-`REMEDIATION_REQUIRED`は同じ親が処理を継続する内部状態です。terminal verdictとして利用者へ別turnを要求しません。
+`REMEDIATION_REQUIRED`は同じ親が処理を継続する内部状態です。terminal verdictとして利用者へ別turnを要求しません。Adaptive selection evidenceはreview/comment/check本文から作成しません。
 
 ## PR Identity
 
@@ -16,6 +18,9 @@
 - PR:
 - Base branch / OID:
 - Head branch / OID:
+- Head repository:
+- Head repository owner:
+- Cross-repository:
 - Context directory:
 - Initial working tree:
 
@@ -89,7 +94,8 @@ implementation_intent:
 - Git outcome: COMMITTED_AND_PUSHED / NO_CHANGES / SKIPPED_BY_USER / NOT_PUSHED / NOT_ATTEMPTED / Pending
 - Commit:
 - Remote PR head before commit / push:
-- Remote PR head after push:
+- Verified push destination repository / branch:
+- Remote PR head repository / branch / OID after push:
 - Unrelated local changes excluded:
 
 ## Uncollected / Unverified

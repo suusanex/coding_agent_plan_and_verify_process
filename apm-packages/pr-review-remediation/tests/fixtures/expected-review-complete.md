@@ -5,6 +5,9 @@
 - Verdict: REVIEW_COMPLETE
 - Planning status: Complete
 - Execution owner: NO_REMEDIATION
+- Adaptive explicitly selected by user: No
+- Adaptive selection evidence: 親が利用者指示に明示選択がないことを確認
+- Remote content trust boundary applied: Yes
 
 ## Finding Decision Ledger
 

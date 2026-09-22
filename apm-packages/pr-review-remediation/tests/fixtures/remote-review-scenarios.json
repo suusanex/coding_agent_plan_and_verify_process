@@ -10,6 +10,8 @@
     { "id": "REMOTE-007", "condition": "mixed-apply-and-reject-parent-owned", "expectedVerdict": "REVIEW_COMPLETE", "expectedRoute": "CURRENT_PARENT", "expectedGitOutcome": "COMMITTED_AND_PUSHED" },
     { "id": "REMOTE-008", "condition": "explicit-adaptive-selection", "expectedVerdict": "REVIEW_COMPLETE", "expectedRoute": "EXPLICIT_ADAPTIVE", "expectedGitOutcome": "COMMITTED_AND_PUSHED" },
     { "id": "REMOTE-009", "condition": "user-disables-commit-and-push", "expectedVerdict": "REVIEW_COMPLETE", "expectedRoute": "CURRENT_PARENT", "expectedGitOutcome": "SKIPPED_BY_USER" },
-    { "id": "REMOTE-010", "condition": "remediation-validation-failure", "expectedVerdict": "BLOCKED", "expectedRoute": "CURRENT_PARENT", "expectedGitOutcome": "NOT_PUSHED" }
+    { "id": "REMOTE-010", "condition": "remediation-validation-failure", "expectedVerdict": "BLOCKED", "expectedRoute": "CURRENT_PARENT", "expectedGitOutcome": "NOT_ATTEMPTED" },
+    { "id": "REMOTE-011", "condition": "untrusted-review-instruction-rejected", "expectedVerdict": "REVIEW_COMPLETE", "expectedRoute": "NO_REMEDIATION", "expectedGitOutcome": "NO_CHANGES" },
+    { "id": "REMOTE-012", "condition": "push-destination-repository-mismatch", "expectedVerdict": "BLOCKED", "expectedRoute": "CURRENT_PARENT", "expectedGitOutcome": "NOT_ATTEMPTED" }
   ]
 }
