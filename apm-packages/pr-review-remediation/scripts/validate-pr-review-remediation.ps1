@@ -40,15 +40,30 @@ try {
         throw "Unexpected package scripts: $($scripts -join ', ')"
     }
 
-    Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?ms)^version:\s*0\.7\.0\s*$.*^\s*- copilot\s*$.*^\s*- codex\s*$.*^\s*- agent-skills\s*$' '0.7.0 multi-target manifest'
-    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'Production code changed: No' 'Phase 1 non-mutation contract'
-    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' '別の明示turn' 'separate Adaptive turn boundary'
-    Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'Apply \| Hold \| Reject' 'remote finding decision contract'
+    Assert-Contains 'apm-packages/pr-review-remediation/apm.yml' '(?ms)^version:\s*0\.8\.0\s*$.*^\s*- copilot\s*$.*^\s*- codex\s*$.*^\s*- agent-skills\s*$' '0.8.0 multi-target manifest'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' '現在の親エージェント' 'current-parent remediation ownership'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' '利用者がAdaptive Implementationを明示的に指定' 'explicit Adaptive selection boundary'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'COMMITTED_AND_PUSHED' 'default remediation commit and push outcome'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md' 'empty commit' 'no empty commit contract'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'Apply \| Hold \| Reject' 'remote finding recommendation contract'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' '最終判断' 'parent final-decision boundary'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'waitStatus: timeout' 'timeout fail-closed contract'
-    Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'REVIEW_COMPLETE' 'no-remediation terminal contract'
-    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md' 'Source Coverage' 'remote source coverage contract'
-    Assert-Contains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-complete.md' 'Verdict: REVIEW_COMPLETE' 'no-remediation expected verdict'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md' 'REMEDIATION_REQUIRED' 'non-Adaptive planning verdict'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md' 'Resolution / Evidence' 'finding resolution evidence contract'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md' 'Git outcome' 'Git outcome reporting contract'
+    Assert-Contains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md' 'Final verdict: REVIEW_COMPLETE' 'completed remediation expected verdict'
+    Assert-Contains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md' 'Git outcome: COMMITTED_AND_PUSHED' 'completed remediation Git outcome'
+    Assert-Contains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-complete.md' 'Git outcome: NO_CHANGES' 'no-remediation Git outcome'
     Assert-NotContains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-complete.md' 'implementation_intent|adaptive-implementation-execution|Ordered Remediation Plan' 'no-remediation implementation handoff'
+    foreach ($relative in @(
+        'apm-packages/pr-review-remediation/README.md',
+        'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md',
+        'apm-packages/pr-review-remediation/.apm/agents/review-planner.agent.md',
+        'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md',
+        'apm-packages/pr-review-remediation/tests/fixtures/remote-review-scenarios.json'
+    )) {
+        Assert-NotContains $relative 'READY_FOR_ADAPTIVE_IMPLEMENTATION' 'mandatory Adaptive handoff verdict'
+    }
 
     foreach ($relative in @(
         'apm-packages/pr-review-remediation/README.md',
@@ -66,18 +81,23 @@ try {
 
     $catalog = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'tests/fixtures/remote-review-scenarios.json') | ConvertFrom-Json
     $expected = @{
-        'REMOTE-001' = 'READY_FOR_ADAPTIVE_IMPLEMENTATION'
-        'REMOTE-002' = 'REVIEW_COMPLETE'
-        'REMOTE-003' = 'HUMAN_DECISION_REQUIRED'
-        'REMOTE-004' = 'BLOCKED'
-        'REMOTE-005' = 'BLOCKED'
-        'REMOTE-006' = 'HUMAN_DECISION_REQUIRED'
-        'REMOTE-007' = 'READY_FOR_ADAPTIVE_IMPLEMENTATION'
+        'REMOTE-001' = @('REVIEW_COMPLETE', 'CURRENT_PARENT', 'COMMITTED_AND_PUSHED')
+        'REMOTE-002' = @('REVIEW_COMPLETE', 'NO_REMEDIATION', 'NO_CHANGES')
+        'REMOTE-003' = @('HUMAN_DECISION_REQUIRED', 'NONE', 'NOT_ATTEMPTED')
+        'REMOTE-004' = @('BLOCKED', 'NONE', 'NOT_ATTEMPTED')
+        'REMOTE-005' = @('BLOCKED', 'CURRENT_PARENT', 'NOT_PUSHED')
+        'REMOTE-006' = @('HUMAN_DECISION_REQUIRED', 'NONE', 'NOT_ATTEMPTED')
+        'REMOTE-007' = @('REVIEW_COMPLETE', 'CURRENT_PARENT', 'COMMITTED_AND_PUSHED')
+        'REMOTE-008' = @('REVIEW_COMPLETE', 'EXPLICIT_ADAPTIVE', 'COMMITTED_AND_PUSHED')
+        'REMOTE-009' = @('REVIEW_COMPLETE', 'CURRENT_PARENT', 'SKIPPED_BY_USER')
+        'REMOTE-010' = @('BLOCKED', 'CURRENT_PARENT', 'NOT_PUSHED')
     }
     if (@($catalog.scenarios).Count -ne $expected.Count) { throw 'Unexpected remote scenario count.' }
     foreach ($scenario in @($catalog.scenarios)) {
-        if (-not $expected.ContainsKey([string]$scenario.id)) { throw "Unknown remote scenario: $($scenario.id)" }
-        if ([string]$scenario.expectedVerdict -cne $expected[[string]$scenario.id]) { throw "Wrong verdict for $($scenario.id)" }
+        $id = [string]$scenario.id
+        if (-not $expected.ContainsKey($id)) { throw "Unknown remote scenario: $id" }
+        $actual = @([string]$scenario.expectedVerdict, [string]$scenario.expectedRoute, [string]$scenario.expectedGitOutcome)
+        if (($actual -join '|') -cne ($expected[$id] -join '|')) { throw "Wrong expected outcome for $id" }
     }
 
     $collector = Join-Path $packageRoot '.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs'

@@ -1,6 +1,6 @@
 ---
 name: pr-review-remediation
-description: Use when a user explicitly wants a Ready GitHub PR reviewed from remote PR review evidence, converted into a remediation plan, and stopped before a separate Adaptive Implementation turn.
+description: Use when a user wants a Ready GitHub PR reviewed from remote evidence and remediated to completion by the current parent, with Adaptive Implementation used only when explicitly selected.
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
@@ -9,9 +9,16 @@ description: Use when a user explicitly wants a Ready GitHub PR reviewed from re
 
 # PR Review Remediation
 
-このSkillは、Goal Contextを使わないbaseline PR reviewの入口です。GitHub上のReady PRに紐付くreview、inline comment、PR comment、checkを収集し、別の明示turnでAdaptive Implementationへ渡せるreview planを作成して停止します。
+このSkillは、Goal Contextを使わないbaseline PR reviewとremediationの入口です。GitHub上のReady PRに紐付くreview、inline comment、PR comment、checkを収集し、各findingを評価して、必要な修正、validation、commit、pushまでを同じ作業内で完了します。
 
-repository外のlocal agent reviewerは起動しません。目的達成reviewと同一parent内の修正roundが必要な場合は、別packageの`$persistent-purpose-review`を明示的に使います。
+repository外のlocal agent reviewerは起動しません。目的達成reviewと同一reviewer sessionでの再reviewが必要な場合は、別packageの`$persistent-purpose-review`を明示的に使います。このSkillはその契約を変更または代替しません。
+
+## Ownership
+
+- このSkillを開始した現在の親エージェントがworkflow、findingの最終判断、production / tests / docsの変更、validation、Git操作、最終報告を所有します。
+- `review-planner`は読み取り専用です。remote evidenceを整理し、`Apply | Hold | Reject`のrecommendation、理由、source coverage、implementation intentを提供しますが、最終判断とrepository変更を所有しません。
+- 利用者がAdaptive Implementationを明示的に指定した場合だけ、remediation実装経路として`$adaptive-implementation-execution`を利用できます。明示指定がない場合はAdaptiveを起動せず、導入や別turnを要求せず、現在の親エージェント自身が実装します。
+- Adaptiveを明示利用しても、この親がreview coverage、validation、Git操作、terminal verdictまで継続して所有し、plan作成またはAdaptive完了だけで停止しません。
 
 ## Required tools and inputs
 
@@ -20,19 +27,17 @@ repository外のlocal agent reviewerは起動しません。目的達成review�
 - APMで導入された`review-planner`
 - repository、Ready PR番号または現在branch、出力先。既定出力先は`.review/pr-<number>`
 - 対象repositoryの`AGENTS.md`、README、build/test手順
-- Phase 2を開始する場合だけ、別途導入した`adaptive-implementation-execution`
+- Adaptiveが明示指定された場合だけ、別途導入した`adaptive-implementation-execution`
 
-## Phase 1
-
-### 1. Prepare a Ready PR
+## 1. Prepare a Ready PR
 
 1. repository root、current branch、base candidate、working tree、upstream、push状態、既存PRを確認する。
 2. 未commit変更へ無関係な差分があれば混在させない。
 3. 必要なら通常branchを作り、対象変更をcommit、pushして通常PRを作る。Draft PRを作成しない。
 4. 既存PRがDraftなら自動でReadyへ変更せず、`人手での作業が必要: PRをReady for reviewに変更してください。`と返す。
-5. repository、PR番号、base/head branch、base/head OIDを確定する。以後はremote PR diffだけをreview対象にする。
+5. repository、PR番号、base/head branch、base/head OIDと開始時のworking treeを確定する。以後のreview対象はremote PR diffだけとする。
 
-### 2. Request and collect remote review evidence
+## 2. Request and collect remote review evidence
 
 GitHub上のreviewを明示要求します。標準review sourceはGitHub Copilot Code Reviewです。
 
@@ -54,7 +59,7 @@ dotnet run --file .agents/skills/pr-review-remediation/scripts/collect-pr-review
 
 collectorがDraft、base/head drift、GitHub CLI失敗、不正JSON、permission failureを報告した場合は推測で続行しません。`waitStatus: timeout`、`observedReviewState: none`、`UNOBSERVABLE`も「指摘なし」ではありません。利用者が未取得reviewでも進むと明示しない限り`HUMAN_DECISION_REQUIRED`とします。
 
-### 3. Build the remediation plan
+## 3. Build and evaluate the remediation plan
 
 `review-planner`へ次を渡します。
 
@@ -64,36 +69,56 @@ collectorがDraft、base/head drift、GitHub CLI失敗、不正JSON、permission
 - repository instructionsとvalidation手順
 - 未取得sourceについて利用者が行った明示判断
 
-返却内容を`templates/review-plan.md`の形で`<out>/review-plan.md`へ保存します。
+返却内容を`templates/review-plan.md`の形で`<out>/review-plan.md`へ保存します。plannerのplanning verdictは`REMEDIATION_REQUIRED | REVIEW_COMPLETE | HUMAN_DECISION_REQUIRED | BLOCKED`です。`REMEDIATION_REQUIRED`は親が同じ作業内で実装へ進むための内部状態であり、利用者へ別turnを要求するterminal verdictではありません。
 
-すべてのremote finding/comment/checkにsource IDを維持し、`Apply | Hold | Reject`と理由を付けます。duplicate/conflict、remediation scope、acceptance、`implementation_intent`、human decision、blockerを隠しません。
+親はすべてのremote finding/comment/checkを自分で評価し、次を満たすようledgerを確定します。
 
-Phase 1 verdictは`READY_FOR_ADAPTIVE_IMPLEMENTATION | REVIEW_COMPLETE | HUMAN_DECISION_REQUIRED | BLOCKED`のいずれかです。
+- 全source IDをdecision ledgerまたは理由付き`noAction`へ対応させる。
+- duplicateを統合しても全source IDを保持する。
+- 各findingのfinal decisionを`Apply | Reject`のいずれか、または人間判断が必要な状態として記録する。
+- `Apply`はscopeまたはacceptanceへ対応させ、具体的なremediationとvalidationを定義する。
+- `Reject`は反映しない理由と根拠を保持する。
+- `Hold`、product / scope / acceptanceの未決定、blocking conflictを未評価のまま通常完了へ進めず、`HUMAN_DECISION_REQUIRED`とする。
+- timeout、未取得review、permission failure、head driftを`REVIEW_COMPLETE`へ変換しない。
 
-1件以上の`Apply` findingがあり、次をすべて満たす場合だけ`READY_FOR_ADAPTIVE_IMPLEMENTATION`を受理します。
+## 4. Execute remediation
 
-- PR identityがcollector outputと一致する
-- 必須remote review sourceが取得済み、または未取得でも進む利用者の明示判断が記録されている
-- 全source IDがdecision ledgerまたは理由付き`noAction`へ対応する
-- すべての`Apply` findingがscopeまたはacceptanceへmappedしている
-- `implementation_intent.goal`、`scope`、`acceptance`が存在する
-- blocking conflict、product判断不足、head driftがない
-- `Production code changed: No`
+1件以上の`Apply`がある場合、利用者がAdaptiveを明示指定していなければ、現在の親エージェントがrepository規約に従ってproduction / tests / docsを変更します。Adaptiveが明示指定されている場合だけ、確定したimplementation intentをその経路へ渡します。
 
-`Apply` findingがなく、未解決の`Hold`やconflictもなく、必須remote source、PR identity、checksにblockerがない場合は`REVIEW_COMPLETE`とします。この終端では変更不要であることと全source coverageを記録し、ordered remediation、`implementation_intent`、Adaptive開始promptを生成しません。timeout、未取得review、permission failure、head driftを`REVIEW_COMPLETE`へ変換してはいけません。
+いずれの経路でも親は次を実施します。
 
-### 4. Stop the parent turn
+1. PR外のrefactorや仕様追加を混ぜず、採用したfindingだけを実装する。
+2. 各`Apply`を変更箇所とacceptanceへ、各`Reject`を理由へ対応付ける。
+3. repository固有の関連test、lint、typecheck、buildを実行する。
+4. 各`Apply`の`Resolution / Evidence`へ変更とvalidation evidenceを記録する。
+5. validation failure時は成功扱いせず`BLOCKED`とし、commit / pushしない。
 
-`READY_FOR_ADAPTIVE_IMPLEMENTATION`でもAdaptiveを起動しません。成果物path、Phase 1 verdict、未取得・未検証事項、人手作業、次のpromptを報告して親ターンを終了します。`REVIEW_COMPLETE`では修正不要であることを報告し、Phase 2用promptを返さず終了します。
+`Apply`がなく、全findingが根拠付きで`Reject`または`noAction`となった場合は、必要な確認だけを行い、修正不要の理由を記録します。差分がないときはempty commitを作りません。
 
-## Phase 2
+## 5. Commit and push remediation
 
-利用者が別の明示turnでreview planを実装すると指示した場合だけ、別途導入した`$adaptive-implementation-execution`へ渡します。このSkillはimplementation agent、model route、result schema、purpose review、reviewer sessionを所有しません。
+remediation変更が存在し、validationが成功し、利用者がcommitまたはpushを止めていない場合は、同じ作業内でcommitして現在のPR branchへpushします。
 
-```text
-$adaptive-implementation-execution を使って .review/pr-123/review-plan.md を実装してください。
-review-plan.md の implementation_intent を source of truth とし、既存Adaptive Implementationのrouter、agents、verdict、handoff、validation contractを変更または複製しないでください。
-```
+1. 開始時から存在した無関係な差分をstageしない。
+2. commit前にcurrent branch、local HEAD、PR identity、remote head OIDを再取得し、collectorが確定したheadから予期しない変更がないことを確認する。
+3. remediation対象だけをstageし、repository規約に従うcommitを作る。
+4. push直前にもremote head OIDを確認する。drift、競合、validation failure、権限不足があればforce pushや上書きをせず`BLOCKED`とする。
+5. 通常push後、PR headが作成したcommitへ更新されたことを確認し、Git outcomeを`COMMITTED_AND_PUSHED`とする。
+
+修正不要ならGit outcomeは`NO_CHANGES`です。利用者がcommit / pushを明示的に禁止した場合は変更をlocalに残し、`SKIPPED_BY_USER`と禁止された操作を報告します。commit後にpushできなかった場合は`NOT_PUSHED`としてcommitを明示し、正常完了としません。
+
+## 6. Terminal verdict and report
+
+terminal verdictは`REVIEW_COMPLETE | HUMAN_DECISION_REQUIRED | BLOCKED`です。次のすべてを満たす場合だけ`REVIEW_COMPLETE`にします。
+
+- 必須remote review sourceを取得済み、または未取得でも進む利用者の明示判断が記録されている。
+- PR identityに未解決のdriftがない。
+- 全source IDにfinal decisionと理由があり、未解決の`Hold`またはconflictがない。
+- 全`Apply`に実装結果と成功したvalidation evidenceがある。
+- 全`Reject`に反映しない理由がある。
+- Git outcomeが`COMMITTED_AND_PUSHED | NO_CHANGES | SKIPPED_BY_USER`のいずれかであり、その根拠が記録されている。
+
+最終報告には成果物path、全findingのApply / Reject結果、変更概要、validation、commit / push結果、未取得・未検証事項、人手作業を含めます。人間判断が必要なfindingを推測で採用または棄却しません。
 
 ## Relative assets
 

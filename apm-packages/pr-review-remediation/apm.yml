@@ -1,6 +1,6 @@
 name: pr-review-remediation
-version: 0.7.0
-description: Remote GitHub PR review evidence collection and remediation planning without local reviewer execution
+version: 0.8.0
+description: Remote GitHub PR review evidence collection and current-parent remediation without local reviewer execution
 type: hybrid
 targets:
   - copilot

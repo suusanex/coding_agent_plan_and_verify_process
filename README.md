@@ -45,7 +45,7 @@ Design Pair manifestもAdaptive Skillとcanonical agentsをdependencyとして�
 
 ### PRレビューと修正を改善したい
 
-[PR Review Remediation](apm-packages/pr-review-remediation/README.md)の`$pr-review-remediation`は、Ready PRに紐付くremote review evidenceだけからbaseline PR review planを作り、別turnの修正前で停止します。repository外のlocal agent reviewerは起動しません。
+[PR Review Remediation](apm-packages/pr-review-remediation/README.md)の`$pr-review-remediation`は、Ready PRに紐付くremote review evidenceを収集し、現在の親エージェントがfindingの採否判断、必要な修正、validation、commit、pushまでを同じ作業内で完了します。Adaptive Implementationは利用者が明示指定した場合だけ使う任意経路であり、repository外のlocal agent reviewerは起動しません。
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target copilot,codex,agent-skills
@@ -87,7 +87,7 @@ APM installがportable agentsとSkillを導入し、finalizerが必要なCodex p
 | --- | --- | --- |
 | Adaptive Implementation | 既存Planからの実装 | decision surfaceに応じたimplementation ownershipと直列transferを所有する |
 | Design Pair | 実装前のTarget Map対話 | Adaptiveの任意pre-stage。実装はAdaptiveへ渡す |
-| PR Review Remediation | Ready PRのbaseline review / remediation plan | baselineの別turn修正だけAdaptiveを任意追加する |
+| PR Review Remediation | Ready PRのbaseline review / remediation | 現在の親が完結し、利用者が明示した場合だけAdaptiveを任意利用する |
 | Persistent Purpose Review | 実装後の目的達成review / remediation | Runnerが同一reviewer session、元のparentが修正を所有する |
 | Plan Coverage Residual Flow | Plan-first全体とcoverage管理 | Adaptiveを実装経路として含み、検証後の残件をResidual Decisionへ渡す |
 

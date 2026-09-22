@@ -18,7 +18,7 @@
 | Adaptive Implementation | NOT_RUN / NONE | HOLD / NONE | 0.6.0でownership contractとagent identityを刷新したため再認定待ち。0.4.0 / 0.5.0 evidenceは再利用しない |
 | Design Pair | NOT_RUN / NONE | HOLD / NONE | Adaptive 0.6.0へのpost-READY routeを再認定待ち。過去のmulti-turn evidenceは履歴として保持 |
 | Goal Context Authoring | PASS / LIVE | PASS / LIVE | free-form生成とbundle validatorを確認 |
-| PR Review Remediation | PASS / LIVE | PASS / LIVE | PR #131のremote reviewをplanner停止点まで確認 |
+| PR Review Remediation | NOT_RUN / NONE | NOT_RUN / NONE | 0.8.0で同一parentのremediation・validation・commit / push契約へ変更したため再認定待ち。planner停止点までの旧LIVE証拠は再利用しない |
 | Persistent Purpose Review | NOT_RUN / NONE | HOLD / NONE | Runner 0.3.0 / protocol v3とSkill 0.4.0の組合せは実モデル評価未実施。旧LIVE証拠は再利用しない |
 | Plan Coverage | PASS / PARTIAL | HOLD / PARTIAL | immutable behavior evidenceを維持し、direct gapは未解消 |
 

@@ -14,13 +14,21 @@ collectorはDraftを自動変更しません。
 
 `waitStatus: timeout`は未取得です。コメントなしではありません。再依頼・再待機するか、未取得でも進むことを利用者が明示判断します。判断がなければ`HUMAN_DECISION_REQUIRED`です。
 
-## The PR changed while waiting
+## The PR changed while waiting or before push
 
-base/head OID、Draft状態、PR stateが変化した場合、collectorは古いreviewと新しいdiffを混ぜず停止します。最新PR identityで最初から再収集してください。
+base/head OID、Draft状態、PR stateが変化した場合、古いreviewと新しいdiffを混ぜません。収集中のdriftは最新PR identityで最初から再収集します。remediation中またはpush前のremote head driftは、force pushや上書きをせず`BLOCKED`として差分、validation、local commitの有無を報告します。
 
 ## Working tree differs from the PR
 
-未commit・未push変更は`pr-diff.patch`に含まれません。PRで修正済みまたはreview済みと扱わず、必要ならscope確認後にcommit/pushしてから再収集してください。
+未commit・未push変更は`pr-diff.patch`に含まれません。PRでreview済みと扱わず、開始時差分とremediation差分を分離します。無関係な差分をremediation commitへstageしてはいけません。安全に分離できない場合は`BLOCKED`です。
+
+## Remediation validation failed
+
+失敗したcommandと対象finding / acceptanceを記録し、`BLOCKED`にします。validation failureを無視してcommit / pushしません。
+
+## Commit succeeded but push failed
+
+Git outcomeを`NOT_PUSHED`とし、local commit、remote head、権限または競合エラーを報告します。正常完了に変換せず、force pushしません。
 
 ## Review profile check fails
 
