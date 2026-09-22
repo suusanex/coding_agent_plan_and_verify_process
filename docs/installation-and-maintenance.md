@@ -48,6 +48,7 @@ dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\fina
 - APM package READMEはpackage固有のusage、install、update、remove、collision contractを所有する。
 - non-APM applicationとruntimeは、それぞれ`apps/<name>/README.md`と`scripts/<name>/README.md`を正本にする。
 - Persistent Purpose Reviewの文書役割は次で分ける。`apm-packages/persistent-purpose-review/README.md`は利用者の入口とSkill利用、`apps/PurposeReviewRunner/README.md`はRunnerのインストール・設定・update・troubleshooting、`docs/purpose-review-runner-technical-reference.md`はprotocol / state / worker / provider adapter、`docs/purpose-review-runner-maintenance.md`はbuild / release / validation、`docs/purpose-review-runner-compatibility.md`はversion履歴と非互換。
+- PR Review Remediationの文書役割は、`apm-packages/pr-review-remediation/README.md`が利用者の入口とSkill利用、`docs/pr-review-remediation-technical-reference.md`がworkflow / artifact / trust boundary / Git contract / terminal semantics / maintainer validation、Skill内の`references/troubleshooting.md`と`references/migration.md`がfailure別対応とversion境界を所有する。
 - `docs/installation-and-maintenance.md`はcross-package installer details、maintainer procedures、validation matrix、runtime mirror maintenanceを所有する。
 - その他のlong-form design、requirements、validation results、historical notesは`docs/`に残し、利用者向けREADMEからreferenceとして分離する。
 - `plans/**`は実行artifactとhistorical recordであり、一般ドキュメント再編の対象にしない。
