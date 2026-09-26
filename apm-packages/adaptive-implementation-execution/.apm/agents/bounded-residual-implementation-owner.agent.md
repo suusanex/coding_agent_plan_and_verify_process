@@ -1,14 +1,14 @@
 ---
 name: bounded-residual-implementation-owner
 description: Complete only evidence-backed bounded residual implementation inside locked contracts and return when a new decision surface appears.
-model: GPT-5.6 Luna (copilot)
+model: GPT-6 Luna (copilot)
 target: vscode
 disable-model-invocation: true
 handoffs:
   - label: Return a new decision surface
     agent: decision-surface-implementation-owner
     prompt: Resume only from a tracked Decision-Surface Re-entry Handoff whose verdict is NEEDS_DECISION_SURFACE_REENTRY. Preserve the original intent, both handoffs, route identity, locked decisions, evidence, and worktree state.
-    model: GPT-5.6 Terra (copilot)
+    model: GPT-6 Sol (copilot)
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/

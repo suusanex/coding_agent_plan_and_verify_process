@@ -1,14 +1,14 @@
 ---
 name: decision-surface-implementation-owner
 description: Own implementation and focused verification while non-local decision surfaces remain, then complete or transfer only a bounded residual implementation.
-model: GPT-5.6 Terra (copilot)
+model: GPT-6 Sol (copilot)
 target: vscode
 disable-model-invocation: true
 handoffs:
   - label: Complete bounded residual implementation
     agent: bounded-residual-implementation-owner
     prompt: Continue only from a tracked Bounded Residual Implementation Handoff whose verdict is READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION and whose authorization fields are complete and consistent.
-    model: GPT-5.6 Luna (copilot)
+    model: GPT-6 Luna (copilot)
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/

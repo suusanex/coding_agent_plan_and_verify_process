@@ -85,7 +85,7 @@ ordinary Plan / short implementation intent
 ## Runtime adapters
 
 - Codex: portable semantic contractを使い、repository-local profileが各roleへconcrete modelを割り当てる。
-- GitHub Copilot Chat in VS Code: `decision-surface-implementation-owner`は`GPT-5.6 Terra (copilot)`、`bounded-residual-implementation-owner`は`GPT-5.6 Luna (copilot)`を要求する。
+- GitHub Copilot Chat in VS Code: `decision-surface-implementation-owner`は`GPT-6 Sol (copilot)`、`bounded-residual-implementation-owner`は`GPT-6 Luna (copilot)`を要求する。
 - GitHub Copilot CLI: agent切替が必要なら新processとtracked handoffを使う。
 
 これらはruntime topology / model mappingであり、semantic ownershipの定義ではありません。handoff buttonは手動遷移候補で、verdictを検証するrouterではありません。

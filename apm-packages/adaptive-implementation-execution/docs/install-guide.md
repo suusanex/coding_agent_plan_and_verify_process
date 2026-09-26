@@ -20,8 +20,8 @@ finalizerは`.codex/agents/*.toml`の`model`、`model_reasoning_effort`、`sandb
 
 | Semantic role | Agent | Default requested model |
 | --- | --- | --- |
-| Decision-Surface Implementation Owner | `decision-surface-implementation-owner` | `GPT-5.6 Terra (copilot)` / `gpt-5.6-terra` |
-| Bounded-Residual Implementation Owner | `bounded-residual-implementation-owner` | `GPT-5.6 Luna (copilot)` / `gpt-5.6-luna` |
+| Decision-Surface Implementation Owner | `decision-surface-implementation-owner` | `GPT-6 Sol (copilot)` / `gpt-6-sol` |
+| Bounded-Residual Implementation Owner | `bounded-residual-implementation-owner` | `GPT-6 Luna (copilot)` / `gpt-6-luna` |
 
 model mappingはruntime adapter設定であり、semantic role定義ではありません。組織policy等でmappingを変更する場合も、2 roleを異なるmodel mappingへ割り当て、変更を明示的に記録します。黙って同一tierへfallbackしません。
 

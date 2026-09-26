@@ -161,10 +161,10 @@ elseif ($overlayDocument.profiles[0].model -ceq $overlayDocument.profiles[1].mod
     Add-Failure 'Adaptive semantic owners must use distinct default model mappings.'
 }
 
-if ((Get-FrontmatterValue $decisionOwner 'model') -cne 'GPT-5.6 Terra (copilot)') {
+if ((Get-FrontmatterValue $decisionOwner 'model') -cne 'GPT-6 Sol (copilot)') {
     Add-Failure 'Decision-surface Copilot model mapping is invalid.'
 }
-if ((Get-FrontmatterValue $residualOwner 'model') -cne 'GPT-5.6 Luna (copilot)') {
+if ((Get-FrontmatterValue $residualOwner 'model') -cne 'GPT-6 Luna (copilot)') {
     Add-Failure 'Bounded-residual Copilot model mapping is invalid.'
 }
 
