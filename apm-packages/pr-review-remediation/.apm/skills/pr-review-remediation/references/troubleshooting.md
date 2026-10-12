@@ -12,7 +12,9 @@ collectorはDraftを自動変更しません。
 
 ## Review wait timed out
 
-`waitStatus: timeout`は未取得です。コメントなしではありません。再依頼・再待機するか、未取得でも進むことを利用者が明示判断します。判断がなければ`HUMAN_DECISION_REQUIRED`です。
+collectorは通常のreview所要時間を制限せず、completionを待ち続けます。標準のhard timeoutは1時間（3600秒）、poll間隔は30秒です。数分以上かかる通常のreviewでは待機を継続します。必要なら`--copilot-timeout-seconds`と`--copilot-poll-interval-seconds`で明示overrideできます。
+
+`waitStatus: timeout`は未取得です。コメントなしではありません。1時間経過後もcompletionを観測できない場合は、従来通り再依頼・再待機するか、未取得でも進むことを利用者が明示判断します。判断がなければ`HUMAN_DECISION_REQUIRED`です。
 
 ## The PR changed while waiting or before push
 

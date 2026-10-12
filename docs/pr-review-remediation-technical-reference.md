@@ -69,6 +69,8 @@ local upstreamのpush URLはGitHub上のcanonical `owner/name`へ解決し、col
 
 ## Fail-closed and terminal semantics
 
+Copilot review collectorの標準hard timeoutは3600秒（1時間）、poll間隔は30秒です。このtimeoutは通常のreview所要時間を制限せず、遅いreviewはcompletionまで待機します。CLI optionによる明示overrideも利用できます。1時間経過後の`waitStatus: timeout`は従来通り未取得として扱い、findingsなしや成功へ変換しません。
+
 次を「findingなし」または成功へ変換しません。
 
 - review request / permission failure

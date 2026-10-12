@@ -672,8 +672,8 @@ Options:
   --pr number                            Ready-for-review pull request number.
   --out directory                        Output directory for context and remote patch artifacts.
   --no-wait-for-copilot                  Disable the standard Copilot review wait.
-  --copilot-timeout-seconds seconds      Wait timeout. Default: 180.
-  --copilot-poll-interval-seconds value  Poll interval. Default: 10.
+  --copilot-timeout-seconds seconds      Hard wait timeout. Default: 3600.
+  --copilot-poll-interval-seconds value  Poll interval. Default: 30.
   --copilot-stable-samples count         Consecutive stable samples. Default: 2.
   --gh-executable path                   GitHub CLI executable. Default: gh.
   --include-checks                       Accepted for migration compatibility; checks are always collected.
@@ -689,8 +689,8 @@ sealed class Options
     public int PullRequestNumber { get; set; }
     public string OutputDirectory { get; set; } = string.Empty;
     public bool WaitForCopilot { get; set; } = true;
-    public int CopilotTimeoutSeconds { get; set; } = 180;
-    public int CopilotPollIntervalSeconds { get; set; } = 10;
+    public int CopilotTimeoutSeconds { get; set; } = 3600;
+    public int CopilotPollIntervalSeconds { get; set; } = 30;
     public int CopilotStableSamples { get; set; } = 2;
     public string GhExecutable { get; set; } = "gh";
     public bool ShowHelp { get; set; }

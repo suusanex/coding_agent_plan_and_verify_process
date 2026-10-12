@@ -73,6 +73,12 @@ try {
     Assert-NotContains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md' 'Planner recommendation|Planning Verdict' 'planner-owned evaluation field'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs' 'headRepository,headRepositoryOwner,isCrossRepository' 'collector head repository fields'
     Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs' 'remoteContentIsUntrusted' 'collector trust boundary metadata'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs' 'CopilotTimeoutSeconds\s*\{\s*get;\s*set;\s*\}\s*=\s*3600\s*;' 'one-hour Copilot timeout default'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs' 'CopilotPollIntervalSeconds\s*\{\s*get;\s*set;\s*\}\s*=\s*30\s*;' '30-second Copilot poll interval default'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs' 'case "--copilot-timeout-seconds"' 'Copilot timeout CLI override'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs' 'case "--copilot-poll-interval-seconds"' 'Copilot poll interval CLI override'
+    Assert-Contains 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/references/troubleshooting.md' '通常のreview所要時間を制限せず.*標準のhard timeoutは1時間（3600秒）、poll間隔は30秒' 'Copilot wait timeout documentation'
+    Assert-Contains 'docs/pr-review-remediation-technical-reference.md' '標準hard timeoutは3600秒（1時間）、poll間隔は30秒.*timeout.*未取得として扱い' 'technical reference timeout contract'
     Assert-Contains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md' 'Final verdict: REVIEW_COMPLETE' 'completed remediation expected verdict'
     Assert-Contains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md' 'Git outcome: COMMITTED_AND_PUSHED' 'completed remediation Git outcome'
     Assert-Contains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-complete.md' 'Git outcome: NO_CHANGES' 'no-remediation Git outcome'
@@ -124,8 +130,10 @@ try {
     $safeToDelete = $true
     & dotnet publish $collector --output (Join-Path $resolvedScratch 'collector')
     if ($LASTEXITCODE -ne 0) { throw 'Collector publish failed.' }
-    & dotnet run --file $collector -- --help
+    $help = (& dotnet run --file $collector -- --help | Out-String)
     if ($LASTEXITCODE -ne 0) { throw 'Collector help failed.' }
+    if ($help -notmatch '--copilot-timeout-seconds seconds\s+Hard wait timeout\. Default: 3600\.') { throw 'Collector help has the wrong Copilot timeout default.' }
+    if ($help -notmatch '--copilot-poll-interval-seconds value\s+Poll interval\. Default: 30\.') { throw 'Collector help has the wrong Copilot poll interval default.' }
 
     Write-Output 'PR Review Remediation parent-owned validation: PASS'
 }
