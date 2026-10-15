@@ -45,6 +45,18 @@ if ($skill -notmatch 'ユーザーが明示したsourceを最優先' -or $skill 
 if ($skill -notmatch '同じreviewer session' -or $skill -notmatch 'automatic round 4' -or $skill -notmatch '別providerへの切替を行わない') {
     throw 'Skill lifecycle stop contract is incomplete.'
 }
+if ($skill -match '新session、retry、context replay、別providerへの切替を行わない') {
+    throw 'Skill collapses every ERROR into a blanket retry ban.'
+}
+if ($skill -notmatch 'CONTEXT_NOT_FOUND' -or $skill -notmatch 'preflight failure' -or $skill -notmatch 'start`を再実行してよい') {
+    throw 'Skill does not allow a corrected start after a preflight failure before a review run exists.'
+}
+if ($skill -notmatch 'durable job' -or $skill -notmatch '再submitしない' -or $skill -notmatch 'duplicate review') {
+    throw 'Skill does not keep duplicate submit prevention after a durable job exists.'
+}
+if ($skill -notmatch 'terminal `ERROR`' -or $skill -notmatch 'session reconstruction' -or $skill -notmatch 'transcript replay' -or $skill -notmatch 'Round 1から`start`' -or $skill -notmatch '同一視しない') {
+    throw 'Skill does not separate refusing to continue a terminal ERROR run from starting a new Round 1 review.'
+}
 if ($skill -match 'codex exec|grok --|copilot -|--session-id|--resume|--sandbox|--model|reasoning-effort') {
     throw 'Skill duplicates provider or session protocol details owned by the Runner.'
 }

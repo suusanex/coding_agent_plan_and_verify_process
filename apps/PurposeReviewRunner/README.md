@@ -181,6 +181,9 @@ Copilot:
 | `EXECUTABLE_NOT_FOUND` / provider CLIが見つからない | configの`executable`とPATH | provider CLIを導入し、コマンド名または絶対pathを設定する |
 | provider側の認証切れ | 同じ`executable`を単体実行して認証状態を確認する | そのprovider CLI自身で再認証する。Runner側にsecretは書かない |
 | `RUNNING`が長い | `status --run <run-id>`を繰り返す。新しいrunを作っていないか | 同じ`run-id`の`status`だけをやり直す。1 roundは約10分かかることがある |
+| `CONTEXT_NOT_FOUND`など、run成立前の入力エラー | stdoutのerror code。`runId`が無いこと | context pathなどを直して`start`をやり直す。成立済みreviewの再送ではない |
+| 受付後にCLIの結果だけが不明 | durable job / `runId`が既にあるか | 同じ`start` / `continue`を再送せず、その`runId`の`status`を見る |
+| terminal `ERROR` | 既存`runId`の`status`が`ERROR` | そのrunは`continue`しない。原因解消後の新しいreviewは別の`start` |
 | Runner versionが古い / protocol非互換 | `purpose-review-runner version` | [最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)へ差し替える。`apm update`では直らない |
 | `HUMAN_DECISION_REQUIRED` | `message`とfinding。目的やscopeの選択が必要か | 人手で判断する。automatic round 4や別reviewerへの切替はしない |
 

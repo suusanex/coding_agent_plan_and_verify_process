@@ -86,6 +86,8 @@ purpose contextは plans/accepted-plan.md と docs/accepted-decisions.md です�
 
 最大3roundです。なお残る場合は`HUMAN_DECISION_REQUIRED`で止まり、人手の判断が必要です。JSON schemaを先に読む必要はありません。
 
+失敗の再開は段階で分かれます。`CONTEXT_NOT_FOUND`のようにreview runができる前の入力エラーは、原因を直して`start`をやり直せます。`runId`ができたあとに結果だけが分からないときは、同じ`start`や`continue`を送り直さず、その`runId`の`status`を見ます。既存runがterminal `ERROR`なら、そのrunは継続しません。原因を直したあとの新しいreviewは、終了したrunの継続とは別の`start`です。
+
 reviewerはnon-modifying reviewerです。変更禁止を指示しますが、OS-levelのread-only isolationではありません。修正は元のimplementation parentだけが行います。
 
 ## 手動testが残る場合
