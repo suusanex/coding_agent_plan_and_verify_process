@@ -69,7 +69,7 @@ purpose-review-runner start --repository <repository-root> --context <path> [--c
 
 返った`runId`を保持する。stdoutの公開protocol fields（`runId`、`jobStatus`、`status`、`findings`、`message`、`error`等）だけをworkflowで扱う。内部session handleやstate fileを読み書きしない。内部コマンド`work`は呼び出さない。
 
-`jobStatus`または`status`が`RUNNING`なら、数秒間隔で同じ`runId`の`status`を繰り返す。1回のCLI invocationが失敗・結果不明でも、新規run作成や同じroundの再submitはせず、`status`だけをやり直す。
+`jobStatus`または`status`が`RUNNING`なら、数秒間隔で同じ`runId`の`status`を繰り返す。durable job / `runId`が成立したあとにCLI invocationが失敗したり結果だけが不明になった場合は、同じ`start` / `continue`を再submitせず、同じ`runId`に対する`status`だけをやり直す。
 
 ```powershell
 purpose-review-runner status --run <run-id>
@@ -81,9 +81,18 @@ purpose-review-runner status --run <run-id>
 - `COMPLETE`: purpose review完了として終了する。`message`に未検証事項や人手で必要な作業があれば保持し、test成功や実環境検証完了とは報告しない。
 - `HUMAN_DECISION_REQUIRED`: finding、目的やscopeについて選択が必要な理由、実施済みvalidationを報告して停止する。決定済みのtestを人が実行するだけならこの状態へ読み替えない。
 - `BLOCKED`: blockerと再開条件を報告して停止する。
-- `ERROR`または非0 exit: error codeと安全なmessageを報告して停止する。新session、retry、context replay、別providerへの切替を行わない。
+- terminal `ERROR`、またはreview run成立前の非0 exit: error codeと安全なmessageを報告する。再開してよいかは[Retry and recovery](#retry-and-recovery)で、preflight failure、結果不明なdurable submit、terminal run failureを区別して判断する。すべての`ERROR`または非0 exitを一律のretry禁止にしない。
 
 findingと`requiredOutcome`は元の目的と明示的な採用判断に照合する。`requiredOutcome`は成立すべき状態・振る舞い・制約であり、修正手順ではない。parentが具体的な修正方式を設計し、追加だけでなく削除・縮小・既存経路への統合を検討する。複数componentにまたがる責務・authorityの問題を、局所的なpatch指示がないという理由で却下しない。誤り・過剰要求の根拠がある場合は、実装修正を行わず同じrunで再reviewを求めてもよい。必要な説明は既存の作業記録などに根拠と判断を簡潔に残し、過去のreviewer output全文を複製しない。未決定の目的・scopeを親の判断だけで変更する必要がある場合は、選択理由をユーザーへ報告して停止する。
+
+## Retry and recovery
+
+retry / recoveryの可否は、review run / reviewer sessionが成立済みか、同じ操作を再送すると重複実行になるかで区別する。すべての`ERROR`または非0 exitを一律のretry禁止にしない。duplicate submitの防止と、same reviewer sessionの契約は維持する。高可用なrecovery subsystemは追加せず、session reconstructionやprovider lifecycleの再実装もしない。
+
+- `start`が`runId`やdurable jobを成立させる前に、context pathの不正やcontext不在のような確定的なpreflight failureで失敗した場合は、原因を修正して`start`を再実行してよい。`CONTEXT_NOT_FOUND`は、review runもreviewer sessionも成立していない入力検証失敗である。この再実行は、成立済みreviewの再実行や同一roundのretryではない。
+- `start`または`continue`がdurable job / `runId`を成立させたあと、CLI invocationの失敗や応答喪失によって結果だけが不明な場合は、同じ`start` / `continue`を再submitしない。同じ`runId`に対する`status`を再実行して状態を確認する。これはduplicate review / duplicate roundを防ぐ必須ルールである。
+- 既存runがterminal `ERROR`になった場合、そのrunに対する自動`continue` retry、session reconstruction、transcript replay、別reviewerまたは別providerへの切替を行わない。終了したrunを継続しているように見せるrecoveryはしない。
+- terminal `ERROR`のrunを継続しないことは、原因を解消したあと新しいreview runをRound 1から`start`することまで禁止する意味ではない。両者を同一視しない。新しい`start`は別のreview runであり、終了したrunの`continue`やsessionの再構築ではない。
 
 ## Continue after remediation
 

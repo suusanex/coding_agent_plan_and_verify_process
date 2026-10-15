@@ -13,7 +13,7 @@ purpose-review-runner status --run <run-id>
 purpose-review-runner continue --run <run-id>
 ```
 
-`start`と`continue`はprovider完了をforegroundで待ちません。durable jobを登録して独立したworker processを起動し、`jobStatus`が`RUNNING`のJSONを返します。結果は同じ`run-id`で`status`を短時間pollingして取得します。`status`はreviewを再実行しません。1回のCLI呼び出しが失敗しても、新しいrunを作らず同じ`status`を問い合わせ直します。
+`start`と`continue`はprovider完了をforegroundで待ちません。入力検証を通過したあとdurable jobを登録して独立したworker processを起動し、`jobStatus`が`RUNNING`のJSONを返します。結果は同じ`run-id`で`status`を短時間pollingして取得します。`status`はreviewを再実行しません。durable job / `run-id`が成立したあとにCLI呼び出しの結果だけが不明な場合は、同じ`start` / `continue`を再submitせず、その`run-id`の`status`を問い合わせ直します。`CONTEXT_NOT_FOUND`のようにjob成立前の確定的なpreflight failureは、この再問い合わせの対象ではありません。再開の可否はSkillのretry / recovery契約に従います。
 
 `start`は1件以上のcontextを要求します。相対pathはrepository root基準で解決し、absolute pathも受理します。context本文をproviderへ渡すのはRound 1だけです。`continue`は保存済みsessionをresumeし、contextや前回outputを再送しません。内部コマンド`work`はSkillから使いません。
 
@@ -23,7 +23,7 @@ stdoutはprotocol v3の単一JSONです。公開fieldsは`protocolVersion`、`ru
 
 findingは`id`、`severity`、`title`、`summary`、`evidence`、`requiredOutcome`を要求します。成果の具体的な内容はreviewerが判断し、parserは修正手順や関数名を要求しません。`jobStatus`は`RUNNING`、`SUCCEEDED`、`FAILED`です。実行中の`status`は`RUNNING`です。診断はstderrへ出し、stdoutへ別形式のtextを混在させません。
 
-`FINDINGS`の場合だけ元のimplementation parentが修正・検証し、同じ`run-id`を`continue`します。`COMPLETE`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`、`ERROR`では停止します。`RUNNING`なら`status`を繰り返します。
+`FINDINGS`の場合だけ元のimplementation parentが修正・検証し、同じ`run-id`を`continue`します。`COMPLETE`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`では、そのrunを継続せず停止します。terminal `ERROR`のrunも`continue`しません。これは、原因解消後に別のreview runをRound 1から開始する判断とは別です。その区別はSkillが所有します。`RUNNING`なら、成立済みの`run-id`に対する`status`を繰り返します。
 
 `COMPLETE`は実装reviewの完了を表し、申し送り済みの未実施testが成功したことや、実環境検証・リリース条件が完了したことは表しません。エージェントが実行不能・実行不許可、または承認済み後工程のtestだけが残り、対象、理由、主体と時点、環境と手順、期待結果と合否基準、記録先と失敗時の戻し先が揃っていれば、reviewerは未実施だけをblockerにせず、未検証事項と人手作業を`message`に残せます。schemaとstatusはprotocol v3のままです。
 
