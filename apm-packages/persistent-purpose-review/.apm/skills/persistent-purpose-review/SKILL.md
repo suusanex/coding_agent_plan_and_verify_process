@@ -1,6 +1,8 @@
 ---
 name: persistent-purpose-review
-description: Use after implementation when the original implementation parent must run an independent purpose-aware review, fix findings itself, and ask the same reviewer session to re-review for up to three rounds. Requires the separately installed purpose-review-runner; do not use for baseline PR review planning without purpose context.
+description: Use only when the user explicitly invokes persistent-purpose-review. Do not select automatically for ordinary implementation, verification, or review requests. The original implementation parent runs an independent purpose-aware review, fixes findings, and asks the same reviewer session to re-review for up to three rounds. Requires the separately installed purpose-review-runner.
+user-invocable: true
+disable-model-invocation: true
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
@@ -8,6 +10,8 @@ description: Use after implementation when the original implementation parent mu
 ---
 
 # Persistent Purpose Review
+
+このSKILLは、ユーザーが明示的に起動した場合だけ使用する。通常の実装完了、verification、reviewなどを理由にモデルが自動選択してはならない。
 
 元のimplementation parentが、実装完了後のpurpose review、finding修正、同じreviewer sessionでの再reviewを同じtask内で完了する。
 

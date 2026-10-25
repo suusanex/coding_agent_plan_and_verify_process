@@ -2,6 +2,8 @@
 
 `$persistent-purpose-review`は、実装が仕様やGoal Contextの目的を満たしたかを独立reviewerに確認させ、findingがあれば元の実装エージェントが直して同じreviewerに再確認させるAPM Skillです。
 
+このSkillは高コストなためexplicit-onlyです。通常の実装完了、verification、reviewなどを契機に自動選択させず、ユーザーが明示的に起動してください。Codex系では`$persistent-purpose-review`を明示し、Grok Buildでは`disable-model-invocation: true`によりモデルから自動起動できないため、`/persistent-purpose-review`のslash commandで明示的に起動します。
+
 向いているのは、仕様・Goal Context・承認済み判断に対して「本当に目的を満たしたか」を実装完了後に確認したいときです。baseline PR code reviewの代替ではなく、最初から明確なpurpose contextがない仕事にも向きません。詳細は[何に向いているか](#何に向いているか)を参照してください。
 
 Skillは実装担当エージェントにレビュー工程を教えます。独立reviewerの起動と同一sessionの維持は、PCへ一度だけ入れるローカルCLI [Purpose Review Runner](../../apps/PurposeReviewRunner/README.md)が担当します。両方必要です。RunnerはOS userごとに一度、Skillは実行環境へ`--global`で導入します。
@@ -53,24 +55,26 @@ purpose-review-runner version
 
 `version`が単一JSONを返し、`protocolVersion`が`3`、`runnerVersion`が`0.4.0`以上であることを確認します。
 
-### 3. 実装エージェントへ指示する
+### 3. Skillを明示的に起動する
 
-通常の実装指示へ次を加えます。これが主経路です。あとはimplementation parentがRunnerを呼び、findingがあれば直し、同じreviewerに再確認します。
+実装完了やverification、reviewの依頼にSkill名を添えるだけではなく、ユーザーがSkill自体を明示的に起動してください。起動方法は実行環境によって異なります。
+
+Codex系では`$persistent-purpose-review`を明示指定します。
 
 ```text
-実装完了後は $persistent-purpose-review に従ってpurpose reviewを完了してください。
+$persistent-purpose-review を起動し、purpose reviewを完了してください。
 ```
 
-purpose contextがある場合はpathも渡します。補完関係にある複数文書はすべて指定できます。
+Grok Buildでは slash command を使って明示起動します。`disable-model-invocation: true`のため、通常の文章中で名前に触れたり、実装完了を指示したりしてもモデルからは起動されません。
 
 ```text
-実装完了後は $persistent-purpose-review に従ってpurpose reviewを完了してください。
-purpose contextは docs/goal-context.md です。
+/persistent-purpose-review
 ```
 
+purpose contextがある場合は起動時にpathも渡します。補完関係にある複数文書はすべて指定できます。
+
 ```text
-実装完了後は $persistent-purpose-review に従ってpurpose reviewを完了してください。
-purpose contextは plans/accepted-plan.md と docs/accepted-decisions.md です。
+/persistent-purpose-review purpose contextは docs/goal-context.md です。
 ```
 
 明示されたbaseやPRがある場合はcontext内に比較対象を記載します。PRやレビュー専用commitの作成は不要です。現在のsourceが競合する場合だけ、parentがreview開始前に質問します。
@@ -78,7 +82,7 @@ purpose contextは plans/accepted-plan.md と docs/accepted-decisions.md です�
 ### 4. 成功時の見え方
 
 ```text
-実装完了
+ユーザーがSkillを明示起動
   → Skillがreviewを開始する
   → FINDINGSがあれば元の実装エージェントが修正し、同じreviewerへ再reviewする
   → COMPLETEなら成功

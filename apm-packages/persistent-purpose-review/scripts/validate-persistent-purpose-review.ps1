@@ -17,6 +17,18 @@ foreach ($path in @(
 $manifest = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'apm.yml')
 $skill = Get-Content -Raw -LiteralPath $skillPath
 $readme = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'README.md')
+$frontmatter = [regex]::Match($skill, '(?s)\A---\r?\n(.*?)\r?\n---').Groups[1].Value
+if ([string]::IsNullOrWhiteSpace($frontmatter)) { throw 'Skill frontmatter is missing.' }
+
+if ($frontmatter -notmatch '(?m)^user-invocable:\s*true\s*$' -or $frontmatter -notmatch '(?m)^disable-model-invocation:\s*true\s*$') {
+    throw 'Skill must remain user-invocable and disable model invocation.'
+}
+if ($frontmatter -notmatch '(?im)^description:.*explicitly invokes' -or $frontmatter -notmatch '(?im)^description:.*Do not select automatically') {
+    throw 'Skill description does not preserve the explicit-only invocation contract.'
+}
+if ($skill -notmatch 'ユーザーが明示的に起動した場合だけ使用' -or $skill -notmatch 'モデルが自動選択してはならない') {
+    throw 'Skill body does not preserve the explicit-only invocation contract.'
+}
 
 if ($manifest -notmatch '(?m)^name:\s*persistent-purpose-review\s*$' -or $manifest -notmatch '(?m)^version:\s*0\.5\.0\s*$') {
     throw 'APM package identity is invalid.'
@@ -62,6 +74,9 @@ if ($skill -match 'codex exec|grok --|copilot -|--session-id|--resume|--sandbox|
 }
 if ($readme -notmatch 'OS userごとに一度' -or $readme -notmatch '--target agent-skills --global' -or $readme -notmatch '\$pr-review-remediation') {
     throw 'Package README does not preserve the three installation and ownership boundaries.'
+}
+if ($readme -notmatch 'explicit-only' -or $readme -notmatch '\$persistent-purpose-review' -or $readme -notmatch '/persistent-purpose-review' -or $readme -notmatch 'disable-model-invocation: true') {
+    throw 'Package README does not explain explicit-only invocation for Codex and Grok Build.'
 }
 if ($readme -match 'sandbox' -or $skill -match 'sandbox') {
     throw 'Package documents must not treat filesystem sandbox enforcement as a protocol invariant.'
