@@ -12,8 +12,9 @@ public sealed class RunnerApplication
     private readonly IWorkerLauncher workerLauncher;
     private readonly StateStore stateStore;
     private readonly JobStore jobStore;
+    private readonly IChangeMetadataCollector changeMetadataCollector;
 
-    public RunnerApplication(RunnerPaths paths, IExecutableResolver executableResolver, IProcessRunner processRunner, IWorkerLauncher workerLauncher)
+    public RunnerApplication(RunnerPaths paths, IExecutableResolver executableResolver, IProcessRunner processRunner, IWorkerLauncher workerLauncher, IChangeMetadataCollector? changeMetadataCollector = null)
     {
         this.paths = paths;
         this.executableResolver = executableResolver;
@@ -21,6 +22,7 @@ public sealed class RunnerApplication
         this.workerLauncher = workerLauncher;
         stateStore = new(paths.StateRoot);
         jobStore = new(paths.StateRoot);
+        this.changeMetadataCollector = changeMetadataCollector ?? new GitChangeMetadataCollector(processRunner, executableResolver);
     }
 
     public Task<ExecutionResult> ExecuteAsync(RunnerCommand command, CancellationToken cancellationToken) => command switch
@@ -45,10 +47,17 @@ public sealed class RunnerApplication
         var config = ConfigLoader.Load(paths.ConfigPath);
         var snapshot = new ProviderSnapshot(
             config.Provider,
-            executableResolver.Resolve(config.Executable),
+            config.Executable,
             config.Model,
             config.ReasoningEffort,
             config.Profile);
+        snapshot = ResolveSnapshot(snapshot);
+        var investigator = config.Investigator;
+        if (investigator is not null)
+        {
+            try { investigator = ResolveSnapshot(investigator); }
+            catch (Exception exception) { Trace.TraceError(exception.ToString()); }
+        }
         var runId = Guid.NewGuid().ToString("D");
         var job = new JobState(
             1,
@@ -59,7 +68,9 @@ public sealed class RunnerApplication
             DateTimeOffset.UtcNow,
             Repository: repository,
             ContextPaths: contexts.Select(context => context.Path).ToArray(),
-            Provider: snapshot);
+            Provider: snapshot,
+            Investigator: investigator,
+            InitialContexts: contexts.Select(context => new ContextSnapshot(context.Path, context.Content)).ToArray());
         using (stateStore.AcquireLock(runId))
         {
             jobStore.Save(job);
@@ -107,7 +118,10 @@ public sealed class RunnerApplication
                 JobOperations.Continue,
                 JobStatuses.Running,
                 DateTimeOffset.UtcNow,
-                Repository: state.Repository));
+                Repository: state.Repository,
+                Provider: state.Provider,
+                Investigator: state.Investigator,
+                InitialContexts: state.InitialContexts));
             jobStore.DeleteResult(command.RunId);
         }
 
@@ -242,6 +256,10 @@ public sealed class RunnerApplication
             await ExecuteRoundAsync(job, cancellationToken);
             return ReadStoredResult(command.RunId);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception exception)
         {
             Trace.TraceError(exception.ToString());
@@ -275,8 +293,11 @@ public sealed class RunnerApplication
             throw new RunnerException("REPOSITORY_NOT_FOUND", $"Repository directory was not found: {repository}");
         }
 
-        var contexts = ResolveContexts(repository, contextPaths);
-        var payload = PromptBuilder.BuildStart(repository, contexts);
+        var contexts = job.InitialContexts?.Select(context => (context.Path, context.Content)).ToArray() ?? ResolveContexts(repository, contextPaths);
+        var changeMetadata = await changeMetadataCollector.CollectAsync(repository, cancellationToken);
+        var reportPath = await RunInvestigatorAsync(job, repository, contexts, changeMetadata, cancellationToken);
+        var unavailable = job.Investigator is null ? "INVESTIGATOR_BYPASSED" : reportPath is null ? "INVESTIGATOR_UNAVAILABLE" : null;
+        var payload = PromptBuilder.BuildStart(repository, contexts, changeMetadata, reportPath, unavailable);
         var transcriptStore = new TranscriptStore(stateStore.GetRunDirectory(job.RunId));
         transcriptStore.SavePrompt(1, payload);
         var provider = ProviderFactory.Create(snapshot.Provider);
@@ -294,7 +315,9 @@ public sealed class RunnerApplication
             snapshot,
             providerResult.SessionHandle,
             1,
-            review.Status);
+            review.Status,
+            job.Investigator,
+            job.InitialContexts?.ToArray() ?? contexts.Select(context => new ContextSnapshot(context.Path, context.Content)).ToArray());
         stateStore.Save(state);
         PersistSuccess(job, RunnerOutput.FromReview(job.RunId, 1, review));
     }
@@ -302,6 +325,11 @@ public sealed class RunnerApplication
     private async Task ExecuteContinueRoundAsync(JobState job, CancellationToken cancellationToken)
     {
         var state = stateStore.Load(job.RunId);
+        if (job.Investigator != state.Investigator || (job.Provider is not null && job.Provider != state.Provider) ||
+            (job.InitialContexts is not null && state.InitialContexts is not null && !job.InitialContexts.SequenceEqual(state.InitialContexts)))
+        {
+            throw new RunnerException("JOB_INVALID", "Continuation job role snapshots do not match the saved review run.");
+        }
         if (state.Status != ReviewStatuses.Findings)
         {
             throw new RunnerException("RUN_TERMINAL", $"Run is already terminal with status {state.Status}.");
@@ -323,7 +351,12 @@ public sealed class RunnerApplication
 
         var terminalState = state with { Round = nextRound, Status = ReviewStatuses.Error };
         stateStore.Save(terminalState);
-        var payload = PromptBuilder.BuildContinue(nextRound);
+        var changeMetadata = await changeMetadataCollector.CollectAsync(state.Repository, cancellationToken);
+        var initialContexts = state.InitialContexts?.Select(context => (context.Path, context.Content)).ToArray()
+            ?? (state.Investigator is null ? [] : ResolveContexts(state.Repository, state.ContextPaths));
+        var reportPath = await RunInvestigatorAsync(job, state.Repository, initialContexts, changeMetadata, cancellationToken);
+        var unavailable = state.Investigator is null ? "INVESTIGATOR_BYPASSED" : reportPath is null ? "INVESTIGATOR_UNAVAILABLE" : null;
+        var payload = PromptBuilder.BuildContinue(nextRound, changeMetadata, reportPath, unavailable);
         var transcriptStore = new TranscriptStore(stateStore.GetRunDirectory(state.RunId));
         transcriptStore.SavePrompt(nextRound, payload);
         var provider = ProviderFactory.Create(state.Provider.Provider);
@@ -350,6 +383,37 @@ public sealed class RunnerApplication
         }
         stateStore.Save(terminalState with { Status = review.Status });
         PersistSuccess(job, RunnerOutput.FromReview(state.RunId, nextRound, review));
+    }
+
+    private ProviderSnapshot ResolveSnapshot(ProviderSnapshot snapshot) => snapshot with { Executable = executableResolver.Resolve(snapshot.Executable) };
+
+    private string InvestigatorReportPath(string runId, int round) => Path.Combine(stateStore.GetRunDirectory(runId), $"investigator-report-{round}.json");
+
+    private async Task<string?> RunInvestigatorAsync(JobState job, string repository, IReadOnlyList<(string Path, string Content)> contexts, string changeMetadata, CancellationToken cancellationToken)
+    {
+        if (job.Investigator is null) return null;
+        try
+        {
+            var payload = PromptBuilder.BuildInvestigator(repository, contexts, job.Round, changeMetadata);
+            var transcriptStore = new TranscriptStore(Path.Combine(stateStore.GetRunDirectory(job.RunId), "investigator"));
+            transcriptStore.SavePrompt(job.Round, payload);
+            var adapter = ProviderFactory.Create(job.Investigator.Provider);
+            var result = await adapter.ExecuteAsync(new(job.Investigator, repository, stateStore.GetRunDirectory(job.RunId), payload, null, job.Round), processRunner, cancellationToken);
+            transcriptStore.SaveResponse(job.Round, result.ReviewText);
+            var validated = InvestigatorReportValidator.ParseAndValidate(result.ReviewText);
+            var path = InvestigatorReportPath(job.RunId, job.Round);
+            SharedStateFile.WriteAtomic(path, System.Text.Json.JsonSerializer.Serialize(validated, JsonDefaults.Options));
+            return path;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            Trace.TraceError(exception.ToString());
+            return null;
+        }
     }
 
     private void PersistSuccess(JobState job, RunnerOutput output)

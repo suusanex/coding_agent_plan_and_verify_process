@@ -30,7 +30,7 @@ if ($skill -notmatch 'ユーザーが明示的に起動した場合だけ使用'
     throw 'Skill body does not preserve the explicit-only invocation contract.'
 }
 
-if ($manifest -notmatch '(?m)^name:\s*persistent-purpose-review\s*$' -or $manifest -notmatch '(?m)^version:\s*0\.5\.0\s*$') {
+if ($manifest -notmatch '(?m)^name:\s*persistent-purpose-review\s*$' -or $manifest -notmatch '(?m)^version:\s*0\.6\.0\s*$') {
     throw 'APM package identity is invalid.'
 }
 if ($manifest -notmatch '(?ms)^targets:\s*$.*^\s+- copilot\s*$.*^\s+- codex\s*$.*^\s+- agent-skills\s*$') {

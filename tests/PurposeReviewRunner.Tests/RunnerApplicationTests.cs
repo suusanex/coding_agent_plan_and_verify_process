@@ -12,6 +12,237 @@ namespace PurposeReviewRunnerTests;
 public sealed class RunnerApplicationTests
 {
     [TestMethod]
+    public void SchemaTwoConfigLoadsLeadAndInvestigatorSnapshotsAndAllowsExplicitBypass()
+    {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".json");
+        try
+        {
+            File.WriteAllText(path, """
+                {"schemaVersion":2,"reviewLead":{"provider":"grok","executable":"grok","model":"lead","reasoningEffort":"high","profile":null},"investigator":{"provider":"copilot","executable":"copilot","model":"investigator","reasoningEffort":"medium","profile":null}}
+                """);
+            var config = ConfigLoader.Load(path);
+            Assert.AreEqual("grok", config.Provider);
+            Assert.AreEqual("copilot", config.Investigator?.Provider);
+            File.WriteAllText(path, """
+                {"schemaVersion":2,"reviewLead":{"provider":"codex","executable":"codex","model":"lead","reasoningEffort":"high","profile":null},"investigator":null}
+                """);
+            Assert.IsNull(ConfigLoader.Load(path).Investigator);
+            File.WriteAllText(path, """
+                {"schemaVersion":2,"provider":null,"reviewLead":{"provider":"codex","executable":"codex","model":"lead","reasoningEffort":"high","profile":null},"investigator":null}
+                """);
+            Assert.ThrowsExactly<RunnerException>(() => ConfigLoader.Load(path));
+            File.WriteAllText(path, """
+                {"schemaVersion":1,"provider":"codex","executable":"codex","model":"lead","reasoningEffort":"high","profile":null,"investigator":null}
+                """);
+            Assert.ThrowsExactly<RunnerException>(() => ConfigLoader.Load(path));
+        }
+        finally { File.Delete(path); }
+    }
+
+    [TestMethod]
+    public async Task InvalidInvestigatorReportFallsBackWithoutTreatingItAsAcceptedEvidence()
+    {
+        using var fixture = new RunnerFixture("grok");
+        fixture.WriteRepositoryFile("goal.md", "purpose");
+        File.WriteAllText(fixture.Paths.ConfigPath, JsonSerializer.Serialize(new
+        {
+            schemaVersion = 2,
+            reviewLead = new ProviderSnapshot("grok", "grok", "lead", "high", null),
+            investigator = new ProviderSnapshot("grok", "grok", "investigator", "medium", null)
+        }, JsonDefaults.Options));
+        fixture.Process.Reviews.Enqueue("not-json");
+        fixture.Process.Reviews.Enqueue(Review("COMPLETE"));
+
+        var result = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
+
+        Assert.AreEqual(ReviewStatuses.Complete, result.Output.Status);
+        StringAssert.Contains(fixture.Process.ProviderPayloads.Last(), "INVESTIGATOR_UNAVAILABLE");
+        Assert.IsFalse(fixture.Process.ProviderPayloads.Last().Contains("investigator-report-1.json", StringComparison.Ordinal));
+        Assert.AreEqual("not-json", File.ReadAllText(Path.Combine(fixture.Paths.StateRoot, result.Output.RunId!, "investigator", "transcript", "round-01-response.md")));
+    }
+
+    [TestMethod]
+    public void InvestigatorReportRejectsMissingFieldsAndUnknownEvidenceReferences()
+    {
+        Assert.ThrowsExactly<RunnerException>(() => InvestigatorReportValidator.ParseAndValidate("""{"schemaVersion":1,"evidence":[],"checked_scope":[],"unchecked_scope":[],"uncertainties":[],"candidate_findings":[]}"""));
+        Assert.ThrowsExactly<RunnerException>(() => InvestigatorReportValidator.ParseAndValidate("""{"schemaVersion":1,"evidence":[{"id":"e1","path":"src/a.cs","startLine":1,"description":"code"}],"checked_scope":["src"],"unchecked_scope":[],"uncertainties":[],"candidate_findings":[{"id":"x","title":"x","summary":"x","evidence_ids":["missing"]}]}"""));
+    }
+
+    [TestMethod]
+    [DataRow("""{"schemaVersion":1,"evidence":[],"checked_scope":["src"],"unchecked_scope":[],"uncertainties":[],"candidate_findings":[{"id":"x","title":"x","summary":"x"}]}""")]
+    [DataRow("""{"schemaVersion":2,"evidence":[],"checked_scope":["src"],"unchecked_scope":[],"uncertainties":[],"candidate_findings":[]}""")]
+    [DataRow("""{"schemaVersion":1,"evidence":[null],"checked_scope":["src"],"unchecked_scope":[],"uncertainties":[],"candidate_findings":[]}""")]
+    [DataRow("""{"schemaVersion":1,"evidence":[],"checked_scope":["src"],"unchecked_scope":[],"uncertainties":[],"candidate_findings":[null]}""")]
+    [DataRow("""{"schemaVersion":1,"evidence":null,"checked_scope":["src"],"unchecked_scope":[],"uncertainties":[],"candidate_findings":[]}""")]
+    [DataRow("""{"schemaVersion":1,"evidence":[],"checked_scope":["src"],"unchecked_scope":[],"uncertainties":[],"candidate_findings":[],"candidate_findings":[]}""")]
+    [DataRow("""{"schemaVersion":1,"evidence":[{"id":"e1","path":"src/a.cs","startLine":0,"endLine":-1,"description":"code"}],"checked_scope":["src"],"unchecked_scope":[],"uncertainties":[],"candidate_findings":[]}""")]
+    [DataRow("""{"schemaVersion":1,"evidence":[],"checked_scope":["src"],"unchecked_scope":[],"uncertainties":[],"candidate_findings":[{"id":"x","title":"x","summary":"x","evidence_ids":[] }]}""")]
+    public void InvestigatorReportRejectsInvalidSchemaShapes(string json) =>
+        Assert.ThrowsExactly<RunnerException>(() => InvestigatorReportValidator.ParseAndValidate(json));
+
+    [TestMethod]
+    public void InvestigatorReportAcceptsOnlyJsonInsideSingleOrderedInvestigationBlock()
+    {
+        var json = ValidInvestigatorReport().Replace("source", "Protocol text mentions BEGIN_PURPOSE_INVESTIGATION and END_PURPOSE_INVESTIGATION markers.", StringComparison.Ordinal);
+        var framed = "provider commentary: 調査しています; marker BEGIN_PURPOSE_INVESTIGATION is text\nBEGIN_PURPOSE_INVESTIGATION\n" + json + "\nEND_PURPOSE_INVESTIGATION\nprovider completion notice: END_PURPOSE_INVESTIGATION";
+        var parsed = InvestigatorReportValidator.ParseAndValidate(framed);
+        Assert.AreEqual(1, parsed.SchemaVersion);
+        Assert.AreEqual(1, InvestigatorReportValidator.ParseAndValidate(json).SchemaVersion);
+        Assert.ThrowsExactly<RunnerException>(() => InvestigatorReportValidator.ParseAndValidate("BEGIN_PURPOSE_INVESTIGATION\n" + ValidInvestigatorReport()));
+        Assert.ThrowsExactly<RunnerException>(() => InvestigatorReportValidator.ParseAndValidate("END_PURPOSE_INVESTIGATION\n" + ValidInvestigatorReport() + "\nBEGIN_PURPOSE_INVESTIGATION"));
+        Assert.ThrowsExactly<RunnerException>(() => InvestigatorReportValidator.ParseAndValidate("BEGIN_PURPOSE_INVESTIGATION\n" + ValidInvestigatorReport() + "\nEND_PURPOSE_INVESTIGATION\nBEGIN_PURPOSE_INVESTIGATION\n{}\nEND_PURPOSE_INVESTIGATION"));
+        Assert.ThrowsExactly<RunnerException>(() => InvestigatorReportValidator.ParseAndValidate("BEGIN_PURPOSE_INVESTIGATION" + ValidInvestigatorReport() + "END_PURPOSE_INVESTIGATION"));
+        Assert.AreEqual(1, InvestigatorReportValidator.ParseAndValidate("progress BEGIN_PURPOSE_INVESTIGATION\n" + ValidInvestigatorReport() + "\nEND_PURPOSE_INVESTIGATION").SchemaVersion);
+    }
+
+    [TestMethod]
+    public void InvestigatorReportParsesCapturedGrokResponseWithConcatenatedProgressPrefix()
+    {
+        var responsePath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "grok-investigator-response.md");
+        var rawResponse = File.ReadAllText(responsePath);
+
+        var report = InvestigatorReportValidator.ParseAndValidate(rawResponse);
+
+        Assert.AreEqual(1, report.SchemaVersion);
+        Assert.AreEqual(6, report.Evidence.Count);
+        Assert.AreEqual(3, report.CandidateFindings.Count);
+    }
+
+    [TestMethod]
+    public async Task SchemaTwoUsesFreshInvestigatorEachRoundAndRetainsInitialPurposeSnapshot()
+    {
+        using var fixture = new RunnerFixture("grok");
+        fixture.WriteRepositoryFile("goal.md", "INITIAL-PURPOSE");
+        var lead = new ProviderSnapshot("grok", "grok", "lead-model", "high", "lead-profile");
+        var investigator = new ProviderSnapshot("grok", "grok", "investigator-model", "medium", "investigator-profile");
+        File.WriteAllText(fixture.Paths.ConfigPath, JsonSerializer.Serialize(new
+        {
+            schemaVersion = 2,
+            reviewLead = lead,
+            investigator
+        }, JsonDefaults.Options));
+        fixture.Process.Reviews.Enqueue(ValidInvestigatorReport());
+        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue(ValidInvestigatorReport());
+        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue(ValidInvestigatorReport());
+        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
+
+        var start = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
+        fixture.WriteRepositoryFile("goal.md", "CHANGED-PURPOSE-FILE");
+        fixture.WriteConfig("grok", "changed-grok", "changed-model");
+        var continuation = await fixture.Application.ExecuteAsync(new ContinueCommand(start.Output.RunId!), CancellationToken.None);
+        var final = await fixture.Application.ExecuteAsync(new ContinueCommand(start.Output.RunId!), CancellationToken.None);
+
+        Assert.AreEqual(6, fixture.Process.ProviderRequests.Count);
+        var investigatorRequests = fixture.Process.ProviderRequests.Where(request => request.Arguments.Contains("investigator-model")).ToArray();
+        var leadRequests = fixture.Process.ProviderRequests.Where(request => request.Arguments.Contains("lead-model")).ToArray();
+        Assert.AreEqual(3, investigatorRequests.Length);
+        Assert.AreEqual(3, leadRequests.Length);
+        Assert.AreEqual(4, fixture.Process.ProviderPayloads.Count(payload => payload.Contains("INITIAL-PURPOSE", StringComparison.Ordinal)));
+        Assert.IsFalse(fixture.Process.ProviderPayloads.Any(payload => payload.Contains("CHANGED-PURPOSE-FILE", StringComparison.Ordinal)));
+        Assert.AreEqual(3, investigatorRequests.Select(SessionArgument).Distinct(StringComparer.Ordinal).Count());
+        Assert.AreEqual(1, leadRequests.Select(SessionArgument).Distinct(StringComparer.Ordinal).Count());
+        Assert.AreEqual(ReviewStatuses.HumanDecisionRequired, final.Output.Status);
+    }
+
+    [TestMethod]
+    public async Task CrossProviderInvestigatorFailureDoesNotStopPersistentLead()
+    {
+        using var fixture = new RunnerFixture("grok");
+        fixture.WriteRepositoryFile("goal.md", "PURPOSE");
+        File.WriteAllText(fixture.Paths.ConfigPath, JsonSerializer.Serialize(new
+        {
+            schemaVersion = 2,
+            reviewLead = new ProviderSnapshot("grok", "grok", "lead", "high", null),
+            investigator = new ProviderSnapshot("copilot", "copilot", "investigator", "medium", null)
+        }, JsonDefaults.Options));
+        fixture.Process.Reviews.Enqueue(ValidInvestigatorReport());
+        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue("not-json");
+        fixture.Process.Reviews.Enqueue(Review("COMPLETE"));
+
+        var start = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
+        var continuation = await fixture.Application.ExecuteAsync(new ContinueCommand(start.Output.RunId!), CancellationToken.None);
+
+        Assert.AreEqual(ReviewStatuses.Findings, start.Output.Status);
+        Assert.AreEqual(ReviewStatuses.Complete, continuation.Output.Status);
+        Assert.AreEqual(4, fixture.Process.ProviderRequests.Count);
+        var investigatorRequests = fixture.Process.ProviderRequests.Where(request => request.Executable == FakeExecutableResolver.Expected("copilot")).ToArray();
+        var leadRequests = fixture.Process.ProviderRequests.Where(request => request.Executable == FakeExecutableResolver.Expected("grok")).ToArray();
+        Assert.AreEqual(2, investigatorRequests.Length);
+        Assert.AreEqual(2, leadRequests.Length);
+        Assert.AreEqual(2, investigatorRequests.Select(SessionArgument).Distinct(StringComparer.Ordinal).Count());
+        Assert.AreEqual(1, leadRequests.Select(SessionArgument).Distinct(StringComparer.Ordinal).Count());
+        Assert.IsTrue(File.Exists(Path.Combine(fixture.Paths.StateRoot, start.Output.RunId!, "investigator-report-1.json")));
+        Assert.IsFalse(File.Exists(Path.Combine(fixture.Paths.StateRoot, start.Output.RunId!, "investigator-report-2.json")));
+        StringAssert.Contains(fixture.Process.ProviderPayloads[^1], "INVESTIGATOR_UNAVAILABLE");
+    }
+
+    [TestMethod]
+    public async Task GitMetadataCollectorUsesDeterministicHeadStatusAndDiffCommands()
+    {
+        var process = new GitRecordingProcessRunner();
+        var collector = new GitChangeMetadataCollector(process, new FakeExecutableResolver());
+        var metadata = await collector.CollectAsync("C:\\repo", CancellationToken.None);
+
+        StringAssert.Contains(metadata, "base: unknown");
+        StringAssert.Contains(metadata, "HEAD: commit-id");
+        Assert.AreEqual(4, process.Requests.Count);
+        CollectionAssert.AreEqual(new[] { "rev-parse", "status", "--no-pager", "--no-pager" }, process.Requests.Select(request => request.Arguments[0]).ToArray());
+        CollectionAssert.Contains(process.Requests[1].Arguments.ToArray(), "-uall");
+        Assert.IsTrue(process.Requests[2].Arguments.Contains("--no-ext-diff"));
+        Assert.IsTrue(process.Requests[2].Arguments.Contains("--no-textconv"));
+        Assert.IsTrue(process.Requests[3].Arguments.Contains("--stat"));
+
+        var unavailable = await new GitChangeMetadataCollector(new GitRecordingProcessRunner(exitCode: 1), new FakeExecutableResolver())
+            .CollectAsync("C:\\repo", CancellationToken.None);
+        StringAssert.Contains(unavailable, "Git metadata unavailable");
+        StringAssert.Contains(unavailable, "Base: unknown");
+    }
+
+    [TestMethod]
+    public void InvestigatorRunAndJobRejectMissingInitialPurposeSnapshot()
+    {
+        using var fixture = new RunnerFixture("grok");
+        var runId = Guid.NewGuid().ToString("D");
+        fixture.WriteRepositoryFile("goal.md", "purpose");
+        var provider = new ProviderSnapshot("grok", FakeExecutableResolver.Expected("grok"), "model", "high", null);
+        var investigator = new ProviderSnapshot("copilot", "copilot", "investigator", "medium", null);
+        var runState = new RunState(Protocol.Version, runId, fixture.Repository, [Path.Combine(fixture.Repository, "goal.md")], provider, "session", 1, ReviewStatuses.Findings, investigator);
+        Assert.ThrowsExactly<RunnerException>(() => new StateStore(fixture.Paths.StateRoot).Save(runState));
+
+        var job = new JobState(1, runId, 1, JobOperations.Start, JobStatuses.Running, DateTimeOffset.UtcNow,
+            Repository: fixture.Repository,
+            ContextPaths: [Path.Combine(fixture.Repository, "goal.md")],
+            Provider: provider,
+            Investigator: investigator);
+        Assert.ThrowsExactly<RunnerException>(() => new JobStore(fixture.Paths.StateRoot).Save(job));
+    }
+
+    [TestMethod]
+    public async Task WorkerDoesNotSwallowCancellationDuringMetadataCollection()
+    {
+        using var fixture = new RunnerFixture("grok", new RecordingWorkerLauncher());
+        fixture.WriteRepositoryFile("goal.md", "purpose");
+        var app = new RunnerApplication(fixture.Paths, new FakeExecutableResolver(), fixture.Process, new RecordingWorkerLauncher(), new CancelingChangeMetadataCollector());
+        var start = await app.ExecuteAsync(new StartCommand(fixture.Repository, ["goal.md"]), CancellationToken.None);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsExactlyAsync<TaskCanceledException>(() => app.ExecuteAsync(new WorkCommand(start.Output.RunId!), cancellation.Token));
+    }
+
+    private static string SessionArgument(ProcessRequest request)
+    {
+        var args = request.Arguments.ToArray();
+        var argumentIndex = Array.FindIndex(args, argument => argument is "--session-id" or "--resume" || argument.StartsWith("--session-id=", StringComparison.Ordinal) || argument.StartsWith("--resume=", StringComparison.Ordinal));
+        return args[argumentIndex].Contains('=') ? args[argumentIndex][(args[argumentIndex].IndexOf('=') + 1)..] : args[argumentIndex + 1];
+    }
+
+    private static string ValidInvestigatorReport() => """{"schemaVersion":1,"evidence":[{"id":"E1","path":"src/a.cs","startLine":1,"description":"source"}],"checked_scope":["src"],"unchecked_scope":[],"uncertainties":[],"candidate_findings":[]}""";
+
+    [TestMethod]
     public async Task StartAndContinueUseSameCodexSessionAndDoNotReplayContext()
     {
         using var fixture = new RunnerFixture("codex");
@@ -386,7 +617,7 @@ public sealed class RunnerApplicationTests
             new ContinueCommand(start.Output.RunId!), CancellationToken.None));
 
         Assert.AreEqual("STATE_INCOMPATIBLE", exception.Code);
-        Assert.HasCount(1, fixture.Process.Requests);
+        Assert.HasCount(1, fixture.Process.Requests.Where(request => request.Executable == FakeExecutableResolver.Expected("codex")));
     }
 
     [TestMethod]
@@ -660,7 +891,7 @@ public sealed class RunnerApplicationTests
         var runDirectory = Path.Combine(fixture.Paths.StateRoot, result.Output.RunId!);
         Assert.IsEmpty(Directory.GetFiles(runDirectory, "state.json.tmp-*"));
         var stateText = File.ReadAllText(Path.Combine(runDirectory, "state.json"));
-        Assert.IsFalse(stateText.Contains("UNIQUE-CONTEXT-BODY", StringComparison.Ordinal));
+        StringAssert.Contains(stateText, "UNIQUE-CONTEXT-BODY");
         Assert.IsFalse(stateText.Contains("Purpose gap", StringComparison.Ordinal));
         var state = JsonSerializer.Deserialize<RunState>(stateText, JsonDefaults.Options);
         Assert.IsNotNull(state);
@@ -821,7 +1052,7 @@ public sealed class RunnerApplicationTests
         Assert.AreEqual(2, firstContinue.Output.Round);
         Assert.AreEqual("JOB_IN_PROGRESS", duplicate.Code);
         Assert.AreEqual(1, launcher.LaunchCount);
-        Assert.HasCount(1, fixture.Process.Requests);
+        Assert.HasCount(1, fixture.Process.Requests.Where(request => request.Executable == FakeExecutableResolver.Expected("grok")));
     }
 
     [TestMethod]
@@ -1143,12 +1374,12 @@ internal sealed class RunnerFixture : IDisposable
         if (workerLauncher is null)
         {
             var inProcess = new InProcessWorkerLauncher();
-            Application = new(Paths, new FakeExecutableResolver(), Process, inProcess);
+            Application = new(Paths, new FakeExecutableResolver(), Process, inProcess, new EmptyChangeMetadataCollector());
             inProcess.Application = Application;
         }
         else
         {
-            Application = new(Paths, new FakeExecutableResolver(), Process, workerLauncher);
+            Application = new(Paths, new FakeExecutableResolver(), Process, workerLauncher, new EmptyChangeMetadataCollector());
         }
     }
 
@@ -1181,6 +1412,16 @@ internal sealed class RunnerFixture : IDisposable
     }
 }
 
+internal sealed class EmptyChangeMetadataCollector : IChangeMetadataCollector
+{
+    public Task<string> CollectAsync(string repository, CancellationToken cancellationToken) => Task.FromResult("Git metadata unavailable in test fixture; base: unknown.");
+}
+
+internal sealed class CancelingChangeMetadataCollector : IChangeMetadataCollector
+{
+    public Task<string> CollectAsync(string repository, CancellationToken cancellationToken) => Task.FromCanceled<string>(cancellationToken);
+}
+
 internal sealed class FakeExecutableResolver : IExecutableResolver
 {
     public static string Expected(string executable) => Path.Combine(Path.GetTempPath(), "resolved-" + executable);
@@ -1191,31 +1432,38 @@ internal sealed class FakeExecutableResolver : IExecutableResolver
 internal sealed class ScriptedProcessRunner : IProcessRunner
 {
     private readonly string provider;
-    private string? copilotSession;
 
     public ScriptedProcessRunner(string provider) => this.provider = provider;
 
     public Queue<string> Reviews { get; } = new();
     public List<string> ReviewTexts { get; } = [];
     public List<ProcessRequest> Requests { get; } = [];
+    public List<ProcessRequest> ProviderRequests { get; } = [];
+    public List<string> ProviderPayloads { get; } = [];
     public ProcessResult? ForcedResult { get; set; }
     public string CodexSessionId { get; } = "11111111-1111-4111-8111-111111111111";
 
     public Task<ProcessResult> RunAsync(ProcessRequest request, CancellationToken cancellationToken)
     {
         Requests.Add(request);
+        if (request.Executable == FakeExecutableResolver.Expected("git"))
+        {
+            return Task.FromResult(new ProcessResult(0, request.Arguments.Contains("rev-parse") ? "test-head" : string.Empty, string.Empty, false));
+        }
+        ProviderRequests.Add(request);
+        if (request.StandardInput is not null) ProviderPayloads.Add(request.StandardInput);
+        else if (request.Arguments.Contains("--prompt-file"))
+        {
+            var promptIndex = Array.IndexOf(request.Arguments.ToArray(), "--prompt-file");
+            ProviderPayloads.Add(File.ReadAllText(request.Arguments[promptIndex + 1]));
+        }
         if (ForcedResult is not null)
         {
             return Task.FromResult(ForcedResult);
         }
         var review = Reviews.Dequeue();
         ReviewTexts.Add(review);
-        return Task.FromResult(provider switch
-        {
-            "codex" => CodexResult(request, review),
-            "copilot" => CopilotResult(request, review),
-            _ => new ProcessResult(0, review, string.Empty, false)
-        });
+        return Task.FromResult(request.Arguments.Contains("--stream") ? CopilotResult(request, review) : provider == "codex" ? CodexResult(request, review) : new ProcessResult(0, review, string.Empty, false));
     }
 
     private ProcessResult CodexResult(ProcessRequest request, string review)
@@ -1230,10 +1478,21 @@ internal sealed class ScriptedProcessRunner : IProcessRunner
     {
         var sessionArgument = request.Arguments.Single(argument => argument.StartsWith("--session-id=", StringComparison.Ordinal) || argument.StartsWith("--resume=", StringComparison.Ordinal));
         var requested = sessionArgument[(sessionArgument.IndexOf('=') + 1)..];
-        copilotSession ??= requested;
         var output = string.Join("\n",
             JsonSerializer.Serialize(new { type = "assistant.message", data = new { content = review, model = "test-model" } }),
-            JsonSerializer.Serialize(new { type = "result", sessionId = copilotSession }));
+            JsonSerializer.Serialize(new { type = "result", sessionId = requested }));
         return new(0, output, string.Empty, false);
+    }
+}
+
+internal sealed class GitRecordingProcessRunner : IProcessRunner
+{
+    private readonly int exitCode;
+    public GitRecordingProcessRunner(int exitCode = 0) => this.exitCode = exitCode;
+    public List<ProcessRequest> Requests { get; } = [];
+    public Task<ProcessResult> RunAsync(ProcessRequest request, CancellationToken cancellationToken)
+    {
+        Requests.Add(request);
+        return Task.FromResult(new ProcessResult(exitCode, request.Arguments.Contains("rev-parse") ? "commit-id" : "git-output", string.Empty, false));
     }
 }

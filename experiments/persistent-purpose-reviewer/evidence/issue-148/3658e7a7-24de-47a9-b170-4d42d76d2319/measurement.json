@@ -1,0 +1,28 @@
+{
+  "runId": "3658e7a7-24de-47a9-b170-4d42d76d2319",
+  "round": 1,
+  "startedAtUtc": "2026-10-28T01:18:51.7385013+09:00",
+  "finishedAtUtc": "2026-10-28T01:21:31.9643105+09:00",
+  "wallClockSeconds": 160.2258092,
+  "lead": {
+    "provider": "codex",
+    "executable": "codex",
+    "model": "gpt-6-astra",
+    "reasoningEffort": "medium"
+  },
+  "investigator": {
+    "provider": "grok",
+    "executable": "grok",
+    "model": "grok-4.6",
+    "reasoningEffort": "high"
+  },
+  "leadSession": "01a17e2a-3e24-7043-84ee-bb04f669e7e5",
+  "leadUsage": {
+    "input_tokens": 59117,
+    "cached_input_tokens": 51072,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 806,
+    "reasoning_output_tokens": 0,
+    "total_tokens": 59923
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "runId": "2b1a6a88-c0c5-44c8-b61d-e34a627477be",
+  "round": 1,
+  "startedAtUtc": "2026-10-27T21:11:42.0441272+09:00",
+  "finishedAtUtc": "2026-10-27T21:12:16.3708115+09:00",
+  "wallClockSeconds": 34.3266843,
+  "lead": {
+    "provider": "codex",
+    "executable": "codex",
+    "model": "gpt-6-astra",
+    "reasoningEffort": "medium"
+  },
+  "investigator": null,
+  "leadSession": "01a17d46-0891-72e0-a74e-83805170875f",
+  "leadUsage": {
+    "input_tokens": 67100,
+    "cached_input_tokens": 56448,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 789,
+    "reasoning_output_tokens": 0,
+    "total_tokens": 67889
+  }
+}

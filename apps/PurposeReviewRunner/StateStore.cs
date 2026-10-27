@@ -98,9 +98,15 @@ public sealed class StateStore
             state.Status is not (ReviewStatuses.Findings or ReviewStatuses.Complete or ReviewStatuses.HumanDecisionRequired or ReviewStatuses.Blocked or ReviewStatuses.Error) ||
             state.Provider is null || state.Provider.Provider is not ("codex" or "grok" or "copilot") ||
             string.IsNullOrWhiteSpace(state.Provider.Executable) || !Path.IsPathFullyQualified(state.Provider.Executable) ||
-            string.IsNullOrWhiteSpace(state.Provider.Model) || string.IsNullOrWhiteSpace(state.Provider.ReasoningEffort))
+            string.IsNullOrWhiteSpace(state.Provider.Model) || string.IsNullOrWhiteSpace(state.Provider.ReasoningEffort) ||
+            (state.Investigator is not null && (state.Investigator.Provider is not ("codex" or "grok" or "copilot") || string.IsNullOrWhiteSpace(state.Investigator.Executable) || string.IsNullOrWhiteSpace(state.Investigator.Model) || string.IsNullOrWhiteSpace(state.Investigator.ReasoningEffort))))
         {
             throw new RunnerException("STATE_INVALID", "Run state contains invalid control data.");
+        }
+        if (state.Investigator is not null && (state.InitialContexts is null || state.InitialContexts.Count == 0 ||
+            state.InitialContexts.Any(context => context is null || string.IsNullOrWhiteSpace(context.Path) || !Path.IsPathFullyQualified(context.Path) || context.Content is null)))
+        {
+            throw new RunnerException("STATE_INVALID", "Run state is missing the original purpose context snapshot required by Investigator.");
         }
     }
 }

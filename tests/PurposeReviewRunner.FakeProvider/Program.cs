@@ -13,6 +13,7 @@ public static class Program
 
     public static async Task<int> Main(string[] args)
     {
+        Console.OutputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         try
         {
             var delayValue = Environment.GetEnvironmentVariable("PURPOSE_REVIEW_FAKE_PROVIDER_DELAY_MS");
@@ -75,8 +76,8 @@ public static class Program
             !args.Contains("workspace-write", StringComparer.Ordinal),
             "Codex filesystem sandbox was specified.");
         var payload = await Console.In.ReadToEndAsync();
-        ValidatePayload(payload, resumed);
-        File.WriteAllText(ValueAfter(args, "-o"), Review(resumed));
+        ValidatePayload(payload, resumed, HasResponseOverride(args));
+        File.WriteAllText(ValueAfter(args, "-o"), Review(resumed, args));
         Console.WriteLine(JsonSerializer.Serialize(new { type = "thread.started", thread_id = SessionId }));
     }
 
@@ -88,8 +89,8 @@ public static class Program
         Require(ValueAfter(args, "--permission-mode") == "bypassPermissions", "Grok shell execution could wait for approval.");
         Require(ValueAfter(args, "--disallowed-tools") == "write,task,edit_file", "Grok edit/delegation restrictions or shell access were incorrect.");
         Require(args.Contains("--no-subagents", StringComparer.Ordinal), "Grok subagents were not disabled.");
-        ValidatePayload(File.ReadAllText(ValueAfter(args, "--prompt-file")), resumed);
-        Console.WriteLine(Review(resumed));
+        ValidatePayload(File.ReadAllText(ValueAfter(args, "--prompt-file")), resumed, HasResponseOverride(args));
+        Console.WriteLine(Review(resumed, args));
     }
 
     private static async Task RunCopilotAsync(string[] args)
@@ -110,24 +111,54 @@ public static class Program
             detectEncodingFromByteOrderMarks: false);
         var payload = await reader.ReadToEndAsync();
         Require(!payload.StartsWith('\uFEFF'), "Copilot stdin payload must not contain a UTF-8 BOM.");
-        ValidatePayload(payload, resumed);
+        ValidatePayload(payload, resumed, HasResponseOverride(args));
         if (!resumed && payload.Contains("FAKE-INTEGRATION-CONTEXT", StringComparison.Ordinal))
         {
             Require(payload.Contains("FAKE-JAPANESE-END-終端", StringComparison.Ordinal), "Copilot stdin payload was truncated or incorrectly encoded.");
         }
-        Console.WriteLine(JsonSerializer.Serialize(new { type = "assistant.message", data = new { content = Review(resumed) } }));
+        Console.WriteLine(JsonSerializer.Serialize(new { type = "assistant.message", data = new { content = Review(resumed, args) } }));
         Console.WriteLine(JsonSerializer.Serialize(new { type = "result", sessionId }));
     }
 
-    private static void ValidatePayload(string payload, bool resumed)
+    private static void ValidatePayload(string payload, bool resumed, bool hasResponseOverride)
     {
         Require(!string.IsNullOrWhiteSpace(payload), "Review payload was empty.");
-        Require(resumed != payload.Contains("FAKE-INTEGRATION-CONTEXT", StringComparison.Ordinal), "Context injection did not match the review round.");
+        if (!hasResponseOverride)
+        {
+            Require(resumed != payload.Contains("FAKE-INTEGRATION-CONTEXT", StringComparison.Ordinal), "Context injection did not match the review round.");
+        }
     }
 
-    private static string Review(bool resumed) => resumed
-        ? "BEGIN_PURPOSE_REVIEW\n{\"status\":\"COMPLETE\",\"findings\":[],\"message\":null}\nEND_PURPOSE_REVIEW"
-        : "BEGIN_PURPOSE_REVIEW\n{\"status\":\"FINDINGS\",\"findings\":[{\"id\":\"PUR-001\",\"severity\":\"HIGH\",\"title\":\"Purpose gap\",\"summary\":\"summary\",\"evidence\":\"evidence\",\"requiredOutcome\":\"change\"}],\"message\":null}\nEND_PURPOSE_REVIEW";
+    private static bool HasResponseOverride(string[] args) =>
+        ResponseFileFromAgentArgument(args) is not null ||
+        Environment.GetEnvironmentVariable("PURPOSE_REVIEW_FAKE_PROVIDER_RESPONSE_FILE") is not null;
+    private static string? ResponseFileFromAgentArgument(string[] args)
+    {
+        for (var index = 0; index + 1 < args.Length; index++)
+        {
+            if (args[index] == "--agent" && args[index + 1].StartsWith("response-file:", StringComparison.Ordinal))
+            {
+                var path = args[index + 1]["response-file:".Length..];
+                Require(Path.IsPathFullyQualified(path), "Response file path must be absolute.");
+                return path;
+            }
+        }
+
+        return null;
+    }
+    private static string Review(bool resumed, string[] args)
+    {
+        var responseFile = ResponseFileFromAgentArgument(args)
+            ?? Environment.GetEnvironmentVariable("PURPOSE_REVIEW_FAKE_PROVIDER_RESPONSE_FILE");
+        if (responseFile is not null)
+        {
+            return File.ReadAllText(responseFile, Encoding.UTF8);
+        }
+
+        return resumed
+            ? "BEGIN_PURPOSE_REVIEW\n{\"status\":\"COMPLETE\",\"findings\":[],\"message\":null}\nEND_PURPOSE_REVIEW"
+            : "BEGIN_PURPOSE_REVIEW\n{\"status\":\"FINDINGS\",\"findings\":[{\"id\":\"PUR-001\",\"severity\":\"HIGH\",\"title\":\"Purpose gap\",\"summary\":\"summary\",\"evidence\":\"evidence\",\"requiredOutcome\":\"change\"}],\"message\":null}\nEND_PURPOSE_REVIEW";
+    }
 
     private static string ValueAfter(string[] args, string option)
     {

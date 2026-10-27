@@ -7,7 +7,7 @@ public static class Protocol
 {
     public const int Version = 3;
     public const int MaximumRounds = 3;
-    public const string RunnerVersion = "0.4.0";
+    public const string RunnerVersion = "0.5.0";
 }
 
 public static class ExitCodes
@@ -106,7 +106,9 @@ public sealed record JobState(
     DateTimeOffset? FinishedAtUtc = null,
     string? Repository = null,
     IReadOnlyList<string>? ContextPaths = null,
-    ProviderSnapshot? Provider = null);
+    ProviderSnapshot? Provider = null,
+    ProviderSnapshot? Investigator = null,
+    IReadOnlyList<ContextSnapshot>? InitialContexts = null);
 
 public sealed record WorkerLaunchResult(int ProcessId, DateTimeOffset ProcessStartTimeUtc);
 
@@ -123,7 +125,9 @@ public sealed record RunnerConfig(
     string Executable,
     string Model,
     string ReasoningEffort,
-    string? Profile);
+    string? Profile,
+    ProviderSnapshot? ReviewLead = null,
+    ProviderSnapshot? Investigator = null);
 
 public sealed record ProviderSnapshot(
     string Provider,
@@ -131,6 +135,18 @@ public sealed record ProviderSnapshot(
     string Model,
     string ReasoningEffort,
     string? Profile);
+
+public sealed record ContextSnapshot(string Path, string Content);
+
+public sealed record InvestigatorEvidence(string Id, string Path, int? StartLine, int? EndLine, string? Symbol, string Description);
+public sealed record InvestigatorFinding(string Id, string Title, string Summary, [property: JsonPropertyName("evidence_ids")] IReadOnlyList<string> EvidenceIds);
+public sealed record InvestigatorReport(
+    int SchemaVersion,
+    IReadOnlyList<InvestigatorEvidence> Evidence,
+    [property: JsonPropertyName("checked_scope")] IReadOnlyList<string> CheckedScope,
+    [property: JsonPropertyName("unchecked_scope")] IReadOnlyList<string> UncheckedScope,
+    IReadOnlyList<string> Uncertainties,
+    [property: JsonPropertyName("candidate_findings")] IReadOnlyList<InvestigatorFinding> CandidateFindings);
 
 public sealed record RunState(
     int ProtocolVersion,
@@ -140,7 +156,9 @@ public sealed record RunState(
     ProviderSnapshot Provider,
     string SessionHandle,
     int Round,
-    string Status);
+    string Status,
+    ProviderSnapshot? Investigator = null,
+    IReadOnlyList<ContextSnapshot>? InitialContexts = null);
 
 public static class JsonDefaults
 {

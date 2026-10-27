@@ -1,0 +1,19 @@
+{
+  "runId": "2b1a6a88-c0c5-44c8-b61d-e34a627477be",
+  "round": 2,
+  "leadSession": "01a17d46-0891-72e0-a74e-83805170875f",
+  "sameSession": true,
+  "startedAtUtc": "2026-10-28T08:04:24.0441734+09:00",
+  "finishedAtUtc": "2026-10-28T08:04:48.7974328+09:00",
+  "wallClockSeconds": 24.7532594,
+  "leadUsageCumulative": {
+    "input_tokens": 124724,
+    "cached_input_tokens": 97024,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 1381,
+    "reasoning_output_tokens": 0,
+    "total_tokens": 126105
+  },
+  "leadRoundTokens": 58216,
+  "leadRoundCachedInput": 40576
+}

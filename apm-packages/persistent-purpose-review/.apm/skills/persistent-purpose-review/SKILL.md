@@ -26,6 +26,18 @@ disable-model-invocation: true
 - provider CLI構文、session ID、round counter、model、reasoning effortを親から指定または再実装しない。
 - PR、GitHub Copilot review、別top-level task、Zed integrationは前提にしない。
 
+## Review Lead / Investigator
+
+reviewer sessionを維持する最終判定者をReview Lead、任意の探索・一次review担当をInvestigatorと呼ぶ。両者はimplementation parentとは別の役割であり、どちらもrepositoryを変更しない。
+
+Runner 0.5.0以降はuser-level configで両roleのprovider / model / reasoning effort / profileを個別に設定できる。設定と開始時のpurpose sourceはRunnerが保持し、成立済みrunの途中で切り替えない。分業の実行順序、構造化reportの検証、handoffはRunnerが所有する。Skillやimplementation parentからnative subagentや別providerを直接起動して補完しない。
+
+Runnerは取得可能な変更概要を準備し、設定されていればfresh Investigatorを実行してから、Review Leadを各roundで1回だけ起動またはresumeする。Review Leadはreportを読む前にpurpose・前roundの理解・変更概要から独立した重要観点を形成し、その後reportの確認範囲と照合して、不足する観点と重要な主張を原典で調べる。Investigatorの候補が0件でも目的達成の証明とはしない。観点形成だけの別invocationや監査artifactは要求しない。
+
+InvestigatorなしのLead-onlyは正規の経路である。小規模reviewなど分業が見合わない場合は開始前の設定で無効にできる。不正reportやprovider失敗は正常evidenceとして使わず、Runnerがその事実を同じReview Leadへ渡して直接reviewへ退避する。この内部退避だけをterminal ERRORやreview成功と読み替えない。Review Lead自身の失敗、terminal runの扱いは既存の停止契約に従う。
+
+Round 2 / 3でも同じReview Leadが、現在の実装全体の目的妥当性を判断する。差分と影響範囲を中心に再確認し、前提・scope・共通基盤・高リスク領域の変化や影響範囲不明の場合は範囲を広げる。前回findingの追従だけに縮小しない。
+
 ## Select purpose context
 
 Runnerを開始する前に、今回のpurpose sourceを意味的に選ぶ。
@@ -79,7 +91,7 @@ purpose-review-runner start --repository <repository-root> --context <path> [--c
 purpose-review-runner status --run <run-id>
 ```
 
-`status`はreviewを再実行しない。provider timeoutまで1 roundが約10分かかることがある。`RUNNING`が続くこと自体をrecovery理由にしない。
+`status`はreviewを再実行しない。timeoutはprovider invocationごとに適用される。InvestigatorとReview Leadを直列実行するroundは約20分と準備時間がかかる場合があるが、外部からは同じ1 jobを観測する。`RUNNING`が続くこと自体をrecovery理由にしない。
 
 - `FINDINGS`: findingを実装目的へ照合し、元のparentが必要なproduction/tests/docsまたは不足する手動testの申し送りを修正してrepository規約のvalidationを実行する。その後、同じ`runId`を`continue`する。申し送り不足の解消を未実施testの実行結果取得へ置き換えない。
 - `COMPLETE`: purpose review完了として終了する。`message`に未検証事項や人手で必要な作業があれば保持し、test成功や実環境検証完了とは報告しない。

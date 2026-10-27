@@ -12,6 +12,8 @@ Skillは実装担当エージェントにレビュー工程を教えます。独
 
 ## 前提条件
 
+Runner 0.5.0以降では、最終判定を行うReview Leadと任意のInvestigatorに別々のprovider / modelを設定できます。設定方法は[RunnerのConfig](../../apps/PurposeReviewRunner/README.md#config)を参照してください。Skillは分業を直接実行せず、従来どおり1 round / 1 jobを扱います。Review Leadは同一sessionを維持し、各roundで1回だけ起動されます。小規模reviewではInvestigatorなしのLead-onlyを選べます。Investigatorの失敗・不正reportは正常evidenceとせず、同じLeadの直接reviewへ退避します。分業による利用枠削減は実測前のため保証しません。
+
 Quickstartの前に次を満たしてください。満たさないままconfigだけ書くと、provider CLIが見つからずそこで止まります。
 
 - [APM CLI](https://github.com/microsoft/apm)が使えること

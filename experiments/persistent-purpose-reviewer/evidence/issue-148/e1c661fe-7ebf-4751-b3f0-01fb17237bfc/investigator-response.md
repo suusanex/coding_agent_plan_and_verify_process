@@ -1,0 +1,1 @@
+{"schemaVersion":1,"evidence":[{"id":"E1","path":"OrderPolicy.cs","symbol":"OrderPolicy.ShippingFee","description":"送料は小計100以上で0、それ未満で5、負数は例外。"}],"checked_scope":["ShippingFeeのみを確認した"],"unchecked_scope":["CanOrderの注文数・アカウント状態の条件は未調査"],"uncertainties":["注文可否全体の目的適合は判断していない"],"candidate_findings":[]}

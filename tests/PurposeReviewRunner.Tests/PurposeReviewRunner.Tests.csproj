@@ -15,5 +15,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\apps\PurposeReviewRunner\assert-release-tag.ps1" Link="assert-release-tag.ps1" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fixtures\grok-investigator-response.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

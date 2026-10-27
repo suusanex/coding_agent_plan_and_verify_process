@@ -158,10 +158,16 @@ public sealed class JobStore
                 job.ContextPaths.Any(path => string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path)) ||
                 job.Provider is null || job.Provider.Provider is not ("codex" or "grok" or "copilot") ||
                 string.IsNullOrWhiteSpace(job.Provider.Executable) || !Path.IsPathFullyQualified(job.Provider.Executable) ||
-                string.IsNullOrWhiteSpace(job.Provider.Model) || string.IsNullOrWhiteSpace(job.Provider.ReasoningEffort))
+                string.IsNullOrWhiteSpace(job.Provider.Model) || string.IsNullOrWhiteSpace(job.Provider.ReasoningEffort) ||
+                (job.Investigator is not null && (job.Investigator.Provider is not ("codex" or "grok" or "copilot") || string.IsNullOrWhiteSpace(job.Investigator.Executable) || string.IsNullOrWhiteSpace(job.Investigator.Model) || string.IsNullOrWhiteSpace(job.Investigator.ReasoningEffort))))
             {
                 throw new RunnerException("JOB_INVALID", "Job state contains invalid start control data.");
             }
+        }
+        if (job.Investigator is not null && (job.InitialContexts is null || job.InitialContexts.Count == 0 ||
+            job.InitialContexts.Any(context => context is null || string.IsNullOrWhiteSpace(context.Path) || !Path.IsPathFullyQualified(context.Path) || context.Content is null)))
+        {
+            throw new RunnerException("JOB_INVALID", "Job state is missing the original purpose context snapshot required by Investigator.");
         }
     }
 }

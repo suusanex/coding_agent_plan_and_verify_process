@@ -80,6 +80,40 @@ stdoutの単一JSONで`protocolVersion`が`3`、`runnerVersion`が`0.4.0`以上�
 
 ## Config
 
+### Review Lead / Investigator（Runner 0.5.0以降）
+
+Review Leadは目的の解釈、独立した重要観点、原典確認、findingの採否と最終判定を担当し、最大3roundで同じsessionを使います。任意のInvestigatorは広範な探索・整理・一次reviewを担当します。両者のprovider / model / reasoning effort / profileは独立しています。異なるproviderでも、同じrepositoryと明示的なpurpose sourceを渡し、hidden contextを共有しません。
+
+新しい設定形式は次のとおりです。モデル名は利用するCLIで使える値を指定してください。
+
+```json
+{
+  "schemaVersion": 2,
+  "reviewLead": {
+    "provider": "codex",
+    "executable": "codex",
+    "model": "<lead-model>",
+    "reasoningEffort": "high",
+    "profile": null
+  },
+  "investigator": {
+    "provider": "grok",
+    "executable": "grok",
+    "model": "<investigator-model>",
+    "reasoningEffort": "high",
+    "profile": null
+  }
+}
+```
+
+`investigator`を`null`または省略するとLead-onlyです。小規模reviewで分業の負担が見合わない場合にもこの設定を使います。従来のschemaVersion 1はそのままLead-onlyとして使えます。分業の効果を実測していないため、配布例はLead-onlyを維持します。開始後のconfig変更は両roleとも既存runへ反映されません。
+
+1 roundは「変更概要の準備 → 任意のInvestigator → Review Leadの1回の起動/resume」です。Leadの初期promptにはreport本文を含めず、検証済みreportのpathだけを渡します。Leadはreportを読む前に重要観点を考え、その後確認範囲を照合して不足箇所を直接調査します。この順序はpromptの行動契約であり、実行時系列を技術的に強制・証明する機構ではありません。
+
+Investigatorの出力不正・実行失敗はclean evidenceとして扱わず、利用不能をLeadへ知らせて直接reviewへ退避します。Lead自身の失敗は従来どおりterminal ERRORです。各provider invocationのtimeoutは独立しているため、分業時は1 roundが約20分と準備時間になる場合があります。外部のjobやpolling手順は増えません。
+
+品質・消費・時間の比較方法と未検証事項は[Issue #148の検証記録](../../docs/issue-148-validation.md)を参照してください。
+
 設定ファイルはbinaryの配置先とは別に、`Environment.SpecialFolder.ApplicationData`配下の`purpose-review-runner/config.json`です。初回のコピーと編集は上のInstall例が担当します。
 
 | OS | 実際のpath |
@@ -106,7 +140,7 @@ Linuxのpathは.NETの`Environment.SpecialFolder.ApplicationData`に従います
 
 | 項目 | 意味 |
 | --- | --- |
-| `schemaVersion` | config形式のversion。現在は`1` |
+| `schemaVersion` | config形式のversion。`1`はLead-only、Runner 0.5.0以降の`2`はrole個別設定 |
 | `provider` | reviewer実装。`codex`、`grok`、`copilot`のいずれか |
 | `executable` | PATH上のコマンド名、または実行ファイルの絶対path |
 | `model` | そのprovider CLIへ渡すモデル名 |

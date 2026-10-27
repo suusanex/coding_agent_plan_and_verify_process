@@ -14,8 +14,11 @@ v3はv2と非互換です。既存のv2 runは開始時のRunnerで完了させ�
 
 ## History
 
+Runner 0.5.0はconfig schemaVersion 2の`reviewLead` / 任意の`investigator`を追加します。schemaVersion 1はLead-onlyとして受理します。外部protocol v3は維持し、両roleの設定をrunごとに固定します。旧runにはInvestigatorを後付けせず、same-sessionのLead-onlyとして扱います。新形式のrun stateを旧Runnerで読む逆方向の互換性は保証しません。
+
 | Version | 内容 |
 | --- | --- |
+| 0.5.0 | 任意のInvestigator、独立したrole設定、構造化handoff、各roundで1回のReview Lead呼び出しを追加 |
 | 0.2.0 | async job。`start` / `continue`がprovider完了をforegroundで待たず、`status`で結果を取得する |
 | 0.2.1 | Windowsのrestrictive Job Objectからの独立起動 |
 | 0.2.2 | CopilotへのBOMなしUTF-8標準入力prompt転送 |
