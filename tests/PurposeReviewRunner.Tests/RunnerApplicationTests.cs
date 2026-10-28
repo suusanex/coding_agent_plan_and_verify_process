@@ -38,6 +38,11 @@ public sealed class RunnerApplicationTests
         var inputStore = new ReviewInputStore(fixture.Paths.StateRoot);
         Assert.AreEqual(inputStore.Load(start.Output.RunId!, 1).Hash, start.Output.InputHash);
         Assert.AreEqual(inputStore.Load(start.Output.RunId!, 2).Hash, continuation.Output.InputHash);
+        Assert.AreEqual("purpose-v1", start.Output.InputBinding!.PurposeVersion);
+        Assert.AreEqual("design-v1", start.Output.InputBinding.ApprovedDesignVersion);
+        Assert.AreEqual("proposal-v1", start.Output.InputBinding.ProposalVersion);
+        Assert.AreEqual("purpose-v1", continuation.Output.InputBinding!.PurposeVersion);
+        Assert.AreEqual("proposal-v1", continuation.Output.InputBinding.ProposalVersion);
         CollectionAssert.Contains(continuation.Output.NonGuarantees!.ToArray(), "runtime-purpose-achievement-not-verified");
         CollectionAssert.Contains(continuation.Output.NonGuarantees!.ToArray(), "release-readiness-not-assessed");
         CollectionAssert.Contains(continuation.Output.NonGuarantees!.ToArray(), "task-completion-not-certified");
@@ -82,6 +87,7 @@ public sealed class RunnerApplicationTests
             StringAssert.Contains(prompt, "実装適合");
             StringAssert.Contains(prompt, "BEGIN_PURPOSE_REVIEW");
             StringAssert.Contains(prompt, "独立して確認できるfindingがあれば保持できます");
+            StringAssert.Contains(prompt, "subagentや他のagentへ調査を委任せず");
             StringAssert.Contains(prompt, "`COMPLETE` はfindingsを空にしてください");
             Assert.IsFalse(prompt.Contains("repository path", StringComparison.OrdinalIgnoreCase));
         }
@@ -151,18 +157,59 @@ public sealed class RunnerApplicationTests
     }
 
     [TestMethod]
-    public async Task CodexProviderFailsClosedBeforeExternalInvocation()
+    public async Task CodexStartAndContinueUseSameVersionBoundReadOnlySession()
     {
         using var fixture = new RunnerFixture("codex");
-        fixture.WriteConfig("codex", "codex", "test-model");
-        var launcher = new InProcessWorkerLauncher();
-        var app = new RunnerApplication(fixture.Paths, new FakeExecutableResolver(), fixture.Process, launcher);
-        launcher.Application = app;
-        var result = await app.ExecuteAsync(fixture.StartCommand(), CancellationToken.None);
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Complete));
 
-        Assert.AreEqual("PROVIDER_RESTRICTION_UNSUPPORTED", result.Output.Error?.Code);
-        Assert.AreEqual(JobStatuses.Failed, result.Output.JobStatus);
-        Assert.IsEmpty(fixture.Process.Requests);
+        var start = await fixture.Application.ExecuteAsync(fixture.StartCommand("codex purpose"), CancellationToken.None);
+        var continuation = await fixture.Application.ExecuteAsync(fixture.ContinueCommand(start.Output.RunId!), CancellationToken.None);
+
+        Assert.AreEqual(ReviewStatuses.Findings, start.Output.Status);
+        Assert.AreEqual(JobStatuses.Succeeded, start.Output.JobStatus);
+        Assert.AreEqual(ReviewStatuses.Complete, continuation.Output.Status);
+        Assert.AreEqual(JobStatuses.Succeeded, continuation.Output.JobStatus);
+        Assert.AreEqual(2, continuation.Output.Round);
+        Assert.AreEqual(2, fixture.Process.Requests.Count);
+        var runState = new StateStore(fixture.Paths.StateRoot).Load(start.Output.RunId!);
+        Assert.AreEqual(fixture.Process.CodexSessionId, runState.SessionHandle);
+        Assert.AreEqual(runState.SessionHandle, new StateStore(fixture.Paths.StateRoot).Load(start.Output.RunId!).SessionHandle);
+        var inputStore = new ReviewInputStore(fixture.Paths.StateRoot);
+        Assert.AreEqual(inputStore.Load(start.Output.RunId!, 1).Hash, start.Output.InputHash);
+        Assert.AreEqual(inputStore.Load(start.Output.RunId!, 2).Hash, continuation.Output.InputHash);
+        Assert.AreEqual("purpose-v1", start.Output.InputBinding!.PurposeVersion);
+        Assert.AreEqual("design-v1", start.Output.InputBinding.ApprovedDesignVersion);
+        Assert.AreEqual("proposal-v1", start.Output.InputBinding.ProposalVersion);
+        Assert.AreEqual("purpose-v1", continuation.Output.InputBinding!.PurposeVersion);
+        Assert.AreEqual("proposal-v1", continuation.Output.InputBinding.ProposalVersion);
+        var initialRequest = fixture.Process.Requests[0];
+        var resumedRequest = fixture.Process.Requests[1];
+        CollectionAssert.AreEqual(new[] { "exec" }, initialRequest.Arguments.Take(1).ToArray());
+        CollectionAssert.AreEqual(new[] { "exec", "resume", runState.SessionHandle }, resumedRequest.Arguments.Take(3).ToArray());
+        CollectionAssert.Contains(initialRequest.Arguments.ToArray(), "--sandbox");
+        CollectionAssert.Contains(initialRequest.Arguments.ToArray(), "read-only");
+        CollectionAssert.Contains(initialRequest.Arguments.ToArray(), "approval_policy=\"never\"");
+        CollectionAssert.Contains(resumedRequest.Arguments.ToArray(), "sandbox_mode=\"read-only\"");
+        CollectionAssert.Contains(resumedRequest.Arguments.ToArray(), "approval_policy=\"never\"");
+        var disabledKnownTools = new[]
+        {
+            "shell_tool", "browser_use", "browser_use_external", "browser_use_full_cdp_access", "standalone_web_search",
+            "apps", "mcp_2026_07_28", "multi_agent", "multi_agent_v2", "code_mode", "code_mode_host",
+            "image_generation", "view_image", "computer_use", "in_app_browser", "skill_search", "plugins", "hooks", "memories"
+        };
+        foreach (var request in fixture.Process.Requests)
+        {
+            Assert.AreNotEqual(fixture.Repository, request.WorkingDirectory);
+            Assert.IsFalse(request.WorkingDirectory.StartsWith(fixture.Repository, StringComparison.OrdinalIgnoreCase));
+            Assert.IsFalse(request.StandardInput!.Contains(fixture.Repository, StringComparison.OrdinalIgnoreCase));
+            CollectionAssert.DoesNotContain(request.Arguments.ToArray(), "--ephemeral");
+            foreach (var feature in disabledKnownTools)
+            {
+                CollectionAssert.Contains(request.Arguments.ToArray(), feature);
+            }
+        }
+        Assert.AreEqual(ReviewStatuses.Complete, new StateStore(fixture.Paths.StateRoot).Load(start.Output.RunId!).Status);
     }
 
     [TestMethod]
@@ -777,6 +824,7 @@ public sealed class RunnerApplicationTests
 
     [TestMethod]
     [DataRow("copilot")]
+    [DataRow("codex")]
     public async Task FakeProviderExecutableCompletesNewAndResumeProcessBoundary(string provider)
     {
         var root = Path.Combine(Path.GetTempPath(), "purpose-review-runner-process-tests", Guid.NewGuid().ToString("N"));
@@ -817,6 +865,17 @@ public sealed class RunnerApplicationTests
             Assert.AreEqual(JobStatuses.Succeeded, first.Output.JobStatus);
             Assert.AreEqual(ReviewStatuses.Complete, second.Output.Status);
             Assert.AreEqual(2, second.Output.Round);
+            var inputStore = new ReviewInputStore(stateRoot);
+            Assert.AreEqual(inputStore.Load(first.Output.RunId!, 1).Hash, first.Output.InputHash);
+            Assert.AreEqual(inputStore.Load(first.Output.RunId!, 2).Hash, second.Output.InputHash);
+            Assert.AreEqual("purpose-v1", first.Output.InputBinding!.PurposeVersion);
+            Assert.AreEqual("design-v1", first.Output.InputBinding.ApprovedDesignVersion);
+            Assert.AreEqual("proposal-v1", first.Output.InputBinding.ProposalVersion);
+            Assert.AreEqual("purpose-v1", second.Output.InputBinding!.PurposeVersion);
+            Assert.AreEqual("proposal-v1", second.Output.InputBinding.ProposalVersion);
+            var state = new StateStore(stateRoot).Load(first.Output.RunId!);
+            Assert.AreEqual(provider == "codex" ? "22222222-2222-4222-8222-222222222222" : state.SessionHandle, state.SessionHandle);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(state.SessionHandle));
         }
         finally
         {
@@ -1368,7 +1427,7 @@ internal sealed class ScriptedProcessRunner : IProcessRunner
     private ProcessResult CodexResult(ProcessRequest request, string review)
     {
         var arguments = request.Arguments.ToArray();
-        var outputIndex = Array.IndexOf(arguments, "-o");
+        var outputIndex = Array.IndexOf(arguments, "--output-last-message");
         File.WriteAllText(arguments[outputIndex + 1], review);
         return new(0, JsonSerializer.Serialize(new { type = "thread.started", thread_id = CodexSessionId }), string.Empty, false);
     }

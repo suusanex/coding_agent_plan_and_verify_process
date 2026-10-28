@@ -10,7 +10,8 @@ $paths = @(
     $skillPath,
     (Join-Path $packageRoot 'scripts/test-apm-package-install.ps1'),
     (Join-Path $packageRoot 'tests/agent-plugin/contract.json'),
-    (Join-Path $packageRoot 'tests/agent-plugin/qualification.json')
+    (Join-Path $packageRoot 'tests/agent-plugin/qualification.json'),
+    (Join-Path $packageRoot '../../tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-provider-safety.md')
 )
 foreach ($path in $paths) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing package file: $path" }
@@ -19,6 +20,7 @@ foreach ($path in $paths) {
 $manifest = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'apm.yml')
 $skill = Get-Content -Raw -LiteralPath $skillPath
 $readme = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'README.md')
+$safetyEvidence = Get-Content -Raw -LiteralPath (Join-Path $packageRoot '../../tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-provider-safety.md')
 $contract = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'tests/agent-plugin/contract.json') | ConvertFrom-Json
 $qualification = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'tests/agent-plugin/qualification.json') | ConvertFrom-Json
 $frontmatter = [regex]::Match($skill, '(?s)\A---\r?\n(.*?)\r?\n---').Groups[1].Value
@@ -61,6 +63,14 @@ if ($skill -notmatch '初期設計' -or $skill -notmatch '重要な変更' -or $
 if ($skill -notmatch '目的の引用文と根拠sourceはinputへ埋め込む' -or $skill -notmatch '承認を代行しない') {
     throw 'Skill does not preserve source-embedded authority and review/approval separation.'
 }
+if ($skill -notmatch 'repositoryとは別の作業directory' -or $skill -notmatch 'review inputから作ったpromptだけをstdinへ渡す' -or
+    $skill -notmatch 'repository探索、外部調査、ツール呼び出し、委譲を明示的に禁じる' -or
+    $skill -notmatch '完全なcapability isolationを意味しない' -or $skill -notmatch '独自の認証・隔離基盤を追加せず') {
+    throw 'Skill must state the external-cwd, input-only, role-prompt, and residual-capability boundary.'
+}
+if ($skill -notmatch 'Copilot CLIでは実機確認済みのより制限されたprovider設定を維持する') {
+    throw 'Skill must preserve the verified stricter Copilot provider configuration.'
+}
 if ($skill -match '(?im)^\s*(?:Grok|grok)\s*:' -or $skill -match 'grok --|--context|work --run|--session-id|--resume|--model|reasoning-effort') {
     throw 'Skill contains removed provider invocation or duplicates runner-owned invocation details.'
 }
@@ -69,6 +79,18 @@ if ($readme -notmatch '--target agent-skills --global' -or $readme -notmatch 'di
 }
 if ($readme -notmatch '0\.5\.0' -or $readme -notmatch 'protocol v4' -or $readme -notmatch 'NOT_RUN' -or $readme -notmatch 'HOLD') {
     throw 'Package README does not state the version and qualification boundary.'
+}
+if ($readme -notmatch 'repository外の作業directory' -or $readme -notmatch '完全なcapability isolationとして扱いません' -or
+    $readme -notmatch 'より強い制限設定を維持します') {
+    throw 'Package README does not state the relaxed Codex role boundary and preserved Copilot restriction.'
+}
+if ($safetyEvidence -notmatch '当時のRunnerはCodexをfail closedにした' -or
+    $safetyEvidence -notmatch '2026-10-29 Issue #150方針更新後のCodex実行境界' -or
+    $safetyEvidence -notmatch '同じCodex session' -or
+    $safetyEvidence -notmatch 'function_call.*function_call_output.*0件' -or
+    $safetyEvidence -notmatch 'functions.*collaboration.*追加tool' -or
+    $safetyEvidence -notmatch 'Copilot.*zero-tool実測') {
+    throw 'Provider evidence must distinguish the historical Codex rejection, later bounded run, residual host tools, and preserved Copilot proof.'
 }
 if ($readme -match '(?im)^\s*(?:Grok|grok)\s*:' -or $readme -match 'grok --|0\.4\.0|protocol v3|--context') {
     throw 'Package README contains a removed provider invocation or protocol behavior.'

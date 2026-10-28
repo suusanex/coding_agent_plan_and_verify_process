@@ -47,7 +47,7 @@ $configPath = Join-Path $configDir 'config.json'
 New-Item -ItemType Directory -Force -Path $configDir | Out-Null
 Copy-Item (Join-Path $installDir 'config.example.json') $configPath
 
-# Codexの例を使う場合は開いた内容を保存する。Copilotを使う場合はproviderを変更する。
+# config.example.jsonのCopilot設定を使う場合は開いた内容を保存する。Codexを使う場合はproviderとexecutableを変更する。
 notepad $configPath
 
 purpose-review-runner version
@@ -70,7 +70,7 @@ config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/purpose-review-runner"
 mkdir -p "$config_dir"
 cp "$install_dir/config.example.json" "$config_dir/config.json"
 
-# Codexの例を使う場合は開いた内容を保存する。Copilotを使う場合はproviderを変更する。
+# config.example.jsonのCopilot設定を使う場合は開いた内容を保存する。Codexを使う場合はproviderとexecutableを変更する。
 ${EDITOR:-nano} "$config_dir/config.json"
 
 purpose-review-runner version
@@ -91,15 +91,15 @@ Linuxのpathは.NETの`Environment.SpecialFolder.ApplicationData`に従います
 
 ### 設定項目
 
-現行の配布例です。Codexを使う場合はこのまま使えます。
+現行の配布例はCopilot CLIです。Codex CLIを使う場合はproviderとexecutableをCodex用に変更します。
 
 ```json
 {
   "schemaVersion": 1,
-  "provider": "codex",
-  "executable": "codex",
+  "provider": "copilot",
+  "executable": "copilot",
   "model": "gpt-5.6-terra",
-  "reasoningEffort": "high",
+  "reasoningEffort": "low",
   "profile": null
 }
 ```
@@ -115,13 +115,26 @@ Linuxのpathは.NETの`Environment.SpecialFolder.ApplicationData`に従います
 
 provider CLI自身の認証が事前に必要です。RunnerはAPI keyやOAuth設定を代行しません。
 
-`start`にはreview単位の`--model`や`--effort` overrideはありません。reviewerには変更禁止を指示しますが、OS-levelのread-only isolationではありません。実装方式とprovider差分は[technical reference](../../docs/purpose-review-runner-technical-reference.md)を参照してください。
+`start`にはreview単位の`--model`や`--effort` overrideはありません。Runnerはrepository外のrun directoryからCLIを起動し、埋め込みinputから作ったpromptだけをstdinへ渡します。Codexの初回実行はCLIの通常read-only sandboxとapproval policyを使い、resumeも同じsessionでread-only設定を維持します。shell、browser/web/search、apps/MCP、code mode、multi-agent、image/view、skills、plugins、hooks、memories等の探索機能も無効にします。role promptでrepository探索、外部調査、tool invocation、委譲を禁じます。Codex host environmentに追加機能が残る可能性があるため、完全なcapability isolationは保証しません。Skill/Runnerは独自の認証・隔離基盤を追加しません。Copilotでは実機確認済みのより強い制限設定を維持します。実装方式とprovider差分は[technical reference](../../docs/purpose-review-runner-technical-reference.md)を参照してください。
 
 ### Providerごとの構文例
 
 次の`model`名は構文例です。推奨モデルではありません。利用可能なモデルは各provider CLIの現行一覧を使ってください。
 
-Codex:
+Copilot CLI (配布例):
+
+```json
+{
+  "schemaVersion": 1,
+  "provider": "copilot",
+  "executable": "copilot",
+  "model": "gpt-5.6-terra",
+  "reasoningEffort": "low",
+  "profile": null
+}
+```
+
+Codex CLI:
 
 ```json
 {
@@ -129,20 +142,7 @@ Codex:
   "provider": "codex",
   "executable": "codex",
   "model": "gpt-5.6-terra",
-  "reasoningEffort": "high",
-  "profile": null
-}
-```
-
-Copilot:
-
-```json
-{
-  "schemaVersion": 1,
-  "provider": "copilot",
-  "executable": "copilot",
-  "model": "gpt-5.6",
-  "reasoningEffort": "high",
+  "reasoningEffort": "low",
   "profile": null
 }
 ```

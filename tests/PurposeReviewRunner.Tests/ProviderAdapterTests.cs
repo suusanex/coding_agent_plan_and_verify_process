@@ -8,19 +8,95 @@ namespace PurposeReviewRunnerTests;
 public sealed class ProviderAdapterTests
 {
     private const string SessionId = "22222222-2222-4222-8222-222222222222";
+    private static readonly string[] ExpectedCodexDisabledFeatures =
+    [
+        "shell_tool", "browser_use", "browser_use_external", "browser_use_full_cdp_access", "standalone_web_search",
+        "apps", "mcp_2026_07_28", "multi_agent", "multi_agent_v2", "code_mode", "code_mode_host",
+        "image_generation", "view_image", "computer_use", "in_app_browser", "skill_search", "plugins", "hooks", "memories"
+    ];
 
     [TestMethod]
-    public async Task CodexFailsClosedWhileHostCollaborationRemainsAvailable()
+    public async Task CodexInitialAndResumeUseReadOnlySandboxAndOnlySuppliedPayload()
     {
         using var fixture = new AdapterFixture();
         var adapter = new CodexProviderAdapter();
         var request = fixture.Request("codex", null);
 
-        var exception = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
-            adapter.ExecuteAsync(request, fixture.Runner, CancellationToken.None));
+        var initial = await adapter.ExecuteAsync(request, fixture.Runner, CancellationToken.None);
+        var resumed = await adapter.ExecuteAsync(request with { SessionHandle = initial.SessionHandle, Round = 2 }, fixture.Runner, CancellationToken.None);
 
-        Assert.AreEqual("PROVIDER_RESTRICTION_UNSUPPORTED", exception.Code);
-        Assert.AreEqual(0, fixture.Runner.Requests.Count);
+        Assert.AreEqual(SessionId, initial.SessionHandle);
+        Assert.AreEqual(initial.SessionHandle, resumed.SessionHandle);
+        Assert.AreEqual("BEGIN_PURPOSE_REVIEW\n{\"status\":\"COMPLETE\",\"findings\":[],\"message\":\"codex response\",\"informationRequests\":[]}\nEND_PURPOSE_REVIEW", initial.ReviewText);
+
+        var calls = fixture.Runner.Requests.Where(call => call.Arguments.Contains("exec", StringComparer.Ordinal)).ToArray();
+        Assert.AreEqual(2, calls.Length);
+        foreach (var call in calls)
+        {
+            Assert.AreEqual(fixture.RunDirectory, call.WorkingDirectory);
+            Assert.AreEqual(request.Payload, call.StandardInput);
+            Assert.IsFalse(call.Arguments.Contains(request.Repository, StringComparer.Ordinal));
+            Assert.IsFalse(call.StandardInput!.Contains(request.Repository, StringComparison.Ordinal));
+            CollectionAssert.Contains(call.Arguments.ToArray(), "--ignore-user-config");
+            CollectionAssert.Contains(call.Arguments.ToArray(), "--ignore-rules");
+            CollectionAssert.Contains(call.Arguments.ToArray(), "--skip-git-repo-check");
+            CollectionAssert.Contains(call.Arguments.ToArray(), "--disable");
+            CollectionAssert.DoesNotContain(call.Arguments.ToArray(), "--dangerously-bypass-approvals-and-sandbox");
+            CollectionAssert.DoesNotContain(call.Arguments.ToArray(), "--ephemeral");
+            CollectionAssert.DoesNotContain(call.Arguments.ToArray(), "-p");
+            CollectionAssert.DoesNotContain(call.Arguments.ToArray(), "--image");
+            Assert.AreEqual("test-model", ValueAfter(call.Arguments, "--model"));
+            Assert.IsTrue(call.Arguments.Contains("model_reasoning_effort=\"medium\"", StringComparer.Ordinal));
+            Assert.IsTrue(call.Arguments.Contains("approval_policy=\"never\"", StringComparer.Ordinal));
+            foreach (var feature in ExpectedCodexDisabledFeatures)
+            {
+                Assert.IsTrue(HasDisabledFeature(call.Arguments, feature), $"Expected feature disabled: {feature}");
+            }
+            var responsePath = ValueAfter(call.Arguments, "--output-last-message");
+            Assert.AreEqual(Path.GetFullPath(fixture.RunDirectory), Path.GetDirectoryName(Path.GetFullPath(responsePath)));
+            Assert.IsFalse(File.Exists(responsePath));
+        }
+
+        Assert.AreEqual("read-only", ValueAfter(calls[0].Arguments, "--sandbox"));
+        Assert.AreEqual("resume", calls[1].Arguments[1]);
+        Assert.AreEqual(initial.SessionHandle, calls[1].Arguments[2]);
+        Assert.IsTrue(calls[1].Arguments.Contains("sandbox_mode=\"read-only\"", StringComparer.Ordinal));
+        Assert.IsTrue(calls[1].Arguments.Contains("approval_policy=\"never\"", StringComparer.Ordinal));
+        Assert.IsFalse(calls[1].Arguments.Contains("--sandbox", StringComparer.Ordinal));
+    }
+
+    [TestMethod]
+    public async Task CodexRejectsUnverifiedCliVersionBeforeReviewInvocation()
+    {
+        using var fixture = new AdapterFixture(codexVersion: "codex-cli 0.165.1");
+
+        var exception = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            new CodexProviderAdapter().ExecuteAsync(fixture.Request("codex", null), fixture.Runner, CancellationToken.None));
+
+        Assert.AreEqual("PROVIDER_VERSION_UNSUPPORTED", exception.Code);
+        Assert.AreEqual(1, fixture.Runner.Requests.Count);
+    }
+
+    [TestMethod]
+    public async Task CodexRequiresOutputAndMatchingSessionOnResume()
+    {
+        using (var fixture = new AdapterFixture(writeCodexOutput: false))
+        {
+            var exception = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+                new CodexProviderAdapter().ExecuteAsync(fixture.Request("codex", null), fixture.Runner, CancellationToken.None));
+            Assert.AreEqual("REVIEW_OUTPUT_MISSING", exception.Code);
+        }
+
+        using (var fixture = new AdapterFixture(codexResumeSession: "33333333-3333-4333-8333-333333333333"))
+        {
+            var adapter = new CodexProviderAdapter();
+            var initial = await adapter.ExecuteAsync(fixture.Request("codex", null), fixture.Runner, CancellationToken.None);
+
+            var exception = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+                adapter.ExecuteAsync(fixture.Request("codex", initial.SessionHandle) with { Round = 2 }, fixture.Runner, CancellationToken.None));
+
+            Assert.AreEqual("SESSION_MISMATCH", exception.Code);
+        }
     }
 
     [TestMethod]
@@ -107,14 +183,18 @@ public sealed class ProviderAdapterTests
 
     private sealed class AdapterFixture : IDisposable
     {
-        public AdapterFixture(string codexVersion = "codex-cli 0.165.0", string copilotVersion = "GitHub Copilot CLI 1.0.105.")
+        public AdapterFixture(
+            string codexVersion = "codex-cli 0.165.0",
+            string copilotVersion = "GitHub Copilot CLI 1.0.105.",
+            bool writeCodexOutput = true,
+            string? codexResumeSession = null)
         {
             Root = Path.Combine(Path.GetTempPath(), "purpose-review-adapter-tests", Guid.NewGuid().ToString("N"));
             RunDirectory = Path.Combine(Root, "external-run");
             Repository = Path.Combine(Root, "repository");
             Directory.CreateDirectory(RunDirectory);
             Directory.CreateDirectory(Repository);
-            Runner = new ScriptedProviderProcessRunner(codexVersion, copilotVersion);
+            Runner = new ScriptedProviderProcessRunner(codexVersion, copilotVersion, writeCodexOutput, codexResumeSession);
         }
 
         public string Root { get; }
@@ -143,7 +223,31 @@ public sealed class ProviderAdapterTests
         }
     }
 
-    private sealed class ScriptedProviderProcessRunner(string codexVersion, string copilotVersion) : IProcessRunner
+    private static bool HasDisabledFeature(IReadOnlyList<string> arguments, string feature)
+    {
+        for (var index = 0; index + 1 < arguments.Count; index++)
+        {
+            if (arguments[index] == "--disable" && arguments[index + 1] == feature)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static string ValueAfter(IReadOnlyList<string> arguments, string option)
+    {
+        var index = Array.IndexOf(arguments.ToArray(), option);
+        Assert.IsGreaterThanOrEqualTo(0, index, $"Missing option: {option}");
+        Assert.IsLessThan(arguments.Count, index + 1, $"Missing value for option: {option}");
+        return arguments[index + 1];
+    }
+
+    private sealed class ScriptedProviderProcessRunner(
+        string codexVersion,
+        string copilotVersion,
+        bool writeCodexOutput,
+        string? codexResumeSession) : IProcessRunner
     {
         public List<ProcessRequest> Requests { get; } = [];
 
@@ -163,9 +267,14 @@ public sealed class ProviderAdapterTests
 
             if (request.Executable == "codex")
             {
-                var outputPath = request.Arguments[Array.IndexOf(request.Arguments.ToArray(), "-o") + 1];
-                File.WriteAllText(outputPath, "BEGIN_PURPOSE_REVIEW\n{\"status\":\"COMPLETE\",\"findings\":[],\"message\":\"bound snapshot\",\"informationRequests\":[]}\nEND_PURPOSE_REVIEW");
-                return Task.FromResult(new ProcessResult(0, JsonSerializer.Serialize(new { type = "thread.started", thread_id = SessionId }), string.Empty, false));
+                var outputPath = ValueAfter(request.Arguments, "--output-last-message");
+                var resumed = request.Arguments.Count > 1 && request.Arguments[1] == "resume";
+                if (writeCodexOutput)
+                {
+                    File.WriteAllText(outputPath, "BEGIN_PURPOSE_REVIEW\n{\"status\":\"COMPLETE\",\"findings\":[],\"message\":\"codex response\",\"informationRequests\":[]}\nEND_PURPOSE_REVIEW");
+                }
+                var codexSession = resumed ? codexResumeSession ?? SessionId : SessionId;
+                return Task.FromResult(new ProcessResult(0, JsonSerializer.Serialize(new { type = "thread.started", thread_id = codexSession }), string.Empty, false));
             }
 
             var id = request.Arguments.Single(value => value.StartsWith("--session-id=", StringComparison.Ordinal) || value.StartsWith("--resume=", StringComparison.Ordinal));

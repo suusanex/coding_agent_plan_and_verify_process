@@ -17,6 +17,7 @@ public static class Program
         {
             if (args.Contains("--version", StringComparer.Ordinal))
             {
+                Console.WriteLine("codex-cli 0.165.0");
                 Console.WriteLine("GitHub Copilot CLI 1.0.105.");
                 return 0;
             }
@@ -84,19 +85,24 @@ public static class Program
     {
         var resumed = args.Length > 1 && args[1] == "resume";
         Require(!args.Contains("--dangerously-bypass-approvals-and-sandbox", StringComparer.Ordinal), "Codex sandbox bypass must not be specified.");
+        Require(!args.Contains("--ephemeral", StringComparer.Ordinal), "Codex session must be reusable.");
         Require(args.Contains("--ignore-user-config", StringComparer.Ordinal), "Codex user configuration must be ignored.");
         Require(args.Contains("--ignore-rules", StringComparer.Ordinal), "Codex rules must be ignored.");
         Require(args.Contains("--skip-git-repo-check", StringComparer.Ordinal), "Codex must run outside the repository.");
         Require(args.Contains("-", StringComparer.Ordinal), "Codex must receive the prompt through stdin.");
         Require(resumed || (args.Contains("--sandbox", StringComparer.Ordinal) && ValueAfter(args, "--sandbox") == "read-only"), "Codex initial run must use a read-only sandbox.");
-        foreach (var feature in new[] { "shell_tool", "browser_use", "browser_use_external", "standalone_web_search", "apps", "enable_mcp_apps", "mcp_2026_07_28", "multi_agent", "multi_agent_v2", "multi_agent_v2_dynamic_tools", "code_mode", "code_mode_host", "code_mode_interrupt", "code_mode_only", "code_mode_only_strict_3p_tools", "code_mode_tool_search", "image_generation", "view_image", "computer_use", "in_app_browser", "in_app_chat", "in_app_voice", "skill_search", "plugins", "hooks", "memories" })
+        Require(args.Contains("approval_policy=\"never\"", StringComparer.Ordinal), "Codex approval policy must be never.");
+        Require(!resumed || args.Contains("sandbox_mode=\"read-only\"", StringComparer.Ordinal), "Codex resume must use a read-only sandbox.");
+        foreach (var feature in new[] { "shell_tool", "browser_use", "browser_use_external", "browser_use_full_cdp_access", "standalone_web_search", "apps", "mcp_2026_07_28", "multi_agent", "multi_agent_v2", "code_mode", "code_mode_host", "image_generation", "view_image", "computer_use", "in_app_browser", "skill_search", "plugins", "hooks", "memories" })
         {
             Require(HasDisabledFeature(args, feature), $"Codex feature was not disabled: {feature}");
         }
         var payload = await Console.In.ReadToEndAsync();
         ValidatePayload(payload);
-        File.WriteAllText(ValueAfter(args, "-o"), Review(resumed));
-        Console.WriteLine(JsonSerializer.Serialize(new { type = "thread.started", thread_id = SessionId }));
+        var sessionId = resumed ? args[2] : SessionId;
+        Require(sessionId == SessionId, "Codex resume must keep the same session id.");
+        File.WriteAllText(ValueAfter(args, "--output-last-message"), Review(resumed));
+        Console.WriteLine(JsonSerializer.Serialize(new { type = "thread.started", thread_id = sessionId }));
     }
 
     private static async Task RunCopilotAsync(string[] args)

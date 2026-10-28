@@ -27,6 +27,13 @@ disable-model-invocation: true
 - Runnerがprovider、session、提出数、入力結合、result parseを所有する。provider CLI構文やsession handleをSkillから再実装しない。
 - 対応providerはCodexとGitHub Copilot。Grok Buildは対象外。
 
+## Provider execution boundary
+
+- Runnerはrepositoryとは別の作業directoryでCLIを起動し、review inputから作ったpromptだけをstdinへ渡す。continueは同じprovider sessionを再利用する。
+- Codex CLIの通常read-only実行設定を使う。Codex環境にhost collaboration等の追加機能が残る場合があるため、role promptでrepository探索、外部調査、ツール呼び出し、委譲を明示的に禁じる。
+- このrole boundaryは完全なcapability isolationを意味しない。SkillとRunnerは独自の認証・隔離基盤を追加せず、provider CLIの認証と通常read-only設定を利用する。
+- Copilot CLIでは実機確認済みのより制限されたprovider設定を維持する。Copilotのzero-tool確認をCodexへ一般化せず、Codexの残存機能を使ってよいという許可にも読み替えない。
+
 ## Prepare one input per submission
 
 目的、設計、差分、証拠、findingへの応答を一つのJSON inputにまとめる。初回および各continueで、その時点の完全なinputを渡す。古い入力をreviewerに探させない。

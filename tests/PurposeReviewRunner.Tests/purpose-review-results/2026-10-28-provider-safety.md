@@ -55,3 +55,23 @@ Codex CLIのバージョン確認とshell拒否だけで、全host tool bridge�
 ## 評価runの利用量記録
 
 Issue #150の評価で実際にmodelを呼び出したrunと、追加のvague-design runについて、Runnerのworker logおよび該当Copilot CLI process logをsession IDで照合した。これらの記録にpremium request数、token数、NanoAIUまたは金額のrun別usage fieldは残っていなかった。従って評価runごとの利用量・請求額は不明であり、推定しない。上記の安全性fixtureのtelemetry値はこの評価run群とは別の計測である。
+
+## 2026-10-29 Issue #150方針更新後のCodex実行境界
+
+上のCodex結果は、host collaboration機能を含むcapability全体を無効にできるか確認した当時の記録である。その厳しい条件下で`collaboration.list_agents`が残ったため、当時のRunnerはCodexをfail closedにした。この結果は書き換えず、後続の運用方針および実行結果と区別する。
+
+Issue #150 comment `6482418082`で、通常のCodex read-only実行、repository外のcwd、review inputだけをstdinへ渡すこと、同じsessionで継続すること、role promptによる探索・委譲禁止を受け入れる運用方針へ変更した。host collaboration等の残存能力を完全に隔離できることは要件としない。独自のOS sandboxや認証基盤を追加しない。
+
+新しいCodex adapterは初回に`codex exec`、継続に同じsession IDの`codex exec resume`を使う。初回は`--sandbox read-only`、resumeはsession configの`sandbox_mode="read-only"`を設定する。初回・resumeの両方にCLIがサポートする`approval_policy="never"`をconfigで渡す。両方で`--ignore-user-config`、`--ignore-rules`、`--skip-git-repo-check`を渡し、`shell_tool`、`browser_use`、`browser_use_external`、`browser_use_full_cdp_access`、`standalone_web_search`、`apps`、`mcp_2026_07_28`、`multi_agent`、`multi_agent_v2`、`code_mode`、`code_mode_host`、`image_generation`、`view_image`、`computer_use`、`in_app_browser`、`skill_search`、`plugins`、`hooks`、`memories`をfeature disableで抑える。run directoryだけを`-C`へ渡し、repository pathはCLI引数・promptに渡さない。各roundは現在の完全なreview inputだけをstdinに渡し、resumeで同じprovider sessionを使用する。環境変数の書換えやhost bridgeを隠す仕組みは使わない。
+
+role promptはrepository、source、file、Git履歴、web、tool、agentの探索・利用や変更を禁止する。shellと探索featureはCLI設定でも抑えるが、host collaboration等の残存機能が利用可能な場合がある。これは技術的なzero-tool証明ではなく、read-only CLI設定とrole contractによる運用境界である。Copilotのzero-tool実測と既存の強い制限設定は変えない。
+
+新しい設定の後続実行は次節に記録する。履歴にある全capability isolation試験の失敗を新しい方針の失敗として読み替えず、後続結果をもってhost collaborationが無効化されたとも主張しない。
+
+### 新設定による実機run
+
+2026-10-29にRunner 0.5.0 / protocol v4から短いsynthetic fixtureで初回・resumeを実行した。Codex CLI `0.165.0`、model `gpt-5.6-terra`、reasoning effort `low`を使用。Runner run IDは`4c9d49fd-6bcd-4afb-afc6-7104ca2a4a15`。同じCodex sessionでround 1は`FINDINGS`（目的のCSV・非変更・private配布条件を言い換えるだけの提案にHIGH finding 1件）、round 2は修正版を受け`COMPLETE`となった。
+
+Codex rollout metadataでは`function_call`と`function_call_output`はともに0件。shell、filesystem、web、delegationの実行イベントは観測されなかった。metadata上は`functions` namespace（exec/wait/request_user_input）と`collaboration` namespace（agent管理を含む）が追加toolとして公開されていた。従って「呼び出しが観測されなかった」と記録し、「toolが存在しなかった」「完全に無効化できた」とはしない。残存host capabilityはrole promptにより使用禁止とし、通常read-only sandbox、feature disable、repository外cwd、input-only stdinを補助境界として使う。この1回のfunctional fixtureは、実利用での運用有効性、全host toolの抑止、または一般的なsecurity isolationの証明ではない。
+
+Copilotの1.0.105初回/resume zero-tool実測は別の強い制限設定と別fixtureの結果である。Codex policy変更のためにCopilot設定を緩和していない。

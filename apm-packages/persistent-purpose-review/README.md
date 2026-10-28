@@ -49,9 +49,13 @@ Runnerはcallerが提示したIDからlineageと予算を管理します。異�
 - ユーザーが明示的に許可した範囲内で、初期設計や重要な変更を扱います。些細な変更やfindingだけを理由に提出しません。
 - 目的の変更やscope追加のauthorityがなければ推測で補わず停止します。
 
+## Provider実行境界
+
+Runnerはrepository外の作業directoryでprovider CLIを起動し、埋め込まれたreview inputだけをpromptとして渡します。continueは同じprovider sessionを使います。CodexではCLIの通常read-only設定を使い、role promptでrepository探索、外部調査、tool invocation、他agentへの委譲を禁じます。Codex host environmentに追加機能が残る可能性があるため、このprompt上の制約を完全なcapability isolationとして扱いません。SkillやRunnerが独自の認証・隔離基盤を提供するものでもありません。Copilotでは既に確認した、より強い制限設定を維持します。詳細は[provider安全性とruntime評価](../../tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-provider-safety.md)を参照してください。
+
 ## Runtime qualification
 
-現在のSkill/Runner組合せの実モデル評価は未実施です。評価statusは`NOT_RUN`、Agent Plugin direct deploymentは`HOLD`のままです。詳細とシナリオは[qualificationシナリオ](../../tests/PurposeReviewRunner.Tests/purpose-review-scenarios.md)および[Agent Plugin runtime qualification](../../docs/agent-plugin-runtime-qualification.md)を参照してください。過去の実装reviewやprovider継続実験から、目的・設計reviewの検出力や利用負荷を推定しません。
+Copilot CLIでは初期設計、finding修正、重要変更および限定contrast fixtureを実行しました。Codexではread-only設定でrepository外のcwd、input-only stdin、同一session resumeを使ったsynthetic fixtureを実行し、finding後に修正案がcompleteとなることを確認しました。一方でhost `functions` / `collaboration` tool namespaceはmetadata上に残り、実行イベントが0件だった観測を完全なcapability isolationの証明とは扱いません。実測は限定的なためqualification statusはdirect deployment `HOLD / PARTIAL`であり、APM distributionは`NOT_RUN / NONE`のままです。詳細とシナリオは[qualificationシナリオ](../../tests/PurposeReviewRunner.Tests/purpose-review-scenarios.md)、[provider safety/runtime evidence](../../tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-provider-safety.md)、[Agent Plugin runtime qualification](../../docs/agent-plugin-runtime-qualification.md)を参照してください。過去の実装reviewやprovider継続実験から、目的・設計reviewの検出力や利用負荷を推定しません。
 
 ## Maintenance
 
