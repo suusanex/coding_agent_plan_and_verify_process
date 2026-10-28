@@ -70,7 +70,11 @@ disable-model-invocation: true
 
 `purpose.original`と`purpose.authority`には元の課題・authorityの該当箇所をsourceから原文で引用し、出典を`sources`に示す。`approvedDesign`は確認可能な承認済みbaselineがある場合だけ記入し、なければ`null`にする。`proposal.delta`では追加だけでなく、削除・緩和も含めて差分全体を明示する。`evidence.body`へreviewに必要な内容を含め、sourceへのアクセスを前提にしない。`responses`にはfindingへの応答と裏付けを記録する。`conformance`にはowner、実施plan、証拠参照を記録するが、記録されたownerが実行・確認したことをRunnerやreviewerが保証した扱いにしない。
 
-`taskKey`と`changeId`は連続する提出間で維持する。findingや未解決事項を隠す目的で識別子を変更し、新規taskとして提出し直して予算を回避しない。Runnerはcallerが与えたIDでlineageを追跡し、異なるtaskKeyが同じ実質的作業かどうかは推測しないため、IDの一貫性はこのSkillに従う側が守る。`userDecision`は、`HUMAN_DECISION_REQUIRED`後にユーザーが新しい変更を明示決定した場合だけ記録する。その本文にはユーザーの決定を原文引用し、`authority`には発言・文書などの出典と決定範囲を記す。Runnerはbody/authorityが空でないことを検証するが、ユーザー発言の真偽やauthorityを認証しない。判断を捏造して同じ変更を再開しない。
+`taskKey`と`changeId`は同じchangeの連続提出間で維持する。findingや未解決事項を隠す目的で識別子を変更し、新規taskとして提出し直して予算を回避しない。Runnerはcallerが与えたIDでlineageを追跡し、異なるtaskKeyが同じ実質的作業かどうかは推測しないため、IDの一貫性はこのSkillに従う側が守る。
+
+`userDecision`はnullが既定だが、実際のユーザー判断によりpurposeまたはapproved baselineを変更する場合、その判断本文とauthorityを原文・出典付きで記録する。すでにユーザーが許可した判断を再利用する場合は、その既存の発言・文書を引用してauthorityを示し、同じ承認を再度求めない。以前の提案や`COMPLETE`だけでは承認済みbaselineへ昇格させない。実際のユーザー承認の根拠がなければ`approvedDesign`を直前baselineのまま保ち、承認されていない設計は`proposal`に置く。
+
+`HUMAN_DECISION_REQUIRED`後は異なる`changeId`で新しいchangeを始めるため、`userDecision`が必要である。`ERROR` / `BLOCKED`後に異なる`changeId`の新しいchangeを始める場合もRunnerが`userDecision`を要求する。同じchangeの`ERROR` / `BLOCKED` linked runは、既存authority内で不足原因を解消できるなら同じ`changeId`を維持する。Runnerはbody/authorityが空でないことを検証するが、ユーザー発言の真偽やauthorityを認証しない。判断を捏造して同じ変更を再開しない。
 
 `priorReviewHistory`はRunnerが管理するoptional fieldで、利用者inputでは省略する。ERROR / BLOCKED後のlinked runやcontinueではRunnerが直前review履歴を含める。利用者が履歴を作成・改変して前回の指摘を入れ替えない。
 
@@ -102,7 +106,7 @@ reviewerからfindingが返った場合、実装を自動修正しない。許�
 purpose-review-runner continue --run <run-id> --input <updated-input.json>
 ```
 
-同一changeに対する提出は、linked run全体を通じて最大3回である。3回で解決しない場合は停止して未解決事項を報告する。別runを作り直したり識別子を変えたりして上限を回避しない。terminal結果はcontinueしない。`COMPLETE`でも目的を満たしたことや設計の承認を意味しないため、判断者へ結果を返す。
+同一changeに対する提出は、linked run全体を通じて最大3回である。3回で解決しない場合は停止して未解決事項を報告する。別runを作り直したり識別子を変えたりして上限を回避しない。terminal結果はcontinueしない。`COMPLETE`はレビューの完了だけを示し、提案や目的の承認を意味しない。後日、別の重要変更を始める場合は同じ`taskKey`、新しい`changeId`、直近の`COMPLETE` runを指す`previousRunId`を使い、完全な最新inputを新しいrunへ渡す。`approvedDesign`には実際に承認済みのbaselineだけを記入する。実際のユーザー承認の根拠がある場合はそれを`userDecision`に記録し、過去のproposalは自動昇格しない。同じ`changeId`の再提出・再開でterminal予算を回避しない。
 
 `HUMAN_DECISION_REQUIRED`後、ユーザーが実際に新しい目的・scope判断を示した場合だけ、同じ`taskKey`、新しい`changeId`、直前terminal run IDを入れた`previousRunId`、引用した判断を記す`userDecision`で新しい`start`を行う。これは新しい変更に対する新しいbudgetであり、未解決の同じchangeを再開したり予算を迂回する方法ではない。ユーザーに同じ判断を繰り返し求めない。
 

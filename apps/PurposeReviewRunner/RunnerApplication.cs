@@ -477,19 +477,46 @@ public sealed class RunnerApplication
         catch (RunnerException exception) when (exception.Code == "STATE_NOT_FOUND")
         {
             Trace.TraceError(exception.ToString());
-            var result = jobStore.LoadResult(lineage.LatestRunId);
-            if (result.Output.JobStatus == JobStatuses.Succeeded && result.Output.ReviewKind == Protocol.ReviewKind)
+            var storedInput = inputStore.Load(lineage.LatestRunId, job.Round);
+            if (job.InputHash != storedInput.Hash)
             {
-                return [new ReviewHistoryEntry(
+                throw new RunnerException("STATE_INCOMPATIBLE", "The latest input snapshot does not match its durable job.");
+            }
+
+            var history = (storedInput.Input.PriorReviewHistory ?? []).ToList();
+            var result = jobStore.LoadResult(lineage.LatestRunId);
+            if (result.Output.JobStatus != job.JobStatus)
+            {
+                throw new RunnerException("STATE_INCOMPATIBLE", "The latest result status does not match its durable job.");
+            }
+            if (job.JobStatus == JobStatuses.Succeeded)
+            {
+                if (result.Output.ReviewKind != Protocol.ReviewKind || result.Output.InputHash != storedInput.Hash)
+                {
+                    throw new RunnerException("STATE_INCOMPATIBLE", "The latest successful result is not bound to its stored review input.");
+                }
+
+                var latestReview = new ReviewHistoryEntry(
                     job.Round,
                     result.Output.Status,
                     result.Output.Findings,
                     result.Output.Message,
-                    result.Output.InformationRequests ?? [])];
+                    result.Output.InformationRequests ?? []);
+                if (!history.Any(existing => SameReviewHistoryEntry(existing, latestReview)))
+                {
+                    history.Add(latestReview);
+                }
             }
-            return [];
+            return history;
         }
     }
+
+    private static bool SameReviewHistoryEntry(ReviewHistoryEntry left, ReviewHistoryEntry right) =>
+        left.Round == right.Round &&
+        left.Status == right.Status &&
+        left.Message == right.Message &&
+        left.Findings.SequenceEqual(right.Findings) &&
+        left.InformationRequests.SequenceEqual(right.InformationRequests);
 
     private static ReviewHistoryEntry CreateHistoryEntry(int round, ReviewerResponse response) =>
         new(round, response.Status, response.Findings, response.Message, response.InformationRequests);

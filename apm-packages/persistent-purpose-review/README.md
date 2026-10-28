@@ -32,13 +32,15 @@ $persistent-purpose-review を起動し、許可済みの設計変更をpurpose 
 
 各提出で`schemaVersion: 1`のJSON inputを用意します。ユーザーの目的・authorityの引用とsource、承認済みbaseline（存在しなければ`null`）、設計全体とbaselineからの追加・削除・緩和を含むdelta、証拠本文、findingへの応答、要件ごとのconformance申告を埋め込みます。Runnerやreviewerにsourceを取りに行かせず、入力内の証拠を使います。conformance記録はownerの実施を保証しません。
 
-初回は`start --repository <path> --input <json>`、同じrunでの再提出は`continue --run <uuid> --input <json>`、状態確認は`status --run <uuid>`です。各continueで完全な最新inputを渡します。`taskKey`と`changeId`は安定して維持し、同一changeのlinked runを通じて最大3提出までです。continue inputは初回start時の`previousRunId`値を保ちます。terminal `ERROR`/`BLOCKED`後は同じtask/change IDsと直前run参照で新しいlinked runを`start`し、消費済み予算を引き継ぎます。`HUMAN_DECISION_REQUIRED`後はユーザーが新しい判断を明示するまで再開しません。
+初回は`start --repository <path> --input <json>`、同じrunでの再提出は`continue --run <uuid> --input <json>`、状態確認は`status --run <uuid>`です。各continueで完全な最新inputを渡します。同一changeの`taskKey`と`changeId`はlinked runを通じて維持し、最大3提出までです。continue inputは初回start時の`previousRunId`値を保ちます。terminal `ERROR`/`BLOCKED`後は同じchangeなら同じIDsと直前run参照で新しいlinked runを`start`し、消費済み予算を引き継ぎます。異なるchangeを始める場合は新しい`changeId`と、その判断に必要な`userDecision`を使います。`HUMAN_DECISION_REQUIRED`後はユーザー判断を得て新しいchangeをstartします。
 
 `priorReviewHistory`はRunner管理のfieldです。user inputから省略し、ERROR / BLOCKED後のlinked runやcontinueに過去履歴を手作業で混ぜないでください。
 
-Runnerはcallerが提示したIDからlineageと予算を管理します。異なる`taskKey`が同じ実質的作業を指すことや、`userDecision`のbody/authorityが実際のユーザー発言かどうかは推測・認証しません。Skillは同じ作業のIDを保ち、`userDecision`にはユーザーの決定を原文引用して出典・決定範囲を記録します。
+Runnerはcallerが提示したIDからlineageと予算を管理します。異なる`taskKey`が同じ実質的作業を指すことや、`userDecision`のbody/authorityが実際のユーザー発言かどうかは推測・認証しません。Skillは同じ作業のIDを保ちます。`userDecision`にはユーザーが実際に行った判断を原文引用し、発言・文書などの出典と対象範囲を記録します。目的または`approvedDesign`を前回inputから変更する場合、Runnerは`userDecision`を要求します。承認が既に記録されているなら、その既存の判断・authorityを引用して使い、同じpermissionを再度求めません。
 
 `HUMAN_DECISION_REQUIRED`後にユーザーが新しいscopeを実際に決めた場合、同じ`taskKey`、新しい`changeId`、terminal runを指す`previousRunId`、判断を引用した`userDecision`で新しい`start`を行います。これは新たなchangeとしてreviewします。同じchangeを自動再開する用途には使いません。
+
+`COMPLETE`はそのreviewの完了であり、proposalや承認済み設計baselineの承認ではありません。完了後に別の重要変更を始める場合、同じ`taskKey`、新しい`changeId`、最新の完了runを指す`previousRunId`で完全なinputを付けて`start`します。`approvedDesign`は実際にユーザーが承認したbaselineだけを示します。ユーザーが既に承認を明示している場合は、その判断と出典を`userDecision`に記録してbaselineを更新します。別途同じ承認を再度求めません。実際の承認がなければ前のbaseline（nullならnull）を維持し、提案を承認済みとして扱いません。
 
 `COMPLETE`はレビュー工程の完了を示します。ユーザー承認、設計適合の独立実証、実装完了、実行時conformanceの保証を示しません。レビュー結果を設計責任者へ返し、判断が必要な事項を明示します。
 

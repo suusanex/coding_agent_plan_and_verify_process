@@ -10,7 +10,7 @@
 
 Runnerは元の目的、承認済み設計、提案設計と差分、入力に埋め込まれた証拠の整合を評価します。implementation欠落の特定・修復、コード品質review、実環境検証の代行は対象外です。conformance記録は入力された申告と証拠であり、ownerの実行を保証しません。
 
-`COMPLETE`はレビュー工程が終わったことを示し、目的達成、設計承認、実装完了、実行時conformanceを認定しません。判断を行うユーザーまたは設計責任者へ結果を返します。
+`COMPLETE`はレビュー工程が終わったことを示し、proposalやapproved baselineの承認、目的達成、実装完了、実行時conformanceを認定しません。完了後に別のchangeをreviewする場合は、同じ`taskKey`、新しい`changeId`、直近の完了runを指す`previousRunId`で完全なinputを渡します。baselineには実際にユーザーが承認した設計だけを入れ、前runのproposalを自動昇格しません。baseline更新が既存のユーザー承認に基づく場合は、そのsourceを`userDecision`に引用します。同じ承認を再度求めません。purposeまたはbaseline変更には`userDecision`が必要です。
 
 ## Install
 
@@ -170,9 +170,9 @@ Codex CLI:
 | `RUNNING`が長い | `status --run <run-id>`を繰り返す。新しいrunを作っていないか | 同じ`run-id`の`status`だけをやり直す。1 roundは約10分かかることがある |
 | `INPUT_INVALID`など、run成立前の入力エラー | stdoutのerror code。`runId`が無いこと | ReviewInput JSONを直して`start`をやり直す。成立済みreviewの再送ではない |
 | 受付後にCLIの結果だけが不明 | durable job / `runId`が既にあるか | 同じ`start` / `continue`を再送せず、その`runId`の`status`を見る |
-| terminal `ERROR` / `BLOCKED` | 既存`runId`の`status`とlineage | 同じrunはcontinueしない。解消後は同じtask/change identityと前回run参照で新しいlinked runを作り、消費済みbudgetを維持する |
+| terminal `ERROR` / `BLOCKED` | 既存`runId`の`status`とlineage | 同じchangeなら同じtask/change identityと前回run参照で新しいlinked runを作り、消費済みbudgetを維持する。新しいchangeなら新`changeId`と`userDecision`を使う |
 | Runner versionが古い / protocol非互換 | `purpose-review-runner version` | protocol v4 / Runner 0.5.0以上のbuildへ差し替える。`apm update`では直らない |
-| `HUMAN_DECISION_REQUIRED` | `message`、必要な判断とauthority | ユーザーの明示判断を得る。新しい`changeId`と`userDecision`なしで再提出しない |
+| `HUMAN_DECISION_REQUIRED` | `message`、必要な判断とauthority | ユーザーの明示判断を記録する。新しい`changeId`と`userDecision`なしで再提出しない |
 
 ## Advanced usage
 
