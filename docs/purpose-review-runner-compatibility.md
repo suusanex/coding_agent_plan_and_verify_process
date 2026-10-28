@@ -1,26 +1,27 @@
 # Purpose Review Runner Compatibility
 
-この文書は、Purpose Review Runnerのversion履歴と非互換点をまとめたmigration noteです。現在必要な導入条件は[Purpose Review Runner README](../apps/PurposeReviewRunner/README.md)と[Persistent Purpose Review README](../apm-packages/persistent-purpose-review/README.md)を正本とします。
+この文書は、Purpose Review Runnerのversion履歴と非互換点をまとめます。現在の利用条件は[Runner README](../apps/PurposeReviewRunner/README.md)と[Persistent Purpose Review README](../apm-packages/persistent-purpose-review/README.md)を参照してください。
 
-## 現在必要なversion
+## 現在の利用条件
 
-`$persistent-purpose-review`は`purpose-review-runner` 0.4.0以上とprotocol v3を要求します。Runner未導入、0.4.0未満、またはprotocol非互換ならfail closedで停止します。`apm update`はSkillだけを更新し、Runner binaryは更新しません。
+Skill 0.6.0はRunner 0.5.0以上、protocol v4を要求します。v4はReviewInput JSONを導入し、目的・設計整合を評価します。Runner 0.5.0のRelease状態および実モデルqualificationは未確認です。`apm update`はSkillだけを更新し、Runner binaryは更新しません。
 
-## Protocol compatibility
+## v3からv4への移行
 
-v3はv2と非互換です。既存のv2 runは開始時のRunnerで完了させ、RunnerとSkillの更新後の新しい作業からv3を利用します。v2 stateの`continue`やv2保存結果の`status`は`STATE_INCOMPATIBLE`で停止します。旧結果の自動変換、stateの移行、sessionの再構築は行いません。configとjob lifecycleのschemaは変更しません。
+protocol v4はv3と非互換です。旧`--context`入力、v3 run/state/resultは新Runnerで継続・再解釈しません。v4の`job.json` schemaVersionは2で、v3のschema 1および`contextPaths`を持つjob recordは拒否します。旧runは開始したRunnerで扱い、新しい作業のみv4で始めます。v4は`start --repository <path> --input <json>`と`continue --run <uuid> --input <json>`を使い、各提出で完全な入力を要求します。自動移行、session再構成、transcript replayは行いません。
 
-進行中runを別Runnerへ移す必要はありません。開始したversionで完了させ、新しい作業だけ新しいversionを使います。
+同じchangeに対する最大3提出はlinked runs全体で共有されます。`ERROR`または`HOLD`のrunはcontinueせず、新しいlinked runへ進む場合もtask/change identityと消費済み予算を維持します。terminal結果はcontinueしません。`HUMAN_DECISION_REQUIRED`はユーザー判断が必要であり、同じ変更の自動再開を認めません。
 
 ## History
 
 | Version | 内容 |
 | --- | --- |
-| 0.2.0 | async job。`start` / `continue`がprovider完了をforegroundで待たず、`status`で結果を取得する |
+| 0.2.0 | async job。`start` / `continue`がprovider完了をforegroundで待たず、`status`で結果を取得 |
 | 0.2.1 | Windowsのrestrictive Job Objectからの独立起動 |
 | 0.2.2 | CopilotへのBOMなしUTF-8標準入力prompt転送 |
 | 0.2.3 | reviewerのshell調査と目的逸脱レビュー |
-| 0.3.0 | protocol v3。findingの必須項目を`requiredChange`から`requiredOutcome`へ変更。0.2.3のshell調査と目的逸脱レビューは維持 |
-| 0.4.0 | 実装reviewと後工程の実環境検証を分離し、十分に申し送りされた未実施testだけではreviewを停止しない判定へ変更。protocol v3のschemaとstatusは維持 |
+| 0.3.0 | protocol v3。findingに`requiredOutcome`を導入 |
+| 0.4.0 | 実装reviewと後工程の実環境検証の境界を追加 |
+| 0.5.0 | protocol v4。ReviewInput、linked submission budget、目的・設計整合reviewへ変更。Grok/profileを削除 |
 
-0.3.0ではreviewerが必要成果を示し、具体的な修正設計はparentが所有します。`requiredOutcome`の欠落・null・空白、旧`requiredChange`や両項目の混在は不正結果です。0.4.0はpromptとSkillの判定・報告契約を変更しますが、保存済みv3 runとのprotocol互換性は維持します。
+0.5.0はpurpose sourceとproposalを入力へ埋め込み、承認済みbaselineが存在しない場合はnullを許します。proposal deltaには追加、削除、緩和など全変更を記録します。入力内のevidenceを使い、reviewerによるsource再取得は前提にしません。conformance recordはownerの実行を保証しません。旧v3 finding schemaをv4へ読み替えません。

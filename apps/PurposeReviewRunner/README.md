@@ -1,20 +1,20 @@
 # Purpose Review Runner
 
-`purpose-review-runner`は、独立したpurpose reviewerを起動し、同じreviewer sessionを最大3roundまで維持するローカルCLIです。実装担当エージェントへレビュー工程を教えるのは[`$persistent-purpose-review`](../../apm-packages/persistent-purpose-review/README.md)です。両方必要です。RunnerはPCへOS userごとに一度導入します。
+`purpose-review-runner`は、明示的に許可されたtask内の目的・設計整合を独立reviewerへ評価させるローカルCLIです。同一changeはlinked runを通じて最大3提出まで扱います。実行手順は[`$persistent-purpose-review`](../../apm-packages/persistent-purpose-review/README.md)が提供します。両方必要です。RunnerはPCへOS userごとに一度導入します。
 
 通常はRunnerコマンドを手で呼ぶ必要はありません。主経路はSkillが`start` / `status` / `continue`を扱います。このREADMEはインストール、設定、更新、troubleshootingの正本です。手動CLIは[Advanced usage](#advanced-usage)にあります。
 
-このRunnerは0.4.0以上が必要です。過去runの継続は[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
+必要なbuildはRunner 0.5.0以上、protocol v4です。このversionのRelease状態は未確認です。配布済みのbuildがなければ利用を開始しないでください。過去runの扱いは[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
 
-## 実装reviewと実環境検証の境界
+## 評価対象と完了の意味
 
-Runner 0.4.0以降は、実装reviewの合格と、review後に人が行う実環境検証の完了を分けて扱います。エージェントが実行できない、実行を許可されていない、または承認された後工程で行うtestだけが残る場合、対象、理由、実施主体と時点、環境と手順、期待結果と合否基準、記録先と失敗時の戻し先が申し送られていれば、未実施だけを理由に`FINDINGS`や`BLOCKED`にはしません。他に実装上の問題がなければ`COMPLETE`になり得ます。
+Runnerは元の目的、承認済み設計、提案設計と差分、入力に埋め込まれた証拠の整合を評価します。implementation欠落の特定・修復、コード品質review、実環境検証の代行は対象外です。conformance記録は入力された申告と証拠であり、ownerの実行を保証しません。
 
-`COMPLETE`は、そのtestの成功、実環境での目的達成、リリース条件の充足を認定するstatusではありません。reviewerは未検証事項と人手で必要な作業を`message`へ残し、手動testがあっても残りの実装、呼び出し経路、異常系、目的逸脱を確認します。現工程で実行可能かつ許可済みの必要なtest、既知の失敗、実装欠陥、review前の実測を明示的に要求する条件はこの扱いで免除されません。
+`COMPLETE`はレビュー工程が終わったことを示し、目的達成、設計承認、実装完了、実行時conformanceを認定しません。判断を行うユーザーまたは設計責任者へ結果を返します。
 
 ## Install
 
-配布の正本は[GitHub Releases](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases)です。通常は[最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)を使います。現在の最新は[purpose-review-runner-v0.4.0](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/tag/purpose-review-runner-v0.4.0)です。
+配布の正本は[GitHub Releases](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases)です。通常は[最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)を使います。Runner 0.5.0 / protocol v4のReleaseが確認できるまで、新しいSkillの運用を開始しないでください。
 
 | OS | asset |
 | --- | --- |
@@ -47,7 +47,7 @@ $configPath = Join-Path $configDir 'config.json'
 New-Item -ItemType Directory -Force -Path $configDir | Out-Null
 Copy-Item (Join-Path $installDir 'config.example.json') $configPath
 
-# Codexの現行例を使うなら、開いた内容を保存するだけでよい。Grok / Copilot なら下の構文例に置き換える。
+# Codexの例を使う場合は開いた内容を保存する。Copilotを使う場合はproviderを変更する。
 notepad $configPath
 
 purpose-review-runner version
@@ -70,13 +70,13 @@ config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/purpose-review-runner"
 mkdir -p "$config_dir"
 cp "$install_dir/config.example.json" "$config_dir/config.json"
 
-# Codexの現行例を使うなら、開いた内容を保存するだけでよい。Grok / Copilot なら下の構文例に置き換える。
+# Codexの例を使う場合は開いた内容を保存する。Copilotを使う場合はproviderを変更する。
 ${EDITOR:-nano} "$config_dir/config.json"
 
 purpose-review-runner version
 ```
 
-stdoutの単一JSONで`protocolVersion`が`3`、`runnerVersion`が`0.4.0`以上であることを確認します。`~/.local/bin`がPATHにあっても、その下の専用directoryは自動では検索されません。
+stdoutの単一JSONで`protocolVersion`が`4`、`runnerVersion`が`0.5.0`以上であることを確認します。`~/.local/bin`がPATHにあっても、その下の専用directoryは自動では検索されません。
 
 ## Config
 
@@ -107,11 +107,11 @@ Linuxのpathは.NETの`Environment.SpecialFolder.ApplicationData`に従います
 | 項目 | 意味 |
 | --- | --- |
 | `schemaVersion` | config形式のversion。現在は`1` |
-| `provider` | reviewer実装。`codex`、`grok`、`copilot`のいずれか |
+| `provider` | reviewer実装。`codex`または`copilot` |
 | `executable` | PATH上のコマンド名、または実行ファイルの絶対path |
 | `model` | そのprovider CLIへ渡すモデル名 |
 | `reasoningEffort` | `none`、`minimal`、`low`、`medium`、`high`、`xhigh`、`max` |
-| `profile` | 任意。未使用なら`null`。Codexは`-p`、Grok / Copilotは`--agent`へ渡します |
+| `profile` | `null`固定。非nullは拒否されます |
 
 provider CLI自身の認証が事前に必要です。RunnerはAPI keyやOAuth設定を代行しません。
 
@@ -129,19 +129,6 @@ Codex:
   "provider": "codex",
   "executable": "codex",
   "model": "gpt-5.6-terra",
-  "reasoningEffort": "high",
-  "profile": null
-}
-```
-
-Grok:
-
-```json
-{
-  "schemaVersion": 1,
-  "provider": "grok",
-  "executable": "grok",
-  "model": "grok-4.6",
   "reasoningEffort": "high",
   "profile": null
 }
@@ -181,20 +168,20 @@ Copilot:
 | `EXECUTABLE_NOT_FOUND` / provider CLIが見つからない | configの`executable`とPATH | provider CLIを導入し、コマンド名または絶対pathを設定する |
 | provider側の認証切れ | 同じ`executable`を単体実行して認証状態を確認する | そのprovider CLI自身で再認証する。Runner側にsecretは書かない |
 | `RUNNING`が長い | `status --run <run-id>`を繰り返す。新しいrunを作っていないか | 同じ`run-id`の`status`だけをやり直す。1 roundは約10分かかることがある |
-| `CONTEXT_NOT_FOUND`など、run成立前の入力エラー | stdoutのerror code。`runId`が無いこと | context pathなどを直して`start`をやり直す。成立済みreviewの再送ではない |
+| `INPUT_INVALID`など、run成立前の入力エラー | stdoutのerror code。`runId`が無いこと | ReviewInput JSONを直して`start`をやり直す。成立済みreviewの再送ではない |
 | 受付後にCLIの結果だけが不明 | durable job / `runId`が既にあるか | 同じ`start` / `continue`を再送せず、その`runId`の`status`を見る |
-| terminal `ERROR` | 既存`runId`の`status`が`ERROR` | そのrunは`continue`しない。原因解消後の新しいreviewは別の`start` |
-| Runner versionが古い / protocol非互換 | `purpose-review-runner version` | [最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)へ差し替える。`apm update`では直らない |
-| `HUMAN_DECISION_REQUIRED` | `message`とfinding。目的やscopeの選択が必要か | 人手で判断する。automatic round 4や別reviewerへの切替はしない |
+| terminal `ERROR` / `BLOCKED` | 既存`runId`の`status`とlineage | 同じrunはcontinueしない。解消後は同じtask/change identityと前回run参照で新しいlinked runを作り、消費済みbudgetを維持する |
+| Runner versionが古い / protocol非互換 | `purpose-review-runner version` | protocol v4 / Runner 0.5.0以上のbuildへ差し替える。`apm update`では直らない |
+| `HUMAN_DECISION_REQUIRED` | `message`、必要な判断とauthority | ユーザーの明示判断を得る。新しい`changeId`と`userDecision`なしで再提出しない |
 
 ## Advanced usage
 
 Skillが使えない場合や診断時だけ、次を手で実行します。通常利用者の主経路ではありません。公開fieldsとstateの詳細は[technical reference](../../docs/purpose-review-runner-technical-reference.md)を参照してください。
 
 ```powershell
-purpose-review-runner start --repository C:\path\to\repo --context docs\goal-context.md --context C:\path\to\accepted-decisions.md
+purpose-review-runner start --repository C:\path\to\repo --input C:\path\to\review-input.json
 purpose-review-runner status --run <run-id>
-purpose-review-runner continue --run <run-id>
+purpose-review-runner continue --run <run-id> --input C:\path\to\updated-review-input.json
 ```
 
 ## 関連文書

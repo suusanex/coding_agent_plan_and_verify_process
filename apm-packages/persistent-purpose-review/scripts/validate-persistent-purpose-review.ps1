@@ -4,19 +4,23 @@ param()
 $ErrorActionPreference = 'Stop'
 $packageRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $skillPath = Join-Path $packageRoot '.apm/skills/persistent-purpose-review/SKILL.md'
-
-foreach ($path in @(
+$paths = @(
     (Join-Path $packageRoot 'apm.yml'),
     (Join-Path $packageRoot 'README.md'),
     $skillPath,
-    (Join-Path $packageRoot 'scripts/test-apm-package-install.ps1')
-)) {
+    (Join-Path $packageRoot 'scripts/test-apm-package-install.ps1'),
+    (Join-Path $packageRoot 'tests/agent-plugin/contract.json'),
+    (Join-Path $packageRoot 'tests/agent-plugin/qualification.json')
+)
+foreach ($path in $paths) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing package file: $path" }
 }
 
 $manifest = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'apm.yml')
 $skill = Get-Content -Raw -LiteralPath $skillPath
 $readme = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'README.md')
+$contract = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'tests/agent-plugin/contract.json') | ConvertFrom-Json
+$qualification = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'tests/agent-plugin/qualification.json') | ConvertFrom-Json
 $frontmatter = [regex]::Match($skill, '(?s)\A---\r?\n(.*?)\r?\n---').Groups[1].Value
 if ([string]::IsNullOrWhiteSpace($frontmatter)) { throw 'Skill frontmatter is missing.' }
 
@@ -30,68 +34,57 @@ if ($skill -notmatch 'ユーザーが明示的に起動した場合だけ使用'
     throw 'Skill body does not preserve the explicit-only invocation contract.'
 }
 
-if ($manifest -notmatch '(?m)^name:\s*persistent-purpose-review\s*$' -or $manifest -notmatch '(?m)^version:\s*0\.5\.0\s*$') {
-    throw 'APM package identity is invalid.'
+if ($manifest -notmatch '(?m)^name:\s*persistent-purpose-review\s*$' -or $manifest -notmatch '(?m)^version:\s*0\.6\.0\s*$') {
+    throw 'APM package identity/version is invalid.'
 }
 if ($manifest -notmatch '(?ms)^targets:\s*$.*^\s+- copilot\s*$.*^\s+- codex\s*$.*^\s+- agent-skills\s*$') {
     throw 'APM package targets are invalid.'
 }
-if ($skill -notmatch 'purpose-review-runner version' -or $skill -notmatch 'protocolVersion.*`3`' -or $skill -notmatch 'runnerVersion' -or $skill -notmatch '0\.4\.0') {
-    throw 'Skill does not fail closed on the Runner protocol boundary.'
+if ($skill -notmatch 'protocolVersion.*`4`' -or $skill -notmatch '0\.5\.0' -or $skill -notmatch 'schemaVersion.*1') {
+    throw 'Skill does not require Runner 0.5.0 / protocol v4 / input schema 1.'
 }
-if ($skill -notmatch 'status --run' -or $skill -notmatch 'RUNNING' -or $skill -notmatch 'jobStatus') {
-    throw 'Skill does not poll durable job status.'
+if ($skill -notmatch 'start --repository.*--input' -or $skill -notmatch 'continue --run.*--input' -or $skill -notmatch 'status --run') {
+    throw 'Skill CLI usage does not match the public protocol v4 commands.'
 }
-if ($skill -notmatch 'status.*やり直す') {
-    throw 'Skill does not keep status polling idempotent after a failed CLI invocation.'
+foreach ($field in @('taskKey', 'changeId', 'previousRunId', 'purpose', 'approvedDesign', 'proposal', 'evidence', 'responses', 'conformance', 'userDecision')) {
+    if ($skill -notmatch ('"' + [regex]::Escape($field) + '"')) { throw "ReviewInput example is missing field: $field" }
 }
-if ($skill -match '(?m)work --run') {
-    throw 'Skill must not invoke the internal worker command.'
+if ($skill -notmatch '削除・緩和' -or $skill -notmatch 'null' -or $skill -notmatch '記録されたownerが実行・確認したことをRunnerやreviewerが保証') {
+    throw 'Input guidance omits full proposal delta, nullable baseline, or conformance owner boundary.'
 }
-if ($skill -notmatch '公開protocol fields' -or $skill -notmatch '`findings`.*`message`.*`error`') {
-    throw 'Skill does not use the complete public Runner result contract.'
+if ($skill -notmatch '最大3回' -or $skill -notmatch 'terminal' -or $skill -notmatch '識別子を変えたりして上限を回避しない' -or $skill -notmatch '既に消費した提出数を引き継ぐ') {
+    throw 'Skill does not preserve linked submission budget and terminal rules.'
 }
-if ($skill -notmatch 'ユーザーが明示したsourceを最優先' -or $skill -notmatch '複数文書が同じ目的を補完') {
-    throw 'Skill context selection precedence is incomplete.'
+if ($skill -notmatch '初期設計' -or $skill -notmatch '重要な変更' -or $skill -notmatch 'findingが出たことだけ' -or $skill -notmatch '実装不足だけ') {
+    throw 'Skill review triggers or scope boundary are incomplete.'
 }
-if ($skill -notmatch '同じreviewer session' -or $skill -notmatch 'automatic round 4' -or $skill -notmatch '別providerへの切替を行わない') {
-    throw 'Skill lifecycle stop contract is incomplete.'
+if ($skill -notmatch '目的の引用文と根拠sourceはinputへ埋め込む' -or $skill -notmatch '承認を代行しない') {
+    throw 'Skill does not preserve source-embedded authority and review/approval separation.'
 }
-if ($skill -match '新session、retry、context replay、別providerへの切替を行わない') {
-    throw 'Skill collapses every ERROR into a blanket retry ban.'
+if ($skill -match '(?im)^\s*(?:Grok|grok)\s*:' -or $skill -match 'grok --|--context|work --run|--session-id|--resume|--model|reasoning-effort') {
+    throw 'Skill contains removed provider invocation or duplicates runner-owned invocation details.'
 }
-if ($skill -notmatch 'CONTEXT_NOT_FOUND' -or $skill -notmatch 'preflight failure' -or $skill -notmatch 'start`を再実行してよい') {
-    throw 'Skill does not allow a corrected start after a preflight failure before a review run exists.'
+if ($readme -notmatch '--target agent-skills --global' -or $readme -notmatch 'disable-model-invocation: true' -or $readme -notmatch '\$persistent-purpose-review') {
+    throw 'Package README does not preserve the install and explicit-only contract.'
 }
-if ($skill -notmatch 'durable job' -or $skill -notmatch '再submitしない' -or $skill -notmatch 'duplicate review') {
-    throw 'Skill does not keep duplicate submit prevention after a durable job exists.'
+if ($readme -notmatch '0\.5\.0' -or $readme -notmatch 'protocol v4' -or $readme -notmatch 'NOT_RUN' -or $readme -notmatch 'HOLD') {
+    throw 'Package README does not state the version and qualification boundary.'
 }
-if ($skill -notmatch 'terminal `ERROR`' -or $skill -notmatch 'session reconstruction' -or $skill -notmatch 'transcript replay' -or $skill -notmatch 'Round 1から`start`' -or $skill -notmatch '同一視しない') {
-    throw 'Skill does not separate refusing to continue a terminal ERROR run from starting a new Round 1 review.'
+if ($readme -match '(?im)^\s*(?:Grok|grok)\s*:' -or $readme -match 'grok --|0\.4\.0|protocol v3|--context') {
+    throw 'Package README contains a removed provider invocation or protocol behavior.'
 }
-if ($skill -match 'codex exec|grok --|copilot -|--session-id|--resume|--sandbox|--model|reasoning-effort') {
-    throw 'Skill duplicates provider or session protocol details owned by the Runner.'
+if ($contract.runtimeBoundary -notmatch '0\.5\.0以上 / protocol v4') {
+    throw 'Agent Plugin contract does not identify the external Runner v4 boundary.'
 }
-if ($readme -notmatch 'OS userごとに一度' -or $readme -notmatch '--target agent-skills --global' -or $readme -notmatch '\$pr-review-remediation') {
-    throw 'Package README does not preserve the three installation and ownership boundaries.'
+if ($qualification.assessments[0].status -cne 'NOT_RUN' -or $qualification.assessments[0].evidenceMode -cne 'NONE' -or
+    $qualification.assessments[1].status -cne 'HOLD' -or $qualification.assessments[1].evidenceMode -cne 'PARTIAL' -or
+    $qualification.assessments[0].evidenceRefs.Count -ne 0 -or
+    $qualification.assessments[1].evidenceRefs -notcontains 'tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-purpose-design-evaluation.md') {
+    throw 'Qualification must remain APM NOT_RUN and direct deployment HOLD with the bounded live-evaluation evidence.'
 }
-if ($readme -notmatch 'explicit-only' -or $readme -notmatch '\$persistent-purpose-review' -or $readme -notmatch '/persistent-purpose-review' -or $readme -notmatch 'disable-model-invocation: true') {
-    throw 'Package README does not explain explicit-only invocation for Codex and Grok Build.'
-}
-if ($readme -match 'sandbox' -or $skill -match 'sandbox') {
-    throw 'Package documents must not treat filesystem sandbox enforcement as a protocol invariant.'
-}
-if ($readme -notmatch 'non-modifying reviewer' -or $skill -notmatch 'repositoryを変更しない') {
-    throw 'Package documents do not preserve the non-modifying reviewer contract.'
-}
-if ($readme -notmatch '0\.4\.0' -or $readme -notmatch 'apm update') {
-    throw 'Package README does not require Runner 0.4.0 or later after APM-only updates.'
-}
-if ($skill -notmatch '実行可能かつ許可済み' -or $skill -notmatch '確認対象の目的・要件' -or $skill -notmatch '結果の記録先' -or $skill -notmatch '実環境検証完了とは報告しない') {
-    throw 'Skill does not preserve the manual test handoff and reporting contract.'
-}
-if ($readme -notmatch '未実施だけを理由にreviewを不合格にしません' -or $readme -notmatch 'HUMAN_DECISION_REQUIRED' -or $readme -notmatch 'リリース条件の充足') {
-    throw 'Package README does not explain the implementation review and manual verification boundary.'
+if ($qualification.assessments[0].reason -notmatch '実モデル評価は未実施' -or
+    $qualification.assessments[1].reason -notmatch '限定的な実モデル評価を実施したが') {
+    throw 'Qualification reason must distinguish unrun APM qualification from bounded live evaluation.'
 }
 
 Write-Output 'Persistent Purpose Review package validation: PASS'

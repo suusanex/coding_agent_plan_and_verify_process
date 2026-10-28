@@ -26,7 +26,7 @@ public static class Program
     {
         var runner = RequiredOption(args, "--runner");
         var repository = RequiredOption(args, "--repository");
-        var context = RequiredOption(args, "--context");
+        var input = RequiredOption(args, "--input");
         if (!File.Exists(runner))
         {
             Console.Error.WriteLine("Runner executable was not found: " + runner);
@@ -72,8 +72,8 @@ public static class Program
             startInfo.ArgumentList.Add("start");
             startInfo.ArgumentList.Add("--repository");
             startInfo.ArgumentList.Add(repository);
-            startInfo.ArgumentList.Add("--context");
-            startInfo.ArgumentList.Add(context);
+            startInfo.ArgumentList.Add("--input");
+            startInfo.ArgumentList.Add(input);
 
             using var process = Process.Start(startInfo);
             if (process is null)

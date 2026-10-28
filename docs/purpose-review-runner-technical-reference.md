@@ -1,80 +1,63 @@
 # Purpose Review Runner Technical Reference
 
-この文書は、Purpose Review Runnerのprotocol、state、worker起動、provider adapterをまとめたtechnical referenceです。通常利用の導入・設定・更新は[Purpose Review Runner README](../apps/PurposeReviewRunner/README.md)を正本とします。Skillの工程契約は[`$persistent-purpose-review`](../apm-packages/persistent-purpose-review/README.md)を正本とします。
-
-一般利用では`start` / `status` / `continue`を手で呼ぶ必要はありません。reviewはバックグラウンドworkerで実行されるため、長時間でも親CLIに依存しません。
+この文書はPurpose Review Runner protocol v4のCLI、ReviewInput、状態、provider境界を説明します。通常利用は[Runner README](../apps/PurposeReviewRunner/README.md)、工程契約は[`$persistent-purpose-review`](../apm-packages/persistent-purpose-review/README.md)が正本です。
 
 ## Public CLI
 
 ```powershell
 purpose-review-runner version
-purpose-review-runner start --repository C:\path\to\repo --context docs\goal-context.md --context C:\path\to\accepted-decisions.md
+purpose-review-runner start --repository C:\path\to\repo --input C:\path\to\review-input.json
 purpose-review-runner status --run <run-id>
-purpose-review-runner continue --run <run-id>
+purpose-review-runner continue --run <run-id> --input C:\path\to\updated-review-input.json
 ```
 
-`start`と`continue`はprovider完了をforegroundで待ちません。入力検証を通過したあとdurable jobを登録して独立したworker processを起動し、`jobStatus`が`RUNNING`のJSONを返します。結果は同じ`run-id`で`status`を短時間pollingして取得します。`status`はreviewを再実行しません。durable job / `run-id`が成立したあとにCLI呼び出しの結果だけが不明な場合は、同じ`start` / `continue`を再submitせず、その`run-id`の`status`を問い合わせ直します。`CONTEXT_NOT_FOUND`のようにjob成立前の確定的なpreflight failureは、この再問い合わせの対象ではありません。再開の可否はSkillのretry / recovery契約に従います。
+protocolは4、Runner versionは0.5.0、input schemaVersionは1です。`start`と`continue`は入力検証後にdurable jobを登録してworkerを起動し、通常は`RUNNING`を返します。結果は同じrun IDの`status`で取得します。結果不明時にstart/continueを再submitせず、先にstatusを確認します。
 
-`start`は1件以上のcontextを要求します。相対pathはrepository root基準で解決し、absolute pathも受理します。context本文をproviderへ渡すのはRound 1だけです。`continue`は保存済みsessionをresumeし、contextや前回outputを再送しません。内部コマンド`work`はSkillから使いません。
+## ReviewInput schema
 
-## Output schema v3
+JSONはcamelCaseで、未知fieldを拒否します。必須fieldは次のとおりです。
 
-stdoutはprotocol v3の単一JSONです。公開fieldsは`protocolVersion`、`runnerVersion`、`runId`、`round`、`jobStatus`、`status`、`terminal`、`findings`と、必要時の`message`または`error`です。
-
-findingは`id`、`severity`、`title`、`summary`、`evidence`、`requiredOutcome`を要求します。成果の具体的な内容はreviewerが判断し、parserは修正手順や関数名を要求しません。`jobStatus`は`RUNNING`、`SUCCEEDED`、`FAILED`です。実行中の`status`は`RUNNING`です。診断はstderrへ出し、stdoutへ別形式のtextを混在させません。
-
-`FINDINGS`の場合だけ元のimplementation parentが修正・検証し、同じ`run-id`を`continue`します。`COMPLETE`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`では、そのrunを継続せず停止します。terminal `ERROR`のrunも`continue`しません。これは、原因解消後に別のreview runをRound 1から開始する判断とは別です。その区別はSkillが所有します。`RUNNING`なら、成立済みの`run-id`に対する`status`を繰り返します。
-
-`COMPLETE`は実装reviewの完了を表し、申し送り済みの未実施testが成功したことや、実環境検証・リリース条件が完了したことは表しません。エージェントが実行不能・実行不許可、または承認済み後工程のtestだけが残り、対象、理由、主体と時点、環境と手順、期待結果と合否基準、記録先と失敗時の戻し先が揃っていれば、reviewerは未実施だけをblockerにせず、未検証事項と人手作業を`message`に残せます。schemaとstatusはprotocol v3のままです。
-
-## Exit codes
-
-| Exit code | 意味 |
+| Field | 形式と意味 |
 | --- | --- |
-| 0 | job受付または有効なreview結果 |
-| 1 | provider / process実行失敗 |
-| 2 | 引数・config・state・protocol違反 |
+| `schemaVersion` | `1` |
+| `taskKey` | repository内で連続提出を識別する安定ID |
+| `changeId` | 対象changeの安定ID |
+| `previousRunId` | 初回はnull、linked startでは直前のdurable run ID |
+| `userDecision` | 通常はnull。`HUMAN_DECISION_REQUIRED`後に新しいchangeを開始するとき、ユーザー判断本文とauthorityを記録 |
+| `purpose` | `version`, `sources`, `body`, `original`, `authority`。元の目的と根拠source、authorityを含む |
+| `approvedDesign` | `version`, `body`, `authority`。承認済みbaselineがなければnull |
+| `proposal` | `version`, `body`, `delta`。提案設計全体とbaselineからの追加・削除・緩和を含む差分 |
+| `evidence` | `id`, `source`, `body`。各項目の本文を埋め込み、外部source fetchに依存しない |
+| `responses` | `findingId`, `body`, `evidence`。findingへの応答と証拠ID |
+| `conformance` | `owner`, `plan`, `evidence`。実行・確認のowner、計画、証拠ID |
+| `priorReviewHistory` | optional / Runner-owned。利用者inputでは省略または空にする。ERROR / BLOCKED後のlinked runではRunnerが前runのreview履歴を設定 |
 
-非0でもstdoutはstatus `ERROR`のschema v3です。
+証拠IDは一意で、responses/conformanceの参照先は入力内に存在する必要があります。purpose、approvedDesign、proposalのhash/versionを`inputBinding`としてresultへ返します。continueではpurposeとapprovedDesign baselineは固定し、提案のみ新しいversionで更新できます。bindingは評価対象inputの識別情報であり、内容の正しさを保証しません。conformance recordもownerの実施・確認を保証しません。
 
-## State layout
+初回taskの`start`は`previousRunId: null`です。すでにtaskKeyのlineageがある場合、直前durable run ID、同一repository、適切なterminal statusを要求します。`FINDINGS`は同じrunのcontinueが必要です。continue inputはそのrunのstart時に設定された`previousRunId`値を保ちます。`ERROR` / `BLOCKED`は同じchangeの新しいlinked runを許可しますが、最大3 durable submissionsの予算を共有します。新しいlinked runの`previousRunId`は直前terminal run IDです。`HUMAN_DECISION_REQUIRED`後は新しいchangeIdと非null `userDecision`が必須です。`COMPLETE`したchangeは再提出できません。taskKey/changeIdはcallerが提供するため、同じ実作業に対するID aliasやuserDecisionの真偽はRunnerが認証しません。Skillは作業をまたいでIDを維持し、明示されたユーザー判断だけを転記します。
 
-stateは`Environment.SpecialFolder.LocalApplicationData`配下の`purpose-review-runner/runs/<run-id>/`へ保存します。Windowsでは通常`%LOCALAPPDATA%\purpose-review-runner\runs\<run-id>\`、Linuxでは通常`~/.local/share/purpose-review-runner/runs/<run-id>/`です。`XDG_DATA_HOME`が設定されている場合は、その配下を使います。
+## Result protocol
 
-| File | 役割 |
-| --- | --- |
-| `state.json` | review制御（session、provider snapshot、round、review status） |
-| `job.json` | job lifecycle |
-| `result.json` | 公開結果 |
-| `launcher.log` | worker起動処理の診断 |
-| `worker.log` | `work` processが起動してからの診断 |
-| `transcript/round-NN-prompt.md` | そのroundのreview payload |
-| `transcript/round-NN-response.md` | そのroundのreviewer response本文 |
+stdoutは単一JSONです。共通fieldは`protocolVersion`、`runnerVersion`、`runId`、`round`、`status`、`terminal`、`findings`、`message`、`error`、`jobStatus`です。purpose/design review resultでは`reviewKind: "purpose-design-alignment"`と`inputBinding`を返します。bindingは`purposeHash` / `purposeVersion`、nullable `approvedDesignHash` / `approvedDesignVersion`、`proposalHash` / `proposalVersion`を含みます。
 
-session handleは公開outputへ出しません。config変更は既存runへ反映されません。`start`時のprovider設定をrun stateへsnapshotするため、その後にuser-level configを変更しても既存runへは反映されません。同じ`runId`で`continue`する再reviewは、同じreviewer sessionと同じprovider / model / reasoning effortで継続します。
+statusは`RUNNING`、`FINDINGS`、`COMPLETE`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`、`ERROR`です。`FINDINGS`には1件以上のfindingが必要で、`COMPLETE`にはfindingがありません。`HUMAN_DECISION_REQUIRED`または`BLOCKED`でも、入力から独立して確認できる未解決findingを保持できます。`BLOCKED`は1件以上のinformation requestも必要です。各findingのfieldは`id`、`severity`、`title`、`summary`、`evidence`、`requiredOutcome`です。information requestは`id`、`source`、`question`、`whyNeeded`を持ちます。provider/process diagnosticsはstderrへ出し、stdoutへ別形式を混ぜません。
 
-transcriptのpromptとreviewer responseは全文をローカル保存するため、purpose contextやrepository由来の情報を含み得ます。実装対象repositoryには生成されず、`LocalApplicationData`のrun directory内だけに保存されます。これはRunnerが生成してprovider adapterへ渡したreview payloadと、reviewer response本文の監査用であり、provider内部のsystem promptやnetwork payloadを記録するものではありません。
+`COMPLETE`はpurpose/design reviewの完了であり、目的達成、設計承認、実装完了、runtime conformanceの保証ではありません。`HUMAN_DECISION_REQUIRED`、`BLOCKED`、`ERROR`はterminalです。terminal runはcontinueできません。
 
-`PURPOSE_REVIEW_RUNNER_CONFIG_PATH`と`PURPOSE_REVIEW_RUNNER_STATE_ROOT`を両方指定すると、通常のuser-level locationの代わりにそのconfigとstateをworkerも参照します。launcher.logにはJob flags、Job limit queryの失敗、選択した起動経路、native / WMI error、worker PIDを残します。provider prompt、response、token、credential、environment全件は記録しません。
+## State and lineage
 
-## Worker isolation
+run state、job/result、入力snapshot、task lineageはuser-level state directoryに保存します。Runnerの診断ログには例外詳細が記録されます。prompt / response transcriptには目的やrepository由来情報が含まれる可能性があるため、共有前に確認してください。credentialはprompt本文や結果JSONに含めません。
 
-workerは起動時に親のstdin/stdout/stderrを継承しません。この分離はimplementation parentやproviderの種類に依存しません。Windowsでは現在プロセスがJob Object内かどうかを見て起動経路を選びます。Jobに入っていなければdetached `CreateProcess`です。Job内ならimmediate Jobのbreakaway可否に関わらず、呼び出し元Job chainを継承しない`Win32_Process.Create`に`CREATE_BREAKAWAY_FROM_JOB`を付けて起動します。nested JobのancestorやWMI provider host側Jobへ残す経路は使いません。独立起動できなければ同じJobへ残さず`WORKER_START_FAILED`で停止します。
+`job.json`のschemaVersionは2です。旧v3のschema 1には`contextPaths`があり、新しいRunnerは拒否します。旧job/resultを新protocolへ読み替えません。
 
-## Non-modifying reviewer contract
+Provider設定はrun開始時にsnapshotされます。既存runへのconfig変更は反映されません。入力snapshotはroundごとに保存されます。続きの入力は前roundの目的bindingを保持し、提案version/hashや証拠・応答・conformanceを更新できます。
 
-filesystem sandboxによるread-only強制は要件ではありません。reviewerには変更禁止を指示しますが、OS-levelのread-only isolationではありません。reviewerはshellで`git diff`、`git log`、`git show`などの調査を行えます。source、tests、docs、Git状態、設定、外部サービスを変更しない役割契約はshell経由にも適用されます。shellからの変更を技術的に防止する保証ではありません。独自の差分収集器やshell command判定器は追加せず、既存のprovider CLIとGitを利用します。
+## Worker
 
-same-session、non-modifying reviewer、最大3round、異常時停止はconfigで変更できません。
+workerは親CLIのstdin/stdout/stderrから独立して起動します。WindowsではJob Object内外に応じたdetached起動経路を使い、分離できなければ`WORKER_START_FAILED`で停止します。OS固有処理の詳細とqualification境界はsourceとテストを参照してください。
 
-providerごとの調査許可は次のとおりです。
+## Provider boundary
 
-- Grokは`--tools read,view,grep,shell`と`--permission-mode bypassPermissions`で調査用shellを利用できるようにし、write/edit系toolと委任は引き続き制限します。
-- Copilotは`bash`・`powershell`とそのsession操作toolを公開し、`--allow-tool=shell`で実行を許可します。tool公開と実行許可は別の設定です。
-- Codexは`--dangerously-bypass-approvals-and-sandbox`とpromptの変更禁止契約を使います。Codexのdefault sandboxはReadOnlyですが、`--ignore-user-config`ではproject trustから昇格せず、`-s workspace-write`もWindowsでは実効read-onlyになる報告があるため、別sandboxへ置換せずbypassします。resumeでもbypassを再指定します。
+対応providerはCodex CLIとGitHub Copilot CLIです。Grok Buildは対応対象外です。configの`profile`はnull固定で、非nullは拒否します。provider固有の認証とCLI実行は利用者の環境が担当します。purpose reviewの提示inputから一つのpromptを生成し、provider adapterはその文字列をCLIへ渡します。CLI構文やsession handleはRunnerが所有します。
 
-設定の根拠は[Grokのpermission仕様](https://github.com/xai-org/grok-build/blob/main/crates/codegen/xai-grok-pager/docs/user-guide/22-permissions-and-safety.md)と[Copilotのtool仕様](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#tool-availability-values)です。
-
-## Reviewer evaluation owned by Skill and prompt
-
-レビュー観点、`requiredOutcome`の意味、finding判断は`$persistent-purpose-review` SkillとRunnerが生成するreview promptが所有します。このreferenceはCLIとruntimeの機械的契約だけを扱います。
+reviewerは目的・設計整合の判定に専念し、repositoryを変更しません。この変更禁止は役割契約であり、OS-level isolationの保証ではありません。従来の実装review用shell調査や実装testの評価はこのreview scopeには含みません。

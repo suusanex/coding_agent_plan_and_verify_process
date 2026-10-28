@@ -1,8 +1,8 @@
 namespace PurposeReviewRunner;
 
 public abstract record RunnerCommand;
-public sealed record StartCommand(string Repository, IReadOnlyList<string> ContextPaths) : RunnerCommand;
-public sealed record ContinueCommand(string RunId) : RunnerCommand;
+public sealed record StartCommand(string Repository, string InputPath) : RunnerCommand;
+public sealed record ContinueCommand(string RunId, string InputPath) : RunnerCommand;
 public sealed record StatusCommand(string RunId) : RunnerCommand;
 public sealed record WorkCommand(string RunId) : RunnerCommand;
 public sealed record VersionCommand : RunnerCommand;
@@ -24,9 +24,9 @@ public static class CliParser
         return args[0] switch
         {
             "start" => ParseStart(args[1..]),
-            "continue" => ParseRunCommand(args[1..], "continue", runId => new ContinueCommand(runId)),
             "status" => ParseRunCommand(args[1..], "status", runId => new StatusCommand(runId)),
             "work" => ParseRunCommand(args[1..], "work", runId => new WorkCommand(runId)),
+            "continue" => ParseContinue(args[1..]),
             _ => throw Usage($"Unknown command: {args[0]}")
         };
     }
@@ -34,7 +34,7 @@ public static class CliParser
     private static StartCommand ParseStart(string[] args)
     {
         string? repository = null;
-        var contexts = new List<string>();
+        string? input = null;
         for (var index = 0; index < args.Length; index++)
         {
             var option = args[index];
@@ -48,8 +48,12 @@ public static class CliParser
                     }
                     repository = value;
                     break;
-                case "--context":
-                    contexts.Add(value);
+                case "--input":
+                    if (input is not null)
+                    {
+                        throw Usage("--input can be specified only once.");
+                    }
+                    input = value;
                     break;
                 default:
                     throw Usage($"Unknown start option: {option}");
@@ -60,11 +64,38 @@ public static class CliParser
         {
             throw Usage("start requires --repository <path>.");
         }
-        if (contexts.Count == 0)
+        if (string.IsNullOrWhiteSpace(input))
         {
-            throw Usage("start requires at least one --context <path>.");
+            throw Usage("start requires --input <path>.");
         }
-        return new(repository, contexts);
+        return new(repository, input);
+    }
+
+    private static ContinueCommand ParseContinue(string[] args)
+    {
+        string? runId = null;
+        string? input = null;
+        for (var index = 0; index < args.Length; index++)
+        {
+            var option = args[index];
+            var value = NextValue(args, ref index, option);
+            switch (option)
+            {
+                case "--run" when runId is null:
+                    runId = value;
+                    break;
+                case "--input" when input is null:
+                    input = value;
+                    break;
+                default:
+                    throw Usage($"Invalid or duplicate continue option: {option}");
+            }
+        }
+        if (string.IsNullOrWhiteSpace(runId) || string.IsNullOrWhiteSpace(input))
+        {
+            throw Usage("continue requires --run <run-id> and --input <path>.");
+        }
+        return new(runId, input);
     }
 
     private static RunnerCommand ParseRunCommand(string[] args, string command, Func<string, RunnerCommand> create)
@@ -91,5 +122,5 @@ public static class CliParser
     }
 
     private static RunnerException Usage(string message) =>
-        new("INVALID_ARGUMENTS", message + " Usage: purpose-review-runner start --repository <path> --context <path> [--context <path> ...] | continue --run <run-id> | status --run <run-id> | version");
+        new("INVALID_ARGUMENTS", message + " Usage: purpose-review-runner start --repository <path> --input <path> | continue --run <run-id> --input <path> | status --run <run-id> | version");
 }

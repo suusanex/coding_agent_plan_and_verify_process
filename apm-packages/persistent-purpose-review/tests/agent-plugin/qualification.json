@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "package": "persistent-purpose-review",
-  "canonicalFingerprint": "542905190dba8f17b33df0d85687af46d65f71e933fc4af0d3fcc064a1bd79b8",
-  "distributionFingerprint": "7865b8dde2307d901c7c34f563361c69913e649a4ef70374678b526a8a47e07d",
+  "canonicalFingerprint": "6799bf6a5c5e68e81625fd27a3bf5d31d50c5cb3ad9904f70d88ccbf3984c7a1",
+  "distributionFingerprint": "1c2a57acb3d060e2805d6d7c87a693f8ce36ac3b132a2bb21703ec8fbd8c7f13",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
-    "clientVersion": "NOT_RUN",
+    "clientVersion": "1.0.105",
     "apmVersion": "NOT_RUN"
   },
   "assessments": [
@@ -14,15 +14,18 @@
       "distribution": "apm",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "Runner 0.4.0 / protocol v3とSkill 0.5.0の組合せで実モデル評価は未実施。手動test申し送りによる判定変更と目的レビューの検出力を過去のLIVE結果から推定しない。",
+      "reason": "Runner 0.5.0 / protocol v4とSkill 0.6.0の実モデル評価は未実施。目的・設計整合reviewの検出力、過剰指摘、利用者負荷を未確認のため、旧実装reviewやsession継続結果から推定しない。",
       "evidenceRefs": []
     },
     {
       "distribution": "agent-plugin-direct",
       "status": "HOLD",
-      "evidenceMode": "NONE",
-      "reason": "独立したRunnerはpluginに含まれない。変更後のSkillと外部Runnerを組み合わせたdirect deploymentの実モデル評価は未実施。",
-      "evidenceRefs": []
+      "evidenceMode": "PARTIAL",
+      "reason": "Copilot CLIで限定的な実モデル評価を実施したが、初期レビュー・指摘修正・別changeIdの重要変更と、要約・不足要求・根拠不足の少数fixtureに限られる。利用負荷と出力適合性を広く評価していないため、direct deployment qualificationはHOLD。",
+      "evidenceRefs": [
+        "tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-provider-safety.md",
+        "tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-purpose-design-evaluation.md"
+      ]
     }
   ]
 }

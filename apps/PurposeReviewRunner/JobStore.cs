@@ -68,6 +68,23 @@ public sealed class JobStore
             }
             var result = document.Deserialize<JobResult>(JsonDefaults.Options)
                 ?? throw new JsonException("Result JSON was empty.");
+            if (result.Output is null)
+            {
+                throw new JsonException("Result output was missing.");
+            }
+            var outputBinding = result.Output.InputBinding;
+            if (result.Output.JobStatus == JobStatuses.Succeeded &&
+                (result.Output.ReviewKind != Protocol.ReviewKind || outputBinding is null ||
+                 !IsSha256(outputBinding.PurposeHash) || !IsSha256(outputBinding.ProposalHash) ||
+                 (outputBinding.ApprovedDesignHash is not null && !IsSha256(outputBinding.ApprovedDesignHash)) ||
+                 ((outputBinding.ApprovedDesignHash is null) != (outputBinding.ApprovedDesignVersion is null)) ||
+                 !IsSha256(result.Output.InputHash) ||
+                 string.IsNullOrWhiteSpace(outputBinding.PurposeVersion) || string.IsNullOrWhiteSpace(outputBinding.ProposalVersion) ||
+                 result.Output.InformationRequests is null || result.Output.NonGuarantees is null ||
+                 !result.Output.NonGuarantees.SequenceEqual(ReviewNonGuarantees.Items, StringComparer.Ordinal)))
+            {
+                throw new RunnerException("STATE_INCOMPATIBLE", "Job result review binding is invalid.");
+            }
             return result;
         }
         catch (RunnerException)
@@ -79,6 +96,8 @@ public sealed class JobStore
             throw new RunnerException("RESULT_INVALID", $"Job result could not be read: {exception.Message}", ExitCodes.ContractError, exception);
         }
     }
+
+    private static bool IsSha256(string? value) => value is { Length: 64 } && value.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f');
 
     public bool TryLoadResult(string runId, out JobResult result)
     {
@@ -141,12 +160,12 @@ public sealed class JobStore
 
     private static void Validate(JobState job)
     {
-        if (job.SchemaVersion != 1 ||
+        if (job.SchemaVersion != Protocol.JobSchemaVersion ||
             string.IsNullOrWhiteSpace(job.RunId) ||
             job.Round is < 1 or > Protocol.MaximumRounds ||
             job.Operation is not (JobOperations.Start or JobOperations.Continue) ||
             job.JobStatus is not (JobStatuses.Running or JobStatuses.Succeeded or JobStatuses.Failed) ||
-            job.StartedAtUtc == default)
+            job.StartedAtUtc == default || job.DurableSubmissions is < 1 or > Protocol.MaximumRounds)
         {
             throw new RunnerException("JOB_INVALID", "Job state contains invalid control data.");
         }
@@ -154,11 +173,10 @@ public sealed class JobStore
         if (job.Operation == JobOperations.Start)
         {
             if (string.IsNullOrWhiteSpace(job.Repository) || !Path.IsPathFullyQualified(job.Repository) ||
-                job.ContextPaths is null || job.ContextPaths.Count == 0 ||
-                job.ContextPaths.Any(path => string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path)) ||
-                job.Provider is null || job.Provider.Provider is not ("codex" or "grok" or "copilot") ||
+                job.Provider is null || job.Provider.Provider is not ("codex" or "copilot") ||
                 string.IsNullOrWhiteSpace(job.Provider.Executable) || !Path.IsPathFullyQualified(job.Provider.Executable) ||
-                string.IsNullOrWhiteSpace(job.Provider.Model) || string.IsNullOrWhiteSpace(job.Provider.ReasoningEffort))
+                string.IsNullOrWhiteSpace(job.Provider.Model) || string.IsNullOrWhiteSpace(job.Provider.ReasoningEffort) ||
+                string.IsNullOrWhiteSpace(job.InputHash))
             {
                 throw new RunnerException("JOB_INVALID", "Job state contains invalid start control data.");
             }

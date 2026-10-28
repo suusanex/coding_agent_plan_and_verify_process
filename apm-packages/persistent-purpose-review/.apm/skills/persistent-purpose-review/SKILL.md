@@ -1,6 +1,6 @@
 ---
 name: persistent-purpose-review
-description: Use only when the user explicitly invokes persistent-purpose-review. Do not select automatically for ordinary implementation, verification, or review requests. The original implementation parent runs an independent purpose-aware review, fixes findings, and asks the same reviewer session to re-review for up to three rounds. Requires the separately installed purpose-review-runner.
+description: Use only when the user explicitly invokes persistent-purpose-review. Do not select automatically for ordinary implementation, verification, or review requests. Independently review purpose and design alignment at initial design and material changes within the explicitly authorized task, using linked submissions with a bounded budget. Requires the separately installed purpose-review-runner.
 user-invocable: true
 disable-model-invocation: true
 # Copyright (c) 2026 suusanex (GitHub UserName)
@@ -11,49 +11,61 @@ disable-model-invocation: true
 
 # Persistent Purpose Review
 
-このSKILLは、ユーザーが明示的に起動した場合だけ使用する。通常の実装完了、verification、reviewなどを理由にモデルが自動選択してはならない。
+このSkillは、ユーザーが明示的に起動した場合だけ使用する。通常の設計、実装、検証、レビューの依頼からモデルが自動選択してはならない。
 
-元のimplementation parentが、実装完了後のpurpose review、finding修正、同じreviewer sessionでの再reviewを同じtask内で完了する。
+目的と設計の整合を、独立reviewerに確認させる。対象は明示的に許可されたtask内の初期設計と、目的・設計を変える重要な変更である。findingが出たことだけ、または実装不足だけを理由にreviewを開始しない。実装の欠落を補修する工程やコード品質reviewを担当しない。
 
 `purpose-review-runner`は別途OS user単位で導入されている必要がある。このSkillはRunner binaryを内包、download、installしない。
 
-## Ownership
+## Ownership and boundary
 
-- production、tests、docsを変更できるのは、このSkillを開始した元のimplementation parentだけ。
-- reviewerは目的達成の判断と`requiredOutcome`による必要成果の提示を担当し、repositoryを変更しない。具体的な修正設計と実装はparentが所有する。
-- reviewerはshellでGit差分や履歴を調査できる。変更禁止はshell経由にも適用する役割契約であり、技術的に変更不能であることを意味しない。
-- Runnerがprovider、session handle、round、non-modifying reviewer契約、result parse、最大3roundを所有する。providerが副作用なくwrite/edit系toolを禁止できる場合は、その制約をRunnerが利用する。
-- provider CLI構文、session ID、round counter、model、reasoning effortを親から指定または再実装しない。
-- PR、GitHub Copilot review、別top-level task、Zed integrationは前提にしない。
+- ユーザーが許可したtaskとscopeを越えて判断・作業を広げない。ユーザーの許可を代理で作らない。
+- reviewerは、元の目的、承認済み設計、提案設計とその差分、提示された証拠を照合する。実装の調査や実装欠落の修復をレビュー対象にしない。
+- reviewerは設計上のfindingと必要な判断を返す。変更や設計の決定はユーザーまたは明示された設計責任者が行い、reviewerが承認を代行しない。
+- 目的の引用文と根拠sourceはinputへ埋め込む。reviewerに会話・外部sourceを再取得させず、引用を捏造・補完させない。
+- conformanceの記録は申告内容と証拠を評価するための入力である。記録されたownerが実行・確認したことをRunnerやreviewerが保証するものではない。
+- Runnerがprovider、session、提出数、入力結合、result parseを所有する。provider CLI構文やsession handleをSkillから再実装しない。
+- 対応providerはCodexとGitHub Copilot。Grok Buildは対象外。
 
-## Select purpose context
+## Prepare one input per submission
 
-Runnerを開始する前に、今回のpurpose sourceを意味的に選ぶ。
+目的、設計、差分、証拠、findingへの応答を一つのJSON inputにまとめる。初回および各continueで、その時点の完全なinputを渡す。古い入力をreviewerに探させない。
 
-1. ユーザーが明示したsourceを最優先する。
-2. task、承認済みplan、implementation handoffと、repository内のGoal Context、会話export、accepted decision documentから、今回の目的とscopeの根拠を選ぶ。
-3. 元の問題・期待成果、承認されたscope・採用判断、実装方針の役割を区別する。新しいplanやhandoffであることだけで当初目的、優先順位、棄却理由を上書きしない。ユーザーが明示した目的・scopeの変更判断は反映する。
-4. 複数文書が同じ目的を補完する場合はすべて選ぶ。複数であること自体をambiguityにしない。
-5. 古い版と新しい版が競合するなど、現在のsourceを特定できない場合だけreviewを開始せずユーザーへ質問する。
+```json
+{
+  "schemaVersion": 1,
+  "taskKey": "stable-task-key",
+  "changeId": "stable-change-id",
+  "previousRunId": null,
+  "userDecision": null,
+  "purpose": {
+    "version": "purpose-v1",
+    "sources": ["docs/goal-context.md#purpose"],
+    "body": "今回の目的と制約を、根拠sourceから忠実に引用して記載する。",
+    "original": "ユーザーが述べた元の課題・目的を引用する。",
+    "authority": "誰が、どの範囲を決定または許可したかをsource付きで記載する。"
+  },
+  "approvedDesign": null,
+  "proposal": {
+    "version": "proposal-v1",
+    "body": "提案する設計全体を記載する。",
+    "delta": "承認済みbaselineからの追加、削除、緩和、変更をすべて列挙する。baselineがない場合はその旨を明記する。"
+  },
+  "evidence": [
+    { "id": "E1", "source": "docs/design.md#section", "body": "判断に必要な証拠本文を埋め込む。" }
+  ],
+  "responses": [],
+  "conformance": [
+    { "owner": "担当主体", "plan": "実施予定と確認内容", "evidence": ["E1"] }
+  ]
+}
+```
 
-context pathはrepository相対またはabsoluteでよい。Runner自身にsourceを探索・推測させない。
+`purpose.original`と`purpose.authority`には元の課題・authorityの該当箇所をsourceから原文で引用し、出典を`sources`に示す。`approvedDesign`は確認可能な承認済みbaselineがある場合だけ記入し、なければ`null`にする。`proposal.delta`では追加だけでなく、削除・緩和も含めて差分全体を明示する。`evidence.body`へreviewに必要な内容を含め、sourceへのアクセスを前提にしない。`responses`にはfindingへの応答と裏付けを記録する。`conformance`にはowner、実施plan、証拠参照を記録するが、記録されたownerが実行・確認したことをRunnerやreviewerが保証した扱いにしない。
 
-計画への適合だけを目的達成の根拠にしない。ユーザーが入力を限定していなければ、計画に残っていない背景・否定条件を補う現在のsourceも選ぶ。必要な目的情報が得られない場合は不足を明示し、推測で新しい要求を作らない。比較対象のbaseやPRが明示済みなら、その情報も選択したcontext内で識別できるようにする。PRやレビュー専用commitの作成は前提にしない。
+`taskKey`と`changeId`は連続する提出間で維持する。findingや未解決事項を隠す目的で識別子を変更し、新規taskとして提出し直して予算を回避しない。Runnerはcallerが与えたIDでlineageを追跡し、異なるtaskKeyが同じ実質的作業かどうかは推測しないため、IDの一貫性はこのSkillに従う側が守る。`userDecision`は、`HUMAN_DECISION_REQUIRED`後にユーザーが新しい変更を明示決定した場合だけ記録する。その本文にはユーザーの決定を原文引用し、`authority`には発言・文書などの出典と決定範囲を記す。Runnerはbody/authorityが空でないことを検証するが、ユーザー発言の真偽やauthorityを認証しない。判断を捏造して同じ変更を再開しない。
 
-## Prepare validation and handoff
-
-review開始前に、今回の目的に必要なtestを現在の実行環境で実行可能かつ許可済みのものと、それ以外に分類する。実行可能かつ許可済みの必要なtestは実行し、既知の失敗を手動確認へ置き換えない。
-
-エージェントが直接実行できない、実行を許可されていない、または承認された工程上review後に実施するtestが残る場合、reviewerが調査できるrepository内の作業記録または選択済みcontextへ、次を申し送る。
-
-- 確認対象の目的・要件。
-- エージェントが実行できない理由、または後工程とする根拠。
-- 実施主体と実施時点。
-- 必要な環境・準備と具体的な操作手順。
-- 期待結果と合否基準。
-- 結果の記録先と、失敗時に修正へ戻す方法。
-
-「人手で確認してください」だけでは不十分とする。決定済みのtestを人が実行することは人手で必要な作業であり、目的やscopeについての人手判断とは区別する。申し送りを準備してもtest成功や実環境での目的達成を認定したことにはならない。
+`priorReviewHistory`はRunnerが管理するoptional fieldで、利用者inputでは省略する。ERROR / BLOCKED後のlinked runやcontinueではRunnerが直前review履歴を含める。利用者が履歴を作成・改変して前回の指摘を入れ替えない。
 
 ## Verify the Runner
 
@@ -61,55 +73,34 @@ review開始前に、今回の目的に必要なtestを現在の実行環境で�
 purpose-review-runner version
 ```
 
-stdoutの単一JSONを読み、`protocolVersion`が`3`であること、および`runnerVersion`が`0.4.0`以上であることを確認する。`runnerVersion`はmajor.minor.patchとして比較する。command未導入、非0 exit、JSON不正、`protocolVersion`非互換、`runnerVersion`欠落、`0.4.0`未満、または比較不能なら`Blocked`として停止する。別commandやprovider CLIで代替しない。`apm update`はRunner binaryを更新しないため、旧Runnerのまま続行しない。
+stdoutのJSONを読み、`protocolVersion`が`4`、`runnerVersion`が`0.5.0`以上であることを確認する。command未導入、非0 exit、JSON不正、version欠落・非互換なら停止する。Grokや別commandで代替しない。
 
-## Start review
+## Submit and continue
 
-repository rootと選択済みcontextを明示する。`start`はprovider完了をforegroundで待たない。
+初回はJSON inputを作成し、taskとchangeに安定した識別子を付ける。
 
 ```powershell
-purpose-review-runner start --repository <repository-root> --context <path> [--context <path> ...]
+purpose-review-runner start --repository <repository-root> --input <input.json>
 ```
 
-返った`runId`を保持する。stdoutの公開protocol fields（`runId`、`jobStatus`、`status`、`findings`、`message`、`error`等）だけをworkflowで扱う。内部session handleやstate fileを読み書きしない。内部コマンド`work`は呼び出さない。
-
-`jobStatus`または`status`が`RUNNING`なら、数秒間隔で同じ`runId`の`status`を繰り返す。durable job / `runId`が成立したあとにCLI invocationが失敗したり結果だけが不明になった場合は、同じ`start` / `continue`を再submitせず、同じ`runId`に対する`status`だけをやり直す。
+結果に`runId`があれば保持する。`RUNNING`中は同じrunのstatusを確認する。
 
 ```powershell
 purpose-review-runner status --run <run-id>
 ```
 
-`status`はreviewを再実行しない。provider timeoutまで1 roundが約10分かかることがある。`RUNNING`が続くこと自体をrecovery理由にしない。
-
-- `FINDINGS`: findingを実装目的へ照合し、元のparentが必要なproduction/tests/docsまたは不足する手動testの申し送りを修正してrepository規約のvalidationを実行する。その後、同じ`runId`を`continue`する。申し送り不足の解消を未実施testの実行結果取得へ置き換えない。
-- `COMPLETE`: purpose review完了として終了する。`message`に未検証事項や人手で必要な作業があれば保持し、test成功や実環境検証完了とは報告しない。
-- `HUMAN_DECISION_REQUIRED`: finding、目的やscopeについて選択が必要な理由、実施済みvalidationを報告して停止する。決定済みのtestを人が実行するだけならこの状態へ読み替えない。
-- `BLOCKED`: blockerと再開条件を報告して停止する。
-- terminal `ERROR`、またはreview run成立前の非0 exit: error codeと安全なmessageを報告する。再開してよいかは[Retry and recovery](#retry-and-recovery)で、preflight failure、結果不明なdurable submit、terminal run failureを区別して判断する。すべての`ERROR`または非0 exitを一律のretry禁止にしない。
-
-findingと`requiredOutcome`は元の目的と明示的な採用判断に照合する。`requiredOutcome`は成立すべき状態・振る舞い・制約であり、修正手順ではない。parentが具体的な修正方式を設計し、追加だけでなく削除・縮小・既存経路への統合を検討する。複数componentにまたがる責務・authorityの問題を、局所的なpatch指示がないという理由で却下しない。誤り・過剰要求の根拠がある場合は、実装修正を行わず同じrunで再reviewを求めてもよい。必要な説明は既存の作業記録などに根拠と判断を簡潔に残し、過去のreviewer output全文を複製しない。未決定の目的・scopeを親の判断だけで変更する必要がある場合は、選択理由をユーザーへ報告して停止する。
-
-## Retry and recovery
-
-retry / recoveryの可否は、review run / reviewer sessionが成立済みか、同じ操作を再送すると重複実行になるかで区別する。すべての`ERROR`または非0 exitを一律のretry禁止にしない。duplicate submitの防止と、same reviewer sessionの契約は維持する。高可用なrecovery subsystemは追加せず、session reconstructionやprovider lifecycleの再実装もしない。
-
-- `start`が`runId`やdurable jobを成立させる前に、context pathの不正やcontext不在のような確定的なpreflight failureで失敗した場合は、原因を修正して`start`を再実行してよい。`CONTEXT_NOT_FOUND`は、review runもreviewer sessionも成立していない入力検証失敗である。この再実行は、成立済みreviewの再実行や同一roundのretryではない。
-- `start`または`continue`がdurable job / `runId`を成立させたあと、CLI invocationの失敗や応答喪失によって結果だけが不明な場合は、同じ`start` / `continue`を再submitしない。同じ`runId`に対する`status`を再実行して状態を確認する。これはduplicate review / duplicate roundを防ぐ必須ルールである。
-- 既存runがterminal `ERROR`になった場合、そのrunに対する自動`continue` retry、session reconstruction、transcript replay、別reviewerまたは別providerへの切替を行わない。終了したrunを継続しているように見せるrecoveryはしない。
-- terminal `ERROR`のrunを継続しないことは、原因を解消したあと新しいreview runをRound 1から`start`することまで禁止する意味ではない。両者を同一視しない。新しい`start`は別のreview runであり、終了したrunの`continue`やsessionの再構築ではない。
-
-## Continue after remediation
+reviewerからfindingが返った場合、実装を自動修正しない。許可済みtaskの範囲で設計責任者が検討した応答、更新した提案・差分・証拠を新しいinputへ反映し、同じ`taskKey` / `changeId`と`continue`対象runのIDでcontinueする。このrunの全roundで`previousRunId`は初回start時の値を保つ（初回taskならnull）。
 
 ```powershell
-purpose-review-runner continue --run <run-id>
+purpose-review-runner continue --run <run-id> --input <updated-input.json>
 ```
 
-`continue`もprovider完了を待たない。`continue`へcontext、previous output、provider設定、session IDを追加しない。同じreviewer sessionが保持する目的理解を利用する。返ったあとは再び`status --run <run-id>`でpollingする。再び`FINDINGS`なら親が修正・validationして同じcommandを使い、terminal statusまで繰り返す。
+同一changeに対する提出は、linked run全体を通じて最大3回である。3回で解決しない場合は停止して未解決事項を報告する。別runを作り直したり識別子を変えたりして上限を回避しない。terminal結果はcontinueしない。`COMPLETE`でも目的を満たしたことや設計の承認を意味しないため、判断者へ結果を返す。
 
-再reviewは指摘への追従確認ではなく、元の目的に対する現在の実装全体と修正差分の評価である。`message`にある比較基準・未検証事項・findingの訂正や撤回理由も扱い、撤回を実装修正済みと報告しない。十分に申し送り済みの同じ手動testが未実施であることだけを、再度の不合格理由にしない。前回の未コミット状態を復元できないなどの比較限界は、確認済みと置き換えず最終報告へ引き継ぐ。
+`HUMAN_DECISION_REQUIRED`後、ユーザーが実際に新しい目的・scope判断を示した場合だけ、同じ`taskKey`、新しい`changeId`、直前terminal run IDを入れた`previousRunId`、引用した判断を記す`userDecision`で新しい`start`を行う。これは新しい変更に対する新しいbudgetであり、未解決の同じchangeを再開したり予算を迂回する方法ではない。ユーザーに同じ判断を繰り返し求めない。
 
-Round 3でfindingが残る場合はRunnerが`HUMAN_DECISION_REQUIRED`を返す。automatic round 4、session reconstruction、transcript replay、別reviewer recoveryを行わない。
+terminal `ERROR`または`BLOCKED`ではそのrunをcontinueしない。原因や不足を解消した場合に限り、新しいlinked runを`start`する。`taskKey`と同じ`changeId`を保ち、`previousRunId`には直前terminal runのIDを設定して、既に消費した提出数を引き継ぐ。この新runの各continueでは、その`previousRunId`を変えない。結果不明のrunがある場合は再submitせず、まずstatusを確認する。必要な情報が不足しているだけでユーザー承認を繰り返し要求せず、既存authorityの範囲で補える入力を用意する。authority自体の変更が必要なら作業を止め、判断が必要な点を報告する。
 
 ## Report
 
-完了済みの実装reviewと検証、未検証事項、HumanDecisionRequiredまたはBlocked、人手で必要な作業を分ける。未実施testは申し送りの内容と記録先を保持し、成功済み、実環境で目的達成済み、案件全体の完了とは表現しない。reviewerがrepositoryを変更しないことは役割契約であり、OS-level isolationの証明とは表現しない。
+目的・設計に関するfinding、設計責任者の応答、未解決・未確認事項、提出数とterminal状態を分けて報告する。`COMPLETE`をユーザー承認、設計適合の独立実証、実装完了、実行時conformance保証と表現しない。

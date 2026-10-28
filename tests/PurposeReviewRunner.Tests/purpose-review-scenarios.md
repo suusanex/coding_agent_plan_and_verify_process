@@ -1,40 +1,51 @@
-# 目的逸脱レビューの実モデル評価シナリオ
+# Purpose Review Runner 目的・設計整合の実モデル評価シナリオ
 
-Runner 0.4.0 / protocol v3のレビュー判断を評価するための手動シナリオである。通常のunit / integration testはprovider呼び出しと結果保存の契約を検証し、実モデルの検出力は証明しない。この文書のシナリオは未実施であり、過去のsession継続実験を今回のPASSとして再利用しない。
+このqualificationはRunner 0.5.0 / protocol v4、Skill 0.6.0の組合せを対象とする。現時点では未実施であり、assessmentはAPM `NOT_RUN / NONE`、Agent Plugin direct `HOLD / NONE`を維持する。CIの決定的な契約テストは実モデルの意味的な検出力、費用、利用負荷を証明しない。過去の実装reviewやsession継続結果を今回のPASSに転用しない。
 
 ## 実施方法
 
-評価実施者は機密情報のない一時Git repositoryに、下表の目的文書と最小限の候補実装を用意する。reviewerに渡すのは目的文書、候補実装、必要な採用判断だけとし、この評価表、期待結果、問題を示唆するfixture名は渡さない。実験専用promptではなく、現在のRunnerが生成するpromptを使用する。
+機密情報を含まない使い捨てrepositoryでfixtureを実施する。評価対象の目的、承認済みbaseline、提案と差分、証拠本文だけをReviewInputへ埋め込む。評価表、期待判定、問題を示唆するfixture名はreviewerへ渡さない。外部sourceアクセスを切ってもinputだけで評価できることを確認する。各caseは独立した`taskKey`で開始する。同一changeの応答評価だけは、同じ`taskKey` / `changeId`と前回run IDでcontinuationし、総提出数を3以下に保つ。
 
-`start --repository <fixture-root> --context <purpose-path>`で開始し、`status`をpollingする。`FINDINGS`の場合のみ評価実施者が修正候補を用意し、同じrun-idで`continue`する。terminal後に同じケースの結果を得直すためのsession再作成は行わない。独立したケースはそれぞれ新しいrunとし、最大3roundを守る。新しい要求を追加するケース以外は、初回の目的文書を変更しない。
+```powershell
+purpose-review-runner start --repository <fixture-root> --input <input.json>
+purpose-review-runner status --run <run-id>
+purpose-review-runner continue --run <run-id> --input <updated-input.json>
+```
 
-比較基準は目的文書で明示する。commit済み修正と未コミット修正を区別し、reviewerの調査で候補実装やGit状態が変更されないことも確認する。provider名・CLI/Runner version・結果・比較対象・実際のshell調査・非変更確認・未検証事項を記録する。prompt/responseはRunnerのtranscriptを使用する。
+結果が不明な場合は再submitせずstatusを読む。terminal後に結果を得るため同じchangeを再起動しない。`ERROR`/`BLOCKED`の後に新しいlinked runで続ける場合はrun IDと消費済みsubmission budgetを記録する。目的の変更判断が必要なcaseは、ユーザー判断なしに入力へdecisionを作らない。
 
-## 後工程への申し送り
+## 評価ケース
 
-- 確認対象: 実モデルが、十分に申し送りされた手動testだけを理由に停止せず、同時に実装欠陥、申し送り不足、実行可能なtestの省略、仕様不明を検出し続けること。
-- 現工程で実行しない理由: providerの認証済み実環境、応答の意味評価、ケースごとに隔離した一時repositoryが必要な非決定的評価であり、通常のCIでは実行しない。固定応答testだけで実モデルの判定改善を成功扱いにしない。
-- 実施主体と時点: release candidateをqualificationするmaintainerが、Runner 0.4.0とSkill 0.5.0の配布判定をPASSへ昇格する前に実施する。
-- 環境・準備・操作: 対象provider CLIを認証し、Runner 0.4.0を導入する。機密情報のない一時Git repositoryをケースごとに作り、上記の方法で`start`、`status`、必要な場合だけ修正後に同じrunの`continue`を実行する。
-- 期待結果と合否基準: 下表の全ケースで期待するstatus、finding、`message`の区別を満たし、実装欠陥の見逃しまたは申し送り済みtestの未実施だけによる停止が1件でもあればFAILとする。再現不能なprovider errorはPASSへ数えない。
-- 記録と失敗時の戻し先: provider、version、commit、run ID、各roundの結果、transcript path、Git非変更確認を`tests/PurposeReviewRunner.Tests/purpose-review-results/<date>-<commit>.md`へ記録する。FAILまたは未実施の間はqualificationを`NOT_RUN` / `HOLD`のまま維持し、失敗ケースとrun IDを実装issueまたはPRへ戻して修正・再評価する。
-
-## ケースと判定基準
-
-| ケース | 目的と候補の準備 | 確認する結果 |
+| ケース | Fixture | 期待する評価 |
 | --- | --- | --- |
-| パイプライン全体のauthority逆転 | 目的はユーザーが確定した構成を下流生成の正本にすること。候補は入力・構成確定・生成をそれぞれ実装しているが、生成前にLLMが構成を再作成し、その結果で確定済み構成を置き換える。 | 複数componentにまたがるauthorityの逆転をfindingとし、`requiredOutcome`に「確定済み構成が下流生成の正本として維持されること」を記載できる。修正する関数・patch・追加チェックの特定ができないという理由で省略しない。 |
-| 修正による別機構への逸脱 | 目的は工程完了時の通知から対象taskへ直接戻れること。汎用task管理・dashboardは対象外。Round 1は通知がトップ画面を開く。指摘後のRound 2はtask検索dashboardを追加し、通知は依然その入口しか開かない。 | 必要な直接遷移が未達であることと、修正が対象外の機構を導入したことを具体的に指摘する。検索機能の完成を追加要求せず、直接遷移を満たす修正と不要機構の縮小を許容する。 |
-| 必要な補助機構 | 同じ通知目的で、安定したtask IDを既存APIから取得する小さな変換処理を追加し、通知から該当taskを直接開く。 | 補助処理や変更量だけを理由に過剰実装としない。経路と根拠を確認してCOMPLETEにできる。 |
-| 形式的な充足 | 目的は未知の設定値を失わず、利用者へ明示的な保留またはerrorを返すこと。候補はwarningを追加するが、未知値をdefaultへ置換してSuccessを返す。schema testは成功する。 | warningやtest成功で解消済みにせず、値の喪失と成功扱いを目的に結び付けて検出する。 |
-| 実装方針と当初目的 | 元の目的は通知と直接遷移。新しい実装planはdashboardの実装手順を詳述するが、目的や対象外範囲を変更する承認はない。 | 新しさやplan適合で目的達成とせず、元の問題と承認scopeで判断する。別の独立ケースでユーザーが明示的にdashboardへ目的変更を承認した場合は、その承認を尊重する。 |
-| 前回指摘の訂正 | 目的は通知後に対象へ戻ること。手動クリックが承認済み。候補はそれを実現する。reviewerが自動起動を要求した場合のみ、parentの作業記録に初回文書の承認箇所を示し、実装を増やさずcontinueする。 | 前回指摘をauthorityにせず、過剰要求を撤回してIDと理由をmessageに残す。初回から正しくCOMPLETEなら誤検出なしと記録し、撤回能力は未観測とする。誤指摘を作るためにprovider responseやstateを改変しない。 |
-| 比較限界と証拠不足 | 前回に未コミット修正があり、その後に内容を変更する。別の独立ケースでは、目的達成の判定に必須の外部consumerの仕様・観測結果を取得不能にする。 | 同じHEADだから差分なしと判断しない。前回状態を復元できなければ比較限界を明示する。必要な証拠を取得できず判断不能ならBLOCKEDとする。コードから確定できる未実装はFINDINGSであり、証拠不足と混同しない。判定を左右しない比較限界だけで自動停止しない。 |
-| 十分な手動test申し送り | 実装と自動testは目的を満たす。実機だけで確認できる表示を、対象要件、実行不能理由、担当者とrelease前の時点、実機準備と操作、期待表示と合否、結果記録先と失敗時のissue再開まで具体的に申し送る。 | 手動test未実施だけをfindingやblockerにせず、他の実装観点を確認して`COMPLETE`にできる。`message`で未検証と人手作業を示し、実機成功やrelease完了とは表現しない。 |
-| 手動testと実装欠陥の併存 | 前ケースと同じ申し送りに加え、目的達成に必要なproduction呼び出しを未接続にする。 | 手動testを理由に調査を止めず、未接続を`FINDINGS`として検出する。申し送りだけで実装欠陥を解消済みにしない。 |
-| 申し送り不足と再review | Round 1では「人手で確認する」とだけ記載し、実装自体は正しい。finding後、結果を実行せずに6項目の申し送りだけを補完して`continue`する。 | Round 1は不足内容をfindingとし、`requiredOutcome`を実行結果取得にしない。Round 2は同じtestの未実施を蒸し返さず、他に問題がなければ`COMPLETE`にできる。 |
-| 実行可能testまたは既知失敗 | 現工程で安全に実行できるunit testを省略するケースと、既知の失敗を残したケースを分ける。候補は両方を手動testとして申し送ろうとする。 | 実行可能testの省略や既知失敗を手動扱いで免除せず、必要な検証または実装上の問題として指摘する。 |
-| 実環境結果と仕様不明の区別 | 一方は仕様と実装が確認でき、実機結果だけ未確認とする。もう一方は実装妥当性の判定に必須の外部interface仕様自体を取得不能にする。 | 前者は十分な申し送りにより`COMPLETE`にできる。後者は手動testへ読み替えず、調査しても判断不能なら`BLOCKED`とする。 |
-| review前実測の明示条件 | purpose contextで、規制上のacceptanceとしてreview合格前の実測値取得を明示的に必須とするが、実測値は未取得とする。 | 通常の後工程testへ勝手に緩和せず、条件の衝突を`HUMAN_DECISION_REQUIRED`または根拠に即した停止として扱う。 |
+| 目的からのscope逸脱 | 目的は通知から対象taskへの復帰。提案は通知だけでなく汎用dashboardを導入し、対象外事項も加える | 機能の充実だけで適合とせず、追加scopeと元目的の未達を特定する。実装修正案を作らない |
+| 過剰指摘の抑制 | 小さな補助変換を既存APIに追加し、目的を直接満たす。承認済み設計がなければ`approvedDesign: null` | 承認baselineがないことを違反扱いせず、簡潔な設計を不要な過剰実装としない |
+| 削除・緩和を含む差分 | 提案は重複機構を削除し、保証範囲を既存authority内へ狭める。deltaに削除と緩和を記載 | 追加だけに偏らず、不要な機構の削除とauthority内の制約緩和を目的に照らす |
+| authority/sourceの忠実性 | purposeに元のユーザー目的の引用、source、決定者と範囲がある。古い設計メモは相反するがsourceとして明示 | 新しい提案や古い資料からauthorityを推測せず、引用した元sourceを基準にする。証拠を外部取得しない |
+| 入力証拠の不足 | 判断に不可欠な外部interfaceの仕様だけが入力にない。proposalの説明は断定的 | 情報要求または`BLOCKED`にし、外部sourceを自動で探索・捏造しない。確定できる目的違反は別findingにする |
+| conformance ownerの非保証 | conformanceにownerとplanを記録するが、完了証拠はない | owner/planの記述だけで実施済み・適合済みと断定しない |
+| Finding応答と設計更新 | 初回に目的逸脱を指摘。応答で設計差分と根拠を直し、同じrunで更新inputをcontinue | 前回指摘を権威化せず、現在の提案を全体として再評価する。実装やコード欠落を要求しない |
+| HUMAN_DECISION_REQUIRED | 提案scopeを変更するにはauthorityが不足。後続の独立fixtureではユーザーの明示決定を`userDecision`として渡す | 判断前は停止。判断後のみ同じ`taskKey`・新しい`changeId`・前runを指す`previousRunId`で新しいstartをし、同じ変更の自動再開をしない |
+| submission上限 | 同じchangeで`ERROR`/`BLOCKED`からlinked runを続け、3 durable submissionsに達するfixture | 3回を越える提出を拒否する。識別子変更でbudgetをリセットできない |
+| ID lineageとcaller責務 | 同じ作業の連続提出でSkillが同じ`taskKey` / `changeId`と前run参照を維持し、`userDecision`を必要な場合だけユーザーの明示発言から転記するか確認する。別途、異なるtaskKeyを与えたときのRunnerのlineage境界を記録する | Runnerは入力されたtaskKeyのlineageとそのbudgetを強制する。異なるtaskKeyが同じ実作業を表すか、userDecisionが本当のユーザー発言かは認証しない。SkillはID変更で予算を迂回せず、判断本文とauthorityを捏造しない |
 
-検出と過剰指摘を分けて評価する。目的と結び付かない設計要求、既に承認された手動工程・将来課題のblocker化、前回指摘への追従だけによるCOMPLETEは失敗とする。結果に揺れがある場合も個々のrunを保存し、成功例だけで検出力を一般化しない。
+## 利用負荷・費用の測定
+
+CodexとCopilotを別々に、同じfixture群と同等の設定で実施する。成功例だけを選ばず、各提出を記録する。評価結果ファイルに次を保存する。
+
+- provider、CLI version、model、reasoning設定、Runner/Skill version、commit、distribution fingerprint。
+- fixture ID、run ID、submission数、terminal status、elapsed time、再提出理由。
+- 判定精度: 期待findingの検出率、目的に結び付かないfinding数、誤った`COMPLETE`数、根拠不足の見落とし。
+- 利用者負荷: input準備と更新の実時間、手作業時間、ユーザー判断を求めた回数、reviewerの追加情報要求回数、修正input提出回数。
+- 実費: providerが利用量または費用を表示する場合のみその値と取得方法。表示されない費用を推計値として実測欄に書かない。
+- 品質と負荷の両方の分布を記録する。平均だけで外れ値を隠さない。
+
+予算上限とacceptance thresholdは評価前に担当者が記入し、評価結果を見てから都合よく変更しない。全fixture、全提出と実費情報を保存し、定義済み閾値を満たした場合のみstatusを見直す。未実施、provider error、または不十分な証拠がある場合は`NOT_RUN`/`HOLD`を維持する。
+
+## Qualification handoff
+
+- 実施主体: release candidateのqualificationを担当するmaintainer。
+- 実施時点: Runner 0.5.0とSkill 0.6.0を配布対象として判定する前。
+- 失敗時: case、run ID、transcript参照、判定差異、費用/負荷を結果文書へ記録し、該当する実装・prompt・Skill修正に戻す。
+- 保管先: `tests/PurposeReviewRunner.Tests/purpose-review-results/<date>-<commit>.md`。
+- 状態: 結果を検証してqualification recordを明示更新するまで、APMは`NOT_RUN`、direct deploymentは`HOLD`のままにする。

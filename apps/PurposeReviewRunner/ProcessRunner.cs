@@ -7,7 +7,8 @@ public sealed record ProcessRequest(
     string Executable,
     IReadOnlyList<string> Arguments,
     string WorkingDirectory,
-    string? StandardInput);
+    string? StandardInput,
+    IReadOnlyDictionary<string, string?>? EnvironmentVariables = null);
 
 public sealed record ProcessResult(int ExitCode, string StandardOutput, string StandardError, bool TimedOut);
 
@@ -97,6 +98,20 @@ public sealed class SystemProcessRunner : IProcessRunner
             StandardOutputEncoding = Utf8NoBom,
             StandardErrorEncoding = Utf8NoBom
         };
+        if (request.EnvironmentVariables is not null)
+        {
+            foreach (var (name, value) in request.EnvironmentVariables)
+            {
+                if (value is null)
+                {
+                    startInfo.Environment.Remove(name);
+                }
+                else
+                {
+                    startInfo.Environment[name] = value;
+                }
+            }
+        }
         if (isCommandScript)
         {
             startInfo.Arguments = "/d /s /c " + BuildCommandScriptInvocation(request.Executable, request.Arguments);
