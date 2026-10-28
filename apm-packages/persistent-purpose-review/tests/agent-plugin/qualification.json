@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "persistent-purpose-review",
-  "canonicalFingerprint": "6799bf6a5c5e68e81625fd27a3bf5d31d50c5cb3ad9904f70d88ccbf3984c7a1",
-  "distributionFingerprint": "1c2a57acb3d060e2805d6d7c87a693f8ce36ac3b132a2bb21703ec8fbd8c7f13",
+  "canonicalFingerprint": "76dc4d9b4294fd223081fe7f17c4d1cc0e48025dfa55f59aadc1424c471c6e6b",
+  "distributionFingerprint": "a37ca8ad077089caed5c88efd4e08d88bd893d5622fde6b753ae6d651ace4e88",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
@@ -21,7 +21,7 @@
       "distribution": "agent-plugin-direct",
       "status": "HOLD",
       "evidenceMode": "PARTIAL",
-      "reason": "Copilot CLIで限定的な実モデル評価を実施したが、初期レビュー・指摘修正・別changeIdの重要変更と、要約・不足要求・根拠不足の少数fixtureに限られる。利用負荷と出力適合性を広く評価していないため、direct deployment qualificationはHOLD。",
+      "reason": "Codex/Copilotで限定的な実モデル評価を実施したが、Copilotの目的・設計workflowとcontrast fixture、Codexのread-only同一session初回・resume fixtureに限られる。Codex host functions/collaboration namespaceは露出し実行eventは0件だったが、完全なcapability isolationは実証していない。利用負荷と出力適合性も広く未評価のためdirect deployment qualificationはHOLD。",
       "evidenceRefs": [
         "tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-provider-safety.md",
         "tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-purpose-design-evaluation.md"

@@ -48,6 +48,18 @@ public abstract class ProviderAdapterBase
         return result;
     }
 
+    protected static void DeleteTemporary(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception exception)
+        {
+            Trace.TraceError(exception.ToString());
+        }
+    }
+
     protected static void ValidateProviderConfiguration(ProviderRequest request, string provider)
     {
         if (request.Provider.Provider != provider || request.Provider.Profile is not null)
@@ -76,18 +88,129 @@ public abstract class ProviderAdapterBase
         if (!versionText.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Any(line => line.Equals(expectedVersionLine, StringComparison.Ordinal) || line.Equals(expectedVersionLine + ".", StringComparison.Ordinal)))
         {
-            throw new RunnerException("PROVIDER_VERSION_UNSUPPORTED", $"Only {provider} {version} has a verified isolated tool configuration.");
+            throw new RunnerException("PROVIDER_VERSION_UNSUPPORTED", $"Only the verified {provider} {version} CLI is supported.");
         }
     }
 }
 
 public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
 {
-    public Task<ProviderResult> ExecuteAsync(ProviderRequest request, IProcessRunner processRunner, CancellationToken cancellationToken) =>
-        throw new RunnerException(
-            "PROVIDER_RESTRICTION_UNSUPPORTED",
-            "Codex host collaboration tools remained callable after disabling multi-agent features and removing the host routing environment variables. This provider is disabled until the host tool bridge can be suppressed.",
-            ExitCodes.ContractError);
+    private const string VerifiedVersion = "0.165.0";
+    private static readonly string[] DisabledFeatures =
+    [
+        "shell_tool", "browser_use", "browser_use_external", "browser_use_full_cdp_access", "standalone_web_search",
+        "apps", "mcp_2026_07_28", "multi_agent", "multi_agent_v2", "code_mode", "code_mode_host",
+        "image_generation", "view_image", "computer_use", "in_app_browser", "skill_search", "plugins", "hooks", "memories"
+    ];
+
+    public async Task<ProviderResult> ExecuteAsync(ProviderRequest request, IProcessRunner processRunner, CancellationToken cancellationToken)
+    {
+        ValidateProviderConfiguration(request, "codex");
+        Directory.CreateDirectory(request.RunDirectory);
+        await VerifyCliVersionAsync(request, processRunner, "codex-cli", VerifiedVersion, cancellationToken);
+
+        var responsePath = Path.Combine(request.RunDirectory, $"codex-response-{request.Round}-{Guid.NewGuid():N}.md");
+        try
+        {
+            var arguments = request.SessionHandle is null
+                ? BuildInitialArguments(request, responsePath)
+                : BuildResumeArguments(request, responsePath);
+            var process = await RunCheckedAsync(
+                new(request.Provider.Executable, arguments, request.RunDirectory, request.Payload),
+                processRunner,
+                cancellationToken);
+            if (!File.Exists(responsePath))
+            {
+                throw new RunnerException("REVIEW_OUTPUT_MISSING", "Codex did not create the final response file.", ExitCodes.ContractError);
+            }
+            var reviewText = await File.ReadAllTextAsync(responsePath, cancellationToken);
+            if (string.IsNullOrWhiteSpace(reviewText))
+            {
+                throw new RunnerException("REVIEW_OUTPUT_MISSING", "Codex created an empty final response file.", ExitCodes.ContractError);
+            }
+
+            var observedSession = ParseCodexSession(process.StandardOutput);
+            if (observedSession is null)
+            {
+                throw new RunnerException("SESSION_NOT_FOUND", "Codex output did not contain a session identity.", ExitCodes.ContractError);
+            }
+            if (request.SessionHandle is not null && observedSession != request.SessionHandle)
+            {
+                throw new RunnerException("SESSION_MISMATCH", "Codex resumed a different session.", ExitCodes.ContractError);
+            }
+            return new(request.SessionHandle ?? observedSession, reviewText);
+        }
+        finally
+        {
+            DeleteTemporary(responsePath);
+        }
+    }
+
+    private static IReadOnlyList<string> BuildInitialArguments(ProviderRequest request, string responsePath)
+    {
+        var arguments = new List<string>
+        {
+            "exec", "--json", "--color", "never", "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check",
+            "--sandbox", "read-only", "-C", request.RunDirectory,
+            "--model", request.Provider.Model,
+            "--config", "approval_policy=\"never\"",
+            "--config", $"model_reasoning_effort=\"{request.Provider.ReasoningEffort}\"",
+            "--output-last-message", responsePath
+        };
+        AddDisabledFeatures(arguments);
+        arguments.Add("-");
+        return arguments;
+    }
+
+    private static IReadOnlyList<string> BuildResumeArguments(ProviderRequest request, string responsePath)
+    {
+        var arguments = new List<string>
+        {
+            "exec", "resume", request.SessionHandle!, "--json", "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check",
+            "--model", request.Provider.Model,
+            "--config", "sandbox_mode=\"read-only\"",
+            "--config", "approval_policy=\"never\"",
+            "--config", $"model_reasoning_effort=\"{request.Provider.ReasoningEffort}\"",
+            "--output-last-message", responsePath
+        };
+        AddDisabledFeatures(arguments);
+        arguments.Add("-");
+        return arguments;
+    }
+
+    private static void AddDisabledFeatures(List<string> arguments)
+    {
+        foreach (var feature in DisabledFeatures)
+        {
+            arguments.Add("--disable");
+            arguments.Add(feature);
+        }
+    }
+
+    private static string? ParseCodexSession(string stdout)
+    {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var line in stdout.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(line);
+                if (document.RootElement.TryGetProperty("thread_id", out var property) && property.ValueKind == JsonValueKind.String)
+                {
+                    ids.Add(property.GetString()!);
+                }
+            }
+            catch (JsonException exception)
+            {
+                Trace.TraceError(exception.ToString());
+            }
+        }
+        if (ids.Count > 1)
+        {
+            throw new RunnerException("SESSION_MISMATCH", "Codex emitted multiple session identities.", ExitCodes.ContractError);
+        }
+        return ids.SingleOrDefault();
+    }
 }
 
 public sealed class CopilotProviderAdapter : ProviderAdapterBase, IProviderAdapter
