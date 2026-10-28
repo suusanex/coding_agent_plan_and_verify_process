@@ -118,6 +118,8 @@ purpose-review-runner continue --run <run-id>
 
 `continue`もprovider完了を待たない。`continue`へcontext、previous output、provider設定、session IDを追加しない。同じreviewer sessionが保持する目的理解を利用する。返ったあとは再び`status --run <run-id>`でpollingする。再び`FINDINGS`なら親が修正・validationして同じcommandを使い、terminal statusまで繰り返す。
 
+Investigatorが設定されていても、Round 2 / 3ではRunnerが前roundからの変更を比較し、小規模な場合はそのroundだけInvestigatorを省略することがある。呼び出し側は省略の可否を判断せず、通常どおり同じrunをcontinueする。省略後も同じReview Leadが目的とregressionを評価する。比較不能な場合は、設定済みInvestigatorを使用する。
+
 再reviewは指摘への追従確認ではなく、元の目的に対する現在の実装全体と修正差分の評価である。`message`にある比較基準・未検証事項・findingの訂正や撤回理由も扱い、撤回を実装修正済みと報告しない。十分に申し送り済みの同じ手動testが未実施であることだけを、再度の不合格理由にしない。前回の未コミット状態を復元できないなどの比較限界は、確認済みと置き換えず最終報告へ引き継ぐ。
 
 Round 3でfindingが残る場合はRunnerが`HUMAN_DECISION_REQUIRED`を返す。automatic round 4、session reconstruction、transcript replay、別reviewer recoveryを行わない。

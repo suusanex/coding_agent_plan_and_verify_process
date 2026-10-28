@@ -158,7 +158,20 @@ public sealed record RunState(
     int Round,
     string Status,
     ProviderSnapshot? Investigator = null,
-    IReadOnlyList<ContextSnapshot>? InitialContexts = null);
+    IReadOnlyList<ContextSnapshot>? InitialContexts = null,
+    string? RepositorySnapshotPath = null,
+    IReadOnlyList<InvestigatorBypassDecision>? InvestigatorBypassHistory = null);
+
+public sealed record InvestigatorBypassDecision(
+    int Round,
+    string Decision,
+    string Reason,
+    int? ComparedFromRound = null,
+    string? Scope = null,
+    int? Files = null,
+    int? AddedLines = null,
+    int? DeletedLines = null,
+    IReadOnlyList<string>? Paths = null);
 
 public static class JsonDefaults
 {

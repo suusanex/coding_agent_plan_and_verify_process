@@ -180,6 +180,111 @@ public sealed class RunnerApplicationTests
     }
 
     [TestMethod]
+    public async Task AutomaticBypassSkipsSmallDeltaAndRestoresInvestigatorForLargeDelta()
+    {
+        using var fixture = new RunnerFixture("grok");
+        await Git(fixture.Repository, "init", "-q");
+        await Git(fixture.Repository, "config", "user.email", "test@example.invalid");
+        await Git(fixture.Repository, "config", "user.name", "Test");
+        fixture.WriteRepositoryFile("purpose.md", "purpose");
+        fixture.WriteRepositoryFile("source.txt", "one\ntwo\n");
+        await Git(fixture.Repository, "add", "purpose.md", "source.txt");
+        await Git(fixture.Repository, "commit", "-qm", "initial");
+        File.WriteAllText(fixture.Paths.ConfigPath, """
+            {"schemaVersion":2,"reviewLead":{"provider":"grok","executable":"grok","model":"lead-model","reasoningEffort":"high","profile":null},"investigator":{"provider":"copilot","executable":"copilot","model":"investigator-model","reasoningEffort":"medium","profile":null}}
+            """);
+        fixture.Process.Reviews.Enqueue(ValidInvestigatorReport());
+        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("first")));
+        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("second")));
+        fixture.Process.Reviews.Enqueue(ValidInvestigatorReport());
+        fixture.Process.Reviews.Enqueue(Review("COMPLETE"));
+        var worker = new InProcessWorkerLauncher();
+        var app = new RunnerApplication(
+            fixture.Paths,
+            new GitAwareExecutableResolver(),
+            new GitAwareProcessRunner(fixture.Process),
+            worker,
+            new EmptyChangeMetadataCollector());
+        worker.Application = app;
+
+        var start = await app.ExecuteAsync(new StartCommand(fixture.Repository, ["purpose.md"]), CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.Findings, start.Output.Status);
+        await File.WriteAllTextAsync(Path.Combine(fixture.Repository, "source.txt"), "one\ntiny\n");
+        var second = await app.ExecuteAsync(new ContinueCommand(start.Output.RunId!), CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.Findings, second.Output.Status);
+        var roundTwoPrompt = File.ReadAllText(Path.Combine(fixture.Paths.StateRoot, start.Output.RunId!, "transcript", "round-02-prompt.md"));
+        StringAssert.Contains(roundTwoPrompt, "Automatic Investigator bypass");
+        await File.WriteAllTextAsync(Path.Combine(fixture.Repository, "source.txt"), string.Join('\n', Enumerable.Range(0, 80).Select(index => $"line {index}")) + "\n");
+        var third = await app.ExecuteAsync(new ContinueCommand(start.Output.RunId!), CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.Complete, third.Output.Status);
+
+        var investigatorRequests = fixture.Process.ProviderRequests.Where(request => request.Executable == FakeExecutableResolver.Expected("copilot")).ToArray();
+        var leadRequests = fixture.Process.ProviderRequests.Where(request => request.Executable == FakeExecutableResolver.Expected("grok")).ToArray();
+        Assert.AreEqual(2, investigatorRequests.Length);
+        Assert.AreEqual(3, leadRequests.Length);
+        Assert.AreEqual(1, leadRequests.Select(SessionArgument).Distinct(StringComparer.Ordinal).Count());
+        var state = new StateStore(fixture.Paths.StateRoot).Load(start.Output.RunId!);
+        Assert.AreEqual(3, state.InvestigatorBypassHistory?.Count);
+        Assert.AreEqual("run", state.InvestigatorBypassHistory?[0].Decision);
+        Assert.AreEqual("bypassed", state.InvestigatorBypassHistory?[1].Decision);
+        Assert.AreEqual("small-delta-with-stable-snapshot", state.InvestigatorBypassHistory?[1].Reason);
+        Assert.AreEqual("run", state.InvestigatorBypassHistory?[2].Decision);
+        Assert.AreEqual("change-above-threshold", state.InvestigatorBypassHistory?[2].Reason);
+        Assert.IsNotNull(state.RepositorySnapshotPath);
+        Assert.IsTrue(File.Exists(Path.Combine(state.RepositorySnapshotPath!, "source.txt")));
+    }
+
+    [TestMethod]
+    [DataRow(3, 40, true)]
+    [DataRow(4, 4, false)]
+    [DataRow(1, 41, false)]
+    public async Task AutomaticBypassUsesInclusiveThreeFileAndFortyLineLimits(int changedFiles, int addedLines, bool expectBypass)
+    {
+        using var fixture = new RunnerFixture("grok");
+        await Git(fixture.Repository, "init", "-q");
+        await Git(fixture.Repository, "config", "user.email", "test@example.invalid");
+        await Git(fixture.Repository, "config", "user.name", "Test");
+        fixture.WriteRepositoryFile("purpose.md", "purpose");
+        for (var index = 0; index < 4; index++)
+            fixture.WriteRepositoryFile($"source-{index}.txt", "");
+        await Git(fixture.Repository, "add", ".");
+        await Git(fixture.Repository, "commit", "-qm", "initial");
+        File.WriteAllText(fixture.Paths.ConfigPath, """
+            {"schemaVersion":2,"reviewLead":{"provider":"grok","executable":"grok","model":"lead-model","reasoningEffort":"high","profile":null},"investigator":{"provider":"copilot","executable":"copilot","model":"investigator-model","reasoningEffort":"medium","profile":null}}
+            """);
+        fixture.Process.Reviews.Enqueue(ValidInvestigatorReport());
+        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("first")));
+        var worker = new InProcessWorkerLauncher();
+        var app = new RunnerApplication(fixture.Paths, new GitAwareExecutableResolver(), new GitAwareProcessRunner(fixture.Process), worker, new EmptyChangeMetadataCollector());
+        worker.Application = app;
+
+        var start = await app.ExecuteAsync(new StartCommand(fixture.Repository, ["purpose.md"]), CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.Findings, start.Output.Status);
+        if (!expectBypass)
+            fixture.Process.Reviews.Enqueue(ValidInvestigatorReport());
+        fixture.Process.Reviews.Enqueue(Review("COMPLETE"));
+
+        var remaining = addedLines;
+        for (var index = 0; index < changedFiles; index++)
+        {
+            var count = index == changedFiles - 1 ? remaining : Math.Min(remaining, addedLines / changedFiles);
+            remaining -= count;
+            await File.WriteAllTextAsync(Path.Combine(fixture.Repository, $"source-{index}.txt"),
+                string.Join('\n', Enumerable.Range(0, count).Select(line => $"line {line}")) + "\n");
+        }
+
+        var continuation = await app.ExecuteAsync(new ContinueCommand(start.Output.RunId!), CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.Complete, continuation.Output.Status);
+        var investigatorRequests = fixture.Process.ProviderRequests.Count(request => request.Executable == FakeExecutableResolver.Expected("copilot"));
+        Assert.AreEqual(expectBypass ? 1 : 2, investigatorRequests);
+        var state = new StateStore(fixture.Paths.StateRoot).Load(start.Output.RunId!);
+        Assert.AreEqual(expectBypass ? "bypassed" : "run", state.InvestigatorBypassHistory?[1].Decision);
+        Assert.AreEqual(expectBypass ? "small-delta-with-stable-snapshot" : "change-above-threshold", state.InvestigatorBypassHistory?[1].Reason);
+        Assert.AreEqual(changedFiles, state.InvestigatorBypassHistory?[1].Files);
+        Assert.AreEqual(addedLines, state.InvestigatorBypassHistory?[1].AddedLines);
+    }
+
+    [TestMethod]
     public async Task GitMetadataCollectorUsesDeterministicHeadStatusAndDiffCommands()
     {
         var process = new GitRecordingProcessRunner();
@@ -241,6 +346,13 @@ public sealed class RunnerApplicationTests
     }
 
     private static string ValidInvestigatorReport() => """{"schemaVersion":1,"evidence":[{"id":"E1","path":"src/a.cs","startLine":1,"description":"source"}],"checked_scope":["src"],"unchecked_scope":[],"uncertainties":[],"candidate_findings":[]}""";
+
+    private static async Task Git(string repository, params string[] arguments)
+    {
+        var result = await new SystemProcessRunner(TimeSpan.FromSeconds(15)).RunAsync(new("git", arguments, repository, null), CancellationToken.None);
+        Assert.IsFalse(result.TimedOut, result.StandardError);
+        Assert.AreEqual(0, result.ExitCode, result.StandardError);
+    }
 
     [TestMethod]
     public async Task StartAndContinueUseSameCodexSessionAndDoNotReplayContext()
@@ -1324,6 +1436,18 @@ public sealed class RunnerApplicationTests
     }
 }
 
+internal sealed class GitAwareExecutableResolver : IExecutableResolver
+{
+    public string Resolve(string executable) => executable == "git" ? "git" : FakeExecutableResolver.Expected(executable);
+}
+
+internal sealed class GitAwareProcessRunner(ScriptedProcessRunner scripted) : IProcessRunner
+{
+    private readonly SystemProcessRunner gitRunner = new(TimeSpan.FromSeconds(15));
+    public Task<ProcessResult> RunAsync(ProcessRequest request, CancellationToken cancellationToken) =>
+        request.Executable == "git" ? gitRunner.RunAsync(request, cancellationToken) : scripted.RunAsync(request, cancellationToken);
+}
+
 internal sealed class InProcessWorkerLauncher : IWorkerLauncher
 {
     public RunnerApplication? Application { get; set; }
@@ -1407,6 +1531,8 @@ internal sealed class RunnerFixture : IDisposable
     {
         if (Directory.Exists(Root))
         {
+            foreach (var file in Directory.EnumerateFiles(Root, "*", SearchOption.AllDirectories))
+                File.SetAttributes(file, FileAttributes.Normal);
             Directory.Delete(Root, true);
         }
     }

@@ -13,6 +13,7 @@ public sealed class RunnerApplication
     private readonly StateStore stateStore;
     private readonly JobStore jobStore;
     private readonly IChangeMetadataCollector changeMetadataCollector;
+    private readonly InvestigatorBypass investigatorBypass;
 
     public RunnerApplication(RunnerPaths paths, IExecutableResolver executableResolver, IProcessRunner processRunner, IWorkerLauncher workerLauncher, IChangeMetadataCollector? changeMetadataCollector = null)
     {
@@ -23,6 +24,7 @@ public sealed class RunnerApplication
         stateStore = new(paths.StateRoot);
         jobStore = new(paths.StateRoot);
         this.changeMetadataCollector = changeMetadataCollector ?? new GitChangeMetadataCollector(processRunner, executableResolver);
+        investigatorBypass = new(processRunner, executableResolver);
     }
 
     public Task<ExecutionResult> ExecuteAsync(RunnerCommand command, CancellationToken cancellationToken) => command switch
@@ -295,6 +297,7 @@ public sealed class RunnerApplication
 
         var contexts = job.InitialContexts?.Select(context => (context.Path, context.Content)).ToArray() ?? ResolveContexts(repository, contextPaths);
         var changeMetadata = await changeMetadataCollector.CollectAsync(repository, cancellationToken);
+        var snapshotPath = job.Investigator is null ? null : await investigatorBypass.CaptureAsync(repository, stateStore.GetRunDirectory(job.RunId), 1, cancellationToken);
         var reportPath = await RunInvestigatorAsync(job, repository, contexts, changeMetadata, cancellationToken);
         var unavailable = job.Investigator is null ? "INVESTIGATOR_BYPASSED" : reportPath is null ? "INVESTIGATOR_UNAVAILABLE" : null;
         var payload = PromptBuilder.BuildStart(repository, contexts, changeMetadata, reportPath, unavailable);
@@ -317,7 +320,9 @@ public sealed class RunnerApplication
             1,
             review.Status,
             job.Investigator,
-            job.InitialContexts?.ToArray() ?? contexts.Select(context => new ContextSnapshot(context.Path, context.Content)).ToArray());
+            job.InitialContexts?.ToArray() ?? contexts.Select(context => new ContextSnapshot(context.Path, context.Content)).ToArray(),
+            await SnapshotUnchangedAsync(repository, stateStore.GetRunDirectory(job.RunId), 1, snapshotPath, cancellationToken) ? snapshotPath : null,
+            [new InvestigatorBypassDecision(1, job.Investigator is null ? "disabled" : "run", job.Investigator is null ? "investigator-not-configured" : "round-1-baseline")]);
         stateStore.Save(state);
         PersistSuccess(job, RunnerOutput.FromReview(job.RunId, 1, review));
     }
@@ -352,10 +357,54 @@ public sealed class RunnerApplication
         var terminalState = state with { Round = nextRound, Status = ReviewStatuses.Error };
         stateStore.Save(terminalState);
         var changeMetadata = await changeMetadataCollector.CollectAsync(state.Repository, cancellationToken);
+        var snapshotPath = state.Investigator is null ? null : await investigatorBypass.CaptureAsync(state.Repository, stateStore.GetRunDirectory(state.RunId), nextRound, cancellationToken);
+        var autoBypassCandidate = false;
+        var bypassReason = "investigator-not-configured";
+        RepositoryChangeSize? changeSize = null;
+        if (state.Investigator is not null)
+        {
+            bypassReason = "snapshot-unavailable";
+            if (state.RepositorySnapshotPath is not null && snapshotPath is not null)
+            {
+                changeSize = await investigatorBypass.CompareAsync(state.RepositorySnapshotPath, snapshotPath, state.Repository, cancellationToken);
+                bypassReason = changeSize is null ? "comparison-failed" : "change-above-threshold";
+                if (changeSize is not null && changeSize.Files <= 3 && changeSize.AddedLines + changeSize.DeletedLines <= 40)
+                {
+                    autoBypassCandidate = true;
+                    bypassReason = "small-delta";
+                }
+            }
+            else
+                changeMetadata += "\n前roundからの変更規模をRunnerが確定できませんでした。表示されたHEADとの差分や部分的な変更情報を、前roundからの完全な差分として扱わないでください。";
+        }
+        if (state.Investigator is not null && bypassReason == "comparison-failed")
+            changeMetadata += "\n前roundからの変更規模をRunnerが確定できませんでした。表示されたHEADとの差分や部分的な変更情報を、前roundからの完全な差分として扱わないでください。";
         var initialContexts = state.InitialContexts?.Select(context => (context.Path, context.Content)).ToArray()
             ?? (state.Investigator is null ? [] : ResolveContexts(state.Repository, state.ContextPaths));
-        var reportPath = await RunInvestigatorAsync(job, state.Repository, initialContexts, changeMetadata, cancellationToken);
-        var unavailable = state.Investigator is null ? "INVESTIGATOR_BYPASSED" : reportPath is null ? "INVESTIGATOR_UNAVAILABLE" : null;
+        var autoBypassed = autoBypassCandidate && await SnapshotUnchangedAsync(state.Repository, stateStore.GetRunDirectory(state.RunId), nextRound, snapshotPath, cancellationToken);
+        if (autoBypassCandidate && !autoBypassed)
+        {
+            bypassReason = "repository-changed-before-lead";
+            changeMetadata += "\n前roundからの変更規模をRunnerが確定できませんでした。表示されたHEADとの差分や部分的な変更情報を、前roundからの完全な差分として扱わないでください。";
+        }
+        else if (autoBypassed)
+            bypassReason = "small-delta-with-stable-snapshot";
+        if (autoBypassed && changeSize is not null)
+            changeMetadata += $"\nAutomatic Investigator bypass: compared round {state.Round} start snapshot (verified unchanged at round end) to round {nextRound} start; scope={changeSize.Scope}; paths={string.Join(", ", changeSize.Paths)}; files={changeSize.Files}; added={changeSize.AddedLines}; deleted={changeSize.DeletedLines}.";
+        var decision = new InvestigatorBypassDecision(
+            nextRound,
+            state.Investigator is null ? "disabled" : autoBypassed ? "bypassed" : "run",
+            bypassReason,
+            state.Investigator is null ? null : state.Round,
+            changeSize?.Scope,
+            changeSize?.Files,
+            changeSize?.AddedLines,
+            changeSize?.DeletedLines,
+            changeSize?.Paths);
+        terminalState = terminalState with { InvestigatorBypassHistory = (state.InvestigatorBypassHistory ?? []).Append(decision).ToArray() };
+        stateStore.Save(terminalState);
+        var reportPath = autoBypassed ? null : await RunInvestigatorAsync(job, state.Repository, initialContexts, changeMetadata, cancellationToken);
+        var unavailable = state.Investigator is null ? "INVESTIGATOR_BYPASSED" : autoBypassed ? "INVESTIGATOR_AUTO_BYPASSED" : reportPath is null ? "INVESTIGATOR_UNAVAILABLE" : null;
         var payload = PromptBuilder.BuildContinue(nextRound, changeMetadata, reportPath, unavailable);
         var transcriptStore = new TranscriptStore(stateStore.GetRunDirectory(state.RunId));
         transcriptStore.SavePrompt(nextRound, payload);
@@ -381,11 +430,23 @@ public sealed class RunnerApplication
                     : review.Message + "\nActionable findings remain after the fixed maximum of three review rounds."
             };
         }
-        stateStore.Save(terminalState with { Status = review.Status });
+        stateStore.Save(terminalState with
+        {
+            Status = review.Status,
+            RepositorySnapshotPath = await SnapshotUnchangedAsync(state.Repository, stateStore.GetRunDirectory(state.RunId), nextRound, snapshotPath, cancellationToken) ? snapshotPath : null
+        });
         PersistSuccess(job, RunnerOutput.FromReview(state.RunId, nextRound, review));
     }
 
     private ProviderSnapshot ResolveSnapshot(ProviderSnapshot snapshot) => snapshot with { Executable = executableResolver.Resolve(snapshot.Executable) };
+
+    private async Task<bool> SnapshotUnchangedAsync(string repository, string runDirectory, int round, string? before, CancellationToken cancellationToken)
+    {
+        if (before is null) return false;
+        var after = await investigatorBypass.CaptureAsync(repository, runDirectory, round + 10, cancellationToken);
+        if (after is null) return false;
+        return (await investigatorBypass.CompareAsync(before, after, repository, cancellationToken)) is { Files: 0 };
+    }
 
     private string InvestigatorReportPath(string runId, int round) => Path.Combine(stateStore.GetRunDirectory(runId), $"investigator-report-{round}.json");
 

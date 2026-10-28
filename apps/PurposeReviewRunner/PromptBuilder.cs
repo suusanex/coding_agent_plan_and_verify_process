@@ -91,6 +91,8 @@ public static class PromptBuilder
         builder.AppendLine(reportPath is null ? "Investigator report: なし。Lead-only reviewを実施してください。" : $"Investigator report path（手順1の後で読む）: {reportPath}");
         if (unavailableReason == "INVESTIGATOR_BYPASSED")
             builder.AppendLine("Investigatorは設定で省略されています。これは調査失敗ではありません。Review Leadが必要な範囲を直接reviewしてください。");
+        else if (unavailableReason == "INVESTIGATOR_AUTO_BYPASSED")
+            builder.AppendLine("今回はRunnerが前round開始時のrepository状態と現在の状態を比較し、変更ファイル数と変更行数が小規模変更の基準内であるため、Investigatorを起動していません。これは変更の安全性、修正の完了、または調査不要を意味しません。今回のInvestigator reportはありません。過去roundのreportを現在の実装の確認結果として扱わないでください。前roundから保持しているpurpose、finding、不確実事項と、今回の変更概要から、まず確認すべき重要観点と新しいリスクを考えてください。その後、修正箇所、影響を受ける目的・受入条件、regressionの可能性がある周辺を原典で確認してください。前提の変化や広い影響が疑われる場合は、自身で確認範囲を広げてください。前回findingの追従確認だけで最終判定しないでください。");
         else if (!string.IsNullOrWhiteSpace(unavailableReason))
             builder.AppendLine($"Investigator unavailable: {unavailableReason}。不正・失敗結果を正常なevidenceや問題なしと扱わず、自分で必要範囲を調査してください。");
     }
