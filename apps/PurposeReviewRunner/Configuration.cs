@@ -22,7 +22,7 @@ public static class ConfigLoader
 {
     private static readonly HashSet<string> Providers = new(StringComparer.Ordinal)
     {
-        "codex", "grok", "copilot"
+        "codex", "copilot"
     };
 
     private static readonly HashSet<string> ReasoningEfforts = new(StringComparer.Ordinal)
@@ -49,7 +49,7 @@ public static class ConfigLoader
         }
 
         Require(config.SchemaVersion == 1, "schemaVersion must be 1.");
-        Require(Providers.Contains(config.Provider), "provider must be codex, grok, or copilot.");
+        Require(Providers.Contains(config.Provider), "provider must be codex or copilot.");
         Require(!string.IsNullOrWhiteSpace(config.Executable), "executable is required.");
         Require(!string.IsNullOrWhiteSpace(config.Model), "model is required.");
         Require(ReasoningEfforts.Contains(config.ReasoningEffort), "reasoningEffort is unsupported.");
@@ -57,7 +57,7 @@ public static class ConfigLoader
         RejectControlCharacters(config.Model, "model");
         if (config.Profile is not null)
         {
-            RejectControlCharacters(config.Profile, "profile");
+            throw new RunnerException("CONFIG_INVALID", "profile is not supported by this runner version.");
         }
         return config;
     }

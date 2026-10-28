@@ -45,9 +45,9 @@ public static partial class ReviewProtocol
         {
             throw Invalid($"Unsupported reviewer status: {response.Status}");
         }
-        if (response.Findings is null)
+        if (response.Findings is null || response.InformationRequests is null)
         {
-            throw Invalid("findings is required.");
+            throw Invalid("findings and informationRequests are required.");
         }
         if (response.Status == ReviewStatuses.Findings && response.Findings.Count == 0)
         {
@@ -60,6 +60,23 @@ public static partial class ReviewProtocol
         if (response.Status is ReviewStatuses.HumanDecisionRequired or ReviewStatuses.Blocked && string.IsNullOrWhiteSpace(response.Message))
         {
             throw Invalid($"{response.Status} requires message.");
+        }
+        if (response.Status == ReviewStatuses.Blocked && response.InformationRequests.Count == 0)
+        {
+            throw Invalid("BLOCKED requires at least one information request.");
+        }
+        if (response.Status != ReviewStatuses.Blocked && response.InformationRequests.Count != 0)
+        {
+            throw Invalid("informationRequests is only valid for BLOCKED.");
+        }
+        var requestIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var request in response.InformationRequests)
+        {
+            if (request is null || string.IsNullOrWhiteSpace(request.Id) || !requestIds.Add(request.Id) ||
+                string.IsNullOrWhiteSpace(request.Source) || string.IsNullOrWhiteSpace(request.Question) || string.IsNullOrWhiteSpace(request.WhyNeeded))
+            {
+                throw Invalid("Each information request requires unique id, source, question, and whyNeeded.");
+            }
         }
         var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (var finding in response.Findings)
@@ -78,6 +95,6 @@ public static partial class ReviewProtocol
     private static RunnerException Invalid(string message) =>
         new("REVIEW_PARSE_FAILED", message, ExitCodes.ContractError);
 
-    [GeneratedRegex(@"BEGIN_PURPOSE_REVIEW\s*(\{.*?\})\s*END_PURPOSE_REVIEW", RegexOptions.Singleline | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"BEGIN_PURPOSE_REVIEW\s*(\{.*\})\s*END_PURPOSE_REVIEW", RegexOptions.Singleline | RegexOptions.CultureInvariant)]
     private static partial Regex ReviewBlockRegex();
 }

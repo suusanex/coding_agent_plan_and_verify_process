@@ -1,152 +1,69 @@
 # Persistent Purpose Review
 
-`$persistent-purpose-review`は、実装が仕様やGoal Contextの目的を満たしたかを独立reviewerに確認させ、findingがあれば元の実装エージェントが直して同じreviewerに再確認させるAPM Skillです。
+`$persistent-purpose-review`は、明示的に許可されたtaskで、元の目的と提案設計の整合を独立reviewerに確認させるAPM Skillです。対象は初期設計と重要な設計変更です。通常の実装完了やverificationを契機に自動起動しません。findingだけ、または実装不足だけを理由に開始せず、実装修正やコード品質レビューを担当しません。
 
-このSkillは高コストなためexplicit-onlyです。通常の実装完了、verification、reviewなどを契機に自動選択させず、ユーザーが明示的に起動してください。Codex系では`$persistent-purpose-review`を明示し、Grok Buildでは`disable-model-invocation: true`によりモデルから自動起動できないため、`/persistent-purpose-review`のslash commandで明示的に起動します。
-
-向いているのは、仕様・Goal Context・承認済み判断に対して「本当に目的を満たしたか」を実装完了後に確認したいときです。baseline PR code reviewの代替ではなく、最初から明確なpurpose contextがない仕事にも向きません。詳細は[何に向いているか](#何に向いているか)を参照してください。
-
-Skillは実装担当エージェントにレビュー工程を教えます。独立reviewerの起動と同一sessionの維持は、PCへ一度だけ入れるローカルCLI [Purpose Review Runner](../../apps/PurposeReviewRunner/README.md)が担当します。両方必要です。RunnerはOS userごとに一度、Skillは実行環境へ`--global`で導入します。
-
-通常はRunnerの`start` / `status` / `continue`を手で呼ぶ必要はありません。実装エージェントがこのSkillに従い、Runnerを呼び出します。
+Skillはuser-invocableで、`disable-model-invocation: true`を維持します。RunnerはSkillから利用する別途導入のCLIです。SkillとRunnerの両方が必要です。
 
 ## 前提条件
 
-Quickstartの前に次を満たしてください。満たさないままconfigだけ書くと、provider CLIが見つからずそこで止まります。
+- APM CLIが利用できること。
+- reviewerとしてCodex CLIまたはGitHub Copilot CLIのいずれかが導入・認証済みであること。Grok Buildは対応しません。
+- `purpose-review-runner` 0.5.0以上、protocol v4のRunner buildがあること。
+- Runnerのconfigでproviderを`codex`または`copilot`に設定し、`profile`は`null`にすること。
 
-- [APM CLI](https://github.com/microsoft/apm)が使えること
-- reviewerとして使うprovider CLIが導入済みで、そのCLI自身の認証が済んでいること。選べるのはCodex / Grok / Copilotです。RunnerはAPI keyやOAuthを代行しません
-- Runnerの対応OSがWindows x64またはLinux x64であること
-- Skillを実行する実装側エージェントがCodex、Copilot、またはAgent Skills経由であること
+Runner 0.5.0 / protocol v4のReleaseと実モデル評価は、この変更時点で未確認です。導入前にversionとreleaseの存在を確認し、必要なRunner buildが配布されていない場合はSkillの運用を開始しないでください。`apm update`だけではRunner binaryは更新されません。
 
-このSkillは`purpose-review-runner` 0.4.0以上とprotocol v3を要求します。未導入や非互換ならfail closedで停止します。過去runの継続が必要な場合は[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
+## Install
 
-## 5分Quickstart
-
-上から順に実行すると、初回のpurpose reviewまで到達できます。Runnerの展開・configの詳細、他provider例、トラブル時は[Purpose Review Runner README](../../apps/PurposeReviewRunner/README.md)が正本です。
-
-### 1. Runnerを導入する
-
-1. [最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)から、Windowsは`purpose-review-runner-win-x64.zip`、Linuxは`purpose-review-runner-linux-x64.tar.gz`を取得します。
-2. [Purpose Review Runner README の Install](../../apps/PurposeReviewRunner/README.md#install)を、ダウンロードしたdirectoryで上から実行します。展開、PATH追加、configコピーと編集、`version`確認まで同じ例につながっています。configはbinaryの隣には置きません。
-3. Codexを使う場合、コピーされる内容は次の現行例です。Grok / Copilot ならRunner READMEの構文例に置き換えます。
-
-```json
-{
-  "schemaVersion": 1,
-  "provider": "codex",
-  "executable": "codex",
-  "model": "gpt-5.6-terra",
-  "reasoningEffort": "high",
-  "profile": null
-}
-```
-
-### 2. Skillを導入する
-
-実行環境へuser-scopeで導入します。
+Runnerの現在の配布状態、導入、configは[Purpose Review Runner README](../../apps/PurposeReviewRunner/README.md)を参照してください。Runnerを導入し、provider CLIの認証を済ませた後、Skillをuser-scopeで導入します。
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persistent-purpose-review --target agent-skills --global
 purpose-review-runner version
 ```
 
-紹介するのはこの方式です。`--target`や導入先scopeなど、ほかのオプションは[APMの資料](https://microsoft.github.io/apm/reference/cli/install/)を参照してください。
-
-`version`が単一JSONを返し、`protocolVersion`が`3`、`runnerVersion`が`0.4.0`以上であることを確認します。
-
-### 3. Skillを明示的に起動する
-
-実装完了やverification、reviewの依頼にSkill名を添えるだけではなく、ユーザーがSkill自体を明示的に起動してください。起動方法は実行環境によって異なります。
-
-Codex系では`$persistent-purpose-review`を明示指定します。
+`version` JSONでprotocol v4、Runner 0.5.0以上を確認します。実行前に必ずSkill自体を明示的に起動します。
 
 ```text
-$persistent-purpose-review を起動し、purpose reviewを完了してください。
+$persistent-purpose-review を起動し、許可済みの設計変更をpurpose reviewしてください。
 ```
 
-Grok Buildでは slash command を使って明示起動します。`disable-model-invocation: true`のため、通常の文章中で名前に触れたり、実装完了を指示したりしてもモデルからは起動されません。
+## InputとCLI
 
-```text
-/persistent-purpose-review
-```
+各提出で`schemaVersion: 1`のJSON inputを用意します。ユーザーの目的・authorityの引用とsource、承認済みbaseline（存在しなければ`null`）、設計全体とbaselineからの追加・削除・緩和を含むdelta、証拠本文、findingへの応答、要件ごとのconformance申告を埋め込みます。Runnerやreviewerにsourceを取りに行かせず、入力内の証拠を使います。conformance記録はownerの実施を保証しません。
 
-purpose contextがある場合は起動時にpathも渡します。補完関係にある複数文書はすべて指定できます。
+初回は`start --repository <path> --input <json>`、同じrunでの再提出は`continue --run <uuid> --input <json>`、状態確認は`status --run <uuid>`です。各continueで完全な最新inputを渡します。`taskKey`と`changeId`は安定して維持し、同一changeのlinked runを通じて最大3提出までです。continue inputは初回start時の`previousRunId`値を保ちます。terminal `ERROR`/`BLOCKED`後は同じtask/change IDsと直前run参照で新しいlinked runを`start`し、消費済み予算を引き継ぎます。`HUMAN_DECISION_REQUIRED`後はユーザーが新しい判断を明示するまで再開しません。
 
-```text
-/persistent-purpose-review purpose contextは docs/goal-context.md です。
-```
+`priorReviewHistory`はRunner管理のfieldです。user inputから省略し、ERROR / BLOCKED後のlinked runやcontinueに過去履歴を手作業で混ぜないでください。
 
-明示されたbaseやPRがある場合はcontext内に比較対象を記載します。PRやレビュー専用commitの作成は不要です。現在のsourceが競合する場合だけ、parentがreview開始前に質問します。
+Runnerはcallerが提示したIDからlineageと予算を管理します。異なる`taskKey`が同じ実質的作業を指すことや、`userDecision`のbody/authorityが実際のユーザー発言かどうかは推測・認証しません。Skillは同じ作業のIDを保ち、`userDecision`にはユーザーの決定を原文引用して出典・決定範囲を記録します。
 
-### 4. 成功時の見え方
+`HUMAN_DECISION_REQUIRED`後にユーザーが新しいscopeを実際に決めた場合、同じ`taskKey`、新しい`changeId`、terminal runを指す`previousRunId`、判断を引用した`userDecision`で新しい`start`を行います。これは新たなchangeとしてreviewします。同じchangeを自動再開する用途には使いません。
 
-```text
-ユーザーがSkillを明示起動
-  → Skillがreviewを開始する
-  → FINDINGSがあれば元の実装エージェントが修正し、同じreviewerへ再reviewする
-  → COMPLETEなら成功
-```
+`COMPLETE`はレビュー工程の完了を示します。ユーザー承認、設計適合の独立実証、実装完了、実行時conformanceの保証を示しません。レビュー結果を設計責任者へ返し、判断が必要な事項を明示します。
 
-最大3roundです。なお残る場合は`HUMAN_DECISION_REQUIRED`で止まり、人手の判断が必要です。JSON schemaを先に読む必要はありません。
+## Review境界
 
-失敗の再開は段階で分かれます。`CONTEXT_NOT_FOUND`のようにreview runができる前の入力エラーは、原因を直して`start`をやり直せます。`runId`ができたあとに結果だけが分からないときは、同じ`start`や`continue`を送り直さず、その`runId`の`status`を見ます。既存runがterminal `ERROR`なら、そのrunは継続しません。原因を直したあとの新しいreviewは、終了したrunの継続とは別の`start`です。
+- reviewerは目的、承認済みbaseline、提案設計、差分、提示証拠の整合を評価します。
+- implementationの不足をfindingに変換して修復したり、レビューのためにコードを調査したりしません。
+- ユーザーが明示的に許可した範囲内で、初期設計や重要な変更を扱います。些細な変更やfindingだけを理由に提出しません。
+- 目的の変更やscope追加のauthorityがなければ推測で補わず停止します。
 
-reviewerはnon-modifying reviewerです。変更禁止を指示しますが、OS-levelのread-only isolationではありません。修正は元のimplementation parentだけが行います。
+## Runtime qualification
 
-## 手動testが残る場合
+現在のSkill/Runner組合せの実モデル評価は未実施です。評価statusは`NOT_RUN`、Agent Plugin direct deploymentは`HOLD`のままです。詳細とシナリオは[qualificationシナリオ](../../tests/PurposeReviewRunner.Tests/purpose-review-scenarios.md)および[Agent Plugin runtime qualification](../../docs/agent-plugin-runtime-qualification.md)を参照してください。過去の実装reviewやprovider継続実験から、目的・設計reviewの検出力や利用負荷を推定しません。
 
-実装reviewと実環境検証の完了は別に扱います。エージェントが直接実行できない、実行を許可されていない、または承認された工程上review後に行うtestは、次の申し送りがあれば、未実施だけを理由にreviewを不合格にしません。
+## Maintenance
 
-- 確認する目的・要件。
-- エージェントが実行できない理由、または後工程とする根拠。
-- 実施主体と実施時点。
-- 必要な環境・準備と具体的な操作手順。
-- 期待結果と合否基準。
-- 結果の記録先と、失敗時に修正へ戻す方法。
-
-reviewerは手動testの有無で調査を止めず、実装、接続、異常系、目的逸脱を引き続き確認します。申し送りが不足していれば補完をfindingとしますが、解消条件はtest結果の取得ではありません。他に問題がなければ`COMPLETE`になり得ます。現工程で実行可能かつ許可済みの必要なtest、既知の失敗、実装欠陥、review前の実測を明示的に要求する条件は免除されません。
-
-`COMPLETE`後も、未検証事項と人手で必要な作業は最終報告に残ります。これはtest成功、実環境での目的達成、リリース条件の充足、案件全体の完了を意味しません。決定済みtestの人手実行は「人手での作業」であり、目的やscopeを決める`HUMAN_DECISION_REQUIRED`とは区別します。
-
-## 何に向いているか
-
-- 向いている: 仕様・Goal Context・承認済み判断に対して、実装が利用経路で目的を満たしたか確認したい。
-- 向いている: 同じreviewerが修正後も再確認し、表面的な充足や修正による逸脱も見たい。
-- 向いていない: Ready PRのbaseline code reviewの代替。[`$pr-review-remediation`](../pr-review-remediation/README.md)を使います。
-- 向いていない: 最初から明確なpurpose contextが存在しない仕事。
-
-## 更新
-
-| 対象 | 手順 |
-| --- | --- |
-| Skill | 導入時と同じく実行環境のuser-scopeで更新する。コマンドとほかのオプションは[APMの資料](https://microsoft.github.io/apm/reference/cli/install/)を参照 |
-| Runner | [最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)のarchiveを差し替える |
-| config / state | 通常はそのまま |
-
-`apm update`だけではRunner binary、user-level config、既存run stateは変わりません。Runner 0.4.0以上への更新はGitHub Release側で別に行います。protocol移行などの特殊ケースは[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
-
-## 削除
-
-Skillが不要になったときだけ、導入時と同じuser-scopeでアンインストールします。コマンドとほかのオプションは[APMの資料](https://microsoft.github.io/apm/reference/cli/install/)を参照してください。Runner binary、user-level config、既存run stateは削除しません。
-
-## 関連文書
-
-| 文書 | 役割 |
-| --- | --- |
-| このREADME | 利用者の入口とSkillの利用方法 |
-| [Purpose Review Runner README](../../apps/PurposeReviewRunner/README.md) | Runnerのインストール、設定、update、troubleshooting |
-| [Technical reference](../../docs/purpose-review-runner-technical-reference.md) | protocol、state、worker、provider adapter |
-| [Compatibility](../../docs/purpose-review-runner-compatibility.md) | version履歴とv2/v3非互換 |
-| [Maintainer reference](../../docs/purpose-review-runner-maintenance.md) | build、release、validation |
+`apm update`はSkillを更新します。Runnerは独立して更新します。protocol v4はv3と非互換です。既存runを移行・再構築せず、旧runは旧Runnerで扱い、新しいrunだけ新しいprotocolで開始してください。詳細は[compatibility note](../../docs/purpose-review-runner-compatibility.md)と[maintainer reference](../../docs/purpose-review-runner-maintenance.md)を参照してください。
 
 ## Agent Plugin artifact
 
-process semanticsの正本はこのpackageの`.apm/**`です。Agent Plugin artifactはpackage rootへchecked-inせず、repository共通builderでtemporary stageへ生成します。
+process semanticsの正本はこのpackageの`.apm/**`です。Agent Plugin artifactはrepository共通builderで一時stageへ生成して検証します。
 
 ```powershell
 pwsh -NoProfile -File scripts/agent-plugins/build-agent-plugin.ps1 -Package persistent-purpose-review
 pwsh -NoProfile -File scripts/agent-plugins/validate-agent-plugin-package.ps1 -Package persistent-purpose-review
 ```
 
-APMがsupported distributionです。direct deploymentのstatusとevidenceは`tests/agent-plugin/qualification.json`に記録し、未観測のbehaviorをPASSへ昇格させません。
+APMがsupported distributionです。direct deploymentの未観測behaviorをPASSへ昇格しません。

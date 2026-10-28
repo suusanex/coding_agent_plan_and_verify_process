@@ -149,7 +149,7 @@ public sealed class WindowsWorkerLaunchTests
 
     [TestMethod]
     [DoNotParallelize]
-    public async Task WorkerLaunchFailureWritesLauncherLogAndKeepsProtocolV2Json()
+    public async Task WorkerLaunchFailureWritesLauncherLogAndKeepsProtocolV4Json()
     {
         const string secret = "super-secret-value-xyz";
         using var root = new TemporaryDirectory();
@@ -174,10 +174,12 @@ public sealed class WindowsWorkerLaunchTests
             var application = new RunnerApplication(
                 root.Paths,
                 new FakeExecutableResolver(),
-                new ScriptedProcessRunner("grok"),
+                new ScriptedProcessRunner("copilot"),
                 launcher);
 
-            var result = await application.ExecuteAsync(new StartCommand(root.Repository, ["goal.md"]), CancellationToken.None);
+            var inputPath = Path.Combine(root.Root, "review-input.json");
+            File.WriteAllText(inputPath, JsonSerializer.Serialize(RunnerFixture.CreateInput(), JsonDefaults.Options));
+            var result = await application.ExecuteAsync(new StartCommand(root.Repository, inputPath), CancellationToken.None);
 
             Assert.AreEqual("WORKER_START_FAILED", result.Output.Error?.Code);
             Assert.AreEqual(Protocol.Version, result.Output.ProtocolVersion);
@@ -245,13 +247,23 @@ public sealed class WindowsWorkerLaunchTests
         var repository = Path.Combine(root, "repository");
         var configPath = Path.Combine(root, "config", "config.json");
         var stateRoot = Path.Combine(root, "state", "runs");
+        var providerErrorLog = Path.Combine(root, "fake-provider-errors.log");
         Directory.CreateDirectory(repository);
         Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
-        File.WriteAllText(Path.Combine(repository, "purpose.md"), "FAKE-INTEGRATION-CONTEXT");
+        var input = RunnerFixture.CreateInput() with
+        {
+            Purpose = RunnerFixture.CreateInput().Purpose with
+            {
+                Body = "FAKE-INTEGRATION-CONTEXT\nFAKE-JAPANESE-END-終端",
+                Original = "FAKE-INTEGRATION-CONTEXT\nFAKE-JAPANESE-END-終端"
+            }
+        };
+        var inputPath = Path.Combine(root, "review-input.json");
+        File.WriteAllText(inputPath, JsonSerializer.Serialize(input, JsonDefaults.Options));
         var executable = CreateFakeProviderLauncher(root);
         File.WriteAllText(
             configPath,
-            JsonSerializer.Serialize(new RunnerConfig(1, "grok", executable, "test-model", "high", null), JsonDefaults.Options));
+            JsonSerializer.Serialize(new RunnerConfig(1, "copilot", executable, "test-model", "high", null), JsonDefaults.Options));
         var runnerPath = Path.Combine(
             Path.GetDirectoryName(typeof(RunnerApplication).Assembly.Location)!,
             "purpose-review-runner.exe");
@@ -265,11 +277,13 @@ public sealed class WindowsWorkerLaunchTests
                 helperPath,
                 runnerPath,
                 repository,
+                inputPath,
                 configPath,
                 stateRoot,
                 new Dictionary<string, string>
                 {
-                    ["PURPOSE_REVIEW_FAKE_PROVIDER_DELAY_MS"] = "4000"
+                    ["PURPOSE_REVIEW_FAKE_PROVIDER_DELAY_MS"] = "4000",
+                    ["PURPOSE_REVIEW_FAKE_PROVIDER_ERROR_LOG"] = providerErrorLog
                 });
             Assert.AreEqual(0, helper.ExitCode, helper.StandardOutput + helper.StandardError);
             using var startDocument = JsonDocument.Parse(helper.StandardOutput.Trim());
@@ -277,10 +291,28 @@ public sealed class WindowsWorkerLaunchTests
             var runId = startDocument.RootElement.GetProperty("runId").GetString();
             Assert.IsFalse(string.IsNullOrWhiteSpace(runId));
 
-            var jobJson = File.ReadAllText(Path.Combine(stateRoot, runId!, "job.json"));
-            using var jobDocument = JsonDocument.Parse(jobJson);
-            var workerPid = jobDocument.RootElement.GetProperty("pid").GetInt32();
-            using (var worker = Process.GetProcessById(workerPid))
+            var jobPath = Path.Combine(stateRoot, runId!, "job.json");
+            var pidDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+            int? workerPid = null;
+            while (DateTime.UtcNow < pidDeadline)
+            {
+                using var jobDocument = JsonDocument.Parse(File.ReadAllText(jobPath));
+                if (jobDocument.RootElement.TryGetProperty("pid", out var pidElement) && pidElement.ValueKind == JsonValueKind.Number)
+                {
+                    workerPid = pidElement.GetInt32();
+                    break;
+                }
+
+                if (jobDocument.RootElement.GetProperty("jobStatus").GetString() != JobStatuses.Running)
+                {
+                    Assert.Fail("Worker reached a terminal job state before its process id was recorded: " + jobDocument.RootElement.GetProperty("jobStatus").GetString());
+                }
+
+                await Task.Delay(100);
+            }
+
+            Assert.IsNotNull(workerPid, "The durable worker did not record its process id while running.");
+            using (var worker = Process.GetProcessById(workerPid.Value))
             {
                 Assert.IsFalse(worker.HasExited, "Worker was killed with the restrictive job helper.");
             }
@@ -297,7 +329,11 @@ public sealed class WindowsWorkerLaunchTests
                 "runs",
                 runId!)));
 
-            var completed = await PollStatusAsync(runnerPath, runId!, configPath, stateRoot, TimeSpan.FromSeconds(30));
+            var completed = await PollStatusAsync(runnerPath, runId!, configPath, stateRoot, TimeSpan.FromSeconds(30), providerErrorLog);
+            if (completed.RootElement.GetProperty("status").GetString() != ReviewStatuses.Findings && File.Exists(providerErrorLog))
+            {
+                Assert.Fail(File.ReadAllText(providerErrorLog));
+            }
             Assert.AreEqual(ReviewStatuses.Findings, completed.RootElement.GetProperty("status").GetString());
             Assert.AreEqual(JobStatuses.Succeeded, completed.RootElement.GetProperty("jobStatus").GetString());
         }
@@ -320,15 +356,15 @@ public sealed class WindowsWorkerLaunchTests
     {
         var runId = Guid.NewGuid().ToString("D");
         new JobStore(paths.StateRoot).Save(new JobState(
-            1,
+            Protocol.JobSchemaVersion,
             runId,
             1,
             JobOperations.Start,
             JobStatuses.Running,
             DateTimeOffset.UtcNow,
             Repository: Path.GetFullPath(Path.Combine(paths.StateRoot, "repo")),
-            ContextPaths: [Path.GetFullPath(Path.Combine(paths.StateRoot, "goal.md"))],
-            Provider: new ProviderSnapshot("grok", FakeExecutableResolver.Expected("grok"), "test-model", "high", null)));
+            Provider: new ProviderSnapshot("copilot", FakeExecutableResolver.Expected("copilot"), "test-model", "high", null),
+            InputHash: "test-input-hash"));
         return runId;
     }
 
@@ -356,6 +392,7 @@ public sealed class WindowsWorkerLaunchTests
         string helperPath,
         string runnerPath,
         string repository,
+        string inputPath,
         string configPath,
         string stateRoot,
         IReadOnlyDictionary<string, string> extraEnvironment)
@@ -371,8 +408,8 @@ public sealed class WindowsWorkerLaunchTests
         startInfo.ArgumentList.Add(runnerPath);
         startInfo.ArgumentList.Add("--repository");
         startInfo.ArgumentList.Add(repository);
-        startInfo.ArgumentList.Add("--context");
-        startInfo.ArgumentList.Add("purpose.md");
+        startInfo.ArgumentList.Add("--input");
+        startInfo.ArgumentList.Add(inputPath);
         startInfo.Environment["PURPOSE_REVIEW_RUNNER_CONFIG_PATH"] = configPath;
         startInfo.Environment["PURPOSE_REVIEW_RUNNER_STATE_ROOT"] = stateRoot;
         foreach (var pair in extraEnvironment)
@@ -392,7 +429,8 @@ public sealed class WindowsWorkerLaunchTests
         string runId,
         string configPath,
         string stateRoot,
-        TimeSpan timeout)
+        TimeSpan timeout,
+        string? diagnosticFile = null)
     {
         var deadline = DateTime.UtcNow + timeout;
         string? lastOutput = null;
@@ -431,7 +469,10 @@ public sealed class WindowsWorkerLaunchTests
             await Task.Delay(500);
         }
 
-        throw new AssertFailedException("Timed out waiting for durable job completion. Last output:" + Environment.NewLine + lastOutput);
+        var diagnostics = diagnosticFile is not null && File.Exists(diagnosticFile)
+            ? Environment.NewLine + "Fake provider stderr:" + Environment.NewLine + File.ReadAllText(diagnosticFile)
+            : string.Empty;
+        throw new AssertFailedException("Timed out waiting for durable job completion. Last output:" + Environment.NewLine + lastOutput + diagnostics);
     }
 }
 
@@ -490,7 +531,7 @@ internal sealed class TemporaryDirectory : IDisposable
     public void WriteConfig() =>
         File.WriteAllText(
             Paths.ConfigPath,
-            JsonSerializer.Serialize(new RunnerConfig(1, "grok", "grok", "test-model", "high", null), JsonDefaults.Options));
+            JsonSerializer.Serialize(new RunnerConfig(1, "copilot", "copilot", "test-model", "high", null), JsonDefaults.Options));
 
     public void Dispose()
     {

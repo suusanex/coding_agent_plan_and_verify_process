@@ -53,7 +53,7 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review
 
 PR Review RemediationはSkillとcollectorだけを導入し、独立agent、Codex agent profile、共通finalizerを必要としません。
 
-実装後の目的達成reviewと修正を元のimplementation parent内で完了したい場合は、[Persistent Purpose Review](apm-packages/persistent-purpose-review/README.md)を使います。Skillは実装担当エージェントにレビュー工程を教え、独立reviewerの起動はOS user単位の[Purpose Review Runner](apps/PurposeReviewRunner/README.md)が担当します。順序は「RunnerをPCへ一度導入 → 実行環境へSkillを`--global`で導入」です。Runner未導入のまま`apm install`だけしてもreviewは始まりません。
+初期設計と重要な設計変更について、明示的に許可されたtask内で目的との整合を確認する場合は[Persistent Purpose Review](apm-packages/persistent-purpose-review/README.md)を使います。実装reviewや自動修正を行いません。Skillは実行担当へ手順を示し、独立reviewerの起動はOS user単位の[Purpose Review Runner](apps/PurposeReviewRunner/README.md)が担当します。Runnerを導入してからSkillを`--global`で導入します。
 
 1. [Purpose Review Runner](apps/PurposeReviewRunner/README.md)のInstallとconfigを完了します。[最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)からWindowsは`purpose-review-runner-win-x64.zip`、Linuxは`purpose-review-runner-linux-x64.tar.gz`を取得します。
 2. 実行環境へSkillを導入し、Runnerを確認します。紹介するのはこの方式です。ほかのオプションは[APMの資料](https://microsoft.github.io/apm/reference/cli/install/)を参照してください。
@@ -63,7 +63,7 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persisten
 purpose-review-runner version
 ```
 
-このSkillは`purpose-review-runner` 0.4.0以上とprotocol v3を要求し、`apm update`だけでは旧Runnerは更新されません。通常はRunnerコマンドを手で呼びません。実装指示へ「実装完了後は `$persistent-purpose-review` に従ってpurpose reviewを完了してください」を加えます。Goal Contextはfree-form textであり、`goal-context-authoring` packageへの依存を意味しません。baseline PR reviewの代替ではないため、Ready PRのbaseline planが必要な場合は上のPR Review Remediationを使います。
+このSkillはuser-invocableかつ`disable-model-invocation: true`で、ユーザーが明示的に起動した場合だけ使います。Runner 0.5.0 / protocol v4を要求しますが、この版のRelease状態は未確認です。配布済みbuildがない場合は運用を開始せず、`apm update`だけでRunner binaryが更新されたとみなしません。`start --repository --input`と`continue --run --input`へJSON inputを渡し、同一changeをlinked run全体で最大3提出まで扱います。詳細はpackage READMEを参照してください。
 
 ### Planから実装・検証・残件判断まで抜けを防ぎたい
 
@@ -88,7 +88,7 @@ APM installがportable agentsとSkillを導入し、finalizerが必要なCodex p
 | Adaptive Implementation | 既存Planからの実装 | decision surfaceに応じたimplementation ownershipと直列transferを所有する |
 | Design Pair | 実装前のTarget Map対話 | Adaptiveの任意pre-stage。実装はAdaptiveへ渡す |
 | PR Review Remediation | Ready PRのbaseline review / remediation | 現在の親が完結し、利用者が明示した場合だけAdaptiveを任意利用する |
-| Persistent Purpose Review | 実装後の目的達成review / remediation | Runnerが同一reviewer session、元のparentが修正を所有する |
+| Persistent Purpose Review | 初期設計・重要変更の目的整合review | Runnerがlinked submissionと予算を管理し、実装reviewや修正は扱わない |
 | Plan Coverage Residual Flow | Plan-first全体とcoverage管理 | Adaptiveを実装経路として含み、検証後の残件をResidual Decisionへ渡す |
 
 ## 通常使うprocessを一通り入れる

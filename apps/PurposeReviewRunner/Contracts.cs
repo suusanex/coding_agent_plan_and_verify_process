@@ -5,9 +5,56 @@ namespace PurposeReviewRunner;
 
 public static class Protocol
 {
-    public const int Version = 3;
+    public const int Version = 4;
+    public const int JobSchemaVersion = 2;
     public const int MaximumRounds = 3;
-    public const string RunnerVersion = "0.4.0";
+    public const string RunnerVersion = "0.5.0";
+    public const int InputSchemaVersion = 1;
+    public const string ReviewKind = "purpose-design-alignment";
+}
+
+public sealed record PurposeDocument(string Version, IReadOnlyList<string> Sources, string Body, string Original, string Authority);
+public sealed record ApprovedDesign(string Version, string Body, string Authority);
+public sealed record ProposalDocument(string Version, string Body, string Delta);
+public sealed record EvidenceItem(string Id, string Source, string Body);
+public sealed record ResponseItem(string FindingId, string Body, IReadOnlyList<string> Evidence);
+public sealed record ConformanceItem(string Owner, string Plan, IReadOnlyList<string> Evidence);
+public sealed record UserDecision(string Body, string Authority);
+
+public sealed record ReviewInput(
+    int SchemaVersion,
+    string TaskKey,
+    string ChangeId,
+    string? PreviousRunId,
+    PurposeDocument Purpose,
+    ApprovedDesign? ApprovedDesign,
+    ProposalDocument Proposal,
+    IReadOnlyList<EvidenceItem> Evidence,
+    IReadOnlyList<ResponseItem> Responses,
+    IReadOnlyList<ConformanceItem> Conformance,
+    UserDecision? UserDecision = null,
+    IReadOnlyList<ReviewHistoryEntry>? PriorReviewHistory = null);
+
+public sealed record InputBinding(
+    string PurposeHash,
+    string PurposeVersion,
+    string? ApprovedDesignHash,
+    string? ApprovedDesignVersion,
+    string ProposalHash,
+    string ProposalVersion);
+
+public static class ReviewNonGuarantees
+{
+    public static readonly IReadOnlyList<string> Items =
+    [
+        "implementation-conformance-not-assessed",
+        "evidence-not-independently-verified",
+        "tests-not-executed",
+        "user-approval-not-implied",
+        "runtime-purpose-achievement-not-verified",
+        "release-readiness-not-assessed",
+        "task-completion-not-certified"
+    ];
 }
 
 public static class ExitCodes
@@ -52,10 +99,20 @@ public sealed record ReviewFinding(
     string Evidence,
     string RequiredOutcome);
 
+public sealed record InformationRequest(string Id, string Source, string Question, string WhyNeeded);
+
 public sealed record ReviewerResponse(
     string Status,
     IReadOnlyList<ReviewFinding> Findings,
-    string? Message);
+    string? Message,
+    IReadOnlyList<InformationRequest> InformationRequests = null!);
+
+public sealed record ReviewHistoryEntry(
+    int Round,
+    string Status,
+    IReadOnlyList<ReviewFinding> Findings,
+    string? Message,
+    IReadOnlyList<InformationRequest> InformationRequests);
 
 public sealed record RunnerOutput(
     int ProtocolVersion,
@@ -67,9 +124,14 @@ public sealed record RunnerOutput(
     IReadOnlyList<ReviewFinding> Findings,
     string? Message,
     RunnerError? Error,
-    string? JobStatus = null)
+    string? JobStatus = null,
+    string? ReviewKind = null,
+    InputBinding? InputBinding = null,
+    string? InputHash = null,
+    IReadOnlyList<InformationRequest>? InformationRequests = null,
+    IReadOnlyList<string>? NonGuarantees = null)
 {
-    public static RunnerOutput FromReview(string runId, int round, ReviewerResponse response) =>
+    public static RunnerOutput FromReview(string runId, int round, ReviewerResponse response, InputBinding binding, string inputHash) =>
         new(
             Protocol.Version,
             Protocol.RunnerVersion,
@@ -80,7 +142,12 @@ public sealed record RunnerOutput(
             response.Findings,
             response.Message,
             null,
-            JobStatuses.Succeeded);
+            JobStatuses.Succeeded,
+            Protocol.ReviewKind,
+            binding,
+            inputHash,
+            response.InformationRequests,
+            ReviewNonGuarantees.Items);
 
     public static RunnerOutput Running(string runId, int round) =>
         new(Protocol.Version, Protocol.RunnerVersion, runId, round, ReviewStatuses.Running, false, [], null, null, JobStatuses.Running);
@@ -105,8 +172,9 @@ public sealed record JobState(
     DateTimeOffset? ProcessStartTimeUtc = null,
     DateTimeOffset? FinishedAtUtc = null,
     string? Repository = null,
-    IReadOnlyList<string>? ContextPaths = null,
-    ProviderSnapshot? Provider = null);
+    ProviderSnapshot? Provider = null,
+    string? InputHash = null,
+    int DurableSubmissions = 1);
 
 public sealed record WorkerLaunchResult(int ProcessId, DateTimeOffset ProcessStartTimeUtc);
 
@@ -136,11 +204,17 @@ public sealed record RunState(
     int ProtocolVersion,
     string RunId,
     string Repository,
-    IReadOnlyList<string> ContextPaths,
     ProviderSnapshot Provider,
     string SessionHandle,
     int Round,
-    string Status);
+    string Status,
+    string TaskKey = "",
+    string ChangeId = "",
+    string ReviewKind = Protocol.ReviewKind,
+    InputBinding? InputBinding = null,
+    int DurableSubmissions = 1,
+    string? PreviousRunId = null,
+    IReadOnlyList<ReviewHistoryEntry>? ReviewHistory = null);
 
 public static class JsonDefaults
 {

@@ -75,6 +75,23 @@ public sealed class JobStoreConcurrencyTests
     }
 
     [TestMethod]
+    public void OldJobSchemaIsRejected()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = new JobStore(directory.Paths.StateRoot);
+        var job = CreateJob(directory.Paths.StateRoot);
+        store.Save(job);
+        var path = Path.Combine(store.GetRunDirectory(job.RunId), "job.json");
+        var document = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!;
+        document["schemaVersion"] = 1;
+        File.WriteAllText(path, document.ToJsonString());
+
+        var exception = Assert.ThrowsExactly<RunnerException>(() => store.Load(job.RunId));
+
+        Assert.AreEqual("JOB_INVALID", exception.Code);
+    }
+
+    [TestMethod]
     public async Task ConcurrentStatusStyleReadsDoNotFailWorkerSaves()
     {
         using var directory = new TemporaryDirectory();
@@ -118,13 +135,13 @@ public sealed class JobStoreConcurrencyTests
 
     private static JobState CreateJob(string stateRoot) =>
         new(
-            1,
+            Protocol.JobSchemaVersion,
             Guid.NewGuid().ToString("D"),
             1,
             JobOperations.Start,
             JobStatuses.Running,
             DateTimeOffset.UtcNow,
             Repository: Path.GetFullPath(Path.Combine(stateRoot, "repo")),
-            ContextPaths: [Path.GetFullPath(Path.Combine(stateRoot, "goal.md"))],
-            Provider: new ProviderSnapshot("grok", FakeExecutableResolver.Expected("grok"), "test-model", "high", null));
+            Provider: new ProviderSnapshot("codex", FakeExecutableResolver.Expected("codex"), "test-model", "high", null),
+            InputHash: "test-input-hash");
 }

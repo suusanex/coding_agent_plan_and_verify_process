@@ -23,7 +23,6 @@ public static class ProviderFactory
     public static IProviderAdapter Create(string provider) => provider switch
     {
         "codex" => new CodexProviderAdapter(),
-        "grok" => new GrokProviderAdapter(),
         "copilot" => new CopilotProviderAdapter(),
         _ => throw new RunnerException("CONFIG_INVALID", $"Unsupported provider: {provider}")
     };
@@ -49,176 +48,78 @@ public abstract class ProviderAdapterBase
         return result;
     }
 
-    protected static string WritePayload(ProviderRequest request)
+    protected static void ValidateProviderConfiguration(ProviderRequest request, string provider)
     {
-        Directory.CreateDirectory(request.RunDirectory);
-        var path = Path.Combine(request.RunDirectory, $"payload-{request.Round}-{Guid.NewGuid():N}.md");
-        File.WriteAllText(path, request.Payload, new System.Text.UTF8Encoding(false));
-        return path;
+        if (request.Provider.Provider != provider || request.Provider.Profile is not null)
+        {
+            throw new RunnerException("CONFIG_INVALID", $"Only the verified {provider} configuration without a profile is supported.");
+        }
+        if (string.IsNullOrWhiteSpace(request.Provider.Model) || string.IsNullOrWhiteSpace(request.Provider.ReasoningEffort))
+        {
+            throw new RunnerException("CONFIG_INVALID", $"The verified {provider} model and reasoning effort are required.");
+        }
     }
 
-    protected static void DeleteTemporary(string? path)
+    protected static async Task VerifyCliVersionAsync(
+        ProviderRequest request,
+        IProcessRunner runner,
+        string provider,
+        string version,
+        CancellationToken cancellationToken)
     {
-        if (path is null || !File.Exists(path))
+        var output = await RunCheckedAsync(
+            new(request.Provider.Executable, ["--version"], request.RunDirectory, null),
+            runner,
+            cancellationToken);
+        var versionText = output.StandardOutput + Environment.NewLine + output.StandardError;
+        var expectedVersionLine = $"{provider} {version}";
+        if (!versionText.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Any(line => line.Equals(expectedVersionLine, StringComparison.Ordinal) || line.Equals(expectedVersionLine + ".", StringComparison.Ordinal)))
         {
-            return;
-        }
-        try
-        {
-            File.Delete(path);
-        }
-        catch (Exception exception)
-        {
-            System.Diagnostics.Trace.TraceError(exception.ToString());
+            throw new RunnerException("PROVIDER_VERSION_UNSUPPORTED", $"Only {provider} {version} has a verified isolated tool configuration.");
         }
     }
 }
 
 public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
 {
-    public async Task<ProviderResult> ExecuteAsync(ProviderRequest request, IProcessRunner processRunner, CancellationToken cancellationToken)
-    {
-        var responsePath = Path.Combine(request.RunDirectory, $"response-{request.Round}-{Guid.NewGuid():N}.md");
-        try
-        {
-            var arguments = request.SessionHandle is null
-                ? NewArguments(request, responsePath)
-                : ResumeArguments(request, responsePath);
-            var process = await RunCheckedAsync(
-                new(request.Provider.Executable, arguments, request.Repository, request.Payload),
-                processRunner,
-                cancellationToken);
-            if (!File.Exists(responsePath))
-            {
-                throw new RunnerException("REVIEW_OUTPUT_MISSING", "Codex did not create the final response file.", ExitCodes.ContractError);
-            }
-            var reviewText = File.ReadAllText(responsePath);
-            var observedSession = ParseCodexSession(process.StandardOutput);
-            if (request.SessionHandle is null && observedSession is null)
-            {
-                throw new RunnerException("SESSION_NOT_FOUND", "Codex output did not contain a session identity.", ExitCodes.ContractError);
-            }
-            if (request.SessionHandle is not null && observedSession is not null && observedSession != request.SessionHandle)
-            {
-                throw new RunnerException("SESSION_MISMATCH", "Codex resumed a different session.", ExitCodes.ContractError);
-            }
-            return new(request.SessionHandle ?? observedSession!, reviewText);
-        }
-        finally
-        {
-            DeleteTemporary(responsePath);
-        }
-    }
-
-    private static IReadOnlyList<string> NewArguments(ProviderRequest request, string responsePath)
-    {
-        // Codexのdefault sandboxはReadOnly。--ignore-user-configではproject trustから昇格せず、
-        // -s workspace-writeもWindowsでは実効read-onlyになる報告がある。別sandboxへ置換せずbypassする。
-        var arguments = new List<string>
-        {
-            "exec", "--json", "--color", "never", "--ignore-user-config", "--ignore-rules",
-            "--dangerously-bypass-approvals-and-sandbox",
-            "-C", request.Repository, "-m", request.Provider.Model,
-            "-c", $"model_reasoning_effort=\"{request.Provider.ReasoningEffort}\"", "-o", responsePath, "-"
-        };
-        if (!string.IsNullOrWhiteSpace(request.Provider.Profile))
-        {
-            arguments.InsertRange(6, ["-p", request.Provider.Profile]);
-        }
-        return arguments;
-    }
-
-    // resumeでもbypassを再指定する。session継続時にdefault ReadOnlyへ戻ると読み取り拒否が再発する。
-    private static IReadOnlyList<string> ResumeArguments(ProviderRequest request, string responsePath) =>
-        [
-            "exec", "resume", request.SessionHandle!, "--json", "--ignore-user-config", "--ignore-rules",
-            "--dangerously-bypass-approvals-and-sandbox",
-            "-m", request.Provider.Model,
-            "-c", $"model_reasoning_effort=\"{request.Provider.ReasoningEffort}\"",
-            "-o", responsePath, "-"
-        ];
-
-    private static string? ParseCodexSession(string stdout)
-    {
-        var ids = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var line in stdout.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            try
-            {
-                using var document = JsonDocument.Parse(line);
-                if (document.RootElement.TryGetProperty("thread_id", out var property) && property.ValueKind == JsonValueKind.String)
-                {
-                    ids.Add(property.GetString()!);
-                }
-            }
-            catch (JsonException exception)
-            {
-                Trace.TraceError(exception.ToString());
-            }
-        }
-        if (ids.Count > 1)
-        {
-            throw new RunnerException("SESSION_MISMATCH", "Codex emitted multiple session identities.", ExitCodes.ContractError);
-        }
-        return ids.SingleOrDefault();
-    }
-}
-
-public sealed class GrokProviderAdapter : ProviderAdapterBase, IProviderAdapter
-{
-    public async Task<ProviderResult> ExecuteAsync(ProviderRequest request, IProcessRunner processRunner, CancellationToken cancellationToken)
-    {
-        var payloadPath = WritePayload(request);
-        var session = request.SessionHandle ?? Guid.NewGuid().ToString("D");
-        try
-        {
-            var arguments = new List<string>
-            {
-                // 調査用shellを許可待ちにしない。shell経由の変更禁止はreviewerの役割契約で扱う。
-                "--cwd", request.Repository, "--no-memory", "--no-subagents", "--permission-mode", "bypassPermissions",
-                "--disable-web-search", "--tools", "read,view,grep,shell",
-                "--disallowed-tools", "write,task,edit_file", "--model", request.Provider.Model,
-                "--reasoning-effort", request.Provider.ReasoningEffort, "--output-format", "plain", "--verbatim"
-            };
-            if (!string.IsNullOrWhiteSpace(request.Provider.Profile))
-            {
-                arguments.AddRange(["--agent", request.Provider.Profile]);
-            }
-            arguments.AddRange(request.SessionHandle is null ? ["--session-id", session] : ["--resume", session]);
-            arguments.AddRange(["--prompt-file", payloadPath]);
-            var process = await RunCheckedAsync(new(request.Provider.Executable, arguments, request.Repository, null), processRunner, cancellationToken);
-            return new(session, process.StandardOutput);
-        }
-        finally
-        {
-            DeleteTemporary(payloadPath);
-        }
-    }
+    public Task<ProviderResult> ExecuteAsync(ProviderRequest request, IProcessRunner processRunner, CancellationToken cancellationToken) =>
+        throw new RunnerException(
+            "PROVIDER_RESTRICTION_UNSUPPORTED",
+            "Codex host collaboration tools remained callable after disabling multi-agent features and removing the host routing environment variables. This provider is disabled until the host tool bridge can be suppressed.",
+            ExitCodes.ContractError);
 }
 
 public sealed class CopilotProviderAdapter : ProviderAdapterBase, IProviderAdapter
 {
+    private const string VerifiedVersion = "1.0.105";
+    private const string NoToolSentinel = "report_intent";
+    private static readonly IReadOnlyDictionary<string, string?> IsolatedEnvironment =
+        new Dictionary<string, string?>(StringComparer.Ordinal) { ["COPILOT_PLUGIN_DIR_ONLY"] = "true" };
+
     public async Task<ProviderResult> ExecuteAsync(ProviderRequest request, IProcessRunner processRunner, CancellationToken cancellationToken)
     {
+        ValidateProviderConfiguration(request, "copilot");
+        await VerifyCliVersionAsync(request, processRunner, "GitHub Copilot CLI", VerifiedVersion, cancellationToken);
+        var mcpServers = await ReadConfiguredMcpServersAsync(request, processRunner, cancellationToken);
         var session = request.SessionHandle ?? Guid.NewGuid().ToString("D");
         var arguments = new List<string>
         {
-            "-C", request.Repository, "--no-custom-instructions", "--no-remote", "--no-remote-export",
+            "-C", request.RunDirectory, "--no-custom-instructions", "--no-remote-export",
             "--no-auto-update", "--no-ask-user", "--disable-builtin-mcps", "--disallow-temp-dir",
             "--no-color", "--silent", "--output-format", "json", "--stream", "off",
-            "--model", request.Provider.Model, "--effort", request.Provider.ReasoningEffort,
-            // availabilityには実tool名、permissionにはshell種別を指定する。両OSのshellとsession操作を公開する。
-            "--available-tools=view,grep,bash,powershell,read_bash,read_powershell,list_bash,list_powershell,write_bash,write_powershell,stop_bash,stop_powershell",
-            "--allow-tool=view", "--allow-tool=grep", "--allow-tool=shell",
-            "--deny-tool=write", "--deny-tool=task", "--deny-tool=edit"
+            "--model", request.Provider.Model, "--reasoning-effort", request.Provider.ReasoningEffort,
+            // 空引数は全tool許可へ戻るため、未知のtool名だけを許可する。1.0.105実機でshell呼出し不可を確認済み。
+            $"--available-tools={NoToolSentinel}", "--deny-tool=shell", "--deny-tool=write", "--deny-tool=task", "--deny-tool=edit"
         };
-        if (!string.IsNullOrWhiteSpace(request.Provider.Profile))
+        foreach (var server in mcpServers)
         {
-            arguments.AddRange(["--agent", request.Provider.Profile]);
+            arguments.Add($"--disable-mcp-server={server}");
         }
         arguments.Add(request.SessionHandle is null ? $"--session-id={session}" : $"--resume={session}");
+
         var process = await RunCheckedAsync(
-            new(request.Provider.Executable, arguments, request.Repository, request.Payload),
+            new(request.Provider.Executable, arguments, request.RunDirectory, request.Payload, IsolatedEnvironment),
             processRunner,
             cancellationToken);
         var parsed = ParseCopilot(process.StandardOutput);
@@ -227,6 +128,40 @@ public sealed class CopilotProviderAdapter : ProviderAdapterBase, IProviderAdapt
             throw new RunnerException("SESSION_MISMATCH", "Copilot did not confirm the requested session identity.", ExitCodes.ContractError);
         }
         return new(session, parsed.ReviewText);
+    }
+
+    private static async Task<IReadOnlyList<string>> ReadConfiguredMcpServersAsync(
+        ProviderRequest request,
+        IProcessRunner processRunner,
+        CancellationToken cancellationToken)
+    {
+        var result = await RunCheckedAsync(
+            new(request.Provider.Executable, ["mcp", "list", "--json"], request.RunDirectory, null, IsolatedEnvironment),
+            processRunner,
+            cancellationToken);
+        try
+        {
+            using var document = JsonDocument.Parse(result.StandardOutput);
+            if (!document.RootElement.TryGetProperty("mcpServers", out var servers) || servers.ValueKind != JsonValueKind.Object)
+            {
+                throw new JsonException("mcpServers must be an object.");
+            }
+            var names = new List<string>();
+            foreach (var server in servers.EnumerateObject())
+            {
+                if (string.IsNullOrWhiteSpace(server.Name) || server.Name.Any(char.IsControl))
+                {
+                    throw new JsonException("An MCP server name was empty or contained a control character.");
+                }
+                names.Add(server.Name);
+            }
+            return names;
+        }
+        catch (JsonException exception)
+        {
+            Trace.TraceError(exception.ToString());
+            throw new RunnerException("PROVIDER_RESTRICTION_UNSUPPORTED", "Copilot MCP configuration could not be enumerated safely.", ExitCodes.ContractError, exception);
+        }
     }
 
     private static (IReadOnlyList<string> SessionIds, string ReviewText) ParseCopilot(string stdout)
