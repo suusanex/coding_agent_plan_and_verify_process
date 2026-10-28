@@ -359,6 +359,7 @@ public sealed class RunnerApplication
         var changeMetadata = await changeMetadataCollector.CollectAsync(state.Repository, cancellationToken);
         var snapshotPath = state.Investigator is null ? null : await investigatorBypass.CaptureAsync(state.Repository, stateStore.GetRunDirectory(state.RunId), nextRound, cancellationToken);
         var autoBypassCandidate = false;
+        var comparisonSnapshotStable = false;
         var bypassReason = "investigator-not-configured";
         RepositoryChangeSize? changeSize = null;
         if (state.Investigator is not null)
@@ -368,10 +369,20 @@ public sealed class RunnerApplication
             {
                 changeSize = await investigatorBypass.CompareAsync(state.RepositorySnapshotPath, snapshotPath, state.Repository, cancellationToken);
                 bypassReason = changeSize is null ? "comparison-failed" : "change-above-threshold";
-                if (changeSize is not null && changeSize.Files <= 3 && changeSize.AddedLines + changeSize.DeletedLines <= 40)
+                if (changeSize is not null)
                 {
-                    autoBypassCandidate = true;
-                    bypassReason = "small-delta";
+                    comparisonSnapshotStable = await SnapshotUnchangedAsync(state.Repository, stateStore.GetRunDirectory(state.RunId), nextRound, snapshotPath, cancellationToken);
+                    if (comparisonSnapshotStable)
+                    {
+                        changeMetadata += $"\n前roundからの変更規模: round {state.Round}開始時点とround {nextRound}開始時点を比較しました。scope={changeSize.Scope}; paths={string.Join(", ", changeSize.Paths)}; files={changeSize.Files}; added={changeSize.AddedLines}; deleted={changeSize.DeletedLines}.";
+                        if (changeSize.Files <= 3 && changeSize.AddedLines + changeSize.DeletedLines <= 40)
+                        {
+                            autoBypassCandidate = true;
+                            bypassReason = "small-delta";
+                        }
+                    }
+                    else
+                        bypassReason = "repository-changed-before-lead";
                 }
             }
             else
@@ -381,8 +392,8 @@ public sealed class RunnerApplication
             changeMetadata += "\n前roundからの変更規模をRunnerが確定できませんでした。表示されたHEADとの差分や部分的な変更情報を、前roundからの完全な差分として扱わないでください。";
         var initialContexts = state.InitialContexts?.Select(context => (context.Path, context.Content)).ToArray()
             ?? (state.Investigator is null ? [] : ResolveContexts(state.Repository, state.ContextPaths));
-        var autoBypassed = autoBypassCandidate && await SnapshotUnchangedAsync(state.Repository, stateStore.GetRunDirectory(state.RunId), nextRound, snapshotPath, cancellationToken);
-        if (autoBypassCandidate && !autoBypassed)
+        var autoBypassed = autoBypassCandidate && comparisonSnapshotStable;
+        if ((autoBypassCandidate && !autoBypassed) || (changeSize is not null && !comparisonSnapshotStable))
         {
             bypassReason = "repository-changed-before-lead";
             changeMetadata += "\n前roundからの変更規模をRunnerが確定できませんでした。表示されたHEADとの差分や部分的な変更情報を、前roundからの完全な差分として扱わないでください。";
@@ -390,7 +401,7 @@ public sealed class RunnerApplication
         else if (autoBypassed)
             bypassReason = "small-delta-with-stable-snapshot";
         if (autoBypassed && changeSize is not null)
-            changeMetadata += $"\nAutomatic Investigator bypass: compared round {state.Round} start snapshot (verified unchanged at round end) to round {nextRound} start; scope={changeSize.Scope}; paths={string.Join(", ", changeSize.Paths)}; files={changeSize.Files}; added={changeSize.AddedLines}; deleted={changeSize.DeletedLines}.";
+            changeMetadata += "\nAutomatic Investigator bypass: the stable comparison is within the configured limit.";
         var decision = new InvestigatorBypassDecision(
             nextRound,
             state.Investigator is null ? "disabled" : autoBypassed ? "bypassed" : "run",

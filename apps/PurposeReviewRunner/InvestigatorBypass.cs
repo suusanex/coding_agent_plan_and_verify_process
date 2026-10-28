@@ -47,7 +47,6 @@ public sealed class InvestigatorBypass(IProcessRunner processRunner, IExecutable
                     await input.CopyToAsync(output, cancellationToken);
                     if (input.Length != info.Length || new FileInfo(source).Length != info.Length) return null;
                 }
-                if (IsBinary(destination)) return null;
                 var sourceHash = await HashFileAsync(source, cancellationToken);
                 var snapshotHash = await HashFileAsync(destination, cancellationToken);
                 if (!CryptographicOperations.FixedTimeEquals(sourceHash, snapshotHash)) return null;
@@ -195,14 +194,5 @@ public sealed class InvestigatorBypass(IProcessRunner processRunner, IExecutable
     {
         await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
         return await SHA256.HashDataAsync(stream, cancellationToken);
-    }
-    private static bool IsBinary(string path)
-    {
-        using var stream = File.OpenRead(path);
-        var buffer = new byte[8192];
-        int read;
-        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
-            if (buffer.AsSpan(0, read).Contains((byte)0)) return true;
-        return false;
     }
 }

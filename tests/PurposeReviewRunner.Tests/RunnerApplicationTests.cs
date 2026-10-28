@@ -230,6 +230,13 @@ public sealed class RunnerApplicationTests
         Assert.AreEqual("small-delta-with-stable-snapshot", state.InvestigatorBypassHistory?[1].Reason);
         Assert.AreEqual("run", state.InvestigatorBypassHistory?[2].Decision);
         Assert.AreEqual("change-above-threshold", state.InvestigatorBypassHistory?[2].Reason);
+        var roundThreePrompt = File.ReadAllText(Path.Combine(fixture.Paths.StateRoot, start.Output.RunId!, "transcript", "round-03-prompt.md"));
+        StringAssert.Contains(roundThreePrompt, "round 2開始時点とround 3開始時点");
+        StringAssert.Contains(roundThreePrompt, "paths=source.txt");
+        StringAssert.Contains(roundThreePrompt, "deleted=2");
+        StringAssert.Contains(investigatorRequests.Last().StandardInput!, "round 2開始時点とround 3開始時点");
+        StringAssert.Contains(investigatorRequests.Last().StandardInput!, "paths=source.txt");
+        StringAssert.Contains(investigatorRequests.Last().StandardInput!, "deleted=2");
         Assert.IsNotNull(state.RepositorySnapshotPath);
         Assert.IsTrue(File.Exists(Path.Combine(state.RepositorySnapshotPath!, "source.txt")));
     }
@@ -277,11 +284,79 @@ public sealed class RunnerApplicationTests
         Assert.AreEqual(ReviewStatuses.Complete, continuation.Output.Status);
         var investigatorRequests = fixture.Process.ProviderRequests.Count(request => request.Executable == FakeExecutableResolver.Expected("copilot"));
         Assert.AreEqual(expectBypass ? 1 : 2, investigatorRequests);
+        var roundPrompt = File.ReadAllText(Path.Combine(fixture.Paths.StateRoot, start.Output.RunId!, "transcript", "round-02-prompt.md"));
+        StringAssert.Contains(roundPrompt, "scope=tracked-and-nonignored-untracked");
+        StringAssert.Contains(roundPrompt, $"files={changedFiles}");
+        StringAssert.Contains(roundPrompt, $"added={addedLines}");
+        StringAssert.Contains(roundPrompt, "round 1開始時点とround 2開始時点");
+        StringAssert.Contains(roundPrompt, "deleted=0");
+        var expectedPaths = string.Join(", ", Enumerable.Range(0, changedFiles).Select(index => $"source-{index}.txt"));
+        StringAssert.Contains(roundPrompt, $"paths={expectedPaths}");
+        if (!expectBypass)
+        {
+            var investigatorPayload = fixture.Process.ProviderRequests
+                .Where(request => request.Executable == FakeExecutableResolver.Expected("copilot"))
+                .Last().StandardInput!;
+            StringAssert.Contains(investigatorPayload, "scope=tracked-and-nonignored-untracked");
+            StringAssert.Contains(investigatorPayload, $"files={changedFiles}");
+            StringAssert.Contains(investigatorPayload, $"added={addedLines}");
+            StringAssert.Contains(investigatorPayload, "round 1開始時点とround 2開始時点");
+            StringAssert.Contains(investigatorPayload, "deleted=0");
+            StringAssert.Contains(investigatorPayload, $"paths={expectedPaths}");
+        }
         var state = new StateStore(fixture.Paths.StateRoot).Load(start.Output.RunId!);
         Assert.AreEqual(expectBypass ? "bypassed" : "run", state.InvestigatorBypassHistory?[1].Decision);
         Assert.AreEqual(expectBypass ? "small-delta-with-stable-snapshot" : "change-above-threshold", state.InvestigatorBypassHistory?[1].Reason);
         Assert.AreEqual(changedFiles, state.InvestigatorBypassHistory?[1].Files);
         Assert.AreEqual(addedLines, state.InvestigatorBypassHistory?[1].AddedLines);
+    }
+
+    [TestMethod]
+    public async Task BinarySnapshotAllowsSmallTextBypassButBinaryDeltaRunsInvestigator()
+    {
+        using var fixture = new RunnerFixture("grok");
+        await Git(fixture.Repository, "init", "-q");
+        await Git(fixture.Repository, "config", "user.email", "test@example.invalid");
+        await Git(fixture.Repository, "config", "user.name", "Test");
+        fixture.WriteRepositoryFile("purpose.md", "purpose");
+        fixture.WriteRepositoryFile("notes.txt", "before\n");
+        await File.WriteAllBytesAsync(Path.Combine(fixture.Repository, "asset.bin"), [1, 0, 2]);
+        await Git(fixture.Repository, "add", ".");
+        await Git(fixture.Repository, "commit", "-qm", "initial");
+        File.WriteAllText(fixture.Paths.ConfigPath, """
+            {"schemaVersion":2,"reviewLead":{"provider":"grok","executable":"grok","model":"lead-model","reasoningEffort":"high","profile":null},"investigator":{"provider":"copilot","executable":"copilot","model":"investigator-model","reasoningEffort":"medium","profile":null}}
+            """);
+        fixture.Process.Reviews.Enqueue(ValidInvestigatorReport());
+        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("first")));
+        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("second")));
+        fixture.Process.Reviews.Enqueue(ValidInvestigatorReport());
+        fixture.Process.Reviews.Enqueue(Review("COMPLETE"));
+        var worker = new InProcessWorkerLauncher();
+        var app = new RunnerApplication(fixture.Paths, new GitAwareExecutableResolver(), new GitAwareProcessRunner(fixture.Process), worker, new EmptyChangeMetadataCollector());
+        worker.Application = app;
+
+        var start = await app.ExecuteAsync(new StartCommand(fixture.Repository, ["purpose.md"]), CancellationToken.None);
+        await File.WriteAllTextAsync(Path.Combine(fixture.Repository, "notes.txt"), "after\n");
+        var textOnly = await app.ExecuteAsync(new ContinueCommand(start.Output.RunId!), CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.Findings, textOnly.Output.Status);
+        var textOnlyPrompt = File.ReadAllText(Path.Combine(fixture.Paths.StateRoot, start.Output.RunId!, "transcript", "round-02-prompt.md"));
+        StringAssert.Contains(textOnlyPrompt, "Automatic Investigator bypass");
+        StringAssert.Contains(textOnlyPrompt, "paths=notes.txt");
+        StringAssert.Contains(textOnlyPrompt, "deleted=1");
+
+        await File.WriteAllBytesAsync(Path.Combine(fixture.Repository, "asset.bin"), [1, 0, 3]);
+        var binaryChanged = await app.ExecuteAsync(new ContinueCommand(start.Output.RunId!), CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.Complete, binaryChanged.Output.Status);
+        var binaryPrompt = File.ReadAllText(Path.Combine(fixture.Paths.StateRoot, start.Output.RunId!, "transcript", "round-03-prompt.md"));
+        StringAssert.Contains(binaryPrompt, "変更規模をRunnerが確定できませんでした");
+        Assert.IsFalse(binaryPrompt.Contains("paths=asset.bin", StringComparison.Ordinal));
+        var investigatorRequests = fixture.Process.ProviderRequests.Where(request => request.Executable == FakeExecutableResolver.Expected("copilot")).ToArray();
+        Assert.AreEqual(2, investigatorRequests.Length);
+        StringAssert.Contains(investigatorRequests.Last().StandardInput!, "変更規模をRunnerが確定できませんでした");
+        var state = new StateStore(fixture.Paths.StateRoot).Load(start.Output.RunId!);
+        Assert.AreEqual("bypassed", state.InvestigatorBypassHistory?[1].Decision);
+        Assert.AreEqual("run", state.InvestigatorBypassHistory?[2].Decision);
+        Assert.AreEqual("comparison-failed", state.InvestigatorBypassHistory?[2].Reason);
     }
 
     [TestMethod]

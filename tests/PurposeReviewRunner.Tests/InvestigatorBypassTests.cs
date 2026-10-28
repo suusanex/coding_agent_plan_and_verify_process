@@ -40,7 +40,7 @@ public sealed class InvestigatorBypassTests
     }
 
     [TestMethod]
-    public async Task CaptureDeclinesBinaryFilesAndSnapshotsAbove64MiB()
+    public async Task CaptureRetainsBinaryFilesAndDeclinesSnapshotsAbove64MiB()
     {
         var root = Path.Combine(Path.GetTempPath(), "purpose-review-bypass-" + Guid.NewGuid().ToString("N"));
         var repo = Path.Combine(root, "repo");
@@ -50,11 +50,48 @@ public sealed class InvestigatorBypassTests
             await Git(repo, "init", "-q");
             var service = new InvestigatorBypass(new SystemProcessRunner(TimeSpan.FromSeconds(15)), new ExecutableResolver());
             await File.WriteAllBytesAsync(Path.Combine(repo, "binary.bin"), [1, 0, 2]);
-            Assert.IsNull(await service.CaptureAsync(repo, Path.Combine(root, "run"), 1, CancellationToken.None));
+            var old = await service.CaptureAsync(repo, Path.Combine(root, "run"), 1, CancellationToken.None);
+            Assert.IsNotNull(old);
+            Assert.IsTrue(File.Exists(Path.Combine(old!, "binary.bin")));
+            await File.WriteAllBytesAsync(Path.Combine(repo, "binary.bin"), [1, 0, 3]);
+            var current = await service.CaptureAsync(repo, Path.Combine(root, "run"), 2, CancellationToken.None);
+            Assert.IsNotNull(current);
+            Assert.IsNull(await service.CompareAsync(old!, current!, repo, CancellationToken.None));
             File.Delete(Path.Combine(repo, "binary.bin"));
             await using (var stream = File.Create(Path.Combine(repo, "large.txt")))
                 stream.SetLength(64L * 1024 * 1024 + 1);
             Assert.IsNull(await service.CaptureAsync(repo, Path.Combine(root, "run"), 1, CancellationToken.None));
+        }
+        finally
+        {
+            Cleanup(root);
+        }
+    }
+
+    [TestMethod]
+    public async Task UnchangedBinaryDoesNotPreventComparingSmallTextDelta()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "purpose-review-bypass-" + Guid.NewGuid().ToString("N"));
+        var repo = Path.Combine(root, "repo");
+        Directory.CreateDirectory(repo);
+        try
+        {
+            await Git(repo, "init", "-q");
+            await File.WriteAllBytesAsync(Path.Combine(repo, "asset.bin"), [1, 0, 2]);
+            await File.WriteAllTextAsync(Path.Combine(repo, "notes.txt"), "before\n");
+            var service = new InvestigatorBypass(new SystemProcessRunner(TimeSpan.FromSeconds(15)), new ExecutableResolver());
+            var old = await service.CaptureAsync(repo, Path.Combine(root, "run"), 1, CancellationToken.None);
+            Assert.IsNotNull(old);
+            await File.WriteAllTextAsync(Path.Combine(repo, "notes.txt"), "after\n");
+            var current = await service.CaptureAsync(repo, Path.Combine(root, "run"), 2, CancellationToken.None);
+            Assert.IsNotNull(current);
+
+            var size = await service.CompareAsync(old!, current!, repo, CancellationToken.None);
+            Assert.IsNotNull(size);
+            Assert.AreEqual(1, size.Files);
+            Assert.AreEqual(1, size.AddedLines);
+            Assert.AreEqual(1, size.DeletedLines);
+            Assert.IsTrue(File.Exists(Path.Combine(current!, "asset.bin")));
         }
         finally
         {
