@@ -63,6 +63,14 @@ if ($skill -notmatch '初期設計' -or $skill -notmatch '重要な変更' -or $
 if ($skill -notmatch '目的の引用文と根拠sourceはinputへ埋め込む' -or $skill -notmatch '承認を代行しない') {
     throw 'Skill does not preserve source-embedded authority and review/approval separation.'
 }
+if ($skill -notmatch '`COMPLETE`はレビューの完了だけを示し、提案や目的の承認を意味しない' -or
+    $skill -notmatch '同じ`taskKey`、新しい`changeId`、直近の`COMPLETE` runを指す`previousRunId`' -or
+    $skill -notmatch '実際に承認済みのbaselineだけ' -or
+    $skill -notmatch '実際のユーザー承認の根拠がなければ`approvedDesign`を直前baselineのまま' -or
+    $skill -notmatch '既存の発言・文書を引用してauthorityを示し、同じ承認を再度求めない' -or
+    $skill -notmatch '`ERROR` / `BLOCKED`後に異なる`changeId`の新しいchangeを始める場合もRunnerが`userDecision`を要求する') {
+    throw 'Skill must distinguish COMPLETE from approval and document explicit baseline changes, source reuse, and distinct-change decisions.'
+}
 if ($skill -notmatch 'repositoryとは別の作業directory' -or $skill -notmatch 'review inputから作ったpromptだけをstdinへ渡す' -or
     $skill -notmatch 'repository探索、外部調査、ツール呼び出し、委譲を明示的に禁じる' -or
     $skill -notmatch '完全なcapability isolationを意味しない' -or $skill -notmatch '独自の認証・隔離基盤を追加せず') {
@@ -83,6 +91,12 @@ if ($readme -notmatch '0\.5\.0' -or $readme -notmatch 'protocol v4' -or $readme 
 if ($readme -notmatch 'repository外の作業directory' -or $readme -notmatch '完全なcapability isolationとして扱いません' -or
     $readme -notmatch 'より強い制限設定を維持します') {
     throw 'Package README does not state the relaxed Codex role boundary and preserved Copilot restriction.'
+}
+if ($readme -notmatch '`COMPLETE`はそのreviewの完了であり、proposalや承認済み設計baselineの承認ではありません' -or
+    $readme -notmatch '最新の完了runを指す`previousRunId`' -or
+    $readme -notmatch '実際の承認がなければ前のbaseline（nullならnull）を維持し' -or
+    $readme -notmatch '同じ承認を再度求めません') {
+    throw 'Package README must explain COMPLETE lineage and approved-baseline provenance.'
 }
 if ($safetyEvidence -notmatch '当時のRunnerはCodexをfail closedにした' -or
     $safetyEvidence -notmatch '2026-10-29 Issue #150方針更新後のCodex実行境界' -or
