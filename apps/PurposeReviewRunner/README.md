@@ -1,20 +1,20 @@
 # Purpose Review Runner
 
-`purpose-review-runner`は、明示的に許可されたtask内の目的・設計整合を独立reviewerへ評価させるローカルCLIです。同一changeはlinked runを通じて最大3提出まで扱います。実行手順は[`$persistent-purpose-review`](../../apm-packages/persistent-purpose-review/README.md)が提供します。両方必要です。RunnerはPCへOS userごとに一度導入します。
+`purpose-review-runner`は、明示的に許可されたtask内の目的・設計整合を独立reviewerへ評価させるローカルCLIです。同一changeはlinked runを通じて最大3 review roundsまで扱います。実行手順は[`$persistent-purpose-review`](../../apm-packages/persistent-purpose-review/README.md)が提供します。両方必要です。RunnerはPCへOS userごとに一度導入します。
 
 通常はRunnerコマンドを手で呼ぶ必要はありません。主経路はSkillが`start` / `status` / `continue`を扱います。このREADMEはインストール、設定、更新、troubleshootingの正本です。手動CLIは[Advanced usage](#advanced-usage)にあります。
 
-必要なbuildはRunner 0.5.0以上、protocol v4です。このversionのRelease状態は未確認です。配布済みのbuildがなければ利用を開始しないでください。過去runの扱いは[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
+必要なbuildはRunner 0.6.0以上、protocol v4です。このversionのRelease状態は未確認です。配布済みのbuildがなければ利用を開始しないでください。過去runの扱いは[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
 
 ## 評価対象と完了の意味
 
 Runnerは元の目的、承認済み設計、提案設計と差分、入力に埋め込まれた証拠の整合を評価します。implementation欠落の特定・修復、コード品質review、実環境検証の代行は対象外です。conformance記録は入力された申告と証拠であり、ownerの実行を保証しません。
 
-`COMPLETE`はレビュー工程が終わったことを示し、proposalやapproved baselineの承認、目的達成、実装完了、実行時conformanceを認定しません。完了後に別のchangeをreviewする場合は、同じ`taskKey`、新しい`changeId`、直近の完了runを指す`previousRunId`で完全なinputを渡します。baselineには実際にユーザーが承認した設計だけを入れ、前runのproposalを自動昇格しません。baseline更新が既存のユーザー承認に基づく場合は、そのsourceを`userDecision`に引用します。同じ承認を再度求めません。purposeまたはbaseline変更には`userDecision`が必要です。
+`COMPLETE`はレビュー工程が終わったことを示し、proposalやapproved baselineの承認、目的達成、実装完了、実行時conformanceを認定しません。完了後に別のchangeをreviewする場合は、同じ`taskKey`、新しい`changeId`、直近の完了runを指す`previousRunId`で完全なinputを渡します。baselineには実際にユーザーが承認した設計だけを入れ、前runのproposalを自動昇格しません。baseline更新が既存のユーザー承認に基づく場合は、そのsourceを`userDecision`に引用します。同じ承認を再度求めません。purposeまたはbaseline変更には新しい`changeId`と`userDecision`が必要です。
 
 ## Install
 
-配布の正本は[GitHub Releases](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases)です。通常は[最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)を使います。Runner 0.5.0 / protocol v4のReleaseが確認できるまで、新しいSkillの運用を開始しないでください。
+配布の正本は[GitHub Releases](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases)です。通常は[最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)を使います。Runner 0.6.0 / protocol v4のReleaseが確認できるまで、新しいSkillの運用を開始しないでください。
 
 | OS | asset |
 | --- | --- |
@@ -76,7 +76,7 @@ ${EDITOR:-nano} "$config_dir/config.json"
 purpose-review-runner version
 ```
 
-stdoutの単一JSONで`protocolVersion`が`4`、`runnerVersion`が`0.5.0`以上であることを確認します。`~/.local/bin`がPATHにあっても、その下の専用directoryは自動では検索されません。
+stdoutの単一JSONで`protocolVersion`が`4`、`runnerVersion`が`0.6.0`以上であることを確認します。`~/.local/bin`がPATHにあっても、その下の専用directoryは自動では検索されません。
 
 ## Config
 
@@ -115,7 +115,7 @@ Linuxのpathは.NETの`Environment.SpecialFolder.ApplicationData`に従います
 
 provider CLI自身の認証が事前に必要です。RunnerはAPI keyやOAuth設定を代行しません。
 
-`start`にはreview単位の`--model`や`--effort` overrideはありません。Runnerはrepository外のrun directoryからCLIを起動し、埋め込みinputから作ったpromptだけをstdinへ渡します。Codexの初回実行はCLIの通常read-only sandboxとapproval policyを使い、resumeも同じsessionでread-only設定を維持します。shell、browser/web/search、apps/MCP、code mode、multi-agent、image/view、skills、plugins、hooks、memories等の探索機能も無効にします。role promptでrepository探索、外部調査、tool invocation、委譲を禁じます。Codex host environmentに追加機能が残る可能性があるため、完全なcapability isolationは保証しません。Skill/Runnerは独自の認証・隔離基盤を追加しません。Copilotでは実機確認済みのより強い制限設定を維持します。実装方式とprovider差分は[technical reference](../../docs/purpose-review-runner-technical-reference.md)を参照してください。
+`start`にはreview単位の`--model`や`--effort` overrideはありません。Runnerはrepository外のrun directoryからCLIを起動し、埋め込みinputから作ったpromptだけをstdinへ渡します。provider CLI versionの完全一致はruntime hard-fail条件とせず、Codexのfeature一覧やCopilotのMCP一覧など事前に判定可能な探索抑制用guardrailはbest-effortで適用します（CLI側で廃止・取得不能な項目があっても残りのguardrailとrole promptを維持して続行し、review本体の失敗後に弱い設定で自動再試行することはしません）。Codexの初回実行はCLIの通常read-only sandboxとapproval policyを使い、resumeも同じsessionでread-only設定を維持します。role promptでrepository探索、外部調査、tool invocation、委譲を禁じます。Codex host environmentに追加機能が残る可能性があるため、完全なcapability isolationは保証しません。Skill/Runnerは独自の認証・隔離基盤を追加しません。Copilotでは実機確認済みのより強い制限設定を維持します。実装方式とprovider差分は[technical reference](../../docs/purpose-review-runner-technical-reference.md)を参照してください。
 
 ### Providerごとの構文例
 
@@ -155,7 +155,7 @@ Codex CLI:
 | Skill | 実行環境のuser-scopeで更新する。手順は[Persistent Purpose Review README](../../apm-packages/persistent-purpose-review/README.md)と[APMの資料](https://microsoft.github.io/apm/reference/cli/install/)を参照 |
 | config / state | 通常はそのまま。作り直したり移行したりしない |
 
-更新後は`purpose-review-runner version`でprotocolとversionを確認します。protocol移行などの特殊ケースは[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
+更新後は`purpose-review-runner version`でprotocolとversionを確認します。protocol移行やstate schema変更などの特殊ケースは[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
 
 ## Troubleshooting
 
@@ -170,8 +170,8 @@ Codex CLI:
 | `RUNNING`が長い | `status --run <run-id>`を繰り返す。新しいrunを作っていないか | 同じ`run-id`の`status`だけをやり直す。1 roundは約10分かかることがある |
 | `INPUT_INVALID`など、run成立前の入力エラー | stdoutのerror code。`runId`が無いこと | ReviewInput JSONを直して`start`をやり直す。成立済みreviewの再送ではない |
 | 受付後にCLIの結果だけが不明 | durable job / `runId`が既にあるか | 同じ`start` / `continue`を再送せず、その`runId`の`status`を見る |
-| terminal `ERROR` / `BLOCKED` | 既存`runId`の`status`とlineage | 同じchangeなら同じtask/change identityと前回run参照で新しいlinked runを作り、消費済みbudgetを維持する。新しいchangeなら新`changeId`と`userDecision`を使う |
-| Runner versionが古い / protocol非互換 | `purpose-review-runner version` | protocol v4 / Runner 0.5.0以上のbuildへ差し替える。`apm update`では直らない |
+| terminal `ERROR` / `BLOCKED` | 既存`runId`の`status`とlineage | 同じchangeなら同じtask/change identityと前回run参照で新しいlinked runを作り、成立済み`reviewRounds`と過去履歴を維持する（review成立前のoperational failure自体は3-round予算を消費しない）。purpose / approvedDesignを変えずに別changeへ切り替える場合は新しい`changeId`と前回run参照で`start`でき、`userDecision`は不要。purposeまたはapprovedDesignを変える場合は新`changeId`と`userDecision`を使う |
+| Runner versionが古い / protocol・state非互換 | `purpose-review-runner version` | protocol v4 / Runner 0.6.0以上のbuildへ差し替える。`apm update`では直らない |
 | `HUMAN_DECISION_REQUIRED` | `message`、必要な判断とauthority | ユーザーの明示判断を記録する。新しい`changeId`と`userDecision`なしで再提出しない |
 
 ## Advanced usage
@@ -191,5 +191,5 @@ purpose-review-runner continue --run <run-id> --input C:\path\to\updated-review-
 | [Persistent Purpose Review README](../../apm-packages/persistent-purpose-review/README.md) | 利用者の入口とSkillの利用方法 |
 | このREADME | Runnerのインストール、設定、update、troubleshooting |
 | [Technical reference](../../docs/purpose-review-runner-technical-reference.md) | protocol、state、worker、provider adapter |
-| [Compatibility](../../docs/purpose-review-runner-compatibility.md) | version履歴とv2/v3非互換 |
+| [Compatibility](../../docs/purpose-review-runner-compatibility.md) | version履歴とv2/v3/0.5.0 state非互換 |
 | [Maintainer reference](../../docs/purpose-review-runner-maintenance.md) | 開発・リリース・validation。buildとRelease手順はこちら |

@@ -10,6 +10,12 @@ public static class FakeProviderMarker
 public static class Program
 {
     private const string SessionId = "22222222-2222-4222-8222-222222222222";
+    private static readonly string[] SupportedCodexFeatures =
+    [
+        "shell_tool", "browser_use", "browser_use_external", "browser_use_full_cdp_access", "standalone_web_search",
+        "apps", "mcp_2026_07_28", "multi_agent", "multi_agent_v2", "code_mode", "code_mode_host",
+        "image_generation", "view_image", "computer_use", "in_app_browser", "skill_search", "plugins", "hooks", "memories"
+    ];
 
     public static async Task<int> Main(string[] args)
     {
@@ -17,8 +23,16 @@ public static class Program
         {
             if (args.Contains("--version", StringComparer.Ordinal))
             {
-                Console.WriteLine("codex-cli 0.165.0");
-                Console.WriteLine("GitHub Copilot CLI 1.0.105.");
+                Console.WriteLine("codex-cli 0.166.0");
+                Console.WriteLine("GitHub Copilot CLI 1.0.106.");
+                return 0;
+            }
+            if (args.SequenceEqual(["features", "list"], StringComparer.Ordinal))
+            {
+                foreach (var feature in SupportedCodexFeatures)
+                {
+                    Console.WriteLine($"{feature}\tstable\ttrue");
+                }
                 return 0;
             }
             if (args.SequenceEqual(["mcp", "list", "--json"], StringComparer.Ordinal))
@@ -93,7 +107,7 @@ public static class Program
         Require(resumed || (args.Contains("--sandbox", StringComparer.Ordinal) && ValueAfter(args, "--sandbox") == "read-only"), "Codex initial run must use a read-only sandbox.");
         Require(args.Contains("approval_policy=\"never\"", StringComparer.Ordinal), "Codex approval policy must be never.");
         Require(!resumed || args.Contains("sandbox_mode=\"read-only\"", StringComparer.Ordinal), "Codex resume must use a read-only sandbox.");
-        foreach (var feature in new[] { "shell_tool", "browser_use", "browser_use_external", "browser_use_full_cdp_access", "standalone_web_search", "apps", "mcp_2026_07_28", "multi_agent", "multi_agent_v2", "code_mode", "code_mode_host", "image_generation", "view_image", "computer_use", "in_app_browser", "skill_search", "plugins", "hooks", "memories" })
+        foreach (var feature in SupportedCodexFeatures)
         {
             Require(HasDisabledFeature(args, feature), $"Codex feature was not disabled: {feature}");
         }

@@ -50,7 +50,7 @@ public sealed class StateStore
         {
             var state = JsonSerializer.Deserialize<RunState>(SharedStateFile.ReadAllText(statePath), JsonDefaults.Options)
                 ?? throw new JsonException("State JSON was empty.");
-            if (state.ProtocolVersion != Protocol.Version || state.RunId != runId)
+            if (state.ProtocolVersion != Protocol.Version || state.RunId != runId || state.ReviewRounds is null)
             {
                 throw new RunnerException("STATE_INCOMPATIBLE", "Run state protocol or identity is incompatible.");
             }
@@ -93,7 +93,8 @@ public sealed class StateStore
     private static void Validate(RunState state)
     {
         if (string.IsNullOrWhiteSpace(state.Repository) || !Path.IsPathFullyQualified(state.Repository) || string.IsNullOrWhiteSpace(state.SessionHandle) ||
-            string.IsNullOrWhiteSpace(state.TaskKey) || string.IsNullOrWhiteSpace(state.ChangeId) || state.ReviewKind != Protocol.ReviewKind || state.InputBinding is null || state.DurableSubmissions is < 1 or > Protocol.MaximumRounds ||
+            string.IsNullOrWhiteSpace(state.TaskKey) || string.IsNullOrWhiteSpace(state.ChangeId) || state.ReviewKind != Protocol.ReviewKind || state.InputBinding is null ||
+            state.DurableSubmissions < 1 || state.ReviewRounds is null or < 1 or > Protocol.MaximumRounds ||
             state.ReviewHistory is null || state.ReviewHistory.Count == 0 || state.ReviewHistory.Any(item => item is null || item.Round is < 1 or > Protocol.MaximumRounds || item.Findings is null || item.InformationRequests is null) ||
             state.Round is < 1 or > Protocol.MaximumRounds ||
             state.Status is not (ReviewStatuses.Findings or ReviewStatuses.Complete or ReviewStatuses.HumanDecisionRequired or ReviewStatuses.Blocked or ReviewStatuses.Error) ||

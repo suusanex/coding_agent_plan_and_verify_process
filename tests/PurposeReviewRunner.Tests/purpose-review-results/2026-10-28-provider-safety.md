@@ -75,3 +75,11 @@ role promptはrepository、source、file、Git履歴、web、tool、agentの探�
 Codex rollout metadataでは`function_call`と`function_call_output`はともに0件。shell、filesystem、web、delegationの実行イベントは観測されなかった。metadata上は`functions` namespace（exec/wait/request_user_input）と`collaboration` namespace（agent管理を含む）が追加toolとして公開されていた。従って「呼び出しが観測されなかった」と記録し、「toolが存在しなかった」「完全に無効化できた」とはしない。残存host capabilityはrole promptにより使用禁止とし、通常read-only sandbox、feature disable、repository外cwd、input-only stdinを補助境界として使う。この1回のfunctional fixtureは、実利用での運用有効性、全host toolの抑止、または一般的なsecurity isolationの証明ではない。
 
 Copilotの1.0.105初回/resume zero-tool実測は別の強い制限設定と別fixtureの結果である。Codex policy変更のためにCopilot設定を緩和していない。
+
+## 2026-11-01 Issue #152 runtime契約とbest-effort guardrailの整理（Runner 0.6.0）
+
+上記2026-10-28 / 2026-10-29の実測記録はそのまま保持する。Issue #152（Runner 0.6.0）では、provider CLI更新に伴う不要な停止を防ぐため、runtime hard-fail条件とbest-effort guardrailの境界を次のように整理した。
+
+- Codex CLI `0.165.0` および Copilot CLI `1.0.105` は `LastQualifiedVersion` メタデータとして保持し、CLI `--version` の完全一致チェック（`PROVIDER_VERSION_UNSUPPORTED`）はruntime hard-fail条件から外した。
+- Codexの探索抑制feature disableおよびCopilotのMCP個別disableは事前capability discovery（`codex features list`、`copilot mcp list --json`）によるbest-effort適用とし、discoveryが非0終了・parse不能・timeoutとなった場合でもトレースへ記録して残りのguardrailとrole promptを維持して続行する（`PROVIDER_TIMEOUT` はreview本体のtimeoutにのみ使用する）。
+- ただし、review本体が失敗した後に制限を外した弱い設定で再試行するfallbackは行わない。

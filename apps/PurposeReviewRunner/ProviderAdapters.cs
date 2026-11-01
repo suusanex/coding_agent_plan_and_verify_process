@@ -30,6 +30,8 @@ public static class ProviderFactory
 
 public abstract class ProviderAdapterBase
 {
+    protected static readonly TimeSpan DiscoveryTimeout = TimeSpan.FromSeconds(15);
+
     protected static async Task<ProcessResult> RunCheckedAsync(ProcessRequest request, IProcessRunner runner, CancellationToken cancellationToken)
     {
         var result = await runner.RunAsync(request, cancellationToken);
@@ -47,6 +49,41 @@ public abstract class ProviderAdapterBase
         }
         return result;
     }
+
+    // 事前capability discoveryはbest-effortで実行し、非0終了・例外・timeout時はトレースへ記録して残りのguardrailで続行する。
+    protected static async Task<ProcessResult?> TryRunDiscoveryAsync(ProcessRequest request, IProcessRunner runner, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        using var discoveryCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        discoveryCts.CancelAfter(DiscoveryTimeout);
+        try
+        {
+            var result = await runner.RunAsync(request, discoveryCts.Token);
+            if (result.TimedOut)
+            {
+                Trace.TraceError($"Provider capability discovery timed out: {request.Executable} {string.Join(' ', request.Arguments)}");
+                return null;
+            }
+            if (result.ExitCode != 0)
+            {
+                Trace.TraceError($"Provider capability discovery exited with code {result.ExitCode}: {result.StandardError.TrimEnd()}");
+                return null;
+            }
+            return result;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            Trace.TraceError(exception.ToString());
+            return null;
+        }
+    }
+
+    protected static bool IsOptionSupported(IReadOnlySet<string>? supportedOptions, string option) =>
+        supportedOptions is null || supportedOptions.Contains(option);
 
     protected static void DeleteTemporary(string path)
     {
@@ -71,31 +108,13 @@ public abstract class ProviderAdapterBase
             throw new RunnerException("CONFIG_INVALID", $"The verified {provider} model and reasoning effort are required.");
         }
     }
-
-    protected static async Task VerifyCliVersionAsync(
-        ProviderRequest request,
-        IProcessRunner runner,
-        string provider,
-        string version,
-        CancellationToken cancellationToken)
-    {
-        var output = await RunCheckedAsync(
-            new(request.Provider.Executable, ["--version"], request.RunDirectory, null),
-            runner,
-            cancellationToken);
-        var versionText = output.StandardOutput + Environment.NewLine + output.StandardError;
-        var expectedVersionLine = $"{provider} {version}";
-        if (!versionText.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Any(line => line.Equals(expectedVersionLine, StringComparison.Ordinal) || line.Equals(expectedVersionLine + ".", StringComparison.Ordinal)))
-        {
-            throw new RunnerException("PROVIDER_VERSION_UNSUPPORTED", $"Only the verified {provider} {version} CLI is supported.");
-        }
-    }
 }
 
 public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
 {
-    private const string VerifiedVersion = "0.165.0";
+    // 実機検証済みの基準CLI版（runtime hard-fail gateではなく記録・診断用メタデータとして保持する）。
+    public const string LastQualifiedVersion = "0.165.0";
+
     private static readonly string[] DisabledFeatures =
     [
         "shell_tool", "browser_use", "browser_use_external", "browser_use_full_cdp_access", "standalone_web_search",
@@ -103,18 +122,20 @@ public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
         "image_generation", "view_image", "computer_use", "in_app_browser", "skill_search", "plugins", "hooks", "memories"
     ];
 
+    public static IReadOnlyList<string> TargetDisabledFeatures => DisabledFeatures;
+
     public async Task<ProviderResult> ExecuteAsync(ProviderRequest request, IProcessRunner processRunner, CancellationToken cancellationToken)
     {
         ValidateProviderConfiguration(request, "codex");
         Directory.CreateDirectory(request.RunDirectory);
-        await VerifyCliVersionAsync(request, processRunner, "codex-cli", VerifiedVersion, cancellationToken);
+        var disabledFeatures = await DiscoverDisabledFeaturesAsync(request, processRunner, cancellationToken);
 
         var responsePath = Path.Combine(request.RunDirectory, $"codex-response-{request.Round}-{Guid.NewGuid():N}.md");
         try
         {
             var arguments = request.SessionHandle is null
-                ? BuildInitialArguments(request, responsePath)
-                : BuildResumeArguments(request, responsePath);
+                ? BuildInitialArguments(request, responsePath, disabledFeatures)
+                : BuildResumeArguments(request, responsePath, disabledFeatures);
             var process = await RunCheckedAsync(
                 new(request.Provider.Executable, arguments, request.RunDirectory, request.Payload),
                 processRunner,
@@ -146,45 +167,116 @@ public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
         }
     }
 
-    private static IReadOnlyList<string> BuildInitialArguments(ProviderRequest request, string responsePath)
+    public static IReadOnlyList<string> BuildInitialArguments(
+        ProviderRequest request,
+        string responsePath,
+        IEnumerable<string> disabledFeatures,
+        IReadOnlySet<string>? supportedOptions = null)
     {
         var arguments = new List<string>
         {
-            "exec", "--json", "--color", "never", "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check",
-            "--sandbox", "read-only", "-C", request.RunDirectory,
+            "exec", "--json", "--color", "never"
+        };
+        AddOptionalFlags(arguments, supportedOptions, "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check");
+        if (IsOptionSupported(supportedOptions, "--sandbox"))
+        {
+            arguments.Add("--sandbox");
+            arguments.Add("read-only");
+        }
+        arguments.AddRange(
+        [
+            "-C", request.RunDirectory,
             "--model", request.Provider.Model,
             "--config", "approval_policy=\"never\"",
             "--config", $"model_reasoning_effort=\"{request.Provider.ReasoningEffort}\"",
             "--output-last-message", responsePath
-        };
-        AddDisabledFeatures(arguments);
+        ]);
+        if (IsOptionSupported(supportedOptions, "--disable"))
+        {
+            AddDisabledFeatures(arguments, disabledFeatures);
+        }
         arguments.Add("-");
         return arguments;
     }
 
-    private static IReadOnlyList<string> BuildResumeArguments(ProviderRequest request, string responsePath)
+    public static IReadOnlyList<string> BuildResumeArguments(
+        ProviderRequest request,
+        string responsePath,
+        IEnumerable<string> disabledFeatures,
+        IReadOnlySet<string>? supportedOptions = null)
     {
         var arguments = new List<string>
         {
-            "exec", "resume", request.SessionHandle!, "--json", "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check",
+            "exec", "resume", request.SessionHandle!, "--json"
+        };
+        AddOptionalFlags(arguments, supportedOptions, "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check");
+        arguments.AddRange(
+        [
             "--model", request.Provider.Model,
             "--config", "sandbox_mode=\"read-only\"",
             "--config", "approval_policy=\"never\"",
             "--config", $"model_reasoning_effort=\"{request.Provider.ReasoningEffort}\"",
             "--output-last-message", responsePath
-        };
-        AddDisabledFeatures(arguments);
+        ]);
+        if (IsOptionSupported(supportedOptions, "--disable"))
+        {
+            AddDisabledFeatures(arguments, disabledFeatures);
+        }
         arguments.Add("-");
         return arguments;
     }
 
-    private static void AddDisabledFeatures(List<string> arguments)
+    private static void AddOptionalFlags(List<string> arguments, IReadOnlySet<string>? supportedOptions, params string[] flags)
     {
-        foreach (var feature in DisabledFeatures)
+        foreach (var flag in flags)
+        {
+            if (IsOptionSupported(supportedOptions, flag))
+            {
+                arguments.Add(flag);
+            }
+        }
+    }
+
+    private static void AddDisabledFeatures(List<string> arguments, IEnumerable<string> disabledFeatures)
+    {
+        foreach (var feature in disabledFeatures)
         {
             arguments.Add("--disable");
             arguments.Add(feature);
         }
+    }
+
+    private static async Task<IReadOnlyList<string>> DiscoverDisabledFeaturesAsync(
+        ProviderRequest request,
+        IProcessRunner processRunner,
+        CancellationToken cancellationToken)
+    {
+        var result = await TryRunDiscoveryAsync(
+            new(request.Provider.Executable, ["features", "list"], request.RunDirectory, null),
+            processRunner,
+            cancellationToken);
+        if (result is null)
+        {
+            return [];
+        }
+
+        var available = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var line in result.StandardOutput.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var tokens = line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+            if (tokens.Length >= 3 && (tokens[^1] == "true" || tokens[^1] == "false"))
+            {
+                available.Add(tokens[0]);
+            }
+        }
+
+        if (available.Count == 0)
+        {
+            Trace.TraceError("Codex features list output did not contain any recognized feature rows; continuing without --disable flags.");
+            return [];
+        }
+
+        return DisabledFeatures.Where(available.Contains).ToArray();
     }
 
     private static string? ParseCodexSession(string stdout)
@@ -215,7 +307,9 @@ public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
 
 public sealed class CopilotProviderAdapter : ProviderAdapterBase, IProviderAdapter
 {
-    private const string VerifiedVersion = "1.0.105";
+    // 実機検証済みの基準CLI版（runtime hard-fail gateではなく記録・診断用メタデータとして保持する）。
+    public const string LastQualifiedVersion = "1.0.105";
+
     private const string NoToolSentinel = "report_intent";
     private static readonly IReadOnlyDictionary<string, string?> IsolatedEnvironment =
         new Dictionary<string, string?>(StringComparer.Ordinal) { ["COPILOT_PLUGIN_DIR_ONLY"] = "true" };
@@ -223,23 +317,9 @@ public sealed class CopilotProviderAdapter : ProviderAdapterBase, IProviderAdapt
     public async Task<ProviderResult> ExecuteAsync(ProviderRequest request, IProcessRunner processRunner, CancellationToken cancellationToken)
     {
         ValidateProviderConfiguration(request, "copilot");
-        await VerifyCliVersionAsync(request, processRunner, "GitHub Copilot CLI", VerifiedVersion, cancellationToken);
-        var mcpServers = await ReadConfiguredMcpServersAsync(request, processRunner, cancellationToken);
+        var mcpServers = await DiscoverConfiguredMcpServersAsync(request, processRunner, cancellationToken);
         var session = request.SessionHandle ?? Guid.NewGuid().ToString("D");
-        var arguments = new List<string>
-        {
-            "-C", request.RunDirectory, "--no-custom-instructions", "--no-remote-export",
-            "--no-auto-update", "--no-ask-user", "--disable-builtin-mcps", "--disallow-temp-dir",
-            "--no-color", "--silent", "--output-format", "json", "--stream", "off",
-            "--model", request.Provider.Model, "--reasoning-effort", request.Provider.ReasoningEffort,
-            // 空引数は全tool許可へ戻るため、未知のtool名だけを許可する。1.0.105実機でshell呼出し不可を確認済み。
-            $"--available-tools={NoToolSentinel}", "--deny-tool=shell", "--deny-tool=write", "--deny-tool=task", "--deny-tool=edit"
-        };
-        foreach (var server in mcpServers)
-        {
-            arguments.Add($"--disable-mcp-server={server}");
-        }
-        arguments.Add(request.SessionHandle is null ? $"--session-id={session}" : $"--resume={session}");
+        var arguments = BuildArguments(request, session, mcpServers);
 
         var process = await RunCheckedAsync(
             new(request.Provider.Executable, arguments, request.RunDirectory, request.Payload, IsolatedEnvironment),
@@ -253,28 +333,84 @@ public sealed class CopilotProviderAdapter : ProviderAdapterBase, IProviderAdapt
         return new(session, parsed.ReviewText);
     }
 
-    private static async Task<IReadOnlyList<string>> ReadConfiguredMcpServersAsync(
+    public static IReadOnlyList<string> BuildArguments(
+        ProviderRequest request,
+        string session,
+        IEnumerable<string> mcpServers,
+        IReadOnlySet<string>? supportedOptions = null)
+    {
+        var arguments = new List<string> { "-C", request.RunDirectory };
+        foreach (var flag in new[]
+        {
+            "--no-custom-instructions",
+            "--no-remote-export",
+            "--no-auto-update",
+            "--no-ask-user",
+            "--disable-builtin-mcps",
+            "--disallow-temp-dir",
+            "--no-color",
+            "--silent"
+        })
+        {
+            if (IsOptionSupported(supportedOptions, flag))
+            {
+                arguments.Add(flag);
+            }
+        }
+        arguments.AddRange(
+        [
+            "--output-format", "json", "--stream", "off",
+            "--model", request.Provider.Model, "--reasoning-effort", request.Provider.ReasoningEffort
+        ]);
+        if (IsOptionSupported(supportedOptions, "--available-tools"))
+        {
+            // 空引数は全tool許可へ戻るため、未知のtool名だけを許可する。1.0.105実機でshell呼出し不可を確認済み。
+            arguments.Add($"--available-tools={NoToolSentinel}");
+        }
+        if (IsOptionSupported(supportedOptions, "--deny-tool"))
+        {
+            arguments.AddRange(["--deny-tool=shell", "--deny-tool=write", "--deny-tool=task", "--deny-tool=edit"]);
+        }
+        if (IsOptionSupported(supportedOptions, "--disable-mcp-server"))
+        {
+            foreach (var server in mcpServers)
+            {
+                arguments.Add($"--disable-mcp-server={server}");
+            }
+        }
+        arguments.Add(request.SessionHandle is null ? $"--session-id={session}" : $"--resume={session}");
+        return arguments;
+    }
+
+    private static async Task<IReadOnlyList<string>> DiscoverConfiguredMcpServersAsync(
         ProviderRequest request,
         IProcessRunner processRunner,
         CancellationToken cancellationToken)
     {
-        var result = await RunCheckedAsync(
+        var result = await TryRunDiscoveryAsync(
             new(request.Provider.Executable, ["mcp", "list", "--json"], request.RunDirectory, null, IsolatedEnvironment),
             processRunner,
             cancellationToken);
+        if (result is null)
+        {
+            return [];
+        }
+
         try
         {
             using var document = JsonDocument.Parse(result.StandardOutput);
             if (!document.RootElement.TryGetProperty("mcpServers", out var servers) || servers.ValueKind != JsonValueKind.Object)
             {
-                throw new JsonException("mcpServers must be an object.");
+                Trace.TraceError("Copilot mcp list output did not contain an mcpServers object; continuing without per-server MCP disable flags.");
+                return [];
             }
             var names = new List<string>();
             foreach (var server in servers.EnumerateObject())
             {
                 if (string.IsNullOrWhiteSpace(server.Name) || server.Name.Any(char.IsControl))
                 {
-                    throw new JsonException("An MCP server name was empty or contained a control character.");
+                    Trace.TraceError("Skipped an invalid Copilot MCP server name that was empty or contained a control character.");
+                    continue;
                 }
                 names.Add(server.Name);
             }
@@ -283,7 +419,7 @@ public sealed class CopilotProviderAdapter : ProviderAdapterBase, IProviderAdapt
         catch (JsonException exception)
         {
             Trace.TraceError(exception.ToString());
-            throw new RunnerException("PROVIDER_RESTRICTION_UNSUPPORTED", "Copilot MCP configuration could not be enumerated safely.", ExitCodes.ContractError, exception);
+            return [];
         }
     }
 

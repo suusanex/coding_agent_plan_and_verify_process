@@ -31,9 +31,13 @@ public sealed class RunnerApplicationTests
 
         Assert.AreEqual(ReviewStatuses.Findings, start.Output.Status);
         Assert.AreEqual(JobStatuses.Succeeded, start.Output.JobStatus);
+        Assert.AreEqual(1, start.Output.ReviewRounds);
+        Assert.AreEqual(1, start.Output.DurableSubmissions);
         Assert.AreEqual(ReviewStatuses.Complete, continuation.Output.Status);
         Assert.AreEqual(JobStatuses.Succeeded, continuation.Output.JobStatus);
         Assert.AreEqual(2, continuation.Output.Round);
+        Assert.AreEqual(2, continuation.Output.ReviewRounds);
+        Assert.AreEqual(2, continuation.Output.DurableSubmissions);
         Assert.AreEqual(2, fixture.Process.Requests.Count);
         var inputStore = new ReviewInputStore(fixture.Paths.StateRoot);
         Assert.AreEqual(inputStore.Load(start.Output.RunId!, 1).Hash, start.Output.InputHash);
@@ -105,6 +109,8 @@ public sealed class RunnerApplicationTests
 
         Assert.AreEqual("REVIEW_PARSE_FAILED", result.Output.Error?.Code);
         Assert.AreEqual(JobStatuses.Failed, result.Output.JobStatus);
+        Assert.AreEqual(0, result.Output.ReviewRounds);
+        Assert.AreEqual(1, result.Output.DurableSubmissions);
         var runDirectory = Path.Combine(fixture.Paths.StateRoot, result.Output.RunId!);
         Assert.AreEqual(malformed, File.ReadAllText(Path.Combine(runDirectory, "transcript", "round-01-response.md")));
     }
@@ -144,8 +150,10 @@ public sealed class RunnerApplicationTests
         Assert.AreEqual(ReviewStatuses.HumanDecisionRequired, third.Output.Status);
         Assert.IsTrue(third.Output.Terminal);
         Assert.AreEqual(3, third.Output.Round);
+        Assert.AreEqual(3, third.Output.ReviewRounds);
+        Assert.AreEqual(3, third.Output.DurableSubmissions);
         Assert.AreEqual(1, third.Output.Findings.Count);
-        StringAssert.Contains(third.Output.Message!, "maximum of three durable submissions");
+        StringAssert.Contains(third.Output.Message!, "maximum of three review rounds");
         if (reviewMessage is not null)
         {
             StringAssert.Contains(third.Output.Message!, reviewMessage);
@@ -171,6 +179,7 @@ public sealed class RunnerApplicationTests
         Assert.AreEqual(ReviewStatuses.Complete, continuation.Output.Status);
         Assert.AreEqual(JobStatuses.Succeeded, continuation.Output.JobStatus);
         Assert.AreEqual(2, continuation.Output.Round);
+        Assert.AreEqual(2, continuation.Output.ReviewRounds);
         Assert.AreEqual(2, fixture.Process.Requests.Count);
         var runState = new StateStore(fixture.Paths.StateRoot).Load(start.Output.RunId!);
         Assert.AreEqual(fixture.Process.CodexSessionId, runState.SessionHandle);
@@ -223,6 +232,8 @@ public sealed class RunnerApplicationTests
 
         Assert.AreEqual("PROVIDER_FAILED", result.Output.Error?.Code);
         Assert.AreEqual(JobStatuses.Failed, result.Output.JobStatus);
+        Assert.AreEqual(0, result.Output.ReviewRounds);
+        Assert.AreEqual(1, result.Output.DurableSubmissions);
         Assert.AreEqual(ExitCodes.RuntimeError, result.ExitCode);
         Assert.IsEmpty(Directory.GetFiles(fixture.Paths.StateRoot, "state.json", SearchOption.AllDirectories));
         var runDirectory = Path.Combine(fixture.Paths.StateRoot, result.Output.RunId!);
@@ -266,6 +277,7 @@ public sealed class RunnerApplicationTests
         Assert.AreEqual("REVIEW_PARSE_FAILED", malformed.Output.Error?.Code);
         Assert.AreEqual(JobStatuses.Failed, malformed.Output.JobStatus);
         Assert.AreEqual(2, state.Round);
+        Assert.AreEqual(1, state.ReviewRounds);
         Assert.AreEqual(ReviewStatuses.Error, state.Status);
         Assert.AreEqual("RUN_TERMINAL", retry.Code);
         Assert.HasCount(2, fixture.Process.Requests);
@@ -304,6 +316,7 @@ public sealed class RunnerApplicationTests
         Assert.AreEqual(outcome, stored.Output.Findings.Single().RequiredOutcome);
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(stored.Output, JsonDefaults.Options));
         Assert.AreEqual(4, document.RootElement.GetProperty("protocolVersion").GetInt32());
+        Assert.AreEqual(1, document.RootElement.GetProperty("reviewRounds").GetInt32());
         var finding = document.RootElement.GetProperty("findings")[0];
         Assert.AreEqual(outcome, finding.GetProperty("requiredOutcome").GetString());
         Assert.IsFalse(finding.TryGetProperty("requiredChange", out _));
@@ -363,6 +376,24 @@ public sealed class RunnerApplicationTests
 
         Assert.AreEqual("STATE_INCOMPATIBLE", exception.Code);
         Assert.HasCount(1, fixture.Process.Requests);
+    }
+
+    [TestMethod]
+    public async Task LegacyStateWithoutReviewRoundsIsRejected()
+    {
+        using var fixture = new RunnerFixture("copilot");
+        fixture.WriteRepositoryFile("goal.md", "goal");
+        fixture.Process.Reviews.Enqueue(Review("FINDINGS", Finding("PUR-001")));
+        var start = await fixture.Application.ExecuteAsync(fixture.StartCommand(), CancellationToken.None);
+        var statePath = Path.Combine(fixture.Paths.StateRoot, start.Output.RunId!, "state.json");
+        var stateJson = JsonNode.Parse(File.ReadAllText(statePath))!.AsObject();
+        stateJson.Remove("reviewRounds");
+        File.WriteAllText(statePath, stateJson.ToJsonString(JsonDefaults.Options));
+
+        var exception = await Assert.ThrowsExactlyAsync<RunnerException>(() => fixture.Application.ExecuteAsync(
+            fixture.ContinueCommand(start.Output.RunId!), CancellationToken.None));
+
+        Assert.AreEqual("STATE_INCOMPATIBLE", exception.Code);
     }
 
     [TestMethod]
@@ -643,6 +674,7 @@ public sealed class RunnerApplicationTests
         var state = JsonSerializer.Deserialize<RunState>(stateText, JsonDefaults.Options);
         Assert.IsNotNull(state);
         Assert.AreEqual(1, state.Round);
+        Assert.AreEqual(1, state.ReviewRounds);
         Assert.AreEqual(FakeExecutableResolver.Expected("copilot"), state.Provider.Executable);
     }
 
@@ -664,7 +696,7 @@ public sealed class RunnerApplicationTests
     }
 
     [TestMethod]
-    public async Task ErrorRetriesAcrossRunsShareThreeDurableSubmissionBudget()
+    public async Task PreReviewOperationalFailuresDoNotConsumeThreeRoundReviewBudget()
     {
         using var fixture = new RunnerFixture("copilot");
         fixture.Process.ForcedResult = new ProcessResult(7, string.Empty, "provider failed", false);
@@ -676,20 +708,46 @@ public sealed class RunnerApplicationTests
             var result = await fixture.Application.ExecuteAsync(
                 new StartCommand(fixture.Repository, fixture.WriteInput(currentInput)),
                 CancellationToken.None);
+            var lineage = new TaskLineageStore(fixture.Paths.StateRoot).Load(fixture.Repository, currentInput.TaskKey)!;
             Assert.AreEqual(ReviewStatuses.Error, result.Output.Status);
-            Assert.AreEqual(submission, new TaskLineageStore(fixture.Paths.StateRoot).Load(fixture.Repository, currentInput.TaskKey)!.DurableSubmissions);
+            Assert.AreEqual(0, result.Output.ReviewRounds);
+            Assert.AreEqual(submission, result.Output.DurableSubmissions);
+            Assert.AreEqual(0, lineage.ReviewRounds);
+            Assert.AreEqual(submission, lineage.DurableSubmissions);
             previousRunId = result.Output.RunId;
         }
 
+        fixture.Process.ForcedResult = null;
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Blocked, Finding("PUR-001")));
+
         currentInput = currentInput with { PreviousRunId = previousRunId };
+        var roundOne = await fixture.Application.ExecuteAsync(
+            new StartCommand(fixture.Repository, fixture.WriteInput(currentInput)),
+            CancellationToken.None);
+        var roundTwo = await fixture.Application.ExecuteAsync(fixture.ContinueCommand(roundOne.Output.RunId!), CancellationToken.None);
+        var roundThreeBlocked = await fixture.Application.ExecuteAsync(fixture.ContinueCommand(roundOne.Output.RunId!), CancellationToken.None);
+
+        Assert.AreEqual(ReviewStatuses.Findings, roundOne.Output.Status);
+        Assert.AreEqual(1, roundOne.Output.ReviewRounds);
+        Assert.AreEqual(4, roundOne.Output.DurableSubmissions);
+        Assert.AreEqual(ReviewStatuses.Findings, roundTwo.Output.Status);
+        Assert.AreEqual(2, roundTwo.Output.ReviewRounds);
+        Assert.AreEqual(5, roundTwo.Output.DurableSubmissions);
+        Assert.AreEqual(ReviewStatuses.Blocked, roundThreeBlocked.Output.Status);
+        Assert.AreEqual(3, roundThreeBlocked.Output.ReviewRounds);
+        Assert.AreEqual(6, roundThreeBlocked.Output.DurableSubmissions);
+
+        var fourthRoundInput = currentInput with { PreviousRunId = roundOne.Output.RunId };
         var rejected = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
-            fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(currentInput)), CancellationToken.None));
-        Assert.AreEqual("MAX_SUBMISSIONS_REACHED", rejected.Code);
-        Assert.AreEqual(3, fixture.Process.Requests.Count);
+            fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(fourthRoundInput)), CancellationToken.None));
+        Assert.AreEqual("MAX_REVIEW_ROUNDS_REACHED", rejected.Code);
+        Assert.AreEqual(6, fixture.Process.Requests.Count);
     }
 
     [TestMethod]
-    public async Task ReservedSubmissionWithoutJobFailsClosedAndKeepsConsumedBudget()
+    public async Task ReservedSubmissionWithoutJobFailsClosedWithoutConsumingReviewRoundBudget()
     {
         using var fixture = new RunnerFixture("copilot");
         var reservedRunId = Guid.NewGuid().ToString("D");
@@ -702,14 +760,17 @@ public sealed class RunnerApplicationTests
             reservedRunId,
             ReviewStatuses.Running,
             DurableSubmissions: 2,
-            InputHash: storedInput.Hash));
+            InputHash: storedInput.Hash,
+            ReviewRounds: 0));
 
         var retry = fixture.Input with { PreviousRunId = reservedRunId };
         var exception = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
             fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(retry)), CancellationToken.None));
 
         Assert.AreEqual("SUBMISSION_INCOMPLETE", exception.Code);
-        Assert.AreEqual(2, lineageStore.Load(fixture.Repository, fixture.Input.TaskKey)!.DurableSubmissions);
+        var lineage = lineageStore.Load(fixture.Repository, fixture.Input.TaskKey)!;
+        Assert.AreEqual(2, lineage.DurableSubmissions);
+        Assert.AreEqual(0, lineage.ReviewRounds);
         Assert.IsEmpty(fixture.Process.Requests);
     }
 
@@ -724,8 +785,11 @@ public sealed class RunnerApplicationTests
         var state = new StateStore(fixture.Paths.StateRoot).Load(start.Output.RunId!);
 
         Assert.AreEqual(2, state.DurableSubmissions);
+        Assert.AreEqual(2, state.ReviewRounds);
         Assert.AreEqual(ReviewStatuses.Findings, continuation.Output.Status);
         Assert.AreEqual(2, continuation.Output.Round);
+        Assert.AreEqual(2, continuation.Output.ReviewRounds);
+        Assert.AreEqual(2, continuation.Output.DurableSubmissions);
     }
 
     [TestMethod]
@@ -741,12 +805,22 @@ public sealed class RunnerApplicationTests
             new StartCommand(fixture.Repository, fixture.WriteInput(retryInput)),
             CancellationToken.None);
         fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
-        var continued = await fixture.Application.ExecuteAsync(fixture.ContinueCommand(retried.Output.RunId!), CancellationToken.None);
+        var second = await fixture.Application.ExecuteAsync(fixture.ContinueCommand(retried.Output.RunId!), CancellationToken.None);
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        var third = await fixture.Application.ExecuteAsync(fixture.ContinueCommand(retried.Output.RunId!), CancellationToken.None);
+        var state = new StateStore(fixture.Paths.StateRoot).Load(retried.Output.RunId!);
 
         Assert.AreEqual(ReviewStatuses.Error, failed.Output.Status);
+        Assert.AreEqual(0, failed.Output.ReviewRounds);
         Assert.AreEqual(ReviewStatuses.Findings, retried.Output.Status);
-        Assert.AreEqual(ReviewStatuses.HumanDecisionRequired, continued.Output.Status);
-        Assert.AreEqual(3, new StateStore(fixture.Paths.StateRoot).Load(retried.Output.RunId!).DurableSubmissions);
+        Assert.AreEqual(1, retried.Output.ReviewRounds);
+        Assert.AreEqual(ReviewStatuses.Findings, second.Output.Status);
+        Assert.AreEqual(2, second.Output.ReviewRounds);
+        Assert.AreEqual(ReviewStatuses.HumanDecisionRequired, third.Output.Status);
+        Assert.AreEqual(3, third.Output.ReviewRounds);
+        Assert.AreEqual(4, third.Output.DurableSubmissions);
+        Assert.AreEqual(3, state.ReviewRounds);
+        Assert.AreEqual(4, state.DurableSubmissions);
     }
 
     [TestMethod]
@@ -767,7 +841,11 @@ public sealed class RunnerApplicationTests
         var state = new StateStore(fixture.Paths.StateRoot).Load(retried.Output.RunId!);
 
         Assert.AreEqual(ReviewStatuses.Error, failed.Output.Status);
+        Assert.AreEqual(1, failed.Output.ReviewRounds);
         Assert.AreEqual(ReviewStatuses.Complete, retried.Output.Status);
+        Assert.AreEqual(1, retried.Output.Round);
+        Assert.AreEqual(2, retried.Output.ReviewRounds);
+        Assert.AreEqual(3, retried.Output.DurableSubmissions);
         Assert.AreEqual("PUR-001", state.ReviewHistory![0].Findings.Single().Id);
         StringAssert.Contains(fixture.Process.Requests[^1].StandardInput!, "priorReviewHistory");
         StringAssert.Contains(fixture.Process.Requests[^1].StandardInput!, "PUR-001");
@@ -788,18 +866,27 @@ public sealed class RunnerApplicationTests
 
         fixture.Process.ForcedResult = null;
         fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-002")));
-        var finalInput = fixture.Input with { PreviousRunId = failed.Output.RunId };
-        var final = await fixture.Application.ExecuteAsync(
-            new StartCommand(fixture.Repository, fixture.WriteInput(finalInput)),
+        var secondInput = fixture.Input with { PreviousRunId = failed.Output.RunId };
+        var second = await fixture.Application.ExecuteAsync(
+            new StartCommand(fixture.Repository, fixture.WriteInput(secondInput)),
             CancellationToken.None);
-        var state = new StateStore(fixture.Paths.StateRoot).Load(final.Output.RunId!);
-        Assert.AreEqual(2, state.ReviewHistory!.Count, "Original BLOCKED review history must survive an ERROR-linked retry.");
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-002")));
+        var final = await fixture.Application.ExecuteAsync(fixture.ContinueCommand(second.Output.RunId!), CancellationToken.None);
+        var state = new StateStore(fixture.Paths.StateRoot).Load(second.Output.RunId!);
+        Assert.AreEqual(3, state.ReviewHistory!.Count, "Original BLOCKED review history must survive an ERROR-linked retry.");
         var initialHistory = state.ReviewHistory!.First(entry => entry.Status == ReviewStatuses.Blocked);
 
         Assert.AreEqual(ReviewStatuses.Blocked, blocked.Output.Status);
         Assert.AreEqual(ReviewStatuses.Error, failed.Output.Status);
+        Assert.AreEqual(ReviewStatuses.Findings, second.Output.Status);
+        Assert.AreEqual(1, second.Output.Round);
+        Assert.AreEqual(2, second.Output.ReviewRounds);
         Assert.AreEqual(ReviewStatuses.HumanDecisionRequired, final.Output.Status);
-        Assert.AreEqual(3, state.DurableSubmissions);
+        Assert.AreEqual(2, final.Output.Round);
+        Assert.AreEqual(3, final.Output.ReviewRounds);
+        Assert.AreEqual(4, final.Output.DurableSubmissions);
+        Assert.AreEqual(3, state.ReviewRounds);
+        Assert.AreEqual(4, state.DurableSubmissions);
         Assert.AreEqual("PUR-001", initialHistory.Findings.Single().Id);
         Assert.AreEqual("INFO-001", initialHistory.InformationRequests.Single().Id);
         StringAssert.Contains(fixture.Process.Requests[^1].StandardInput!, "priorReviewHistory");
@@ -825,6 +912,7 @@ public sealed class RunnerApplicationTests
 
         Assert.AreEqual(ReviewStatuses.Blocked, successful.Output.Status);
         Assert.AreEqual(ReviewStatuses.Error, failed.Output.Status);
+        Assert.AreEqual(1, failed.Output.ReviewRounds);
         Assert.HasCount(1, restoredHistory);
         Assert.AreEqual("PUR-001", restoredHistory[0].Findings.Single().Id);
         Assert.AreEqual("INFO-001", restoredHistory[0].InformationRequests.Single().Id);
@@ -882,6 +970,118 @@ public sealed class RunnerApplicationTests
     }
 
     [TestMethod]
+    public async Task FindingsCannotBeBypassedByStartingNewChangeId()
+    {
+        using var fixture = new RunnerFixture("copilot");
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        var start = await fixture.Application.ExecuteAsync(fixture.StartCommand(), CancellationToken.None);
+
+        var escapedSameAuthority = fixture.Input with
+        {
+            ChangeId = "change-2",
+            PreviousRunId = start.Output.RunId,
+            Proposal = fixture.Input.Proposal with { Version = "proposal-v2", Body = "new proposal" }
+        };
+        var rejectedSameAuthority = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(escapedSameAuthority)), CancellationToken.None));
+        Assert.AreEqual("CONTINUE_REQUIRED", rejectedSameAuthority.Code);
+
+        var escapedWithDecision = escapedSameAuthority with
+        {
+            ApprovedDesign = fixture.Input.ApprovedDesign! with { Version = "design-v2", Body = "new design" },
+            UserDecision = new UserDecision("Attempt to escape findings", "user")
+        };
+        var rejectedWithDecision = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(escapedWithDecision)), CancellationToken.None));
+        Assert.AreEqual("CONTINUE_REQUIRED", rejectedWithDecision.Code);
+        Assert.HasCount(1, fixture.Process.Requests);
+    }
+
+    [TestMethod]
+    public async Task NewChangeAfterErrorOrBlockedWithoutAuthorityChangeDoesNotRequireUserDecision()
+    {
+        using var fixture = new RunnerFixture("copilot");
+        fixture.Process.ForcedResult = new ProcessResult(7, string.Empty, "provider failed", false);
+        var failed = await fixture.Application.ExecuteAsync(fixture.StartCommand(), CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.Error, failed.Output.Status);
+
+        fixture.Process.ForcedResult = null;
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Blocked, Finding("PUR-001")));
+        var afterErrorNewChange = fixture.Input with
+        {
+            ChangeId = "change-2",
+            PreviousRunId = failed.Output.RunId,
+            Proposal = fixture.Input.Proposal with { Version = "proposal-v2", Body = "revised proposal after error" },
+            UserDecision = null
+        };
+        var blocked = await fixture.Application.ExecuteAsync(
+            new StartCommand(fixture.Repository, fixture.WriteInput(afterErrorNewChange)),
+            CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.Blocked, blocked.Output.Status);
+        Assert.AreEqual(1, blocked.Output.ReviewRounds);
+        Assert.AreEqual(1, blocked.Output.DurableSubmissions);
+
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Complete));
+        var afterBlockedNewChange = afterErrorNewChange with
+        {
+            ChangeId = "change-3",
+            PreviousRunId = blocked.Output.RunId,
+            Proposal = afterErrorNewChange.Proposal with { Version = "proposal-v3", Body = "revised proposal after blocked" },
+            UserDecision = null
+        };
+        var completed = await fixture.Application.ExecuteAsync(
+            new StartCommand(fixture.Repository, fixture.WriteInput(afterBlockedNewChange)),
+            CancellationToken.None);
+        var state = new StateStore(fixture.Paths.StateRoot).Load(completed.Output.RunId!);
+
+        Assert.AreEqual(ReviewStatuses.Complete, completed.Output.Status);
+        Assert.AreEqual(1, completed.Output.ReviewRounds);
+        Assert.AreEqual(1, completed.Output.DurableSubmissions);
+        Assert.AreEqual(1, state.ReviewRounds);
+        Assert.AreEqual(1, state.DurableSubmissions);
+    }
+
+    [TestMethod]
+    public async Task AuthorityChangeRequiresBothNewChangeIdAndUserDecision()
+    {
+        using var fixture = new RunnerFixture("copilot");
+        fixture.Process.ForcedResult = new ProcessResult(7, string.Empty, "provider failed", false);
+        var failed = await fixture.Application.ExecuteAsync(fixture.StartCommand(), CancellationToken.None);
+        fixture.Process.ForcedResult = null;
+
+        var changedPurposeSameChangeId = fixture.Input with
+        {
+            PreviousRunId = failed.Output.RunId,
+            Purpose = fixture.Input.Purpose with { Version = "purpose-v2", Body = "updated purpose", Original = "updated purpose" },
+            UserDecision = new UserDecision("Approved updated purpose", "user")
+        };
+        var rejectedSameChangeId = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(changedPurposeSameChangeId)), CancellationToken.None));
+        Assert.AreEqual("USER_DECISION_REQUIRED", rejectedSameChangeId.Code);
+
+        var changedPurposeWithoutDecision = changedPurposeSameChangeId with
+        {
+            ChangeId = "change-2",
+            UserDecision = null
+        };
+        var rejectedWithoutDecision = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(changedPurposeWithoutDecision)), CancellationToken.None));
+        Assert.AreEqual("USER_DECISION_REQUIRED", rejectedWithoutDecision.Code);
+
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Complete));
+        var accepted = changedPurposeSameChangeId with
+        {
+            ChangeId = "change-2"
+        };
+        var completed = await fixture.Application.ExecuteAsync(
+            new StartCommand(fixture.Repository, fixture.WriteInput(accepted)),
+            CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.Complete, completed.Output.Status);
+        Assert.AreEqual(1, completed.Output.ReviewRounds);
+        Assert.AreEqual(1, completed.Output.DurableSubmissions);
+    }
+
+    [TestMethod]
     public async Task NewChangeAfterCompleteGetsFreshBudgetButChangedDesignNeedsUserDecision()
     {
         using var fixture = new RunnerFixture("copilot");
@@ -903,6 +1103,7 @@ public sealed class RunnerApplicationTests
         var next = await fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(nextChange)), CancellationToken.None);
         Assert.AreEqual(ReviewStatuses.Complete, next.Output.Status);
         Assert.AreEqual(1, new StateStore(fixture.Paths.StateRoot).Load(next.Output.RunId!).DurableSubmissions);
+        Assert.AreEqual(1, new StateStore(fixture.Paths.StateRoot).Load(next.Output.RunId!).ReviewRounds);
     }
 
     [TestMethod]
@@ -943,6 +1144,7 @@ public sealed class RunnerApplicationTests
         Assert.AreEqual("change-2", approvedState.ChangeId);
         Assert.AreEqual(complete.Output.RunId, approvedState.PreviousRunId);
         Assert.AreEqual(1, approvedState.DurableSubmissions);
+        Assert.AreEqual(1, approvedState.ReviewRounds);
         Assert.AreEqual(approvedSnapshot.Hash, approved.Output.InputHash);
         Assert.AreEqual("design-v2", approved.Output.InputBinding!.ApprovedDesignVersion);
         Assert.AreEqual("design-v2", approvedSnapshot.Binding.ApprovedDesignVersion);
@@ -963,6 +1165,7 @@ public sealed class RunnerApplicationTests
         Assert.AreEqual("change-3", nextState.ChangeId);
         Assert.AreEqual(approved.Output.RunId, nextState.PreviousRunId);
         Assert.AreEqual(1, nextState.DurableSubmissions);
+        Assert.AreEqual(1, nextState.ReviewRounds);
     }
 
     [TestMethod]
@@ -1008,6 +1211,7 @@ public sealed class RunnerApplicationTests
             Assert.AreEqual(JobStatuses.Succeeded, first.Output.JobStatus);
             Assert.AreEqual(ReviewStatuses.Complete, second.Output.Status);
             Assert.AreEqual(2, second.Output.Round);
+            Assert.AreEqual(2, second.Output.ReviewRounds);
             var inputStore = new ReviewInputStore(stateRoot);
             Assert.AreEqual(inputStore.Load(first.Output.RunId!, 1).Hash, first.Output.InputHash);
             Assert.AreEqual(inputStore.Load(first.Output.RunId!, 2).Hash, second.Output.InputHash);
@@ -1047,6 +1251,8 @@ public sealed class RunnerApplicationTests
 
             Assert.AreEqual("WORKER_START_FAILED", result.Output.Error?.Code);
             Assert.AreEqual(JobStatuses.Failed, result.Output.JobStatus);
+            Assert.AreEqual(0, result.Output.ReviewRounds);
+            Assert.AreEqual(1, result.Output.DurableSubmissions);
             StringAssert.Contains(traceText.ToString(), nameof(RunnerException));
             StringAssert.Contains(traceText.ToString(), "The review worker process did not start.");
         }
@@ -1071,6 +1277,8 @@ public sealed class RunnerApplicationTests
         stopwatch.Stop();
         Assert.AreEqual(JobStatuses.Running, submitted.Output.JobStatus);
         Assert.AreEqual(ReviewStatuses.Running, submitted.Output.Status);
+        Assert.AreEqual(0, submitted.Output.ReviewRounds);
+        Assert.AreEqual(1, submitted.Output.DurableSubmissions);
         Assert.IsFalse(submitted.Output.Terminal);
         Assert.AreEqual(1, launcher.LaunchCount);
         Assert.IsEmpty(fixture.Process.Requests);
@@ -1117,6 +1325,8 @@ public sealed class RunnerApplicationTests
 
         Assert.AreEqual(JobStatuses.Running, firstContinue.Output.JobStatus);
         Assert.AreEqual(2, firstContinue.Output.Round);
+        Assert.AreEqual(1, firstContinue.Output.ReviewRounds);
+        Assert.AreEqual(2, firstContinue.Output.DurableSubmissions);
         Assert.AreEqual("JOB_IN_PROGRESS", duplicate.Code);
         Assert.AreEqual(1, launcher.LaunchCount);
         Assert.HasCount(1, fixture.Process.Requests);
@@ -1138,6 +1348,7 @@ public sealed class RunnerApplicationTests
         stopwatch.Stop();
         Assert.AreEqual(JobStatuses.Running, submitted.Output.JobStatus);
         Assert.AreEqual(2, submitted.Output.Round);
+        Assert.AreEqual(1, submitted.Output.ReviewRounds);
         Assert.AreEqual(1, launcher.LaunchCount);
         Assert.HasCount(1, fixture.Process.Requests);
         Assert.IsLessThan(TimeSpan.FromSeconds(2), stopwatch.Elapsed);
@@ -1161,7 +1372,9 @@ public sealed class RunnerApplicationTests
             DateTimeOffset.UtcNow.AddMinutes(-5),
             Pid: 999_999_999,
             ProcessStartTimeUtc: DateTimeOffset.UtcNow.AddMinutes(-5),
-            Repository: fixture.Repository));
+            Repository: fixture.Repository,
+            DurableSubmissions: 2,
+            ReviewRounds: 1));
 
         var status = await fixture.Application.ExecuteAsync(new StatusCommand(start.Output.RunId!), CancellationToken.None);
         var state = new StateStore(fixture.Paths.StateRoot).Load(start.Output.RunId!);
@@ -1170,8 +1383,10 @@ public sealed class RunnerApplicationTests
 
         Assert.AreEqual("WORKER_ABANDONED", status.Output.Error?.Code);
         Assert.AreEqual(JobStatuses.Failed, status.Output.JobStatus);
+        Assert.AreEqual(1, status.Output.ReviewRounds);
         Assert.AreEqual(ExitCodes.RuntimeError, status.ExitCode);
         Assert.AreEqual(ReviewStatuses.Error, state.Status);
+        Assert.AreEqual(1, state.ReviewRounds);
         Assert.AreEqual("RUN_TERMINAL", continuation.Code);
         Assert.HasCount(1, fixture.Process.Requests);
     }
@@ -1545,8 +1760,13 @@ internal sealed class ScriptedProcessRunner : IProcessRunner
     {
         if (request.Arguments.SequenceEqual(["--version"], StringComparer.Ordinal))
         {
-            var version = provider == "codex" ? "codex-cli 0.165.0" : "GitHub Copilot CLI 1.0.105";
+            var version = provider == "codex" ? "codex-cli 0.166.0" : "GitHub Copilot CLI 1.0.106";
             return Task.FromResult(new ProcessResult(0, version, string.Empty, false));
+        }
+        if (request.Arguments.SequenceEqual(["features", "list"], StringComparer.Ordinal))
+        {
+            var lines = string.Join(Environment.NewLine, CodexProviderAdapter.TargetDisabledFeatures.Select(feature => $"{feature} stable true"));
+            return Task.FromResult(new ProcessResult(0, lines, string.Empty, false));
         }
         if (request.Arguments.SequenceEqual(["mcp", "list", "--json"], StringComparer.Ordinal))
         {

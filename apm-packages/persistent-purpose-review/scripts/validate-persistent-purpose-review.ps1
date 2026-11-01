@@ -42,8 +42,8 @@ if ($manifest -notmatch '(?m)^name:\s*persistent-purpose-review\s*$' -or $manife
 if ($manifest -notmatch '(?ms)^targets:\s*$.*^\s+- copilot\s*$.*^\s+- codex\s*$.*^\s+- agent-skills\s*$') {
     throw 'APM package targets are invalid.'
 }
-if ($skill -notmatch 'protocolVersion.*`4`' -or $skill -notmatch '0\.5\.0' -or $skill -notmatch 'schemaVersion.*1') {
-    throw 'Skill does not require Runner 0.5.0 / protocol v4 / input schema 1.'
+if ($skill -notmatch 'protocolVersion.*`4`' -or $skill -notmatch '0\.6\.0' -or $skill -notmatch 'schemaVersion.*1') {
+    throw 'Skill does not require Runner 0.6.0 / protocol v4 / input schema 1.'
 }
 if ($skill -notmatch 'start --repository.*--input' -or $skill -notmatch 'continue --run.*--input' -or $skill -notmatch 'status --run') {
     throw 'Skill CLI usage does not match the public protocol v4 commands.'
@@ -54,8 +54,8 @@ foreach ($field in @('taskKey', 'changeId', 'previousRunId', 'purpose', 'approve
 if ($skill -notmatch '削除・緩和' -or $skill -notmatch 'null' -or $skill -notmatch '記録されたownerが実行・確認したことをRunnerやreviewerが保証') {
     throw 'Input guidance omits full proposal delta, nullable baseline, or conformance owner boundary.'
 }
-if ($skill -notmatch '最大3回' -or $skill -notmatch 'terminal' -or $skill -notmatch '識別子を変えたりして上限を回避しない' -or $skill -notmatch '既に消費した提出数を引き継ぐ') {
-    throw 'Skill does not preserve linked submission budget and terminal rules.'
+if ($skill -notmatch '最大3回' -or $skill -notmatch 'reviewRounds' -or $skill -notmatch 'terminal' -or $skill -notmatch '識別子を変えたりして上限を回避しない' -or $skill -notmatch '既に消費したreview round数（`reviewRounds`）と過去履歴を引き継ぐ') {
+    throw 'Skill does not preserve linked review round budget and terminal rules.'
 }
 if ($skill -notmatch '初期設計' -or $skill -notmatch '重要な変更' -or $skill -notmatch 'findingが出たことだけ' -or $skill -notmatch '実装不足だけ') {
     throw 'Skill review triggers or scope boundary are incomplete.'
@@ -68,8 +68,8 @@ if ($skill -notmatch '`COMPLETE`はレビューの完了だけを示し、提案
     $skill -notmatch '実際に承認済みのbaselineだけ' -or
     $skill -notmatch '実際のユーザー承認の根拠がなければ`approvedDesign`を直前baselineのまま' -or
     $skill -notmatch '既存の発言・文書を引用してauthorityを示し、同じ承認を再度求めない' -or
-    $skill -notmatch '`ERROR` / `BLOCKED`後に異なる`changeId`の新しいchangeを始める場合もRunnerが`userDecision`を要求する') {
-    throw 'Skill must distinguish COMPLETE from approval and document explicit baseline changes, source reuse, and distinct-change decisions.'
+    $skill -notmatch 'purposeと`approvedDesign`が前回inputから不変なら`userDecision`は不要であり、purposeまたは`approvedDesign`を変更する場合のみRunnerが新しい`changeId`と`userDecision`を要求する') {
+    throw 'Skill must distinguish COMPLETE from approval and document explicit baseline changes, source reuse, and authority-based distinct-change decisions.'
 }
 if ($skill -notmatch 'repositoryとは別の作業directory' -or $skill -notmatch 'review inputから作ったpromptだけをstdinへ渡す' -or
     $skill -notmatch 'repository探索、外部調査、ツール呼び出し、委譲を明示的に禁じる' -or
@@ -85,7 +85,7 @@ if ($skill -match '(?im)^\s*(?:Grok|grok)\s*:' -or $skill -match 'grok --|--cont
 if ($readme -notmatch '--target agent-skills --global' -or $readme -notmatch 'disable-model-invocation: true' -or $readme -notmatch '\$persistent-purpose-review') {
     throw 'Package README does not preserve the install and explicit-only contract.'
 }
-if ($readme -notmatch '0\.5\.0' -or $readme -notmatch 'protocol v4' -or $readme -notmatch 'NOT_RUN' -or $readme -notmatch 'HOLD') {
+if ($readme -notmatch '0\.6\.0' -or $readme -notmatch 'protocol v4' -or $readme -notmatch 'NOT_RUN' -or $readme -notmatch 'HOLD') {
     throw 'Package README does not state the version and qualification boundary.'
 }
 if ($readme -notmatch 'repository外の作業directory' -or $readme -notmatch '完全なcapability isolationとして扱いません' -or
@@ -100,17 +100,18 @@ if ($readme -notmatch '`COMPLETE`はそのreviewの完了であり、proposalや
 }
 if ($safetyEvidence -notmatch '当時のRunnerはCodexをfail closedにした' -or
     $safetyEvidence -notmatch '2026-10-29 Issue #150方針更新後のCodex実行境界' -or
+    $safetyEvidence -notmatch '2026-11-01 Issue #152 runtime契約とbest-effort guardrailの整理' -or
     $safetyEvidence -notmatch '同じCodex session' -or
     $safetyEvidence -notmatch 'function_call.*function_call_output.*0件' -or
     $safetyEvidence -notmatch 'functions.*collaboration.*追加tool' -or
     $safetyEvidence -notmatch 'Copilot.*zero-tool実測') {
-    throw 'Provider evidence must distinguish the historical Codex rejection, later bounded run, residual host tools, and preserved Copilot proof.'
+    throw 'Provider evidence must distinguish the historical Codex rejection, later bounded run, Issue #152 guardrail boundary, residual host tools, and preserved Copilot proof.'
 }
 if ($readme -match '(?im)^\s*(?:Grok|grok)\s*:' -or $readme -match 'grok --|0\.4\.0|protocol v3|--context') {
     throw 'Package README contains a removed provider invocation or protocol behavior.'
 }
-if ($contract.runtimeBoundary -notmatch '0\.5\.0以上 / protocol v4') {
-    throw 'Agent Plugin contract does not identify the external Runner v4 boundary.'
+if ($contract.runtimeBoundary -notmatch '0\.6\.0以上 / protocol v4') {
+    throw 'Agent Plugin contract does not identify the external Runner 0.6.0 / protocol v4 boundary.'
 }
 if ($qualification.assessments[0].status -cne 'NOT_RUN' -or $qualification.assessments[0].evidenceMode -cne 'NONE' -or
     $qualification.assessments[1].status -cne 'HOLD' -or $qualification.assessments[1].evidenceMode -cne 'PARTIAL' -or
