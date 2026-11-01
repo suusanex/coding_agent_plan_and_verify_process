@@ -112,8 +112,9 @@ public abstract class ProviderAdapterBase
         return options;
     }
 
+    // --help取得失敗やparse不能時（supportedOptions == null）はunknownとして扱い、optional guardrailを対応済みと仮定しない。
     protected static bool IsOptionSupported(IReadOnlySet<string>? supportedOptions, string option) =>
-        supportedOptions is null || supportedOptions.Contains(option);
+        supportedOptions is not null && supportedOptions.Contains(option);
 
     protected static void DeleteTemporary(string path)
     {
@@ -165,16 +166,18 @@ public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
             new(request.Provider.Executable, helpArguments, request.RunDirectory, null),
             processRunner,
             cancellationToken);
-        var disabledFeatures = IsOptionSupported(supportedOptions, "--disable")
-            ? await DiscoverDisabledFeaturesAsync(request, processRunner, cancellationToken)
-            : [];
+        var (disabledFeatures, supportedConfigOverrides) = await DiscoverCodexGuardrailsAsync(
+            request,
+            supportedOptions,
+            processRunner,
+            cancellationToken);
 
         var responsePath = Path.Combine(request.RunDirectory, $"codex-response-{request.Round}-{Guid.NewGuid():N}.md");
         try
         {
             var arguments = request.SessionHandle is null
-                ? BuildInitialArguments(request, responsePath, disabledFeatures, supportedOptions)
-                : BuildResumeArguments(request, responsePath, disabledFeatures, supportedOptions);
+                ? BuildInitialArguments(request, responsePath, disabledFeatures, supportedOptions, supportedConfigOverrides)
+                : BuildResumeArguments(request, responsePath, disabledFeatures, supportedOptions, supportedConfigOverrides);
             var process = await RunCheckedAsync(
                 new(request.Provider.Executable, arguments, request.RunDirectory, request.Payload),
                 processRunner,
@@ -206,27 +209,48 @@ public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
         }
     }
 
+    private const string ApprovalPolicyNeverOverride = "approval_policy=\"never\"";
+    private const string ReadOnlySandboxOverride = "sandbox_mode=\"read-only\"";
+
     public static IReadOnlyList<string> BuildInitialArguments(
         ProviderRequest request,
         string responsePath,
         IEnumerable<string> disabledFeatures,
-        IReadOnlySet<string>? supportedOptions = null)
+        IReadOnlySet<string>? supportedOptions = null,
+        IReadOnlySet<string>? supportedConfigOverrides = null)
     {
         var arguments = new List<string>
         {
-            "exec", "--json", "--color", "never"
+            "exec", "--json"
         };
+        if (IsOptionSupported(supportedOptions, "--color"))
+        {
+            arguments.Add("--color");
+            arguments.Add("never");
+        }
         AddOptionalFlags(arguments, supportedOptions, "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check");
         if (IsOptionSupported(supportedOptions, "--sandbox"))
         {
             arguments.Add("--sandbox");
             arguments.Add("read-only");
         }
+        else if (IsOptionSupported(supportedOptions, "--config") && IsOptionSupported(supportedConfigOverrides, ReadOnlySandboxOverride))
+        {
+            arguments.Add("--config");
+            arguments.Add(ReadOnlySandboxOverride);
+        }
         arguments.AddRange(
         [
             "-C", request.RunDirectory,
-            "--model", request.Provider.Model,
-            "--config", "approval_policy=\"never\"",
+            "--model", request.Provider.Model
+        ]);
+        if (IsOptionSupported(supportedOptions, "--config") && IsOptionSupported(supportedConfigOverrides, ApprovalPolicyNeverOverride))
+        {
+            arguments.Add("--config");
+            arguments.Add(ApprovalPolicyNeverOverride);
+        }
+        arguments.AddRange(
+        [
             "--config", $"model_reasoning_effort=\"{request.Provider.ReasoningEffort}\"",
             "--output-last-message", responsePath
         ]);
@@ -242,7 +266,8 @@ public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
         ProviderRequest request,
         string responsePath,
         IEnumerable<string> disabledFeatures,
-        IReadOnlySet<string>? supportedOptions = null)
+        IReadOnlySet<string>? supportedOptions = null,
+        IReadOnlySet<string>? supportedConfigOverrides = null)
     {
         var arguments = new List<string>
         {
@@ -251,9 +276,25 @@ public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
         AddOptionalFlags(arguments, supportedOptions, "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check");
         arguments.AddRange(
         [
-            "--model", request.Provider.Model,
-            "--config", "sandbox_mode=\"read-only\"",
-            "--config", "approval_policy=\"never\"",
+            "--model", request.Provider.Model
+        ]);
+        if (IsOptionSupported(supportedOptions, "--sandbox"))
+        {
+            arguments.Add("--sandbox");
+            arguments.Add("read-only");
+        }
+        else if (IsOptionSupported(supportedOptions, "--config") && IsOptionSupported(supportedConfigOverrides, ReadOnlySandboxOverride))
+        {
+            arguments.Add("--config");
+            arguments.Add(ReadOnlySandboxOverride);
+        }
+        if (IsOptionSupported(supportedOptions, "--config") && IsOptionSupported(supportedConfigOverrides, ApprovalPolicyNeverOverride))
+        {
+            arguments.Add("--config");
+            arguments.Add(ApprovalPolicyNeverOverride);
+        }
+        arguments.AddRange(
+        [
             "--config", $"model_reasoning_effort=\"{request.Provider.ReasoningEffort}\"",
             "--output-last-message", responsePath
         ]);
@@ -285,22 +326,76 @@ public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
         }
     }
 
-    private static async Task<IReadOnlyList<string>> DiscoverDisabledFeaturesAsync(
+    private static async Task<(IReadOnlyList<string> DisabledFeatures, IReadOnlySet<string>? SupportedConfigOverrides)> DiscoverCodexGuardrailsAsync(
         ProviderRequest request,
+        IReadOnlySet<string>? supportedOptions,
         IProcessRunner processRunner,
         CancellationToken cancellationToken)
     {
-        var result = await TryRunDiscoveryAsync(
+        var canDisable = IsOptionSupported(supportedOptions, "--disable");
+        var canConfig = IsOptionSupported(supportedOptions, "--config");
+        if (!canDisable && !canConfig)
+        {
+            return ([], null);
+        }
+
+        string[] candidateOverrides = canConfig
+            ? [ApprovalPolicyNeverOverride, ReadOnlySandboxOverride]
+            : [];
+
+        if (candidateOverrides.Length > 0)
+        {
+            var combinedArgs = new List<string>();
+            foreach (var candidate in candidateOverrides)
+            {
+                combinedArgs.Add("--config");
+                combinedArgs.Add(candidate);
+            }
+            combinedArgs.Add("features");
+            combinedArgs.Add("list");
+
+            var combinedResult = await TryRunDiscoveryAsync(
+                new(request.Provider.Executable, combinedArgs, request.RunDirectory, null),
+                processRunner,
+                cancellationToken);
+            if (combinedResult is not null)
+            {
+                var features = canDisable ? ParseSupportedCodexFeatures(combinedResult.StandardOutput) : [];
+                return (features, new HashSet<string>(candidateOverrides, StringComparer.Ordinal));
+            }
+        }
+
+        // combined probeが失敗した場合は素のfeatures listを試し、成功すれば個別のconfig overrideの有効性を切り分ける。
+        var plainResult = await TryRunDiscoveryAsync(
             new(request.Provider.Executable, ["features", "list"], request.RunDirectory, null),
             processRunner,
             cancellationToken);
-        if (result is null)
+        if (plainResult is null)
         {
-            return [];
+            return ([], new HashSet<string>(StringComparer.Ordinal));
         }
 
+        var supportedOverrides = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var candidate in candidateOverrides)
+        {
+            var probe = await TryRunDiscoveryAsync(
+                new(request.Provider.Executable, ["--config", candidate, "features", "list"], request.RunDirectory, null),
+                processRunner,
+                cancellationToken);
+            if (probe is not null)
+            {
+                supportedOverrides.Add(candidate);
+            }
+        }
+
+        var discoveredFeatures = canDisable ? ParseSupportedCodexFeatures(plainResult.StandardOutput) : [];
+        return (discoveredFeatures, supportedOverrides);
+    }
+
+    private static IReadOnlyList<string> ParseSupportedCodexFeatures(string standardOutput)
+    {
         var available = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var line in result.StandardOutput.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        foreach (var line in standardOutput.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             var tokens = line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
             if (tokens.Length >= 3 && (tokens[^1] == "true" || tokens[^1] == "false"))

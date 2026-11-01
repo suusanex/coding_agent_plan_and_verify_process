@@ -866,6 +866,53 @@ public sealed class RunnerApplicationTests
     }
 
     [TestMethod]
+    [DoNotParallelize]
+    public async Task PostParseFirstJobSaveFailureStillConsumesReviewRoundBudget()
+    {
+        var recordingLauncher = new RecordingWorkerLauncher();
+        using var fixture = new RunnerFixture("copilot", recordingLauncher);
+        var submitted = await fixture.Application.ExecuteAsync(fixture.StartCommand(), CancellationToken.None);
+        var runId = submitted.Output.RunId!;
+        var jobPath = Path.Combine(fixture.Paths.StateRoot, runId, "job.json");
+        string? oldJobBytes = null;
+
+        // provider実行完了時にjob.jsonをディレクトリへ置き換えてparse直後の最初のjobStore.Saveだけを失敗させ、直後に旧job.json（ReviewRounds=0）を復元する。
+        fixture.Process.OnReviewInvoked = () =>
+        {
+            oldJobBytes = File.ReadAllText(jobPath);
+            File.Delete(jobPath);
+            Directory.CreateDirectory(jobPath);
+        };
+        using var restoreListener = new CallbackTraceListener(_ =>
+        {
+            if (oldJobBytes is not null && Directory.Exists(jobPath))
+            {
+                Directory.Delete(jobPath);
+                File.WriteAllText(jobPath, oldJobBytes);
+                oldJobBytes = null;
+            }
+        });
+        Trace.Listeners.Add(restoreListener);
+        try
+        {
+            fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+            var failedWork = await fixture.Application.ExecuteAsync(new WorkCommand(runId), CancellationToken.None);
+
+            Assert.AreEqual(JobStatuses.Failed, failedWork.Output.JobStatus);
+            Assert.AreEqual(ReviewStatuses.Error, failedWork.Output.Status);
+            Assert.AreEqual("STATE_WRITE_FAILED", failedWork.Output.Error?.Code);
+            Assert.AreEqual(1, failedWork.Output.ReviewRounds);
+            Assert.AreEqual(1, failedWork.Output.DurableSubmissions);
+            Assert.AreEqual(1, new JobStore(fixture.Paths.StateRoot).Load(runId).ReviewRounds);
+            Assert.AreEqual(1, new TaskLineageStore(fixture.Paths.StateRoot).Load(fixture.Repository, fixture.Input.TaskKey)!.ReviewRounds);
+        }
+        finally
+        {
+            Trace.Listeners.Remove(restoreListener);
+        }
+    }
+
+    [TestMethod]
     public async Task FindingsFromBeforeProviderErrorAreCarriedIntoNewRunHistory()
     {
         using var fixture = new RunnerFixture("copilot");
@@ -1656,6 +1703,13 @@ public sealed class RunnerApplicationTests
     }
 }
 
+internal sealed class CallbackTraceListener(Action<string?> onWrite) : TraceListener
+{
+    public override void Write(string? message) => onWrite(message);
+
+    public override void WriteLine(string? message) => onWrite(message);
+}
+
 internal sealed class InProcessWorkerLauncher : IWorkerLauncher
 {
     public RunnerApplication? Application { get; set; }
@@ -1796,6 +1850,7 @@ internal sealed class ScriptedProcessRunner : IProcessRunner
     public List<string> ReviewTexts { get; } = [];
     public List<ProcessRequest> Requests { get; } = [];
     public ProcessResult? ForcedResult { get; set; }
+    public Action? OnReviewInvoked { get; set; }
     public string CodexSessionId { get; } = "11111111-1111-4111-8111-111111111111";
 
     public Task<ProcessResult> RunAsync(ProcessRequest request, CancellationToken cancellationToken)
@@ -1805,12 +1860,17 @@ internal sealed class ScriptedProcessRunner : IProcessRunner
             var version = provider == "codex" ? "codex-cli 0.166.0" : "GitHub Copilot CLI 1.0.106";
             return Task.FromResult(new ProcessResult(0, version, string.Empty, false));
         }
+        if (request.Arguments.SequenceEqual(["exec", "resume", "--help"], StringComparer.Ordinal))
+        {
+            const string resumeHelpText = "--color --config --ignore-user-config --ignore-rules --skip-git-repo-check --disable";
+            return Task.FromResult(new ProcessResult(0, resumeHelpText, string.Empty, false));
+        }
         if (request.Arguments.Contains("--help", StringComparer.Ordinal))
         {
-            const string helpText = "--ignore-user-config --ignore-rules --skip-git-repo-check --sandbox --disable --no-custom-instructions --no-remote-export --no-auto-update --no-ask-user --disable-builtin-mcps --disallow-temp-dir --no-color --silent --available-tools --deny-tool --disable-mcp-server";
+            const string helpText = "--color --config --ignore-user-config --ignore-rules --skip-git-repo-check --sandbox --disable --no-custom-instructions --no-remote-export --no-auto-update --no-ask-user --disable-builtin-mcps --disallow-temp-dir --no-color --silent --available-tools --deny-tool --disable-mcp-server";
             return Task.FromResult(new ProcessResult(0, helpText, string.Empty, false));
         }
-        if (request.Arguments.SequenceEqual(["features", "list"], StringComparer.Ordinal))
+        if (request.Arguments.Count >= 2 && request.Arguments[^2] == "features" && request.Arguments[^1] == "list")
         {
             var lines = string.Join(Environment.NewLine, CodexProviderAdapter.TargetDisabledFeatures.Select(feature => $"{feature} stable true"));
             return Task.FromResult(new ProcessResult(0, lines, string.Empty, false));
@@ -1824,6 +1884,7 @@ internal sealed class ScriptedProcessRunner : IProcessRunner
         {
             return Task.FromResult(ForcedResult);
         }
+        OnReviewInvoked?.Invoke();
         var review = Reviews.Dequeue();
         ReviewTexts.Add(review);
         return Task.FromResult(provider switch

@@ -309,18 +309,22 @@ public sealed class RunnerApplication
             Pid = Environment.ProcessId,
             ProcessStartTimeUtc = new DateTimeOffset(Process.GetCurrentProcess().StartTime.ToUniversalTime())
         });
-        job = jobStore.Load(command.RunId);
+        var currentJob = jobStore.Load(command.RunId);
 
         try
         {
-            await ExecuteRoundAsync(job, cancellationToken);
+            await ExecuteRoundAsync(currentJob, updated => currentJob = updated, cancellationToken);
             return ReadStoredResult(command.RunId);
         }
         catch (Exception exception)
         {
             Trace.TraceError(exception.ToString());
             var runnerException = exception as RunnerException;
-            var latestJob = TryLoadLatestJob(command.RunId, job);
+            var latestJob = TryLoadLatestJob(command.RunId, currentJob);
+            if (currentJob.ReviewRounds is not null && (latestJob.ReviewRounds is null || latestJob.ReviewRounds < currentJob.ReviewRounds))
+            {
+                latestJob = currentJob;
+            }
             PersistFailure(
                 latestJob,
                 runnerException?.Code ?? "UNEXPECTED_ERROR",
@@ -343,17 +347,17 @@ public sealed class RunnerApplication
         }
     }
 
-    private async Task ExecuteRoundAsync(JobState job, CancellationToken cancellationToken)
+    private async Task ExecuteRoundAsync(JobState job, Action<JobState> onJobUpdated, CancellationToken cancellationToken)
     {
         if (job.Operation == JobOperations.Start)
         {
-            await ExecuteStartRoundAsync(job, cancellationToken);
+            await ExecuteStartRoundAsync(job, onJobUpdated, cancellationToken);
             return;
         }
-        await ExecuteContinueRoundAsync(job, cancellationToken);
+        await ExecuteContinueRoundAsync(job, onJobUpdated, cancellationToken);
     }
 
-    private async Task ExecuteStartRoundAsync(JobState job, CancellationToken cancellationToken)
+    private async Task ExecuteStartRoundAsync(JobState job, Action<JobState> onJobUpdated, CancellationToken cancellationToken)
     {
         var repository = job.Repository ?? throw new RunnerException("JOB_INVALID", "Start job is missing a repository.");
         var snapshot = job.Provider ?? throw new RunnerException("JOB_INVALID", "Start job is missing a provider snapshot.");
@@ -378,10 +382,11 @@ public sealed class RunnerApplication
         transcriptStore.SaveResponse(1, providerResult.ReviewText);
         var parsedReview = ReviewProtocol.Parse(providerResult.ReviewText);
         var completedReviewRounds = job.ReviewRounds!.Value + 1;
-        // provider実行とprotocol parseが成立した時点でcompletedReviewRoundsをdurable jobとlineageへ記録し、後続の永続化失敗時にも3-round上限を保持する。
+        // provider実行とprotocol parseが成立した時点でin-memory参照・lineage・durable jobの順へ記録し、最初のjobStore.Saveが一時失敗してもPersistFailureへ加算済みReviewRoundsを引き渡す。
         job = job with { ReviewRounds = completedReviewRounds };
-        jobStore.Save(job);
+        onJobUpdated(job);
         UpdateLineageStatus(repository, storedInput.Input.TaskKey, job.RunId, ReviewStatuses.Running, completedReviewRounds);
+        jobStore.Save(job);
         var review = EnforceReviewRoundCap(parsedReview, completedReviewRounds);
         var state = new RunState(
             Protocol.Version,
@@ -406,7 +411,7 @@ public sealed class RunnerApplication
             completedReviewRounds);
     }
 
-    private async Task ExecuteContinueRoundAsync(JobState job, CancellationToken cancellationToken)
+    private async Task ExecuteContinueRoundAsync(JobState job, Action<JobState> onJobUpdated, CancellationToken cancellationToken)
     {
         var state = stateStore.Load(job.RunId);
         if (state.Status != ReviewStatuses.Findings)
@@ -454,10 +459,11 @@ public sealed class RunnerApplication
         }
         var parsedReview = ReviewProtocol.Parse(providerResult.ReviewText);
         var completedReviewRounds = job.ReviewRounds!.Value + 1;
-        // provider実行とprotocol parseが成立した時点でcompletedReviewRoundsをdurable jobとlineageへ記録し、後続の永続化失敗時にも3-round上限を保持する。
+        // provider実行とprotocol parseが成立した時点でin-memory参照・lineage・durable jobの順へ記録し、最初のjobStore.Saveが一時失敗してもPersistFailureへ加算済みReviewRoundsを引き渡す。
         job = job with { ReviewRounds = completedReviewRounds };
-        jobStore.Save(job);
+        onJobUpdated(job);
         UpdateLineageStatus(state.Repository, state.TaskKey, job.RunId, ReviewStatuses.Running, completedReviewRounds);
+        jobStore.Save(job);
         var review = EnforceReviewRoundCap(parsedReview, completedReviewRounds);
         stateStore.Save(terminalState with
         {

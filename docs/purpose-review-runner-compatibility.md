@@ -4,7 +4,7 @@
 
 ## 現在の利用条件
 
-Skill 0.6.0はRunner 0.6.0以上、protocol v4を要求します。v4はReviewInput JSONを導入し、目的・設計整合を評価します。Runner 0.6.0のRelease状態および実モデルqualificationは未確認です。`apm update`はSkillだけを更新し、Runner binaryは更新しません。
+Skill 0.7.0はRunner 0.6.0以上、protocol v4を要求します。v4はReviewInput JSONを導入し、目的・設計整合を評価します。Runner 0.6.0のRelease状態および実モデルqualificationは未確認です。`apm update`はSkillだけを更新し、Runner binaryは更新しません。
 
 ## v3および0.5.0から0.6.0への移行
 
@@ -22,8 +22,8 @@ protocol v4はv3と非互換です。旧`--context`入力、v3 run/state/result�
 | 0.2.3 | reviewerのshell調査と目的逸脱レビュー |
 | 0.3.0 | protocol v3。findingに`requiredOutcome`を導入 |
 | 0.4.0 | 実装reviewと後工程の実環境検証の境界を追加 |
-| 0.5.0 | protocol v4。ReviewInput、linked submission budget、目的・設計整合reviewへ変更。Grok/profileを削除 |
-| 0.6.0 | runtime契約とbest-effort guardrailの整理。exact CLI version gateを廃止しcapability discoveryをbest-effort化、`reviewRounds`と`durableSubmissions`を分離（job schema 3）、authority不変時の`ERROR` / `BLOCKED`後新`changeId`で`userDecision`を不要化 |
+| 0.5.0 | protocol v4（Skill 0.6.0）。ReviewInput、linked submission budget、目的・設計整合reviewへ変更。Grok/profileを削除 |
+| 0.6.0 | runtime契約とbest-effort guardrailの整理（Skill 0.7.0）。exact CLI version gateを廃止しcapability discoveryをbest-effort化、`reviewRounds`と`durableSubmissions`を分離（job schema 3）、authority不変時の`ERROR` / `BLOCKED`後新`changeId`で`userDecision`を不要化 |
 
 0.5.0以降はpurpose sourceとproposalを入力へ埋め込み、承認済みbaselineが存在しない場合はnullを許します。proposal deltaには追加、削除、緩和など全変更を記録します。入力内のevidenceを使い、reviewerによるsource再取得は前提にしません。conformance recordはownerの実行を保証しません。旧v3 finding schemaをv4へ読み替えません。
 

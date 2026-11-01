@@ -77,7 +77,7 @@ public sealed class ProviderAdapterTests
         Assert.IsFalse(string.IsNullOrWhiteSpace(CodexProviderAdapter.LastQualifiedVersion));
         Assert.AreEqual(SessionId, result.SessionHandle);
         Assert.IsFalse(fixture.Runner.Requests.Any(call => call.Arguments.Contains("--version", StringComparer.Ordinal)));
-        Assert.IsTrue(fixture.Runner.Requests.Any(call => call.Arguments.SequenceEqual(["features", "list"], StringComparer.Ordinal)));
+        Assert.IsTrue(fixture.Runner.Requests.Any(call => call.Arguments.Count >= 2 && call.Arguments[^2] == "features" && call.Arguments[^1] == "list"));
     }
 
     [TestMethod]
@@ -116,7 +116,6 @@ public sealed class ProviderAdapterTests
             Assert.AreEqual("read-only", ValueAfter(execCall.Arguments, "--sandbox"));
             CollectionAssert.Contains(execCall.Arguments.ToArray(), "--ignore-user-config");
             CollectionAssert.Contains(execCall.Arguments.ToArray(), "--ignore-rules");
-            CollectionAssert.Contains(execCall.Arguments.ToArray(), "approval_policy=\"never\"");
         }
 
         using (var fixture = new AdapterFixture(helpResult: new ProcessResult(
@@ -127,13 +126,58 @@ public sealed class ProviderAdapterTests
         {
             var result = await new CodexProviderAdapter().ExecuteAsync(fixture.Request("codex", null), fixture.Runner, CancellationToken.None);
             Assert.AreEqual(SessionId, result.SessionHandle);
-            Assert.IsFalse(fixture.Runner.Requests.Any(call => call.Arguments.SequenceEqual(["features", "list"], StringComparer.Ordinal)));
+            Assert.IsFalse(fixture.Runner.Requests.Any(call => call.Arguments.Count >= 2 && call.Arguments[^2] == "features" && call.Arguments[^1] == "list"));
             var execCall = fixture.Runner.Requests.Single(call => call.Arguments.Contains("exec", StringComparer.Ordinal) && !call.Arguments.Contains("--help", StringComparer.Ordinal));
             CollectionAssert.DoesNotContain(execCall.Arguments.ToArray(), "--ignore-user-config");
             CollectionAssert.DoesNotContain(execCall.Arguments.ToArray(), "--ignore-rules");
             CollectionAssert.DoesNotContain(execCall.Arguments.ToArray(), "--disable");
+            CollectionAssert.DoesNotContain(execCall.Arguments.ToArray(), "approval_policy=\"never\"");
             CollectionAssert.Contains(execCall.Arguments.ToArray(), "--skip-git-repo-check");
             Assert.AreEqual("read-only", ValueAfter(execCall.Arguments, "--sandbox"));
+        }
+
+        // --help自体が失敗・timeout・parse不能の場合はoptional guardrailを一切仮定せず、runtime必須引数のみで続行する。
+        foreach (var helpFailure in new[]
+                 {
+                     new ProcessResult(2, string.Empty, "help failed", false),
+                     new ProcessResult(0, "help output without any double-dash flags", string.Empty, false),
+                     new ProcessResult(-1, string.Empty, string.Empty, true)
+                 })
+        {
+            using var fixture = new AdapterFixture(helpResult: helpFailure);
+            var initial = await new CodexProviderAdapter().ExecuteAsync(fixture.Request("codex", null), fixture.Runner, CancellationToken.None);
+            var resumed = await new CodexProviderAdapter().ExecuteAsync(fixture.Request("codex", initial.SessionHandle) with { Round = 2 }, fixture.Runner, CancellationToken.None);
+
+            Assert.AreEqual(SessionId, initial.SessionHandle);
+            Assert.AreEqual(SessionId, resumed.SessionHandle);
+            var execCalls = fixture.Runner.Requests.Where(call => call.Arguments.Contains("exec", StringComparer.Ordinal) && !call.Arguments.Contains("--help", StringComparer.Ordinal)).ToArray();
+            Assert.HasCount(2, execCalls);
+            foreach (var call in execCalls)
+            {
+                CollectionAssert.DoesNotContain(call.Arguments.ToArray(), "--color");
+                CollectionAssert.DoesNotContain(call.Arguments.ToArray(), "--ignore-user-config");
+                CollectionAssert.DoesNotContain(call.Arguments.ToArray(), "--ignore-rules");
+                CollectionAssert.DoesNotContain(call.Arguments.ToArray(), "--skip-git-repo-check");
+                CollectionAssert.DoesNotContain(call.Arguments.ToArray(), "--sandbox");
+                CollectionAssert.DoesNotContain(call.Arguments.ToArray(), "--disable");
+                CollectionAssert.DoesNotContain(call.Arguments.ToArray(), "approval_policy=\"never\"");
+                CollectionAssert.DoesNotContain(call.Arguments.ToArray(), "sandbox_mode=\"read-only\"");
+                CollectionAssert.Contains(call.Arguments.ToArray(), "model_reasoning_effort=\"medium\"");
+            }
+        }
+
+        // approval_policyやsandbox_modeのconfig keyが将来廃止された場合、失敗したconfig overrideだけを省略して残りのguardrailで続行する。
+        using (var fixture = new AdapterFixture(rejectedCodexConfigOverride: "sandbox_mode=\"read-only\""))
+        {
+            var resumed = await new CodexProviderAdapter().ExecuteAsync(
+                fixture.Request("codex", SessionId) with { Round = 2 },
+                fixture.Runner,
+                CancellationToken.None);
+            Assert.AreEqual(SessionId, resumed.SessionHandle);
+            var execCall = fixture.Runner.Requests.Single(call => call.Arguments.Contains("exec", StringComparer.Ordinal) && !call.Arguments.Contains("--help", StringComparer.Ordinal));
+            CollectionAssert.DoesNotContain(execCall.Arguments.ToArray(), "sandbox_mode=\"read-only\"");
+            CollectionAssert.Contains(execCall.Arguments.ToArray(), "approval_policy=\"never\"");
+            Assert.IsTrue(HasDisabledFeature(execCall.Arguments, "shell_tool"));
         }
     }
 
@@ -252,6 +296,29 @@ public sealed class ProviderAdapterTests
             Assert.IsFalse(reviewCall.Arguments.Any(arg => arg.StartsWith("--disable-mcp-server=", StringComparison.Ordinal)));
             CollectionAssert.Contains(reviewCall.Arguments.ToArray(), "--deny-tool=shell");
         }
+
+        // Copilotでも--helpが失敗・timeout・parse不能の場合はoptional guardrailを仮定せず、runtime必須引数のみで続行する。
+        foreach (var helpFailure in new[]
+                 {
+                     new ProcessResult(2, string.Empty, "help failed", false),
+                     new ProcessResult(0, "help without flags", string.Empty, false),
+                     new ProcessResult(-1, string.Empty, string.Empty, true)
+                 })
+        {
+            using var fixture = new AdapterFixture(helpResult: helpFailure);
+            var result = await new CopilotProviderAdapter().ExecuteAsync(fixture.Request("copilot", null), fixture.Runner, CancellationToken.None);
+
+            Assert.IsFalse(string.IsNullOrWhiteSpace(result.SessionHandle));
+            Assert.IsFalse(fixture.Runner.Requests.Any(call => call.Arguments.SequenceEqual(["mcp", "list", "--json"], StringComparer.Ordinal)));
+            var reviewCall = fixture.Runner.Requests.Single(call => !call.Arguments.Contains("--help", StringComparer.Ordinal));
+            CollectionAssert.DoesNotContain(reviewCall.Arguments.ToArray(), "--disable-builtin-mcps");
+            CollectionAssert.DoesNotContain(reviewCall.Arguments.ToArray(), "--no-custom-instructions");
+            CollectionAssert.DoesNotContain(reviewCall.Arguments.ToArray(), "--available-tools=report_intent");
+            CollectionAssert.DoesNotContain(reviewCall.Arguments.ToArray(), "--deny-tool=shell");
+            Assert.IsFalse(reviewCall.Arguments.Any(arg => arg.StartsWith("--disable-mcp-server=", StringComparison.Ordinal)));
+            CollectionAssert.Contains(reviewCall.Arguments.ToArray(), "--output-format");
+            CollectionAssert.Contains(reviewCall.Arguments.ToArray(), $"--session-id={result.SessionHandle}");
+        }
     }
 
     [TestMethod]
@@ -281,14 +348,15 @@ public sealed class ProviderAdapterTests
             string? codexResumeSession = null,
             ProcessResult? codexFeaturesResult = null,
             ProcessResult? copilotMcpResult = null,
-            ProcessResult? helpResult = null)
+            ProcessResult? helpResult = null,
+            string? rejectedCodexConfigOverride = null)
         {
             Root = Path.Combine(Path.GetTempPath(), "purpose-review-adapter-tests", Guid.NewGuid().ToString("N"));
             RunDirectory = Path.Combine(Root, "external-run");
             Repository = Path.Combine(Root, "repository");
             Directory.CreateDirectory(RunDirectory);
             Directory.CreateDirectory(Repository);
-            Runner = new ScriptedProviderProcessRunner(writeCodexOutput, codexResumeSession, codexFeaturesResult, copilotMcpResult, helpResult);
+            Runner = new ScriptedProviderProcessRunner(writeCodexOutput, codexResumeSession, codexFeaturesResult, copilotMcpResult, helpResult, rejectedCodexConfigOverride);
         }
 
         public string Root { get; }
@@ -342,21 +410,31 @@ public sealed class ProviderAdapterTests
         string? codexResumeSession,
         ProcessResult? codexFeaturesResult,
         ProcessResult? copilotMcpResult,
-        ProcessResult? helpResult) : IProcessRunner
+        ProcessResult? helpResult,
+        string? rejectedCodexConfigOverride) : IProcessRunner
     {
-        private const string AllSupportedFlags = "--ignore-user-config --ignore-rules --skip-git-repo-check --sandbox --disable --no-custom-instructions --no-remote-export --no-auto-update --no-ask-user --disable-builtin-mcps --disallow-temp-dir --no-color --silent --available-tools --deny-tool --disable-mcp-server";
+        private const string AllSupportedFlags = "--color --config --ignore-user-config --ignore-rules --skip-git-repo-check --sandbox --disable --no-custom-instructions --no-remote-export --no-auto-update --no-ask-user --disable-builtin-mcps --disallow-temp-dir --no-color --silent --available-tools --deny-tool --disable-mcp-server";
 
         public List<ProcessRequest> Requests { get; } = [];
 
         public Task<ProcessResult> RunAsync(ProcessRequest request, CancellationToken cancellationToken)
         {
             Requests.Add(request);
+            if (request.Arguments.SequenceEqual(["exec", "resume", "--help"], StringComparer.Ordinal))
+            {
+                var resumeFlags = AllSupportedFlags.Replace("--sandbox ", string.Empty, StringComparison.Ordinal);
+                return Task.FromResult(helpResult ?? new ProcessResult(0, resumeFlags, string.Empty, false));
+            }
             if (request.Arguments.Contains("--help", StringComparer.Ordinal))
             {
                 return Task.FromResult(helpResult ?? new ProcessResult(0, AllSupportedFlags, string.Empty, false));
             }
-            if (request.Arguments.SequenceEqual(["features", "list"], StringComparer.Ordinal))
+            if (request.Arguments.Count >= 2 && request.Arguments[^2] == "features" && request.Arguments[^1] == "list")
             {
+                if (rejectedCodexConfigOverride is not null && request.Arguments.Contains(rejectedCodexConfigOverride, StringComparer.Ordinal))
+                {
+                    return Task.FromResult(new ProcessResult(1, string.Empty, $"unknown config override: {rejectedCodexConfigOverride}", false));
+                }
                 if (codexFeaturesResult is not null)
                 {
                     return Task.FromResult(codexFeaturesResult);
