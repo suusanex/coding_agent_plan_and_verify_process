@@ -824,6 +824,48 @@ public sealed class RunnerApplicationTests
     }
 
     [TestMethod]
+    public async Task PostParseStateWriteFailureStillConsumesReviewRoundBudget()
+    {
+        var recordingLauncher = new RecordingWorkerLauncher();
+        using var fixture = new RunnerFixture("copilot", recordingLauncher);
+        var submitted = await fixture.Application.ExecuteAsync(fixture.StartCommand(), CancellationToken.None);
+        var runId = submitted.Output.RunId!;
+
+        // state.jsonのパスにディレクトリを作成し、provider実行＋protocol parse成功後のstateStore.Saveだけを失敗させる。
+        var stateCollisionDirectory = Path.Combine(fixture.Paths.StateRoot, runId, "state.json");
+        Directory.CreateDirectory(stateCollisionDirectory);
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        var failedWork = await fixture.Application.ExecuteAsync(new WorkCommand(runId), CancellationToken.None);
+        Directory.Delete(stateCollisionDirectory);
+
+        Assert.AreEqual(JobStatuses.Failed, failedWork.Output.JobStatus);
+        Assert.AreEqual(ReviewStatuses.Error, failedWork.Output.Status);
+        Assert.AreEqual("STATE_WRITE_FAILED", failedWork.Output.Error?.Code);
+        Assert.AreEqual(1, failedWork.Output.ReviewRounds);
+        Assert.AreEqual(1, failedWork.Output.DurableSubmissions);
+        Assert.AreEqual(1, new JobStore(fixture.Paths.StateRoot).Load(runId).ReviewRounds);
+        Assert.AreEqual(1, new TaskLineageStore(fixture.Paths.StateRoot).Load(fixture.Repository, fixture.Input.TaskKey)!.ReviewRounds);
+
+        // 次のlinked retryではpriorReviewRounds=1が引き継がれ、残り2回のreviewで3-round上限に達することを確認する。
+        var inProcess = new InProcessWorkerLauncher();
+        var recoveryApp = new RunnerApplication(fixture.Paths, new FakeExecutableResolver(), fixture.Process, inProcess);
+        inProcess.Application = recoveryApp;
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        var secondRound = await recoveryApp.ExecuteAsync(
+            new StartCommand(fixture.Repository, fixture.WriteInput(fixture.Input with { PreviousRunId = runId })),
+            CancellationToken.None);
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        var thirdRound = await recoveryApp.ExecuteAsync(
+            fixture.ContinueCommand(secondRound.Output.RunId!),
+            CancellationToken.None);
+
+        Assert.AreEqual(2, secondRound.Output.ReviewRounds);
+        Assert.AreEqual(ReviewStatuses.HumanDecisionRequired, thirdRound.Output.Status);
+        Assert.AreEqual(3, thirdRound.Output.ReviewRounds);
+        Assert.AreEqual(3, thirdRound.Output.DurableSubmissions);
+    }
+
+    [TestMethod]
     public async Task FindingsFromBeforeProviderErrorAreCarriedIntoNewRunHistory()
     {
         using var fixture = new RunnerFixture("copilot");
@@ -1762,6 +1804,11 @@ internal sealed class ScriptedProcessRunner : IProcessRunner
         {
             var version = provider == "codex" ? "codex-cli 0.166.0" : "GitHub Copilot CLI 1.0.106";
             return Task.FromResult(new ProcessResult(0, version, string.Empty, false));
+        }
+        if (request.Arguments.Contains("--help", StringComparer.Ordinal))
+        {
+            const string helpText = "--ignore-user-config --ignore-rules --skip-git-repo-check --sandbox --disable --no-custom-instructions --no-remote-export --no-auto-update --no-ask-user --disable-builtin-mcps --disallow-temp-dir --no-color --silent --available-tools --deny-tool --disable-mcp-server";
+            return Task.FromResult(new ProcessResult(0, helpText, string.Empty, false));
         }
         if (request.Arguments.SequenceEqual(["features", "list"], StringComparer.Ordinal))
         {

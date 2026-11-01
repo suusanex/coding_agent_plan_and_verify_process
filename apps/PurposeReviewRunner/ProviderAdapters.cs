@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace PurposeReviewRunner;
 
@@ -82,6 +83,35 @@ public abstract class ProviderAdapterBase
         }
     }
 
+    private static readonly Regex LongOptionPattern = new(@"--[a-z0-9][a-z0-9-]*", RegexOptions.CultureInvariant);
+
+    // CLIの--help出力から利用可能なロングオプションをbest-effortで抽出する。取得失敗や出力形式変更時はnullを返し、既定guardrailを維持する。
+    protected static async Task<IReadOnlySet<string>?> DiscoverSupportedOptionsAsync(
+        ProcessRequest request,
+        IProcessRunner runner,
+        CancellationToken cancellationToken)
+    {
+        var result = await TryRunDiscoveryAsync(request, runner, cancellationToken);
+        if (result is null)
+        {
+            return null;
+        }
+
+        var options = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Match match in LongOptionPattern.Matches(result.StandardOutput + "\n" + result.StandardError))
+        {
+            options.Add(match.Value);
+        }
+
+        if (options.Count == 0)
+        {
+            Trace.TraceError($"Provider help output did not contain any recognized option flags: {request.Executable} {string.Join(' ', request.Arguments)}");
+            return null;
+        }
+
+        return options;
+    }
+
     protected static bool IsOptionSupported(IReadOnlySet<string>? supportedOptions, string option) =>
         supportedOptions is null || supportedOptions.Contains(option);
 
@@ -128,14 +158,23 @@ public sealed class CodexProviderAdapter : ProviderAdapterBase, IProviderAdapter
     {
         ValidateProviderConfiguration(request, "codex");
         Directory.CreateDirectory(request.RunDirectory);
-        var disabledFeatures = await DiscoverDisabledFeaturesAsync(request, processRunner, cancellationToken);
+        var helpArguments = request.SessionHandle is null
+            ? new[] { "exec", "--help" }
+            : new[] { "exec", "resume", "--help" };
+        var supportedOptions = await DiscoverSupportedOptionsAsync(
+            new(request.Provider.Executable, helpArguments, request.RunDirectory, null),
+            processRunner,
+            cancellationToken);
+        var disabledFeatures = IsOptionSupported(supportedOptions, "--disable")
+            ? await DiscoverDisabledFeaturesAsync(request, processRunner, cancellationToken)
+            : [];
 
         var responsePath = Path.Combine(request.RunDirectory, $"codex-response-{request.Round}-{Guid.NewGuid():N}.md");
         try
         {
             var arguments = request.SessionHandle is null
-                ? BuildInitialArguments(request, responsePath, disabledFeatures)
-                : BuildResumeArguments(request, responsePath, disabledFeatures);
+                ? BuildInitialArguments(request, responsePath, disabledFeatures, supportedOptions)
+                : BuildResumeArguments(request, responsePath, disabledFeatures, supportedOptions);
             var process = await RunCheckedAsync(
                 new(request.Provider.Executable, arguments, request.RunDirectory, request.Payload),
                 processRunner,
@@ -317,9 +356,15 @@ public sealed class CopilotProviderAdapter : ProviderAdapterBase, IProviderAdapt
     public async Task<ProviderResult> ExecuteAsync(ProviderRequest request, IProcessRunner processRunner, CancellationToken cancellationToken)
     {
         ValidateProviderConfiguration(request, "copilot");
-        var mcpServers = await DiscoverConfiguredMcpServersAsync(request, processRunner, cancellationToken);
+        var supportedOptions = await DiscoverSupportedOptionsAsync(
+            new(request.Provider.Executable, ["--help"], request.RunDirectory, null, IsolatedEnvironment),
+            processRunner,
+            cancellationToken);
+        var mcpServers = IsOptionSupported(supportedOptions, "--disable-mcp-server")
+            ? await DiscoverConfiguredMcpServersAsync(request, processRunner, cancellationToken)
+            : [];
         var session = request.SessionHandle ?? Guid.NewGuid().ToString("D");
-        var arguments = BuildArguments(request, session, mcpServers);
+        var arguments = BuildArguments(request, session, mcpServers, supportedOptions);
 
         var process = await RunCheckedAsync(
             new(request.Provider.Executable, arguments, request.RunDirectory, request.Payload, IsolatedEnvironment),
