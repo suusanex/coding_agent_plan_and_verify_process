@@ -28,3 +28,7 @@ Runnerの各review呼び出しについて、CLIのpremium request数、token数
 ## 判定境界
 
 本資料は限定的な実モデル挙動の記録であり、PASSや正式qualificationの根拠ではない。レビューはpurpose/design alignmentのみで、実装適合、テスト実行、証拠の独立検証、ユーザー承認は保証しない。APM配布での評価は未実施。direct deploymentは限定証拠を記録したが、広い利用負荷・検出性能を評価していないためHOLDを維持する。
+
+## 2026-11-01 Issue #152 追記（Runner 0.6.0）
+
+上記2026-10-28の記録は当時のRunner 0.5.0実測として改変せず保持する。Issue #152（Runner 0.6.0）では、上記「通知返却の初期proposal」で観測された「モデル呼び出し前のoperational failureが3回の上限を消費する」問題を解消するため、成立したreview回数（`reviewRounds`、最大3）と試行回数（`durableSubmissions`、上限なし）を分離し、CLI exact version gateも廃止した。ただしRunner 0.6.0での全面的な実モデル再評価は未実施のため、qualification statusは変更しない。

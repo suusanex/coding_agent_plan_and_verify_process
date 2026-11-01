@@ -6,9 +6,9 @@ namespace PurposeReviewRunner;
 public static class Protocol
 {
     public const int Version = 4;
-    public const int JobSchemaVersion = 2;
+    public const int JobSchemaVersion = 3;
     public const int MaximumRounds = 3;
-    public const string RunnerVersion = "0.5.0";
+    public const string RunnerVersion = "0.6.0";
     public const int InputSchemaVersion = 1;
     public const string ReviewKind = "purpose-design-alignment";
 }
@@ -129,9 +129,18 @@ public sealed record RunnerOutput(
     InputBinding? InputBinding = null,
     string? InputHash = null,
     IReadOnlyList<InformationRequest>? InformationRequests = null,
-    IReadOnlyList<string>? NonGuarantees = null)
+    IReadOnlyList<string>? NonGuarantees = null,
+    int? ReviewRounds = null,
+    int? DurableSubmissions = null)
 {
-    public static RunnerOutput FromReview(string runId, int round, ReviewerResponse response, InputBinding binding, string inputHash) =>
+    public static RunnerOutput FromReview(
+        string runId,
+        int round,
+        ReviewerResponse response,
+        InputBinding binding,
+        string inputHash,
+        int reviewRounds,
+        int durableSubmissions) =>
         new(
             Protocol.Version,
             Protocol.RunnerVersion,
@@ -147,16 +156,25 @@ public sealed record RunnerOutput(
             binding,
             inputHash,
             response.InformationRequests,
-            ReviewNonGuarantees.Items);
+            ReviewNonGuarantees.Items,
+            reviewRounds,
+            durableSubmissions);
 
-    public static RunnerOutput Running(string runId, int round) =>
-        new(Protocol.Version, Protocol.RunnerVersion, runId, round, ReviewStatuses.Running, false, [], null, null, JobStatuses.Running);
+    public static RunnerOutput Running(string runId, int round, int? reviewRounds = null, int? durableSubmissions = null) =>
+        new(Protocol.Version, Protocol.RunnerVersion, runId, round, ReviewStatuses.Running, false, [], null, null, JobStatuses.Running, ReviewRounds: reviewRounds, DurableSubmissions: durableSubmissions);
 
     public static RunnerOutput Version() =>
         new(Protocol.Version, Protocol.RunnerVersion, null, null, "COMPLETE", true, [], null, null);
 
-    public static RunnerOutput FromError(string code, string message, string? runId = null, int? round = null, string? jobStatus = null) =>
-        new(Protocol.Version, Protocol.RunnerVersion, runId, round, ReviewStatuses.Error, true, [], null, new(code, message), jobStatus);
+    public static RunnerOutput FromError(
+        string code,
+        string message,
+        string? runId = null,
+        int? round = null,
+        string? jobStatus = null,
+        int? reviewRounds = null,
+        int? durableSubmissions = null) =>
+        new(Protocol.Version, Protocol.RunnerVersion, runId, round, ReviewStatuses.Error, true, [], null, new(code, message), jobStatus, ReviewRounds: reviewRounds, DurableSubmissions: durableSubmissions);
 }
 
 public sealed record JobResult(RunnerOutput Output, int ExitCode);
@@ -174,7 +192,8 @@ public sealed record JobState(
     string? Repository = null,
     ProviderSnapshot? Provider = null,
     string? InputHash = null,
-    int DurableSubmissions = 1);
+    int DurableSubmissions = 1,
+    int? ReviewRounds = null);
 
 public sealed record WorkerLaunchResult(int ProcessId, DateTimeOffset ProcessStartTimeUtc);
 
@@ -214,7 +233,8 @@ public sealed record RunState(
     InputBinding? InputBinding = null,
     int DurableSubmissions = 1,
     string? PreviousRunId = null,
-    IReadOnlyList<ReviewHistoryEntry>? ReviewHistory = null);
+    IReadOnlyList<ReviewHistoryEntry>? ReviewHistory = null,
+    int? ReviewRounds = null);
 
 public static class JsonDefaults
 {

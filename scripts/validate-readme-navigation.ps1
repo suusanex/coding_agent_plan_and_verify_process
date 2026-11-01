@@ -51,7 +51,7 @@ Require 'docs/pr-review-remediation-technical-reference.md' 'Untrusted remote co
 Require 'docs/pr-review-remediation-technical-reference.md' 'validate-agent-plugin-package\.ps1' 'PR Review maintainer validation'
 Require 'apm-packages/persistent-purpose-review/README.md' 'purpose-review-runner version' 'Persistent Purpose Review Runner preflight'
 Require 'apm-packages/persistent-purpose-review/README.md' '--target agent-skills --global' 'Persistent Purpose Review global APM install'
-Require 'apm-packages/persistent-purpose-review/README.md' '実装完了後は \$persistent-purpose-review' 'Persistent Purpose Review usage instruction'
+Require 'apm-packages/persistent-purpose-review/README.md' '\$persistent-purpose-review を起動し、許可済みの設計変更をpurpose reviewしてください。' 'Persistent Purpose Review usage instruction'
 Require 'apps/PurposeReviewRunner/README.md' 'releases/latest' 'Runner latest release link'
 Require 'apps/PurposeReviewRunner/README.md' 'docs/purpose-review-runner-technical-reference\.md' 'Runner technical reference link'
 Require 'apps/PurposeReviewRunner/README.md' 'docs/purpose-review-runner-maintenance\.md' 'Runner maintainer reference link'

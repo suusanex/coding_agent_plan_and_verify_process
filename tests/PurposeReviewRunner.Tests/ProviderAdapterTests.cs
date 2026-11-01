@@ -66,15 +66,69 @@ public sealed class ProviderAdapterTests
     }
 
     [TestMethod]
-    public async Task CodexRejectsUnverifiedCliVersionBeforeReviewInvocation()
+    public async Task CodexAllowsNewerCliVersionAndDisablesDiscoveredFeatures()
     {
-        using var fixture = new AdapterFixture(codexVersion: "codex-cli 0.165.1");
+        using var fixture = new AdapterFixture();
 
-        var exception = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
-            new CodexProviderAdapter().ExecuteAsync(fixture.Request("codex", null), fixture.Runner, CancellationToken.None));
+        var result = await new CodexProviderAdapter().ExecuteAsync(fixture.Request("codex", null), fixture.Runner, CancellationToken.None);
 
-        Assert.AreEqual("PROVIDER_VERSION_UNSUPPORTED", exception.Code);
-        Assert.AreEqual(1, fixture.Runner.Requests.Count);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(CodexProviderAdapter.LastQualifiedVersion));
+        Assert.AreEqual(SessionId, result.SessionHandle);
+        Assert.IsFalse(fixture.Runner.Requests.Any(call => call.Arguments.Contains("--version", StringComparer.Ordinal)));
+        Assert.IsTrue(fixture.Runner.Requests.Any(call => call.Arguments.SequenceEqual(["features", "list"], StringComparer.Ordinal)));
+    }
+
+    [TestMethod]
+    public async Task CodexContinuesWithRemainingGuardrailsWhenSomeFeaturesAreRemovedOrDiscoveryFailsOrTimesOut()
+    {
+        var featuresWithoutRemoved = ExpectedCodexDisabledFeatures.Where(feature => feature != "mcp_2026_07_28").ToArray();
+        using (var fixture = new AdapterFixture(codexFeaturesResult: new ProcessResult(
+                   0,
+                   string.Join(Environment.NewLine, featuresWithoutRemoved.Select(feature => $"{feature} stable true")),
+                   string.Empty,
+                   false)))
+        {
+            var result = await new CodexProviderAdapter().ExecuteAsync(fixture.Request("codex", null), fixture.Runner, CancellationToken.None);
+            Assert.AreEqual(SessionId, result.SessionHandle);
+            var execCall = fixture.Runner.Requests.Single(call => call.Arguments.Contains("exec", StringComparer.Ordinal));
+            Assert.IsFalse(HasDisabledFeature(execCall.Arguments, "mcp_2026_07_28"));
+            foreach (var remaining in featuresWithoutRemoved)
+            {
+                Assert.IsTrue(HasDisabledFeature(execCall.Arguments, remaining), $"Expected remaining feature disabled: {remaining}");
+            }
+        }
+
+        foreach (var discoveryFailure in new[]
+                 {
+                     new ProcessResult(2, string.Empty, "unknown subcommand: features", false),
+                     new ProcessResult(0, "unexpected format without boolean stage column", string.Empty, false),
+                     new ProcessResult(-1, string.Empty, string.Empty, true)
+                 })
+        {
+            using var fixture = new AdapterFixture(codexFeaturesResult: discoveryFailure);
+            var result = await new CodexProviderAdapter().ExecuteAsync(fixture.Request("codex", null), fixture.Runner, CancellationToken.None);
+
+            Assert.AreEqual(SessionId, result.SessionHandle);
+            var execCall = fixture.Runner.Requests.Single(call => call.Arguments.Contains("exec", StringComparer.Ordinal));
+            CollectionAssert.DoesNotContain(execCall.Arguments.ToArray(), "--disable");
+            Assert.AreEqual("read-only", ValueAfter(execCall.Arguments, "--sandbox"));
+            CollectionAssert.Contains(execCall.Arguments.ToArray(), "--ignore-user-config");
+            CollectionAssert.Contains(execCall.Arguments.ToArray(), "--ignore-rules");
+            CollectionAssert.Contains(execCall.Arguments.ToArray(), "approval_policy=\"never\"");
+        }
+
+        using (var fixture = new AdapterFixture())
+        {
+            var supportedOptions = new HashSet<string>(["--sandbox", "--disable"], StringComparer.Ordinal);
+            var args = CodexProviderAdapter.BuildInitialArguments(
+                fixture.Request("codex", null),
+                Path.Combine(fixture.RunDirectory, "out.md"),
+                ["shell_tool"],
+                supportedOptions);
+            CollectionAssert.DoesNotContain(args.ToArray(), "--ignore-user-config");
+            CollectionAssert.DoesNotContain(args.ToArray(), "--ignore-rules");
+            Assert.IsTrue(HasDisabledFeature(args, "shell_tool"));
+        }
     }
 
     [TestMethod]
@@ -139,26 +193,42 @@ public sealed class ProviderAdapterTests
     }
 
     [TestMethod]
-    public async Task UnknownCliVersionFailsBeforeReviewInvocation()
+    public async Task CopilotAllowsNewerCliVersionAndContinuesWhenMcpEnumerationFailsOrTimesOut()
     {
-        using var fixture = new AdapterFixture(copilotVersion: "GitHub Copilot CLI 1.0.106.");
-        await Assert.ThrowsExactlyAsync<RunnerException>(() =>
-            new CopilotProviderAdapter().ExecuteAsync(fixture.Request("copilot", null), fixture.Runner, CancellationToken.None));
+        Assert.IsFalse(string.IsNullOrWhiteSpace(CopilotProviderAdapter.LastQualifiedVersion));
 
-        Assert.AreEqual(1, fixture.Runner.Requests.Count);
-        CollectionAssert.AreEqual(new[] { "--version" }, fixture.Runner.Requests[0].Arguments.ToArray());
-    }
+        foreach (var mcpFailure in new[]
+                 {
+                     new ProcessResult(2, string.Empty, "mcp list unsupported", false),
+                     new ProcessResult(0, "not valid json", string.Empty, false),
+                     new ProcessResult(0, "{\"unexpected\":[]}", string.Empty, false),
+                     new ProcessResult(-1, string.Empty, string.Empty, true)
+                 })
+        {
+            using var fixture = new AdapterFixture(copilotMcpResult: mcpFailure);
+            var result = await new CopilotProviderAdapter().ExecuteAsync(fixture.Request("copilot", null), fixture.Runner, CancellationToken.None);
 
-    [TestMethod]
-    public async Task CopilotRejectsVersionSuffixEvenWhenVerifiedVersionIsPrefix()
-    {
-        using var fixture = new AdapterFixture(copilotVersion: "GitHub Copilot CLI 1.0.105-beta.");
+            Assert.IsFalse(string.IsNullOrWhiteSpace(result.SessionHandle));
+            Assert.IsFalse(fixture.Runner.Requests.Any(call => call.Arguments.Contains("--version", StringComparer.Ordinal)));
+            var reviewCall = fixture.Runner.Requests.Single(call => call.Arguments.Contains("--available-tools=report_intent", StringComparer.Ordinal));
+            CollectionAssert.Contains(reviewCall.Arguments.ToArray(), "--disable-builtin-mcps");
+            CollectionAssert.Contains(reviewCall.Arguments.ToArray(), "--deny-tool=shell");
+            Assert.IsFalse(reviewCall.Arguments.Any(arg => arg.StartsWith("--disable-mcp-server=", StringComparison.Ordinal)));
+        }
 
-        var exception = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
-            new CopilotProviderAdapter().ExecuteAsync(fixture.Request("copilot", null), fixture.Runner, CancellationToken.None));
+        using (var fixture = new AdapterFixture(copilotMcpResult: new ProcessResult(
+                   0,
+                   "{\"mcpServers\":{\"bad\\u0007name\":{\"enabled\":true},\"good-server\":{\"enabled\":true}}}",
+                   string.Empty,
+                   false)))
+        {
+            var result = await new CopilotProviderAdapter().ExecuteAsync(fixture.Request("copilot", null), fixture.Runner, CancellationToken.None);
 
-        Assert.AreEqual("PROVIDER_VERSION_UNSUPPORTED", exception.Code);
-        Assert.AreEqual(1, fixture.Runner.Requests.Count);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(result.SessionHandle));
+            var reviewCall = fixture.Runner.Requests.Single(call => call.Arguments.Contains("--available-tools=report_intent", StringComparer.Ordinal));
+            CollectionAssert.Contains(reviewCall.Arguments.ToArray(), "--disable-mcp-server=good-server");
+            Assert.AreEqual(1, reviewCall.Arguments.Count(arg => arg.StartsWith("--disable-mcp-server=", StringComparison.Ordinal)));
+        }
     }
 
     [TestMethod]
@@ -184,17 +254,17 @@ public sealed class ProviderAdapterTests
     private sealed class AdapterFixture : IDisposable
     {
         public AdapterFixture(
-            string codexVersion = "codex-cli 0.165.0",
-            string copilotVersion = "GitHub Copilot CLI 1.0.105.",
             bool writeCodexOutput = true,
-            string? codexResumeSession = null)
+            string? codexResumeSession = null,
+            ProcessResult? codexFeaturesResult = null,
+            ProcessResult? copilotMcpResult = null)
         {
             Root = Path.Combine(Path.GetTempPath(), "purpose-review-adapter-tests", Guid.NewGuid().ToString("N"));
             RunDirectory = Path.Combine(Root, "external-run");
             Repository = Path.Combine(Root, "repository");
             Directory.CreateDirectory(RunDirectory);
             Directory.CreateDirectory(Repository);
-            Runner = new ScriptedProviderProcessRunner(codexVersion, copilotVersion, writeCodexOutput, codexResumeSession);
+            Runner = new ScriptedProviderProcessRunner(writeCodexOutput, codexResumeSession, codexFeaturesResult, copilotMcpResult);
         }
 
         public string Root { get; }
@@ -244,24 +314,32 @@ public sealed class ProviderAdapterTests
     }
 
     private sealed class ScriptedProviderProcessRunner(
-        string codexVersion,
-        string copilotVersion,
         bool writeCodexOutput,
-        string? codexResumeSession) : IProcessRunner
+        string? codexResumeSession,
+        ProcessResult? codexFeaturesResult,
+        ProcessResult? copilotMcpResult) : IProcessRunner
     {
         public List<ProcessRequest> Requests { get; } = [];
 
         public Task<ProcessResult> RunAsync(ProcessRequest request, CancellationToken cancellationToken)
         {
             Requests.Add(request);
-            if (request.Arguments.SequenceEqual(["--version"], StringComparer.Ordinal))
+            if (request.Arguments.SequenceEqual(["features", "list"], StringComparer.Ordinal))
             {
-                var output = request.Executable == "codex" ? codexVersion : copilotVersion;
-                return Task.FromResult(new ProcessResult(0, output, string.Empty, false));
+                if (codexFeaturesResult is not null)
+                {
+                    return Task.FromResult(codexFeaturesResult);
+                }
+                var lines = string.Join(Environment.NewLine, ExpectedCodexDisabledFeatures.Select(feature => $"{feature} stable true"));
+                return Task.FromResult(new ProcessResult(0, lines, string.Empty, false));
             }
 
             if (request.Arguments.SequenceEqual(["mcp", "list", "--json"], StringComparer.Ordinal))
             {
+                if (copilotMcpResult is not null)
+                {
+                    return Task.FromResult(copilotMcpResult);
+                }
                 return Task.FromResult(new ProcessResult(0, "{\"mcpServers\":{\"sample-server\":{\"source\":\"user\",\"enabled\":true}}}", string.Empty, false));
             }
 

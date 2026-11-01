@@ -54,30 +54,17 @@ public sealed class RunnerApplication
             config.ReasoningEffort,
             config.Profile);
         var runId = Guid.NewGuid().ToString("D");
-        int submissions;
+        int priorReviewRounds;
+        int durableSubmissions;
         using (lineageStore.Acquire(repository, input.Input.TaskKey))
         {
             var lineage = lineageStore.Load(repository, input.Input.TaskKey);
-            submissions = ValidateNewSubmission(repository, input, lineage);
+            (priorReviewRounds, durableSubmissions) = ValidateNewSubmission(repository, input, lineage);
             var priorHistory = lineage is null ? [] : LoadReviewHistory(lineage);
             if (lineage is not null)
             {
                 var previousJob = jobStore.Load(lineage.LatestRunId);
                 var previousInput = inputStore.Load(lineage.LatestRunId, previousJob.Round);
-                InputBinding? previousBinding = null;
-                try
-                {
-                    previousBinding = stateStore.Load(lineage.LatestRunId).InputBinding;
-                }
-                catch (RunnerException exception) when (exception.Code == "STATE_NOT_FOUND")
-                {
-                    Trace.TraceError(exception.ToString());
-                    previousBinding = previousInput.Binding;
-                }
-                if ((input.Binding.PurposeHash != previousBinding!.PurposeHash || input.Input.ApprovedDesign != previousInput.Input.ApprovedDesign) && input.Input.UserDecision is null)
-                {
-                    throw new RunnerException("USER_DECISION_REQUIRED", "Changing the purpose or approved-design baseline requires explicit userDecision evidence.");
-                }
                 if (input.Binding.ProposalHash != previousInput.Binding.ProposalHash && input.Input.Proposal.Version == previousInput.Input.Proposal.Version)
                 {
                     throw new RunnerException("INPUT_VERSION_MISMATCH", "A changed proposal must use a new proposal version.");
@@ -95,8 +82,17 @@ public sealed class RunnerApplication
                 Repository: repository,
                 Provider: snapshot,
                 InputHash: input.Hash,
-                DurableSubmissions: submissions);
-            lineageStore.Save(new(repository, input.Input.TaskKey, input.Input.ChangeId, runId, ReviewStatuses.Running, submissions, input.Hash));
+                DurableSubmissions: durableSubmissions,
+                ReviewRounds: priorReviewRounds);
+            lineageStore.Save(new(
+                repository,
+                input.Input.TaskKey,
+                input.Input.ChangeId,
+                runId,
+                ReviewStatuses.Running,
+                durableSubmissions,
+                input.Hash,
+                priorReviewRounds));
             using (stateStore.AcquireLock(runId))
             {
                 jobStore.Save(job);
@@ -119,6 +115,10 @@ public sealed class RunnerApplication
             if (state.Round >= Protocol.MaximumRounds)
             {
                 throw new RunnerException("MAX_ROUNDS_REACHED", "The review run has already reached the maximum of three rounds.");
+            }
+            if (state.ReviewRounds >= Protocol.MaximumRounds)
+            {
+                throw new RunnerException("MAX_REVIEW_ROUNDS_REACHED", "The change has reached the maximum of three review rounds.");
             }
             if (!Directory.Exists(state.Repository))
             {
@@ -154,9 +154,9 @@ public sealed class RunnerApplication
                 {
                     throw new RunnerException("PREVIOUS_RUN_MISMATCH", "This run is no longer the latest run for its task.");
                 }
-                if (lineage.DurableSubmissions >= Protocol.MaximumRounds)
+                if (lineage.ReviewRounds >= Protocol.MaximumRounds)
                 {
-                    throw new RunnerException("MAX_SUBMISSIONS_REACHED", "The change has reached the maximum of three durable submissions.");
+                    throw new RunnerException("MAX_REVIEW_ROUNDS_REACHED", "The change has reached the maximum of three review rounds.");
                 }
                 var priorInput = inputStore.Load(command.RunId, state.Round);
                 if (input.Binding.ProposalHash != priorInput.Binding.ProposalHash && input.Input.Proposal.Version == priorInput.Input.Proposal.Version)
@@ -164,7 +164,8 @@ public sealed class RunnerApplication
                     throw new RunnerException("INPUT_VERSION_MISMATCH", "A changed proposal must use a new proposal version.");
                 }
                 var durableSubmissions = lineage.DurableSubmissions + 1;
-                lineageStore.Save(lineage with { DurableSubmissions = durableSubmissions, InputHash = input.Hash });
+                var reviewRounds = state.ReviewRounds!.Value;
+                lineageStore.Save(lineage with { DurableSubmissions = durableSubmissions, InputHash = input.Hash, ReviewRounds = reviewRounds });
                 state = state with { DurableSubmissions = durableSubmissions };
                 stateStore.Save(state);
                 inputStore.Save(command.RunId, nextRound, input);
@@ -177,7 +178,8 @@ public sealed class RunnerApplication
                     DateTimeOffset.UtcNow,
                     Repository: state.Repository,
                     InputHash: input.Hash,
-                    DurableSubmissions: durableSubmissions));
+                    DurableSubmissions: durableSubmissions,
+                    ReviewRounds: reviewRounds));
             }
             jobStore.DeleteResult(command.RunId);
         }
@@ -262,7 +264,7 @@ public sealed class RunnerApplication
         if (WorkerProcessStatus.IsAlive(job.Pid, job.ProcessStartTimeUtc) ||
             (job.Pid is null && DateTimeOffset.UtcNow - job.StartedAtUtc < WorkerStartGrace))
         {
-            return new(RunnerOutput.Running(command.RunId, job.Round), ExitCodes.Success);
+            return new(RunnerOutput.Running(command.RunId, job.Round, job.ReviewRounds, job.DurableSubmissions), ExitCodes.Success);
         }
 
         using var runLock = stateStore.AcquireLock(command.RunId);
@@ -274,12 +276,13 @@ public sealed class RunnerApplication
         if (WorkerProcessStatus.IsAlive(job.Pid, job.ProcessStartTimeUtc) ||
             (job.Pid is null && DateTimeOffset.UtcNow - job.StartedAtUtc < WorkerStartGrace))
         {
-            return new(RunnerOutput.Running(command.RunId, job.Round), ExitCodes.Success);
+            return new(RunnerOutput.Running(command.RunId, job.Round, job.ReviewRounds, job.DurableSubmissions), ExitCodes.Success);
         }
         if (jobStore.TryLoadResult(command.RunId, out var stored) && stored.Output.Round == job.Round)
         {
             var finishedStatus = stored.Output.Error is null ? JobStatuses.Succeeded : JobStatuses.Failed;
-            jobStore.Save(job with { JobStatus = finishedStatus, FinishedAtUtc = DateTimeOffset.UtcNow });
+            var finishedReviewRounds = stored.Output.ReviewRounds ?? job.ReviewRounds;
+            jobStore.Save(job with { JobStatus = finishedStatus, ReviewRounds = finishedReviewRounds, FinishedAtUtc = DateTimeOffset.UtcNow });
             return new(stored.Output, stored.ExitCode);
         }
 
@@ -359,7 +362,8 @@ public sealed class RunnerApplication
             processRunner,
             cancellationToken);
         transcriptStore.SaveResponse(1, providerResult.ReviewText);
-        var review = EnforceSubmissionCap(ReviewProtocol.Parse(providerResult.ReviewText), job.DurableSubmissions);
+        var completedReviewRounds = job.ReviewRounds!.Value + 1;
+        var review = EnforceReviewRoundCap(ReviewProtocol.Parse(providerResult.ReviewText), completedReviewRounds);
         var state = new RunState(
             Protocol.Version,
             job.RunId,
@@ -374,9 +378,13 @@ public sealed class RunnerApplication
             storedInput.Binding,
             job.DurableSubmissions,
             storedInput.Input.PreviousRunId,
-            (storedInput.Input.PriorReviewHistory ?? []).Append(CreateHistoryEntry(1, review)).ToArray());
+            (storedInput.Input.PriorReviewHistory ?? []).Append(CreateHistoryEntry(1, review)).ToArray(),
+            completedReviewRounds);
         stateStore.Save(state);
-        PersistSuccess(job, RunnerOutput.FromReview(job.RunId, 1, review, storedInput.Binding, storedInput.Hash));
+        PersistSuccess(
+            job,
+            RunnerOutput.FromReview(job.RunId, 1, review, storedInput.Binding, storedInput.Hash, completedReviewRounds, job.DurableSubmissions),
+            completedReviewRounds);
     }
 
     private async Task ExecuteContinueRoundAsync(JobState job, CancellationToken cancellationToken)
@@ -389,6 +397,10 @@ public sealed class RunnerApplication
         if (state.Round >= Protocol.MaximumRounds)
         {
             throw new RunnerException("MAX_ROUNDS_REACHED", "The review run has already reached the maximum of three rounds.");
+        }
+        if (state.ReviewRounds >= Protocol.MaximumRounds)
+        {
+            throw new RunnerException("MAX_REVIEW_ROUNDS_REACHED", "The change has reached the maximum of three review rounds.");
         }
         if (!Directory.Exists(state.Repository))
         {
@@ -422,43 +434,50 @@ public sealed class RunnerApplication
             throw new RunnerException("SESSION_MISMATCH", "Provider resumed a different session.", ExitCodes.ContractError);
         }
         var review = ReviewProtocol.Parse(providerResult.ReviewText);
-        review = EnforceSubmissionCap(review, job.DurableSubmissions);
+        var completedReviewRounds = job.ReviewRounds!.Value + 1;
+        review = EnforceReviewRoundCap(review, completedReviewRounds);
         stateStore.Save(terminalState with
         {
             Status = review.Status,
             InputBinding = storedInput.Binding,
-            ReviewHistory = (storedInput.Input.PriorReviewHistory ?? []).Append(CreateHistoryEntry(nextRound, review)).ToArray()
+            ReviewHistory = (storedInput.Input.PriorReviewHistory ?? []).Append(CreateHistoryEntry(nextRound, review)).ToArray(),
+            ReviewRounds = completedReviewRounds
         });
-        PersistSuccess(job, RunnerOutput.FromReview(state.RunId, nextRound, review, storedInput.Binding, storedInput.Hash));
+        PersistSuccess(
+            job,
+            RunnerOutput.FromReview(state.RunId, nextRound, review, storedInput.Binding, storedInput.Hash, completedReviewRounds, job.DurableSubmissions),
+            completedReviewRounds);
     }
 
-    private void PersistSuccess(JobState job, RunnerOutput output)
+    private void PersistSuccess(JobState job, RunnerOutput output, int completedReviewRounds)
     {
         jobStore.SaveResult(job.RunId, new(output, ExitCodes.Success));
         jobStore.Save(job with
         {
             JobStatus = JobStatuses.Succeeded,
+            ReviewRounds = completedReviewRounds,
             FinishedAtUtc = DateTimeOffset.UtcNow
         });
         if (job.Operation == JobOperations.Start)
         {
             var input = inputStore.Load(job.RunId, job.Round).Input;
-            UpdateLineageStatus(job.Repository!, input.TaskKey, job.RunId, output.Status);
+            UpdateLineageStatus(job.Repository!, input.TaskKey, job.RunId, output.Status, completedReviewRounds);
         }
         else
         {
             var state = stateStore.Load(job.RunId);
-            UpdateLineageStatus(state.Repository, state.TaskKey, job.RunId, state.Status);
+            UpdateLineageStatus(state.Repository, state.TaskKey, job.RunId, state.Status, completedReviewRounds);
         }
     }
 
-    private static ReviewerResponse EnforceSubmissionCap(ReviewerResponse review, int durableSubmissions)
+    // 同一changeIdで有効なreviewが3回成立した後にFINDINGSが残る場合のみHUMAN_DECISION_REQUIREDへ遷移させる。
+    private static ReviewerResponse EnforceReviewRoundCap(ReviewerResponse review, int reviewRounds)
     {
-        if (durableSubmissions != Protocol.MaximumRounds || review.Status != ReviewStatuses.Findings)
+        if (reviewRounds != Protocol.MaximumRounds || review.Status != ReviewStatuses.Findings)
         {
             return review;
         }
-        var notice = "Actionable findings remain after the maximum of three durable submissions for this change.";
+        var notice = "Actionable findings remain after the maximum of three review rounds for this change.";
         return review with
         {
             Status = ReviewStatuses.HumanDecisionRequired,
@@ -523,7 +542,7 @@ public sealed class RunnerApplication
 
     private void PersistFailure(JobState job, string code, string message, int exitCode)
     {
-        var output = RunnerOutput.FromError(code, message, job.RunId, job.Round, JobStatuses.Failed);
+        var output = RunnerOutput.FromError(code, message, job.RunId, job.Round, JobStatuses.Failed, job.ReviewRounds, job.DurableSubmissions);
         jobStore.SaveResult(job.RunId, new(output, exitCode));
         jobStore.Save(job with
         {
@@ -533,17 +552,17 @@ public sealed class RunnerApplication
         if (job.Operation == JobOperations.Start)
         {
             var input = inputStore.Load(job.RunId, job.Round).Input;
-            UpdateLineageStatus(job.Repository!, input.TaskKey, job.RunId, ReviewStatuses.Error);
+            UpdateLineageStatus(job.Repository!, input.TaskKey, job.RunId, ReviewStatuses.Error, job.ReviewRounds);
         }
         else
         {
             TryMarkStateError(job.RunId);
             var state = stateStore.Load(job.RunId);
-            UpdateLineageStatus(state.Repository, state.TaskKey, job.RunId, ReviewStatuses.Error);
+            UpdateLineageStatus(state.Repository, state.TaskKey, job.RunId, ReviewStatuses.Error, state.ReviewRounds);
         }
     }
 
-    private void UpdateLineageStatus(string repository, string taskKey, string runId, string status)
+    private void UpdateLineageStatus(string repository, string taskKey, string runId, string status, int? reviewRounds)
     {
         try
         {
@@ -551,7 +570,7 @@ public sealed class RunnerApplication
             var lineage = lineageStore.Load(repository, taskKey);
             if (lineage?.LatestRunId == runId)
             {
-                lineageStore.Save(lineage with { LatestStatus = status });
+                lineageStore.Save(lineage with { LatestStatus = status, ReviewRounds = reviewRounds ?? lineage.ReviewRounds });
             }
         }
         catch (Exception exception)
@@ -560,7 +579,7 @@ public sealed class RunnerApplication
         }
     }
 
-    private int ValidateNewSubmission(string repository, StoredReviewInput stored, TaskLineage? lineage)
+    private (int PriorReviewRounds, int DurableSubmissions) ValidateNewSubmission(string repository, StoredReviewInput stored, TaskLineage? lineage)
     {
         var input = stored.Input;
         if (lineage is null)
@@ -569,24 +588,52 @@ public sealed class RunnerApplication
             {
                 throw new RunnerException("PREVIOUS_RUN_MISMATCH", "The first submission for this task must not name a previous run.");
             }
-            return 1;
+            return (0, 1);
         }
         if (!PathComparer.Equals(lineage.Repository, repository) || lineage.TaskKey != input.TaskKey || input.PreviousRunId != lineage.LatestRunId)
         {
             throw new RunnerException("PREVIOUS_RUN_MISMATCH", "previousRunId must identify the latest durable run for this repository and taskKey.");
         }
-        var previousStatus = ResolveLatestStatus(lineage);
+        var (previousStatus, updatedLineage) = ResolveLatestStatus(lineage);
+        lineage = updatedLineage;
+
+        // FINDINGSからは新changeIdへ逃げることを許さず、必ず同一runでのcontinueを要求する。
         if (previousStatus == ReviewStatuses.Findings)
         {
             throw new RunnerException("CONTINUE_REQUIRED", "A FINDINGS run must continue in the same session.");
         }
+
+        var previousJob = jobStore.Load(lineage.LatestRunId);
+        var previousInput = inputStore.Load(lineage.LatestRunId, previousJob.Round);
+        InputBinding previousBinding;
+        try
+        {
+            previousBinding = stateStore.Load(lineage.LatestRunId).InputBinding
+                ?? throw new RunnerException("STATE_INCOMPATIBLE", "Run state is missing its input binding.");
+        }
+        catch (RunnerException exception) when (exception.Code == "STATE_NOT_FOUND")
+        {
+            Trace.TraceError(exception.ToString());
+            previousBinding = previousInput.Binding;
+        }
+
+        var authorityChanged = stored.Binding.PurposeHash != previousBinding.PurposeHash ||
+                               stored.Binding.ApprovedDesignHash != previousBinding.ApprovedDesignHash ||
+                               input.ApprovedDesign != previousInput.Input.ApprovedDesign;
+        if (authorityChanged && (input.ChangeId == lineage.ChangeId || input.UserDecision is null))
+        {
+            throw new RunnerException(
+                "USER_DECISION_REQUIRED",
+                "Changing the purpose or approved-design baseline requires a new changeId and explicit userDecision body and authority.");
+        }
+
         if (previousStatus == ReviewStatuses.HumanDecisionRequired)
         {
             if (input.ChangeId == lineage.ChangeId || input.UserDecision is null)
             {
                 throw new RunnerException("USER_DECISION_REQUIRED", "A HUMAN_DECISION_REQUIRED result requires a new changeId and explicit userDecision body and authority.");
             }
-            return 1;
+            return (0, 1);
         }
         if (previousStatus == ReviewStatuses.Complete)
         {
@@ -594,28 +641,24 @@ public sealed class RunnerApplication
             {
                 throw new RunnerException("RUN_TERMINAL", "A COMPLETE change cannot be submitted again.");
             }
-            return 1;
+            return (0, 1);
         }
         if (previousStatus is ReviewStatuses.Blocked or ReviewStatuses.Error)
         {
             if (input.ChangeId != lineage.ChangeId)
             {
-                if (input.UserDecision is null)
-                {
-                    throw new RunnerException("USER_DECISION_REQUIRED", "A new change after BLOCKED or ERROR requires explicit userDecision body and authority.");
-                }
-                return 1;
+                return (0, 1);
             }
-            if (lineage.DurableSubmissions >= Protocol.MaximumRounds)
+            if (lineage.ReviewRounds >= Protocol.MaximumRounds)
             {
-                throw new RunnerException("MAX_SUBMISSIONS_REACHED", "The change has reached the maximum of three durable submissions.");
+                throw new RunnerException("MAX_REVIEW_ROUNDS_REACHED", "The change has reached the maximum of three review rounds.");
             }
-            return lineage.DurableSubmissions + 1;
+            return (lineage.ReviewRounds!.Value, lineage.DurableSubmissions + 1);
         }
         throw new RunnerException("JOB_IN_PROGRESS", "The latest task submission is still running or has an unsupported status.");
     }
 
-    private string ResolveLatestStatus(TaskLineage lineage)
+    private (string Status, TaskLineage Lineage) ResolveLatestStatus(TaskLineage lineage)
     {
         JobState job;
         try
@@ -627,7 +670,7 @@ public sealed class RunnerApplication
             Trace.TraceError(exception.ToString());
             throw new RunnerException(
                 "SUBMISSION_INCOMPLETE",
-                $"Task {lineage.TaskKey} has a reserved submission without a durable job record. Its budget remains consumed; inspect lineage run {lineage.LatestRunId} before submitting again.",
+                $"Task {lineage.TaskKey} has a reserved submission without a durable job record. Its review round budget was not consumed; inspect lineage run {lineage.LatestRunId} before submitting again.",
                 ExitCodes.ContractError,
                 exception);
         }
@@ -636,20 +679,35 @@ public sealed class RunnerApplication
             throw new RunnerException("JOB_IN_PROGRESS", $"The latest task submission is still running; query status for run {lineage.LatestRunId} before submitting a new change.");
         }
         string status;
+        int reviewRounds;
         try
         {
-            status = stateStore.Load(lineage.LatestRunId).Status;
+            var state = stateStore.Load(lineage.LatestRunId);
+            status = state.Status;
+            reviewRounds = state.ReviewRounds!.Value;
         }
         catch (RunnerException exception) when (exception.Code == "STATE_NOT_FOUND")
         {
             Trace.TraceError(exception.ToString());
             status = jobStore.LoadResult(lineage.LatestRunId).Output.Status;
+            reviewRounds = job.ReviewRounds!.Value;
         }
-        if (status != lineage.LatestStatus || lineage.DurableSubmissions != job.DurableSubmissions || lineage.InputHash != job.InputHash)
+        var updated = lineage;
+        if (status != lineage.LatestStatus ||
+            lineage.DurableSubmissions != job.DurableSubmissions ||
+            lineage.ReviewRounds != reviewRounds ||
+            lineage.InputHash != job.InputHash)
         {
-            lineageStore.Save(lineage with { LatestStatus = status, DurableSubmissions = job.DurableSubmissions, InputHash = job.InputHash ?? lineage.InputHash });
+            updated = lineage with
+            {
+                LatestStatus = status,
+                DurableSubmissions = job.DurableSubmissions,
+                InputHash = job.InputHash ?? lineage.InputHash,
+                ReviewRounds = reviewRounds
+            };
+            lineageStore.Save(updated);
         }
-        return status;
+        return (status, updated);
     }
 
     private static readonly StringComparer PathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
@@ -675,7 +733,7 @@ public sealed class RunnerApplication
         var job = jobStore.Load(runId);
         if (job.JobStatus == JobStatuses.Running)
         {
-            return new(RunnerOutput.Running(runId, job.Round), ExitCodes.Success);
+            return new(RunnerOutput.Running(runId, job.Round, job.ReviewRounds, job.DurableSubmissions), ExitCodes.Success);
         }
         return ReadStoredResult(runId);
     }

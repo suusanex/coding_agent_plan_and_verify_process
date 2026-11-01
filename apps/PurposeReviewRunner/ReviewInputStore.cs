@@ -125,7 +125,15 @@ public sealed class ReviewInputStore
         Hash(input.Proposal), input.Proposal.Version);
 }
 
-public sealed record TaskLineage(string Repository, string TaskKey, string ChangeId, string LatestRunId, string LatestStatus, int DurableSubmissions, string InputHash);
+public sealed record TaskLineage(
+    string Repository,
+    string TaskKey,
+    string ChangeId,
+    string LatestRunId,
+    string LatestStatus,
+    int DurableSubmissions,
+    string InputHash,
+    int? ReviewRounds = null);
 
 public sealed class TaskLineageStore
 {
@@ -153,8 +161,14 @@ public sealed class TaskLineageStore
         if (!File.Exists(path)) return null;
         try
         {
-            return JsonSerializer.Deserialize<TaskLineage>(SharedStateFile.ReadAllText(path), JsonDefaults.Options)
+            var lineage = JsonSerializer.Deserialize<TaskLineage>(SharedStateFile.ReadAllText(path), JsonDefaults.Options)
                 ?? throw new JsonException("Lineage JSON was empty.");
+            ValidateLineage(lineage);
+            return lineage;
+        }
+        catch (RunnerException)
+        {
+            throw;
         }
         catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
         {
@@ -165,6 +179,7 @@ public sealed class TaskLineageStore
 
     public void Save(TaskLineage lineage)
     {
+        ValidateLineage(lineage);
         try
         {
             SharedStateFile.WriteAtomic(Path.Combine(GetDirectory(lineage.Repository, lineage.TaskKey), "lineage.json"), JsonSerializer.Serialize(lineage, JsonDefaults.Options) + Environment.NewLine);
@@ -173,6 +188,17 @@ public sealed class TaskLineageStore
         {
             Trace.TraceError(exception.ToString());
             throw new RunnerException("STATE_WRITE_FAILED", "Task lineage could not be saved.", ExitCodes.ContractError, exception);
+        }
+    }
+
+    private static void ValidateLineage(TaskLineage lineage)
+    {
+        if (string.IsNullOrWhiteSpace(lineage.Repository) || string.IsNullOrWhiteSpace(lineage.TaskKey) ||
+            string.IsNullOrWhiteSpace(lineage.ChangeId) || string.IsNullOrWhiteSpace(lineage.LatestRunId) ||
+            string.IsNullOrWhiteSpace(lineage.LatestStatus) || string.IsNullOrWhiteSpace(lineage.InputHash) ||
+            lineage.DurableSubmissions < 1 || lineage.ReviewRounds is null or < 0 or > Protocol.MaximumRounds)
+        {
+            throw new RunnerException("STATE_INVALID", "Task lineage contains invalid control data.");
         }
     }
 

@@ -364,7 +364,8 @@ public sealed class WindowsWorkerLaunchTests
             DateTimeOffset.UtcNow,
             Repository: Path.GetFullPath(Path.Combine(paths.StateRoot, "repo")),
             Provider: new ProviderSnapshot("copilot", FakeExecutableResolver.Expected("copilot"), "test-model", "high", null),
-            InputHash: "test-input-hash"));
+            InputHash: "test-input-hash",
+            ReviewRounds: 0));
         return runId;
     }
 

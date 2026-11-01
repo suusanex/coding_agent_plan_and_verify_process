@@ -83,7 +83,7 @@ public sealed class JobStoreConcurrencyTests
         store.Save(job);
         var path = Path.Combine(store.GetRunDirectory(job.RunId), "job.json");
         var document = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!;
-        document["schemaVersion"] = 1;
+        document["schemaVersion"] = 2;
         File.WriteAllText(path, document.ToJsonString());
 
         var exception = Assert.ThrowsExactly<RunnerException>(() => store.Load(job.RunId));
@@ -143,5 +143,6 @@ public sealed class JobStoreConcurrencyTests
             DateTimeOffset.UtcNow,
             Repository: Path.GetFullPath(Path.Combine(stateRoot, "repo")),
             Provider: new ProviderSnapshot("codex", FakeExecutableResolver.Expected("codex"), "test-model", "high", null),
-            InputHash: "test-input-hash");
+            InputHash: "test-input-hash",
+            ReviewRounds: 0);
 }

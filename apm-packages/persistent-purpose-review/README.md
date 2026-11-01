@@ -8,10 +8,10 @@ Skillはuser-invocableで、`disable-model-invocation: true`を維持します�
 
 - APM CLIが利用できること。
 - reviewerとしてCodex CLIまたはGitHub Copilot CLIのいずれかが導入・認証済みであること。Grok Buildは対応しません。
-- `purpose-review-runner` 0.5.0以上、protocol v4のRunner buildがあること。
+- `purpose-review-runner` 0.6.0以上、protocol v4のRunner buildがあること。
 - Runnerのconfigでproviderを`codex`または`copilot`に設定し、`profile`は`null`にすること。
 
-Runner 0.5.0 / protocol v4のReleaseと実モデル評価は、この変更時点で未確認です。導入前にversionとreleaseの存在を確認し、必要なRunner buildが配布されていない場合はSkillの運用を開始しないでください。`apm update`だけではRunner binaryは更新されません。
+Runner 0.6.0 / protocol v4のReleaseと実モデル評価は、この変更時点で未確認です。導入前にversionとreleaseの存在を確認し、必要なRunner buildが配布されていない場合はSkillの運用を開始しないでください。`apm update`だけではRunner binaryは更新されません。
 
 ## Install
 
@@ -22,7 +22,7 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persisten
 purpose-review-runner version
 ```
 
-`version` JSONでprotocol v4、Runner 0.5.0以上を確認します。実行前に必ずSkill自体を明示的に起動します。
+`version` JSONでprotocol v4、Runner 0.6.0以上を確認します。実行前に必ずSkill自体を明示的に起動します。
 
 ```text
 $persistent-purpose-review を起動し、許可済みの設計変更をpurpose reviewしてください。
@@ -32,11 +32,11 @@ $persistent-purpose-review を起動し、許可済みの設計変更をpurpose 
 
 各提出で`schemaVersion: 1`のJSON inputを用意します。ユーザーの目的・authorityの引用とsource、承認済みbaseline（存在しなければ`null`）、設計全体とbaselineからの追加・削除・緩和を含むdelta、証拠本文、findingへの応答、要件ごとのconformance申告を埋め込みます。Runnerやreviewerにsourceを取りに行かせず、入力内の証拠を使います。conformance記録はownerの実施を保証しません。
 
-初回は`start --repository <path> --input <json>`、同じrunでの再提出は`continue --run <uuid> --input <json>`、状態確認は`status --run <uuid>`です。各continueで完全な最新inputを渡します。同一changeの`taskKey`と`changeId`はlinked runを通じて維持し、最大3提出までです。continue inputは初回start時の`previousRunId`値を保ちます。terminal `ERROR`/`BLOCKED`後は同じchangeなら同じIDsと直前run参照で新しいlinked runを`start`し、消費済み予算を引き継ぎます。異なるchangeを始める場合は新しい`changeId`と、その判断に必要な`userDecision`を使います。`HUMAN_DECISION_REQUIRED`後はユーザー判断を得て新しいchangeをstartします。
+初回は`start --repository <path> --input <json>`、同じrunでの再提出は`continue --run <uuid> --input <json>`、状態確認は`status --run <uuid>`です。各continueで完全な最新inputを渡します。同一changeの`taskKey`と`changeId`はlinked runを通じて維持し、有効なreviewが成立した回数（`reviewRounds`）は最大3回までです。review成立前のoperational failureは`durableSubmissions`に記録されますが、`reviewRounds`は消費しません。continue inputは初回start時の`previousRunId`値を保ちます。terminal `ERROR`/`BLOCKED`後は同じchangeなら同じIDsと直前run参照で新しいlinked runを`start`し、既に消費した`reviewRounds`とreview履歴を引き継ぎます。purposeと`approvedDesign`を変えずに`ERROR`/`BLOCKED`後に異なるchangeを始める場合は、新しい`changeId`と直前run参照で`start`でき、`userDecision`は不要です。purposeまたは`approvedDesign`を変更する場合は、新しい`changeId`と`userDecision`が必要です。`HUMAN_DECISION_REQUIRED`後はユーザー判断を得て新しい`changeId`と`userDecision`で新しいchangeをstartします。`FINDINGS`からは新しい`changeId`で逃げることはできず、必ず同じrunを`continue`します。
 
 `priorReviewHistory`はRunner管理のfieldです。user inputから省略し、ERROR / BLOCKED後のlinked runやcontinueに過去履歴を手作業で混ぜないでください。
 
-Runnerはcallerが提示したIDからlineageと予算を管理します。異なる`taskKey`が同じ実質的作業を指すことや、`userDecision`のbody/authorityが実際のユーザー発言かどうかは推測・認証しません。Skillは同じ作業のIDを保ちます。`userDecision`にはユーザーが実際に行った判断を原文引用し、発言・文書などの出典と対象範囲を記録します。目的または`approvedDesign`を前回inputから変更する場合、Runnerは`userDecision`を要求します。承認が既に記録されているなら、その既存の判断・authorityを引用して使い、同じpermissionを再度求めません。
+Runnerはcallerが提示したIDからlineageと予算を管理します。異なる`taskKey`が同じ実質的作業を指すことや、`userDecision`のbody/authorityが実際のユーザー発言かどうかは推測・認証しません。Skillは同じ作業のIDを保ちます。`userDecision`にはユーザーが実際に行った判断を原文引用し、発言・文書などの出典と対象範囲を記録します。目的または`approvedDesign`を前回inputから変更する場合、Runnerは新しい`changeId`と`userDecision`を要求します。承認が既に記録されているなら、その既存の判断・authorityを引用して使い、同じpermissionを再度求めません。
 
 `HUMAN_DECISION_REQUIRED`後にユーザーが新しいscopeを実際に決めた場合、同じ`taskKey`、新しい`changeId`、terminal runを指す`previousRunId`、判断を引用した`userDecision`で新しい`start`を行います。これは新たなchangeとしてreviewします。同じchangeを自動再開する用途には使いません。
 
@@ -53,7 +53,7 @@ Runnerはcallerが提示したIDからlineageと予算を管理します。異�
 
 ## Provider実行境界
 
-Runnerはrepository外の作業directoryでprovider CLIを起動し、埋め込まれたreview inputだけをpromptとして渡します。continueは同じprovider sessionを使います。CodexではCLIの通常read-only設定を使い、role promptでrepository探索、外部調査、tool invocation、他agentへの委譲を禁じます。Codex host environmentに追加機能が残る可能性があるため、このprompt上の制約を完全なcapability isolationとして扱いません。SkillやRunnerが独自の認証・隔離基盤を提供するものでもありません。Copilotでは既に確認した、より強い制限設定を維持します。詳細は[provider安全性とruntime評価](../../tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-provider-safety.md)を参照してください。
+Runnerはrepository外の作業directoryでprovider CLIを起動し、埋め込まれたreview inputだけをpromptとして渡します。continueは同じprovider sessionを使います。provider CLI versionの完全一致はruntime hard-fail条件とせず、Codexのfeature一覧やCopilotのMCP一覧など事前判定できる探索抑制guardrailはbest-effortで適用します（CLI側で利用不能なguardrailがあってもそれ自体をruntime incompatibilityとはせず、残りのguardrailで続行します）。CodexではCLIの通常read-only設定を使い、role promptでrepository探索、外部調査、tool invocation、他agentへの委譲を禁じます。Codex host environmentに追加機能が残る可能性があるため、このprompt上の制約を完全なcapability isolationとして扱いません。SkillやRunnerが独自の認証・隔離基盤を提供するものでもありません。Copilotでは既に確認した、より強い制限設定を維持します。詳細は[provider安全性とruntime評価](../../tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-provider-safety.md)を参照してください。
 
 ## Runtime qualification
 
@@ -61,7 +61,7 @@ Copilot CLIでは初期設計、finding修正、重要変更および限定contr
 
 ## Maintenance
 
-`apm update`はSkillを更新します。Runnerは独立して更新します。protocol v4はv3と非互換です。既存runを移行・再構築せず、旧runは旧Runnerで扱い、新しいrunだけ新しいprotocolで開始してください。詳細は[compatibility note](../../docs/purpose-review-runner-compatibility.md)と[maintainer reference](../../docs/purpose-review-runner-maintenance.md)を参照してください。
+`apm update`はSkillを更新します。Runnerは独立して更新します。protocol v4はv3と非互換であり、Runner 0.6.0は0.5.0の旧job/state schemaとも非互換です。既存runを移行・再構築せず、旧runは旧Runnerで扱い、新しいrunだけ新しいRunnerで開始してください。詳細は[compatibility note](../../docs/purpose-review-runner-compatibility.md)と[maintainer reference](../../docs/purpose-review-runner-maintenance.md)を参照してください。
 
 ## Agent Plugin artifact
 

@@ -165,7 +165,9 @@ public sealed class JobStore
             job.Round is < 1 or > Protocol.MaximumRounds ||
             job.Operation is not (JobOperations.Start or JobOperations.Continue) ||
             job.JobStatus is not (JobStatuses.Running or JobStatuses.Succeeded or JobStatuses.Failed) ||
-            job.StartedAtUtc == default || job.DurableSubmissions is < 1 or > Protocol.MaximumRounds)
+            job.StartedAtUtc == default || job.DurableSubmissions < 1 ||
+            job.ReviewRounds is null or < 0 or > Protocol.MaximumRounds ||
+            (job.JobStatus == JobStatuses.Succeeded && job.ReviewRounds < 1))
         {
             throw new RunnerException("JOB_INVALID", "Job state contains invalid control data.");
         }
