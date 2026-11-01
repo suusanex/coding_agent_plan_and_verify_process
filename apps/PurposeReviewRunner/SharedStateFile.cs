@@ -9,9 +9,9 @@ internal static class SharedStateFile
     public static string ReadAllText(string path)
     {
         // Windows では File.ReadAllText が FileShare.Read で開くため、同時の置換が sharing violation になる。
-        // File.Replace 中の短い排他も、status polling が旧版または新版を読めるよう再試行する。
+        // File.Replace 中の短い排他や瞬間的な FileNotFoundException も、status polling が旧版または新版を読めるよう再試行する。
         Exception? lastException = null;
-        for (var attempt = 1; attempt <= 20; attempt++)
+        for (var attempt = 1; attempt <= 60; attempt++)
         {
             try
             {
@@ -19,10 +19,14 @@ internal static class SharedStateFile
                 using var reader = new StreamReader(stream, Utf8NoBom, detectEncodingFromByteOrderMarks: true);
                 return reader.ReadToEnd();
             }
+            catch (DirectoryNotFoundException)
+            {
+                throw;
+            }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
             {
                 lastException = exception;
-                Thread.Sleep(attempt <= 5 ? 1 : 5);
+                Thread.Sleep(attempt <= 10 ? 1 : 5);
             }
         }
 

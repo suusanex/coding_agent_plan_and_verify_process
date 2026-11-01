@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "package": "persistent-purpose-review",
   "canonicalFingerprint": "3c4bf4f14e2bbfd9dd830f9837b93686f226853f3f2ef91ee698a5f4a68f9530",
-  "distributionFingerprint": "372f854bc7ea3693286b1501130ff224eb0b6415945c785eb6c9042f9d18e1b4",
+  "distributionFingerprint": "703ad44ae3cdee24377461e4266b6564221802c7b84cee14aff6a5db3662a567",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
@@ -14,7 +14,7 @@
       "distribution": "apm",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "Runner 0.6.0 / protocol v4とSkill 0.6.0の実モデル評価は未実施。目的・設計整合reviewの検出力、過剰指摘、利用者負荷を未確認のため、旧実装reviewやsession継続結果から推定しない。",
+      "reason": "Runner 0.6.0 / protocol v4とSkill 0.7.0の実モデル評価は未実施。目的・設計整合reviewの検出力、過剰指摘、利用者負荷を未確認のため、旧実装reviewやsession継続結果から推定しない。",
       "evidenceRefs": []
     },
     {
