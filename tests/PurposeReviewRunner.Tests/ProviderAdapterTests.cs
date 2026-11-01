@@ -29,8 +29,10 @@ public sealed class ProviderAdapterTests
         Assert.AreEqual(initial.SessionHandle, resumed.SessionHandle);
         Assert.AreEqual("BEGIN_PURPOSE_REVIEW\n{\"status\":\"COMPLETE\",\"findings\":[],\"message\":\"codex response\",\"informationRequests\":[]}\nEND_PURPOSE_REVIEW", initial.ReviewText);
 
-        var calls = fixture.Runner.Requests.Where(call => call.Arguments.Contains("exec", StringComparer.Ordinal)).ToArray();
+        var calls = fixture.Runner.Requests.Where(call => call.Arguments.Contains("exec", StringComparer.Ordinal) && !call.Arguments.Contains("--help", StringComparer.Ordinal)).ToArray();
         Assert.AreEqual(2, calls.Length);
+        Assert.IsTrue(fixture.Runner.Requests.Any(call => call.Arguments.SequenceEqual(["exec", "--help"], StringComparer.Ordinal)));
+        Assert.IsTrue(fixture.Runner.Requests.Any(call => call.Arguments.SequenceEqual(["exec", "resume", "--help"], StringComparer.Ordinal)));
         foreach (var call in calls)
         {
             Assert.AreEqual(fixture.RunDirectory, call.WorkingDirectory);
@@ -90,7 +92,7 @@ public sealed class ProviderAdapterTests
         {
             var result = await new CodexProviderAdapter().ExecuteAsync(fixture.Request("codex", null), fixture.Runner, CancellationToken.None);
             Assert.AreEqual(SessionId, result.SessionHandle);
-            var execCall = fixture.Runner.Requests.Single(call => call.Arguments.Contains("exec", StringComparer.Ordinal));
+            var execCall = fixture.Runner.Requests.Single(call => call.Arguments.Contains("exec", StringComparer.Ordinal) && !call.Arguments.Contains("--help", StringComparer.Ordinal));
             Assert.IsFalse(HasDisabledFeature(execCall.Arguments, "mcp_2026_07_28"));
             foreach (var remaining in featuresWithoutRemoved)
             {
@@ -109,7 +111,7 @@ public sealed class ProviderAdapterTests
             var result = await new CodexProviderAdapter().ExecuteAsync(fixture.Request("codex", null), fixture.Runner, CancellationToken.None);
 
             Assert.AreEqual(SessionId, result.SessionHandle);
-            var execCall = fixture.Runner.Requests.Single(call => call.Arguments.Contains("exec", StringComparer.Ordinal));
+            var execCall = fixture.Runner.Requests.Single(call => call.Arguments.Contains("exec", StringComparer.Ordinal) && !call.Arguments.Contains("--help", StringComparer.Ordinal));
             CollectionAssert.DoesNotContain(execCall.Arguments.ToArray(), "--disable");
             Assert.AreEqual("read-only", ValueAfter(execCall.Arguments, "--sandbox"));
             CollectionAssert.Contains(execCall.Arguments.ToArray(), "--ignore-user-config");
@@ -117,17 +119,21 @@ public sealed class ProviderAdapterTests
             CollectionAssert.Contains(execCall.Arguments.ToArray(), "approval_policy=\"never\"");
         }
 
-        using (var fixture = new AdapterFixture())
+        using (var fixture = new AdapterFixture(helpResult: new ProcessResult(
+                   0,
+                   "Usage: codex exec --sandbox <MODE> --skip-git-repo-check",
+                   string.Empty,
+                   false)))
         {
-            var supportedOptions = new HashSet<string>(["--sandbox", "--disable"], StringComparer.Ordinal);
-            var args = CodexProviderAdapter.BuildInitialArguments(
-                fixture.Request("codex", null),
-                Path.Combine(fixture.RunDirectory, "out.md"),
-                ["shell_tool"],
-                supportedOptions);
-            CollectionAssert.DoesNotContain(args.ToArray(), "--ignore-user-config");
-            CollectionAssert.DoesNotContain(args.ToArray(), "--ignore-rules");
-            Assert.IsTrue(HasDisabledFeature(args, "shell_tool"));
+            var result = await new CodexProviderAdapter().ExecuteAsync(fixture.Request("codex", null), fixture.Runner, CancellationToken.None);
+            Assert.AreEqual(SessionId, result.SessionHandle);
+            Assert.IsFalse(fixture.Runner.Requests.Any(call => call.Arguments.SequenceEqual(["features", "list"], StringComparer.Ordinal)));
+            var execCall = fixture.Runner.Requests.Single(call => call.Arguments.Contains("exec", StringComparer.Ordinal) && !call.Arguments.Contains("--help", StringComparer.Ordinal));
+            CollectionAssert.DoesNotContain(execCall.Arguments.ToArray(), "--ignore-user-config");
+            CollectionAssert.DoesNotContain(execCall.Arguments.ToArray(), "--ignore-rules");
+            CollectionAssert.DoesNotContain(execCall.Arguments.ToArray(), "--disable");
+            CollectionAssert.Contains(execCall.Arguments.ToArray(), "--skip-git-repo-check");
+            Assert.AreEqual("read-only", ValueAfter(execCall.Arguments, "--sandbox"));
         }
     }
 
@@ -229,6 +235,23 @@ public sealed class ProviderAdapterTests
             CollectionAssert.Contains(reviewCall.Arguments.ToArray(), "--disable-mcp-server=good-server");
             Assert.AreEqual(1, reviewCall.Arguments.Count(arg => arg.StartsWith("--disable-mcp-server=", StringComparison.Ordinal)));
         }
+
+        using (var fixture = new AdapterFixture(helpResult: new ProcessResult(
+                   0,
+                   "Usage: copilot --available-tools --deny-tool --silent --no-color",
+                   string.Empty,
+                   false)))
+        {
+            var result = await new CopilotProviderAdapter().ExecuteAsync(fixture.Request("copilot", null), fixture.Runner, CancellationToken.None);
+
+            Assert.IsFalse(string.IsNullOrWhiteSpace(result.SessionHandle));
+            Assert.IsFalse(fixture.Runner.Requests.Any(call => call.Arguments.SequenceEqual(["mcp", "list", "--json"], StringComparer.Ordinal)));
+            var reviewCall = fixture.Runner.Requests.Single(call => call.Arguments.Contains("--available-tools=report_intent", StringComparer.Ordinal));
+            CollectionAssert.DoesNotContain(reviewCall.Arguments.ToArray(), "--disable-builtin-mcps");
+            CollectionAssert.DoesNotContain(reviewCall.Arguments.ToArray(), "--no-custom-instructions");
+            Assert.IsFalse(reviewCall.Arguments.Any(arg => arg.StartsWith("--disable-mcp-server=", StringComparison.Ordinal)));
+            CollectionAssert.Contains(reviewCall.Arguments.ToArray(), "--deny-tool=shell");
+        }
     }
 
     [TestMethod]
@@ -257,14 +280,15 @@ public sealed class ProviderAdapterTests
             bool writeCodexOutput = true,
             string? codexResumeSession = null,
             ProcessResult? codexFeaturesResult = null,
-            ProcessResult? copilotMcpResult = null)
+            ProcessResult? copilotMcpResult = null,
+            ProcessResult? helpResult = null)
         {
             Root = Path.Combine(Path.GetTempPath(), "purpose-review-adapter-tests", Guid.NewGuid().ToString("N"));
             RunDirectory = Path.Combine(Root, "external-run");
             Repository = Path.Combine(Root, "repository");
             Directory.CreateDirectory(RunDirectory);
             Directory.CreateDirectory(Repository);
-            Runner = new ScriptedProviderProcessRunner(writeCodexOutput, codexResumeSession, codexFeaturesResult, copilotMcpResult);
+            Runner = new ScriptedProviderProcessRunner(writeCodexOutput, codexResumeSession, codexFeaturesResult, copilotMcpResult, helpResult);
         }
 
         public string Root { get; }
@@ -317,13 +341,20 @@ public sealed class ProviderAdapterTests
         bool writeCodexOutput,
         string? codexResumeSession,
         ProcessResult? codexFeaturesResult,
-        ProcessResult? copilotMcpResult) : IProcessRunner
+        ProcessResult? copilotMcpResult,
+        ProcessResult? helpResult) : IProcessRunner
     {
+        private const string AllSupportedFlags = "--ignore-user-config --ignore-rules --skip-git-repo-check --sandbox --disable --no-custom-instructions --no-remote-export --no-auto-update --no-ask-user --disable-builtin-mcps --disallow-temp-dir --no-color --silent --available-tools --deny-tool --disable-mcp-server";
+
         public List<ProcessRequest> Requests { get; } = [];
 
         public Task<ProcessResult> RunAsync(ProcessRequest request, CancellationToken cancellationToken)
         {
             Requests.Add(request);
+            if (request.Arguments.Contains("--help", StringComparer.Ordinal))
+            {
+                return Task.FromResult(helpResult ?? new ProcessResult(0, AllSupportedFlags, string.Empty, false));
+            }
             if (request.Arguments.SequenceEqual(["features", "list"], StringComparer.Ordinal))
             {
                 if (codexFeaturesResult is not null)

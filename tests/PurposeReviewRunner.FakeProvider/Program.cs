@@ -27,6 +27,11 @@ public static class Program
                 Console.WriteLine("GitHub Copilot CLI 1.0.106.");
                 return 0;
             }
+            if (args.Contains("--help", StringComparer.Ordinal))
+            {
+                Console.WriteLine("--ignore-user-config --ignore-rules --skip-git-repo-check --sandbox --disable --no-custom-instructions --no-remote-export --no-auto-update --no-ask-user --disable-builtin-mcps --disallow-temp-dir --no-color --silent --available-tools --deny-tool --disable-mcp-server");
+                return 0;
+            }
             if (args.SequenceEqual(["features", "list"], StringComparer.Ordinal))
             {
                 foreach (var feature in SupportedCodexFeatures)

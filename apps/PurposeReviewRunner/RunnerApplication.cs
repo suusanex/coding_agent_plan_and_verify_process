@@ -320,12 +320,26 @@ public sealed class RunnerApplication
         {
             Trace.TraceError(exception.ToString());
             var runnerException = exception as RunnerException;
+            var latestJob = TryLoadLatestJob(command.RunId, job);
             PersistFailure(
-                job,
+                latestJob,
                 runnerException?.Code ?? "UNEXPECTED_ERROR",
                 exception.Message,
                 runnerException?.ExitCode ?? ExitCodes.RuntimeError);
             return ReadStoredResult(command.RunId);
+        }
+    }
+
+    private JobState TryLoadLatestJob(string runId, JobState fallback)
+    {
+        try
+        {
+            return jobStore.Load(runId);
+        }
+        catch (Exception exception)
+        {
+            Trace.TraceError(exception.ToString());
+            return fallback;
         }
     }
 
@@ -362,8 +376,13 @@ public sealed class RunnerApplication
             processRunner,
             cancellationToken);
         transcriptStore.SaveResponse(1, providerResult.ReviewText);
+        var parsedReview = ReviewProtocol.Parse(providerResult.ReviewText);
         var completedReviewRounds = job.ReviewRounds!.Value + 1;
-        var review = EnforceReviewRoundCap(ReviewProtocol.Parse(providerResult.ReviewText), completedReviewRounds);
+        // provider実行とprotocol parseが成立した時点でcompletedReviewRoundsをdurable jobとlineageへ記録し、後続の永続化失敗時にも3-round上限を保持する。
+        job = job with { ReviewRounds = completedReviewRounds };
+        jobStore.Save(job);
+        UpdateLineageStatus(repository, storedInput.Input.TaskKey, job.RunId, ReviewStatuses.Running, completedReviewRounds);
+        var review = EnforceReviewRoundCap(parsedReview, completedReviewRounds);
         var state = new RunState(
             Protocol.Version,
             job.RunId,
@@ -433,9 +452,13 @@ public sealed class RunnerApplication
         {
             throw new RunnerException("SESSION_MISMATCH", "Provider resumed a different session.", ExitCodes.ContractError);
         }
-        var review = ReviewProtocol.Parse(providerResult.ReviewText);
+        var parsedReview = ReviewProtocol.Parse(providerResult.ReviewText);
         var completedReviewRounds = job.ReviewRounds!.Value + 1;
-        review = EnforceReviewRoundCap(review, completedReviewRounds);
+        // provider実行とprotocol parseが成立した時点でcompletedReviewRoundsをdurable jobとlineageへ記録し、後続の永続化失敗時にも3-round上限を保持する。
+        job = job with { ReviewRounds = completedReviewRounds };
+        jobStore.Save(job);
+        UpdateLineageStatus(state.Repository, state.TaskKey, job.RunId, ReviewStatuses.Running, completedReviewRounds);
+        var review = EnforceReviewRoundCap(parsedReview, completedReviewRounds);
         stateStore.Save(terminalState with
         {
             Status = review.Status,
@@ -556,9 +579,12 @@ public sealed class RunnerApplication
         }
         else
         {
-            TryMarkStateError(job.RunId);
+            TryMarkStateError(job.RunId, job.ReviewRounds);
             var state = stateStore.Load(job.RunId);
-            UpdateLineageStatus(state.Repository, state.TaskKey, job.RunId, ReviewStatuses.Error, state.ReviewRounds);
+            var effectiveReviewRounds = job.ReviewRounds is not null && state.ReviewRounds is not null
+                ? Math.Max(state.ReviewRounds.Value, job.ReviewRounds.Value)
+                : job.ReviewRounds ?? state.ReviewRounds;
+            UpdateLineageStatus(state.Repository, state.TaskKey, job.RunId, ReviewStatuses.Error, effectiveReviewRounds);
         }
     }
 
@@ -684,7 +710,7 @@ public sealed class RunnerApplication
         {
             var state = stateStore.Load(lineage.LatestRunId);
             status = state.Status;
-            reviewRounds = state.ReviewRounds!.Value;
+            reviewRounds = Math.Max(state.ReviewRounds!.Value, job.ReviewRounds!.Value);
         }
         catch (RunnerException exception) when (exception.Code == "STATE_NOT_FOUND")
         {
@@ -712,14 +738,21 @@ public sealed class RunnerApplication
 
     private static readonly StringComparer PathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
-    private void TryMarkStateError(string runId)
+    private void TryMarkStateError(string runId, int? reviewRounds = null)
     {
         try
         {
             var state = stateStore.Load(runId);
-            if (state.Status == ReviewStatuses.Findings)
+            var effectiveReviewRounds = reviewRounds is not null && state.ReviewRounds is not null
+                ? Math.Max(state.ReviewRounds.Value, reviewRounds.Value)
+                : reviewRounds ?? state.ReviewRounds;
+            if (state.Status == ReviewStatuses.Findings || state.ReviewRounds != effectiveReviewRounds)
             {
-                stateStore.Save(state with { Status = ReviewStatuses.Error });
+                stateStore.Save(state with
+                {
+                    Status = state.Status == ReviewStatuses.Findings ? ReviewStatuses.Error : state.Status,
+                    ReviewRounds = effectiveReviewRounds
+                });
             }
         }
         catch (Exception exception)
