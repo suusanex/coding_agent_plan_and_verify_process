@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "taskKey": "fixture-155-07",
+  "changeId": "v1",
+  "previousRunId": null,
+  "userDecision": null,
+  "purpose": {
+    "version": "v1",
+    "sources": [
+      "fixture://user-request"
+    ],
+    "body": "組織のRET-7規程で必要な期間だけ処理履歴を保持する。規程に従う監査を満たし、期間外の履歴は保持しない。",
+    "original": "組織のRET-7規程で必要な期間だけ処理履歴を保持する。規程に従う監査を満たし、期間外の履歴は保持しない。",
+    "authority": "合成評価ケースの利用者依頼（fixture://user-request）:「組織のRET-7規程で必要な期間だけ処理履歴を保持する。規程に従う監査を満たし、期間外の履歴は保持しない。」この範囲の設計を検討する。実ユーザーの発言を表さない。"
+  },
+  "approvedDesign": null,
+  "proposal": {
+    "version": "v1",
+    "body": "処理履歴を永続保存して7日後に削除する。履歴は監査のために保持する。RET-7の本文、保持期間、対象項目、例外条件は入力に含まれていない。",
+    "delta": "初期設計。承認済みbaselineは無い。"
+  },
+  "evidence": [],
+  "responses": [],
+  "conformance": []
+}

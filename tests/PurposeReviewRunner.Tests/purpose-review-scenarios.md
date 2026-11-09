@@ -33,6 +33,31 @@ purpose-review-runner continue --run <run-id> --input <updated-input.json>
 
 ## 利用負荷・費用の測定
 
+### Issue #155: 必要性の限定対比評価
+
+入力は[fixtures/necessity](fixtures/necessity)の独立した合成JSONを使う。既存のRunner CLIでそのまま提出でき、新しい評価ツールや入力schemaは不要。入力だけを渡し、以下の期待判定・ファイル名・削除案はpromptへ追加しない。既存のPromptBuilderとJSON処理を再利用するため、新規BCLラッパーやOSS依存は追加しない。
+
+実行前の上限は各case初回1回、計7回の実モデル呼び出し（operational failureは別途記録）。同じ入力を成功まで反復しない。判定はstatusだけでなくfindingの意味を読む。01–03の3件すべてで下記の不要性を検出し、04–05で不要な削除・管理追加が0件、06で設計不足を検出、07で根拠不足を不要性と断定しないことを、この限定評価の閾値とする。これで一般的検出精度や配布qualificationをPASSへ昇格しない。
+
+| 入力 | 確認する結果 |
+| --- | --- |
+| 01 | 不変履歴のモデルコピーと一致検査の組合せを、履歴保持を弱めず除去できると指摘 |
+| 02 | 独立した一件更新での全履歴モデル再生成・検査の不要性を指摘 |
+| 03 | 引継ぎ管理の補強だけでなく、追加中間段階と管理の組合せの不要性を指摘 |
+| 04 | 再起動と応答不明時の外部副作用重複防止に必要な操作ID・永続状態を削らせない |
+| 05 | 小さく安価な全体保存に差分管理や新しい状態を要求しない |
+| 06 | CSV・非変更・本人限定配布を具体化しない設計の不足を引き続き指摘 |
+| 07 | RET-7本文の情報要求を返し、履歴保存自体を過剰と断定しない |
+
+実行例（更新したローカルbuildを使う場合も同じ公開CLI。fixture-rootは機密情報のない使い捨てrepository）:
+
+```powershell
+purpose-review-runner start --repository <fixture-root> --input tests/PurposeReviewRunner.Tests/fixtures/necessity/01.json
+purpose-review-runner status --run <run-id>
+```
+
+全入力・全結果、実際のprovider/model/設定、prompt fingerprint、所要時間、費用の観測可否を結果文書へ記録する。契約テストは入出力や既存境界の検証であり、この意味的評価を代替しない。
+
 CodexとCopilotを別々に、同じfixture群と同等の設定で実施する。成功例だけを選ばず、各提出を記録する。評価結果ファイルに次を保存する。
 
 - provider、CLI version、model、reasoning設定、Runner/Skill version、commit、distribution fingerprint。

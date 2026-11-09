@@ -1,0 +1,31 @@
+{
+  "protocolVersion": 4,
+  "runnerVersion": "0.6.0",
+  "runId": "08cb157d-11e5-4aa9-8868-4b0f9deb8b71",
+  "round": 1,
+  "status": "COMPLETE",
+  "terminal": true,
+  "findings": [],
+  "message": "目的v1と提案v1は整合しています。20項目を既存APIで全体保存し、差分や項目別バージョンを保持しない設計は、操作や管理状態を増やさない制約に適合します。失敗時のエラー表示と旧ファイル保持、成功時の全体保存も明確です。承認済みbaselineはなく、入力の範囲では対応が必要な不整合や未決事項はありません。提案の承認や実装適合を意味するものではありません。",
+  "jobStatus": "SUCCEEDED",
+  "reviewKind": "purpose-design-alignment",
+  "inputBinding": {
+    "purposeHash": "604b94657b2571a8be5f3d2bb97a61c5a30302bb593f955224c400c223378421",
+    "purposeVersion": "v1",
+    "proposalHash": "0eaf76038dfbc79859a48b8f9097a03e5c2dc3304941bdf197c1746b801ede8f",
+    "proposalVersion": "v1"
+  },
+  "inputHash": "6d23f22530831cae9fe44f68ee9f9854c3922653627a256e6f289bf09036db35",
+  "informationRequests": [],
+  "nonGuarantees": [
+    "implementation-conformance-not-assessed",
+    "evidence-not-independently-verified",
+    "tests-not-executed",
+    "user-approval-not-implied",
+    "runtime-purpose-achievement-not-verified",
+    "release-readiness-not-assessed",
+    "task-completion-not-certified"
+  ],
+  "reviewRounds": 1,
+  "durableSubmissions": 1
+}

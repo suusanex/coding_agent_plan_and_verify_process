@@ -1,0 +1,40 @@
+{
+  "protocolVersion": 4,
+  "runnerVersion": "0.6.0",
+  "runId": "970c4b0f-8b21-4c45-8223-125335b310a2",
+  "round": 1,
+  "status": "FINDINGS",
+  "terminal": false,
+  "findings": [
+    {
+      "id": "PUR-001",
+      "severity": "HIGH",
+      "title": "一件の更新に全件のモデル処理と不要な再保存を伴っている",
+      "summary": "提案は一件の更新でも全1万件をモデルへ送り、非対象9999件まで再生成するため、モデル処理量を一件分に抑える目的に反します。さらに、非対象の再生成に伴う変更リスクを同一性検査で補い、全件保存しています。編集は独立しており、一件を保存できる既存APIと保存形式上の制約がないことも明記されているため、この再生成・検査・全件保存の組合せは不要なモデル処理、照合、保存の負担を生んでいます。",
+      "evidence": "purpose v1 の authority・original・body は、選択した一件だけの書き直し、他の説明の保持、編集間の独立性、モデル処理量の一件分への抑制を要求しています。proposal v1 の body は、全商品説明のモデル送信、非対象9999件の再生成、全件JSONの返却、非対象の同一性検査後の全件保存を規定する一方、ID指定の一件保存APIが存在し、全件生成を必要とする保存形式の制約はないとしています。proposal v1 の delta は承認済みbaselineがないことを明記しています。",
+      "requiredOutcome": "モデルが読み取る商品説明と生成する説明を対象一件分に限定し、新しい入力に基づく更新と非対象9999件の保持を保証する設計にしてください。非対象の再生成と、それだけを理由に必要となる照合・全件保存を一体として除外しても、この保持保証が成立する処理範囲と責務を明確にしてください。"
+    }
+  ],
+  "message": "承認済み設計はなく、proposal v1 は未承認の初期設計です。全件処理は purpose v1 の明示的な制約と不整合であり、一件分のモデル処理と非対象の保持を両立する設計への修正が必要です。",
+  "jobStatus": "SUCCEEDED",
+  "reviewKind": "purpose-design-alignment",
+  "inputBinding": {
+    "purposeHash": "f3bc81e8af2d31c0c35ef146ff1f56d34e373650f82cbe3847ff6fc26f872d13",
+    "purposeVersion": "v1",
+    "proposalHash": "eb5c01c6510e952aa60fccce8d77078abbc3de26e6d7440c8008ec937c023720",
+    "proposalVersion": "v1"
+  },
+  "inputHash": "a291a99b02a2ca3af718689b45ef028724f4c06b50bc8ba922328034b4ba500a",
+  "informationRequests": [],
+  "nonGuarantees": [
+    "implementation-conformance-not-assessed",
+    "evidence-not-independently-verified",
+    "tests-not-executed",
+    "user-approval-not-implied",
+    "runtime-purpose-achievement-not-verified",
+    "release-readiness-not-assessed",
+    "task-completion-not-certified"
+  ],
+  "reviewRounds": 1,
+  "durableSubmissions": 1
+}

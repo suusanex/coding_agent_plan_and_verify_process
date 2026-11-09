@@ -1,0 +1,40 @@
+{
+  "protocolVersion": 4,
+  "runnerVersion": "0.6.0",
+  "runId": "1da86058-2c88-48bd-9517-c6fb1e705c83",
+  "round": 1,
+  "status": "FINDINGS",
+  "terminal": false,
+  "findings": [
+    {
+      "id": "PUR-001",
+      "severity": "HIGH",
+      "title": "用途のない履歴全件のモデル往復と、そのための照合が目的に反する",
+      "summary": "一件の処理で、変更も推論参照もしない履歴2万件をモデルへ送り、全件を再出力させ、そのコピーを照合してから今回のメモだけを保存している。全件照合はこの不要な再出力によって生じた検査であり、組合せ全体を省いても履歴の不変保持とメモ一件の生成は維持できる。現案はモデル転送量と処理負担を増やし、不要なコピーの不一致によってメモの保存まで停止させる。",
+      "evidence": "purpose v1 の original・body は「保存済みの会話履歴を一字も変更せず保持」「今回のメモ一件だけをモデルで作る」「一件処理のモデル転送量と手間は小さく」を要求している。proposal v1 の body は履歴2万件の送信、モデルによる全件コピー、ホストによる全件比較、不一致時の停止を規定する一方、旧履歴の書換え・推論参照の用途はなく、ホストが保存済み履歴を直接保持して今回のメモだけを受け取れると明記している。proposal v1 の delta によれば承認済みbaselineはない。",
+      "requiredOutcome": "保存済み履歴の一字も変えない保持と、今回のメモ一件のモデル生成を保証したまま、用途のない履歴全件のモデル転送・再出力と、それにだけ由来する照合・停止負担を設計から除き、一件処理の転送量と手間を小さくする目的に整合させる。"
+    }
+  ],
+  "message": "承認済み設計はなく、初期提案v1には不要な処理の組合せがあるため、設計の見直しが必要です。",
+  "jobStatus": "SUCCEEDED",
+  "reviewKind": "purpose-design-alignment",
+  "inputBinding": {
+    "purposeHash": "655b0da9f873dbc5954bf52dd4c46ebfbd14bcddb10e2fde432af048356c54f0",
+    "purposeVersion": "v1",
+    "proposalHash": "2696109250c8ee84c7ee4cb5acee0f7c94fb1a83355ec8c765fa239e31fe9070",
+    "proposalVersion": "v1"
+  },
+  "inputHash": "7bdf18faea864c35bee1aa1e44d3154c2d180abfb573dc2ad32eb5aae7d9966e",
+  "informationRequests": [],
+  "nonGuarantees": [
+    "implementation-conformance-not-assessed",
+    "evidence-not-independently-verified",
+    "tests-not-executed",
+    "user-approval-not-implied",
+    "runtime-purpose-achievement-not-verified",
+    "release-readiness-not-assessed",
+    "task-completion-not-certified"
+  ],
+  "reviewRounds": 1,
+  "durableSubmissions": 1
+}
