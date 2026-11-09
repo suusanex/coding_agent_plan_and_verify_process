@@ -1,0 +1,40 @@
+{
+  "protocolVersion": 4,
+  "runnerVersion": "0.6.0",
+  "runId": "d13728b5-d586-4f4e-afe9-879b55c86717",
+  "round": 1,
+  "status": "FINDINGS",
+  "terminal": false,
+  "findings": [
+    {
+      "id": "PUR-001",
+      "severity": "HIGH",
+      "title": "目的達成に必要な設計判断がすべて先送りされている",
+      "summary": "提案は目的の言い換えに留まり、CSVに含める保存済み情報、元データを変更しない処理範囲、ログイン済み本人に限定する確認責務と配布経路が未定義です。代表的なダウンロード経路で何を読み取り、生成し、誰へ渡すかが定まらず、オフライン確認と二つの制約を満たす具体的な設計になっていません。",
+      "evidence": "purpose v1 の original・body は、保存済みレポートのCSVによるオフライン確認、保存済み内容の非改変、ログイン済み本人限定の配布を要求し、authority がその範囲を根拠付けています。一方、proposal v1 の body は「CSVの内容、元データへの読み書き、本人限定配布の責務と経路は今後決める」と明記しています。proposal v1 の delta は初期設計で承認済みbaselineがないとしています。",
+      "requiredOutcome": "保存済みレポートとCSV内容の対応、取得から配布までの情報の流れと元データ非改変の保証、ログイン状態および対象レポートの本人性を確認する責務と配布境界を定め、条件を満たさない相手には配布しないことを設計として具体化してください。"
+    }
+  ],
+  "message": "承認済み設計は入力に存在しません。提案v1では目的の成果と制約を担う主要判断が未定義のため、設計の具体化が必要です。",
+  "jobStatus": "SUCCEEDED",
+  "reviewKind": "purpose-design-alignment",
+  "inputBinding": {
+    "purposeHash": "d6778a46c6bd3cc061ec4c88d6b6841fe6514457c93dd5993995eef417c1a8bb",
+    "purposeVersion": "v1",
+    "proposalHash": "11f293a4e826e021108e46f76f2c3e7e38f6e97500e0372d3167450710636d70",
+    "proposalVersion": "v1"
+  },
+  "inputHash": "428461784b0b4fc5b62f60808e7362d5f0a0f0f1412dc8aeaedafb35a69c94fd",
+  "informationRequests": [],
+  "nonGuarantees": [
+    "implementation-conformance-not-assessed",
+    "evidence-not-independently-verified",
+    "tests-not-executed",
+    "user-approval-not-implied",
+    "runtime-purpose-achievement-not-verified",
+    "release-readiness-not-assessed",
+    "task-completion-not-certified"
+  ],
+  "reviewRounds": 1,
+  "durableSubmissions": 1
+}

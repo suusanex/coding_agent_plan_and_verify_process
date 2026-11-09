@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "taskKey": "fixture-155-05",
+  "changeId": "v1",
+  "previousRunId": null,
+  "userDecision": null,
+  "purpose": {
+    "version": "v1",
+    "sources": [
+      "fixture://user-request"
+    ],
+    "body": "ローカル設定20項目を一人で編集し保存する。既存の全体保存APIで十分で、使う手間や管理する状態を増やしたくない。変更履歴や並列編集や差分配信は不要。",
+    "original": "ローカル設定20項目を一人で編集し保存する。既存の全体保存APIで十分で、使う手間や管理する状態を増やしたくない。変更履歴や並列編集や差分配信は不要。",
+    "authority": "合成評価ケースの利用者依頼（fixture://user-request）:「ローカル設定20項目を一人で編集し保存する。既存の全体保存APIで十分で、使う手間や管理する状態を増やしたくない。変更履歴や並列編集や差分配信は不要。」この範囲の設計を検討する。実ユーザーの発言を表さない。"
+  },
+  "approvedDesign": null,
+  "proposal": {
+    "version": "v1",
+    "body": "編集後に20項目すべてを既存APIへ渡して設定ファイルを置換する。保存は一回約1ms、全体は2KB。差分や項目別バージョンを保持しない。保存失敗時はエラーを表示して停止する。既存APIは失敗時に旧ファイルを保持し、成功時には新しい全体設定を保存する契約。",
+    "delta": "初期設計。承認済みbaselineは無い。"
+  },
+  "evidence": [],
+  "responses": [],
+  "conformance": []
+}

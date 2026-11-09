@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "taskKey": "fixture-155-06",
+  "changeId": "v1",
+  "previousRunId": null,
+  "userDecision": null,
+  "purpose": {
+    "version": "v1",
+    "sources": [
+      "fixture://user-request"
+    ],
+    "body": "保存済みレポートをCSVでダウンロードしオフライン確認したい。保存済み内容を書き換えず、ログイン済み本人だけに配布する。",
+    "original": "保存済みレポートをCSVでダウンロードしオフライン確認したい。保存済み内容を書き換えず、ログイン済み本人だけに配布する。",
+    "authority": "合成評価ケースの利用者依頼（fixture://user-request）:「保存済みレポートをCSVでダウンロードしオフライン確認したい。保存済み内容を書き換えず、ログイン済み本人だけに配布する。」この範囲の設計を検討する。実ユーザーの発言を表さない。"
+  },
+  "approvedDesign": null,
+  "proposal": {
+    "version": "v1",
+    "body": "目的を満たすエクスポートを実装する。CSVの内容、元データへの読み書き、本人限定配布の責務と経路は今後決める。",
+    "delta": "初期設計。承認済みbaselineは無い。"
+  },
+  "evidence": [],
+  "responses": [],
+  "conformance": []
+}

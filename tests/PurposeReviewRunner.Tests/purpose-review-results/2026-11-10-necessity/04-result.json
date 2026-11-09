@@ -1,0 +1,31 @@
+{
+  "protocolVersion": 4,
+  "runnerVersion": "0.6.0",
+  "runId": "710c514b-74ab-42cc-b558-412652625d84",
+  "round": 1,
+  "status": "COMPLETE",
+  "terminal": true,
+  "findings": [],
+  "message": "目的v1と提案v1は整合しています。送信前の操作ID・内容の永続保存、再起動後も同じIDを使う再開、外部サービスの重複適用防止契約と保存期間を包含する有効期間により、要求された再開性と副作用の重複防止が具体化されています。結果照会と完了状態を含め、対応が必要な欠落や不要な構造は入力から認められません。承認済み設計はなく、この判定は提案の承認や外部契約の検証を意味しません。",
+  "jobStatus": "SUCCEEDED",
+  "reviewKind": "purpose-design-alignment",
+  "inputBinding": {
+    "purposeHash": "4fa1de6c0fc16b8295a75e20c7f4dfa9a6b7a09d15f2786c70a1f1e199a14ebc",
+    "purposeVersion": "v1",
+    "proposalHash": "2c9ebcace71380a5666cec2e0ac1fc5f1379ffbd5b3c5f2eaec66135e5313b60",
+    "proposalVersion": "v1"
+  },
+  "inputHash": "e2d98df0608c67e2f29ac595a15ab9e5f8f6436c4070aa1ac9aca3f82f68f684",
+  "informationRequests": [],
+  "nonGuarantees": [
+    "implementation-conformance-not-assessed",
+    "evidence-not-independently-verified",
+    "tests-not-executed",
+    "user-approval-not-implied",
+    "runtime-purpose-achievement-not-verified",
+    "release-readiness-not-assessed",
+    "task-completion-not-certified"
+  ],
+  "reviewRounds": 1,
+  "durableSubmissions": 1
+}

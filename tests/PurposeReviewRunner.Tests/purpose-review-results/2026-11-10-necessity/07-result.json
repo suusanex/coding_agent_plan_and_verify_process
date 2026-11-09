@@ -1,0 +1,38 @@
+{
+  "protocolVersion": 4,
+  "runnerVersion": "0.6.0",
+  "runId": "92071936-8af4-40ca-ac0b-08ec84ef1505",
+  "round": 1,
+  "status": "BLOCKED",
+  "terminal": true,
+  "findings": [],
+  "message": "purpose v1はRET-7で必要な期間だけの保持と監査要件の充足を要求していますが、proposal v1が明記するとおり規程の内容が入力にありません。「7日後に削除」が保持不足にも期間外保持にもならないか評価できません。承認済み設計はなく、7日という期間も未承認の提案です。",
+  "jobStatus": "SUCCEEDED",
+  "reviewKind": "purpose-design-alignment",
+  "inputBinding": {
+    "purposeHash": "085637c4f90d7909ba755f69349499b7923c9c3be0c1680ae404d5b71dc38b79",
+    "purposeVersion": "v1",
+    "proposalHash": "7fd5f9cfdd355198a2ee9b981d4763a3240b40ff389437633ed03f63305d0e08",
+    "proposalVersion": "v1"
+  },
+  "inputHash": "ca0514f1548eb0fd56793d7d6251d117ec07f11f0d163c3ed4c6d01f6aa50083",
+  "informationRequests": [
+    {
+      "id": "INFO-001",
+      "source": "組織のRET-7規程の適用版、または規程管理責任者による権威ある説明",
+      "question": "今回の処理履歴に適用されるRET-7の版と該当条項を提示してください。保持期間と起算点、対象項目、例外条件、削除期限、および履歴に求める監査要件を確認する必要があります。",
+      "whyNeeded": "purpose v1の必要期間内の保持・期間外の非保持・監査充足に対し、proposal v1の保存と7日後削除が整合するか判断するためです。"
+    }
+  ],
+  "nonGuarantees": [
+    "implementation-conformance-not-assessed",
+    "evidence-not-independently-verified",
+    "tests-not-executed",
+    "user-approval-not-implied",
+    "runtime-purpose-achievement-not-verified",
+    "release-readiness-not-assessed",
+    "task-completion-not-certified"
+  ],
+  "reviewRounds": 1,
+  "durableSubmissions": 1
+}
