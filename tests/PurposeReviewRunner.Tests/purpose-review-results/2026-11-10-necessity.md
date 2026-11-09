@@ -41,6 +41,7 @@ providerごとのtoken量・請求額、人間による入力準備の実時間�
 - `dotnet test tests/PurposeReviewRunner.Tests/PurposeReviewRunner.Tests.csproj`: 81成功、2スキップ（Windows実環境のopt-in qualification）、0失敗。
 - package固有validation: PASS。
 - CI指定APM 0.26.0でpackage install smokeとAgent Plugin package validation（buildを含む）: PASS。plugin canonical fingerprintは`d193450dbbdb07463cc609061f96788cb8840e7a81837025b1076c0c0f742779`。
+- PRの初回CIではqualification記録のfingerprint更新漏れを検出。canonical/distribution fingerprintを現行sourceに合わせ、qualification record validator（negative mutationを含む）とpackage validatorの成功を確認した。qualification状態は変更していない。
 - 最初に使ったAPM 0.33.0では既存builderのlocal bundle install経路が拒否された。CIと同じ既存0.26.0をコマンド環境内だけで選択して検証した。グローバル設定・builderの変更はしていない。
 - skill-creatorのgeneric quick validatorは既存の`user-invocable` / `disable-model-invocation`を許可しないため失敗。これらは本Skillの必須境界であり削除せず、両fieldを検証するrepository固有validatorと配布検証の成功を採用した。
 

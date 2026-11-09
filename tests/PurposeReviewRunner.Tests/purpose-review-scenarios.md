@@ -1,6 +1,6 @@
 # Purpose Review Runner 目的・設計整合の実モデル評価シナリオ
 
-このqualificationはRunner 0.6.0 / protocol v4、Skill 0.6.0の組合せを対象とする。Runner 0.5.0時点で実施した限定的なCopilot/Codex実モデル結果は`purpose-review-results/2026-10-28-purpose-design-evaluation.md`と`purpose-review-results/2026-10-28-provider-safety.md`に記録済みだが、assessmentはAPM `NOT_RUN / NONE`、Agent Plugin direct `HOLD / PARTIAL`を維持する。CIの決定的な契約テストは実モデルの意味的な検出力、費用、利用負荷を証明しない。過去の実装reviewやsession継続結果を今回のPASSに転用しない。
+このqualificationはRunner 0.6.0 / protocol v4、Skill 0.7.0の組合せを対象とする。Runner 0.5.0時点で実施した限定的なCopilot/Codex実モデル結果は`purpose-review-results/2026-10-28-purpose-design-evaluation.md`と`purpose-review-results/2026-10-28-provider-safety.md`に記録済みだが、assessmentはAPM `NOT_RUN / NONE`、Agent Plugin direct `HOLD / PARTIAL`を維持する。CIの決定的な契約テストは実モデルの意味的な検出力、費用、利用負荷を証明しない。過去の実装reviewやsession継続結果を今回のPASSに転用しない。
 
 ## 実施方法
 
@@ -37,7 +37,7 @@ purpose-review-runner continue --run <run-id> --input <updated-input.json>
 
 入力は[fixtures/necessity](fixtures/necessity)の独立した合成JSONを使う。既存のRunner CLIでそのまま提出でき、新しい評価ツールや入力schemaは不要。入力だけを渡し、以下の期待判定・ファイル名・削除案はpromptへ追加しない。既存のPromptBuilderとJSON処理を再利用するため、新規BCLラッパーやOSS依存は追加しない。
 
-実行前の上限は各case初回1回、計7回の実モデル呼び出し（operational failureは別途記録）。同じ入力を成功まで反復しない。判定はstatusだけでなくfindingの意味を読む。01–03の3件すべてで下記の不要性を検出し、04–05で不要な削除・管理追加が0件、06で設計不足を検出、07で根拠不足を不要性と断定しないことを、この限定評価の閾値とする。これで一般的検出精度や配布qualificationをPASSへ昇格しない。
+今回の限定評価はCopilotのみを選び、実行前の上限は各case初回1回、合計7回の実モデル呼び出しとする（operational failureは別途記録）。下記の全面qualificationの両provider実行は今回の範囲に含めない。後日Codexも評価する場合は別の評価として予算と対象を事前に記録する。同じ入力を成功まで反復しない。判定はstatusだけでなくfindingの意味を読む。01–03の3件すべてで下記の不要性を検出し、04–05で不要な削除・管理追加が0件、06で設計不足を検出、07で根拠不足を不要性と断定しないことを、この限定評価の閾値とする。これで一般的検出精度や配布qualificationをPASSへ昇格しない。
 
 | 入力 | 確認する結果 |
 | --- | --- |
@@ -58,7 +58,9 @@ purpose-review-runner status --run <run-id>
 
 全入力・全結果、実際のprovider/model/設定、prompt fingerprint、所要時間、費用の観測可否を結果文書へ記録する。契約テストは入出力や既存境界の検証であり、この意味的評価を代替しない。
 
-CodexとCopilotを別々に、同じfixture群と同等の設定で実施する。成功例だけを選ばず、各提出を記録する。評価結果ファイルに次を保存する。
+### 全面qualificationでの測定
+
+CodexとCopilotを別々に、同じfixture群と同等の設定で実施する。providerごとの呼び出し上限と全provider合計を実行前に定める。成功例だけを選ばず、各提出を記録する。評価結果ファイルに次を保存する。
 
 - provider、CLI version、model、reasoning設定、Runner/Skill version、commit、distribution fingerprint。
 - fixture ID、run ID、`reviewRounds`、`durableSubmissions`、terminal status、elapsed time、再提出理由。
@@ -72,7 +74,7 @@ CodexとCopilotを別々に、同じfixture群と同等の設定で実施する�
 ## Qualification handoff
 
 - 実施主体: release candidateのqualificationを担当するmaintainer。
-- 実施時点: Runner 0.6.0とSkill 0.6.0を配布対象として判定する前。
+- 実施時点: Runner 0.6.0とSkill 0.7.0を配布対象として判定する前。
 - 失敗時: case、run ID、transcript参照、判定差異、費用/負荷を結果文書へ記録し、該当する実装・prompt・Skill修正に戻す。
 - 保管先: `tests/PurposeReviewRunner.Tests/purpose-review-results/<date>-<commit>.md`。
 - 状態: 結果を検証してqualification recordを明示更新するまで、APMは`NOT_RUN`、direct deploymentは`HOLD`のままにする。
