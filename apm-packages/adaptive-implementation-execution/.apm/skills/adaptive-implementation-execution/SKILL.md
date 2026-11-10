@@ -118,6 +118,8 @@ ordinary Plan / short implementation intent
 
 ownerはactual codeを読み、必要なproduction / test implementationとfocused verificationを行い、結果からdecision surfaceを再評価します。code editを避けることも、一定量のeditを行うことも目的にしません。
 
+ownerの「既存処理との比較と差分設計」に従い、実装前に参照処理、要求差分、採用方式を既存の計画・実装evidenceへ記録し、実装後にactual diffを照合します。新しい処理経路・状態管理では近傍以外の関連処理も調べますが、局所修正は短い比較に留めます。独立artifactや新しい承認待ちは追加しません。
+
 ## Step 3: Validate the decision-surface verdict
 
 全resultでroute identityがincoming stateと一致することを検証します。invalid-artifact `BLOCKED`だけはraw observed valueまたは`<missing>`とrepair evidenceを受理して停止します。
@@ -130,6 +132,8 @@ ownerはactual codeを読み、必要なproduction / test implementationとfocus
 
 scope内の全acceptance itemが`Complete`で、各itemにimplementationまたはvalidation evidenceがある場合に受理します。最初のownerによる完了は例外ではなく、transfer理由やcode quotaを要求しません。
 
+直接完了でも、既存処理との比較、要求差分、採用方式・例外理由と実装後照合がevidenceにあることを確認します。類似処理がない場合は探索範囲と未発見事実、局所修正は短い比較で足ります。記録不足はownerへ補完を求め、人間への新たな承認要求にしません。
+
 ### READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION
 
 `refs/handoff.md`の全fieldと次を検証します。
@@ -137,6 +141,7 @@ scope内の全acceptance itemが`Complete`で、各itemにimplementationまた�
 - `Ownership transfer basis: bounded-residual-work-only`
 - Decision surface assessmentが全行`Resolved`または理由付き`N/A`
 - actual code / implementation / verification evidenceがassessmentを裏付ける
+- evidenceに参照実装・要求差分・採用方式・例外理由（不在時は探索範囲と未発見事実）があり、実施済みの照合結果と残作業のCompletion checkを区別している
 - 残作業がlocked contract / semanticsの適用だけで完了できる
 - acceptanceとWork Package mappingが双方向に一致する
 - Allowed edit surfaceが全Authorized surfaceを包含する
@@ -172,6 +177,8 @@ ownerはWork PackagesとAllowed edit surface内で実装・検証します。cla
 
 全acceptance itemとevidence、route identity、Locked Decision complianceを検証してcallerへ返します。
 
+引き継いだ比較に対するactual diffの実装後照合結果も確認します。追加状態・順序制御・既存serviceを迂回する直接呼び出しの必要性、新事実に伴う比較更新をevidenceで確認し、記録不足はownerへ補完を求めます。
+
 ### NEEDS_DECISION_SURFACE_REENTRY
 
 valid handoffの実装中に新しいdecision surfaceが開いた場合だけ受理します。Decision-Surface Re-entry Handoffの`trigger`が空白でも`N/A`でもなく、`reentry_count`が直前に受理したBounded Residual Implementation Handoffの値に1を加えた値であることを検証します。元のBounded Residual Implementation Handoff、Decision-Surface Re-entry Handoff、Original Implementation Intent、current worktreeを保持し、route identity一致を確認してDecision-Surface Implementation Ownerへ直列に戻します。triggerまたはcountが不正ならfail closedで停止し、次ownerを起動しません。
@@ -201,6 +208,7 @@ supplied binding artifactsがある場合、各ownerは自分のphaseで実際�
 - Design Pair handoff pathまたは`N/A`
 - phase owner sequence
 - implementation / validation evidence
+- 既存処理との比較・採用方式・例外理由・実装後照合結果（既存evidence内）
 - files changed
 - acceptance status table
 - Locked Decision compliance

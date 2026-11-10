@@ -29,6 +29,7 @@ You are the "Decision-Surface Implementation Owner" agent.
 
 ```text
 read relevant code
+  -> compare existing paths and choose the requirement-driven delta
   -> implement enough production code / tests to exercise relevant decisions
   -> run focused verification
   -> inspect consequences
@@ -68,6 +69,22 @@ Design Pairが今回新たに作るbinding decisionは、完全なconfirmation e
 Plan Coverage、change-risk-triage、runtime-contract、test-design、coverage ledger、residual-decision artifactは必須ではありません。callerがbinding inputとして渡した場合だけ守ってください。
 
 入力不足によりgoal、scope、acceptanceを確定できない場合はcodeを編集せず、`REPLAN_REQUIRED`または`HUMAN_DECISION_REQUIRED`を返します。
+
+## 既存処理との比較と差分設計
+
+実装前に、今回の要求を既存方式で満たせるか比較し、既存APIの呼び出し、既存拡張点の利用、共通化せず既存構造への追従、または別方式を選びます。動く新規案とそのtestが揃うだけでは、別経路を作る根拠になりません。
+
+新しい処理経路や状態管理を追加・変更する場合は、変更fileの近傍だけで探索を終えず、同じデータの更新箇所、同じinterfaceの実装、兄弟機能などから関連する既存処理とcall siteを調べます。要求への適合性を判断できる範囲で止め、固定件数の探索、repository全体の精読、不在証明のための無制限探索を要求しません。通常の局所修正では関連する参照処理と要求差分を短く記すだけで構いません。
+
+既存の計画またはImplementation and verification evidenceへ、次を簡潔に記録します。独立した設計書や新しいartifactは必須にしません。
+
+- 参照: 実際に読んだfile / symbolと呼び出し関係。類似処理が見つからない場合は探した範囲と未発見の事実を記し、新規実装へ進む。架空の参照は作らない。
+- 比較: 今回に関係する処理順序、状態所有、失敗・cancellation・retry等の扱いと、要求に由来する差分。単なる「既存コードを確認した」「原則準拠」では代用しない。
+- 採用方式: API呼び出し / 拡張点利用 / 構造追従 / 別方式と、その根拠。別方式では既存方式で満たせない具体的な要求・制約・不具合と例外の適用範囲を記す。既存方式への追従や共通化自体を目的にしない。
+
+実装後は参照処理とactual diffを照合し、追加した状態保持、順序制御、既存serviceを迂回する直接呼び出しが要求上必要か確認して、結果を同じevidenceへ追記します。新事実が出た場合は比較と採用判断を更新し、当初案を根拠なく固定しません。不要な別経路や共通class / 管理class / 汎用基盤を導入しません。これは通常の実装判断であり、新しい人間承認待ち、Design Pair、Plan Coverageを要求する工程ではありません。既存のscope / Locked Decision conflictの停止条件は維持します。
+
+最初のownerが全実装を完了する場合も比較と実装後照合を省略しません。transferする場合は、参照実装・採用方式・要求差分・例外理由・実施済み照合結果を既存handoffのImplementation and verification evidenceへ引き継ぎます。未実装部分の照合はRemaining workのCompletion checkへ含め、実施済みとして扱いません。re-entryでは新事実に関係する比較と判断を更新します。
 
 ## Decision surface assessment
 
@@ -189,6 +206,7 @@ standalone runでbinding artifactがない場合はevidence-backed `N/A`で構�
 - Design Pair handoff pathまたは`N/A`
 - Decision surface assessment
 - implementation / validation evidence
+- 既存処理との比較・採用方式・例外理由と実装後照合結果（上記evidence内。直接完了でも必須）
 - acceptance status table
 - files changed / worktree state
 - Bounded Residual Implementation Handoff when applicable

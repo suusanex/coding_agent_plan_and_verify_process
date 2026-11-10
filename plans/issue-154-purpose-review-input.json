@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "taskKey": "coding-agent-process-issue-154",
+  "changeId": "existing-pattern-comparison-v1",
+  "previousRunId": null,
+  "userDecision": null,
+  "purpose": {
+    "version": "purpose-v1",
+    "sources": ["https://github.com/suusanex/coding_agent_plan_and_verify_process/issues/154", "chat:user-request-2026-11-11"],
+    "body": "動作する実装であることだけでなく、既存の責務分担・状態管理・処理経路との一貫性を保ち、不必要な別経路を増やさないことを実現したい。",
+    "original": "AIエージェントが、既存の多くのコードで使われている実装パターンを利用できるにもかかわらず、独自の処理シーケンスを新設するケースが多発している。",
+    "authority": "ユーザー依頼（chat:user-request-2026-11-11）:「このissueを解決します。内容を取得し、プランを作成してください。実装してください。」 Issue Decision Context:「Adaptiveの通常手順に、既存の類似処理を調べ、今回との差分と採用方式を決めてから実装する短い工程を組み込む。」"
+  },
+  "approvedDesign": null,
+  "proposal": {
+    "version": "proposal-v1",
+    "body": "Adaptiveの既存Decision-Surface ownerに実装前の比較工程を加える。新しい処理経路・状態管理の追加変更時には近傍だけでなく同じデータ更新箇所・同じinterface実装・兄弟機能から関連処理を探す。局所修正は関連参照と差分だけを短く記す。実際に読んだfile/symbolと呼び出し関係、順序・状態所有・関係する失敗等の扱い、要求由来の差分、採用方式を既存計画・実装evidenceに記す。方式はAPI呼び出し・拡張点利用・構造追従・別方式を区別し、別方式は既存方式の不適合根拠と例外範囲、不在は探索範囲と未発見事実を記す。不要な共通化、無制限探索、固定件数、架空参照、新規承認待ちを要求しない。実装後はactual diffを参照処理と照合し、追加状態・順序制御・既存serviceを迂回する直接呼び出しの必要性を確認する。新事実は比較・判断を更新する。直接完了でも省略しない。既存handoffのImplementation and verification evidenceへ比較を引き継ぎ、bounded ownerが参照・実装後照合する。非局所判断の変更は既存re-entryを使い、routerはtransferと両完了経路で記録を確認する。新規artifact/state schemaは導入しない。利用ガイドと分岐例、既存static validatorを更新し、既存builderで配布fingerprintを更新する。検証、Ready PR、PR Review Remediationまで実施する。マージ後の実運用評価は未確認として残し、Issueに追記できる観察欄をガイドへ設ける。数値閾値や評価期間は追加しない。",
+    "delta": "承認済み設計baselineはない。実装前比較・実装後照合・既存evidenceへの記録・handoff伝播とrouter確認、利用例と静的検証を追加する。モデル切替、実装所有権、route/state schemaの削除・緩和はない。"
+  },
+  "evidence": [
+    {"id":"E1","source":"https://github.com/suusanex/coding_agent_plan_and_verify_process/issues/154#decision-context","body":"大きな設計書、新しい承認待ち、固定件数の探索、リポジトリ全体の精読を標準要件にしない。Design Pairの常用やPlan Coverageフロー全体の導入は行わない。今回の比較工程はAdaptiveの通常の実装判断として扱う。既存のモデル切替・実装所有権の仕組みを置き換えることは目的にしない。担当交代がある場合は、参照実装・採用方式・例外理由を既存handoffへ引き継ぐ。最初の担当が全実装を完了する場合にも比較を省略しない。"},
+    {"id":"E2","source":"apm-packages/adaptive-implementation-execution/.apm/agents/decision-surface-implementation-owner.agent.md; refs/handoff.md; bounded-residual-implementation-owner.agent.md","body":"現行ownerはread relevant code -> implement -> focused verification -> inspect consequences -> reassessを所有する。Production sequence、State ownership、Error/Cancellation/Retry semantics等のassessmentが既存である。handoffにはImplementation and verification evidenceとLocked decisionsがある。bounded ownerはAllowed edit surface内で実装し、新しい非局所判断が出ると既存NEEDS_DECISION_SURFACE_REENTRYを返す。最初のownerによる全実装完了は正常である。これらを再利用し新たな実行基盤は作らない。今回の変更はprompt/Markdown契約でありBCL/framework/NuGetによる実行処理の追加は不要。Plan Coverageの類似path適合性評価は参考に留め、その別工程・成果物体系は移植しない。"}
+  ],
+  "responses": [],
+  "conformance": [{"owner":"このchatの実装担当","plan":"既存契約を拡張し、Adaptive静的validator・公開境界・変更package配布・root projection・diff/link検査、PRレビューを実施する。API/拡張点、構造追従、別方式、不在、直接完了、交代、局所修正、新事実の分岐を例と契約で確認する。実model挙動と実運用効果は未確認として区別する。","evidence":["E1","E2"]}]
+}
