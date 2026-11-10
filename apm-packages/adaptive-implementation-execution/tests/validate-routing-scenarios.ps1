@@ -71,7 +71,49 @@ function Get-Handoff([object] $Event) {
     if (Has-Property $Event 'additional_allowed_edit_surface') {
         $handoff.allowed_edit_surface = @($handoff.allowed_edit_surface) + @($Event.additional_allowed_edit_surface)
     }
+    if (Has-Property $Event 'comparison_ref') {
+        $handoff.comparison_ref = $Event.comparison_ref
+    }
     return $handoff
+}
+
+# fixture内の比較例を検査するための表現。runtime handoffのJSON schemaではない。
+function Get-ComparisonErrors([object] $Evidence, [string] $Stage) {
+    $errors = [System.Collections.Generic.List[string]]::new()
+    if ($null -eq $Evidence) { $errors.Add('comparison evidence is missing'); return $errors }
+    foreach ($field in @('requirement_delta', 'choice', 'reason', 'semantics')) {
+        if ([string]::IsNullOrWhiteSpace([string]$Evidence.$field)) { $errors.Add("comparison is missing '$field'") }
+    }
+    if ($Evidence.choice -cnotin @('api', 'extension', 'structure', 'alternative', 'new')) { $errors.Add('comparison choice is invalid') }
+    if ($Evidence.choice -ceq 'new') {
+        if ([string]::IsNullOrWhiteSpace([string]$Evidence.search_scope) -or $Evidence.no_match -ne $true) {
+            $errors.Add('no-match comparison lacks bounded search evidence')
+        }
+    }
+    else {
+        foreach ($field in @('reference_file', 'reference_symbol', 'call_relationship')) {
+            if ([string]::IsNullOrWhiteSpace([string]$Evidence.$field)) { $errors.Add("comparison is missing '$field'") }
+        }
+    }
+    if ($Evidence.choice -ceq 'alternative' -and ([string]::IsNullOrWhiteSpace([string]$Evidence.incompatibility) -or [string]::IsNullOrWhiteSpace([string]$Evidence.exception_scope))) {
+        $errors.Add('alternative comparison lacks incompatibility or exception scope')
+    }
+    if ($Stage -ceq 'inspection-only') {
+        if ($Evidence.post_check -cne 'not-performed' -or -not [string]::IsNullOrWhiteSpace([string]$Evidence.actual_diff)) { $errors.Add('inspection-only comparison claims a performed diff check') }
+    }
+    else {
+        if ($Evidence.post_check -cne 'performed') { $errors.Add('implemented comparison lacks post-check') }
+        foreach ($field in @('actual_diff', 'state_sequence_bypass_check')) {
+            if ([string]::IsNullOrWhiteSpace([string]$Evidence.$field)) { $errors.Add("comparison is missing '$field'") }
+        }
+    }
+    if ($Stage -cne 'complete' -and [string]::IsNullOrWhiteSpace([string]$Evidence.remaining_check)) { $errors.Add('transfer comparison lacks remaining completion check') }
+    return $errors
+}
+
+function Get-Comparison([object] $Record) {
+    if ([string]::IsNullOrWhiteSpace([string]$Record.comparison_ref)) { return $null }
+    return $document.comparison_examples.($Record.comparison_ref)
 }
 
 function Get-TrackedState([object] $Event) {
@@ -248,6 +290,8 @@ function Get-ScenarioErrors([object] $Scenario) {
                     'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION' {
                         $handoff = Get-Handoff $event
                         $handoffErrors = @(Get-HandoffErrors $handoff)
+                        $comparisonStage = if ($event.inspection_only -eq $true) { 'inspection-only' } else { 'transfer' }
+                        $handoffErrors += @(Get-ComparisonErrors (Get-Comparison $handoff) $comparisonStage)
                         if ($afterReentry) {
                             $progress = $handoff.reentry_progress_evidence
                             if ([int]$handoff.reentry_count -ne [int]$pendingReentryCount -or
@@ -294,6 +338,7 @@ function Get-ScenarioErrors([object] $Scenario) {
                         }
                     }
                     'IMPLEMENTATION_COMPLETED' {
+                        foreach ($error in @(Get-ComparisonErrors (Get-Comparison $event) 'complete')) { $errors.Add($error) }
                         if ($event.acceptance_complete -ne $true -or @($event.implementation_evidence).Count -eq 0 -or @($event.validation_evidence).Count -eq 0) {
                             $errors.Add('implementation completion lacks acceptance or evidence')
                         }
@@ -321,6 +366,7 @@ function Get-ScenarioErrors([object] $Scenario) {
                 }
                 switch ($event.verdict) {
                     'IMPLEMENTATION_COMPLETED' {
+                        foreach ($error in @(Get-ComparisonErrors (Get-Comparison $event) 'complete')) { $errors.Add($error) }
                         if ($event.changed_locked_decision -eq $true) {
                             $errors.Add('bounded residual owner changed a locked decision')
                         }
@@ -396,6 +442,33 @@ foreach ($scenario in @($document.scenarios)) {
     foreach ($error in @(Get-ScenarioErrors $scenario)) {
         $failures.Add("Scenario $($scenario.id): $error")
     }
+}
+
+# 正例と欠落例の両方を検査し、単なる文言チェックで完了としない。
+foreach ($entry in $document.comparison_examples.PSObject.Properties) {
+    foreach ($error in @(Get-ComparisonErrors $entry.Value $entry.Value.stage)) { $failures.Add("Comparison $($entry.Name): $error") }
+}
+foreach ($field in @('reference_file', 'reference_symbol', 'call_relationship', 'requirement_delta', 'choice', 'reason', 'semantics', 'actual_diff', 'state_sequence_bypass_check')) {
+    $negative = Copy-Object $document.comparison_examples.api
+    $negative.$field = ''
+    if (@(Get-ComparisonErrors $negative 'complete').Count -eq 0) { $failures.Add("Missing comparison '$field' was accepted") }
+}
+foreach ($scenarioId in @('A', 'B', 'C', 'D')) {
+    $negative = Copy-Object (Get-Scenario $scenarioId)
+    $completion = @($negative.events | Where-Object verdict -CEQ 'IMPLEMENTATION_COMPLETED')[-1]
+    $completion.comparison_ref = ''
+    if (@(Get-ScenarioErrors $negative).Count -eq 0) { $failures.Add("Scenario $scenarioId accepted completion without comparison") }
+}
+$negative = Copy-Object (Get-Scenario 'A')
+$negative.events[1].handoff.comparison_ref = ''
+if (@(Get-ScenarioErrors $negative).Count -eq 0) { $failures.Add('Transfer without comparison was accepted') }
+$negative = Copy-Object (Get-Scenario 'B')
+$negative.events[1].comparison_ref = 'api'
+if (@(Get-ScenarioErrors $negative).Count -eq 0) { $failures.Add('Inspection-only transfer accepted performed comparison') }
+foreach ($case in @(@('alternative', 'incompatibility'), @('alternative', 'exception_scope'), @('new', 'search_scope'), @('inspection', 'remaining_check'))) {
+    $negative = Copy-Object $document.comparison_examples.($case[0])
+    $negative.($case[1]) = ''
+    if (@(Get-ComparisonErrors $negative $negative.stage).Count -eq 0) { $failures.Add("Comparison $($case[0]) accepted missing $($case[1])") }
 }
 
 if ($failures.Count -gt 0) {

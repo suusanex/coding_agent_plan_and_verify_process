@@ -114,3 +114,9 @@ parent / subagent、別process、VS Code button、Copilot CLI `--agent`の違い
 - `copilot-cli-real-model-e2e-2026-08-30.md`: 0.6.0 qualification template
 
 旧recordは0.6.0のPASS根拠にしません。
+
+## 既存処理の比較証跡
+
+Issue #154で`routing-scenarios.json`へ`comparison_examples`を追加した。API、拡張点、構造追従、別方式、未発見、inspection-onlyの例を検査し、直接完了・transfer・bounded完了の`comparison_ref`で既存evidenceの内容を表す。これはdeterministic fixture専用の表現であり、実際のhandoffにJSON fieldや独立artifactを要求しない。例中のfile / symbolと実行結果は合成データであり、実在するproduction codeの調査・実行証拠ではない。
+
+validatorは証跡欠落と、inspection-onlyで照合済みとする誤りをnegative mutationで拒否する。runtime agentの発見能力、意味的適合性、運用負担の改善はこのPASSからは判断できない。

@@ -42,3 +42,10 @@
 - PASS: `validate-agent-plugin-package.ps1 -Package adaptive-implementation-execution`、`validate-agent-plugin-qualification.ps1 -Package adaptive-implementation-execution`（negative mutationを含む）。qualificationの実model判定はNOT_RUN / HOLDを維持。
 - 配布検証は常用APM 0.33.0のlocal-bundle非対応で一度失敗。CI指定の公式APM 0.26.0を一時領域へ展開し、公開SHA256と一致確認後、既存`-ApmExecutable`引数で指定すると成功した。常用APMとrepository配布方式は変更していない。
 - PRレビュー・CIはPR作成後に確認する。マージ、実model挙動、実運用効果は未確認。
+
+## PRレビュー補修
+
+- PR #157のCopilot指摘（inline-comment:4531294328）を採用。既存routing fixtureへ比較例6件を加え、直接完了・transfer・bounded完了へ接続した。参照・要求差分・採用方式・照合欠落、inspection-onlyの虚偽照合をnegative mutationで拒否する。fixture用JSON表現でありruntime handoff形式は変更しない。
+- CIのAdaptive／Design Pair配布smokeで、旧GPT-5.6期待値と現行canonicalのGPT-6定義との不一致を確認した。モデル自体は変えず、smoke2本の期待値8箇所だけ修正。
+- 補修後のAdaptive validator、Design Pair validator、公開境界、diff検査はPASS。修正したsmoke2本もremote head `549243f`をAPM 0.26.0で導入してPASS。Windows上のAPM subprocessでcp932 decode例外の出力があったが、プロセスとsmokeはexit 0で完了。既存finalizerにはSDK RC由来のNuGet / AOT警告がある。最終headのLinux CIも確認する。
+- 採否・全source coverage・Git結果の詳細はlocal `.review/pr-157/review-plan.md`に記録する。
