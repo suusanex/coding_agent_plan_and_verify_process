@@ -176,6 +176,28 @@ Assert-Contains $routingFixture 'edit-type-only-reentry-is-rejected' 'edit-type-
 Assert-NotContains $routingFixture 'HIGH_MODEL code changes|Direct completion reason|COMPLETED_BY_HIGH_MODEL' 'removed routing metrics'
 
 $maxWindowsPackagePathLength = 110
+# 既存の契約検証に比較工程の接続を加える。実modelの意味品質は証明しない。
+Assert-Contains $decisionOwner '## 既存処理との比較と差分設計' 'pre-implementation comparison contract'
+Assert-Contains $decisionOwner '同じデータの更新箇所.*同じinterfaceの実装.*兄弟機能' 'related-path discovery beyond neighboring files'
+Assert-Contains $decisionOwner '実際に読んだfile / symbolと呼び出し関係' 'concrete reference evidence'
+Assert-Contains $decisionOwner 'API呼び出し / 拡張点利用 / 構造追従 / 別方式' 'distinct reuse choices'
+Assert-Contains $decisionOwner '探した範囲と未発見の事実.*新規実装へ進む' 'bounded no-match path'
+Assert-Contains $decisionOwner '通常の局所修正.*短く' 'proportional local-edit comparison'
+Assert-Contains $decisionOwner '既存方式で満たせない具体的な要求・制約・不具合と例外の適用範囲' 'justified deviation scope'
+Assert-Contains $decisionOwner '新事実.*比較と採用判断を更新' 'comparison revision on new evidence'
+Assert-Contains $decisionOwner '最初のownerが全実装を完了する場合も比較と実装後照合を省略しません' 'first-owner comparison coverage'
+foreach ($path in @($decisionOwner, $residualOwner, $handoff)) {
+    Assert-Contains $path 'actual diff' 'post-implementation comparison'
+    Assert-Contains $path '順序制御.*既存serviceを迂回する直接呼び出し' 'unnecessary sequence and bypass inspection'
+}
+Assert-Contains $handoff '未実装部分の照合はRemaining workのCompletion check' 'deferred comparison mapped to remaining work'
+Assert-Contains $handoff 'inspection-onlyでは照合未実施' 'no fabricated post-implementation evidence'
+Assert-Contains $residualOwner '開始時にImplementation and verification evidence内の参照実装・要求差分・採用方式・例外理由を読み' 'transferred comparison consumption'
+Assert-Contains $residualOwner '採用方式の変更.*NEEDS_DECISION_SURFACE_REENTRY' 'reuse decision uses existing re-entry'
+Assert-Contains $skill '直接完了でも、既存処理との比較' 'router checks first-owner completion'
+Assert-Contains $skill '引き継いだ比較に対するactual diffの実装後照合結果も確認' 'router checks residual completion'
+Assert-Contains $skill '実施済みの照合結果と残作業のCompletion checkを区別' 'router checks transferred comparison'
+
 $packageFiles = @(& git -C $repoRoot ls-files --cached --others --exclude-standard -- 'apm-packages/adaptive-implementation-execution')
 if ($LASTEXITCODE -ne 0) {
     Add-Failure 'Cannot enumerate Adaptive package payload.'

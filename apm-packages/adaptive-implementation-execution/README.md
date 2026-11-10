@@ -84,6 +84,8 @@ Copilotでは`decision-surface-implementation-owner`から開始します。`bou
 
 skillは`/adaptive-implementation-execution`で明示起動した場合だけ使用します。通常の「実装して」や自然文での名前言及だけでは自動選択しません。
 
+通常の実装内で、既存処理との比較・要求差分・採用方式を短く記録し、実装後に参照処理とdiffを照合します。直接完了でも担当交代でも適用します。記録例とマージ後の観察方法は[Usage guide](docs/usage-guide.md#既存方式との比較を小さく残す)を参照してください。静的検査の成功と実運用での改善効果は区別します。
+
 ## Breaking change in 0.6.0
 
 0.6.0はownership contractのbreaking redesignです。

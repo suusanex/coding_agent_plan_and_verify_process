@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "adaptive-implementation-execution",
-  "canonicalFingerprint": "c93a038467ed381c6601652542695158ab75eb499802b8802bff262a7718fb18",
-  "distributionFingerprint": "e289b6ae8aae3989c6c16978f171f3fbbecdd2ce97478d5989c8bbd799fe0ef3",
+  "canonicalFingerprint": "43c354177aecf58bb9ef7837ad1645d4af4d16a4229b4e5371ca133290fbd617",
+  "distributionFingerprint": "786faf098990c8732c6eebfc9c979890b1fc96560d7c5bc65eb442540a00dd8d",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
@@ -14,7 +14,7 @@
       "distribution": "apm",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "Adaptive 0.6.0 changes the ownership contract and agent identities, so prior APM runtime evidence cannot qualify the candidate.",
+      "reason": "Issue #154の比較工程を含むcandidateのAPM実model挙動は未検証。過去のruntime evidenceを流用しない。",
       "evidenceRefs": [
         "apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-08-30.md"
       ]
@@ -23,7 +23,7 @@
       "distribution": "agent-plugin-direct",
       "status": "HOLD",
       "evidenceMode": "PARTIAL",
-      "reason": "The direct plugin bundle requires a new decision-surface ownership route qualification for Adaptive 0.6.0.",
+      "reason": "Issue #154の比較工程を含むcandidateのdirect plugin runtime qualificationは未実施。",
       "evidenceRefs": [
         "apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-08-30.md"
       ]

@@ -103,6 +103,10 @@ Design Pair originとDecision-Surface Implementation Owner originのLocked decis
 5. locked boundary内で直せるfailureだけを修正する。
 6. 新しいdecision surfaceが判明した場合は推測を止め、re-entry handoffを返す。
 
+開始時にImplementation and verification evidence内の参照実装・要求差分・採用方式・例外理由を読み、今回の残作業へ適用します。類似処理不在の探索範囲・未発見事実や局所修正の短い比較も受理します。記録が不足する場合は既存のartifact repairで補完を求め、新しい承認待ちを作りません。
+
+実装後は参照処理とactual diffを照合し、追加状態・順序制御・既存serviceを迂回する直接呼び出しの必要性と結果を同じevidenceへ記録します。新事実は比較へ反映しますが、採用方式の変更がlocked boundaryや非局所decisionを開く場合は独断で変更せず、既存の`NEEDS_DECISION_SURFACE_REENTRY`を使います。局所かつreversibleな判断は既存authority内で更新します。
+
 ## Decision-surface re-entry
 
 `NEEDS_DECISION_SURFACE_REENTRY`はvalid handoffの実装または検証中に、handoffで解消済みとされたdecisionを再検討する必要、または新しい関連非局所decision surfaceが判明した場合だけ使います。ある種類のedit、新規file、class/interface、wiring editが必要という事実だけではre-entryしません。invalid handoffにはre-entryを使いません。
@@ -137,6 +141,7 @@ re-entry時はredesignを続けず、次を返します。
 - Files changed:
 - Validation performed:
 - Evidence that opened the decision surface:
+- 既存処理との比較・採用方式・例外理由と、新事実による差分（既存evidenceの参照可）:
 - New decision required:
 - Suggested inspection points:
 - Worktree state:
@@ -172,6 +177,7 @@ Plan Coverage binding artifactが利用できる場合、今回実際に変更�
 - completed Remaining work
 - files changed
 - validation commands and results
+- 既存処理との比較・採用方式・例外理由と実装後照合結果（既存evidence内）
 - acceptance status table
 - Implementation Self-Map Deltaまたはevidence-backed `N/A`
 - scope / Locked Decision compliance

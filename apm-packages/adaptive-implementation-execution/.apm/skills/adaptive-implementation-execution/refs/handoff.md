@@ -54,6 +54,10 @@ route identityはincoming durable stateから変更せず伝播する。current 
 
 code edit有無や量をtransfer条件にしない。inspection-onlyの場合は、残作業が新しい非局所判断を必要としない根拠を記録する。
 
+上記evidenceへ既存処理との比較も含める。実際に読んだ参照file / symbolと呼び出し関係、関連する順序・状態所有・失敗等の扱い、要求差分、採用方式（API呼び出し / 拡張点利用 / 構造追従 / 別方式）、別方式の具体的根拠と例外範囲を簡潔に引き継ぐ。類似処理がなければ探索範囲と未発見事実、局所修正なら短い比較でよい。既存記録への参照でもよいが、次ownerが読める内容を保持する。
+
+実装済み部分のactual diffと参照処理の照合結果を記す。追加状態・順序制御・既存serviceを迂回する直接呼び出しの必要性を確認し、未実装部分の照合はRemaining workのCompletion checkへ置く。inspection-onlyでは照合未実施を明記する。比較記録のために新しいartifactや承認待ちを作らない。
+
 re-entry後の再transferでは、`reentry_count`を直前のDecision-Surface Re-entry Handoffの値と一致させ、`previous_reentry_trigger`と`reentry_progress_evidence.trigger`をそのhandoffの`trigger`へ一致させる。`resolution`へdecision surfaceを解消したcode evidence、`verification`へ確認結果、`same_unresolved_cause_rehanded_off`へ`false`を記録する。Remaining workまたはAllowed edit surfaceの縮小は要求しない。
 
 ## Applicability evidence
