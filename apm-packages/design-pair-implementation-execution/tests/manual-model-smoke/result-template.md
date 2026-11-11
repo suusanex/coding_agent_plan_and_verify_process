@@ -18,6 +18,9 @@
 - Agent selection flags:
 - Tracked handoff path:
 - Unsupported capability notes:
+- Input origin: Human-operated / Scripted scenario (not human confirmation)
+- Comparison baseline / candidate revisions:
+- Same-task / model / reasoning / permission comparability:
 
 ## Turn sequence
 
@@ -40,6 +43,8 @@ Add rows for any optional question-and-answer turns during `disposition-confirma
 - Pending human-owned Target IDs:
 - Target Map / summary set reconciliation evidence:
 - Selected Target Discussion Evidence:
+- Material sections / versions / presentation turns:
+- Finalization status and final reconciliation:
 - Target Disposition Evidence:
 - Upstream Binding Constraints:
 - Upstream User Initial Positions:
@@ -56,14 +61,14 @@ NOT RUN
 ## Validation
 
 - Turn 1 stopped before READY: NOT RUN
-- Turn 1 user-facing Target Map included concrete code structure for every Target: NOT RUN
+- 初回資料の問い・判断材料・因果関係・具体的根拠と会話の判断入口: NOT RUN
 - Every turn executed in the disposable repository root: NOT RUN
 - Turn 1 production/tests unchanged: NOT RUN
 - Turn 1 Adaptive not started: NOT RUN
 - Upstream proposal not converted to Locked Decision: NOT RUN
 - Turn 2 trade-off response observed: NOT RUN
 - Target-only selection advanced to disposition-confirmation without requiring an initial position or repeating selection: NOT RUN
-- Selected Target user-facing response included concrete code structure, trade-offs, proposal, and validation expectations: NOT RUN
+- 既知の根拠の再利用と必要な差分だけの回答・記録: NOT RUN
 - Turn 2 stopped for final disposition: NOT RUN
 - Final post-map confirmation evidence valid: NOT RUN
 - Every Locked / Discussed-Unlocked / Adaptive-Owned Target has matching post-map disposition evidence: NOT RUN
@@ -73,6 +78,27 @@ NOT RUN
 - New CLI session resume used tracked handoff as authority, if exercised: NOT RUN
 - Ordinary Plan route exercised: NOT RUN
 - Explicit Plan Coverage route exercised: NOT RUN
+- ID選択なしの直接質問・反論・明示的確定: NOT RUN
+- 部分・残件・全件skipとNo-Changeの区別: NOT RUN
+- 新案・code変更時の局所追加調査と資料版更新: NOT RUN
+- 待機中Pendingからの再開と完了時の全集合・証拠照合: NOT RUN
+- 無効READYをAdaptiveが編集前に拒否: NOT RUN
+
+## 初回から最終dispositionまでのコスト
+
+| Variant / turn | Input tokens | Output tokens | Reasoning tokens | Cached tokens | Elapsed | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| Baseline / NOT RUN | Unknown | Unknown | Unknown | Unknown | Unknown | |
+| Candidate / NOT RUN | Unknown | Unknown | Unknown | Unknown | Unknown | |
+| Baseline total | Unknown | Unknown | Unknown | Unknown | Unknown | |
+| Candidate total | Unknown | Unknown | Unknown | Unknown | Unknown | |
+
+- Token包含関係と二重計上防止:
+- 説明不足解消だけの往復数（baseline / candidate）:
+- 不要な根拠再読・既出説明再掲・handoff全面更新（baseline / candidate）:
+- 必要な追加調査とその理由:
+- 全行程完了・比較上の制限:
+- 観測できた差分（未計測の改善効果は断定しない）:
 
 ## Final result
 

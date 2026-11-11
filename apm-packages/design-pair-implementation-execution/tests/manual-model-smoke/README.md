@@ -64,10 +64,10 @@ On GitHub Copilot CLI, invoke from the disposable repository root so the skill i
 
 Verify and record:
 
-- the response presents the entire bounded Target Map and internal design decision candidates;
-- the user-facing response gives every Target's concrete file and symbol, current responsibility and invariant, relation to the change, expected modification or verification, relevant evidence, and open question rather than only Target labels or an artifact link;
-- the response uses the required seven-column `Design Pair Target Map`, Coverage evidence, and Selection request structure without compressing the map to a short Target list;
-- the response asks for Target IDs and allows optional initial positions, concerns, questions, and delegation of unselected Targets;
+- 初回資料に、全論点の問い・必要性→調査済み事実と制約→実在する案のtrade-off→非binding proposalまたはNo proposal理由→不明点・検証期待が因果的に説明されている;
+- 具体的file / symbol、invariant、caller / wiring / lifecycle / test seam、変更・検証範囲とevidenceに同じ資料から辿れる;
+- 会話に資料への導線と各問いの判断上の違い・不明点の要約がある。リンクやIDと論点名だけはFAILだが、資料の全文再掲は不要;
+- ID選択を必須にせず、直接質問・反論・案・確定・部分／残件／全部スキップを案内する。1ファイル＝1IDや初回の全詳細設計を強制しない;
 - the tracked handoff is `AWAITING_USER_INPUT / target-selection`;
 - no Design Pair Locked Decision exists;
 - `src/` and `tests/` are unchanged from the baseline commit;
@@ -84,13 +84,11 @@ Choose at least one actual Target ID from Turn 1. Do not add an initial position
 Discuss <Target ID>.
 ```
 
-Verify that the model discusses code evidence, alternatives, trade-offs, production wiring or lifecycle effects, and validation expectations. It must not self-confirm a Locked Decision. The handoff must become `AWAITING_USER_INPUT / disposition-confirmation`, and `src/` and `tests/` must remain unchanged.
+提示済み資料のcode evidence、trade-off、proposal、validationを再利用し、判断上の違いを短く示して最終判断を尋ねることを確認する。固定8項目blockの再掲や理由のないcode再読は不要。自己確定はせず `AWAITING_USER_INPUT / disposition-confirmation` となり、`src/` と `tests/` は未変更でなければならない。
 
-For every selected Target, verify that the user-facing response itself includes the concrete file and symbol, current responsibility and invariant, caller/wiring/lifecycle/test-seam evidence, the internal design decision, realistic alternatives and trade-offs, a non-binding proposal or an evidence-backed `No proposal` reason, validation expectations, and open questions. An artifact link, Target label, or abstract option list alone is `FAIL` even when the tracked handoff contains more detail.
+`Selected Target Discussion Evidence` は具体的根拠を含む資料節・版・提示turnと実際のuser response、対話差分を参照する。抽象的なリンクだけや参照先の欠落はFAIL。対話中の派生summary / ReadinessはPendingでよく、正本row・証拠と必須進行状態の差分更新を確認する。
 
-Verify that the response uses the required `<DP-Txx> Internal design discussion` block and does not collapse its fields into an abstract paragraph or option list.
-
-Forward the human response verbatim to the same task/session. The smoke operator must not ask a separate harness question, append an initial position, or synthesize delegation. A Target-only selection must be accepted without repeating the same selection or requiring an initial position. The process must present the complete selected-Target discussion surface described above, move to `AWAITING_USER_INPUT / disposition-confirmation`, ask for the selected Target's final disposition and any still-missing classification of unselected Targets, keep production/tests unchanged, and synchronize the handoff header and Readiness Check from the same user evidence. An invented stage such as `design-discussion`, a return to `target-selection` for a valid Target ID, contradictory evidence, or a topic-only response is `FAIL`.
+Forward the human response verbatim. 親やoperatorは初期案・委任を補完しない。Target-only selection must be accepted without repeating the same selection or requiring an initial position. `AWAITING_USER_INPUT / disposition-confirmation`へ進み、最終判断と不足する分類を同時に尋ねる。valid Targetで`target-selection`へ戻す、独自stageを作る、未指示Targetを委任する場合はFAIL。
 
 Before resuming, recheck the disposable repository root. If the resumed process observes a different worktree, mark the run `FAIL`, verify that neither repository was changed, and start a clean run. Do not move or copy the handoff to repair a harness working-directory error.
 
@@ -124,6 +122,21 @@ Record separate runs or additional turns for:
 2. **Design Pair not selected** — ordinary Adaptive / default route; Design Pair must not auto-start.
 3. **Locked Decision conflict** — Adaptive decision-surface-implementation-owner with `--agent decision-surface-implementation-owner` stops without silently changing the Locked Decision.
 4. **Waiting-state new-session resume** — new process reads `AWAITING_USER_INPUT` handoff and continues after a fresh human response.
+
+追加で次を別runまたは追加turnとして記録する。
+
+5. **Direct question / confirmation** — 初回後にID選択なしで既存制約への質問、反論、A案の明示的確定を受理する。必要な情報だけで回答し、儀礼的な再説明turnを作らない。
+6. **Partial / remaining / all skip** — 部分、残件、全件を具体的IDとuser evidence付きAdaptive-Ownedへ移す。未指示委任とNo-Changeへの変換を拒否する。
+7. **New option / changed code** — C案やcode変更に必要な範囲だけ追加調査し、資料版・根拠を更新して提示する。影響する旧確定を新版へ流用しない。
+8. **Deferred finalization / invalid READY** — 待機のPending summaryを新規sessionで再開し、完了時は全ID集合・分類・post-map証拠・Locked/upstream整合を照合する。欠落・重複・矛盾・古いPASSを持つREADYはAdaptiveが編集前に拒否する。
+
+## 同条件の全行程比較
+
+同じfixture、model、reasoning、CLI設定、ツール権限で変更前と変更後を別の使い捨てrepository/sessionで実行する。初回資料生成から最終dispositionまでを対象とし、初回だけでは比較しない。利用者の実質的な質問・決定・委任を揃え、旧契約で余分なID選択／説明turnが必要なら隠さず記録する。
+
+turn別のinput / output / reasoning / cached tokens、経過時間、説明不足解消だけの往復数、不要な根拠再読、既出説明の再掲、handoff全面更新回数を記録する。包含関係（cachedはinputの内数等）を明示し、総計で二重計上しない。取得不能はUnknown、未実施はNOT RUN。必要な追加調査と重複調査を区別し、初回から後続turnへコストを移しただけでは改善としない。
+
+scripted scenarioで実モデルを動かす場合は入力を固定し、実際の人間の判断を観測したrunと明確に区別する。scripted PASSでhuman-operated smokeを代替しない。全行程の観測がないときは削減効果を断定しない。
 
 bounded-residual-implementation-owner delegation and decision-surface-implementation-owner re-entry after a valid Design Pair READY handoff may cite the Adaptive package Copilot CLI E2E when that package already proves decision-surface-implementation-owner→bounded-residual-implementation-owner→re-entry on the same agents; record the citation and any Design Pair-origin gap as `NOT RUN` only when not re-executed here.
 

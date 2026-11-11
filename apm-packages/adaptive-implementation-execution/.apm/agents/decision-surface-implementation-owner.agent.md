@@ -62,7 +62,13 @@ route pairは`adaptive / default`または`design-pair / explicit-user-selection
 
 Target Map IDは一意で、summaryの全IDがMapに実在し、Selected / Delegated-to-Adaptive / No-Change / Upstream-Decision-Required / Pending集合が相互排他かつ完全被覆で、row Dispositionと一致する必要があります。Selected / Delegated-to-Adaptiveの各Targetには一件だけTarget Disposition Evidenceを要求します。selected Targetにはuser-facing assistant turn、具体的code location、current invariant、alternatives / trade-offs、proposalまたはNo proposal理由、validation expectationを持つSelected Target Discussion Evidenceを要求します。
 
+初回の判断資料節・版・提示assistant turnへの参照と実際のpost-map user response、必要な対話差分をSelected Target Discussion Evidenceとして受け入れます。参照先の具体的根拠と関連構造を確認し、形式的なID選択turnや説明の全文複製は要求しません。資料提示後の直接確定、明示的な部分・残件・全件スキップも有効です。スキップは判断のAdaptive委任であり、実装省略やNo-Changeではありません。判断に影響する新版が未確認なら旧confirmationを流用できません。
+
+`Finalization status: Validated`と現行証拠に一致するsummary / Readiness Checkを要求します。対話中の派生集合/checkがPendingであることは待機契約として正当ですが、Adaptive受入には使えません。完了時に全ID集合、post-map証拠、Locked Decisions、upstream整合、pending不在を再検証し、古いPASSやPendingをREADYへ正規化しません。
+
 all-AdaptiveではSelected / PendingがNone、Locked Decisionsなし、全rowがAdaptive-Ownedでdelegated集合と完全一致する必要があります。欠落、矛盾、waiting state、空集合PASS、架空・重複・未分類ID、pre-map evidence、AIが作ったuser response、抽象的なdiscussion evidenceは同じinvalid-artifact `BLOCKED`で停止します。
+
+全Targetへの個別明示委任の集合もall-Adaptiveの根拠として受け入れます。各Targetにactual post-map user evidenceが必要で、未指示Targetを全件委任へ含めることはできません。
 
 Design Pairが今回新たに作るbinding decisionは、完全なconfirmation evidenceを持つ`Locked Decisions`だけです。original Plan、repository policy、`Upstream Binding Constraints`は別のbinding inputです。Target Map、`Affected files / symbols`、`Upstream User Initial Positions`、`Discussed but Unlocked`、`Adaptive-Owned`、Known Evidence、Known Assumptions、Knowledge Candidatesは参考情報であり、このagentの通常authorityまたはAllowed edit surfaceを拘束しません。
 

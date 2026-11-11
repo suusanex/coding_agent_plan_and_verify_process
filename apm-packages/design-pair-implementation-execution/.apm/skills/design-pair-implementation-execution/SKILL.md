@@ -1,6 +1,6 @@
 ---
 name: design-pair-implementation-execution
-description: Use only when the user explicitly selects Design Pair before implementation. Investigate and present the bounded planned change surface, stop for a new post-map user response, discuss user-selected design topics, persist only explicitly confirmed Locked Decisions, then hand off to Adaptive Implementation.
+description: Use only when the user explicitly selects Design Pair before implementation. Present code-grounded decision materials, stop for a post-map response, accept direct questions, decisions or explicit skips, persist confirmed Locked Decisions, then hand off to Adaptive Implementation.
 # Copyright (c) 2026 suusanex (GitHub UserName)
 # SPDX-License-Identifier: CC-BY-4.0
 # License: https://creativecommons.org/licenses/by/4.0/
@@ -28,7 +28,7 @@ implementation_route_source: explicit-user-selection
 - bounded な予定変更面に関係する既存 code と tests を調査する
 - 予定変更面全体を説明する `Design Pair Target Map` を作る
 - Target Map と内部設計判断候補を利用者へ提示し、durable waiting state を保存してその turn を終了する
-- 利用者が選んだ重要論点を対話する
+- 資料から直接受けた質問・反論・案・確定・スキップを処理する
 - 利用者が明示的に確定した事項だけを `Locked Decisions` として tracked handoff に保存する
 - upstream binding constraints と今回の Design Pair decisions を別 section に保存する
 - completed handoff を `adaptive-implementation-execution` へ渡す
@@ -75,7 +75,11 @@ upstream Plan / handoff から予定変更面の境界を導き、repository 全
 - config、serialized shape、public API 等の関連 surface
 - 対象変更に直接関係する event、callback、async lifecycle、cancellation、state ownership
 
-`map.md` の schema で具体的な file / symbol、現在の責務、current invariant、requested change との関係、内部設計判断候補、予想される変更または verification、evidence、不明点を記録する。AI が重要と推定した一部だけを説明して終了してはいけない。human response 前の disposition は `Pending-User-Selection` とし、Target Map 作成時点で `Locked`、`Discussed-Unlocked`、`Adaptive-Owned` を割り当てない。
+`map.md` の schema を tracked handoff 内に展開し、判断する問いを中心とした一覧と ID 別の判断資料を一まとまりの Markdown にする。1ファイル＝1IDではなく、独立に議論・判断・委任できる論点を1IDとする。機械的な追随変更や検証対象は関連論点の変更範囲・根拠へまとめる。AI が重要と推定した一部だけを説明して終了してはいけない。human response 前の disposition は `Pending-User-Selection` とし、Target Map 作成時点で `Locked`、`Discussed-Unlocked`、`Adaptive-Owned` を割り当てない。
+
+各論点は「何を決めるか／なぜ必要か → 調査済みの事実と制約 → 実在する選択肢と判断上の違い → 根拠付きの非 binding proposal または `No proposal` 理由 → 未確認事項・検証期待」を因果関係が読める形で説明する。具体的な file / symbol、現在の責務・invariant、caller / wiring / lifecycle / state ownership / test seam、変更・検証範囲と evidence に辿れるようにする。関連 surface が存在しない場合は調査根拠付き N/A とする。単に表の列名を替えて事実を列挙してはいけない。
+
+目的は調査・検討済みの判断材料の説明であり、初回に全論点の詳細設計を新たに行うことではない。未調査の仮説を確定事実や既存案とせず、不明・追加調査条件を明記する。選択肢を水増しせず、比較できない場合も理由を示す。資料節には Target ごとの版と根拠 revision を付ける。同じ説明を別ファイルと会話へ重複生成することは必須にしない。
 
 Target Map は bounded な予定変更面の説明であり、全 repository、すべての潜在 decision surface、または全 allowed edit surface の列挙ではない。`Affected files / symbols` と Target Map の file / symbol は Adaptive Implementation の allowed edit surface ではない。
 
@@ -83,39 +87,13 @@ upstream Plan、Issue、acceptance criteria、gold document、repository policy 
 
 ## Phase 3: Present the Target Map and stop
 
-Target Map を作成した最初の Design Pair turn では、bounded な予定変更面全体と各 Target の判断候補を利用者へ説明する。handoff artifactへのlinkまたはTarget IDと論点名の要約だけではTarget Map提示と認めない。user-facing responseへ各TargetのTarget ID、具体的file / symbol、current responsibility / invariant、requested changeとの関係、内部設計判断候補、expected modification or verification、relevant evidence、open questionを最低限提示する。line evidenceを安定して示せる場合は添え、caller / wiring / lifecycle / test seamの主要な関係または調査済みN/AもTarget選択に必要な範囲で説明する。
+最初の Design Pair turn では、保存した判断資料へのリンクと、各論点の問い・主要な判断上の違い・不明点が分かる要約を会話に示す。質問・反論・代替案・明示的確定、部分／残件／全部スキップへ直接進めると案内する。IDのみの従来入力も受け付けるが、事前のID選択や「議論します」という宣言は必須にしない。
 
-初回のuser-facing responseは次のMarkdown構造を省略せず使用する。handoffの各Target rowをこの表へ同じ粒度で転記し、複数のfieldをTarget名だけの一行へ圧縮しない。
+資料にある詳細の全面再掲や固定7列表は要求しない。ただし資料が存在するだけ、リンクだけ、IDと論点名だけでは提示にならない。turn終了前に資料への導線、判断入口の要約、各論点の判断材料と具体的根拠が読めることを確認し、欠ければ修復する。利用者が資料を参照できない場合は必要な説明を会話で提供してから提示済みとする。
 
-```markdown
-## Design Pair Target Map
+会話の要約をAI提案だけにしない。各IDについて「何を決めるか、案の違い、残る不明点」を短く示す。不明点がなければその旨を示す。たとえば「解析をpolicyへ集約すると既存test seamで完結、callerへ置くとprotocol依存を分離できる。入力型は未確認」のように、資料を開く前にも判断の入口を分かるようにする。
 
-| Target ID | File / Symbol | Current responsibility / invariant | Relation to change / internal decision | Expected modification or verification | Relevant evidence | Open question |
-| --- | --- | --- | --- | --- | --- | --- |
-| DP-Txx | ... | ... | ... | ... | ... | ... |
-
-### Coverage evidence
-
-- Production symbol and direct callers: ...
-- Tests / fixtures / test seam: ...
-- DI / factory / startup / production wiring: ... / N/A with evidence
-- Lifecycle / cancellation / state ownership: ... / N/A with evidence
-
-### Selection request
-
-- Target IDs to discuss:
-- Initial positions or concerns (optional):
-- Delegation for unselected Targets:
-```
-
-turn終了前にuser-facing responseをself-checkし、全Target rowの全7列とCoverage evidenceが実際の応答本文にある場合だけ`Target Map was presented to the user`と`Target Map presentation includes concrete code structure for every Target`をPASSにする。handoff artifact内だけに詳細がある場合、またはfinal responseがTarget IDと論点の短い箇条書きへ圧縮された場合はPASSにせず、応答を修復してから終了する。artifact linkは補助として添えてよいが、表の代替にしない。
-
-続いて次を明示的に求める。
-
-- 議論したい Target ID
-- 各 Target に対する初期案、懸念、検討したい技術または構造（あれば。Target 選択の必須条件にしない）
-- 議論しない Target を Adaptive に委ねるか
-- 全 Target を Adaptive に委ねる場合は、その包括的な明示
+`Target Map presentation evidence` は提示した資料節・版・全Target IDと実際のassistant turnを結び付ける。既存の `Target selection request evidence` は直接対話・確定・スキップを案内したturnを記録するfieldとして維持し、ID選択専用の要求を意味しない。
 
 `handoff.md` に次を保存する。
 
@@ -126,6 +104,7 @@ target_map_presentation_evidence: <assistant message / turn reference and presen
 target_selection_request_evidence: <assistant message / turn reference>
 latest_user_response_reference: Pending
 user_response_after_target_map: Pending
+finalization_status: Pending
 ```
 
 保存後、**その turn を終了する**。利用者の最初の依頼が「実装してください」であっても、この boundary を省略しない。初回 turn では次を禁止する。
@@ -137,65 +116,38 @@ user_response_after_target_map: Pending
 - 人間が選択していない Target の human-owned disposition 確定
 - upstream artifact または利用者の沈黙を今回の Design Pair confirmation とみなすこと
 
-## Phase 4: Resume and discuss user-selected topics
+## Phase 4: Resume and discuss directly
 
-resume では、tracked handoff の route identity、interaction stage、Target Map、presentation evidence、Target 選択要求 evidence、Target Map 提示後の user response、disposition evidence を検証する。欠落または矛盾がある場合は upstream text や AI summary から補完せず、`BLOCKED` / artifact repair で停止する。`AWAITING_USER_INPUT` で有効な新しい user response がない場合は同じ waiting state を維持し、Adaptive へ fallback しない。
+resume では、tracked handoff の route identity、interaction stage、Target Map、資料節・版と presentation evidence、直接対話の案内 evidence、Target Map 提示後の user response、disposition evidence を検証する。正本は論点節とrow・人間の証拠であり、`Finalization status: Pending` のsummary集合・Readiness Checkは未計算である。これらがPendingであるだけで不正とはしないが、正本の欠落・矛盾は upstream text や AI summary から補完せず、`BLOCKED` / artifact repair で停止する。`AWAITING_USER_INPUT` で有効な新しい user response がない場合は同じ waiting state を維持し、Adaptive へ fallback しない。
 
-Target Map 提示後の user response は、test harness や parent が補足、言い換え、または必要項目を合成せず、そのままこの skill に渡す。response が Target Map に実在する Target ID の選択だけでも、その Target の選択は完了したものとして扱う。初期案、懸念、質問は任意であり、選択を受理するための必須 input にしない。AI は選択済み Target の code evidence、判断候補、alternatives / trade-offs、非 binding proposal、validation expectation を提示し、未選択 Target の delegation または分類が未確定なら最終 disposition と合わせて確認する。選択後の同じ Target ID を再要求せず、discussion response を提示した turn は `AWAITING_USER_INPUT / disposition-confirmation` で終了する。Target Map に存在しない ID だけが返った場合は選択未成立として `target-selection` を維持する。
+Target Map 提示後の user response は、test harness や parent が補足、言い換え、または必要項目を合成せず、そのままこの skill に渡す。対象が一意ならIDなしの質問・懸念・案・反論・明示的確定を直接受理する。対象を特定できないときだけ確認する。Target Map に実在する Target ID の選択だけでも受理し、初期案、問題の捉え方、質問、検討したい技術や構造は任意とする。同じ Target ID を再要求せず、既存資料の判断上の違いを短く示して最終判断を尋ねる。存在しないIDだけなら選択未成立として `target-selection` を維持する。
 
-選択された Target の対話では、handoff artifactへのlinkまたは論点名だけを返してはいけない。初期案や最終 disposition を求める前に、user-facing responseへ Target ごとに次の minimum discussion surface を提示する。
+新しい質問には該当する事実・根拠を使って直接回答する。初回資料で提示済みの判断材料を再利用し、定型の全文説明・コード再読・全論点再調査を繰り返さない。新案、情報不足、関連code / upstream条件の変更、参照資料へのアクセス不能など理由がある場合だけ必要範囲を追加調査し、理由・根拠と該当資料節の版を更新する。判断に影響する差分は利用者へ提示し、影響する確定をpendingに戻して再確認する。旧証拠は履歴へ残し、旧版への確定を新版へ黙って適用しない。単なる表記修正では判断内容を変えない。
 
-- Target ID と具体的な file / symbol。現在行を安定して示せる場合は line evidence、示せない場合は exact symbol / section
-- 現在の責務と invariant
-- 直接 caller、production wiring、lifecycle / state ownership、test seam の関係。存在しない surface は調査 evidence 付き N/A
-- 今回決める内部設計論点と、なぜ実装前に判断が必要か
-- 実在する代替案、各案の trade-off、既存 code への影響
-- code evidence から支持できる非 binding の AI proposal。提案できない場合は `No proposal` と evidence-backed reason
-- validation expectation と残る open question
+「DP-T02は議論をスキップ」「残りはスキップ」「全部スキップ」は、その論点のDesign Pair対話を行わず判断をAdaptiveへ委ねる明示的な処置である。部分・残件・全件の対象をその時点の具体的IDへ展開してuser evidenceとともに保存する。「残り」は未確定・未委任のTargetを指す。既存Locked等も含む「全部」は、既存決定の撤回まで明示されない限りその扱いを確認する。実装省略や `No-Change` へ変換しない。未指示のTargetはpendingのままとし、全件委任を推測しない。
 
-選択Targetのuser-facing responseは、各Targetについて次の固定blockを使用し、項目を省略しない。
+全Targetへの個別の明示委任が揃った場合も包括的な全件委任と同様に扱える。`Explicit all-Adaptive delegation: Yes` の根拠は、全Targetを覆う実際の明示委任の集合とする。単にSelectedが空であることからYesにしてはいけない。
 
-```markdown
-## <DP-Txx> Internal design discussion
+`Selected Target Discussion Evidence` は具体的な判断材料のある資料節・版・提示assistant turnと、実際のuser response、追加対話の参照を結び付ける。初回資料でcode location、invariant、関連構造、alternatives / trade-offs、proposalまたはNo proposal理由、validation expectationを提示済みなら、その参照を再利用してよい。内容の全文転記や選択後の固定8項目blockは要求しない。資料なしの抽象的なリンクや論点名だけは証拠にならない。
 
-- Code location:
-- Current responsibility / invariant:
-- Callers / wiring / lifecycle / state / test seam:
-- Internal design decision needed:
-- Alternatives and trade-offs:
-- Non-binding AI proposal: <proposal / No proposal with reason>
-- Validation expectations:
-- Open questions:
-```
+各turnは更新した論点の質問・回答・判断・証拠、Target Map rowと `Target Disposition Evidence` / `Locked Decisions` の実際の変更、latest user response・verdict・stageだけを差分更新する。summaryの5集合、Selected Target discussion evidenceのsummary、Readiness Checkは完了まで `Pending` とし、`Finalization status: Pending` を維持する。途中で全状態を毎回書き直したり、全集合照合を常時必須にしたりしない。確定済みartifactへ変更を加える場合は先にREADYを解除し、finalizationと派生summary/checkをPendingへ戻す。正本rowと証拠の矛盾は放置しない。
 
-Target IDだけの選択でも、このminimum discussion surfaceを提示してから最終 disposition を尋ねる。初期案がないことを理由に同じ Target の選択を再要求しない。未選択Targetのdelegationまたは分類が不足する場合は、選択Targetの最終 disposition と同じ確認で回答を求める。Target Map内に詳細があることをuser-facing説明の代替にせず、選択Targetの具体的なcode location、構造上の論点、提案を対話上で読める形にする。handoffの`Selected Target Discussion Evidence`には、Target ID、assistant turn reference、提示したcode location、trade-off、proposalまたはNo proposal理由、validation expectationを保存する。
+Target Map 提示後の通常 interaction stage は `target-selection`、`disposition-confirmation`、`upstream-decision`、`complete` のいずれかだけを使用する。`target-selection` は直接対話も含む初回応答待ちであり、ID選択の必須工程ではない。`target-map-building` は提示前の `DRAFT`、`artifact-repair` は不整合を報告する `BLOCKED` だけに使用する。
 
-各 response を処理して turn を終了する前に、handoff header、Target Map row、summary Target sets、Readiness Check を同じ observed evidence から再計算する。`User response occurred after Target Map presentation: Yes` なら Readiness Check の同名 row も同じ user reference で `PASS` にしなければならない。Target Map 提示後の通常 interaction stage は `target-selection`、`disposition-confirmation`、`upstream-decision`、`complete` のいずれかだけを使用し、partial input を独自 stage で表現してはいけない。`target-map-building` は提示前の `DRAFT`、`artifact-repair` は不整合を報告する `BLOCKED` だけに使用する。headerとReadiness、summaryとrow、stageとpending状態に矛盾がある artifact は保存せず、修復してから停止する。
-
-各重要 Target は次の順で扱う。
-
-1. AI が Target Map で現在の構造、具体的 code location、現在の invariant、今回必要になり得る判断、不明点を説明する。
-2. 利用者が議論する Target を選ぶ。初期案、問題の捉え方、質問、検討したい技術や構造は任意で併記できる。
-3. AI が選択Targetの具体的code evidence、反論または支持、代替案、trade-off、非 binding proposal、追加 evidence、validation expectation を提示し、`disposition-confirmation`で停止する。
-4. 利用者とAIは必要なら同じstageで質疑を続ける。
-5. 利用者が最終 disposition と未選択Targetの分類を明示的に決める。
-
-AI の推奨案を最初から確定案として提示してはいけない。利用者の沈黙、AI の提案、既存 pattern、または「異論なし」から `Locked` を推定してはいけない。
-
-利用者が Target だけ、または Target と初期案を返した場合、AI は code evidence、反論または支持、代替案、trade-off、production wiring / lifecycle / state ownership / test seam への影響、非 binding proposal、validation expectation、未解決点を提示する。その response の前に与えられた initial position を自動的に最終 disposition とせず、次を保存して再び turn を終了する。
+AI の推奨案を最初から確定案として提示してはいけない。利用者の沈黙、AI の提案、既存 pattern、または「異論なし」から `Locked` を推定してはいけない。質問・初期案・IDのみでは最終dispositionにしない。必要な判断が残る場合は次を保存して再び turn を終了する。
 
 ```yaml
 verdict: AWAITING_USER_INPUT
 interaction_stage: disposition-confirmation
 ```
 
-利用者の response が、すでに提示済みの AI trade-off に対する明確な最終 disposition まで含む場合だけ追加 turn を省略できる。AI が自分で human-owned disposition を決めてはいけない。
+利用者の response が、初回資料を含む提示済みの判断材料に対して「A案で確定」のような明確な最終 disposition を含む場合、形式的な選択→同じ説明→再確認を挟まず受理する。AI が自分で human-owned disposition を決めてはいけない。
 
 各 Target は次のいずれかへ分類する。
 
 | Disposition | Meaning |
 | --- | --- |
-| `Pending-User-Selection` | Target Map 提示後の利用者選択待ち |
+| `Pending-User-Selection` | Target Map 提示後の利用者応答待ち（ID選択は必須でない） |
 | `Pending-User-Disposition` | AI の分析後の利用者最終判断待ち |
 | `Locked` | Target Map 提示後の対話で利用者が明示的に決定済み。Decision ID と confirmation evidence を付けて binding とする |
 | `Discussed-Unlocked` | 対話後、利用者が拘束しないと明示した参考情報 |
@@ -211,6 +163,7 @@ interaction_stage: disposition-confirmation
 
 - Target Map で対象 Target を提示済み
 - AI が code evidence、trade-off、代替案、validation expectation を説明済み
+- 確定が参照する判断資料の節・版・提示turnが追跡可能で、その後に判断を変える未確認差分がない
 - 利用者がその決定を明示的に確定済み
 - Decision ID がある
 - user message / turn reference、Target ID、確定内容の短い引用または忠実な要約、`confirmation occurred after Target Map presentation: Yes` がある
@@ -237,17 +190,17 @@ AIの推奨、Target Map、Plan、Issue、repository docs、過去会話、AI su
 Adaptive Implementation へ進める条件は次のとおり。
 
 - goal、scope、acceptance が実装開始に十分
-- Target Map presentation と Target 選択要求の evidence がある
+- Target Map presentation と直接対話・確定・スキップの案内（既存 Target selection request field）の evidence がある
 - Target Map 提示後の利用者 response がある
-- 利用者が一件以上の Target を議論対象として選択した、または全 Target を Adaptive に委ねると明示した
+- 利用者が一件以上の Target に直接判断または対話で参加した、または全 Target を Adaptive に委ねると明示した
 - 選択された全 Target に利用者由来の最終 disposition があり、pending human-owned Target がない
 - `Locked`、`Discussed-Unlocked`、`Adaptive-Owned`の全Targetに、row dispositionと一致する一意なpost-map `Target Disposition Evidence`がある
-- 選択された全 Target にuser-facingな`Selected Target Discussion Evidence`があり、具体的code location、current invariant、alternatives / trade-offs、proposalまたはNo proposal理由、validation expectationを含む
+- 選択された全 Target に`Selected Target Discussion Evidence`があり、提示済み資料節・版・assistant turnから具体的code location、current invariant、関連構造、alternatives / trade-offs、proposalまたはNo proposal理由、validation expectationへ辿れ、実際のpost-map user responseと結び付く
 - Locked Decisions が有効な post-map confirmation evidence を持ち、upstream contract と矛盾しない
 - blocking な `Upstream-Decision-Required` がない
 - tracked handoff が current worktree と upstream artifact を参照している
 
-READY 判定前に、Target Map と summary field を集合として照合する。Target Map の全 Target ID は一意でなければならない。`Selected Target IDs`、`Delegated-to-Adaptive Target IDs`、`No-Change Target IDs`、`Upstream-Decision-Required Target IDs`、`Pending human-owned Target IDs` の concrete ID はすべて Target Map に実在し、5集合は互いに素で、その和集合は Target Map の全 Target ID と完全一致しなければならない。架空 ID、重複 ID、未分類 Target、summary にだけある ID、Target Map にだけある ID は readiness を FAIL にする。
+READY 判定前に、正本rowと証拠からsummary fieldとReadiness Checkをまとめて生成し、Target Map と summary field を集合として照合する。途中のPendingや過去のPASSを完了証拠として流用しない。Target Map の全 Target ID は一意でなければならない。`Selected Target IDs`、`Delegated-to-Adaptive Target IDs`、`No-Change Target IDs`、`Upstream-Decision-Required Target IDs`、`Pending human-owned Target IDs` の concrete ID はすべて Target Map に実在し、5集合は互いに素で、その和集合は Target Map の全 Target ID と完全一致しなければならない。架空 ID、重複 ID、未分類 Target、summary にだけある ID、Target Map にだけある ID は readiness を FAIL にする。
 
 summary と Target Map row の対応は次の完全一致とする。
 
@@ -261,7 +214,7 @@ summary と Target Map row の対応は次の完全一致とする。
 
 READY判定では`Target Disposition Evidence`も集合照合する。`Locked`、`Discussed-Unlocked`、`Adaptive-Owned`のTarget全集合とevidence rowのTarget ID集合が完全一致し、各Targetが一回だけ現れ、evidenceのfinal dispositionがTarget Map rowおよびsummary分類と一致し、各confirmationがTarget Map提示後のactual user turnを参照する必要がある。evidenceの欠落、架空ID、重複Target、row / evidence disposition不一致、pre-map reference、AIが作った要約だけのreferenceはreadinessをFAILにする。all-Adaptiveでも全Targetに一件ずつevidence rowが必要である。
 
-Target 未選択を空集合として PASS にしない。Target Map 提示後に利用者が全 Target を Adaptive へ委ねると明示した場合は、個別対話や Locked Decision を作らず READY にできる。条件を満たす場合だけ `interaction_stage: complete` と `READY_FOR_ADAPTIVE_IMPLEMENTATION` を同時に設定する。選択または disposition 待ちは `AWAITING_USER_INPUT`、blocking な上流判断は `interaction_stage: upstream-decision` と `HUMAN_DECISION_REQUIRED` または `REPLAN_REQUIRED`、tool / permission / environment blocker は `BLOCKED` とする。
+Target 未選択を空集合として PASS にしない。Target Map 提示後に利用者が全 Target を Adaptive へ委ねると明示した場合は、個別対話や Locked Decision を作らず READY にできる。全条件を満たし、header・summary・Readinessを同じ現行証拠へ同期した場合だけ `Finalization status: Validated`、`interaction_stage: complete` と `READY_FOR_ADAPTIVE_IMPLEMENTATION` を同時に設定する。失敗時はREADYにせず修復または利用者判断を要求する。応答または disposition 待ちは `AWAITING_USER_INPUT`、blocking な上流判断は `interaction_stage: upstream-decision` と `HUMAN_DECISION_REQUIRED` または `REPLAN_REQUIRED`、tool / permission / environment blocker は `BLOCKED` とする。
 
 ## Phase 6: Hand off to Adaptive Implementation
 
@@ -279,6 +232,8 @@ Locked Decision と actual code が衝突した場合、decision-surface-impleme
 
 ## Evaluation record
 
+説明効率は同じ課題・モデル・実行条件で、初回資料の作成から最終dispositionまでの全行程を比較する。説明不足解消だけの往復、重複した調査・記録更新、input / output / reasoning / cached tokensを取得可能な範囲でturn別・総計に記録する。cachedがinputの内数か、reasoningがoutputの内数かを明示して二重計上しない。取得不能はUnknown、未実施はNOT RUNとし、初回だけの短縮や後続turnへの移転を改善の証明にしない。実測なしに削減効果を断定しない。
+
 Adaptive 実行後、parent / router は tracked Design Pair handoff の `Adaptive Implementation Result` を更新し、少なくとも次を残す。
 
 - route used
@@ -295,6 +250,8 @@ Adaptive 実行後、parent / router は tracked Design Pair handoff の `Adapti
 Design Pair または Adaptive Implementation の completion verdict を、final code review、human review、総合 architecture review、独立 verification の完了と表現してはいけない。
 
 ## Output
+
+待機中の会話は資料への導線、当該質問への回答・判断差分、verdict / stage、必要な次の利用者判断に絞る。以下は完了時のhandoff項目であり、各turnの会話への全文出力や派生集合の再計算を要求しない。
 
 - Design Pair verdict
 - interaction stage
