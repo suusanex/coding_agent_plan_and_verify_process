@@ -2,10 +2,10 @@
 
 ## Execution metadata
 
-- Executed at: `2026-08-30T13:01:27+09:00`
-- Executor: Issue #132 の Adaptive implementation ownership 更新後に行った ASR-001〜ASR-008 の deterministic fixture comparison
-- Branch: `issue-132-adaptive-implementation-ownership`
-- Reviewed source: `e2d5b446ef91f7e2255d147845a80c32eb08561f`; Architecture Slice Readiness、baseline compatibility、`Match / Drift / Unclear` authorization semantics は変更されていない
+- Executed at: `2026-11-11`
+- Executor: Issue #159 の Design Pair待機・受入契約更新後に行った ASR-001〜ASR-008 の deterministic fixture comparison
+- Branch: `issue-159`
+- Reviewed source: `d55c16a7cbb88c91d1286f11e1c9719b2ab8280a`; Architecture Slice Readiness、baseline compatibility、`Match / Drift / Unclear` authorization semantics は変更されていない
 - Scope: ASR-001〜ASR-008 fixture comparison、current contract hashes、de-escalation / decomposition authorization、shared implementation ownership propagation、および既存 architecture semantics。production code と外部systemは変更していない
 
 ### Contract revisions evaluated
@@ -19,7 +19,7 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | `apm-packages/plan-coverage-residual-flow/.apm/agents/plan-slice-decomposition.agent.md` | `29330fdd7bec03eb4d0232b241d45c1527489b9fe2810e715b89321f8904cbaf` |
 | `apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md` | `53768f9e7fef7b565180ba2a08f67361196957114551c0f5a45895935444c2b7` |
 | `apm-packages/plan-coverage-residual-flow/.apm/instructions/plan-coverage-shared.instructions.md` | `55c92fef5dd9e19777736d43a932a032b05c893d7afe8c67f794d3f205d84a39` |
-| `plan-coverage-residual-flow/SKILL.md` | `e29a0a2074cf0d7a56602ed13c3be73047d62e087946a8ceb5191dda096eafc1` |
+| `plan-coverage-residual-flow/SKILL.md` | `9b4d2b5b0cc23b1197f0d00c705edb9f1138cfa33f5dd4f23bd959124d86a94b` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 | `coverage-ledger.md` template | `b1a532b4ab59dbaa1471d8bd1beb6af5e7f570f3086719c8fcbe452f7f493962` |
 | `plan-coverage-lite.md` template | `e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90` |
@@ -52,6 +52,8 @@ The PR #102 rerun re-compares ASR-001 through ASR-006 against their expected out
 The Issue #117 rerun re-compares ASR-001 through ASR-008 after the decomposition, handoff-review, and shared-instruction contracts preserve decision ownership into the Slice Living Record path. The change adds no Architecture Slice Readiness verdict, freshness, or baseline-compatibility rule, so all retained deterministic fixture outcomes remain valid while the three affected current-contract hashes and execution metadata are refreshed.
 
 Issue #132 の再実行では、Adaptive implementation ownership を `Decision-Surface Implementation Owner` と `Bounded-Residual Implementation Owner` の境界へ更新した後に ASR-001〜ASR-008 を再比較した。この変更は Architecture Slice Readiness の verdict、freshness、baseline compatibility、de-escalation、decomposition authorization を変更しないため、既存fixtureのrun IDと期待結果を維持し、影響した3つのcurrent contract hashとexecution metadataだけを更新した。
+
+Issue #159では、Plan Coverage SkillのDesign Pair待機・直接応答・完了時照合の追記後に、既存validatorでASR-001〜ASR-008のactual / expectedと参照証拠を再比較した。architecture readinessやdecomposition authorizationは変更していないためfixtureを再生成せず、該当Skillのcurrent hashと比較実行記録を更新した。実モデルのASR再実行ではない。
 
 | Fixture | Run ID | Complete evidence root |
 | --- | --- | --- |

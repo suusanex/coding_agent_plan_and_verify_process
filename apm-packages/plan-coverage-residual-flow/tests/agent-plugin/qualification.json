@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "plan-coverage-residual-flow",
-  "canonicalFingerprint": "ba544d7179b08f14109b2af09c38f2f93451b7dc929ea20fd5afec08b631e6d8",
-  "distributionFingerprint": "26071a1be697790ae66e663dbfdbb93eed2e101ef7d2c08e1180ddd41fbcac39",
+  "canonicalFingerprint": "d624732e0249683202959042b7d930651378aef916f2d2e7dea5bed24861ff37",
+  "distributionFingerprint": "813712b44adbd0e24a4c004d7065d0ac0eaab600d9b2d39dee3ca2c5f140ecd0",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
@@ -14,7 +14,7 @@
       "distribution": "apm",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "Plan Coverage 0.15.0 changes the Adaptive semantic owner contract, so prior APM runtime evidence cannot qualify the candidate.",
+      "reason": "Plan Coverage 0.15.0とIssue #159のDesign Pair直接応答・待機契約を含むcandidateのAPM実model挙動は未認定。",
       "evidenceRefs": [
         "apm-packages/plan-coverage-residual-flow/tests/runtime-qualification/result-template.json"
       ]
@@ -23,7 +23,7 @@
       "distribution": "agent-plugin-direct",
       "status": "HOLD",
       "evidenceMode": "NONE",
-      "reason": "Direct plugin composition with the Adaptive 0.6.0 semantic owners has not been behavior-qualified.",
+      "reason": "Issue #159のDesign Pair待機・受入契約を含むdirect plugin compositionは未認定。",
       "evidenceRefs": [
         "apm-packages/plan-coverage-residual-flow/tests/runtime-qualification/result-template.json"
       ]

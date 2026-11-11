@@ -361,6 +361,7 @@ if ($failures.Count -eq 0) {
     Assert-Matches $skill 'both packages are installed for the same target and the user explicitly selects Design Pair' 'Design Pair route must require same-target installation and explicit selection'
     Assert-Matches $skill 'keep `plan-coverage-residual-flow` selection evidence separate from Design Pair implementation route selection evidence' 'Plan Coverage and Design Pair selection evidence must remain separate'
     Assert-Matches $skill 'While Design Pair is waiting, do not fall back to Adaptive' 'Design Pair waiting state must block Adaptive fallback'
+    Assert-Matches $skill '(?s)直接質問・反論・確定・明示的スキップ.*ID選択turnを強制しない.*利用者応答を補完せず.*Pending.*Finalization status: Validated.*スキップを実装省略へ変換しない' 'Design Pair direct response and deferred finalization'
     Assert-NotMatches $skill 'formal targets .*copilot.*codex.*agent-skills' 'PR #90 target enumeration must not remain in Plan Coverage'
     Assert-NotMatches $skill 'Plan Coverage parent runtime qualif(?:ication).*Design Pair.*Adaptive.*GitHub Copilot CLI' 'PR #90 Copilot qualification claim must not remain in Plan Coverage'
     Assert-NotMatches $skill 'Plan Coverage Copilot CLI\s+issue' 'PR #90 Copilot qualification issue handoff must not remain in Plan Coverage'

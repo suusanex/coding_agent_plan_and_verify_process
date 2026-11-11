@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "adaptive-implementation-execution",
-  "canonicalFingerprint": "43c354177aecf58bb9ef7837ad1645d4af4d16a4229b4e5371ca133290fbd617",
-  "distributionFingerprint": "786faf098990c8732c6eebfc9c979890b1fc96560d7c5bc65eb442540a00dd8d",
+  "canonicalFingerprint": "dc7d2b88d4e5113ca57f098802632c4beb40bfa50facf9ef9bddd0a529a6ed7a",
+  "distributionFingerprint": "3eb21a983153a0a096c2ff5d74175e82dfbe14a071336fb4e7f77e1c124cbfcc",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
@@ -14,7 +14,7 @@
       "distribution": "apm",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "Issue #154の比較工程を含むcandidateのAPM実model挙動は未検証。過去のruntime evidenceを流用しない。",
+      "reason": "Issue #154の比較工程とIssue #159のDesign Pair受入を含むcandidateのAPM実model挙動は未認定。canonicalコピーの拒否・衝突停止testを配布経路のPASSへ流用しない。",
       "evidenceRefs": [
         "apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-08-30.md"
       ]
@@ -23,7 +23,7 @@
       "distribution": "agent-plugin-direct",
       "status": "HOLD",
       "evidenceMode": "PARTIAL",
-      "reason": "Issue #154の比較工程を含むcandidateのdirect plugin runtime qualificationは未実施。",
+      "reason": "Issue #154の比較工程とIssue #159のDesign Pair受入を含むcandidateのdirect plugin runtime qualificationは未実施。",
       "evidenceRefs": [
         "apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-08-30.md"
       ]
