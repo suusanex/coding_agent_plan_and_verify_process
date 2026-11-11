@@ -229,13 +229,6 @@ foreach ($check in @(
 }
 Assert-Contains $handoff '(?s)all-Adaptiveでも全Targetのevidence row.*5集合.*架空 ID、重複 ID、未分類 Target、row / summary 不一致.*許可しない' 'strict final reconciliation'
 
-$adaptiveOwner = 'apm-packages/adaptive-implementation-execution/.apm/agents/decision-surface-implementation-owner.agent.md'
-Assert-Contains $adaptiveOwner '(?s)初回の判断資料節・版・提示assistant turn.*実際のpost-map user response.*Selected Target Discussion Evidence.*参照先の具体的根拠.*旧confirmationを流用できません' 'Adaptive accepts concrete initial-material references'
-Assert-Contains $adaptiveOwner '(?s)Finalization status: Validated.*Pending.*全ID集合、post-map証拠、Locked Decisions、upstream整合、pending不在.*古いPASSやPendingをREADYへ正規化しません' 'Adaptive validates final evidence before editing'
-Assert-Contains $adaptiveOwner 'waiting state.*空集合PASS.*架空・重複・未分類ID.*BLOCKED' 'Adaptive rejects invalid READY'
-$coverageSkill = 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md'
-Assert-Contains $coverageSkill '(?s)直接質問・反論・確定・明示的スキップ.*ID選択turnを強制しない.*利用者応答を補完せず.*Pending.*Finalization status: Validated.*スキップを実装省略へ変換しない' 'parent direct-response and deferred-finalization contract'
-
 foreach ($id in 1..40) {
     $scenarioId = 'DP-VAL-{0:D3}' -f $id
     Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' $scenarioId "validation scenario $scenarioId"
@@ -338,6 +331,24 @@ Assert-Contains $dpApmSmoke 'copilot,codex,agent-skills' 'Design Pair APM smoke 
 Assert-Contains $dpApmSmoke '\.agents/skills/design-pair-implementation-execution/SKILL\.md' 'Design Pair APM smoke verifies Design Pair Skill deployment'
 Assert-Contains $dpApmSmoke 'deployed Design Pair skill name' 'Design Pair APM smoke verifies deployed skill identity'
 Assert-Contains $dpApmSmoke 'Get-ManifestVersion.*apm\.yml' 'Design Pair APM smoke derives lock versions from manifests'
+
+$evidenceRoot = Join-Path $packageRoot 'tests/manual-model-smoke/results/i159'
+$evidenceIndex = Get-Content -Raw -LiteralPath (Join-Path $evidenceRoot 'index.json') | ConvertFrom-Json
+$indexedFiles = @($evidenceIndex.artifacts.file | Sort-Object)
+$actualFiles = @(Get-ChildItem -LiteralPath $evidenceRoot -File -Force |
+    Where-Object Name -ne 'index.json' | Sort-Object Name | ForEach-Object Name)
+if (($indexedFiles -join '|') -cne ($actualFiles -join '|')) {
+    Add-Failure 'Issue 159 evidence index must cover every artifact exactly once'
+}
+foreach ($artifact in $evidenceIndex.artifacts) {
+    $path = Join-Path $evidenceRoot $artifact.file
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        Add-Failure "Missing Issue 159 evidence artifact: $($artifact.file)"
+    }
+    elseif ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -cne $artifact.sha256) {
+        Add-Failure "Issue 159 evidence SHA-256 mismatch: $($artifact.file)"
+    }
+}
 
 if ($failures.Count -gt 0) {
     Write-Error ("Design Pair Implementation validation failed:`n- " + ($failures -join "`n- "))

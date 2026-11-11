@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "design-pair-implementation-execution",
-  "canonicalFingerprint": "38b87240833b9613187016d42fbd0b0ae323e50c10d261a42aa592f0cd057fce",
-  "distributionFingerprint": "a84899dcc1be81dd4ed3b2936ec03bc8a24859ac89607d176987c23f0b7bcc77",
+  "canonicalFingerprint": "47323a0784e526982fbb8c4352bec501f533672c40c19250b5c4db7df180fadb",
+  "distributionFingerprint": "bd26182d01153a57bd6f53e6bca262299dd7b487b48edf8c1bb1e92e1c963838",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
@@ -14,7 +14,7 @@
       "distribution": "apm",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "The Adaptive 0.6.0 semantic owner contract changes the post-READY route, so prior Design Pair runtime evidence cannot qualify this candidate.",
+      "reason": "Issue #159の判断資料・直接対話はcanonicalコピーで検証したが、APM経由のruntime qualificationは未実施。配布経路のPASSへ昇格しない。",
       "evidenceRefs": [
         "apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md"
       ]
@@ -23,7 +23,7 @@
       "distribution": "agent-plugin-direct",
       "status": "HOLD",
       "evidenceMode": "NONE",
-      "reason": "Direct plugin composition with the Adaptive 0.6.0 semantic owners has not been behavior-qualified.",
+      "reason": "Issue #159の判断資料・直接対話とAdaptive受入のdirect plugin compositionは未認定。",
       "evidenceRefs": [
         "apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md"
       ]
