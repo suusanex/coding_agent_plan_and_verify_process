@@ -62,6 +62,8 @@ resumeではdurable stateから読み、欠落や矛盾をAdaptiveへ補完し�
 
 Design Pair routeは`implementation_route: design-pair`、`implementation_route_source: explicit-user-selection`を要求します。handoffの`READY_FOR_ADAPTIVE_IMPLEMENTATION`、complete interaction stage、Target Map提示・選択要求・post-map user response、valid selectionまたはall-Adaptive delegation、pendingなし、集合完全性、Target Disposition Evidence、Selected Target Discussion Evidence、Locked Decision confirmationを編集前に検証します。
 
+選択要求fieldは直接質問・確定・スキップの案内も表し、事前のID選択turnを要求しません。Selected Target Discussion Evidenceは具体的根拠を持つ初回資料節・版・提示turnと実際のuser response、必要な対話差分への参照を受け入れます。部分・残件・全件スキップは明示範囲のAdaptive-Ownedであり、No-Changeや実装省略ではありません。`Finalization status: Validated`と現行の全summary / Readiness整合を要求し、待機中のPendingまたは古いPASSを完了証拠にしません。判断に影響する資料変更後は旧confirmationを流用しません。
+
 欠落、矛盾、waiting、空集合PASS、架空・重複・未分類ID、row / summary不一致、pre-map evidence、AIが再構成したuser responseは拒否します。Design Pairが今回作るbinding decisionはvalidな`Locked Decisions`だけです。Target MapやAffected files / symbolsはAllowed edit surfaceではありません。
 
 ## Required execution order

@@ -1,0 +1,154 @@
+[
+  {
+    "fixture": "before",
+    "sourceDiff": "",
+    "exitCode": 0,
+    "files": [
+      {
+        "file": "RetryingClient.cs",
+        "sha256": "475AD578ED426895A13DBB30235FA3DC5618DA217EFEB5688094B472AE34AC81"
+      },
+      {
+        "file": "RetryPolicy.cs",
+        "sha256": "6D52AD1A6AA767ADA135222940A0A82587241997C9B0AD017C3285DE37D1DF19"
+      },
+      {
+        "file": "RetryPolicyTests.cs",
+        "sha256": "957C7C73C738373602BDE05D27C3F9779D062C579883A7689EDAD0C9EFCF04EC"
+      }
+    ]
+  },
+  {
+    "fixture": "after",
+    "sourceDiff": "",
+    "exitCode": 0,
+    "files": [
+      {
+        "file": "RetryingClient.cs",
+        "sha256": "475AD578ED426895A13DBB30235FA3DC5618DA217EFEB5688094B472AE34AC81"
+      },
+      {
+        "file": "RetryPolicy.cs",
+        "sha256": "6D52AD1A6AA767ADA135222940A0A82587241997C9B0AD017C3285DE37D1DF19"
+      },
+      {
+        "file": "RetryPolicyTests.cs",
+        "sha256": "957C7C73C738373602BDE05D27C3F9779D062C579883A7689EDAD0C9EFCF04EC"
+      }
+    ]
+  },
+  {
+    "fixture": "fresh",
+    "sourceDiff": "",
+    "exitCode": 0,
+    "files": [
+      {
+        "file": "RetryingClient.cs",
+        "sha256": "475AD578ED426895A13DBB30235FA3DC5618DA217EFEB5688094B472AE34AC81"
+      },
+      {
+        "file": "RetryPolicy.cs",
+        "sha256": "6D52AD1A6AA767ADA135222940A0A82587241997C9B0AD017C3285DE37D1DF19"
+      },
+      {
+        "file": "RetryPolicyTests.cs",
+        "sha256": "957C7C73C738373602BDE05D27C3F9779D062C579883A7689EDAD0C9EFCF04EC"
+      }
+    ]
+  },
+  {
+    "fixture": "direct",
+    "sourceDiff": "",
+    "exitCode": 0,
+    "files": [
+      {
+        "file": "RetryingClient.cs",
+        "sha256": "475AD578ED426895A13DBB30235FA3DC5618DA217EFEB5688094B472AE34AC81"
+      },
+      {
+        "file": "RetryPolicy.cs",
+        "sha256": "6D52AD1A6AA767ADA135222940A0A82587241997C9B0AD017C3285DE37D1DF19"
+      },
+      {
+        "file": "RetryPolicyTests.cs",
+        "sha256": "957C7C73C738373602BDE05D27C3F9779D062C579883A7689EDAD0C9EFCF04EC"
+      }
+    ]
+  },
+  {
+    "fixture": "ids",
+    "sourceDiff": "",
+    "exitCode": 0,
+    "files": [
+      {
+        "file": "RetryingClient.cs",
+        "sha256": "475AD578ED426895A13DBB30235FA3DC5618DA217EFEB5688094B472AE34AC81"
+      },
+      {
+        "file": "RetryPolicy.cs",
+        "sha256": "6D52AD1A6AA767ADA135222940A0A82587241997C9B0AD017C3285DE37D1DF19"
+      },
+      {
+        "file": "RetryPolicyTests.cs",
+        "sha256": "957C7C73C738373602BDE05D27C3F9779D062C579883A7689EDAD0C9EFCF04EC"
+      }
+    ]
+  },
+  {
+    "fixture": "newoption",
+    "sourceDiff": "",
+    "exitCode": 0,
+    "files": [
+      {
+        "file": "RetryingClient.cs",
+        "sha256": "475AD578ED426895A13DBB30235FA3DC5618DA217EFEB5688094B472AE34AC81"
+      },
+      {
+        "file": "RetryPolicy.cs",
+        "sha256": "6D52AD1A6AA767ADA135222940A0A82587241997C9B0AD017C3285DE37D1DF19"
+      },
+      {
+        "file": "RetryPolicyTests.cs",
+        "sha256": "957C7C73C738373602BDE05D27C3F9779D062C579883A7689EDAD0C9EFCF04EC"
+      }
+    ]
+  },
+  {
+    "fixture": "invalid",
+    "sourceDiff": "",
+    "exitCode": 0,
+    "files": [
+      {
+        "file": "RetryingClient.cs",
+        "sha256": "475AD578ED426895A13DBB30235FA3DC5618DA217EFEB5688094B472AE34AC81"
+      },
+      {
+        "file": "RetryPolicy.cs",
+        "sha256": "6D52AD1A6AA767ADA135222940A0A82587241997C9B0AD017C3285DE37D1DF19"
+      },
+      {
+        "file": "RetryPolicyTests.cs",
+        "sha256": "957C7C73C738373602BDE05D27C3F9779D062C579883A7689EDAD0C9EFCF04EC"
+      }
+    ]
+  },
+  {
+    "fixture": "conflict",
+    "sourceDiff": "",
+    "exitCode": 0,
+    "files": [
+      {
+        "file": "RetryingClient.cs",
+        "sha256": "475AD578ED426895A13DBB30235FA3DC5618DA217EFEB5688094B472AE34AC81"
+      },
+      {
+        "file": "RetryPolicy.cs",
+        "sha256": "6D52AD1A6AA767ADA135222940A0A82587241997C9B0AD017C3285DE37D1DF19"
+      },
+      {
+        "file": "RetryPolicyTests.cs",
+        "sha256": "957C7C73C738373602BDE05D27C3F9779D062C579883A7689EDAD0C9EFCF04EC"
+      }
+    ]
+  }
+]

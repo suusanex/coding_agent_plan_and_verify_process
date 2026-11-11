@@ -1,6 +1,6 @@
 # Design Pair Implementation Execution
 
-利用者が明示的に選択した場合だけ、実装前に予定変更面を既存 code の file / symbol 単位で確認し、対話で明示的に確定した `Locked Decisions` を Adaptive Implementation へ渡す APM package です。
+利用者が明示的に選択した場合だけ、実装前に既存codeに基づく判断資料を提示し、人間が明示的に確定した `Locked Decisions` を Adaptive Implementation へ渡す APM package です。論点は独立して判断・委任できる問いを単位とし、1ファイル＝1IDにはしません。
 
 通常経路は `adaptive-implementation-execution` です。この package は課題の難易度、risk、規模から Design Pair を自動選択、推奨、提案しません。
 
@@ -11,7 +11,7 @@ ordinary Plan / Implementation Intent
   -> design-pair-implementation-execution [explicit selection only]
   -> bounded Target Map presentation
   -> AWAITING_USER_INPUT / target-selection [mandatory turn stop]
-  -> user-selected discussion and disposition
+  -> direct questions / decisions / explicit skips
   -> AWAITING_USER_INPUT / disposition-confirmation [when needed]
   -> tracked Design Pair handoff / READY_FOR_ADAPTIVE_IMPLEMENTATION
   -> adaptive-implementation-execution
@@ -77,20 +77,20 @@ Copilot-only導入ではCodex profileが不要なため、finalizerの実行も�
 
 ```text
 $design-pair-implementation-execution を明示的に選びます。
-直前の Plan の予定変更面を調査し、Target Map と内部設計判断候補を提示してください。
-私が議論対象を回答するため、そこで停止してください。初期案や懸念があれば併記します。
+直前の Plan の予定変更面を調査し、問い・判断材料・選択肢の違い・不明点を資料にしてください。
+資料を読んで質問・確定・スキップを回答します。
 対話で disposition が確定した後に Adaptive Implementation へ進んでください。
 ```
 
 利用者が毎回「停止してください」と補足する必要はありません。最初の依頼が単に「実装してください」であっても、Skill は Target Map を提示し、`AWAITING_USER_INPUT / target-selection` を保存してその turn を終了します。Target Map 提示前の Plan / Issue / gold document や利用者の技術案は upstream constraint / initial position であり、Design Pair Locked Decision ではありません。
 
-初回Target Mapはartifact linkやTarget名だけの一覧ではありません。各Targetの具体的file / symbol、current responsibility / invariant、requested changeとの関係、内部設計判断候補、expected modification / verification、evidence、open questionをuser-facingに提示してから選択を求めます。
+初回資料は原則としてtracked handoff内に保存します。各論点は問い・必要性→調査済み事実と制約→実在する選択肢の違い→根拠付きの非binding proposalまたはNo proposal理由→不明点・検証期待を説明し、具体的file / symbolや関連構造へ辿れる形にします。初回から全詳細設計を行う要求ではありません。会話は資料への導線と判断入口の要約を示し、資料の全文再掲は要求しません。リンクやIDと論点名だけでは提示になりません。
 
-初回応答は7列の`Design Pair Target Map`、Coverage evidence、Selection requestを含む固定Markdown構造を使います。handoff内だけに詳細を保存し、応答をTarget名の短い箇条書きへ圧縮することはできません。選択Targetの対話もCode locationからOpen questionsまでを固定blockで提示します。
+初回後は「A案ではこの既存制約を満たせないのでは？」「DP-T01はA案で確定」「DP-T02は議論をスキップ」「残りはスキップ」「全部スキップ」と直接応答できます。スキップは判断をAdaptiveへ委ねる `Adaptive-Owned` であり、実装省略や `No-Change` ではありません。対象とpost-map user evidenceを記録し、未指示Targetはpendingのままです。既存Locked等も含む全件スキップでは、その撤回まで意図するか不明なら確認します。
 
-利用者の応答は親フローや検証harnessで補完せず、そのままDesign Pairへ渡します。Target Mapに実在するTarget IDだけでも選択は成立します。Skillは選択Targetの具体的なcode evidence、alternatives / trade-offs、非binding proposal、validation expectationを提示し、同じTarget選択や初期案を再要求せず`AWAITING_USER_INPUT / disposition-confirmation`で停止します。未選択Targetの委任または分類は最終dispositionと合わせて確認します。`design-discussion`等の独自stageへ遷移せず、headerとReadiness Checkのuser evidenceを同じ内容へ同期します。
+利用者の応答は親フローや検証harnessで補完しません。Target IDのみでも受理し、初期案や同じ選択を再要求せず、資料の判断上の違いを短く示して `AWAITING_USER_INPUT / disposition-confirmation` で最終判断を待ちます。直接質問は必要な根拠と差分だけで回答します。初回資料を踏まえた明示的確定には儀礼的な再説明turnを挟みません。
 
-選択Targetの対話では、具体的file / symbol、現在の責務・invariant、caller / wiring / lifecycle / test seam、内部設計論点、代替案とtrade-off、根拠付きの非binding proposalまたはNo proposal理由、validation expectationをuser-facingに提示します。Target名やartifact linkだけを提示して利用者へ判断を委ねません。
+既知の根拠を再利用し、新案・情報不足・関連code / upstream変更時だけ追加調査します。対話中は該当論点の質問・回答・判断・証拠と必須進行状態を差分更新し、派生summary集合・ReadinessはPendingに保ちます。完了時にまとめて全照合して `Finalization status: Validated` とし、新規sessionも正本の資料・row・証拠から再開します。古いPASSや未確認の資料変更をREADYに流用できません。
 
 READY前にはTarget Mapとhandoff summaryを集合照合します。summaryの全Target IDはMapに実在し、Selected / Delegated-to-Adaptive / No-Change / Upstream-Decision-Required / Pendingの5集合は重複なくMap全体を覆い、各分類はrowのDispositionと一致する必要があります。Locked DecisionはSelectedかつ`Locked` rowだけを参照できます。all-AdaptiveではSelected / Pendingを`None`、Locked Decisionsなし、全Targetを`Adaptive-Owned`としてdelegated集合へ含めます。
 

@@ -120,18 +120,24 @@ Assert-Contains $skill '全設計確定、全 unknown の除去、`Unknown == 0`
 Assert-Contains $skill '初期案、問題の捉え方、質問、検討したい技術や構造は任意' 'optional human initial position'
 Assert-Contains $skill 'AI の推奨案を最初から確定案として提示してはいけない' 'non-leading discussion rule'
 Assert-Contains $skill '(?s)## Phase 3: Present the Target Map and stop.*AWAITING_USER_INPUT.*interaction_stage: target-selection.*その turn を終了する' 'mandatory initial post-map turn stop'
-Assert-Contains $skill '(?s)handoff artifactへのlinkまたはTarget IDと論点名の要約だけではTarget Map提示と認めない.*各TargetのTarget ID、具体的file / symbol、current responsibility / invariant、requested changeとの関係、内部設計判断候補、expected modification or verification、relevant evidence、open question' 'concrete user-facing initial Target Map'
-Assert-Contains $skill '(?s)初回のuser-facing responseは次のMarkdown構造を省略せず使用する.*## Design Pair Target Map.*Target ID.*File / Symbol.*Current responsibility / invariant.*Relation to change / internal decision.*Expected modification or verification.*Relevant evidence.*Open question.*### Coverage evidence.*Production symbol and direct callers.*Tests / fixtures / test seam.*DI / factory / startup / production wiring.*Lifecycle / cancellation / state ownership.*### Selection request' 'required initial Target Map response schema'
-Assert-Contains $skill '(?s)turn終了前にuser-facing responseをself-check.*全Target rowの全7列とCoverage evidence.*handoff artifact内だけに詳細.*短い箇条書きへ圧縮.*PASSにせず、応答を修復' 'initial response content self-check'
+Assert-Contains $skill '(?s)判断する問いを中心.*1ファイル＝1IDではなく.*独立に議論・判断・委任.*機械的な追随変更' 'decision-centered Target unit'
+Assert-Contains $skill '(?s)何を決めるか／なぜ必要か.*調査済みの事実と制約.*実在する選択肢.*非 binding proposal.*No proposal.*未確認事項・検証期待.*因果関係.*具体的な file / symbol.*caller / wiring / lifecycle / state ownership / test seam' 'connected code-grounded decision materials'
+Assert-Contains $skill '(?s)初回に全論点の詳細設計を新たに行うことではない.*未調査の仮説を確定事実や既存案とせず' 'bounded investigation without invented facts'
+Assert-Contains $skill '(?s)資料へのリンク.*主要な判断上の違い・不明点.*直接進める.*資料が存在するだけ.*提示にならない.*参照できない場合' 'accessible initial presentation with meaningful entry summary'
+Assert-NotContains $skill '全Target rowの全7列|固定blockを使用し、項目を省略しない|handoffの各Target rowをこの表へ同じ粒度で転記' 'mandatory duplicated explanations'
 Assert-Contains $skill '(?s)初回 turn では次を禁止する.*READY_FOR_ADAPTIVE_IMPLEMENTATION.*adaptive-implementation-execution.*production code / tests.*Locked Decision' 'initial turn prohibitions'
 Assert-Contains $skill '最初の依頼が「実装してください」であっても、この boundary を省略しない' 'implementation request cannot skip interaction boundary'
 Assert-Contains $skill '(?s)resume では.*interaction stage.*Target Map.*presentation evidence.*Target Map 提示後の user response.*BLOCKED.*Adaptive へ fallback しない' 'resume waiting evidence fail-closed rule'
-Assert-Contains $skill '(?s)user response は、test harness や parent が補足、言い換え、または必要項目を合成せず、そのまま.*Target Map に実在する Target ID の選択だけでも.*初期案、懸念、質問は任意.*同じ Target ID を再要求せず.*`AWAITING_USER_INPUT / disposition-confirmation`' 'verbatim Target-only selection handling'
-Assert-Contains $skill '(?s)Target Map に存在しない ID だけ.*選択未成立.*`target-selection` を維持' 'unknown Target cannot advance selection'
-Assert-Contains $skill '(?s)選択された Target の対話では.*handoff artifactへのlinkまたは論点名だけを返してはいけない.*Target ID と具体的な file / symbol.*現在の責務と invariant.*直接 caller、production wiring、lifecycle / state ownership、test seam.*実在する代替案.*trade-off.*非 binding の AI proposal.*`No proposal`.*validation expectation' 'selected Target minimum discussion surface'
-Assert-Contains $skill '(?s)Target IDだけの選択でも.*minimum discussion surfaceを提示.*初期案がないことを理由に同じ Target の選択を再要求しない.*Target Map内に詳細があることをuser-facing説明の代替にせず.*`Selected Target Discussion Evidence`' 'Target-only selection concrete discussion evidence'
-Assert-Contains $skill '(?s)選択Targetのuser-facing responseは.*## <DP-Txx> Internal design discussion.*Code location.*Current responsibility / invariant.*Callers / wiring / lifecycle / state / test seam.*Internal design decision needed.*Alternatives and trade-offs.*Non-binding AI proposal.*Validation expectations.*Open questions' 'required selected Target discussion response schema'
-Assert-Contains $skill '(?s)各 response.*handoff header、Target Map row、summary Target sets、Readiness Check.*同じ observed evidence から再計算.*User response occurred after Target Map presentation: Yes.*同名 row.*`PASS`' 'mirrored user evidence synchronization'
+Assert-Contains $skill '(?s)user response は、test harness や parent が補足、言い換え、または必要項目を合成せず、そのまま.*対象が一意ならIDなし.*Target Map に実在する Target ID の選択だけでも受理.*同じ Target ID を再要求せず' 'verbatim direct and Target-only response handling'
+Assert-Contains $skill '(?s)存在しないIDだけ.*選択未成立.*`target-selection` を維持' 'unknown Target cannot advance selection'
+Assert-Contains $skill '(?s)提示済みの判断材料を再利用.*コード再読・全論点再調査を繰り返さない.*新案、情報不足、関連code / upstream条件の変更.*必要範囲.*旧版への確定を新版へ黙って適用しない' 'reuse and scoped evidence refresh'
+Assert-Contains $skill '(?s)DP-T02は議論をスキップ.*残りはスキップ.*全部スキップ.*具体的ID.*実装省略や `No-Change` へ変換しない.*未指示のTargetはpending' 'explicit skip scope and semantics'
+Assert-Contains $skill '(?s)`Selected Target Discussion Evidence`.*資料節・版・提示assistant turn.*実際のuser response.*初回資料.*code location.*invariant.*alternatives / trade-offs.*validation expectation.*全文転記.*要求しない' 'reference-based concrete discussion evidence'
+Assert-Contains $skill '(?s)各turnは更新した論点.*差分更新.*summaryの5集合.*Readiness Check.*完了まで `Pending`.*全状態を毎回書き直したり.*確定済みartifact.*READYを解除' 'local updates and deferred finalization'
+Assert-Contains $skill '(?s)## Output.*完了時のhandoff項目.*各turnの会話への全文出力や派生集合の再計算を要求しない' 'output does not reinstate per-turn global updates'
+Assert-Contains $skill '(?s)会話の要約をAI提案だけにしない.*何を決めるか、案の違い、残る不明点' 'initial summary has real decision entry'
+Assert-Contains $skill '(?s)全Targetへの個別の明示委任が揃った場合.*Explicit all-Adaptive delegation: Yes.*単にSelectedが空.*Yesにしてはいけない' 'individual skips require complete explicit evidence'
+Assert-Contains $skill '(?s)初回資料を含む提示済みの判断材料.*A案で確定.*選択→同じ説明→再確認を挟まず受理' 'direct post-material explicit confirmation'
 Assert-Contains $skill '(?s)Target Map 提示後の通常 interaction stage は `target-selection`、`disposition-confirmation`、`upstream-decision`、`complete` のいずれかだけ.*`target-map-building` は提示前の `DRAFT`.*`artifact-repair` は.*`BLOCKED`' 'closed Design Pair interaction stage vocabulary'
 Assert-Contains $skill '(?s)AWAITING_USER_INPUT.*interaction_stage: disposition-confirmation' 'disposition confirmation waiting state'
 Assert-Contains $skill '全 Target を Adaptive へ委ねると明示した場合.*Locked Decision を作らず READY' 'explicit all-Adaptive delegation path'
@@ -141,7 +147,10 @@ Assert-Contains $skill '(?s)`Locked`、`Discussed-Unlocked`、`Adaptive-Owned`.*
 Assert-Contains $skill '(?s)利用者が委任していないTargetをAIが`Adaptive-Owned`.*利用者の最終応答なしに`Discussed-Unlocked`.*禁止' 'AI cannot self-assign final human disposition'
 Assert-Contains $skill 'upstream Plan、Issue、acceptance criteria、gold document、repository policy / public contract.*Upstream Binding Constraints' 'upstream constraint separation'
 Assert-Contains $skill 'Target Map と code evidence の提示前に Locked Decision へ昇格しない' 'initial position is not automatic Locked Decision'
-Assert-Contains $skill '(?s)READY 判定前に、Target Map と summary field を集合として照合.*Target Map の全 Target ID は一意.*concrete ID はすべて Target Map に実在.*5集合は互いに素.*和集合は Target Map の全 Target ID と完全一致' 'Target Map and summary set reconciliation'
+Assert-Contains $skill 'READY 判定前に、正本rowと証拠からsummary fieldとReadiness Checkをまとめて生成' 'final checks derived from canonical evidence'
+Assert-Contains $skill '(?s)READY 判定前に.*Target Map の全 Target ID は一意.*concrete ID はすべて Target Map に実在.*5集合は互いに素.*和集合は Target Map の全 Target ID と完全一致' 'Target Map and summary set reconciliation'
+Assert-Contains $skill '(?s)全条件を満たし.*同じ現行証拠へ同期.*Finalization status: Validated.*READY_FOR_ADAPTIVE_IMPLEMENTATION.*失敗時はREADYにせず' 'finalization fail-closed gate'
+Assert-Contains $skill '(?s)初回資料の作成から最終dispositionまで.*全行程.*重複した調査・記録更新.*input / output / reasoning / cached tokens.*二重計上しない.*実測なしに削減効果を断定しない' 'whole-interaction cost comparison'
 Assert-Contains $skill '(?s)`Selected Target IDs`: disposition が `Locked` または `Discussed-Unlocked`.*`Delegated-to-Adaptive Target IDs`: disposition が `Adaptive-Owned`.*`No-Change Target IDs`: disposition が `No-Change`.*`Upstream-Decision-Required Target IDs`: disposition が `Upstream-Decision-Required`.*`Pending human-owned Target IDs`: disposition が `Pending-User-Selection` または `Pending-User-Disposition`' 'summary set to row disposition mapping'
 Assert-Contains $skill '(?s)各 Locked Decision の Target ID は `Selected Target IDs` に含まれ.*Target Map row は `Locked`.*`Locked` row には一件以上の valid Locked Decision' 'Locked Decision target membership invariant'
 Assert-Contains $skill '(?s)`Explicit all-Adaptive delegation: Yes`.*`Selected Target IDs: None`.*`Pending human-owned Target IDs: None`.*Locked Decisionsなし.*全 Target row が `Adaptive-Owned`.*`Delegated-to-Adaptive Target IDs` が全 Target IDと完全一致' 'all-Adaptive exact coverage invariant'
@@ -154,7 +163,8 @@ Assert-Contains $skill 'automatic Design Pair re-entry は行わない' 'no auto
 Assert-Contains $skill 'final code review.*独立 verification' 'final review boundary'
 
 $map = 'apm-packages/design-pair-implementation-execution/.apm/skills/design-pair-implementation-execution/map.md'
-Assert-Contains $map 'Target ID.*File / Symbol.*Current responsibility.*Current invariant.*Relation to requested change.*Internal design decision candidate.*Expected modification or verification.*Relevant evidence.*Open question.*Disposition' 'complete Target Map schema'
+Assert-Contains $map 'Target ID.*Decision question / why now.*Main trade-off / unknown.*Decision materials.*Disposition' 'question-centered Target index'
+Assert-Contains $map '(?s)Material version.*Evidence revision.*Presented at.*判断する問いと必要性.*事実・制約と選択肢.*File / Symbol.*Current responsibility / invariant.*Trade-off and impact on the decision.*Non-binding AI proposal.*Open questions.*Validation expectations.*対話差分' 'versioned evidence-backed material schema'
 Assert-Contains $map 'Production symbol and direct call sites' 'production call-site coverage row'
 Assert-Contains $map 'Tests / fixtures / test seam' 'test coverage row'
 Assert-Contains $map 'DI / factory / startup / entrypoint / production wiring' 'wiring coverage row'
@@ -204,9 +214,29 @@ foreach ($field in @(
 }
 Assert-Contains $handoff 'Decision ID.*Target ID.*Decision.*Affected files / symbols.*Rationale.*Validation expectations.*Conflict conditions.*User message / turn reference.*Confirmed content quote or faithful summary.*Confirmation occurred after Target Map presentation' 'complete Locked Decision schema'
 Assert-Contains $handoff 'section に Decision ID、presented Target ID、実際の user message / turn reference、確認内容.*Confirmation occurred after Target Map presentation: Yes.*binding' 'explicit post-map binding rule'
-Assert-Contains $handoff '(?s)## Target Disposition Evidence.*Target ID.*Final disposition.*User message / turn reference.*Confirmed content quote or faithful summary.*Confirmation after Target Map' 'Target disposition evidence schema…7603 tokens truncated…ow/.apm/agents/implementation-handoff-review.agent.md' '新規 intake.*だけ `adaptive / default` を初期化' 'handoff review fresh-intake-only default'
+Assert-Contains $handoff '(?s)## Target Disposition Evidence.*Target ID.*Final disposition.*User message / turn reference.*Confirmed content quote or faithful summary.*Confirmation after Target Map' 'Target disposition evidence schema'
+Assert-Contains $handoff '(?s)## Selected Target Discussion Evidence.*Material section / version.*Presentation assistant turn.*Actual post-map user turn.*Discussion delta references.*具体的code location.*current invariant.*alternatives / trade-offs.*validation expectation' 'material and actual response evidence schema'
+Assert-Contains $handoff '(?s)## Readiness Check.*Finalization status: Pending.*正本.*完了直前.*現行証拠.*PendingをPASSとして受理しない' 'deferred check lifecycle'
+foreach ($check in @(
+    'Target Map IDs are unique and every summary ID exists in the Target Map',
+    'Summary Target sets are pairwise disjoint and exactly cover the Target Map',
+    'Summary classifications match every Target Map row Disposition',
+    'Every Locked, Discussed-Unlocked, and Adaptive-Owned Target has matching post-map Target Disposition Evidence',
+    'Locked Decisions do not conflict with upstream contracts',
+    'No pending human-owned Target remains'
+)) {
+    Assert-Contains $handoff ([regex]::Escape($check)) "final safety check $check"
+}
+Assert-Contains $handoff '(?s)all-Adaptiveでも全Targetのevidence row.*5集合.*架空 ID、重複 ID、未分類 Target、row / summary 不一致.*許可しない' 'strict final reconciliation'
 
-foreach ($id in 1..31) {
+$adaptiveOwner = 'apm-packages/adaptive-implementation-execution/.apm/agents/decision-surface-implementation-owner.agent.md'
+Assert-Contains $adaptiveOwner '(?s)初回の判断資料節・版・提示assistant turn.*実際のpost-map user response.*Selected Target Discussion Evidence.*参照先の具体的根拠.*旧confirmationを流用できません' 'Adaptive accepts concrete initial-material references'
+Assert-Contains $adaptiveOwner '(?s)Finalization status: Validated.*Pending.*全ID集合、post-map証拠、Locked Decisions、upstream整合、pending不在.*古いPASSやPendingをREADYへ正規化しません' 'Adaptive validates final evidence before editing'
+Assert-Contains $adaptiveOwner 'waiting state.*空集合PASS.*架空・重複・未分類ID.*BLOCKED' 'Adaptive rejects invalid READY'
+$coverageSkill = 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md'
+Assert-Contains $coverageSkill '(?s)直接質問・反論・確定・明示的スキップ.*ID選択turnを強制しない.*利用者応答を補完せず.*Pending.*Finalization status: Validated.*スキップを実装省略へ変換しない' 'parent direct-response and deferred-finalization contract'
+
+foreach ($id in 1..40) {
     $scenarioId = 'DP-VAL-{0:D3}' -f $id
     Assert-Contains 'apm-packages/design-pair-implementation-execution/docs/examples/design-pair-validation.md' $scenarioId "validation scenario $scenarioId"
 }
@@ -236,10 +266,11 @@ Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'Issue #86' 'manual smoke defers Plan Coverage E2E to #86'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'tracked handoff remains the durable authority' 'manual smoke Copilot durable resume authority'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'Commit sanitized raw CLI outputs' 'manual smoke requires committed raw evidence'
-Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' '(?s)Forward the human response verbatim.*must not ask a separate harness question.*Target-only selection must be accepted.*without repeating the same selection or requiring an initial position.*move to `AWAITING_USER_INPUT / disposition-confirmation`.*return to `target-selection` for a valid Target ID.*`FAIL`' 'manual smoke verbatim Target-only selection behavior'
-Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' "every Target's concrete file and symbol, current responsibility and invariant, relation to the change, expected modification or verification, relevant evidence, and open question" 'manual smoke concrete initial Target Map evidence'
-Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'required seven-column `Design Pair Target Map`, Coverage evidence, and Selection request structure' 'manual smoke initial response structure'
-Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' 'required `<DP-Txx> Internal design discussion` block' 'manual smoke selected Target response structure'
+$smokeGuide = 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md'
+Assert-Contains $smokeGuide '(?s)Forward the human response verbatim.*Target-only selection must be accepted without repeating the same selection or requiring an initial position.*AWAITING_USER_INPUT / disposition-confirmation.*FAIL' 'manual smoke verbatim Target-only selection behavior'
+Assert-Contains $smokeGuide '(?s)初回資料.*因果的.*具体的file / symbol.*資料の全文再掲は不要.*ID選択を必須にせず' 'manual smoke accessible initial decision materials'
+Assert-Contains $smokeGuide '(?s)Direct question / confirmation.*Partial / remaining / all skip.*New option / changed code.*Deferred finalization / invalid READY' 'manual smoke direct interaction and safety cases'
+Assert-Contains $smokeGuide '(?s)同条件の全行程比較.*初回資料生成から最終dispositionまで.*input / output / reasoning / cached tokens.*二重計上しない.*scripted PASSでhuman-operated smokeを代替しない' 'manual smoke bounded honest cost comparison'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' '(?s)Before every initial or resumed turn.*git rev-parse --show-toplevel.*disposable repository.*codex exec resume.*no `-C` option' 'manual smoke execution root precondition'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/README.md' '(?s)resumed process observes a different worktree.*mark the run `FAIL`.*neither repository was changed.*Do not move or copy the handoff' 'manual smoke wrong-worktree failure rule'
 Assert-Contains 'apm-packages/design-pair-implementation-execution/tests/manual-model-smoke/result-template.md' '(?m)^- Status: NOT RUN\r?$' 'manual runtime result starts unexecuted'

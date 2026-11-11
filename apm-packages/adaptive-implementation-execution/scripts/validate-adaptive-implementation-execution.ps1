@@ -100,6 +100,9 @@ Assert-Contains $manifest 'remaining decision surfaces.*bounded residual complet
 Assert-NotContains $manifest 'decision closure|standard-model implementation ownership' 'removed fixed ownership description'
 
 Assert-Contains $skill '## Semantic roles' 'semantic role definition'
+Assert-Contains $skill '(?s)初回資料節・版・提示turn.*実際のuser response.*Finalization status: Validated.*古いPASSを完了証拠にしません' 'Design Pair material reference and finalization contract'
+Assert-Contains $decisionOwner '(?s)初回の判断資料節・版・提示assistant turn.*Selected Target Discussion Evidence.*形式的なID選択turn.*スキップ.*No-Changeではありません' 'Design Pair direct response acceptance'
+Assert-Contains $decisionOwner '(?s)Finalization status: Validated.*全ID集合、post-map証拠、Locked Decisions、upstream整合、pending不在.*古いPASSやPendingをREADYへ正規化しません' 'Design Pair final safety gate'
 Assert-Contains $skill 'Decision-Surface Implementation Owner.*implementation feedback loop' 'decision-surface implementation ownership'
 Assert-Contains $skill 'Bounded-Residual Implementation Owner.*bounded residual work' 'bounded residual ownership'
 Assert-Contains $skill 'runtime topology.*independent|runtime topology.*独立' 'topology and semantics separation'

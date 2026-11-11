@@ -25,8 +25,8 @@ fresh installではAdaptive packageとDesign Pair packageをco-installします�
 
 ```text
 $design-pair-implementation-execution を明示的に使います。
-plans/issue-123.md を読み、予定変更面の Target Map を作ってください。
-まず現在の構造と判断論点を説明し、私の初期案を聞いてから議論してください。
+plans/issue-123.md を読み、判断する問い・事実と制約・選択肢の違い・暫定提案・不明点を資料にしてください。
+資料を読んで直接質問・確定・スキップを回答します。
 ```
 
 goal、scope、acceptance が不足する場合は production code / tests を編集せず、上流判断へ戻します。
@@ -45,19 +45,29 @@ Design Pair package の正式 target は `copilot`、`codex`、`agent-skills` �
 
 ## Resume
 
-`implementation_route`、`implementation_route_source`、`design_pair_handoff`、`design_pair_interaction_stage`はdurable artifactから再読します。Design Pair resume では Target Map presentation、Target 選択要求、post-map user response、disposition、Locked confirmation evidence も検証します。欠ける、矛盾する、またはwaiting中なのにREADYへ正規化されている場合、upstream textから補完せず`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてartifact repairを要求します。3 route項目を`adaptive / default / N/A`へ自動初期化できるのはfresh intakeだけです。
+`implementation_route`、`implementation_route_source`、`design_pair_handoff`、`design_pair_interaction_stage`はdurable artifactから再読します。Design Pair resume では資料節・版・提示turn、直接対話の案内、post-map user response、正本rowのdisposition、Locked confirmation evidenceも検証します。待機中のsummary / ReadinessがPendingであるだけなら再開できます。正本が欠ける、矛盾する、またはwaiting中なのにREADYへ正規化されている場合、upstream textから補完せず`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてartifact repairを要求します。3 route項目を`adaptive / default / N/A`へ自動初期化できるのはfresh intakeだけです。
 
 bounded-residual-implementation-ownerからdecision-surface-implementation-ownerへre-entryする場合は、Decision-Surface Re-entry Handoffに両route fieldとDesign Pair handoff pathをincoming completion handoffから変更せずコピーします。parentは元のcompletion handoffとre-entry handoffの両方をdecision-surface-implementation-ownerへ渡し、route identityが一致しない場合は再実行前に`BLOCKED` / `BlockedByInvalidCompletionHandoff`で停止します。decision-surface-implementation-ownerとbounded-residual-implementation-ownerは通常完了を含む非invalid resultで同じ3項目を返します。invalid-artifact `BLOCKED`だけはraw observed valueまたは`<missing>`とrepair evidenceを返し、parentは完全なpairを要求せず停止resultとして受理します。
 
 ## Target Map discussion
 
-AI は予定変更面全体を bounded に調査し、具体的な file / symbol、現在の責務、current invariant、requested change との関係、内部設計判断候補、evidence、不明点を説明します。初回 turn は handoff に `AWAITING_USER_INPUT / target-selection` を保存し、利用者へ議論する Target IDを求めて必ず終了します。初期案、懸念、質問、未選択 Target の Adaptive delegationは任意で併記できます。「実装してください」という初回依頼はこの post-map response の代わりになりません。
+AIは予定変更面をboundedに調査し、tracked handoffを一まとまりの判断資料として提示します。問い一覧の各IDから、問い・必要性→調査済み事実と制約→実在する選択肢とtrade-off→非binding proposalまたはNo proposal理由→不明点・検証期待を読めます。具体的file / symbol、現在の責務・invariant、caller / wiring / lifecycle / test seamと根拠も同じ資料へ記録します。1ファイル＝1IDではなく独立して判断・委任できる論点が単位であり、機械的な追随は関連論点へ含めます。初回から全詳細設計を行うのではなく、調査で不明な点は不明とします。
 
-この説明はuser-facing responseそのものに各Targetのfile / symbol、responsibility / invariant、変更との関係、判断候補、expected modification / verification、evidence、open questionを含めます。handoffへのlink、Target ID、論点名だけの一覧は完全なTarget Map提示ではありません。
+会話では資料への導線と各問いの主要な判断上の違い・不明点を要約し、直接質問・反論・案・確定・スキップを案内して `AWAITING_USER_INPUT / target-selection` で必ず停止します。資料の全面再掲は不要ですが、リンクやIDと論点名だけでは提示になりません。「実装してください」という初回依頼はpost-map responseの代わりになりません。
 
-実際の応答では7列の`Design Pair Target Map` table、Coverage evidence、Selection requestを省略せず出力します。handoffだけを詳細にし、最終応答を短いTarget一覧へ圧縮した場合はpresentation FAILです。選択後の対話では`<DP-Txx> Internal design discussion` blockのCode location、invariant、関連surface、判断、alternatives / trade-offs、proposal、validation、open questionsをすべて提示します。
+初回後の応答例:
 
-利用者は議論したい Target を選びます。初期案、懸念、質問は任意で併記できます。その後、AI がcode evidence、trade-off、反論または支持、代替案、非binding proposal、追加 evidence、validation expectation を返します。
+```text
+A案では、既存のキャンセル伝播を維持できないのでは？
+DP-T01は資料のA案で確定します。
+DP-T02は議論をスキップします。
+残りはスキップします。
+全部スキップします。
+```
+
+これらは別々の入力例です。事前のID選択は不要で、対象を特定できないときだけ確認します。IDだけの入力も受理し、初期案や同じTarget選択を再要求せず、資料の判断上の違いを短く示して最終判断を待ちます。具体的質問には該当根拠で回答し、既出の説明一式を再掲しません。
+
+スキップはその論点のDesign Pair対話を行わず判断をAdaptiveへ委ねる `Adaptive-Owned` であり、実装省略や `No-Change` ではありません。「残り」は未確定・未委任のTargetです。全件スキップに既存Locked等が含まれる場合、撤回の意図が不明なら確認します。実際の対象IDとuser evidenceを残し、未指示TargetをAIが委任しません。
 
 選択可能な disposition:
 
@@ -67,19 +77,21 @@ AI は予定変更面全体を bounded に調査し、具体的な file / symbol
 - `No-Change`
 - `Upstream-Decision-Required`
 
-`Locked` は Target Map 提示後に AI が trade-off と validation expectation を説明し、その後の user message / turn で明示確認された Decision ID 付き entry だけです。Plan / Issue / acceptance / gold document / AI summary は confirmation ではありません。利用者が初回 prompt に書いた技術案は initial position として保存し、post-map confirmation まで Locked にしません。
+`Locked` は初回資料を含む判断材料の提示後に、user message / turnで決定内容を明示確定したDecision ID付きentryだけです。資料節・版・提示turnと確定証拠を結び付け、儀礼的な「選択→同じ説明→再確認」を要求しません。Plan / Issue / acceptance / gold document / AI summaryはconfirmationではありません。初回promptの技術案はinitial positionとして保存し、post-map confirmationまでLockedにしません。
 
 `Locked`、`Discussed-Unlocked`、`Adaptive-Owned`は、Targetごとの`Target Disposition Evidence`にactual post-map user turn、確認内容、`Confirmation after Target Map: Yes`がある場合だけ確定できます。AIが未選択Targetを自己判断でAdaptiveへ委ねたり、最終応答なしでDiscussed-Unlockedへ移したりできません。複数Target委任またはall-Adaptiveでは同じuser turnを複数Target rowに使用できます。
 
-利用者が Target だけ、または Target と初期案を返した場合、AI は evidence、反論または支持、代替案、trade-off、production wiring / lifecycle / state ownership / test seam への影響、非binding proposal、validation expectation を提示し、`AWAITING_USER_INPUT / disposition-confirmation` で再停止します。利用者が Target Map 提示後に全 Target を Adaptive へ委ねると明示した場合は、個別議論なしで `Adaptive-Owned` として READY にできます。
+質問・初期案・IDのみでは最終dispositionとせず `AWAITING_USER_INPUT / disposition-confirmation` で再停止します。親フローや検証harnessは利用者応答を補完しません。未選択Targetの委任・分類は必要な最終判断と同時に確認します。初回後の全件委任が明示された場合は個別対話なしにREADYへ進めますが、完了時照合は省略できません。
 
-親フローや検証harnessは利用者の応答を補完しません。Target Mapに実在するTarget IDだけでも選択成立です。Skillは選択Targetのcode evidence、判断候補、alternatives / trade-offs、非binding proposal、validation expectationを説明し、初期案の提示や同じTarget選択を再要求せず`AWAITING_USER_INPUT / disposition-confirmation`へ進みます。未選択Targetの委任または分類は、選択Targetの最終dispositionと同じ確認で求めます。`design-discussion`等の独自stageを作りません。各turnの保存前にheader、Target Map、summary集合、Readiness Checkを再計算し、post-map user responseの有無とreferenceを一致させます。
+`Selected Target Discussion Evidence`は具体的根拠のある資料節・版・提示turnと実際のpost-map user responseを参照します。質問・回答の差分は論点節へ保存し、説明を多重転記しません。新案・情報不足・関連code / upstream変更時だけ必要範囲を追加調査します。判断に影響する更新は再提示し、旧確定をpendingに戻して再確認します。
 
-ここでいうcode evidenceは抽象的な論点名ではありません。選択Targetごとに具体的file / symbol、current responsibility / invariant、caller / wiring / lifecycle / test seam、内部設計判断の必要性、代替案とtrade-off、既存codeに基づく非binding proposalまたはNo proposal理由、validation expectationをuser-facing responseへ出します。同じ内容とassistant turn referenceを`Selected Target Discussion Evidence`へ保存します。
+対話中は更新した論点・row・証拠とlatest response / stage等を差分更新し、summary集合とReadinessは `Finalization status: Pending` として未計算のまま保ちます。完了時だけ同じ現行証拠から全summary/checkを作成して照合します。途中のPendingや過去のPASSをREADYの証拠として流用しません。
 
 READY判定ではTarget MapのIDを一意な全集合とし、handoff summaryの`Selected Target IDs`、`Delegated-to-Adaptive Target IDs`、`No-Change Target IDs`、`Upstream-Decision-Required Target IDs`、`Pending human-owned Target IDs`を照合します。全summary IDがMapに実在し、5集合が互いに素で、和集合がMap全体と一致し、各集合がrow Dispositionと一致しなければなりません。`Selected`は`Locked` / `Discussed-Unlocked`、delegatedは`Adaptive-Owned`、残り3集合は同名Dispositionまたはpending Dispositionへ対応します。
 
 Locked DecisionのTarget IDはSelected集合に含まれ、rowが`Locked`である必要があります。explicit all-Adaptiveでは`Selected Target IDs: None`、`Pending human-owned Target IDs: None`、Locked Decisionsなし、全rowが`Adaptive-Owned`、delegated集合がMap全体と一致する場合だけREADYにできます。
+
+全照合後に `Finalization status: Validated` と `complete / READY_FOR_ADAPTIVE_IMPLEMENTATION` を同時に設定します。Adaptive受入でも資料参照・post-map人間証拠・全集合・Locked/upstream整合・pending不在を検証します。
 
 ## Handoff semantics
 

@@ -7,7 +7,7 @@ GitHub Copilot / CodexでPlan-first開発を行うためのAPM processes、agent
 ## このrepositoryでできること
 
 - 既存Planから、model roleを分けて実装を進める。
-- 実装前にfile / symbol単位の内部設計を人間と確認する。
+- 実装前に既存codeに基づく判断資料を読み、論点ごとに質問・確定・スキップする。
 - Ready PRを独立reviewし、修正と目的照合まで進める。
 - bounded Planから実装、検証、残件判断までのcoverageを維持する。
 - Goal Context作成や、Codex完了eventの保存・閲覧を補助する。
@@ -32,7 +32,7 @@ APM installがSkillとportable agentsを導入し、finalizerがCodex用TOMLのc
 
 ### 実装前に内部設計も対話して決めたい
 
-[Design Pair Implementation Execution](apm-packages/design-pair-implementation-execution/README.md)をAdaptiveのpre-stageとして追加します。Target Mapをfile / symbol単位で提示して人間の選択を待ち、confirmed Locked DecisionsだけをAdaptiveへ渡します。Design Pair単独ではimplementation orchestrationを所有しません。
+[Design Pair Implementation Execution](apm-packages/design-pair-implementation-execution/README.md)をAdaptiveのpre-stageとして追加します。初回に判断する問い・事実と制約・選択肢の違い・暫定提案・不明点を一まとまりの資料で提示し、必ず人間の応答を待ちます。「A案ではこの制約を満たせないのでは？」「A案で確定」「残りはスキップ」と直接応答でき、ID選択だけのturnは不要です。スキップは判断のAdaptive委任であり、実装省略ではありません。confirmed Locked Decisionsだけを新たな拘束としてAdaptiveへ渡し、Design Pair単独ではimplementation orchestrationを所有しません。
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target copilot,codex,agent-skills

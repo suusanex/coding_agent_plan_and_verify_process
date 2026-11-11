@@ -1,0 +1,268 @@
+[
+  {
+    "run": "b1",
+    "origin": "before-1",
+    "sessionRequestCount": 1,
+    "apiDurationMs": 72466,
+    "currentModel": "gpt-5.6-sol",
+    "models": [
+      {
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "inputTokens": 133612,
+          "outputTokens": 5470,
+          "cacheReadTokens": 110013,
+          "cacheWriteTokens": 23578,
+          "reasoningTokens": 993
+        }
+      }
+    ]
+  },
+  {
+    "run": "b2",
+    "origin": "before-2",
+    "sessionRequestCount": 2,
+    "apiDurationMs": 101899,
+    "currentModel": "gpt-5.6-sol",
+    "models": [
+      {
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "inputTokens": 219934,
+          "outputTokens": 8677,
+          "cacheReadTokens": 168494,
+          "cacheWriteTokens": 51410,
+          "reasoningTokens": 1801
+        }
+      }
+    ]
+  },
+  {
+    "run": "b3",
+    "origin": "before-3",
+    "sessionRequestCount": 3,
+    "apiDurationMs": 130411,
+    "currentModel": "gpt-5.6-sol",
+    "models": [
+      {
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "inputTokens": 362370,
+          "outputTokens": 12495,
+          "cacheReadTokens": 271598,
+          "cacheWriteTokens": 90730,
+          "reasoningTokens": 2134
+        }
+      }
+    ]
+  },
+  {
+    "run": "a1",
+    "origin": "after-1",
+    "sessionRequestCount": 1,
+    "apiDurationMs": 74711,
+    "currentModel": "gpt-5.6-sol",
+    "models": [
+      {
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "inputTokens": 122610,
+          "outputTokens": 6026,
+          "cacheReadTokens": 94784,
+          "cacheWriteTokens": 27808,
+          "reasoningTokens": 1076
+        }
+      }
+    ]
+  },
+  {
+    "run": "a2",
+    "origin": "after-2",
+    "sessionRequestCount": 2,
+    "apiDurationMs": 86700,
+    "currentModel": "gpt-5.6-sol",
+    "models": [
+      {
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "inputTokens": 177663,
+          "outputTokens": 7169,
+          "cacheReadTokens": 121902,
+          "cacheWriteTokens": 55737,
+          "reasoningTokens": 1534
+        }
+      }
+    ]
+  },
+  {
+    "run": "a3",
+    "origin": "after-3",
+    "sessionRequestCount": 3,
+    "apiDurationMs": 115500,
+    "currentModel": "gpt-5.6-sol",
+    "models": [
+      {
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "inputTokens": 270591,
+          "outputTokens": 11426,
+          "cacheReadTokens": 184687,
+          "cacheWriteTokens": 85871,
+          "reasoningTokens": 1769
+        }
+      }
+    ]
+  },
+  {
+    "run": "f1",
+    "origin": "fresh-1",
+    "sessionRequestCount": 1,
+    "apiDurationMs": 63452,
+    "currentModel": "gpt-5.6-sol",
+    "models": [
+      {
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "inputTokens": 205870,
+          "outputTokens": 7020,
+          "cacheReadTokens": 168661,
+          "cacheWriteTokens": 37185,
+          "reasoningTokens": 1692
+        }
+      }
+    ]
+  },
+  {
+    "run": "f2",
+    "origin": "fresh-2",
+    "sessionRequestCount": 2,
+    "apiDurationMs": 94033,
+    "currentModel": "gpt-5.6-sol",
+    "models": [
+      {
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "inputTokens": 381151,
+          "outputTokens": 10919,
+          "cacheReadTokens": 305297,
+          "cacheWriteTokens": 75818,
+          "reasoningTokens": 2358
+        }
+      }
+    ]
+  },
+  {
+    "run": "d1",
+    "origin": "direct-1",
+    "sessionRequestCount": 1,
+    "apiDurationMs": 53886,
+    "currentModel": "gpt-5.6-sol",
+    "models": [
+      {
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "inputTokens": 155058,
+          "outputTokens": 5702,
+          "cacheReadTokens": 122814,
+          "cacheWriteTokens": 32223,
+          "reasoningTokens": 1079
+        }
+      }
+    ]
+  },
+  {
+    "run": "i1",
+    "origin": "ids-1",
+    "sessionRequestCount": 1,
+    "apiDurationMs": 21700,
+    "currentModel": "gpt-5.6-sol",
+    "models": [
+      {
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "inputTokens": 99918,
+          "outputTokens": 1401,
+          "cacheReadTokens": 76882,
+          "cacheWriteTokens": 23021,
+          "reasoningTokens": 250
+        }
+      }
+    ]
+  },
+  {
+    "run": "n1",
+    "origin": "newoption-1",
+    "sessionRequestCount": 1,
+    "apiDurationMs": 50462,
+    "currentModel": "gpt-5.6-sol",
+    "models": [
+      {
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "inputTokens": 117655,
+          "outputTokens": 5424,
+          "cacheReadTokens": 92327,
+          "cacheWriteTokens": 25310,
+          "reasoningTokens": 1951
+        }
+      }
+    ]
+  },
+  {
+    "run": "w1",
+    "origin": "wait-1",
+    "sessionRequestCount": 1,
+    "apiDurationMs": 38847,
+    "currentModel": "gpt-5.6-sol",
+    "models": [
+      {
+        "model": "gpt-5.6-sol",
+        "usage": {
+          "inputTokens": 161126,
+          "outputTokens": 3582,
+          "cacheReadTokens": 138481,
+          "cacheWriteTokens": 22621,
+          "reasoningTokens": 1444
+        }
+      }
+    ]
+  },
+  {
+    "run": "v1",
+    "origin": "invalid-1",
+    "sessionRequestCount": 1,
+    "apiDurationMs": 11933,
+    "currentModel": "gpt-6-sol",
+    "models": [
+      {
+        "model": "gpt-6-sol",
+        "usage": {
+          "inputTokens": 45674,
+          "outputTokens": 1290,
+          "cacheReadTokens": 26321,
+          "cacheWriteTokens": 19344,
+          "reasoningTokens": 444
+        }
+      }
+    ]
+  },
+  {
+    "run": "k1",
+    "origin": "conflict-1",
+    "sessionRequestCount": 1,
+    "apiDurationMs": 15255,
+    "currentModel": "gpt-6-sol",
+    "models": [
+      {
+        "model": "gpt-6-sol",
+        "usage": {
+          "inputTokens": 66026,
+          "outputTokens": 1601,
+          "cacheReadTokens": 48740,
+          "cacheWriteTokens": 17274,
+          "reasoningTokens": 535
+        }
+      }
+    ]
+  }
+]

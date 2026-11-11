@@ -164,7 +164,7 @@ Input: valid Plan / Implementation Intent、explicit Design Pair selection、「
 Expected:
 
 - bounded Target Map全体と内部設計判断候補を利用者へ提示する
-- Target IDを求め、初期案、懸念、質問、未選択TargetのAdaptive delegationは任意で併記できると示す
+- tracked handoffの判断資料への導線と各問いの判断上の違い・不明点を要約し、直接質問・確定・スキップとIDのみの入力を案内する
 - `AWAITING_USER_INPUT / target-selection`をtracked handoffへ保存してturnを終了する
 - Design Pair Locked Decisionを作らない
 - `READY_FOR_ADAPTIVE_IMPLEMENTATION`を返さず、Adaptiveを開始しない
@@ -182,11 +182,11 @@ Expected:
 
 ## DP-VAL-015: User selects discussion targets
 
-Input: Target Map提示後、利用者がTarget IDと初期案を返すが、AIのtrade-off提示後の最終dispositionはまだない。
+Input: 判断資料提示後、利用者がTarget IDと初期案を返すが、明示的な最終dispositionはない。
 
 Expected:
 
-- AIがcode evidence、反論または支持、代替案、trade-off、wiring / lifecycle / ownership / test seamへの影響、validation expectationを説明する
+- AIは提示済みのcode evidence・trade-offを再利用し、初期案への回答に必要な差分を説明する
 - AIは`Locked`を自己確定しない
 - `AWAITING_USER_INPUT / disposition-confirmation`を保存して再停止する
 
@@ -296,21 +296,21 @@ Input: Target Map提示後、利用者が`DP-T01について議論します`と�
 Expected:
 
 - 利用者応答を親フローまたはtest harnessで補完せず、そのままDesign Pairへ渡す
-- AIはDP-T01のcode evidence、判断候補、alternatives / trade-offs、非binding proposal、validation expectationを説明する
+- AIはDP-T01の提示済み判断材料を再利用し、判断上の違いを短く示して最終判断を尋ねる
 - 初期案または同じTarget選択を再要求しない
 - 未選択Targetのdelegationまたは分類をDP-T01の最終dispositionと合わせて尋ねる
 - `AWAITING_USER_INPUT / disposition-confirmation`へ進み、`design-discussion`等の独自stageを作らない
 - production code / testsを編集せず、Adaptiveを開始しない
 
-## DP-VAL-027: Mirrored user evidence mismatch fails closed
+## DP-VAL-027: Finalization reconciles deferred summaries
 
-Input: handoff headerは`User response occurred after Target Map presentation: Yes`と実際のuser referenceを持つが、Readiness Checkは同じcheckを`FAIL / No post-map user response`としている。
+Input: 対話中はheaderにpost-map user referenceがあり、summary / Readinessは `Finalization status: Pending`。完了を試みる。
 
 Expected:
 
-- header、Target Map、summary集合、Readiness Checkを同じobserved evidenceから再計算する
-- Yes / No、PASS / FAIL、user referenceが一致するまでartifactをREADYまたはAdaptiveへ渡さない
-- 不整合をAI summaryから正当化せず、artifact repairを行う
+- 待機中のPendingだけなら正常とし、毎turnの全面再計算を要求しない
+- 完了時にheader、Target Map、summary集合、Readiness Checkを同じ現行証拠へ同期し、全集合・分類・user referenceを照合する
+- 矛盾、古いPASS、Pendingが残ればREADYにせず、Adaptiveも拒否する
 
 ## DP-VAL-028: Selected Target discussion is code-grounded and user-facing
 
@@ -318,20 +318,20 @@ Input: 利用者がTarget Map提示後に`DP-T01について議論します`と�
 
 Expected:
 
-- user-facing responseに`src/RetryPolicy.cs`のexact symbol、current responsibility / invariant、`RetryingClient` caller、test seam、存在しないwiringのN/A evidenceを提示する
-- 内部設計論点、実在する代替案とtrade-off、既存codeから支持できる非binding proposalまたはNo proposal理由、validation expectation、open questionを提示する
-- 同じassistant turn referenceと内容を`Selected Target Discussion Evidence`へ保存する
-- Target名、artifact link、抽象的な選択肢だけの応答はFAILとする
+- 初回の参照資料に`src/RetryPolicy.cs`のexact symbol、invariant、`RetryingClient` caller、test seam、存在しないwiringのN/A根拠がある
+- 問いと事実・制約・実在する案のtrade-off・非binding proposalまたはNo proposal・検証期待が因果的に説明されている
+- 資料節・版・提示assistant turnと実際のuser responseを`Selected Target Discussion Evidence`へ結び付ける
+- 参照不能または抽象的な選択肢だけならFAIL。説明の全文転記は要求しない
 
 ## DP-VAL-029: READY with missing selected discussion evidence fails closed
 
-Input: `Selected Target IDs: DP-T01`かつrowが`Locked`または`Discussed-Unlocked`だが、`Selected Target Discussion Evidence`に具体的code location、invariant、trade-off、proposal / No proposal理由、validation expectation、user-facing turn referenceのいずれかがない。
+Input: `Selected Target IDs: DP-T01`かつrowが`Locked`または`Discussed-Unlocked`だが、`Selected Target Discussion Evidence`の参照資料に具体的code location、invariant、trade-off、proposal / No proposal理由、validation expectationがない、または資料版・提示turn・実際のuser responseを辿れない。
 
 Expected:
 
 - Design Pair readinessをFAILとする
 - Adaptive / decision-surface-implementation-ownerは`BlockedByInvalidCompletionHandoff`で編集前に停止する
-- Target MapまたはAI summaryの詳細をdiscussion evidenceとして暗黙補完しない
+- 提示済み初回資料への明示参照は受け入れるが、AI summaryで不足証拠を補完しない
 
 ## DP-VAL-030: Initial Target Map presentation is concrete and user-facing
 
@@ -340,18 +340,18 @@ Input: 初回Design Pair turnがhandoffへ詳細なTarget Mapを保存する一�
 Expected:
 
 - Target Map presentationをFAILとする
-- 各Targetの具体的file / symbol、current responsibility / invariant、requested changeとの関係、内部設計判断候補、expected modification / verification、relevant evidence、open questionをuser-facingに提示するまで選択を求めない
-- artifact内の詳細をuser-facing presentation evidenceとして代用しない
+- 資料への導線に加え、各問いの主要な判断上の違い・不明点が分かる要約と直接対話の案内を示す
+- artifactの存在だけを提示証拠にしない。参照可能な資料の全面再掲は要求しない
 
-## DP-VAL-031: Required user-facing structures are not compressed
+## DP-VAL-031: Decision materials replace duplicated fixed blocks
 
-Input: handoffは完全だが、初回応答がTarget名の短い箇条書き、または選択後応答がalternativesだけの短いparagraphに圧縮されている。
+Input: 初回資料に判断する問い・必要性、調査済み事実と制約、実在する案と因果的trade-off、提案または提案不能理由、不明点・検証とcode evidenceがあり、会話で資料への導線と判断入口を提示する。
 
 Expected:
 
-- 初回は7列の`Design Pair Target Map` table、Coverage evidence、Selection requestを実際のresponse本文へ出す
-- 選択後は`<DP-Txx> Internal design discussion` blockの全fieldを実際のresponse本文へ出す
-- 応答本文のfieldが欠ける場合、handoff ReadinessをPASSにせず応答を修復する
+- 7列tableや選択後8項目blockの会話への全文再掲を要求しない
+- 1ファイル＝1IDとせず独立に判断・委任できる問いにまとめる
+- 列名だけの変更やcode inventoryはFAIL。初回の全詳細設計・未調査仮説の事実化もFAIL
 
 ## DP-VAL-032: Undelegated Target cannot become Adaptive-Owned
 
@@ -392,6 +392,58 @@ Expected:
 - Selected / Pendingを`None`、Locked Decisionsなし、全rowを`Adaptive-Owned`、Delegated集合をTarget Map全集合とする
 - 同じactual user turn referenceを使用できるが、全Targetに一件ずつ一致する`Target Disposition Evidence`を作る
 - evidence集合とTarget Map全集合が一致する場合だけPASSとする
+
+## DP-VAL-036: Direct question and evidence reuse
+
+Input: 初回資料後にID選択なしで「A案ではこの既存制約を満たせないのでは？」と質問する。
+
+Expected:
+
+- 一意な対象へ直接回答し、対象不明時だけ確認する
+- 既知の根拠を再利用し、不要なcode再読・全説明・handoff全文更新をしない
+- 該当節の質問・回答・証拠と必須進行状態を更新し、未指示Targetを確定・委任しない
+
+## DP-VAL-037: Direct explicit confirmation
+
+Input: 提示済み初回資料のA案に「A案で確定」と応答する。
+
+Expected:
+
+- 対象と決定が明確なら形式的なID選択・再説明・再確認turnを挟まない
+- 資料節・版・提示turnと実際のpost-map user evidenceを記録し、Locked Decisionと結び付ける
+- 質問・初期案・沈黙・AI proposalは確定証拠にならない
+
+## DP-VAL-038: Partial, remaining and all skips
+
+Input: 別runで「DP-T02は議論をスキップ」「残りはスキップ」「全部スキップ」と応答する。
+
+Expected:
+
+- 対象IDを具体化し、各Targetに一件のpost-map evidence付きAdaptive-Ownedを記録する
+- 「残り」は未確定・未委任のTargetだけ。全部に既存Locked等が含まれ撤回意図が不明なら確認する
+- 未指示Targetを委任せず、スキップを実装省略やNo-Changeに変換しない
+- 全件skipでも全集合と証拠を照合し、人工的なLocked Decisionを作らない
+
+## DP-VAL-039: New option or changed code
+
+Input: 資料にないC案、根拠不足、または関連code / upstream条件の変更。
+
+Expected:
+
+- 理由付きの必要範囲の追加調査を許可し、資料版・根拠と対話差分を更新する
+- 判断に影響する変更を再提示し、影響する旧確定は履歴へ残してpendingに戻す
+- 旧版への確定を新版へ黙って適用せず、未確認の状態でREADYへ進まない
+
+## DP-VAL-040: End-to-end cost comparison
+
+Input: 同じfixture・モデル・reasoning・実行条件で従来版と変更版を初回から最終dispositionまで実行する。
+
+Expected:
+
+- turn別と全行程で説明不足解消だけの往復、重複読取・記録更新、総tokensを記録する
+- input / output / reasoning / cachedの取得可否と包含関係を明記し二重計上しない
+- 初回だけの短縮や後続への移転を改善としない。未計測の効果を断定しない
+- scripted scenarioは人間による判断と区別し、既存のhuman-operated smokeを代替したとしない
 
 ## Repository static validation
 
