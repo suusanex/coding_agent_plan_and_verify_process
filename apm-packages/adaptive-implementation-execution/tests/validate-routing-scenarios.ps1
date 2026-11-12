@@ -21,62 +21,6 @@ function Test-SequenceEqual([object[]] $Left, [object[]] $Right) {
     return $true
 }
 
-function Test-StrictSetSuperset([object[]] $Current, [object[]] $Previous) {
-    $currentSet = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-    $previousSet = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-    foreach ($entry in $Current) { [void]$currentSet.Add([string]$entry) }
-    foreach ($entry in $Previous) { [void]$previousSet.Add([string]$entry) }
-    if ($currentSet.Count -le $previousSet.Count) { return $false }
-    foreach ($entry in $previousSet) {
-        if (-not $currentSet.Contains($entry)) { return $false }
-    }
-    return $true
-}
-
-function Get-Scenario([string] $Id) {
-    @($document.scenarios | Where-Object id -CEQ $Id)[0]
-}
-
-function Get-Handoff([object] $Event) {
-    $handoff = if (Has-Property $Event 'handoff') {
-        Copy-Object $Event.handoff
-    }
-    elseif ($Event.handoff_ref -ceq 'A') {
-        $source = @((Get-Scenario 'A').events | Where-Object verdict -CEQ 'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION')[0]
-        Copy-Object $source.handoff
-    }
-    else {
-        return $null
-    }
-
-    if (Has-Property $Event 'handoff_override') {
-        $surface = [string]$Event.handoff_override.decision_surface
-        $handoff.decision_surface_assessment.$surface.status = [string]$Event.handoff_override.status
-    }
-    if (Has-Property $Event 'reentry_count') {
-        $handoff.reentry_count = [int]$Event.reentry_count
-    }
-    if (Has-Property $Event 'previous_reentry_trigger') {
-        $handoff.previous_reentry_trigger = [string]$Event.previous_reentry_trigger
-    }
-    if (Has-Property $Event 'reentry_progress_evidence') {
-        $handoff.reentry_progress_evidence = Copy-Object $Event.reentry_progress_evidence
-    }
-    if (Has-Property $Event 'additional_acceptance_status') {
-        $handoff.acceptance_status = @($handoff.acceptance_status) + @(Copy-Object $Event.additional_acceptance_status)
-    }
-    if (Has-Property $Event 'additional_remaining_work') {
-        $handoff.remaining_work = @($handoff.remaining_work) + @(Copy-Object $Event.additional_remaining_work)
-    }
-    if (Has-Property $Event 'additional_allowed_edit_surface') {
-        $handoff.allowed_edit_surface = @($handoff.allowed_edit_surface) + @($Event.additional_allowed_edit_surface)
-    }
-    if (Has-Property $Event 'comparison_ref') {
-        $handoff.comparison_ref = $Event.comparison_ref
-    }
-    return $handoff
-}
-
 # fixture内の比較例を検査するための表現。runtime handoffのJSON schemaではない。
 function Get-ComparisonErrors([object] $Evidence, [string] $Stage) {
     $errors = [System.Collections.Generic.List[string]]::new()
@@ -116,26 +60,6 @@ function Get-Comparison([object] $Record) {
     return $document.comparison_examples.($Record.comparison_ref)
 }
 
-function Get-TrackedState([object] $Event) {
-    $trackedState = if (Has-Property $Event 'tracked_state') {
-        Copy-Object $Event.tracked_state
-    }
-    elseif ($Event.tracked_state_ref -ceq 'D') {
-        $source = @((Get-Scenario 'D').events | Where-Object verdict -CEQ 'NEEDS_DECISION_SURFACE_REENTRY')[0]
-        Copy-Object $source.tracked_state
-    }
-    else {
-        return $null
-    }
-    if (Has-Property $Event 'tracked_state_trigger') {
-        $trackedState.trigger = [string]$Event.tracked_state_trigger
-    }
-    if (Has-Property $Event 'tracked_state_reentry_count') {
-        $trackedState.reentry_count = [int]$Event.tracked_state_reentry_count
-    }
-    return $trackedState
-}
-
 function Test-AuthorizedSurface([string] $Surface, [string[]] $Envelope) {
     foreach ($entry in $Envelope) {
         if ($Surface -ceq $entry -or $Surface.StartsWith($entry + '/', [StringComparison]::Ordinal)) { return $true }
@@ -149,7 +73,7 @@ function Get-HandoffErrors([object] $Handoff) {
         $errors.Add('handoff is absent or invalid')
         return $errors
     }
-    if ($Handoff.ownership_transfer_basis -cne 'bounded-residual-work-only') {
+    if ($Handoff.ownership_transfer_basis -cne 'human-approved-structure') {
         $errors.Add('ownership transfer basis is invalid')
     }
     if (@($Handoff.implementation_evidence).Count -eq 0) {
@@ -166,17 +90,17 @@ function Get-HandoffErrors([object] $Handoff) {
         }
     }
 
-    $actualSurfaceNames = @($Handoff.decision_surface_assessment.PSObject.Properties.Name)
-    if (-not (Test-SequenceEqual @($document.required_decision_surfaces) $actualSurfaceNames)) {
+    $actualSurfaceNames = @($Handoff.structure_readiness.PSObject.Properties.Name)
+    if (-not (Test-SequenceEqual @($document.required_structure_concerns) $actualSurfaceNames)) {
         $errors.Add('decision surface assessment does not exactly match the canonical concern set')
     }
-    foreach ($surface in @($document.required_decision_surfaces)) {
-        if (-not (Has-Property $Handoff.decision_surface_assessment $surface)) {
+    foreach ($surface in @($document.required_structure_concerns)) {
+        if (-not (Has-Property $Handoff.structure_readiness $surface)) {
             $errors.Add("decision surface assessment is missing '$surface'")
             continue
         }
-        $assessment = $Handoff.decision_surface_assessment.$surface
-        if ([string]$assessment.status -cnotin @('Resolved', 'N/A')) {
+        $assessment = $Handoff.structure_readiness.$surface
+        if ([string]$assessment.status -cnotin @('Ready', 'N/A')) {
             $errors.Add("decision surface '$surface' has invalid status '$($assessment.status)'")
         }
         if ([string]::IsNullOrWhiteSpace([string]$assessment.evidence)) {
@@ -242,239 +166,78 @@ function Get-HandoffErrors([object] $Handoff) {
     return $errors
 }
 
+# 以下はfixtureの遷移検査でありruntime enforcementや人間承認の認証ではない。
 function Get-ScenarioErrors([object] $Scenario) {
-    $errors = [System.Collections.Generic.List[string]]::new()
-    $phase = 'Fresh'
-    $boundedStarts = 0
-    $afterReentry = $false
-    $previousAcceptedHandoff = $null
-    $pendingReentryTrigger = $null
-    $pendingReentryCount = $null
+    $errors = [Collections.Generic.List[string]]::new()
+    $phase = 'Fresh'; $version = 0; $turn = 0; $snapshot = ''; $count = 0
     $route = $Scenario.route
-    $validAdaptive = $route.implementation_route -ceq 'adaptive' -and $route.implementation_route_source -ceq 'default' -and $route.design_pair_handoff -ceq 'N/A'
-    $validDesignPair = $route.implementation_route -ceq 'design-pair' -and $route.implementation_route_source -ceq 'explicit-user-selection' -and -not [string]::IsNullOrWhiteSpace([string]$route.design_pair_handoff) -and $route.design_pair_handoff -cne 'N/A'
-
-    if (-not ($validAdaptive -or $validDesignPair)) {
-        $events = @($Scenario.events)
-        if ($events.Count -ne 1 -or $events[0].verdict -cne 'BLOCKED' -or $events[0].stop_reason -cne 'BlockedByInvalidCompletionHandoff' -or $events[0].write_owner -cne 'none' -or $events[0].adaptive_default_inferred -ne $false) {
-            $errors.Add('invalid route did not fail closed without a write owner')
-        }
-        $phase = 'Blocked'
-    }
-    else {
-        foreach ($event in @($Scenario.events)) {
-            if ($phase -in @('Completed', 'Blocked')) {
-                $errors.Add("event emitted after terminal state '$phase'")
-                continue
+    $valid = ($route.implementation_route -ceq 'adaptive' -and $route.implementation_route_source -ceq 'default' -and $route.design_pair_handoff -ceq 'N/A') -or
+        ($route.implementation_route -ceq 'design-pair' -and $route.implementation_route_source -ceq 'explicit-user-selection' -and $route.design_pair_handoff -like 'plans/*' -and $route.design_pair_valid -eq $true)
+    if (-not $valid) { $errors.Add('invalid route identity'); return $errors }
+    foreach ($event in @($Scenario.events)) {
+        if ($event.turn -lt $turn) { $errors.Add('turn order regressed') }
+        switch ($event.kind) {
+            'parent' {
+                if ($phase -cnotin @('Fresh','Reentry') -or $event.topology -cne 'current-parent' -or $event.model_changed -ne $false) { $errors.Add('parent topology or model changed') }
+                $phase = 'Structure'
             }
-            if ($event.kind -ceq 'start') {
-                if ($event.owner -ceq 'decision-surface-implementation-owner' -and $phase -in @('Fresh', 'DecisionSurfaceReentryReady')) {
-                    $phase = 'DecisionSurfaceActive'
-                }
-                elseif ($event.owner -ceq 'bounded-residual-implementation-owner' -and $phase -ceq 'BoundedResidualReady') {
-                    $boundedStarts++
-                    $phase = 'BoundedResidualActive'
-                }
-                else {
-                    $errors.Add("owner '$($event.owner)' started from invalid state '$phase'")
-                }
-                continue
+            'present' {
+                if ($phase -cne 'Structure' -or $event.production_build -cne 'PASS' -or $event.details_implemented -ne $false -or $event.version -le $version -or -not $event.snapshot -or $event.end_turn -ne $true) { $errors.Add('invalid structure presentation') }
+                $version = $event.version; $snapshot = $event.snapshot; $turn = $event.turn; $phase = 'Waiting'
             }
-
-            if ($event.owner -ceq 'decision-surface-implementation-owner') {
-                if ($phase -cne 'DecisionSurfaceActive') {
-                    $errors.Add("decision-surface verdict emitted from '$phase'")
-                    continue
-                }
-                switch ($event.verdict) {
-                    'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION' {
-                        $handoff = Get-Handoff $event
-                        $handoffErrors = @(Get-HandoffErrors $handoff)
-                        $comparisonStage = if ($event.inspection_only -eq $true) { 'inspection-only' } else { 'transfer' }
-                        $handoffErrors += @(Get-ComparisonErrors (Get-Comparison $handoff) $comparisonStage)
-                        if ($afterReentry) {
-                            $progress = $handoff.reentry_progress_evidence
-                            if ([int]$handoff.reentry_count -ne [int]$pendingReentryCount -or
-                                [string]$handoff.previous_reentry_trigger -cne [string]$pendingReentryTrigger -or
-                                [string]$progress.trigger -cne [string]$pendingReentryTrigger -or
-                                [string]::IsNullOrWhiteSpace([string]$progress.resolution) -or
-                                [string]$progress.resolution -ceq 'N/A' -or
-                                [string]::IsNullOrWhiteSpace([string]$progress.verification) -or
-                                [string]$progress.verification -ceq 'N/A' -or
-                                $progress.same_unresolved_cause_rehanded_off -ne $false) {
-                                $handoffErrors += 're-entry trigger resolution evidence is missing'
-                            }
-                            if ($event.expected_surface_expansion -eq $true) {
-                                $currentWorkIds = @($handoff.remaining_work | ForEach-Object { [string]$_.work_id })
-                                $previousWorkIds = @($previousAcceptedHandoff.remaining_work | ForEach-Object { [string]$_.work_id })
-                                if (-not (Test-StrictSetSuperset $currentWorkIds $previousWorkIds) -or
-                                    -not (Test-StrictSetSuperset @($handoff.allowed_edit_surface) @($previousAcceptedHandoff.allowed_edit_surface))) {
-                                    $handoffErrors += 'expected expanded remaining work and allowed edit surface were not present'
-                                }
-                            }
-                        }
-                        elseif ([int]$handoff.reentry_count -ne 0 -or
-                            [string]$handoff.previous_reentry_trigger -cne 'N/A' -or
-                            [string]$handoff.reentry_progress_evidence.trigger -cne 'N/A' -or
-                            [string]$handoff.reentry_progress_evidence.resolution -cne 'N/A' -or
-                            [string]$handoff.reentry_progress_evidence.verification -cne 'N/A' -or
-                            [string]$handoff.reentry_progress_evidence.same_unresolved_cause_rehanded_off -cne 'N/A') {
-                            $handoffErrors += 'initial re-entry history must start at zero with N/A evidence'
-                        }
-                        if ($handoffErrors.Count -gt 0) {
-                            if ($event.expected_rejected -ne $true) {
-                                $errors.Add('invalid transfer was accepted: ' + ($handoffErrors -join '; '))
-                            }
-                        }
-                        else {
-                            if ($validDesignPair -and -not (Test-SequenceEqual @($event.locked_decision_ids) @($route.locked_decision_ids))) {
-                                $errors.Add('Design Pair Decision IDs changed during transfer')
-                            }
-                            $previousAcceptedHandoff = Copy-Object $handoff
-                            $pendingReentryTrigger = $null
-                            $pendingReentryCount = $null
-                            $afterReentry = $false
-                            $phase = 'BoundedResidualReady'
-                        }
-                    }
-                    'IMPLEMENTATION_COMPLETED' {
-                        foreach ($error in @(Get-ComparisonErrors (Get-Comparison $event) 'complete')) { $errors.Add($error) }
-                        if ($event.acceptance_complete -ne $true -or @($event.implementation_evidence).Count -eq 0 -or @($event.validation_evidence).Count -eq 0) {
-                            $errors.Add('implementation completion lacks acceptance or evidence')
-                        }
-                        else {
-                            $phase = 'Completed'
-                        }
-                    }
-                    'BLOCKED' {
-                        if ($event.stop_reason -cne 'BlockedByInvalidCompletionHandoff' -or
-                            $event.old_schema_detected -ne $true -or
-                            $event.compatibility_normalization_applied -ne $false) {
-                            $errors.Add('old-schema BLOCKED result is incomplete or normalized')
-                        }
-                        else {
-                            $phase = 'Blocked'
-                        }
-                    }
-                    default { $errors.Add("unsupported decision-surface verdict '$($event.verdict)'") }
-                }
+            'resume' {
+                if ($phase -cne 'Waiting' -or $event.edited -ne $false -or $event.child_started -ne $false) { $errors.Add('unapproved resume advanced work') }
             }
-            elseif ($event.owner -ceq 'bounded-residual-implementation-owner') {
-                if ($phase -cne 'BoundedResidualActive') {
-                    $errors.Add("bounded-residual verdict emitted from '$phase'")
-                    continue
-                }
-                switch ($event.verdict) {
-                    'IMPLEMENTATION_COMPLETED' {
-                        foreach ($error in @(Get-ComparisonErrors (Get-Comparison $event) 'complete')) { $errors.Add($error) }
-                        if ($event.changed_locked_decision -eq $true) {
-                            $errors.Add('bounded residual owner changed a locked decision')
-                        }
-                        elseif ($validDesignPair -and -not (Test-SequenceEqual @($event.locked_decision_ids) @($route.locked_decision_ids))) {
-                            $errors.Add('Design Pair Decision IDs changed during completion')
-                        }
-                        else {
-                            $phase = 'Completed'
-                        }
-                    }
-                    'NEEDS_DECISION_SURFACE_REENTRY' {
-                        $trackedState = Get-TrackedState $event
-                        $reentryErrors = [System.Collections.Generic.List[string]]::new()
-                        if ($event.new_decision_surface_required -ne $true -or $event.edit_type_only -eq $true) {
-                            $reentryErrors.Add('re-entry lacks a new decision surface')
-                        }
-                        foreach ($field in @($document.required_reentry_state)) {
-                            if (-not (Has-Property $trackedState $field)) {
-                                $reentryErrors.Add("re-entry state is missing '$field'")
-                            }
-                        }
-                        if ([string]::IsNullOrWhiteSpace([string]$trackedState.trigger) -or [string]$trackedState.trigger -ceq 'N/A') {
-                            $reentryErrors.Add('re-entry trigger is empty or N/A')
-                        }
-                        if ($null -eq $previousAcceptedHandoff -or
-                            [int]$trackedState.reentry_count -ne ([int]$previousAcceptedHandoff.reentry_count + 1)) {
-                            $reentryErrors.Add('re-entry count does not increment the accepted handoff')
-                        }
-                        if ($trackedState.implementation_route -cne $route.implementation_route -or $trackedState.implementation_route_source -cne $route.implementation_route_source -or $trackedState.design_pair_handoff -cne $route.design_pair_handoff) {
-                            $reentryErrors.Add('re-entry route identity changed')
-                        }
-                        if ($reentryErrors.Count -gt 0) {
-                            if ($event.expected_rejected -ne $true) {
-                                $errors.Add('invalid re-entry was accepted: ' + ($reentryErrors -join '; '))
-                            }
-                        }
-                        else {
-                            $afterReentry = $true
-                            $pendingReentryTrigger = [string]$trackedState.trigger
-                            $pendingReentryCount = [int]$trackedState.reentry_count
-                            $phase = 'DecisionSurfaceReentryReady'
-                        }
-                    }
-                    default { $errors.Add("unsupported bounded-residual verdict '$($event.verdict)'") }
-                }
+            'response' {
+                if ($phase -cne 'Waiting' -or $event.turn -le $turn -or $event.author -cne 'user' -or -not $event.quote -or -not $event.reference -or $event.version -ne $version -or $event.snapshot -cne $snapshot) { $errors.Add('response is absent, stale or not post-presentation user evidence') }
+                if ($event.decision -ceq 'approve') { $phase = 'Approved' }
+                elseif ($event.decision -ceq 'revise') { $phase = 'Structure' }
+                else { $errors.Add('unknown response must stay waiting') }
             }
-            else {
-                $errors.Add("invalid verdict owner '$($event.owner)'")
+            'transfer' {
+                if ($phase -cne 'Approved' -or $event.current_snapshot -cne $snapshot -or $event.schema -cne 'adaptive-structure-0.7') { $errors.Add('transfer without current approval') }
+                $handoff = Copy-Object $document.handoff
+                if ($event.invalid_readiness -eq $true) { $handoff.structure_readiness.production_sequence.status = 'Open' }
+                if ($event.mapping_missing -eq $true) { $handoff.remaining_work = @() }
+                foreach ($error in @(Get-HandoffErrors $handoff)) { $errors.Add($error) }
+                foreach ($error in @(Get-ComparisonErrors (Get-Comparison $handoff) 'transfer')) { $errors.Add($error) }
+                if ($event.reentry_count -ne $count -or ($count -gt 0 -and ($event.trigger -cne $trigger -or -not $event.resolution -or -not $event.verification -or $event.same_unresolved_cause_rehanded_off -ne $false))) { $errors.Add('reentry lineage or resolution missing') }
+                if (($event.locked_decision_ids -join ',') -cne ($route.locked_decision_ids -join ',')) { $errors.Add('locked decisions changed') }
+                $phase = 'Child'
             }
+            'reentry' {
+                if ($phase -cne 'Child' -or $event.structural_change -ne $true -or -not $event.trigger -or $event.reentry_count -ne ($count+1)) { $errors.Add('invalid structural reentry') }
+                if ($event.implementation_route -cne $route.implementation_route -or $event.implementation_route_source -cne $route.implementation_route_source -or $event.design_pair_handoff -cne $route.design_pair_handoff) { $errors.Add('reentry route changed') }
+                $count = $event.reentry_count; $trigger = $event.trigger; $phase = 'Reentry'
+            }
+            'complete' {
+                if ($phase -cne 'Child' -or $event.owner -cne 'child' -or $event.acceptance_complete -ne $true -or -not $event.validation_evidence) { $errors.Add('only validated child may complete') }
+                foreach ($error in @(Get-ComparisonErrors (Get-Comparison $event) 'complete')) { $errors.Add($error) }
+                $phase = 'Complete'
+            }
+            default { $errors.Add('unknown event') }
         }
     }
-
-    if ($phase -cne $Scenario.expected.final_state) {
-        $errors.Add("ended in '$phase'; expected '$($Scenario.expected.final_state)'")
-    }
-    if ($boundedStarts -ne [int]$Scenario.expected.bounded_residual_starts) {
-        $errors.Add("bounded residual owner started $boundedStarts time(s); expected $($Scenario.expected.bounded_residual_starts)")
-    }
+    if ($phase -cne $Scenario.expected_state) { $errors.Add("Unexpected final state: $phase") }
     return $errors
 }
 
-if ($document.schema_version -ne 4 -or $document.contract -cne 'adaptive-implementation-execution') {
-    $failures.Add('routing fixture schema or contract is invalid')
+if ($document.schema_version -ne 5) { $failures.Add('wrong fixture schema') }
+foreach ($scenario in $document.scenarios) {
+    $errors = @(Get-ScenarioErrors $scenario)
+    if (($errors.Count -eq 0) -ne $scenario.valid) { $failures.Add("Scenario $($scenario.id): $($errors -join '; ')") }
 }
-if (@($document.scenarios).Count -lt 15) {
-    $failures.Add('routing fixture does not cover the required scenario breadth')
-}
-if ((Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'routing-scenarios.json')) -match 'high-implementation-starter|standard-implementation-completer|READY_FOR_STANDARD_COMPLETION|COMPLETED_BY_HIGH_MODEL|HIGH_MODEL code changes|Direct completion reason|transfer_surface_reduced') {
-    $failures.Add('routing fixture contains removed 0.5 ownership vocabulary')
-}
-
-foreach ($scenario in @($document.scenarios)) {
-    foreach ($error in @(Get-ScenarioErrors $scenario)) {
-        $failures.Add("Scenario $($scenario.id): $error")
-    }
-}
-
-# 正例と欠落例の両方を検査し、単なる文言チェックで完了としない。
 foreach ($entry in $document.comparison_examples.PSObject.Properties) {
-    foreach ($error in @(Get-ComparisonErrors $entry.Value $entry.Value.stage)) { $failures.Add("Comparison $($entry.Name): $error") }
+    foreach ($error in @(Get-ComparisonErrors $entry.Value $entry.Value.stage)) { $failures.Add($error) }
 }
-foreach ($field in @('reference_file', 'reference_symbol', 'call_relationship', 'requirement_delta', 'choice', 'reason', 'semantics', 'actual_diff', 'state_sequence_bypass_check')) {
-    $negative = Copy-Object $document.comparison_examples.api
-    $negative.$field = ''
-    if (@(Get-ComparisonErrors $negative 'complete').Count -eq 0) { $failures.Add("Missing comparison '$field' was accepted") }
+foreach ($field in @('reference_file','reference_symbol','call_relationship','requirement_delta','choice','reason','semantics','actual_diff','state_sequence_bypass_check')) {
+    $negative = Copy-Object $document.comparison_examples.api; $negative.$field = ''
+    if (@(Get-ComparisonErrors $negative 'complete').Count -eq 0) { $failures.Add("Missing comparison $field accepted") }
 }
-foreach ($scenarioId in @('A', 'B', 'C', 'D')) {
-    $negative = Copy-Object (Get-Scenario $scenarioId)
-    $completion = @($negative.events | Where-Object verdict -CEQ 'IMPLEMENTATION_COMPLETED')[-1]
-    $completion.comparison_ref = ''
-    if (@(Get-ScenarioErrors $negative).Count -eq 0) { $failures.Add("Scenario $scenarioId accepted completion without comparison") }
+foreach ($case in @(@('alternative','incompatibility'),@('alternative','exception_scope'),@('new','search_scope'),@('inspection','remaining_check'))) {
+    $negative = Copy-Object $document.comparison_examples.($case[0]); $negative.($case[1]) = ''
+    if (@(Get-ComparisonErrors $negative $negative.stage).Count -eq 0) { $failures.Add("Missing comparison $case accepted") }
 }
-$negative = Copy-Object (Get-Scenario 'A')
-$negative.events[1].handoff.comparison_ref = ''
-if (@(Get-ScenarioErrors $negative).Count -eq 0) { $failures.Add('Transfer without comparison was accepted') }
-$negative = Copy-Object (Get-Scenario 'B')
-$negative.events[1].comparison_ref = 'api'
-if (@(Get-ScenarioErrors $negative).Count -eq 0) { $failures.Add('Inspection-only transfer accepted performed comparison') }
-foreach ($case in @(@('alternative', 'incompatibility'), @('alternative', 'exception_scope'), @('new', 'search_scope'), @('inspection', 'remaining_check'))) {
-    $negative = Copy-Object $document.comparison_examples.($case[0])
-    $negative.($case[1]) = ''
-    if (@(Get-ComparisonErrors $negative $negative.stage).Count -eq 0) { $failures.Add("Comparison $($case[0]) accepted missing $($case[1])") }
-}
-
-if ($failures.Count -gt 0) {
-    Write-Error ("Adaptive routing scenario validation failed:`n- " + ($failures -join "`n- "))
-    exit 1
-}
-
+if ($failures.Count -gt 0) { throw ($failures -join "`n") }
 $global:LASTEXITCODE = 0
 Write-Output 'Adaptive routing scenario validation: PASS'

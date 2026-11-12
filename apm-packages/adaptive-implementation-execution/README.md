@@ -1,78 +1,24 @@
 # Adaptive Implementation Execution
 
-通常のPlan Mode output、短い実装計画、または明示選択されたDesign Pair handoffから、現在残っているdecision surfaceに応じてimplementation ownershipを切り替える、Codex / GitHub Copilot Chat in VS Code対応のAPM packageです。
-
-## 解決する問題
-
-実装前のPlanが十分に見えても、production code、tests、wiring、build / test結果を確認して初めて分かる責務配置、contract、sequence、state、error、test seam等があります。
-
-このpackageは、実装作業を「高能力モデルは考える」「標準モデルは実装する」と固定分業しません。分割軸は一つです。
-
-> 現在残っている実装作業に、Decision-Surface Implementation Ownerが所有すべきdecision surfaceが残っているか。
-
-## Semantic roles
-
-| Role | Ownership |
-| --- | --- |
-| Decision-Surface Implementation Owner | unresolved decision surfaceが残る間、code inspection、production code、tests、wiring、focused verification、影響再確認を含むimplementation feedback loopを所有する |
-| Bounded-Residual Implementation Owner | decision surface解消後、locked contract / semanticsの適用だけで完了できるbounded residual workを所有する |
-
-agent名はそれぞれ`decision-surface-implementation-owner`、`bounded-residual-implementation-owner`です。
-
-semantic roleはmodel tierやruntime topologyから独立しています。Codex profileやCopilot frontmatterは前者へTerra、後者へLunaを割り当てますが、これはadapter設定でありsemantic ownershipの定義ではありません。parent / subagent、別process、VS Code handoff button等も実行手段にすぎません。
+Planから、現在の親がビルド可能な構造コードを作成し、人の実際の構造承認後に子が詳細実装・テスト・検証を完成するAPM packageです。
 
 ## Flow
 
 ```text
-ordinary Plan
-  -> decision-surface-implementation-owner
-       -> CONTINUE_DECISION_SURFACE_IMPLEMENTATION
-       -> IMPLEMENTATION_COMPLETED
-       -> READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION
-            -> bounded-residual-implementation-owner
-                 -> IMPLEMENTATION_COMPLETED
-                 -> NEEDS_DECISION_SURFACE_REENTRY
-                      -> decision-surface-implementation-owner
-       -> REPLAN_REQUIRED / HUMAN_DECISION_REQUIRED / BLOCKED
+Plan / explicit Design Pair READY
+ -> current parent (selected model): compare / structure code / production build
+ -> AWAITING_STRUCTURE_REVIEW: present code and END TURN
+ -> actual user approval + handoff readiness
+ -> bounded-residual-implementation-owner: detail implementation / tests / validation
+ -> IMPLEMENTATION_COMPLETED
+    or NEEDS_DECISION_SURFACE_REENTRY -> same parent -> structure revision / build / review stop
 ```
 
-Decision-Surface Implementation Ownerは、decision surfaceを解消するために合理的に必要なproduction/test implementationとverificationを行います。code editなしで残作業がboundedと証明できる場合は早期transferできますが、zero-code transferはdefaultでも成功指標でもありません。
+親自身が`decision-surface-implementation-owner`の契約を読みます。別の上位agent・model pin・切替sessionはありません。親はI/F・共有型・日本語XML契約・依存登録・主要なクラス間呼出順序とデータ受渡しを書き、末端の詳細本体は明示的に未実装とします。既存処理は再利用し、不要な抽象化は追加しません。
 
-自然なtransfer pointがなければ最初のownerが全実装を完了して構いません。transferのためだけにscaffold、TODO、不自然な途中状態を作りません。
+人に示した時点でそのturnを終了します。実際の応答まで詳細実装も子の起動も行いません。承認と子へ渡せる状態を別々に確認し、ほぼ既存再利用でも同じ停止を守ります。子は入力検査・本体・局所helper・tests / mock / 検証を所有します。構造の実質変更だけを元親へ返し、局所修正は再承認不要です。
 
-## Plan Coverageとの違い
-
-このpackageはimplementation-only flowです。
-
-- 通常Plan、手書きPlan、Issue内の実装計画だけで開始できる
-- Plan Coverage artifactsを必須にしない
-- change-risk-triage、runtime contract、test design、coverage ledger、residual decisionを再実装しない
-- final code reviewや総合architecture reviewを置き換えない
-
-## Design Pair input
-
-利用者が`design-pair-implementation-execution`を明示選択した場合、tracked Design Pair handoffを追加inputとして受け取ります。validな`READY_FOR_ADAPTIVE_IMPLEMENTATION`、complete interaction、Target Map / selection / post-map evidence、集合整合、Locked Decision confirmationを編集前に検証します。
-
-Design Pairが今回新たに作るbinding decisionはvalidなLocked Decisionsだけです。Target Map、Affected files / symbols、Discussed-Unlocked、Adaptive-Owned等はDecision-Surface Implementation Ownerの通常authorityまたはAllowed edit surfaceを拘束しません。
-
-## Package contents
-
-| Content | Path |
-| --- | --- |
-| Orchestration skill | `.apm/skills/adaptive-implementation-execution/SKILL.md` |
-| Implementation Intent reference | skillの`refs/intent.md` |
-| Bounded Residual Handoff reference | skillの`refs/handoff.md` |
-| Decision-surface owner | `.apm/agents/decision-surface-implementation-owner.agent.md` |
-| Bounded-residual owner | `.apm/agents/bounded-residual-implementation-owner.agent.md` |
-| Codex profile metadata | `codex-profile-overlays.json` |
-| Shared profile finalizer | `../codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs` |
-| Static validator | `scripts/validate-adaptive-implementation-execution.ps1` |
-| Remote install smoke | `scripts/validate-adaptive-implementation-apm-smoke.ps1` |
-| Executable routing scenarios | `tests/routing-scenarios.json` + `tests/validate-routing-scenarios.ps1` |
-
-`.apm/**`がprocess semanticsのcanonical sourceです。CopilotとCodexの生成物、Agent Plugin artifactはこのsourceから導出します。
-
-## Quick start
+## Install / start
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target copilot,codex,agent-skills
@@ -80,37 +26,27 @@ $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
 dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
 ```
 
-Copilotでは`decision-surface-implementation-owner`から開始します。`bounded-residual-implementation-owner`をfresh intakeとして選びません。agent/model遷移ではtracked handoff pathを渡し、会話履歴だけをdurable stateにしません。
-
-skillは`/adaptive-implementation-execution`で明示起動した場合だけ使用します。通常の「実装して」や自然文での名前言及だけでは自動選択しません。
-
-通常の実装内で、既存処理との比較・要求差分・採用方式を短く記録し、実装後に参照処理とdiffを照合します。直接完了でも担当交代でも適用します。記録例とマージ後の観察方法は[Usage guide](docs/usage-guide.md#既存方式との比較を小さく残す)を参照してください。静的検査の成功と実運用での改善効果は区別します。
-
-## Breaking change in 0.6.0
-
-0.6.0はownership contractのbreaking redesignです。
-
-- 旧`high-implementation-starter` / `standard-implementation-completer`は削除
-- 旧0.5 handoff schemaとLegacy Adaptive handoff normalizationは非対応
-- 旧`READY_FOR_STANDARD_COMPLETION`、`CONTINUE_HIGH_IMPLEMENTATION`、`COMPLETED_BY_HIGH_MODEL`、`NEEDS_HIGH_MODEL_REENTRY`は非対応
-- 旧artifactは新schemaへ推測変換せず、invalid completion handoffとしてfail closed
-
-## Documentation
-
-- [Install guide](docs/install-guide.md)
-- [Usage guide](docs/usage-guide.md)
-- [Validation scenarios](docs/examples/adaptive-routing-validation.md)
-- [Manual Copilot smoke](docs/examples/copilot-manual-smoke.md)
-
-0.4.0 / 0.5.0のdated real-model evidenceはhistorical recordとして保持します。0.6.0のqualificationには再利用しません。
-
-## Agent Plugin artifact
-
-Agent Plugin artifactはpackage rootへchecked-inせず、repository共通builderでtemporary stageへ生成します。
-
-```powershell
-pwsh -NoProfile -File scripts/agent-plugins/build-agent-plugin.ps1 -Package adaptive-implementation-execution
-pwsh -NoProfile -File scripts/agent-plugins/validate-agent-plugin-package.ps1 -Package adaptive-implementation-execution
+```text
+/adaptive-implementation-execution plans/issue-123.md を実装してください。
 ```
 
-APMがsupported distributionです。未観測の0.6.0 runtime behaviorをPASSへ昇格させません。
+親の選択済みmodelをそのまま使用します。子だけCodex `gpt-6-luna` / Copilot `GPT-6 Luna (copilot)`の設定を持ちます。
+
+## Package contents
+
+- [Skill](.apm/skills/adaptive-implementation-execution/SKILL.md)
+- [親の構造契約](.apm/agents/decision-surface-implementation-owner.agent.md)
+- [子の詳細実装契約](.apm/agents/bounded-residual-implementation-owner.agent.md)
+- [handoff / durable review state](.apm/skills/adaptive-implementation-execution/refs/handoff.md)
+- [Usage Guide](docs/usage-guide.md) / [Install Guide](docs/install-guide.md)
+- [検証境界](docs/examples/adaptive-routing-validation.md)
+
+## Breaking change in 0.7.0
+
+0.6以前の上位直接完了・別上位起動・全decision解消後のtransferを置換しました。旧handoffを自動変換しません。進行中runは旧版で完了するか、元intentから新規に構造レビューを行います。既存の親projectionにmodel pinが残る場合、package管理下の旧projectionを確認して削除・再導入します。ユーザー独自設定を自動上書きしません。
+
+既存比較と実装後diff照合、Design Pair Locked Decisions、route identity、Plan Coverage bindingsは維持します。Plan Coverage全体・Design Pair対話・最終独立reviewは再設計しません。APMがsupported distributionであり、過去のdated実model証拠を0.7の挙動保証へ流用しません。
+
+子のCodex設定の正本は [codex-profile-overlays.json](codex-profile-overlays.json) です。
+
+Copilot CLIの非対話起動は[本文pathを明示する起動例](docs/usage-guide.md#copilot-cliの非対話起動)を使います。slash名だけではSkill未読で進むケースを観測しています。

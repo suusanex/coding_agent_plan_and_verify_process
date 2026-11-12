@@ -16,7 +16,7 @@ ordinary Plan / Implementation Intent
   -> tracked Design Pair handoff / READY_FOR_ADAPTIVE_IMPLEMENTATION
   -> adaptive-implementation-execution
        -> decision-surface-implementation-owner
-       -> optional bounded-residual-implementation-owner
+       -> human structure review stop -> approved bounded-residual-implementation-owner
        -> decision-surface-implementation-owner on re-entry
 ```
 
@@ -38,7 +38,7 @@ Adaptive Implementation の decision-surface-implementation-owner / bounded-resi
 
 ## Fresh install
 
-Design Pair は Adaptive Implementation の前段です。正式 target は `copilot`、`codex`、`agent-skills` です。Design Pair package単体のinstallだけでは、後段のdecision-surface-implementation-owner / bounded-residual-implementation-owner concrete model mappingが完成した証拠になりません。
+Design Pair は Adaptive Implementation の前段です。正式 target は `copilot`、`codex`、`agent-skills` です。Design Pair package単体のinstallだけでは、後段の子bounded-residual-implementation-ownerのconcrete model mappingが完成した証拠になりません。
 
 ### GitHub Copilot CLI
 
@@ -54,7 +54,7 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pa
 - `.github/agents/decision-surface-implementation-owner.agent.md`
 - `.github/agents/bounded-residual-implementation-owner.agent.md`
 
-GitHub Copilot CLI では Design Pair skill を明示指定して multi-turn 対話を行い、tracked handoff が `READY_FOR_ADAPTIVE_IMPLEMENTATION` になった後だけ **新しい CLI 起動で** `--agent decision-surface-implementation-owner` を付けて Adaptive を開始します。Design Pair session の継続だけでは canonical decision-surface-implementation-owner agent 選択の証拠になりません。会話履歴ではなく tracked handoff を durable authority とします。waiting 中の別 session 再開でも handoff path を渡し、欠落・矛盾時は fail closed します。手順と実 multi-turn 証拠は `tests/manual-model-smoke/` を参照してください。正式 acceptance は GitHub Copilot CLI であり、VS Code UI 操作は必須ではありません。
+GitHub Copilot CLI ではDesign Pair READY後も現在の親sessionがAdaptive Skillとcanonical親契約を読み、選択済みmodelで構造を作ります。別の上位agentを起動しません。tracked handoffをdurable authorityとしてrouteとLocked Decisionsを保持し、構造コードの提示後AWAITING_STRUCTURE_REVIEWでそのturnを終了します。Design Pair応答を構造承認には流用しません。正式 acceptance は GitHub Copilot CLIであり、実model証拠はtests/manual-model-smokeを参照します。
 
 **Issue #69 / #86 境界:** ordinary Plan + explicit Design Pair + Adaptive handoff は本 package の Copilot formal support です。Plan Coverage parent からの Design Pair runtime E2E は #86 の資格認定範囲です。
 
@@ -65,7 +65,7 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target codex,agent-skills
 ```
 
-APM が concrete model / reasoning / sandbox 設定を持たない custom agent TOML を生成する環境では、導入済みmoduleの共通 finalizer で decision-surface-implementation-owner / bounded-residual-implementation-owner profile を補完します。
+APM が concrete model / reasoning / sandbox 設定を持たない custom agent TOML を生成する環境では、導入済みmoduleの共通 finalizer で 子bounded-residual-implementation-owner profileだけを補完します。
 
 ```powershell
 dotnet run --file .\apm_modules\suusanex\coding_agent_plan_and_verify_process\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs -- .

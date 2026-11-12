@@ -60,7 +60,7 @@ delegation_suitability     : cheap / standard / high agent へ分けやすいか
 | `PARENT_DIRECT_WORK` | 親が直接作業する例外経路。理由記録が必要で、cost-saving delegation には数えない |
 | `TRIVIAL_PARENT_FIX` | 明示的な低リスク局所修正だけ親が直接行う。これも cost-saving delegation には数えない |
 
-通常の非自明なREADY implementationは`decision-surface-implementation-owner`から始め、decision surfaceがactual code evidenceによって解消されたcomplete handoff後だけ`bounded-residual-implementation-owner`へtransferし、新しいdecision surfaceが開いた場合は前者へserial re-entryします。通常verificationは`standard-verifier`が担当します。semantic ownershipはparent / subagent topologyやconcrete model tierから独立しており、write-heavy parallel editingを標準化しないことは親が直接実装してよいことを意味しません。
+通常のREADY implementationでは現在の親自身が`decision-surface-implementation-owner`の契約を読み、構造コードとproduction buildを担当します。人に構造を提示してturnを終了し、実承認とhandoff readiness後に`bounded-residual-implementation-owner`へ直列委譲します。構造変更時は元親が再引受け・build・再レビュー停止を担当し、詳細実装を引き取りません。親modelは選択済みのものを維持し、別上位agentを起動しません。通常verificationは既存の`standard-verifier`が担当します。
 
 通常のREADY implementationの前には、Risk gateが`plans/<slug>-change-risk-triage.md`を作成し、state artifactの`risk_triage_artifact_status`を`Complete`にします。その後、`implementation-handoff-review`または明示的に同等のpre-implementation gateがparent authorization artifactを作成します。`Expansion required: Yes`の場合は、`behavior_case_coverage_ledger_status = Complete`になるまで`decision-surface-implementation-owner`へ渡してはいけません。
 
@@ -76,7 +76,7 @@ small-bounded / medium-bounded
   -> risk: plans/<slug>-change-risk-triage.md を作成
   -> implementation handoff review: parent authorization artifact を作成
   -> execution_mode: ROUTE_ONLY then DELEGATED_WORK
-  -> implementation: decision-surface-implementation-owner -> conditional bounded-residual-implementation-owner -> decision-surface re-entry
+  -> implementation: current parent structure -> human review stop -> approved child details -> structural re-entry to parent
   -> verification: standard-verifier
 
 needs-plan-behavior-expansion

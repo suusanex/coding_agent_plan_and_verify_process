@@ -1,6 +1,6 @@
 name: adaptive-implementation-execution
-version: 0.6.0
-description: Adaptive serial implementation ownership driven by remaining decision surfaces, with bounded residual completion after evidence-backed transfer
+version: 0.7.0
+description: Parent-owned buildable structure, human review stop, and child detail implementation after approval
 type: hybrid
 targets:
   - copilot

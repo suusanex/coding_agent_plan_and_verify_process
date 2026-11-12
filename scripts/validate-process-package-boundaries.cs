@@ -115,11 +115,14 @@ internal static class ProgramEntry
         Require(adaptiveResidualOwner, @"(?m)^name:\s*bounded-residual-implementation-owner\s*$", "Adaptive must publish the bounded-residual owner identity.", failures);
         Require(adaptiveSkill, @"READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION", "Adaptive must publish the bounded-residual transfer verdict.", failures);
         Require(adaptiveSkill, @"NEEDS_DECISION_SURFACE_REENTRY", "Adaptive must publish the decision-surface re-entry verdict.", failures);
-        Require(adaptiveHandoff, @"Ownership transfer basis:\s*bounded-residual-work-only", "Adaptive must publish the bounded-residual transfer basis.", failures);
+        Require(adaptiveHandoff, @"Ownership transfer basis:\s*human-approved-structure", "Adaptive must publish the bounded-residual transfer basis.", failures);
         Require(adaptiveResidualOwner, @"(?s)UNPERSISTED_PARENT_PAYLOAD.*reentry_handoff_path.*output_contract:\s*parent-persisted-handoff-payload", "Adaptive must publish the parent-persisted re-entry payload boundary.", failures);
         foreach (var owner in new[] { "decision-surface-implementation-owner", "bounded-residual-implementation-owner" })
         {
-            Require(adaptiveOverlay, Regex.Escape(owner), $"Adaptive profile overlay must publish {owner}.", failures);
+            if (owner == "bounded-residual-implementation-owner")
+                Require(adaptiveOverlay, Regex.Escape(owner), $"Adaptive profile overlay must publish {owner}.", failures);
+            else
+                Reject(adaptiveOverlay, Regex.Escape(owner), "Adaptive parent must inherit the current session model.", failures);
             Require(finalizer, Regex.Escape(owner), $"Codex profile finalizer must consume {owner}.", failures);
         }
 

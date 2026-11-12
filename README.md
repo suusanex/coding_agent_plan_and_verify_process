@@ -20,7 +20,7 @@ APM process packageは基本的に利用するwork repositoryごとに導入し�
 
 ### 実装を改善したい
 
-[Adaptive Implementation Execution](apm-packages/adaptive-implementation-execution/README.md)は、既にPlanやimplementation intentがある状態から、未解決decision surfaceが残る間は実装と局所検証を同じsemantic ownerが担い、actual code evidenceによって残作業がboundedになった場合だけ別ownerへ直列transferします。
+[Adaptive Implementation Execution](apm-packages/adaptive-implementation-execution/README.md)は、既にPlanやimplementation intentがある状態から、現在の親が構造コードとproduction buildを担当し、人への提示で停止します。実際の構造承認後に子が詳細実装・テスト・検証を完成します。
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target copilot,codex,agent-skills
@@ -28,7 +28,7 @@ $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
 dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
 ```
 
-APM installがSkillとportable agentsを導入し、finalizerがCodex用TOMLのconcrete model / reasoning / sandbox profileだけを補完します。APMが同等の設定を生成済みならfinalizerはno-opになります。dry-run、check、force、更新・削除は[Adaptive install guide](apm-packages/adaptive-implementation-execution/docs/install-guide.md)を参照してください。
+APM installがSkillとportable agentsを導入し、finalizerが子のCodex用TOMLのconcrete model / reasoning / sandbox profileだけを補完します（親は選択済みmodelを維持）。APMが同等の設定を生成済みならfinalizerはno-opになります。dry-run、check、force、更新・削除は[Adaptive install guide](apm-packages/adaptive-implementation-execution/docs/install-guide.md)を参照してください。
 
 ### 実装前に内部設計も対話して決めたい
 
@@ -85,7 +85,7 @@ APM installがportable agentsとSkillを導入し、finalizerが必要なCodex p
 
 | Process | 主な入口 | 他processとの関係 |
 | --- | --- | --- |
-| Adaptive Implementation | 既存Planからの実装 | decision surfaceに応じたimplementation ownershipと直列transferを所有する |
+| Adaptive Implementation | 既存Planからの実装 | 親の構造コード、人の実応答待機、承認後の子への直列委譲を所有する |
 | Design Pair | 実装前のTarget Map対話 | Adaptiveの任意pre-stage。実装はAdaptiveへ渡す |
 | PR Review Remediation | Ready PRのbaseline review / remediation | 現在の親が完結し、利用者が明示した場合だけAdaptiveを任意利用する |
 | Persistent Purpose Review | 初期設計・重要変更の目的整合review | Runnerがlinked submissionと予算を管理し、実装reviewや修正は扱わない |

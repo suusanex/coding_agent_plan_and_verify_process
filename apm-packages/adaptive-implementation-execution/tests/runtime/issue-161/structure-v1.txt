@@ -1,0 +1,68 @@
+#:property TargetFramework=net10.0
+
+var service = new ReportService(
+    new ItemStore(),
+    new ReportFormatter(),
+    new ReportSink());
+
+service.Run();
+
+internal sealed record Item(string Name, int Quantity);
+
+internal sealed class ItemStore
+{
+    public IReadOnlyList<Item> Read() => [new("pear", 2), new("apple", 1)];
+}
+
+internal sealed class ReportFormatter
+{
+    /// <summary>
+    /// 項目を名前のordinal順に並べ、各項目を「name:quantity」形式の行へ変換する。
+    /// </summary>
+    /// <param name="items">
+    /// 書式化する項目。nullは許可しない。各項目の数量は0以上でなければならない。
+    /// </param>
+    /// <returns>改行で区切られたレポート本文。外部状態は変更しない。</returns>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="items"/>がnullの場合。入力検査はこのメソッドが担当する。
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// 負の数量を持つ項目が含まれる場合。入力検査はこのメソッドが担当する。
+    /// </exception>
+    public string Format(IReadOnlyList<Item> items)
+    {
+        // 子実装では既存Itemを変更せず、検査後にordinal順の文字列を生成する。
+        throw new NotImplementedException();
+    }
+}
+
+internal sealed class ReportSink
+{
+    public void Write(string text) => Console.WriteLine(text);
+}
+
+internal sealed class ReportService
+{
+    private readonly ItemStore _store;
+    private readonly ReportFormatter _formatter;
+    private readonly ReportSink _sink;
+
+    public ReportService(ItemStore store, ReportFormatter formatter, ReportSink sink)
+    {
+        _store = store;
+        _formatter = formatter;
+        _sink = sink;
+    }
+
+    /// <summary>
+    /// storeから項目を読み取り、formatterで本文を生成してsinkへ一度だけ出力する。
+    /// 読取りまたは書式化に失敗した場合は出力せず、例外を呼出元へ伝播する。
+    /// 外から見える副作用は正常時のsink出力だけであり、状態保持、cache、retryは行わない。
+    /// </summary>
+    public void Run()
+    {
+        var items = _store.Read();
+        var report = _formatter.Format(items);
+        _sink.Write(report);
+    }
+}

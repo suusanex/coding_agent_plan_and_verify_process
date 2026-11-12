@@ -47,7 +47,7 @@ Confirm:
 ```powershell
 apm install <source>/apm-packages/adaptive-implementation-execution#<full-sha> --target codex,agent-skills
 apm install <source>/apm-packages/design-pair-implementation-execution#<full-sha> --target codex,agent-skills
-# complete Codex decision-surface-implementation-owner / bounded-residual-implementation-owner models when APM emits model-less TOML stubs
+# complete only the Codex child model (the parent inherits its session) when APM emits model-less TOML stubs
 dotnet run --file <moduleRoot>/apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs -- .
 dotnet run --file <moduleRoot>/apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs -- . --check
 ```
@@ -103,7 +103,7 @@ After reviewing the Turn 2 trade-offs, send a final disposition that names the T
 - only then does the existing Adaptive Implementation route start;
 - the final record distinguishes Design Pair readiness, Adaptive result, validation, and final review status.
 
-On GitHub Copilot CLI, after READY, start Adaptive in a **new CLI process** with explicit `--agent decision-surface-implementation-owner`. Do not treat same-session skill continuation as the canonical Adaptive entry evidence. Do not claim VS Code handoff-button routing. Record requested and observed models when available from CLI output or debug logs.
+GitHub Copilot CLIのREADY後は現在の親sessionでcanonical親契約を読み、同じ選択済みmodelで構造コードを作る。別上位起動を禁止し、production build後の提示でEND TURNする。実応答とreadinessの後だけ子を起動する。requested / observed modelを記録する。
 
 To exercise the no-discussion shortcut in a separate run, respond after Turn 1 with an explicit all-Target Adaptive delegation. The handoff may become READY without Locked Decisions if every other readiness check passes and every Target has a matching `Adaptive-Owned` disposition evidence row.
 
@@ -120,7 +120,7 @@ Record separate runs or additional turns for:
 
 1. **Explicit all-Adaptive** after Target Map (no Locked Decisions; every Target Adaptive-Owned with disposition evidence).
 2. **Design Pair not selected** — ordinary Adaptive / default route; Design Pair must not auto-start.
-3. **Locked Decision conflict** — Adaptive decision-surface-implementation-owner with `--agent decision-surface-implementation-owner` stops without silently changing the Locked Decision.
+3. **Locked Decision conflict** — Adaptive decision-surface-implementation-owner in the current parent session stops without silently changing the Locked Decision.
 4. **Waiting-state new-session resume** — new process reads `AWAITING_USER_INPUT` handoff and continues after a fresh human response.
 
 追加で次を別runまたは追加turnとして記録する。

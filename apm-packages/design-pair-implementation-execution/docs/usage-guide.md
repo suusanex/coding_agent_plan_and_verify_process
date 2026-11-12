@@ -19,7 +19,7 @@ implementation_route_source: explicit-user-selection
 
 agent / router は difficulty、risk、task size、architecture 特性から Design Pair を選択、推奨、提案しません。
 
-fresh installではAdaptive packageとDesign Pair packageをco-installします。GitHub Copilot CLIでは`--target copilot,agent-skills`、Codexでは`--target codex,agent-skills`を使います。CodexでAPMがmodel-less agent TOMLを生成する環境では共通 finalizerのwriteと`--check`まで実行します。Design Pair skillが存在するだけでは、後段の decision-surface-implementation-owner / bounded-residual-implementation-owner model mappingが完成したとは扱いません。
+fresh installではAdaptive packageとDesign Pair packageをco-installします。GitHub Copilot CLIでは`--target copilot,agent-skills`、Codexでは`--target codex,agent-skills`を使います。CodexでAPMがmodel-less agent TOMLを生成する環境では共通 finalizerのwriteと`--check`まで実行します。Design Pair skillが存在するだけでは、後段の 子bounded-residual-implementation-ownerのmodel mappingが完成したとは扱いません。
 
 ## Ordinary Plan Mode
 
@@ -38,16 +38,16 @@ goal、scope、acceptance が不足する場合は production code / tests を�
 3. `implementation-handoff-review` または equivalent Inline Ready Gate が READY の場合だけ Design Pair を開始する。
 4. Target Map 提示後は `AWAITING_USER_INPUT / target-selection` と handoff path を parent state に保存し、その turn を終了する。
 5. user discussion 後に最終 disposition がなければ `AWAITING_USER_INPUT / disposition-confirmation` を保存して再停止する。
-6. tracked Design Pair handoff が `interaction_stage: complete` かつ `READY_FOR_ADAPTIVE_IMPLEMENTATION` になった後だけ、Adaptive Implementation を decision-surface-implementation-owner から開始する。
+6. tracked Design Pair handoff が `interaction_stage: complete` かつ `READY_FOR_ADAPTIVE_IMPLEMENTATION` になった後だけ、現在の親がdecision-surface-implementation-owner契約を読み、構造コード・build・人への提示停止を行う。実承認後だけ子へ渡す。
 7. verification-kernel、coverage gap handling、residual-decision-gate へ戻る。
 
-Design Pair package の正式 target は `copilot`、`codex`、`agent-skills` です。Plan Coverage 経由でも Design Pair route は両 package を同じ target へ導入し、利用者が Design Pair を明示選択した場合だけ使います。GitHub Copilot CLI では tracked handoff を durable authority とし、READY 後は `--agent decision-surface-implementation-owner` で Adaptive を開始します。Plan Coverage parent と Design Pair を組み合わせた runtime qualification は Plan Coverage 側の Copilot CLI 認定 issue で実施します。
+Design Pair package の正式 target は `copilot`、`codex`、`agent-skills` です。Plan Coverage 経由でも Design Pair route は両 package を同じ target へ導入し、利用者が Design Pair を明示選択した場合だけ使います。GitHub Copilot CLI では tracked handoff を durable authority とし、READY 後は 現在の親sessionでAdaptiveを開始します。Plan Coverage parent と Design Pair を組み合わせた runtime qualification は Plan Coverage 側の Copilot CLI 認定 issue で実施します。
 
 ## Resume
 
 `implementation_route`、`implementation_route_source`、`design_pair_handoff`、`design_pair_interaction_stage`はdurable artifactから再読します。Design Pair resume では資料節・版・提示turn、直接対話の案内、post-map user response、正本rowのdisposition、Locked confirmation evidenceも検証します。待機中のsummary / ReadinessがPendingであるだけなら再開できます。正本が欠ける、矛盾する、またはwaiting中なのにREADYへ正規化されている場合、upstream textから補完せず`BLOCKED` / `BlockedByInvalidCompletionHandoff`としてartifact repairを要求します。3 route項目を`adaptive / default / N/A`へ自動初期化できるのはfresh intakeだけです。
 
-bounded-residual-implementation-ownerからdecision-surface-implementation-ownerへre-entryする場合は、Decision-Surface Re-entry Handoffに両route fieldとDesign Pair handoff pathをincoming completion handoffから変更せずコピーします。parentは元のcompletion handoffとre-entry handoffの両方をdecision-surface-implementation-ownerへ渡し、route identityが一致しない場合は再実行前に`BLOCKED` / `BlockedByInvalidCompletionHandoff`で停止します。decision-surface-implementation-ownerとbounded-residual-implementation-ownerは通常完了を含む非invalid resultで同じ3項目を返します。invalid-artifact `BLOCKED`だけはraw observed valueまたは`<missing>`とrepair evidenceを返し、parentは完全なpairを要求せず停止resultとして受理します。
+bounded-residual-implementation-ownerからdecision-surface-implementation-ownerへre-entryする場合は、Decision-Surface Re-entry Handoffに両route fieldとDesign Pair handoff pathをincoming completion handoffから変更せずコピーします。元親自身がcompletion handoffとre-entry handoffの両方を読み、route identityが一致しない場合は再実行前に`BLOCKED` / `BlockedByInvalidCompletionHandoff`で停止します。親は構造待機/委譲result、子は通常完了を含む非invalid resultで同じ3項目を返します。invalid-artifact `BLOCKED`だけはraw observed valueまたは`<missing>`とrepair evidenceを返し、parentは完全なpairを要求せず停止resultとして受理します。
 
 ## Target Map discussion
 
@@ -122,3 +122,5 @@ Design Pair route の実装完了は final code review、human review、総合 a
 - Selected / Delegated Targetの`Target Disposition Evidence`が欠落、重複、架空ID、row不一致、pre-map reference、AI summary由来: invalid handoff。
 - `Locked` の confirmation が Plan / Issue を参照する: `Upstream Binding Constraints` へ移し、actual user turn evidence を要求する。
 - resume artifact が `DRAFT` のみで interaction stage 不明: READY を推測せず artifact repair で停止する。
+
+Copilot CLIの非対話入力でAdaptiveへ進む際は、現在の親sessionへ明示選択と導入済み .agents/skills/adaptive-implementation-execution/SKILL.md の読込みを指定します。slash名だけの未読実行をAdaptiveとして扱わず、別上位processへ切り替えません。
