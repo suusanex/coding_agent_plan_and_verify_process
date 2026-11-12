@@ -105,6 +105,8 @@ try {
             bounded_residual_handoff             = $historicalAdaptiveConnection.handoff
             bounded_residual_execution           = $historicalAdaptiveConnection.standard_execution
             connection_satisfied                 = $historicalAdaptiveConnection.connection_satisfied
+            structure_approval_observed          = $true
+            child_completion_observed            = $true
             bounded_residual_transfer_satisfied  = $historicalAdaptiveConnection.high_to_standard_handoff_satisfied
             design_pair_auto_selected             = $historicalAdaptiveConnection.design_pair_auto_selected
             decision_surface_observed             = $historicalAdaptiveConnection.high_observed
@@ -158,10 +160,38 @@ try {
 - `src/Load-AppConfig.ps1`
 '@
     $decisionSurfaceEvidence = Get-AdaptiveConnectionEvidence $ownerEvidenceRoot @() $true
-    if (-not $decisionSurfaceEvidence.decision_surface_observed -or -not $decisionSurfaceEvidence.connection_satisfied) {
-        throw 'Explicit Decision-Surface owner completion evidence must satisfy the direct-completion route.'
+    if ($decisionSurfaceEvidence.connection_satisfied) {
+        throw 'Parent-only completion must not satisfy the current route.'
     }
-    Write-Host 'PASS: Adaptive owner evidence requires an explicit Decision-Surface owner association'
+    $approvedRecord = @'
+# Bounded Residual Implementation Handoff
+- Schema: adaptive-structure-0.7
+- Verdict: READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION
+- Status: APPROVED
+- Structure version: 2
+- Code snapshot: base+diff-sha256
+- Presentation reference: assistant-turn-3
+- User response reference: user-turn-4
+- User response quote: structure version 2 approved
+- Approved structure version: 2
+- Completion owner: bounded-residual-implementation-owner
+- Completion verdict: IMPLEMENTATION_COMPLETED
+'@
+    $recordPath = Join-Path $ownerEvidenceRoot 'plans/current-handoff.md'
+    Write-Utf8File $recordPath $approvedRecord
+    if (-not (Get-AdaptiveConnectionEvidence $ownerEvidenceRoot @() $true).connection_satisfied) { throw 'Approved structure and child completion must satisfy the route.' }
+    foreach ($bad in @(
+        $approvedRecord.Replace('User response quote: structure version 2 approved', 'User response quote: Pending'),
+        $approvedRecord.Replace('Approved structure version: 2', 'Approved structure version: 1'),
+        $approvedRecord.Replace('Status: APPROVED', 'Status: AWAITING_STRUCTURE_REVIEW'),
+        $approvedRecord.Replace('Completion verdict: IMPLEMENTATION_COMPLETED', 'Completion verdict: child started')
+    )) {
+        Write-Utf8File $recordPath $bad
+        if ((Get-AdaptiveConnectionEvidence $ownerEvidenceRoot @('bounded-residual-implementation-owner') $true).connection_satisfied) { throw 'Missing approval or child completion must fail closed even with a child hook.' }
+    }
+    Write-Utf8File $recordPath $approvedRecord
+    if ((Get-AdaptiveConnectionEvidence $ownerEvidenceRoot @() $false).connection_satisfied) { throw 'Failed verifier must not satisfy the route.' }
+    Write-Host 'PASS: Adaptive connection requires approved structure and child completion'
 
     $staleQualificationInput = Get-Content -Raw -LiteralPath $exactCurrentPath | ConvertFrom-Json
     $staleQualificationInput.qualification_input_fingerprint = '1111111111111111111111111111111111111111111111111111111111111111'

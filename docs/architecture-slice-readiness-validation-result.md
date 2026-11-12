@@ -2,10 +2,10 @@
 
 ## Execution metadata
 
-- Executed at: `2026-11-11`
-- Executor: Issue #159 の Design Pair待機・受入契約更新後に行った ASR-001〜ASR-008 の deterministic fixture comparison
-- Branch: `issue-159`
-- Reviewed source: `d55c16a7cbb88c91d1286f11e1c9719b2ab8280a`; Architecture Slice Readiness、baseline compatibility、`Match / Drift / Unclear` authorization semantics は変更されていない
+- Executed at: `2026-11-13`
+- Executor: Issue #161 の Adaptive呼出契約更新後に行った ASR-001〜ASR-008 の deterministic fixture comparison
+- Branch: `codex/issue-161-structure-review`
+- Reviewed source: `cd27ace129588f793200c2d66ad081866480cac1` + PR #162 review修正; Architecture Slice Readiness、baseline compatibility、`Match / Drift / Unclear` authorization semantics は変更されていない
 - Scope: ASR-001〜ASR-008 fixture comparison、current contract hashes、de-escalation / decomposition authorization、shared implementation ownership propagation、および既存 architecture semantics。production code と外部systemは変更していない
 
 ### Contract revisions evaluated
@@ -18,8 +18,8 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 | `apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-elaboration.agent.md` | `8f53674b988131d847d8c32ca01d850c90820fddb40595a6ca6ff54382948344` |
 | `apm-packages/plan-coverage-residual-flow/.apm/agents/plan-slice-decomposition.agent.md` | `29330fdd7bec03eb4d0232b241d45c1527489b9fe2810e715b89321f8904cbaf` |
 | `apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md` | `53768f9e7fef7b565180ba2a08f67361196957114551c0f5a45895935444c2b7` |
-| `apm-packages/plan-coverage-residual-flow/.apm/instructions/plan-coverage-shared.instructions.md` | `55c92fef5dd9e19777736d43a932a032b05c893d7afe8c67f794d3f205d84a39` |
-| `plan-coverage-residual-flow/SKILL.md` | `9b4d2b5b0cc23b1197f0d00c705edb9f1138cfa33f5dd4f23bd959124d86a94b` |
+| `apm-packages/plan-coverage-residual-flow/.apm/instructions/plan-coverage-shared.instructions.md` | `94b2d550ae2dfcdc551c00cb86388571774e50a48501d9adcbbadd21907518a6` |
+| `plan-coverage-residual-flow/SKILL.md` | `09e73486ba21ff9a6b813bf01242eba81aaec8491f968442654e566139bd9dd6` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 | `coverage-ledger.md` template | `b1a532b4ab59dbaa1471d8bd1beb6af5e7f570f3086719c8fcbe452f7f493962` |
 | `plan-coverage-lite.md` template | `e517b29463b8ffd2e11c29740bab4044599884d97ce145284674ab7b41b1fe90` |
@@ -205,3 +205,5 @@ Immediate next agent: runtime-contract-kernel.agent.md
 - Legacy fixture filenames and output headings retain their original owner vocabulary for audit. Current owner mapping is documented above and is enforced by the active validators.
 - Production repositories, secrets, billing, GitHub settings, and external services were not accessed.
 - Rerun this suite when any contract revision above changes; hash mismatch makes this result stale.
+
+Issue #161のレビュー修正ではAdaptive呼出adapterとshared instructionを親構造承認・子詳細実装へ統一した。ASRのverdict・freshness・baseline compatibilityは変更せず、既存8 fixtureのactual/expected比較を再実行した。実モデルのASR再実行ではなく、過去run IDは維持する。

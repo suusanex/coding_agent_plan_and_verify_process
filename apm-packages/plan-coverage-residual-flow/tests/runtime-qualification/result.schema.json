@@ -262,6 +262,8 @@
             "bounded_residual_handoff": { "$ref": "#/$defs/adaptive_phase" },
             "bounded_residual_execution": { "$ref": "#/$defs/adaptive_phase" },
             "bounded_residual_transfer_satisfied": { "type": "boolean" },
+            "structure_approval_observed": { "type": "boolean" },
+            "child_completion_observed": { "type": "boolean" },
             "decision_surface_observed": { "type": "boolean" },
             "bounded_residual_observed": { "type": "boolean" },
             "bounded_residual_handoff_observed": { "type": "boolean" },

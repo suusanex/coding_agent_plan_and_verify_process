@@ -941,127 +941,62 @@ function Test-ProductionBindingPresent([string]$Worktree, [string[]]$RelativePat
 
 function Get-AdaptiveConnectionEvidence([string]$Worktree, [string[]]$HookAgents, [bool]$VerifierPassed) {
     $plans = @(Get-PlanFileEvidence $Worktree)
-    $decisionSurfaceHook = $HookAgents -contains 'decision-surface-implementation-owner'
-    $boundedResidualHook = $HookAgents -contains 'bounded-residual-implementation-owner'
-
-    $decisionSurfaceCompletedHit = $null
-    $boundedResidualHandoffHit = $null
-    $boundedResidualCompletedHit = $null
-    $selfMapHit = $null
-
+    $structure = [ordered]@{ status = 'NOT_OBSERVED'; evidence = $null; sha256 = $null; verdict = $null; reason = $null }
+    $handoff = [ordered]@{ status = 'NOT_OBSERVED'; evidence = $null; sha256 = $null; verdict = $null; reason = $null }
+    $child = [ordered]@{ status = 'NOT_OBSERVED'; evidence = $null; sha256 = $null; verdict = $null; reason = $null }
+    $approved = $false
+    $completed = $false
     foreach ($p in $plans) {
         $c = $p.Content
-        if ($c -cmatch '(?m)^- Implementation route:.*decision-surface-implementation-owner.*IMPLEMENTATION_COMPLETED' -or
-            $c -cmatch '(?m)^- Model / owner sequence:.*decision-surface-implementation-owner.*IMPLEMENTATION_COMPLETED') {
-            if (-not $decisionSurfaceCompletedHit) { $decisionSurfaceCompletedHit = $p }
+        # 同じdurable record内の具体的な版・応答を照合する。hookだけや旧親単独完了では承認を補わない。
+        $fields = @{}
+        foreach ($line in ($c -split "`n")) {
+            if ($line -cmatch '^- ([^:]+):\s*(.+)$') { $fields[$Matches[1]] = $Matches[2].Trim().Trim('`') }
         }
-        if ($c -cmatch 'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION' -and $c -cmatch '(?i)bounded-residual-implementation-handoff|Bounded Residual Implementation Handoff|READY_FOR_BOUNDED_RESIDUAL') {
-            # Require handoff-ish context, not a random glossary mention.
-            if ($c -cmatch '(?m)^- Formal .*handoff' -or $c -cmatch 'bounded-residual-implementation-handoff' -or $c -cmatch '(?m)^- Handoff verdict:.*READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION' -or $c -cmatch 'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION') {
-                if ($c -cmatch 'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION' -and ($c -cmatch 'handoff' -or $c -cmatch 'Handoff' -or $p.Path -match 'handoff')) {
-                    if (-not $boundedResidualHandoffHit) { $boundedResidualHandoffHit = $p }
-                }
-            }
+        if ($fields['Schema'] -cne 'adaptive-structure-0.7') { continue }
+        $present = $true
+        foreach ($name in @('Structure version', 'Code snapshot', 'Presentation reference')) {
+            if (-not $fields[$name] -or $fields[$name] -match '^(Pending|N/A|<)') { $present = $false }
         }
-        if ($c -cmatch '(?m)^- Implementation route:.*bounded-residual-implementation-owner' -or
-            $c -cmatch '(?m)^- Model / owner sequence:.*bounded-residual-implementation-owner' -or
-            $c -cmatch 'IMPLEMENTATION_COMPLETED_BY_BOUNDED_RESIDUAL_OWNER') {
-            if (-not $boundedResidualCompletedHit) { $boundedResidualCompletedHit = $p }
+        if (-not $present) { continue }
+        $structure.status = 'OBSERVED_FROM_DURABLE_ARTIFACT'
+        $structure.evidence = $p.Path; $structure.sha256 = $p.Sha256; $structure.verdict = $fields['Status']
+        $structure.reason = 'Current parent structure presentation recorded; approval evaluated separately'
+        $response = $true
+        foreach ($name in @('User response reference', 'User response quote')) {
+            if (-not $fields[$name] -or $fields[$name] -match '^(Pending|N/A|<)') { $response = $false }
         }
-        if ($c -cmatch '### Implementation Self-Map' -and $c -cmatch 'src/') {
-            if (-not $selfMapHit) { $selfMapHit = $p }
-        }
-    }
-
-    $prodOk = Test-ProductionBindingPresent $Worktree @(
-        'src/Load-AppConfig.ps1',
-        'src/ProducerState.ps1',
-        'src/ConsumerGate.ps1',
-        'src/StartupFlow.ps1'
-    )
-
-    $decisionSurface = [ordered]@{ status = 'NOT_OBSERVED'; evidence = $null; sha256 = $null; verdict = $null; reason = $null }
-    if ($decisionSurfaceHook) {
-        $decisionSurface.status = 'OBSERVED_FROM_HOOK'
-        $decisionSurface.evidence = 'hooks/session: agentName=decision-surface-implementation-owner'
-        $decisionSurface.reason = 'structured hook/session agent observation'
-    }
-    elseif ($decisionSurfaceCompletedHit -and $selfMapHit -and $prodOk -and $VerifierPassed) {
-        $decisionSurface.status = 'OBSERVED_FROM_DURABLE_ARTIFACT'
-        $decisionSurface.evidence = $decisionSurfaceCompletedHit.Path
-        $decisionSurface.sha256 = $decisionSurfaceCompletedHit.Sha256
-        $decisionSurface.verdict = 'IMPLEMENTATION_COMPLETED'
-        $decisionSurface.reason = 'Living Record / plan records decision-surface-implementation-owner IMPLEMENTATION_COMPLETED with Implementation Self-Map and production binding; external verifier PASS'
-    }
-
-    $handoff = [ordered]@{ status = 'NOT_OBSERVED'; evidence = $null; sha256 = $null; verdict = $null; reason = $null }
-    $boundedResidual = [ordered]@{ status = 'NOT_OBSERVED'; evidence = $null; sha256 = $null; verdict = $null; reason = $null }
-
-    if ($boundedResidualHandoffHit) {
+        if ($fields['Status'] -cne 'APPROVED' -or $fields['Verdict'] -cne 'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION' -or
+            $fields['Approved structure version'] -cne $fields['Structure version'] -or -not $response) { continue }
+        $approved = $true
         $handoff.status = 'OBSERVED_FROM_DURABLE_ARTIFACT'
-        $handoff.evidence = $boundedResidualHandoffHit.Path
-        $handoff.sha256 = $boundedResidualHandoffHit.Sha256
+        $handoff.evidence = $p.Path; $handoff.sha256 = $p.Sha256
         $handoff.verdict = 'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION'
-        $handoff.reason = 'durable handoff artifact/section records READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION'
-        if ($boundedResidualHook) {
-            $boundedResidual.status = 'OBSERVED_FROM_HOOK'
-            $boundedResidual.evidence = 'hooks/session: agentName=bounded-residual-implementation-owner'
-        }
-        elseif ($boundedResidualCompletedHit -and $VerifierPassed) {
-            $boundedResidual.status = 'OBSERVED_FROM_DURABLE_ARTIFACT'
-            $boundedResidual.evidence = $boundedResidualCompletedHit.Path
-            $boundedResidual.sha256 = $boundedResidualCompletedHit.Sha256
-            $boundedResidual.reason = 'durable artifact records bounded-residual-implementation-owner completion after handoff; verifier PASS'
-        }
-        else {
-            $boundedResidual.status = 'NOT_OBSERVED'
-            $boundedResidual.reason = 'READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION present but bounded-residual-implementation-owner execution evidence missing'
+        $handoff.reason = 'Version-bound approval and ready handoff recorded'
+        # 起動hookは完了の証拠ではない。完了記録は承認版と同じrecordへ残す。
+        if ($fields['Completion owner'] -ceq 'bounded-residual-implementation-owner' -and $fields['Completion verdict'] -ceq 'IMPLEMENTATION_COMPLETED' -and $VerifierPassed) {
+            $completed = $true
+            $child.status = 'OBSERVED_FROM_DURABLE_ARTIFACT'
+            $child.evidence = $p.Path; $child.sha256 = $p.Sha256
+            $child.verdict = 'IMPLEMENTATION_COMPLETED'
+            $child.reason = 'Child completion after approved structure; external verifier PASS'
         }
     }
-    elseif ($decisionSurface.status -like 'OBSERVED_*' -and $decisionSurfaceCompletedHit -and ($decisionSurfaceCompletedHit.Content -cmatch 'no bounded-residual' -or $decisionSurfaceCompletedHit.Content -cmatch 'IMPLEMENTATION_COMPLETED' -or $decisionSurfaceCompletedHit.Content -cmatch 'decision-surface-implementation-owner\) only')) {
-        $handoff.status = 'NOT_REQUIRED'
-        $handoff.evidence = $decisionSurfaceCompletedHit.Path
-        $handoff.sha256 = $decisionSurfaceCompletedHit.Sha256
-        $handoff.verdict = 'IMPLEMENTATION_COMPLETED'
-        $handoff.reason = 'decision-surface-implementation-owner completed the bounded remainder; bounded-residual delegation not required'
-        $boundedResidual.status = 'NOT_REQUIRED'
-        $boundedResidual.evidence = $decisionSurfaceCompletedHit.Path
-        $boundedResidual.sha256 = $decisionSurfaceCompletedHit.Sha256
-        $boundedResidual.reason = 'no bounded-residual remainder after decision-surface-implementation-owner completion'
-    }
-    elseif ($boundedResidualHook) {
-        $boundedResidual.status = 'OBSERVED_FROM_HOOK'
-        $boundedResidual.evidence = 'hooks/session: agentName=bounded-residual-implementation-owner'
-        $boundedResidual.reason = 'bounded-residual owner observed without separate handoff artifact'
-    }
-
-    $decisionSurfaceObserved = $decisionSurface.status -like 'OBSERVED_*'
-    $boundedResidualObserved = $boundedResidual.status -like 'OBSERVED_*'
-    $handoffObserved = $handoff.status -like 'OBSERVED_*'
-    $boundedResidualTransfer = $handoffObserved -and $boundedResidualObserved -and $decisionSurfaceObserved
-    # Adaptive package connection: decision-surface owner executed with durable/hook evidence, and either
-    # decision-surface->bounded-residual handoff completed or decision-surface-only completion was explicitly recorded.
-    $connectionOk = $decisionSurfaceObserved -and (
-        $boundedResidualTransfer -or
-        ($handoff.status -ceq 'NOT_REQUIRED' -and $boundedResidual.status -ceq 'NOT_REQUIRED' -and $VerifierPassed)
-    )
-
+    $connection = $approved -and $completed
     $hasDesignPair = Test-DesignPairAutoSelected $HookAgents @() ''
-    # Also scan plan paths for design-pair artifacts
-    foreach ($p in $plans) {
-        if ($p.Path -match 'design-pair') { $hasDesignPair = $true }
-    }
-
+    foreach ($p in $plans) { if ($p.Path -match 'design-pair') { $hasDesignPair = $true } }
     return [ordered]@{
-        decision_surface_execution = $decisionSurface
+        decision_surface_execution = $structure
         bounded_residual_handoff = $handoff
-        bounded_residual_execution = $boundedResidual
-        connection_satisfied = [bool]$connectionOk
-        bounded_residual_transfer_satisfied = [bool]$boundedResidualTransfer
+        bounded_residual_execution = $child
+        connection_satisfied = [bool]$connection
+        bounded_residual_transfer_satisfied = [bool]$connection
+        structure_approval_observed = [bool]$approved
+        child_completion_observed = [bool]$completed
         design_pair_auto_selected = [bool]$hasDesignPair
-        decision_surface_observed = [bool]$decisionSurfaceObserved
-        bounded_residual_observed = [bool]$boundedResidualObserved
-        bounded_residual_handoff_observed = [bool]$handoffObserved
+        decision_surface_observed = [bool]($structure.status -like 'OBSERVED_*')
+        bounded_residual_observed = [bool]$completed
+        bounded_residual_handoff_observed = [bool]$approved
     }
 }
 

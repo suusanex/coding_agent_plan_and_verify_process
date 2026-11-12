@@ -293,6 +293,8 @@
       "transcript_sha256": null,
       "hook_log_sha256": null,
       "adaptive_connection": {
+        "structure_approval_observed": false,
+        "child_completion_observed": false,
         "decision_surface_observed": false,
         "bounded_residual_observed": false,
         "bounded_residual_handoff_observed": false,
@@ -319,6 +321,8 @@
       "transcript_sha256": null,
       "hook_log_sha256": null,
       "adaptive_connection": {
+        "structure_approval_observed": false,
+        "child_completion_observed": false,
         "decision_surface_observed": false,
         "bounded_residual_observed": false,
         "bounded_residual_handoff_observed": false,
