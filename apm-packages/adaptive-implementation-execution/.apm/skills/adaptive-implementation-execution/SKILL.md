@@ -11,30 +11,14 @@ disable-model-invocation: true
 
 # Adaptive Implementation Execution
 
-このskillは利用者が`/adaptive-implementation-execution`で明示起動した場合だけ使用する。通常の実装依頼や自然文での名前言及では選択しない。
-
-通常のPlan、手書きPlan、repository-tracked Plan、Issue内の実装計画、または明示選択されたDesign Pair Implementation Handoffを入力に、実装中のdecision surfaceに応じてsemantic ownerを直列に切り替えるimplementation-only flowです。
-
-Plan Coverageの縮小版ではありません。Plan Coverage artifacts、change-risk-triage、runtime contract、test design、coverage ledger、residual decisionは必須入力にしません。
+利用者が`/adaptive-implementation-execution`で明示起動した場合だけ使用します。通常Planまたは明示的なDesign Pair handoffから、親の構造コード → 人の構造レビュー → 子の詳細実装を行います。Plan Coverage artifactsはstandaloneの必須入力ではありません。
 
 ## Semantic roles
 
-- `Decision-Surface Implementation Owner`: unresolved decision surfaceが残る間、code inspection、production code、tests、wiring、focused verification、影響再確認を含むimplementation feedback loopを所有する。
-- `Bounded-Residual Implementation Owner`: decision surfaceがactual codebase evidenceによって解消され、locked contract / semanticsの適用だけで完了できるbounded residual workを所有する。
+- Decision-Surface Implementation Owner: 現在のトップレベル親自身。調査・構造コード・production build・提示・実応答待機・構造修正・委譲・再引受けを所有する。
+- Bounded-Residual Implementation Owner: 承認済み構造の内側で本体・入力検査・例外送出・局所分岐/loop・private helper・test / mock / 検証を完成する子。
 
-semantic roleはHIGH / STANDARD等のconcrete model tier、parent / subagent、別process、VS Code handoff button等のruntime topologyから独立しています。runtime adapterは各roleへmodelを割り当てますが、topologyやmodel名によってownershipを再定義してはいけません。
-
-## Parent / router role
-
-parent / routerは次だけを担当します。
-
-- inputのsource of truthとImplementation Intentを確認する
-- semantic ownerを直列に起動する
-- verdictとhandoff contractを検証する
-- re-entry時に元intent、両handoff、route identityを保持する
-- 最終状態と未検証事項を集約する
-
-dedicated routerとして動作するruntime roleはimplementation editを行わず、write-heavy ownerを並列に起動しません。ただし、top-level parent自身へ`Decision-Surface Implementation Owner`を割り当て、orchestration responsibilityとsemantic ownershipを同じruntime instanceが兼ねる構成は許容します。parentというruntime位置だけを理由にimplementation ownershipを付与または禁止してはいけません。
+親はcanonical `decision-surface-implementation-owner.agent.md`を読み、自分の選択済みmodelで実行します。別の上位subagent、新しい上位CLI process、model pin・補完・切替を使用しません。親単独の全実装完了経路はありません。両者は同じworktreeを並列編集しません。
 
 ## Accepted inputs
 
@@ -69,150 +53,69 @@ Design Pair routeは`implementation_route: design-pair`、`implementation_route_
 ## Required execution order
 
 ```text
-ordinary Plan / short implementation intent
-  or explicit Design Pair Implementation Handoff
-  -> decision-surface-implementation-owner
-       -> CONTINUE_DECISION_SURFACE_IMPLEMENTATION
-       -> IMPLEMENTATION_COMPLETED
+Plan / explicit Design Pair READY
+ -> current parent: inspect / compare / structure code / production build
+ -> AWAITING_STRUCTURE_REVIEW (persist, present, END TURN)
+ -> actual user response about the presented structure version
+    -> revision requested: parent revises structure / builds / presents / END TURN
+    -> approved AND handoff ready
        -> READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION
-            -> bounded-residual-implementation-owner
-                 -> IMPLEMENTATION_COMPLETED
-                 -> NEEDS_DECISION_SURFACE_REENTRY
-                      -> decision-surface-implementation-owner
-       -> REPLAN_REQUIRED / HUMAN_DECISION_REQUIRED / BLOCKED
+       -> bounded-residual-implementation-owner
+          -> IMPLEMENTATION_COMPLETED
+          -> NEEDS_DECISION_SURFACE_REENTRY
+             -> same parent: revise structure / build / present / END TURN
 ```
 
-すべての非自明なimplementationはDecision-Surface Implementation Ownerから開始します。課題規模、risk、ファイル数、作業種別だけを理由にBounded-Residual Implementation Ownerへ直行してはいけません。
+## 1. 親による構造コード
+
+goal / scope / acceptance、repository指示とroute identity、Design Pair evidenceを編集前に検証します。canonical親契約の既存処理比較と成果物境界に従います。既存API / 拡張点 / 構造追従 / 別方式の根拠、参照file / symbol・呼出関係、要求差分・例外理由を既存evidenceへ残します。
+
+責務境界の型とsignature、日本語XML契約（前提、エラー条件、保証/検査担当、違反表現、結果・副作用）、依存の生成・登録、主要な呼出順序とデータ受渡し・awaitを書きます。最小限の連携条件はコード化してよいが、詳細本体・条件計算・内部制御は子へ残します。末端NotImplementedExceptionは許容し、空結果・成功偽装・入口丸ごとの未実装は禁止です。既存完成処理を戻したり分担だけの抽象化を追加しません。
+
+変更対象production projectと契約変更の影響を受けるproduction projectをbuildします。buildは静的整合確認であり動作・責務の正しさの証明ではありません。親のtest / mock / runtime DI / 詳細動作検証は必須にしません。
+
+## 2. 人への提示と本当の停止
+
+`refs/handoff.md`を用いtracked stateへStructure reviewとStructure readinessを保存します。対象コード状態・未実装・build対象を人へ示し、AWAITING_STRUCTURE_REVIEWとしてそのターンを終了します。実際の利用者応答まで作業や委譲を進めません。事前の実装指示、Design Pairのスキップ・Locked Decisions、AI生成応答を構造承認へ読み替えません。
+
+resume時は提示版・snapshot・提示turnとその後の実応答原文/referenceを結合します。応答なしは待機のまま。古い版・矛盾・不足はfail closed。承認前にコードが変化した場合は差分を確認し、構造に影響すれば版を更新・再提示して停止します。意味不明の応答を承認と推測しません。
+
+## 3. 承認とhandoff readinessを別々に検証
+
+`Ownership transfer basis: human-approved-structure`を要求します。
+
+- 構造の責務、共有契約・保証責務、依存、主要シーケンス、upstream整合が実コードから判断できる。
+- 必要production buildが成功し、対象と結果がsnapshotに対応する。
+- Structure reviewに提示後の実承認があり、承認対象の構造版が一致する。
+- acceptanceとWork Package mappingが双方向に一致する。全Incompleteに残作業、全Completeに証拠がある。
+- Allowed edit surfaceが全Authorized surfaceを包含する。子に残す詳細判断を明記する。
+- 比較根拠と、実施済み構造diffの照合結果・子が行うCompletion checkを区別する。
+- 初回transferは`reentry_count: 0`、previous_reentry_triggerとreentry_progress_evidenceの各値はN/A。
+
+テスト設計・seam / harness、入力検査処理、内部error / cancellation / retry制御はDeferred to childです。旧全decision surfaceのResolved条件を使いません。要件が求めるクラス間連携だけを親の構造に含めます。未解決の構造契約・上流矛盾・build失敗・artifact不足を、親による詳細実装で埋めません。
+
+不足はhandoff修正または構造修正で対処します。構造の実質変更は再提示・停止が必要です。承認があってもreadiness不足なら子を起動しません。ほぼ全て既存再利用でも同じ停止を行い、残る確認・完了処理を子へ渡します。
+
+## 4. 子による詳細実装
+
+valid handoff後だけ`bounded-residual-implementation-owner`を直列に起動し、元intent、tracked state、worktree、repository規約、Locked Decisions、supplied bindingsを渡します。ownerはWork PackagesとAllowed edit surface内で実装・検証します。親は並列編集しません。
+
+子の局所設計・追加修正は再承認不要です。IMPLEMENTATION_COMPLETEDは子の全acceptance Completeと実装・検証証拠、route identity、Locked Decision compliance、引き継いだ比較に対するactual diffの実装後照合結果を確認して受理します。親による詳細code review全体を新しい必須工程にしません。
+
+## 5. 構造変更の再引受け
+
+NEEDS_DECISION_SURFACE_REENTRYは合意済みI/F・共有型、責務、依存、主要シーケンス、保証責務の実質変更が必要な場合です。単なるedit typeや局所test設計では戻しません。triggerが空白/N/Aでなく、reentry_countが直前handoff+1、元intent・両handoff・route identity・Locked Decisionsが維持されていることを確認します。不正ならBLOCKEDで停止します。
+
+元の親が構造修正・build・必要な再レビューを行い、詳細は引き取りません。再transferではcountを直前re-entryに合わせ、previous_reentry_triggerとreentry_progress_evidence.triggerを一致させます。resolution、verification、same_unresolved_cause_rehanded_off: falseを記録し、新版の実承認と通常readinessを再確認します。残作業範囲の縮小は要求しません。
 
 ## Runtime adapters
 
-- Codex: portable semantic contractを使い、repository-local profileが各roleへconcrete modelを割り当てる。
-- GitHub Copilot Chat in VS Code: `decision-surface-implementation-owner`は`GPT-6 Sol (copilot)`、`bounded-residual-implementation-owner`は`GPT-6 Luna (copilot)`を要求する。
-- GitHub Copilot CLI: agent切替が必要なら新processとtracked handoffを使う。
+Codex、GitHub Copilot CLI、VS Codeとも親は現在sessionの選択済みmodelを使います。親agent定義にmodelを置かず、子だけCodex overlay / Copilot frontmatterのmodelを使います。CLIの新processは承認後の子実行に限り、上位別起動を標準経路にしません。再引受けは元親への返却です。子を安全に直列起動できないruntimeはBLOCKEDとして制約を報告し、親による詳細代行へfallbackしません。
 
-これらはruntime topology / model mappingであり、semantic ownershipの定義ではありません。handoff buttonは手動遷移候補で、verdictを検証するrouterではありません。
+## Plan Coverageと永続化
 
-## Step 1: Validate intent
-
-1. repository instructionsとuser constraintsを確認する。
-2. goal、scope、acceptance、任意項目を抽出する。
-3. missing informationがimplementation detailかproduct / scope / acceptance decisionか分ける。
-4. route identityとDesign Pair evidenceを検証する。
-5. invalid inputは実装前にfail closedで停止する。
-
-## Step 2: Start the Decision-Surface Implementation Owner
-
-`decision-surface-implementation-owner`を一度だけ起動し、完了するまで待ちます。
-
-渡すもの:
-
-- Original Implementation Intent
-- implementation_route
-- implementation_route_source
-- Design Pair handoff pathまたは`N/A`
-- repository instructions
-- current worktree status
-- relevant source pointers
-- validation expectations
-- re-entry時は元のBounded Residual Implementation HandoffとDecision-Surface Re-entry Handoff
-- Design Pair Decision IDs
-- supplied Plan Coverage bindings
-
-ownerはactual codeを読み、必要なproduction / test implementationとfocused verificationを行い、結果からdecision surfaceを再評価します。code editを避けることも、一定量のeditを行うことも目的にしません。
-
-ownerの「既存処理との比較と差分設計」に従い、実装前に参照処理、要求差分、採用方式を既存の計画・実装evidenceへ記録し、実装後にactual diffを照合します。新しい処理経路・状態管理では近傍以外の関連処理も調べますが、局所修正は短い比較に留めます。独立artifactや新しい承認待ちは追加しません。
-
-## Step 3: Validate the decision-surface verdict
-
-全resultでroute identityがincoming stateと一致することを検証します。invalid-artifact `BLOCKED`だけはraw observed valueまたは`<missing>`とrepair evidenceを受理して停止します。
-
-### CONTINUE_DECISION_SURFACE_IMPLEMENTATION
-
-同一runで続行可能ならownerにそのまま続行させます。細かく再起動しません。resumeやexecution boundaryが必要な場合だけstate verdictとして扱います。
-
-### IMPLEMENTATION_COMPLETED
-
-scope内の全acceptance itemが`Complete`で、各itemにimplementationまたはvalidation evidenceがある場合に受理します。最初のownerによる完了は例外ではなく、transfer理由やcode quotaを要求しません。
-
-直接完了でも、既存処理との比較、要求差分、採用方式・例外理由と実装後照合がevidenceにあることを確認します。類似処理がない場合は探索範囲と未発見事実、局所修正は短い比較で足ります。記録不足はownerへ補完を求め、人間への新たな承認要求にしません。
-
-### READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION
-
-`refs/handoff.md`の全fieldと次を検証します。
-
-- `Ownership transfer basis: bounded-residual-work-only`
-- Decision surface assessmentが全行`Resolved`または理由付き`N/A`
-- actual code / implementation / verification evidenceがassessmentを裏付ける
-- evidenceに参照実装・要求差分・採用方式・例外理由（不在時は探索範囲と未発見事実）があり、実施済みの照合結果と残作業のCompletion checkを区別している
-- 残作業がlocked contract / semanticsの適用だけで完了できる
-- acceptanceとWork Package mappingが双方向に一致する
-- Allowed edit surfaceが全Authorized surfaceを包含する
-- Design Pair / upstream bindingと矛盾しない
-- 残る不確実性がlocalかつreversibleである
-- 初回transferは`reentry_count: 0`で、`previous_reentry_trigger`と`reentry_progress_evidence`の全fieldが`N/A`
-- re-entry後の再transferは、`reentry_count`とtrigger linkageがStep 5で受理したDecision-Surface Re-entry Handoffに一致する
-
-不足がある場合は次ownerへ渡さず、handoff修正またはimplementation継続を求めます。
-
-### Stop verdicts
-
-`REPLAN_REQUIRED`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`は理由、既実装、worktree state、次に必要なinputを保持して停止します。
-
-## Step 4: Run the Bounded-Residual Implementation Owner
-
-valid handoff後だけ`bounded-residual-implementation-owner`を直列に起動します。
-
-渡すもの:
-
-- Original Implementation Intent
-- Bounded Residual Implementation Handoff
-- current worktree status
-- repository instructions
-- Design Pair Decision IDsを含むLocked decisions
-- Plan Coverage Slice Living Record adapter fields when applicable
-
-ownerはWork PackagesとAllowed edit surface内で実装・検証します。class、wiring、tests等の作業種別ではなく、残作業がboundedかどうかがauthorizationです。
-
-## Step 5: Handle bounded-residual result
-
-### IMPLEMENTATION_COMPLETED
-
-全acceptance itemとevidence、route identity、Locked Decision complianceを検証してcallerへ返します。
-
-引き継いだ比較に対するactual diffの実装後照合結果も確認します。追加状態・順序制御・既存serviceを迂回する直接呼び出しの必要性、新事実に伴う比較更新をevidenceで確認し、記録不足はownerへ補完を求めます。
-
-### NEEDS_DECISION_SURFACE_REENTRY
-
-valid handoffの実装中に新しいdecision surfaceが開いた場合だけ受理します。Decision-Surface Re-entry Handoffの`trigger`が空白でも`N/A`でもなく、`reentry_count`が直前に受理したBounded Residual Implementation Handoffの値に1を加えた値であることを検証します。元のBounded Residual Implementation Handoff、Decision-Surface Re-entry Handoff、Original Implementation Intent、current worktreeを保持し、route identity一致を確認してDecision-Surface Implementation Ownerへ直列に戻します。triggerまたはcountが不正ならfail closedで停止し、次ownerを起動しません。
-
-re-entryは失敗ではありません。戻ったownerは新しいdecision surfaceと必要なimplementation / verificationを所有します。再transferは、`reentry_count`を直前のre-entry handoffと一致させ、`previous_reentry_trigger`と`reentry_progress_evidence.trigger`をそのtriggerへ一致させ、actual codeによる`resolution`、確認結果である`verification`、`same_unresolved_cause_rehanded_off: false`を記録し、通常のtransfer gateを改めてすべて満たす場合に許可します。Remaining workやAllowed edit surfaceが前回より広がること自体はtransfer拒否理由にしません。
-
-invalid handoff、route identity欠落、単なるedit typeにはre-entryを使いません。
-
-### Other verdicts
-
-`REPLAN_REQUIRED`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`はevidenceを保持して停止します。
-
-## Serial write ownership
-
-両semantic ownerを同時に起動しません。parent / routerも同じworktreeへ並列にimplementation editを行いません。
-
-## Plan Coverage traceability
-
-supplied binding artifactsがある場合、各ownerは自分のphaseで実際に変更した行だけの`Implementation Self-Map Delta`を返します。orchestratorがstable Change IDでcanonical recordへ集約します。standalone runではevidence-backed `N/A`で構いません。
+supplied bindingがあれば各phaseのImplementation Self-Map Deltaを返し、親がstable Change IDで集約します。standaloneでは根拠付きN/A。Living Record modeは既存record内にStructure reviewを保存し、追加handoff fileは事前登録されたArtifact Exceptionsに従います。子のUNPERSISTED_PARENT_PAYLOADは親がrouteを検証・登録・保存してから再開します。inline-onlyの待機は不可です。
 
 ## Final output
 
-- final verdict
-- Original Implementation Intent / Plan reference
-- implementation_route
-- implementation_route_source
-- Design Pair handoff pathまたは`N/A`
-- phase owner sequence
-- implementation / validation evidence
-- 既存処理との比較・採用方式・例外理由・実装後照合結果（既存evidence内）
-- files changed
-- acceptance status table
-- Locked Decision compliance
-- remaining uncertainty / manual validation
-- final review status: `Not performed by this flow`
+verdict、intent / Plan、route identity、Design Pair path、親/子sequence、構造版・承認証拠、buildと子のvalidation、比較・実装後照合、files changed、acceptance、Locked Decision compliance、未確認事項を報告します。final review statusは`Not performed by this flow`です。REPLAN_REQUIRED / HUMAN_DECISION_REQUIRED / BLOCKEDは証拠と次に必要な情報を残し停止します。

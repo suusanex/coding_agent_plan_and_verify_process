@@ -64,7 +64,7 @@ internal static class CodexProfileFinalizer
         var contracts = new Dictionary<string, PortableContract>(StringComparer.Ordinal);
         foreach (var metadataPath in Directory.EnumerateFiles(overlaysRoot, "codex-profile-overlays.json", SearchOption.AllDirectories))
         {
-            await ReadOverlayAsync(metadataPath, overlays, sources, contracts, failures);
+            await ReadOverlayAsync(metadataPath, options.TargetRoot, overlays, sources, contracts, failures);
         }
 
         if (failures.Count > 0)
@@ -129,6 +129,7 @@ internal static class CodexProfileFinalizer
 
     private static async Task ReadOverlayAsync(
         string metadataPath,
+        string targetRoot,
         IDictionary<string, Profile> overlays,
         IDictionary<string, string> sources,
         IDictionary<string, PortableContract> contracts,
@@ -158,17 +159,33 @@ internal static class CodexProfileFinalizer
 
         if (string.Equals(document.Package, "adaptive-implementation-execution", StringComparison.Ordinal))
         {
-            var decisionSurfaceOwner = document.Profiles.SingleOrDefault(
-                x => string.Equals(x.Agent, "decision-surface-implementation-owner", StringComparison.Ordinal));
-            var boundedResidualOwner = document.Profiles.SingleOrDefault(
-                x => string.Equals(x.Agent, "bounded-residual-implementation-owner", StringComparison.Ordinal));
-            if (decisionSurfaceOwner is null ||
-                boundedResidualOwner is null ||
-                string.Equals(decisionSurfaceOwner.Model, boundedResidualOwner.Model, StringComparison.Ordinal))
+            if (document.Profiles.Count != 1 ||
+                document.Profiles[0].Agent != "bounded-residual-implementation-owner")
             {
                 failures.Add(
-                    $"Adaptive overlay {metadataPath} must define both semantic owners with distinct model mappings.");
+                    $"Adaptive overlay {metadataPath} must define only the child profile; the parent uses its selected model.");
                 return;
+            }
+
+            // 親は現在のsessionを継続する。旧配布のmodel pinを黙って残さず、再導入を要求する。
+            var parentPath = Path.Combine(packageRoot, ".apm", "agents", "decision-surface-implementation-owner.agent.md");
+            try
+            {
+                var parentText = await File.ReadAllTextAsync(parentPath);
+                var contract = ParsePortableContract(parentText, "decision-surface-implementation-owner");
+                var frontmatter = parentText.Split("---", 3)[1];
+                var projectionPath = Path.Combine(targetRoot, ".codex", "agents", contract.Name + ".toml");
+                var projection = TomlSerializer.Deserialize<TomlTable>(await File.ReadAllTextAsync(projectionPath))
+                    ?? throw new InvalidDataException("Parent projection is empty.");
+                if (Regex.IsMatch(frontmatter, @"(?m)^\s*model:\s*") || ProfileKeys.Any(projection.ContainsKey))
+                    failures.Add($"Adaptive parent must inherit its session profile. Remove the old managed projection and reinstall: {projectionPath}.");
+                if (!Equals(projection["name"], contract.Name) || !Equals(projection["description"], contract.Description) ||
+                    !Equals(projection["developer_instructions"], contract.DeveloperInstructions))
+                    failures.Add($"Adaptive parent projection does not match its canonical contract: {projectionPath}.");
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"Invalid Adaptive parent projection: {ex.ToString()}");
             }
         }
 

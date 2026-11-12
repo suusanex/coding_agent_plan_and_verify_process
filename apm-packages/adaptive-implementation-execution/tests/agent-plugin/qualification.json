@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "adaptive-implementation-execution",
-  "canonicalFingerprint": "dc7d2b88d4e5113ca57f098802632c4beb40bfa50facf9ef9bddd0a529a6ed7a",
-  "distributionFingerprint": "3eb21a983153a0a096c2ff5d74175e82dfbe14a071336fb4e7f77e1c124cbfcc",
+  "canonicalFingerprint": "1d90c00d8e1a1c5d866d27f727d92baa572f3979cc83008525d77430cb082d58",
+  "distributionFingerprint": "f4fab155efc2a3e4f69e3cba1a4c8c6863a17d43c53a5d7ad6b721cd68596c0f",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
@@ -14,7 +14,7 @@
       "distribution": "apm",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "Issue #154の比較工程とIssue #159のDesign Pair受入を含むcandidateのAPM実model挙動は未認定。canonicalコピーの拒否・衝突停止testを配布経路のPASSへ流用しない。",
+      "reason": "Issue #161でAdaptive親構造・人の承認停止・子詳細の契約を変更。過去runtime証拠を新candidateの認定へ流用しない。",
       "evidenceRefs": [
         "apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-08-30.md"
       ]
@@ -23,7 +23,7 @@
       "distribution": "agent-plugin-direct",
       "status": "HOLD",
       "evidenceMode": "PARTIAL",
-      "reason": "Issue #154の比較工程とIssue #159のDesign Pair受入を含むcandidateのdirect plugin runtime qualificationは未実施。",
+      "reason": "Issue #161でAdaptive親構造・人の承認停止・子詳細の契約を変更。過去runtime証拠を新candidateの認定へ流用しない。",
       "evidenceRefs": [
         "apm-packages/adaptive-implementation-execution/docs/examples/copilot-cli-real-model-e2e-2026-08-30.md"
       ]

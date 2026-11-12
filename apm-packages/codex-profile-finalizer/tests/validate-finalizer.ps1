@@ -39,7 +39,7 @@ function Write-AgentPackage([string] $PackageRoot, [string] $PackageName, [strin
     Set-Content -LiteralPath (Join-Path $PackageRoot 'codex-profile-overlays.json') -Value $json
 }
 
-function Write-AdaptivePackage([string] $Root, [string] $DecisionModel, [string] $ResidualModel) {
+function Write-AdaptivePackage([string] $Root, [string] $ResidualModel) {
     $packageRoot = Join-Parts $Root @('apm_modules', 'owner', 'repo', 'apm-packages', 'adaptive-implementation-execution')
     $agentRoot = Join-Parts $packageRoot @('.apm', 'agents')
     New-Item -ItemType Directory -Path $agentRoot -Force | Out-Null
@@ -52,12 +52,6 @@ function Write-AdaptivePackage([string] $Root, [string] $DecisionModel, [string]
         schemaVersion = 1
         package = 'adaptive-implementation-execution'
         profiles = @(
-            @{
-                agent = 'decision-surface-implementation-owner'
-                model = $DecisionModel
-                model_reasoning_effort = 'high'
-                sandbox_mode = 'workspace-write'
-            },
             @{
                 agent = 'bounded-residual-implementation-owner'
                 model = $ResidualModel
@@ -155,7 +149,7 @@ developer_instructions = "You are the fixture agent."
     $adaptiveRoot = Join-Path ([IO.Path]::GetTempPath()) ('codex-profile-finalizer-adaptive-' + [guid]::NewGuid().ToString('N'))
     try {
         New-Item -ItemType Directory -Path (Join-Parts $adaptiveRoot @('.codex', 'agents')) -Force | Out-Null
-        Write-AdaptivePackage $adaptiveRoot 'gpt-5.6-terra' 'gpt-5.6-luna'
+        Write-AdaptivePackage $adaptiveRoot 'gpt-5.6-luna'
         foreach ($agent in @('decision-surface-implementation-owner', 'bounded-residual-implementation-owner')) {
             Set-Content -LiteralPath (Join-Parts $adaptiveRoot @('.codex', 'agents', ($agent + '.toml'))) -Value @"
 name = '$agent'
@@ -166,10 +160,20 @@ developer_instructions = "You are the fixture agent."
         Assert-True ((Invoke-Finalizer @($adaptiveRoot)).ExitCode -eq 0) 'Adaptive semantic owner profiles were not applied.'
 
         $adaptiveOverlay = Join-Parts $adaptiveRoot @('apm_modules', 'owner', 'repo', 'apm-packages', 'adaptive-implementation-execution', 'codex-profile-overlays.json')
-        (Get-Content -Raw -LiteralPath $adaptiveOverlay) -replace 'gpt-5\.6-luna', 'gpt-5.6-terra' | Set-Content -LiteralPath $adaptiveOverlay
-        $sameModel = Invoke-Finalizer @($adaptiveRoot, '--check')
-        Assert-True ($sameModel.ExitCode -ne 0) 'Adaptive semantic owners unexpectedly accepted the same model mapping.'
-        Assert-True ($sameModel.Output -match 'semantic owners with distinct model mappings') 'Adaptive same-model failure was not explicit.'
+        $parentProjection = Join-Parts $adaptiveRoot @('.codex', 'agents', 'decision-surface-implementation-owner.toml')
+        $parentBefore = Get-Content -Raw -LiteralPath $parentProjection
+        Assert-True ($parentBefore -notmatch '(?m)^model\s*=') 'Parent was unexpectedly pinned.'
+        Assert-True ((Invoke-Finalizer @($adaptiveRoot, '--check')).ExitCode -eq 0) 'Child-only profile check failed.'
+        Assert-True ((Get-Content -Raw -LiteralPath $parentProjection) -ceq $parentBefore) 'Parent projection was modified.'
+        Add-Content -LiteralPath $parentProjection -Value 'model = "old-parent-model"'
+        $stale = Invoke-Finalizer @($adaptiveRoot, '--force')
+        Assert-True ($stale.ExitCode -ne 0 -and $stale.Output -match 'inherit its session profile') 'Stale parent pin was accepted with force.'
+        Set-Content -LiteralPath $parentProjection -Value $parentBefore
+        $overlay = Get-Content -Raw -LiteralPath $adaptiveOverlay | ConvertFrom-Json
+        $overlay.profiles += @{ agent='decision-surface-implementation-owner'; model='parent-pin'; model_reasoning_effort='high'; sandbox_mode='workspace-write' }
+        $overlay | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $adaptiveOverlay
+        $parentPin = Invoke-Finalizer @($adaptiveRoot, '--check')
+        Assert-True ($parentPin.ExitCode -ne 0 -and $parentPin.Output -match 'only the child profile') 'Parent overlay was accepted.'
     }
     finally {
         if (Test-Path -LiteralPath $adaptiveRoot) { Remove-Item -LiteralPath $adaptiveRoot -Recurse -Force }

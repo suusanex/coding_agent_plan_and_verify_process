@@ -3,12 +3,6 @@
   "package": "adaptive-implementation-execution",
   "profiles": [
     {
-      "agent": "decision-surface-implementation-owner",
-      "model": "gpt-6-sol",
-      "model_reasoning_effort": "high",
-      "sandbox_mode": "workspace-write"
-    },
-    {
       "agent": "bounded-residual-implementation-owner",
       "model": "gpt-6-luna",
       "model_reasoning_effort": "high",

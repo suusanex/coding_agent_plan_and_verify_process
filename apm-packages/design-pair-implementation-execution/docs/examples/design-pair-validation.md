@@ -97,7 +97,7 @@ Expected:
 
 - package target は `copilot`、`codex`、`agent-skills`
 - manifest に formal target 名 `copilot` がある（`github-copilot` や bare `vscode` ではない）
-- docs は GitHub Copilot CLI からの Design Pair 明示起動、mandatory post-map stop、durable handoff resume、READY 後の **new process** `--agent decision-surface-implementation-owner` を対応済みと宣言する
+- docs は GitHub Copilot CLI からの Design Pair 明示起動、mandatory post-map stop、durable handoff resume、READY 後の 現在の親sessionで構造作成・提示・停止 を対応済みと宣言する
 - formal acceptance は GitHub Copilot CLI の real multi-turn evidence であり、VS Code UI 操作を必須にしない
 - process contract を Copilot 用に複製せず、canonical Design Pair skill と Adaptive agents を直接利用する
 - real multi-turn smoke record が Target Map stop、Target Disposition Evidence、5集合整合、READY 後 Adaptive 開始、waiting 中 new-session resume、all-Adaptive、Design Pair 未指定 default、Locked Decision conflict stop を残す
@@ -140,7 +140,7 @@ Expected:
 
 - Adaptive packageとDesign Pair packageをco-installする
 - APMがmodel-less TOMLを生成する場合は`finalize-codex-agent-profiles.cs`で補完する
-- finalizerの`--check`がdecision-surface-implementation-owner / bounded-residual-implementation-ownerの別agent・別model mapping、reasoning、sandboxを検証する
+- finalizerの`--check`が親のmodel pin不在と子のmodel mapping、reasoning、sandboxを検証する
 - Design Pair package単体のinstallを完成済みCodex execution profileと表現しない
 
 ## DP-VAL-012: Portable agent route contract

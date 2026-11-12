@@ -65,6 +65,7 @@ try {
         Pop-Location
     }
 
+    function Assert-NoModel([string]$Path, [string]$Pattern, [string]$Description) { if ((Get-Content -Raw -LiteralPath $Path) -match $Pattern) { throw $Description } }
     $designPairSkill = Join-Path $scratch '.agents/skills/design-pair-implementation-execution/SKILL.md'
     $designPairMap = Join-Path $scratch '.agents/skills/design-pair-implementation-execution/map.md'
     $designPairHandoff = Join-Path $scratch '.agents/skills/design-pair-implementation-execution/handoff.md'
@@ -82,7 +83,7 @@ try {
     $copilotStandard = Join-Path $scratch '.github/agents/bounded-residual-implementation-owner.agent.md'
     Assert-File $copilotHigh 'transitive Copilot Decision-Surface Implementation Owner agent'
     Assert-File $copilotStandard 'transitive Copilot Bounded-Residual Implementation Owner agent'
-    Assert-Contains $copilotHigh '(?m)^model:\s*GPT-6 Sol \(copilot\)\s*$' 'transitive Copilot Decision-Surface Implementation Owner model'
+    Assert-NoModel $copilotHigh '(?m)^model:' 'transitive Copilot Decision-Surface Implementation Owner model'
     Assert-Contains $copilotHigh '(?m)^disable-model-invocation:\s*true\s*$' 'transitive Copilot Decision-Surface Implementation Owner explicit-only invocation'
     Assert-Contains $copilotStandard '(?m)^model:\s*GPT-6 Luna \(copilot\)\s*$' 'transitive Copilot Bounded-Residual Implementation Owner model'
     Assert-Contains $copilotStandard '(?m)^disable-model-invocation:\s*true\s*$' 'transitive Copilot Bounded-Residual Implementation Owner explicit-only invocation'
@@ -95,7 +96,7 @@ try {
     $codexStandard = Join-Path $scratch '.codex/agents/bounded-residual-implementation-owner.toml'
     Assert-File $codexHigh 'transitive Codex Decision-Surface Implementation Owner profile'
     Assert-File $codexStandard 'transitive Codex Bounded-Residual Implementation Owner profile'
-    Assert-Contains $codexHigh '(?m)^model\s*=\s*"gpt-6-sol"\s*$' 'Codex Decision-Surface Implementation Owner model'
+    Assert-NoModel $codexHigh '(?m)^model\s*=' 'Codex Decision-Surface Implementation Owner model'
     Assert-Contains $codexStandard '(?m)^model\s*=\s*"gpt-6-luna"\s*$' 'Codex Bounded-Residual Implementation Owner model'
 
     $lockPath = Join-Path $scratch 'apm.lock.yaml'
