@@ -336,7 +336,10 @@ function Test-FullQualificationEvidence($Result, [bool]$RequireCurrentAdaptiveCo
         if ($ac.connection_satisfied) { $adaptiveOk = $true }
         if ($RequireCurrentAdaptiveContract) {
             $currentPhaseNames = @('decision_surface_execution', 'bounded_residual_handoff', 'bounded_residual_execution')
-            $currentBooleanNames = @('bounded_residual_transfer_satisfied', 'decision_surface_observed', 'bounded_residual_observed', 'bounded_residual_handoff_observed')
+            $currentBooleanNames = @('bounded_residual_transfer_satisfied', 'decision_surface_observed', 'bounded_residual_observed', 'bounded_residual_handoff_observed', 'structure_approval_observed', 'child_completion_observed')
+            if ($ac.connection_satisfied -and ($ac.structure_approval_observed -ne $true -or $ac.child_completion_observed -ne $true)) {
+                Add-Failure "$id current connection requires structure approval and child completion"
+            }
             foreach ($fieldName in @($currentPhaseNames + $currentBooleanNames)) {
                 if (-not ($ac.psobject.Properties.Name -contains $fieldName)) {
                     Add-Failure "$id adaptive_connection missing current-contract field $fieldName"

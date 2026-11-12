@@ -196,12 +196,13 @@ function Get-ScenarioErrors([object] $Scenario) {
             }
             'transfer' {
                 if ($phase -cne 'Approved' -or $event.current_snapshot -cne $snapshot -or $event.schema -cne 'adaptive-structure-0.7') { $errors.Add('transfer without current approval') }
-                $handoff = Copy-Object $document.handoff
+                $handoff = Copy-Object $document.handoff_examples.($event.handoff_ref)
                 if ($event.invalid_readiness -eq $true) { $handoff.structure_readiness.production_sequence.status = 'Open' }
                 if ($event.mapping_missing -eq $true) { $handoff.remaining_work = @() }
                 foreach ($error in @(Get-HandoffErrors $handoff)) { $errors.Add($error) }
                 foreach ($error in @(Get-ComparisonErrors (Get-Comparison $handoff) 'transfer')) { $errors.Add($error) }
                 if ($event.reentry_count -ne $count -or ($count -gt 0 -and ($event.trigger -cne $trigger -or -not $event.resolution -or -not $event.verification -or $event.same_unresolved_cause_rehanded_off -ne $false))) { $errors.Add('reentry lineage or resolution missing') }
+                if ($handoff.reentry_count -ne $count -or ($count -gt 0 -and ($handoff.previous_reentry_trigger -cne $trigger -or $handoff.reentry_progress_evidence.trigger -cne $trigger -or -not $handoff.reentry_progress_evidence.resolution -or -not $handoff.reentry_progress_evidence.verification -or $handoff.reentry_progress_evidence.same_unresolved_cause_rehanded_off -ne $false))) { $errors.Add('handoff reentry lineage or resolution missing') }
                 if (($event.locked_decision_ids -join ',') -cne ($route.locked_decision_ids -join ',')) { $errors.Add('locked decisions changed') }
                 $phase = 'Child'
             }
@@ -212,6 +213,7 @@ function Get-ScenarioErrors([object] $Scenario) {
             }
             'complete' {
                 if ($phase -cne 'Child' -or $event.owner -cne 'child' -or $event.acceptance_complete -ne $true -or -not $event.validation_evidence) { $errors.Add('only validated child may complete') }
+                if ($event.approved_snapshot -cne $snapshot -or $event.structural_change -ne $false -or ($event.locked_decision_ids -join ',') -cne ($route.locked_decision_ids -join ',')) { $errors.Add('completion requires NEEDS_DECISION_SURFACE_REENTRY') }
                 foreach ($error in @(Get-ComparisonErrors (Get-Comparison $event) 'complete')) { $errors.Add($error) }
                 $phase = 'Complete'
             }
@@ -223,6 +225,8 @@ function Get-ScenarioErrors([object] $Scenario) {
 }
 
 if ($document.schema_version -ne 5) { $failures.Add('wrong fixture schema') }
+if ($document.contract -cne 'adaptive-implementation-execution') { $failures.Add('wrong fixture contract') }
+if (@($document.scenarios).Count -lt 15) { $failures.Add('insufficient routing scenarios') }
 foreach ($scenario in $document.scenarios) {
     $errors = @(Get-ScenarioErrors $scenario)
     if (($errors.Count -eq 0) -ne $scenario.valid) { $failures.Add("Scenario $($scenario.id): $($errors -join '; ')") }

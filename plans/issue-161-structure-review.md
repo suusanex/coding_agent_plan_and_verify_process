@@ -30,3 +30,11 @@ Adaptiveを親自身によるビルド可能な構造コード、人の実応答
 ## 検証結果
 
 Adaptive routing/contract、Design Pair、Plan Coverage、package境界、finalizerテスト、README navigation、APM 0.26.0でのAdaptive/Plan Coverage plugin生成・検証はPASS。runtimeはapm-packages/adaptive-implementation-execution/tests/runtime/issue-161/README.mdを参照。静的検証、runtime試験、実利用者による運用確認を区別する。
+
+## PR #162 remediation（2026-11-13）
+
+Copilot review 5874312924の8件をremote patchと現行codeへ照合した。6件を採用し、待機時Verdict、再transferの実handoff lineage、子完了時の構造整合、routing fixture入口、Plan Coverageの呼出契約・runtime evidence evaluatorを修正した。親子UI切替復元は同じ親session継続要件に反し、trigger未代入はreentry代入後に使用する正例で再現しないため不採用とした。VS Code同等呼出経路の未検証をusage-guideへ明記した。
+
+ASR hashの更新漏れと、全package CIで検出されたgoal-context-authoring / pr-review-remediationの既存qualification hash不整合も修正した。過去runtime PASSを新candidateの認定へ移していない。
+
+Adaptive契約/routing、Plan Coverage契約/qualification回帰、ASR 8 fixture、4 package qualification、Adaptive/Plan Coverage plugin生成（APM 0.26.0）、process boundary、diff whitespaceはPASS。レビューsource別判断とGit結果はlocal `.review/pr-162-resume/review-plan.md`に保存する。レビュー修正は既定設計の欠落補修であり、purpose変更や新しい設計判断はないためpurpose reviewの再起動は行わない。

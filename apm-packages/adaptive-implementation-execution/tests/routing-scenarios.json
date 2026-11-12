@@ -132,7 +132,8 @@
           "kind": "transfer",
           "locked_decision_ids": [],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -140,7 +141,10 @@
           "turn": 2,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": true,
@@ -248,7 +252,8 @@
           "kind": "transfer",
           "locked_decision_ids": [],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -256,7 +261,10 @@
           "turn": 2,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": true,
@@ -292,7 +300,8 @@
           "kind": "transfer",
           "locked_decision_ids": [],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -300,7 +309,10 @@
           "turn": 2,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": false,
@@ -346,7 +358,8 @@
           "kind": "transfer",
           "locked_decision_ids": [],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -354,7 +367,10 @@
           "turn": 2,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": false,
@@ -400,7 +416,8 @@
           "kind": "transfer",
           "locked_decision_ids": [],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -408,7 +425,10 @@
           "turn": 2,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": false,
@@ -454,7 +474,8 @@
           "kind": "transfer",
           "locked_decision_ids": [],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -462,7 +483,10 @@
           "turn": 2,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": false,
@@ -508,7 +532,8 @@
           "kind": "transfer",
           "locked_decision_ids": [],
           "reentry_count": 0,
-          "current_snapshot": "other"
+          "current_snapshot": "other",
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -516,7 +541,10 @@
           "turn": 2,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": false,
@@ -562,7 +590,8 @@
           "kind": "transfer",
           "locked_decision_ids": [],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -570,7 +599,10 @@
           "turn": 2,
           "owner": "parent",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": false,
@@ -616,7 +648,8 @@
           "kind": "transfer",
           "locked_decision_ids": [],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -624,7 +657,10 @@
           "turn": 2,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": false,
@@ -670,7 +706,8 @@
           "kind": "transfer",
           "locked_decision_ids": [],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -678,7 +715,10 @@
           "turn": 2,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": false,
@@ -724,7 +764,8 @@
           "kind": "transfer",
           "locked_decision_ids": [],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -732,7 +773,10 @@
           "turn": 2,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": false,
@@ -778,7 +822,8 @@
           "kind": "transfer",
           "locked_decision_ids": [],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -786,7 +831,10 @@
           "turn": 2,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": false,
@@ -833,7 +881,8 @@
           "locked_decision_ids": [],
           "reentry_count": 0,
           "current_snapshot": "sha256-structure-1",
-          "invalid_readiness": true
+          "invalid_readiness": true,
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -841,7 +890,10 @@
           "turn": 2,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": false,
@@ -888,7 +940,8 @@
           "locked_decision_ids": [],
           "reentry_count": 0,
           "current_snapshot": "sha256-structure-1",
-          "mapping_missing": true
+          "mapping_missing": true,
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -896,7 +949,10 @@
           "turn": 2,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": false,
@@ -942,7 +998,8 @@
           "kind": "transfer",
           "locked_decision_ids": [],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -950,7 +1007,10 @@
           "turn": 2,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": false,
@@ -996,7 +1056,8 @@
           "kind": "transfer",
           "locked_decision_ids": [],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -1004,7 +1065,10 @@
           "turn": 2,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": false,
@@ -1052,7 +1116,8 @@
             "fake"
           ],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -1060,7 +1125,10 @@
           "turn": 2,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": false,
@@ -1106,7 +1174,8 @@
           "kind": "transfer",
           "locked_decision_ids": [],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "trigger": "shared-contract-change",
@@ -1153,7 +1222,8 @@
           "locked_decision_ids": [],
           "same_unresolved_cause_rehanded_off": false,
           "resolution": "Updated shared contract",
-          "reentry_count": 1
+          "reentry_count": 1,
+          "handoff_ref": "reentry"
         },
         {
           "validation_evidence": "tests passed",
@@ -1161,7 +1231,10 @@
           "turn": 4,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-2",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": true,
@@ -1207,7 +1280,8 @@
           "kind": "transfer",
           "locked_decision_ids": [],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "trigger": "shared-contract-change",
@@ -1254,7 +1328,8 @@
           "locked_decision_ids": [],
           "same_unresolved_cause_rehanded_off": false,
           "resolution": "Updated shared contract",
-          "reentry_count": 1
+          "reentry_count": 1,
+          "handoff_ref": "reentry"
         },
         {
           "validation_evidence": "tests passed",
@@ -1262,7 +1337,10 @@
           "turn": 4,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-2",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": false,
@@ -1308,7 +1386,8 @@
           "kind": "transfer",
           "locked_decision_ids": [],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "trigger": "shared-contract-change",
@@ -1355,7 +1434,8 @@
           "locked_decision_ids": [],
           "same_unresolved_cause_rehanded_off": true,
           "resolution": "Updated shared contract",
-          "reentry_count": 1
+          "reentry_count": 1,
+          "handoff_ref": "reentry"
         },
         {
           "validation_evidence": "tests passed",
@@ -1363,7 +1443,10 @@
           "turn": 4,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-2",
+          "structural_change": false,
+          "locked_decision_ids": []
         }
       ],
       "valid": false,
@@ -1414,7 +1497,8 @@
             "DP-D01"
           ],
           "reentry_count": 0,
-          "current_snapshot": "sha256-structure-1"
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
         },
         {
           "validation_evidence": "focused tests passed",
@@ -1422,117 +1506,509 @@
           "turn": 2,
           "owner": "child",
           "kind": "complete",
-          "comparison_ref": "api"
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": [
+            "DP-D01"
+          ]
         }
       ],
       "valid": true,
       "expected_state": "Complete",
       "id": "design-pair-preserves-locked"
+    },
+    {
+      "route": {
+        "implementation_route_source": "default",
+        "design_pair_handoff": "N/A",
+        "locked_decision_ids": [],
+        "implementation_route": "adaptive"
+      },
+      "events": [
+        {
+          "kind": "parent",
+          "topology": "current-parent",
+          "turn": 1,
+          "model_changed": false
+        },
+        {
+          "turn": 1,
+          "snapshot": "sha256-structure-1",
+          "kind": "present",
+          "end_turn": true,
+          "production_build": "PASS",
+          "version": 1,
+          "details_implemented": false
+        },
+        {
+          "decision": "approve",
+          "version": 1,
+          "reference": "fixture-turn-2",
+          "snapshot": "sha256-structure-1",
+          "kind": "response",
+          "turn": 2,
+          "quote": "構造版1を承認します",
+          "author": "user"
+        },
+        {
+          "turn": 2,
+          "schema": "adaptive-structure-0.7",
+          "kind": "transfer",
+          "locked_decision_ids": [],
+          "reentry_count": 0,
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
+        },
+        {
+          "validation_evidence": "focused tests passed",
+          "acceptance_complete": true,
+          "turn": 2,
+          "owner": "child",
+          "kind": "complete",
+          "comparison_ref": "api",
+          "approved_snapshot": "stale",
+          "structural_change": false,
+          "locked_decision_ids": []
+        }
+      ],
+      "valid": false,
+      "expected_state": "Complete",
+      "id": "reject-completion-snapshot-drift"
+    },
+    {
+      "route": {
+        "implementation_route_source": "default",
+        "design_pair_handoff": "N/A",
+        "locked_decision_ids": [],
+        "implementation_route": "adaptive"
+      },
+      "events": [
+        {
+          "kind": "parent",
+          "topology": "current-parent",
+          "turn": 1,
+          "model_changed": false
+        },
+        {
+          "turn": 1,
+          "snapshot": "sha256-structure-1",
+          "kind": "present",
+          "end_turn": true,
+          "production_build": "PASS",
+          "version": 1,
+          "details_implemented": false
+        },
+        {
+          "decision": "approve",
+          "version": 1,
+          "reference": "fixture-turn-2",
+          "snapshot": "sha256-structure-1",
+          "kind": "response",
+          "turn": 2,
+          "quote": "構造版1を承認します",
+          "author": "user"
+        },
+        {
+          "turn": 2,
+          "schema": "adaptive-structure-0.7",
+          "kind": "transfer",
+          "locked_decision_ids": [],
+          "reentry_count": 0,
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
+        },
+        {
+          "validation_evidence": "focused tests passed",
+          "acceptance_complete": true,
+          "turn": 2,
+          "owner": "child",
+          "kind": "complete",
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": true,
+          "locked_decision_ids": []
+        }
+      ],
+      "valid": false,
+      "expected_state": "Complete",
+      "id": "reject-completion-structure-drift"
+    },
+    {
+      "route": {
+        "implementation_route_source": "default",
+        "design_pair_handoff": "N/A",
+        "locked_decision_ids": [],
+        "implementation_route": "adaptive"
+      },
+      "events": [
+        {
+          "kind": "parent",
+          "topology": "current-parent",
+          "turn": 1,
+          "model_changed": false
+        },
+        {
+          "turn": 1,
+          "snapshot": "sha256-structure-1",
+          "kind": "present",
+          "end_turn": true,
+          "production_build": "PASS",
+          "version": 1,
+          "details_implemented": false
+        },
+        {
+          "decision": "approve",
+          "version": 1,
+          "reference": "fixture-turn-2",
+          "snapshot": "sha256-structure-1",
+          "kind": "response",
+          "turn": 2,
+          "quote": "構造版1を承認します",
+          "author": "user"
+        },
+        {
+          "turn": 2,
+          "schema": "adaptive-structure-0.7",
+          "kind": "transfer",
+          "locked_decision_ids": [],
+          "reentry_count": 0,
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
+        },
+        {
+          "validation_evidence": "focused tests passed",
+          "acceptance_complete": true,
+          "turn": 2,
+          "owner": "child",
+          "kind": "complete",
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-1",
+          "structural_change": false,
+          "locked_decision_ids": [
+            "unexpected"
+          ]
+        }
+      ],
+      "valid": false,
+      "expected_state": "Complete",
+      "id": "reject-completion-locked-drift"
+    },
+    {
+      "route": {
+        "implementation_route_source": "default",
+        "design_pair_handoff": "N/A",
+        "locked_decision_ids": [],
+        "implementation_route": "adaptive"
+      },
+      "events": [
+        {
+          "kind": "parent",
+          "topology": "current-parent",
+          "turn": 1,
+          "model_changed": false
+        },
+        {
+          "turn": 1,
+          "snapshot": "sha256-structure-1",
+          "kind": "present",
+          "end_turn": true,
+          "production_build": "PASS",
+          "version": 1,
+          "details_implemented": false
+        },
+        {
+          "decision": "approve",
+          "version": 1,
+          "reference": "fixture-turn-2",
+          "snapshot": "sha256-structure-1",
+          "kind": "response",
+          "turn": 2,
+          "quote": "構造版1を承認します",
+          "author": "user"
+        },
+        {
+          "turn": 2,
+          "schema": "adaptive-structure-0.7",
+          "kind": "transfer",
+          "locked_decision_ids": [],
+          "reentry_count": 0,
+          "current_snapshot": "sha256-structure-1",
+          "handoff_ref": "initial"
+        },
+        {
+          "trigger": "shared-contract-change",
+          "implementation_route_source": "default",
+          "reentry_count": 1,
+          "design_pair_handoff": "N/A",
+          "implementation_route": "adaptive",
+          "kind": "reentry",
+          "turn": 2,
+          "structural_change": true
+        },
+        {
+          "kind": "parent",
+          "topology": "current-parent",
+          "turn": 3,
+          "model_changed": false
+        },
+        {
+          "turn": 3,
+          "snapshot": "sha256-structure-2",
+          "kind": "present",
+          "end_turn": true,
+          "production_build": "PASS",
+          "version": 2,
+          "details_implemented": false
+        },
+        {
+          "decision": "approve",
+          "version": 2,
+          "reference": "fixture-turn-4",
+          "snapshot": "sha256-structure-2",
+          "kind": "response",
+          "turn": 4,
+          "quote": "構造版2を承認します",
+          "author": "user"
+        },
+        {
+          "verification": "Production build passed and version 2 approved",
+          "kind": "transfer",
+          "trigger": "shared-contract-change",
+          "turn": 4,
+          "current_snapshot": "sha256-structure-2",
+          "schema": "adaptive-structure-0.7",
+          "locked_decision_ids": [],
+          "same_unresolved_cause_rehanded_off": false,
+          "resolution": "Updated shared contract",
+          "reentry_count": 1,
+          "handoff_ref": "initial"
+        },
+        {
+          "validation_evidence": "tests passed",
+          "acceptance_complete": true,
+          "turn": 4,
+          "owner": "child",
+          "kind": "complete",
+          "comparison_ref": "api",
+          "approved_snapshot": "sha256-structure-2",
+          "structural_change": false,
+          "locked_decision_ids": []
+        }
+      ],
+      "valid": false,
+      "expected_state": "Complete",
+      "id": "reject-completion-reentry-drift"
     }
   ],
   "schema_version": 5,
-  "handoff": {
-    "valid": true,
-    "ownership_transfer_basis": "human-approved-structure",
-    "comparison_ref": "api",
-    "implementation_evidence": [
-      "Production structure and XML contracts compile; details and tests deferred to child"
-    ],
-    "reentry_count": 0,
-    "previous_reentry_trigger": "N/A",
-    "reentry_progress_evidence": {
-      "trigger": "N/A",
-      "resolution": "N/A",
-      "verification": "N/A",
-      "same_unresolved_cause_rehanded_off": "N/A"
+  "contract": "adaptive-implementation-execution",
+  "handoff_examples": {
+    "initial": {
+      "valid": true,
+      "ownership_transfer_basis": "human-approved-structure",
+      "comparison_ref": "api",
+      "implementation_evidence": [
+        "Production structure and XML contracts compile; details and tests deferred to child"
+      ],
+      "reentry_count": 0,
+      "previous_reentry_trigger": "N/A",
+      "reentry_progress_evidence": {
+        "trigger": "N/A",
+        "resolution": "N/A",
+        "verification": "N/A",
+        "same_unresolved_cause_rehanded_off": "N/A"
+      },
+      "acceptance_status": [
+        {
+          "acceptance_item": "AC-1",
+          "status": "Incomplete",
+          "work_ids": [
+            "RW-1"
+          ],
+          "evidence": "Structure is buildable; runtime behavior remains for child"
+        }
+      ],
+      "remaining_work": [
+        {
+          "work_id": "RW-1",
+          "acceptance_items": [
+            "AC-1"
+          ],
+          "responsibility": "Complete equivalent mappings and tests",
+          "authorized_surface": [
+            "src/Queue",
+            "tests/Queue"
+          ],
+          "expected_behavior": "Complete method details and tests inside the approved structure",
+          "locked_boundaries": [
+            "IQueueConsumer signature",
+            "scoped registration",
+            "error propagation"
+          ],
+          "local_freedom": [
+            "private helpers",
+            "branch organization",
+            "fixture organization"
+          ],
+          "completion_check": [
+            "dotnet test --filter QueueConsumer",
+            "Compare actual diff with QueueConsumer.Consume; justify added state, ordering or bypass"
+          ]
+        }
+      ],
+      "allowed_edit_surface": [
+        "src/Queue",
+        "tests/Queue"
+      ],
+      "structure_readiness": {
+        "responsibility_ownership": {
+          "status": "Ready",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        },
+        "cross_file_ownership": {
+          "status": "Ready",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        },
+        "public_contract": {
+          "status": "Ready",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        },
+        "shared_internal_contract": {
+          "status": "N/A",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        },
+        "dependency_direction_new_dependency": {
+          "status": "N/A",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        },
+        "production_sequence": {
+          "status": "Ready",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        },
+        "di_factory_entrypoint_structure": {
+          "status": "Ready",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        },
+        "state_ownership": {
+          "status": "Ready",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        },
+        "binding_compliance": {
+          "status": "N/A",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        }
+      },
+      "deferred_to_child": [
+        "input validation",
+        "method bodies",
+        "private helpers",
+        "test architecture / seam / mock / harness",
+        "internal error / cancellation / retry control"
+      ]
     },
-    "acceptance_status": [
-      {
-        "acceptance_item": "AC-1",
-        "status": "Incomplete",
-        "work_ids": [
-          "RW-1"
-        ],
-        "evidence": "Structure is buildable; runtime behavior remains for child"
-      }
-    ],
-    "remaining_work": [
-      {
-        "work_id": "RW-1",
-        "acceptance_items": [
-          "AC-1"
-        ],
-        "responsibility": "Complete equivalent mappings and tests",
-        "authorized_surface": [
-          "src/Queue",
-          "tests/Queue"
-        ],
-        "expected_behavior": "Complete method details and tests inside the approved structure",
-        "locked_boundaries": [
-          "IQueueConsumer signature",
-          "scoped registration",
-          "error propagation"
-        ],
-        "local_freedom": [
-          "private helpers",
-          "branch organization",
-          "fixture organization"
-        ],
-        "completion_check": [
-          "dotnet test --filter QueueConsumer",
-          "Compare actual diff with QueueConsumer.Consume; justify added state, ordering or bypass"
-        ]
-      }
-    ],
-    "allowed_edit_surface": [
-      "src/Queue",
-      "tests/Queue"
-    ],
-    "structure_readiness": {
-      "responsibility_ownership": {
-        "status": "Ready",
-        "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+    "reentry": {
+      "valid": true,
+      "ownership_transfer_basis": "human-approved-structure",
+      "comparison_ref": "api",
+      "implementation_evidence": [
+        "Production structure and XML contracts compile; details and tests deferred to child"
+      ],
+      "reentry_count": 1,
+      "previous_reentry_trigger": "shared-contract-change",
+      "reentry_progress_evidence": {
+        "trigger": "shared-contract-change",
+        "resolution": "Updated shared contract",
+        "verification": "Production build PASS",
+        "same_unresolved_cause_rehanded_off": false
       },
-      "cross_file_ownership": {
-        "status": "Ready",
-        "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+      "acceptance_status": [
+        {
+          "acceptance_item": "AC-1",
+          "status": "Incomplete",
+          "work_ids": [
+            "RW-1"
+          ],
+          "evidence": "Structure is buildable; runtime behavior remains for child"
+        }
+      ],
+      "remaining_work": [
+        {
+          "work_id": "RW-1",
+          "acceptance_items": [
+            "AC-1"
+          ],
+          "responsibility": "Complete equivalent mappings and tests",
+          "authorized_surface": [
+            "src/Queue",
+            "tests/Queue"
+          ],
+          "expected_behavior": "Complete method details and tests inside the approved structure",
+          "locked_boundaries": [
+            "IQueueConsumer signature",
+            "scoped registration",
+            "error propagation"
+          ],
+          "local_freedom": [
+            "private helpers",
+            "branch organization",
+            "fixture organization"
+          ],
+          "completion_check": [
+            "dotnet test --filter QueueConsumer",
+            "Compare actual diff with QueueConsumer.Consume; justify added state, ordering or bypass"
+          ]
+        }
+      ],
+      "allowed_edit_surface": [
+        "src/Queue",
+        "tests/Queue"
+      ],
+      "structure_readiness": {
+        "responsibility_ownership": {
+          "status": "Ready",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        },
+        "cross_file_ownership": {
+          "status": "Ready",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        },
+        "public_contract": {
+          "status": "Ready",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        },
+        "shared_internal_contract": {
+          "status": "N/A",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        },
+        "dependency_direction_new_dependency": {
+          "status": "N/A",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        },
+        "production_sequence": {
+          "status": "Ready",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        },
+        "di_factory_entrypoint_structure": {
+          "status": "Ready",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        },
+        "state_ownership": {
+          "status": "Ready",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        },
+        "binding_compliance": {
+          "status": "N/A",
+          "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
+        }
       },
-      "public_contract": {
-        "status": "Ready",
-        "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
-      },
-      "shared_internal_contract": {
-        "status": "N/A",
-        "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
-      },
-      "dependency_direction_new_dependency": {
-        "status": "N/A",
-        "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
-      },
-      "production_sequence": {
-        "status": "Ready",
-        "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
-      },
-      "di_factory_entrypoint_structure": {
-        "status": "Ready",
-        "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
-      },
-      "state_ownership": {
-        "status": "Ready",
-        "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
-      },
-      "binding_compliance": {
-        "status": "N/A",
-        "evidence": "実コードの契約・依存・主要シーケンスを確認。動作検証は子へ残す。"
-      }
-    },
-    "deferred_to_child": [
-      "input validation",
-      "method bodies",
-      "private helpers",
-      "test architecture / seam / mock / harness",
-      "internal error / cancellation / retry control"
-    ]
-  },
-  "contract": "adaptive-implementation-execution"
+      "deferred_to_child": [
+        "input validation",
+        "method bodies",
+        "private helpers",
+        "test architecture / seam / mock / harness",
+        "internal error / cancellation / retry control"
+      ]
+    }
+  }
 }

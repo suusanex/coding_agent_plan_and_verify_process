@@ -1,6 +1,6 @@
 # Bounded Residual Implementation Handoff
 
-- Verdict: READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION
+- Verdict: AWAITING_STRUCTURE_REVIEW
 - Schema: adaptive-structure-0.7
 - Handoff persistence: tracked (standalone file / existing Living Record section)
 - Original Implementation Intent: <tracked path or goal / scope / acceptance / constraints / validation snapshot>
@@ -18,6 +18,8 @@
   - same_unresolved_cause_rehanded_off: N/A
 
 route identityはincoming durable stateから変更せず伝播する。current schemaの欠落、矛盾、Design Pair evidence不一致、旧agent名・旧0.5 schema、新旧混在schemaはnormalizationせず`BLOCKED / BlockedByInvalidCompletionHandoff`とする。
+
+待機中はVerdictとStructure review Statusを`AWAITING_STRUCTURE_REVIEW`とする。修正要求時は`CHANGES_REQUESTED`とし、次版の提示までREADYにしない。実応答・承認対象版・snapshot一致を確認してStatusが`APPROVED`となり、独立したStructure readinessとproduction buildも成功した場合だけ、Verdictを`READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION`へ更新する。Pendingの欄が残る状態でREADYを保存しない。
 
 ## Acceptance status
 

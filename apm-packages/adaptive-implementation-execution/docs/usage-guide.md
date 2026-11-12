@@ -10,6 +10,8 @@ scope / acceptanceが分かるPlanを`/adaptive-implementation-execution`へ渡�
 
 ## 提示・停止・再開
 
+親agentのfrontmatterは自動agent切替ボタンを提供しません。承認後は現在の親のsubagent/task呼出機能で子のcanonical契約とtracked handoffを渡し、子の返却を同じ親sessionで受け取ります。親子のUI切替をhandoff readinessや実承認の代用にしません。この呼出機能がないsurfaceでは子の開始前にBLOCKEDを返します。Copilot CLIのtask経路はruntime証跡を参照してください。VS Code UIの同等呼出経路は未検証です。
+
 変更/影響production projectのbuild後、[handoff](../.apm/skills/adaptive-implementation-execution/refs/handoff.md)をtracked保存し、コードsnapshot・構造版・未実装・build対象を提示してAWAITING_STRUCTURE_REVIEWでそのターンを終了します。実際の応答がなければresumeしても待機します。
 
 応答原文とturn、承認対象版を保存し、提示後の応答か、現在コードに構造変更がないか確認します。修正指示には親が構造修正・build・新版提示を行い、再び停止します。Design Pairのスキップは構造承認ではありません。

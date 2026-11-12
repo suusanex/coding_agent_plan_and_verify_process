@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "plan-coverage-residual-flow",
-  "canonicalFingerprint": "436a5d027c99b2da2cf49983e0ba19410824c8e57e1847b04ce1e7293c2206f3",
-  "distributionFingerprint": "1c59063e64e0148c2188510ca6c6163239cb155944df424e1a09446ae39d91b1",
+  "canonicalFingerprint": "49c82fbdf12b20c5b564a6abeca6d6dd9d8b8929e2c552cdc478a4f0dbb9689f",
+  "distributionFingerprint": "ce00bcaae909e5b751c7245f18eddff5d24afd2c1c89030ded54d46dc4f22bd9",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",

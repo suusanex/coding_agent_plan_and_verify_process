@@ -194,7 +194,7 @@ Run the flow in this order unless a stop condition applies:
    optional pre-stage後は現在の親が`decision-surface-implementation-owner.agent.md`を読み、構造codeとproduction buildを行う。人に構造を提示してAWAITING_STRUCTURE_REVIEWでそのturnを終了し、実承認とhandoff readiness後だけ子へ委譲する。
    - `READY_FOR_BOUNDED_RESIDUAL_IMPLEMENTATION`: validate the complete Bounded Residual Implementation Handoff, then run `bounded-residual-implementation-owner.agent.md` serially.
    - `AWAITING_STRUCTURE_REVIEW`: 既存state / Living Recordへ構造版・snapshot・提示turnを保存し、実応答まで停止する。
-   - `IMPLEMENTATION_COMPLETED`: 子のimplementation evidenceを集約してverificationへ進む。親単独の直接完了は不可。
+   - `IMPLEMENTATION_COMPLETED`: 子のimplementation evidenceを集約してverificationへ進む。承認版を保持した同じhandoff / Living Record sectionに`Completion owner: bounded-residual-implementation-owner`と`Completion verdict: IMPLEMENTATION_COMPLETED`、検証結果を保存する。親単独の直接完了は不可。
    - `NEEDS_DECISION_SURFACE_REENTRY`: stop the bounded-residual owner, preserve its re-entry handoff and current worktree, 元親が構造修正・build・必要な再レビュー停止を担当する。詳細は引き取らない。
    - `REPLAN_REQUIRED`, `HUMAN_DECISION_REQUIRED`, or `BLOCKED`: preserve the worktree and evidence, record the stop reason, and do not continue to verification.
    When Parent Plan Coverage, Behavior Case, slice, runtime-contract, test-point, implementation-contract, or gap bindings are supplied, every implementation owner emits an `Implementation Self-Map Delta` for the changes made in that phase. Use this exact schema so traceability survives decision-surface-implementation-owner -> bounded-residual-implementation-owner -> decision-surface-implementation-owner transitions:
