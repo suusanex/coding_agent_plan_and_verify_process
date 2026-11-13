@@ -75,6 +75,14 @@ internal static class CodexProfileFinalizer
 
         if (!Directory.Exists(locations.OverlaysRoot))
         {
+            // --global は正本の同期を明示要求する。探索先が無い成功は、更新済みと誤認させる。
+            // project-local の package 未導入は、任意実行の no-op として終了コード 0 を維持する。
+            if (options.Global)
+            {
+                Console.Error.WriteLine($"Codex profile finalizer failed: apm_modules directory is missing: {locations.OverlaysRoot}");
+                return 1;
+            }
+
             Console.WriteLine(options.Check
                 ? "Codex profile check: FAILED (apm_modules directory is missing)."
                 : "No apm_modules directory found; no Codex profile overlays are available.");
@@ -100,6 +108,12 @@ internal static class CodexProfileFinalizer
 
         if (overlays.Count == 0 && parentBinding.Contract is null)
         {
+            if (options.Global)
+            {
+                Console.Error.WriteLine($"Codex profile finalizer failed: no Codex profile overlays found under {locations.OverlaysRoot}.");
+                return 1;
+            }
+
             Console.WriteLine(options.Check
                 ? "Codex profile check: FAILED (no Codex profile overlays found)."
                 : "No Codex profile overlays found.");
