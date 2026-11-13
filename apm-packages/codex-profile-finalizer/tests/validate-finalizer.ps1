@@ -303,6 +303,16 @@ developer_instructions = "OLD_KEPT_USER_EDITED_BODY"
         }
         $env:APM_HOME = $globalApmHome
         $env:CODEX_HOME = $globalCodexHome
+        $missingModules = Invoke-Finalizer @('--global')
+        Assert-True ($missingModules.ExitCode -ne 0 -and $missingModules.Output -match 'apm_modules directory is missing') 'Global run treated a missing apm_modules directory as success.'
+        $missingDry = Invoke-Finalizer @('--global', '--dry-run')
+        Assert-True ($missingDry.ExitCode -ne 0) 'Global dry-run treated a missing apm_modules directory as success.'
+        $missingCheck = Invoke-Finalizer @('--global', '--check')
+        Assert-True ($missingCheck.ExitCode -ne 0) 'Global check treated a missing apm_modules directory as success.'
+        New-Item -ItemType Directory -Path (Join-Path $globalApmHome 'apm_modules') -Force | Out-Null
+        $missingOverlays = Invoke-Finalizer @('--global')
+        Assert-True ($missingOverlays.ExitCode -ne 0 -and $missingOverlays.Output -match 'no Codex profile overlays found') 'Global run treated missing overlays as success.'
+        Assert-True (-not (Test-Path -LiteralPath (Join-Path $globalCodexHome 'agents'))) 'Global failure created the Codex agents directory.'
         Write-AdaptivePackage $globalApmHome 'gpt-5.6-luna'
         $globalAgents = Join-Path $globalCodexHome 'agents'
         New-Item -ItemType Directory -Path $globalAgents -Force | Out-Null

@@ -23,6 +23,8 @@ dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\fina
 dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- --global --check
 ```
 
+正本の `apm_modules` または Codex profile overlay が見つからない `--global` は、終了コード 1 で失敗します。成功にはなりません。
+
 finalizerは次の管理対象Codex agentだけを、導入済みパッケージのcanonical `.agent.md` とCodex profile overlayから再生成します。APMが `Kept user-edited file` として旧TOMLを残しても、通常実行で正本へ戻します。この同期に `--force` は不要です。
 
 - `decision-surface-implementation-owner.toml`

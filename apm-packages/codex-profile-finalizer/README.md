@@ -19,7 +19,7 @@ project-local導入:
     dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- --global
     dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- --global --check
 
-`--global` は `APM_HOME`（未設定時は `~/.apm`）の `apm_modules` を正本の探索先にし、`CODEX_HOME`（未設定時は `~/.codex`）の `agents` へ管理対象を同期します。`--dry-run` は予定変更を表示します。管理対象以外で、明示済み concrete profile の異値を package推奨値へ更新する場合だけ `--force` を使います。異なる package overlay の競合は `--force` でも停止します。
+`--global` は `APM_HOME`（未設定時は `~/.apm`）の `apm_modules` を正本の探索先にし、`CODEX_HOME`（未設定時は `~/.codex`）の `agents` へ管理対象を同期します。この探索先が無い、または Codex profile overlay が1件も無い `--global` は、通常実行と `--dry-run` も終了コード 1 で失敗します。package未導入の project-local 実行は、何も変更せず終了コード 0 です。`--dry-run` は予定変更を表示します。管理対象以外で、明示済み concrete profile の異値を package推奨値へ更新する場合だけ `--force` を使います。異なる package overlay の競合は `--force` でも停止します。
 
 各 owning package の `codex-profile-overlays.json` は、`schemaVersion`、`package`、`profiles`を持ち、各entryに`agent`、`model`、`model_reasoning_effort`、`sandbox_mode`を直接記述します。portable agent contractはpackage-owned `.apm/agents/*.agent.md`が唯一の正本です。配置済みTOMLは正本にしません。
 
