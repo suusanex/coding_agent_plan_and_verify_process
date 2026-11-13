@@ -140,7 +140,7 @@ Expected:
 
 - Adaptive packageとDesign Pair packageをco-installする
 - APMがmodel-less TOMLを生成する場合は`finalize-codex-agent-profiles.cs`で補完する
-- finalizerの`--check`が親のmodel pin不在と子のmodel mapping、reasoning、sandboxを検証する
+- finalizerの`--check`が親のmodel pin不在、子のmodel mapping、reasoning、sandbox、および両agentのcanonical本文一致を検証する
 - Design Pair package単体のinstallを完成済みCodex execution profileと表現しない
 
 ## DP-VAL-012: Portable agent route contract

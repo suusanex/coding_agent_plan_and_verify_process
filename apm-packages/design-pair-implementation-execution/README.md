@@ -65,7 +65,7 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target codex,agent-skills
 ```
 
-APM が concrete model / reasoning / sandbox 設定を持たない custom agent TOML を生成する環境では、導入済みmoduleの共通 finalizer で 子bounded-residual-implementation-owner profileだけを補完します。
+APM が管理対象agentの旧本文を残す、または concrete model / reasoning / sandbox を持たない custom agent TOML を生成する環境では、導入済みmoduleの共通 finalizer で `decision-surface-implementation-owner` と `bounded-residual-implementation-owner` をcanonical定義へ同期します。子だけがCodex profileを持ちます。同名TOMLの独自編集は上書きされます。
 
 ```powershell
 dotnet run --file .\apm_modules\suusanex\coding_agent_plan_and_verify_process\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs -- .
