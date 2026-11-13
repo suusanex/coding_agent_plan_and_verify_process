@@ -28,7 +28,7 @@ $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
 dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
 ```
 
-APM installがSkillとportable agentsを導入し、finalizerが子のCodex用TOMLのconcrete model / reasoning / sandbox profileだけを補完します（親は選択済みmodelを維持）。APMが同等の設定を生成済みならfinalizerはno-opになります。dry-run、check、force、更新・削除は[Adaptive install guide](apm-packages/adaptive-implementation-execution/docs/install-guide.md)を参照してください。
+APM installがSkillとportable agentsを導入します。finalizerは管理対象の `decision-surface-implementation-owner.toml` と `bounded-residual-implementation-owner.toml` を導入済みcanonical本文へ同期し、子のCodex profileだけを補完します。親は選択済みmodelを維持します。この同名TOMLの独自編集は上書きされます。dry-run、check、global更新後の手順は[Adaptive install guide](apm-packages/adaptive-implementation-execution/docs/install-guide.md)を参照してください。
 
 ### 実装前に内部設計も対話して決めたい
 
@@ -79,7 +79,7 @@ $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
 dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
 ```
 
-APM installがportable agentsとSkillを導入し、finalizerが必要なCodex profile fieldだけを補完します。Plan Coverage manifestはAdaptiveと共通finalizerをdependencyとして持つため、Adaptiveやfinalizer packageを別途installする必要はありません。implementation stageでDesign Pairを使う場合だけDesign Pair packageを追加します。
+APM installがportable agentsとSkillを導入し、finalizerがAdaptiveの管理対象Codex agentをcanonical定義へ同期して、必要なCodex profile fieldを補完します。Plan Coverage manifestはAdaptiveと共通finalizerをdependencyとして持つため、Adaptiveやfinalizer packageを別途installする必要はありません。implementation stageでDesign Pairを使う場合だけDesign Pair packageを追加します。
 
 ## Processの関係
 
@@ -112,7 +112,7 @@ APM installがportable agentsとSkillを導入し、finalizerが必要なCodex p
 
    Persistent Purpose Reviewを含める場合、このrepository向けinstallとは別に、[Persistent Purpose Review](apm-packages/persistent-purpose-review/README.md)の手順でRunnerとSkillを実行環境へ導入します。
 
-Adaptive、Design Pair、Plan CoverageのQuickstartを個別に実行する場合は、APMの導入結果を確認してからfinalizerを実行します。PR Review Remediation単体では実行しません。異なる明示済みprofileを更新する場合だけ、保守文書の手順に従って`--force`を使います。
+Adaptive、Design Pair、Plan CoverageのQuickstartを個別に実行する場合は、APMの導入結果を確認してからfinalizerを実行します。PR Review Remediation単体では実行しません。Adaptiveの管理対象agentはfinalizerの通常実行で同期されます。それ以外の明示済みprofileを更新する場合だけ、保守文書の手順に従って`--force`を使います。
 
 ## 開発支援ツール
 

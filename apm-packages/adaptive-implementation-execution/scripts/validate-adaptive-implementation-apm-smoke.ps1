@@ -194,6 +194,46 @@ try {
     Assert-Contains $codexDecisionOwner 'human-approved-structure' 'Codex decision-surface transfer basis'
     Assert-Contains $codexResidualOwner 'method body' 'Codex bounded-residual local autonomy'
 
+    $unrelatedAgent = Join-Path $scratch '.codex/agents/unrelated-agent.toml'
+    Set-Content -LiteralPath $unrelatedAgent -Value 'name = "unrelated-agent"' -NoNewline
+    $unrelatedHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $unrelatedAgent).Hash
+    $copilotDuringSync = (Get-FileHash -Algorithm SHA256 -LiteralPath $copilotDecisionOwner).Hash
+    foreach ($agent in @('decision-surface-implementation-owner', 'bounded-residual-implementation-owner')) {
+        Set-Content -LiteralPath (Join-Path $scratch ".codex/agents/$agent.toml") -Value @"
+name = "$agent"
+description = "stale kept user-edited projection"
+developer_instructions = "OLD_KEPT_USER_EDITED_BODY"
+model = "old-model"
+model_reasoning_effort = "low"
+sandbox_mode = "read-only"
+"@
+    }
+    & dotnet run --file $finalizer -- $scratch --check
+    if ($LASTEXITCODE -eq 0) {
+        throw 'Kept user-edited Codex agents passed --check.'
+    }
+    Invoke-Native 'dotnet' @('run', '--file', $finalizer, '--', $scratch) 'canonical sync of kept user-edited Codex agents'
+    Invoke-Native 'dotnet' @('run', '--file', $finalizer, '--', $scratch, '--check') 'canonical sync check after kept user-edited repair'
+    Assert-NotContains $codexDecisionOwner 'OLD_KEPT_USER_EDITED_BODY' 'kept parent body'
+    Assert-NotContains $codexResidualOwner 'OLD_KEPT_USER_EDITED_BODY' 'kept child body'
+    Assert-NotContains $codexDecisionOwner '(?m)^(model|model_reasoning_effort|sandbox_mode)\s*=' 'Codex decision-surface model after canonical sync'
+    Assert-Contains $codexResidualOwner '(?m)^model\s*=\s*"gpt-6-luna"\s*$' 'Codex bounded-residual model after canonical sync'
+    Assert-Contains $codexDecisionOwner 'human-approved-structure' 'canonical parent body after kept-file sync'
+    Assert-Contains $codexResidualOwner 'method body' 'canonical child body after kept-file sync'
+    $syncedParent = (Get-FileHash -Algorithm SHA256 -LiteralPath $codexDecisionOwner).Hash
+    $syncedChild = (Get-FileHash -Algorithm SHA256 -LiteralPath $codexResidualOwner).Hash
+    Invoke-Native 'dotnet' @('run', '--file', $finalizer, '--', $scratch) 'idempotent canonical sync'
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $codexDecisionOwner).Hash -ne $syncedParent -or
+        (Get-FileHash -Algorithm SHA256 -LiteralPath $codexResidualOwner).Hash -ne $syncedChild) {
+        throw 'Idempotent finalizer changed managed Codex agents.'
+    }
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $unrelatedAgent).Hash -ne $unrelatedHash) {
+        throw 'Finalizer changed an unrelated Codex agent.'
+    }
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $copilotDecisionOwner).Hash -ne $copilotDuringSync) {
+        throw 'Finalizer changed a Copilot agent while synchronizing Codex agents.'
+    }
+
     if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scratch 'AGENTS.md')).Hash -ne $agentsHash) {
         throw 'Remote APM install or Codex finalizer changed AGENTS.md.'
     }

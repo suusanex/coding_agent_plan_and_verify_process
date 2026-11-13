@@ -26,6 +26,8 @@ $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
 dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- .
 ```
 
+`decision-surface-implementation-owner.toml` と `bounded-residual-implementation-owner.toml` は、finalizerが導入済みcanonical定義へ上書きします。APMが旧ファイルを残しても同じです。独自編集を残したい場合は、このagent名を併用せず、別名で管理するかパッケージをフォークしてください。`apm update --global` 後は `--global` を付けて同期します。手順は[Install Guide](docs/install-guide.md)を参照してください。
+
 ```text
 /adaptive-implementation-execution plans/issue-123.md を実装してください。
 ```
@@ -43,7 +45,7 @@ dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\fina
 
 ## Breaking change in 0.7.0
 
-0.6以前の上位直接完了・別上位起動・全decision解消後のtransferを置換しました。旧handoffを自動変換しません。進行中runは旧版で完了するか、元intentから新規に構造レビューを行います。既存の親projectionにmodel pinが残る場合、package管理下の旧projectionを確認して削除・再導入します。ユーザー独自設定を自動上書きしません。
+0.6以前の上位直接完了・別上位起動・全decision解消後のtransferを置換しました。旧handoffを自動変換しません。進行中runは旧版で完了するか、元intentから新規に構造レビューを行います。管理対象の親・子Codex agent TOMLに旧本文や親のmodel pinが残る場合は、finalizerの通常実行でcanonical定義へ同期します。削除して再導入する必要はありません。
 
 既存比較と実装後diff照合、Design Pair Locked Decisions、route identity、Plan Coverage bindingsは維持します。Plan Coverage全体・Design Pair対話・最終独立reviewは再設計しません。APMがsupported distributionであり、過去のdated実model証拠を0.7の挙動保証へ流用しません。
 

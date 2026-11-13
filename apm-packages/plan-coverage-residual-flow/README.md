@@ -30,7 +30,7 @@ dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\fina
 suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
 ```
 
-manifestはPlan Coverage package-owned `.apm` primitivesを`includes: auto`で配布し、Adaptive Implementationはseparate package boundary（`apm-packages/adaptive-implementation-execution`）へのdependencyで解決します。decision-surface / bounded-residual owner agentsとAdaptive Implementation SkillのownershipはAdaptive package側に残り、Plan Coverageへ複製しません。共通finalizerがpackage-owned overlayを検証してCodex concrete profileを補完するため、Plan Coverageの通常導入でAdaptive packageやfinalizer packageを別途installする必要はありません。implementation stageでDesign Pairを使う場合だけ、[Design Pair Implementation Execution](../design-pair-implementation-execution/README.md)も対象repositoryへ導入し、flow開始時に明示選択します。
+manifestはPlan Coverage package-owned `.apm` primitivesを`includes: auto`で配布し、Adaptive Implementationはseparate package boundary（`apm-packages/adaptive-implementation-execution`）へのdependencyで解決します。decision-surface / bounded-residual owner agentsとAdaptive Implementation SkillのownershipはAdaptive package側に残り、Plan Coverageへ複製しません。共通finalizerがpackage-owned overlayを検証してCodex concrete profileを補完し、Adaptiveの管理対象である同名Codex agent TOMLはcanonical本文へ上書きします。Plan Coverageの通常導入でAdaptive packageやfinalizer packageを別途installする必要はありません。implementation stageでDesign Pairを使う場合だけ、[Design Pair Implementation Execution](../design-pair-implementation-execution/README.md)も対象repositoryへ導入し、flow開始時に明示選択します。
 
 ## Canonical source and runtime projections
 
