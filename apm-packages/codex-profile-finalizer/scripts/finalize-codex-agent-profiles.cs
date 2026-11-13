@@ -746,7 +746,7 @@ internal static class CodexProfileFinalizer
                     break;
                 case "--help": case "-h": throw new ArgumentException("help");
                 default:
-                    if (arg.StartsWith('-', StringComparison.Ordinal) || targetSet || global)
+                    if (arg.StartsWith("-", StringComparison.Ordinal) || targetSet || global)
                     {
                         throw new ArgumentException($"Unknown or duplicate argument: {arg}");
                     }
