@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param()
 
 $ErrorActionPreference = 'Stop'
@@ -63,6 +63,14 @@ if ($skill -notmatch '初期設計' -or $skill -notmatch '重要な変更' -or $
 if ($skill -notmatch '目的の引用文と根拠sourceはinputへ埋め込む' -or $skill -notmatch '承認を代行しない') {
     throw 'Skill does not preserve source-embedded authority and review/approval separation.'
 }
+if ($skill -notmatch 'Solution Shape' -or
+    $skill -notmatch 'proposal\.body' -or
+    $skill -notmatch 'evidence' -or
+    $skill -notmatch 'solution-shape-authoring.*前提にせず' -or
+    $skill -notmatch 'findingや停止理由にしない' -or
+    $skill -notmatch '`approvedDesign`へ自動昇格させない') {
+    throw 'Skill does not document optional Solution Shape boundary and non-promotion contract.'
+}
 if ($skill -notmatch '`COMPLETE`はレビューの完了だけを示し、提案や目的の承認を意味しない' -or
     $skill -notmatch '同じ`taskKey`、新しい`changeId`、直近の`COMPLETE` runを指す`previousRunId`' -or
     $skill -notmatch '実際に承認済みのbaselineだけ' -or
@@ -97,6 +105,14 @@ if ($readme -notmatch '`COMPLETE`はそのreviewの完了であり、proposalや
     $readme -notmatch '実際の承認がなければ前のbaseline（nullならnull）を維持し' -or
     $readme -notmatch '同じ承認を再度求めません') {
     throw 'Package README must explain COMPLETE lineage and approved-baseline provenance.'
+}
+if ($readme -notmatch 'Solution Shape' -or
+    $readme -notmatch 'proposal\.body' -or
+    $readme -notmatch 'evidence' -or
+    $readme -notmatch '添付は任意です' -or
+    $readme -notmatch 'findingやblockerにしません' -or
+    $readme -notmatch '`approvedDesign`へ自動昇格せず') {
+    throw 'Package README must document optional Solution Shape integration, non-mandatory review contract, and non-promotion to approvedDesign.'
 }
 if ($safetyEvidence -notmatch '当時のRunnerはCodexをfail closedにした' -or
     $safetyEvidence -notmatch '2026-10-29 Issue #150方針更新後のCodex実行境界' -or

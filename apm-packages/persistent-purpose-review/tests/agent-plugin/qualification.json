@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "persistent-purpose-review",
-  "canonicalFingerprint": "d193450dbbdb07463cc609061f96788cb8840e7a81837025b1076c0c0f742779",
-  "distributionFingerprint": "130f0deec250aaf0e0dfdac506b9829415ecfaeabe3d88af3682812191ea6a2d",
+  "canonicalFingerprint": "d7a77a94aa17ac06a8cbd80e6edf83c3fb7edca210ed025873ed7c47c97be2be",
+  "distributionFingerprint": "6efab832fcf7c3616e205438ea5a6e9e6fa0a3ff496950b90bc2023344c5f05b",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",

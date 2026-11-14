@@ -31,7 +31,7 @@ dotnet run --file <installer.cs> -- <target> --check
 
 Plan Coverageのcanonical authoring sourceは`apm-packages/plan-coverage-residual-flow/.apm/`です。source repository rootにpackage runtime projection（`.github/agents/`、`.github/instructions/`、`.codex/agents/`、`.agents/skills/`）をchecked-inしません。canonical contractを修正するときは`.apm`を修正し、runtime projectionの正しさはAPM install smokeで検証します。
 
-同じownershipを6つのprocess packageへ適用します。Agent Plugin artifactはpackage rootへchecked-inせず、共通builderがtemporary stageで`apm pack --format plugin`を実行します。
+同じownershipを7つのprocess packageへ適用します。Agent Plugin artifactはpackage rootへchecked-inせず、共通builderがtemporary stageで`apm pack --format plugin`を実行します。
 
 ```powershell
 $moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
@@ -88,7 +88,7 @@ repository rootから、変更したownership surfaceに対応するcheckを実�
 | Agent Plugin package matrix | package-local Agent Plugin input | 変更packageのbundle、provenance、qualification record | 他packageの同一検査 |
 | Repository Layout workflow | 全pull request | source rootにruntime projectionが存在しないこと | package semantics |
 
-Goal Context Authoringはgeneration promptを中心資産とし、package固有のvalidatorやsemantic regression testを持ちません。promptや生成結果の意味品質は、このvalidation matrixの対象には含めません。
+Goal Context AuthoringとSolution Shape Authoringはauthoring promptを中心資産とし、独立したruntime実行器を持ちません。promptや生成結果の意味品質は、このvalidation matrixの対象には含めません。
 
 cross-package compatibilityと変更scopeはBCLだけのFile-based Appで検証します。
 

@@ -10,7 +10,7 @@ GitHub Copilot / CodexでPlan-first開発を行うためのAPM processes、agent
 - 実装前に既存codeに基づく判断資料を読み、論点ごとに質問・確定・スキップする。
 - Ready PRを独立reviewし、修正と目的照合まで進める。
 - bounded Planから実装、検証、残件判断までのcoverageを維持する。
-- Goal Context作成や、Codex完了eventの保存・閲覧を補助する。
+- Goal Context・Solution Shape作成や、Codex完了eventの保存・閲覧を補助する。
 
 APM process packageは基本的に利用するwork repositoryごとに導入します。Persistent Purpose Review Skillは実行環境へ`--global`、Notification RuntimeはPCのuser-level設定、Codex Local InboxはWindows applicationであり、導入scopeが異なります。
 
@@ -69,7 +69,7 @@ purpose-review-runner version
 
 [Plan Coverage Check and Residual Decision Flow](apm-packages/plan-coverage-residual-flow/README.md)は、bounded Planをsource of truthとしてcoverageを追跡し、必要なimplementation / runtime / test design guardrail、Adaptive Implementation、verification、Residual Decisionをつなぎます。広い要求も`full-coverage` routeでArchitecture Slice ReadinessからResidual Decisionまで扱います。
 
-各process packageの現時点のsupported installationはAPM経由です。Agent Plugins bundleは同じpackage-local canonical sourceから6 packageすべてで継続的に生成・検証し、direct plugin installを一律に通常導入方法とは扱いません。[Agent Plugins採用方針](docs/agent-plugin-adoption-strategy.md)と[runtime qualification matrix](docs/agent-plugin-runtime-qualification.md)で、APM・runtime qualification・direct deploymentの境界と昇格条件を定義しています。
+各process packageの現時点のsupported installationはAPM経由です。Agent Plugins bundleは同じpackage-local canonical sourceから7 packageすべてで継続的に生成・検証し、direct plugin installを一律に通常導入方法とは扱いません。[Agent Plugins採用方針](docs/agent-plugin-adoption-strategy.md)と[runtime qualification matrix](docs/agent-plugin-runtime-qualification.md)で、APM・runtime qualification・direct deploymentの境界と昇格条件を定義しています。
 
 導入先repositoryのrootで、必要なpackageをAPMから導入します。
 
@@ -122,6 +122,14 @@ Adaptive、Design Pair、Plan CoverageのQuickstartを個別に実行する場�
 
 ```powershell
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/goal-context-authoring --target copilot,codex,agent-skills
+```
+
+### Solution Shape Authoring
+
+[Solution Shape Authoring](apm-packages/solution-shape-authoring/README.md)は、大きな実装計画や詳細設計の前に軽量な実現構成スケッチ（構成・責務配置、機能配置、代表的な実行経路）をMarkdownで作成する独立Skillです。作成したスケッチはそのまま共有できるほか、任意で[Persistent Purpose Review](apm-packages/persistent-purpose-review/README.md)の`proposal.body`や`evidence`へ渡せます（未添付でもPurpose Reviewの前提やblockerにはなりません）。
+
+```powershell
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/solution-shape-authoring --target copilot,codex,agent-skills
 ```
 
 ### Completion Notification / Runtime / Inbox

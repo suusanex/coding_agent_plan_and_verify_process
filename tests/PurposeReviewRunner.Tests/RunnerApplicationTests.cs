@@ -98,6 +98,55 @@ public sealed class RunnerApplicationTests
     }
 
     [TestMethod]
+    public async Task StartAcceptsOptionalSolutionShapeInProposalAndEvidenceWithoutSchemaChanges()
+    {
+        using var fixture = new RunnerFixture("copilot");
+        const string proposalShape = "## Solution Shape SOLUTION-SHAPE-PROPOSAL-BODY\n- Logical Intake -> In-Memory Handler\n- Representative flow: read input once and emit result.";
+        const string alternateEvidenceShape = "## Alternate Solution Shape SOLUTION-SHAPE-ALT-EVIDENCE\n- Queue worker option omitted to avoid extra hop.";
+        var input = RunnerFixture.CreateInput() with
+        {
+            Proposal = new ProposalDocument("proposal-v2", proposalShape, "optional solution shape sketch"),
+            Evidence = [new EvidenceItem("solution-shape-alt", "docs/shape-alt.md", alternateEvidenceShape)]
+        };
+
+        var prompt = PromptBuilder.BuildStart(input);
+        StringAssert.Contains(prompt, "SOLUTION-SHAPE-PROPOSAL-BODY");
+        StringAssert.Contains(prompt, "SOLUTION-SHAPE-ALT-EVIDENCE");
+        StringAssert.Contains(prompt, "optional solution shape sketch");
+
+        fixture.Process.Reviews.Enqueue(Review("COMPLETE"));
+        var start = await fixture.Application.ExecuteAsync(
+            new StartCommand(fixture.Repository, fixture.WriteInput(input)),
+            CancellationToken.None);
+
+        Assert.AreEqual(ReviewStatuses.Complete, start.Output.Status);
+        Assert.AreEqual(JobStatuses.Succeeded, start.Output.JobStatus);
+        Assert.AreEqual("design-v1", start.Output.InputBinding!.ApprovedDesignVersion);
+        Assert.AreEqual("proposal-v2", start.Output.InputBinding.ProposalVersion);
+        StringAssert.Contains(fixture.Process.Requests[0].StandardInput!, "SOLUTION-SHAPE-PROPOSAL-BODY");
+        StringAssert.Contains(fixture.Process.Requests[0].StandardInput!, "SOLUTION-SHAPE-ALT-EVIDENCE");
+    }
+
+    [TestMethod]
+    public async Task StartSucceedsWhenSolutionShapeIsOmitted()
+    {
+        using var fixture = new RunnerFixture("copilot");
+        var input = RunnerFixture.CreateInput();
+
+        var prompt = PromptBuilder.BuildStart(input);
+        StringAssert.Contains(prompt, "proposed change");
+
+        fixture.Process.Reviews.Enqueue(Review("COMPLETE"));
+        var start = await fixture.Application.ExecuteAsync(
+            new StartCommand(fixture.Repository, fixture.WriteInput(input)),
+            CancellationToken.None);
+
+        Assert.AreEqual(ReviewStatuses.Complete, start.Output.Status);
+        Assert.AreEqual(JobStatuses.Succeeded, start.Output.JobStatus);
+        Assert.IsFalse(fixture.Process.Requests[0].StandardInput!.Contains("Solution Shape", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [TestMethod]
     public async Task MalformedReviewerResponseIsSavedBeforeProtocolParse()
     {
         using var fixture = new RunnerFixture("copilot");

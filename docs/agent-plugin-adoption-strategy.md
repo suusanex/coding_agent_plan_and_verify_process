@@ -24,7 +24,7 @@
 
 ## Repository-wide package structure
 
-対象process packageは、Adaptive Implementation、Design Pair、Goal Context Authoring、PR Review Remediation、Persistent Purpose Review、Plan Coverageである。各packageは`.apm/**`だけをprocess semanticsの正本とし、`tests/agent-plugin/contract.json`でowned asset、APM target、dependency、runtime boundaryを宣言する。
+対象process packageは、Adaptive Implementation、Design Pair、Goal Context Authoring、PR Review Remediation、Persistent Purpose Review、Plan Coverage、Solution Shape Authoringである。各packageは`.apm/**`だけをprocess semanticsの正本とし、`tests/agent-plugin/contract.json`でowned asset、APM target、dependency、runtime boundaryを宣言する。
 
 共通builderとvalidatorは`scripts/agent-plugins/`に置く。Plan Coverage固有のPoC scenario、Adaptive attestation、rich runtime evidenceはpackage側へ残すが、別packageへそのscriptをコピーしない。
 
@@ -49,7 +49,7 @@
 - APM source/install 経路、Adaptive attestation、dependency boundary を壊していないこと。
 - committed qualification / PoC result のschema、invariant、canonical/distribution fingerprint、candidate evidence比較を検証すること。
 
-通常CIは変更されたpackageだけをmatrixでpackし、package-local contract、canonical equivalence、lock integrity、dependency非inline、negative mutation、committed qualification recordを検査する。共通builder、schema、qualification基盤を変更した場合だけ全6 packageを実行する。root projection不在は全PRで起動するRepository Layout workflowが一度だけ検査する。
+通常CIは変更されたpackageだけをmatrixでpackし、package-local contract、canonical equivalence、lock integrity、dependency非inline、negative mutation、committed qualification recordを検査する。共通builder、schema、qualification基盤を変更した場合だけ全7 packageを実行する。root projection不在は全PRで起動するRepository Layout workflowが一度だけ検査する。
 
 次の項目は通常 regression CI ではなく、明示的な runtime qualification evidence として扱う。
 
