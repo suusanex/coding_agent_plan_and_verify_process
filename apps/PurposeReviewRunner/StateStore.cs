@@ -99,6 +99,11 @@ public sealed class StateStore
             state.ReviewHistory is null || state.ReviewHistory.Count == 0 || state.ReviewHistory.Any(item => item is null || item.Round < 1 || item.Findings is null || item.InformationRequests is null) ||
             state.Round < 1 ||
             state.Status is not (ReviewStatuses.Findings or ReviewStatuses.Complete or ReviewStatuses.HumanDecisionRequired or ReviewStatuses.ReviewBudgetExhausted or ReviewStatuses.Blocked or ReviewStatuses.Error) ||
+            (state.Status == ReviewStatuses.ReviewBudgetExhausted &&
+             (state.ReviewRounds != state.AuthorizedReviewRounds ||
+              state.ReviewHistory[^1].Status != ReviewStatuses.ReviewBudgetExhausted ||
+              string.IsNullOrWhiteSpace(state.ReviewHistory[^1].Message) ||
+              state.ReviewHistory[^1].Findings.Count == 0)) ||
             state.Provider is null || state.Provider.Provider is not ("codex" or "copilot") ||
             string.IsNullOrWhiteSpace(state.Provider.Executable) || !Path.IsPathFullyQualified(state.Provider.Executable) ||
             string.IsNullOrWhiteSpace(state.Provider.Model) || string.IsNullOrWhiteSpace(state.Provider.ReasoningEffort))
