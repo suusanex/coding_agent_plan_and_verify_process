@@ -57,6 +57,26 @@ if ($skill -notmatch '削除・緩和' -or $skill -notmatch 'null' -or $skill -n
 if ($skill -notmatch '最大3回' -or $skill -notmatch 'reviewRounds' -or $skill -notmatch 'terminal' -or $skill -notmatch '識別子を変えたりして上限を回避しない' -or $skill -notmatch '既に消費したreview round数（`reviewRounds`）と過去履歴を引き継ぐ') {
     throw 'Skill does not preserve linked review round budget and terminal rules.'
 }
+if ($skill -notmatch 'Grok Buildのheadless実行' -or
+    $skill -notmatch '-p --output-format streaming-json' -or
+    $skill -notmatch '同じprompt turn' -or
+    $skill -notmatch 'long-running-background-tasks.*monitor' -or
+    $skill -notmatch '15秒' -or
+    $skill -notmatch '15分') {
+    throw 'Skill does not define bounded same-turn polling for Grok Build headless callers.'
+}
+if ($skill -notmatch 'RUNNING' -or
+    $skill -notmatch 'FINDINGS`は正常な非terminal状態' -or
+    $skill -notmatch '`terminal: true`を`FINDINGS`の通知・受領条件にしてはならず' -or
+    $skill -notmatch 'HUMAN_DECISION_REQUIRED' -or
+    $skill -notmatch 'BLOCKED' -or
+    $skill -notmatch 'ERROR' -or
+    $skill -notmatch '`status` command自体の非0 exit' -or
+    $skill -notmatch 'Write-Output \$raw' -or
+    $skill -notmatch 'terminalByStatus' -or
+    $skill -notmatch 'parse failure') {
+    throw 'Skill does not define nonterminal FINDINGS, terminal-state handling, or polling failure behavior.'
+}
 if ($skill -notmatch '初期設計' -or $skill -notmatch '重要な変更' -or $skill -notmatch 'findingが出たことだけ' -or $skill -notmatch '実装不足だけ') {
     throw 'Skill review triggers or scope boundary are incomplete.'
 }
@@ -95,6 +115,14 @@ if ($readme -notmatch '--target agent-skills --global' -or $readme -notmatch 'di
 }
 if ($readme -notmatch '0\.6\.0' -or $readme -notmatch 'protocol v4' -or $readme -notmatch 'NOT_RUN' -or $readme -notmatch 'HOLD') {
     throw 'Package README does not state the version and qualification boundary.'
+}
+if ($readme -notmatch 'Grok Buildのheadless実行' -or
+    $readme -notmatch '同じprompt turn' -or
+    $readme -notmatch '15秒間隔' -or
+    $readme -notmatch '15分' -or
+    $readme -notmatch 'FINDINGS.*terminal: false' -or
+    $readme -notmatch 'monitor`登録とturn終了に待機を委ねません') {
+    throw 'Package README does not explain Grok headless polling and nonterminal FINDINGS handling.'
 }
 if ($readme -notmatch 'repository外の作業directory' -or $readme -notmatch '完全なcapability isolationとして扱いません' -or
     $readme -notmatch 'より強い制限設定を維持します') {

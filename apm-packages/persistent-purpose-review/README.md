@@ -7,7 +7,7 @@ Skillはuser-invocableで、`disable-model-invocation: true`を維持します�
 ## 前提条件
 
 - APM CLIが利用できること。
-- reviewerとしてCodex CLIまたはGitHub Copilot CLIのいずれかが導入・認証済みであること。Grok Buildは対応しません。
+- reviewerとしてCodex CLIまたはGitHub Copilot CLIのいずれかが導入・認証済みであること。Grok Buildはreview providerとして対応しませんが、Runnerを呼び出すcallerとしては利用できます。
 - `purpose-review-runner` 0.6.0以上、protocol v4のRunner buildがあること。
 - Runnerのconfigでproviderを`codex`または`copilot`に設定し、`profile`は`null`にすること。
 
@@ -33,6 +33,12 @@ $persistent-purpose-review を起動し、許可済みの設計変更をpurpose 
 各提出で`schemaVersion: 1`のJSON inputを用意します。ユーザーの目的・authorityの引用とsource、承認済みbaseline（存在しなければ`null`）、設計全体とbaselineからの追加・削除・緩和を含むdelta、証拠本文、findingへの応答、要件ごとのconformance申告を埋め込みます。事前に作成したSolution Shapeがある場合は、設計案そのものなら`proposal.body`、補助資料なら`evidence`に任意で含められます。Runnerやreviewerにsourceを取りに行かせず、入力内の証拠を使います。conformance記録はownerの実施を保証しません。
 
 初回は`start --repository <path> --input <json>`、同じrunでの再提出は`continue --run <uuid> --input <json>`、状態確認は`status --run <uuid>`です。各continueで完全な最新inputを渡します。同一changeの`taskKey`と`changeId`はlinked runを通じて維持し、有効なreviewが成立した回数（`reviewRounds`）は最大3回までです。review成立前のoperational failureは`durableSubmissions`に記録されますが、`reviewRounds`は消費しません。continue inputは初回start時の`previousRunId`値を保ちます。terminal `ERROR`/`BLOCKED`後は同じchangeなら同じIDsと直前run参照で新しいlinked runを`start`し、既に消費した`reviewRounds`とreview履歴を引き継ぎます。purposeと`approvedDesign`を変えずに`ERROR`/`BLOCKED`後に異なるchangeを始める場合は、新しい`changeId`と直前run参照で`start`でき、`userDecision`は不要です。purposeまたは`approvedDesign`を変更する場合は、新しい`changeId`と`userDecision`が必要です。`HUMAN_DECISION_REQUIRED`後はユーザー判断を得て新しい`changeId`と`userDecision`で新しいchangeをstartします。`FINDINGS`からは新しい`changeId`で逃げることはできず、必ず同じrunを`continue`します。
+
+## 非同期reviewの待機
+
+`start` / `continue`が`RUNNING`を返したら、同じrun IDの`status --run`を確認します。`RUNNING`は待機継続、`FINDINGS`は`terminal: false`でも待機区切りとしてfindingを処理する正常状態です。`terminal: true`をFINDINGSの通知条件にせず、`COMPLETE`まで結果を捨てたりしません。`COMPLETE`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`、`ERROR`はterminal結果としてそれぞれ報告し、後者3状態を完了・承認として扱いません。
+
+Grok Buildのheadless実行（`-p --output-format streaming-json`等）では、`long-running-background-tasks`の`monitor`登録とturn終了に待機を委ねません。同じprompt turnで15秒間隔のstatus確認を繰り返し、状態JSONを逐次出力します。15分たっても`RUNNING`ならtimeoutとして停止・報告し、reviewを再submitしません。後で再開するときは同じrun IDのstatusから始めます。status commandの非0 exit、JSON parse failure、状態欠落、不正な`status` / `terminal`組合せも成功扱いにしません。対話モードのmonitor利用は禁止しませんが、FINDINGSを非terminalのまま通知し、headlessの再起床を未確認の前提にしません。
 
 `priorReviewHistory`はRunner管理のfieldです。user inputから省略し、ERROR / BLOCKED後のlinked runやcontinueに過去履歴を手作業で混ぜないでください。
 
