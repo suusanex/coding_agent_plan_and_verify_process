@@ -30,7 +30,7 @@ $persistent-purpose-review を起動し、許可済みの設計変更をpurpose 
 
 ## InputとCLI
 
-各提出で`schemaVersion: 1`のJSON inputを用意します。ユーザーの目的・authorityの引用とsource、承認済みbaseline（存在しなければ`null`）、設計全体とbaselineからの追加・削除・緩和を含むdelta、証拠本文、findingへの応答、要件ごとのconformance申告を埋め込みます。Runnerやreviewerにsourceを取りに行かせず、入力内の証拠を使います。conformance記録はownerの実施を保証しません。
+各提出で`schemaVersion: 1`のJSON inputを用意します。ユーザーの目的・authorityの引用とsource、承認済みbaseline（存在しなければ`null`）、設計全体とbaselineからの追加・削除・緩和を含むdelta、証拠本文、findingへの応答、要件ごとのconformance申告を埋め込みます。事前に作成したSolution Shapeがある場合は、設計案そのものなら`proposal.body`、補助資料なら`evidence`に任意で含められます。Runnerやreviewerにsourceを取りに行かせず、入力内の証拠を使います。conformance記録はownerの実施を保証しません。
 
 初回は`start --repository <path> --input <json>`、同じrunでの再提出は`continue --run <uuid> --input <json>`、状態確認は`status --run <uuid>`です。各continueで完全な最新inputを渡します。同一changeの`taskKey`と`changeId`はlinked runを通じて維持し、有効なreviewが成立した回数（`reviewRounds`）は最大3回までです。review成立前のoperational failureは`durableSubmissions`に記録されますが、`reviewRounds`は消費しません。continue inputは初回start時の`previousRunId`値を保ちます。terminal `ERROR`/`BLOCKED`後は同じchangeなら同じIDsと直前run参照で新しいlinked runを`start`し、既に消費した`reviewRounds`とreview履歴を引き継ぎます。purposeと`approvedDesign`を変えずに`ERROR`/`BLOCKED`後に異なるchangeを始める場合は、新しい`changeId`と直前run参照で`start`でき、`userDecision`は不要です。purposeまたは`approvedDesign`を変更する場合は、新しい`changeId`と`userDecision`が必要です。`HUMAN_DECISION_REQUIRED`後はユーザー判断を得て新しい`changeId`と`userDecision`で新しいchangeをstartします。`FINDINGS`からは新しい`changeId`で逃げることはできず、必ず同じrunを`continue`します。
 
@@ -48,6 +48,7 @@ Runnerはcallerが提示したIDからlineageと予算を管理します。異�
 
 - reviewerは目的、承認済みbaseline、提案設計、差分、提示証拠の整合を評価します。
 - 必要な設計の不足だけでなく、目的内でも不要な処理・状態・境界・重複を評価します。削除・統合の余地を現在の利用ケースと制約に結び付け、必要な保証を削らせる指摘や、説明不足だけの断定を避けます。必要な場合だけ既存の`proposal.body`に代表的一件の経路や扱う情報を短く補足し、入力schemaや必須成果物は増やしません。
+- Solution Shape（構成・責務配置、機能配置、代表的な実行経路の軽量スケッチ）の添付は任意です。Solution Shape作成や`solution-shape-authoring`呼び出しをreview開始の前提にせず、未添付をfindingやblockerにしません。Solution Shapeを作成しても`approvedDesign`へ自動昇格せず、特定のファイル名・見出し・行数・図法も強制しません。
 - implementationの不足をfindingに変換して修復したり、レビューのためにコードを調査したりしません。
 - ユーザーが明示的に許可した範囲内で、初期設計や重要な変更を扱います。些細な変更やfindingだけを理由に提出しません。
 - 目的の変更やscope追加のauthorityがなければ推測で補わず停止します。

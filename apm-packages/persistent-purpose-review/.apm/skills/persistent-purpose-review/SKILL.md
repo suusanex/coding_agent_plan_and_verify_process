@@ -42,6 +42,8 @@ disable-model-invocation: true
 
 役割説明だけでは必要性を判断しにくい場合、既存の`proposal.body`へ代表的な一件の処理経路、読取り・生成・更新する情報、追加段階や状態を必要とする現在の制約を短く含める。分かっていない点は不明として示す。全componentの長い必要性説明、新しい必須台帳・schema・成果物は追加しない。
 
+事前に作成したSolution Shape（構成・責務配置、機能配置、代表的な実行経路の軽量スケッチ）がある場合は、設計案そのものなら既存の`proposal.body`、他案や判断の補助資料なら`evidence`に任意で含める。Solution Shapeの作成や`solution-shape-authoring`の起動をreview開始の前提にせず、未添付であることをfindingや停止理由にしない。また、Solution Shapeを作成しても`approvedDesign`へ自動昇格させない。
+
 ```json
 {
   "schemaVersion": 1,

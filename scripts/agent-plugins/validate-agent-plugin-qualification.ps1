@@ -10,7 +10,7 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $schemaPath = Join-Path $repoRoot 'tests/agent-plugins/qualification.schema.json'
 if (-not (Test-Path -LiteralPath $schemaPath -PathType Leaf)) { throw "Qualification schema is missing: $schemaPath" }
 if (-not $Package -or $Package.Count -eq 0) {
-    $Package = @('adaptive-implementation-execution','design-pair-implementation-execution','goal-context-authoring','pr-review-remediation','persistent-purpose-review','plan-coverage-residual-flow')
+    $Package = @('adaptive-implementation-execution','design-pair-implementation-execution','goal-context-authoring','pr-review-remediation','persistent-purpose-review','plan-coverage-residual-flow','solution-shape-authoring')
 }
 
 function Add-QualificationFailure([Collections.Generic.List[string]]$Failures, [string]$Message) {

@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param()
 
 $ErrorActionPreference = 'Stop'
@@ -34,6 +34,9 @@ Require 'README.md' 'apm-packages/pr-review-remediation/README\.md' 'PR Review p
 Require 'README.md' 'apm-packages/persistent-purpose-review/README\.md' 'Persistent Purpose Review package link'
 Require 'README.md' 'apps/PurposeReviewRunner/README\.md' 'Purpose Review Runner link'
 Require 'README.md' 'apm-packages/plan-coverage-residual-flow/README\.md' 'Plan Coverage package link'
+Require 'README.md' 'apm-packages/solution-shape-authoring/README\.md' 'Solution Shape Authoring package link'
+Require 'apm-packages/solution-shape-authoring/README.md' 'apm install .*solution-shape-authoring' 'Solution Shape Authoring APM install'
+Require 'apm-packages/solution-shape-authoring/README.md' 'persistent-purpose-review' 'Solution Shape Authoring optional Purpose Review link'
 Require 'README.md' 'finalize-codex-agent-profiles\.cs' 'common finalizer Quickstart'
 Require 'docs/installation-and-maintenance.md' 'codex-profile-overlays\.json' 'overlay maintenance contract'
 Require 'docs/installation-and-maintenance.md' 'pr-review-remediation-technical-reference\.md' 'PR Review documentation ownership'
@@ -67,7 +70,8 @@ foreach ($path in @(
     'apm-packages/pr-review-remediation/README.md',
     'apm-packages/persistent-purpose-review/README.md',
     'apm-packages/plan-coverage-residual-flow/README.md',
-    'apm-packages/design-pair-implementation-execution/README.md'
+    'apm-packages/design-pair-implementation-execution/README.md',
+    'apm-packages/solution-shape-authoring/README.md'
 )) {
     Forbid $path 'provision-work-repo-agents|install-adaptive-implementation-local|sync-pr-review-remediation-local' 'legacy helper'
 }

@@ -26,7 +26,8 @@ internal static class ProgramEntry
         "goal-context-authoring",
         "pr-review-remediation",
         "persistent-purpose-review",
-        "plan-coverage-residual-flow"
+        "plan-coverage-residual-flow",
+        "solution-shape-authoring"
     ];
 
     public static async Task<int> RunAsync(string[] args)

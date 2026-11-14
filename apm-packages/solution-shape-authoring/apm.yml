@@ -1,0 +1,12 @@
+name: solution-shape-authoring
+version: 0.1.0
+description: Optionally author a lightweight Markdown Solution Shape covering responsibility placement, capability placement, and representative execution paths
+type: hybrid
+targets:
+  - copilot
+  - codex
+  - agent-skills
+includes: auto
+
+dependencies:
+  apm: []

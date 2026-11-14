@@ -13,7 +13,8 @@ if (-not $Package -or $Package.Count -eq 0) {
         'goal-context-authoring',
         'pr-review-remediation',
         'persistent-purpose-review',
-        'plan-coverage-residual-flow'
+        'plan-coverage-residual-flow',
+        'solution-shape-authoring'
     )
 }
 

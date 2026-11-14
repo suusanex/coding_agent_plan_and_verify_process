@@ -21,6 +21,7 @@
 | PR Review Remediation | NOT_RUN / NONE | NOT_RUN / NONE | 0.9.0で`review-planner`とCodex profile / finalizer依存を削除し、current parentの直接評価へ変更したため再認定待ち。planner前提の旧LIVE証拠と0.8.0のassessmentは再利用しない |
 | Persistent Purpose Review | NOT_RUN / NONE | HOLD / PARTIAL | Copilotの限定purpose/design workflowとCodex read-only初回/resume fixtureを評価済み。Codex host namespaceは残存し実行eventは0件だった。完全なcapability isolation、一般的な品質・負荷、APM distributionは未評価のためqualificationはHOLD |
 | Plan Coverage | PASS / PARTIAL | HOLD / PARTIAL | immutable behavior evidenceを維持し、direct gapは未解消 |
+| Solution Shape Authoring | NOT_RUN / NONE | NOT_RUN / NONE | 新規独立Skillのため実modelによるAPM/direct実行資格は未評価 |
 
 repository-wide baseline candidate `0ff5900beb62d8c42226a5cad2779c56747d50c2`と、PR Review follow-up candidate `3b21a9e6dfa6f6e5123f2ad2ff5cceac6926c79a`の実行結果は[`tests/agent-plugins/results/2026-08-23-runtime-qualification.md`](../tests/agent-plugins/results/2026-08-23-runtime-qualification.md)に記録する。
 
