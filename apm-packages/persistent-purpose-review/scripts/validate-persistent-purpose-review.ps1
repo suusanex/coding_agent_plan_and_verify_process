@@ -11,7 +11,8 @@ $paths = @(
     (Join-Path $packageRoot 'scripts/test-apm-package-install.ps1'),
     (Join-Path $packageRoot 'tests/agent-plugin/contract.json'),
     (Join-Path $packageRoot 'tests/agent-plugin/qualification.json'),
-    (Join-Path $packageRoot '../../tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-provider-safety.md')
+    (Join-Path $packageRoot '../../tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-provider-safety.md'),
+    (Join-Path $packageRoot '../../tests/PurposeReviewRunner.Tests/purpose-review-results/2026-11-14-grok-headless-short-poll.md')
 )
 foreach ($path in $paths) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing package file: $path" }
@@ -21,6 +22,7 @@ $manifest = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'apm.yml')
 $skill = Get-Content -Raw -LiteralPath $skillPath
 $readme = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'README.md')
 $safetyEvidence = Get-Content -Raw -LiteralPath (Join-Path $packageRoot '../../tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-provider-safety.md')
+$shortPollEvidence = Get-Content -Raw -LiteralPath (Join-Path $packageRoot '../../tests/PurposeReviewRunner.Tests/purpose-review-results/2026-11-14-grok-headless-short-poll.md')
 $contract = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'tests/agent-plugin/contract.json') | ConvertFrom-Json
 $qualification = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'tests/agent-plugin/qualification.json') | ConvertFrom-Json
 $frontmatter = [regex]::Match($skill, '(?s)\A---\r?\n(.*?)\r?\n---').Groups[1].Value
@@ -60,9 +62,14 @@ if ($skill -notmatch '最大3回' -or $skill -notmatch 'reviewRounds' -or $skill
 if ($skill -notmatch 'Grok Buildのheadless実行' -or
     $skill -notmatch '-p --output-format streaming-json' -or
     $skill -notmatch '同じprompt turn' -or
+$skill -notmatch '1回の`status`確認を1回の短いterminal tool call' -or
+$skill -notmatch '15分のloopを1回のcommandへ入れない' -or
+$skill -notmatch 'backgroundへ移行' -or
     $skill -notmatch 'long-running-background-tasks.*monitor' -or
     $skill -notmatch '15秒' -or
-    $skill -notmatch '15分') {
+$skill -notmatch '15分' -or
+$skill -match '(?m)^\s*do\s*\{' -or
+$skill -match 'while\s*\(\$true\)') {
     throw 'Skill does not define bounded same-turn polling for Grok Build headless callers.'
 }
 if ($skill -notmatch 'RUNNING' -or
@@ -123,7 +130,10 @@ if ($readme -notmatch '0\.6\.0' -or $readme -notmatch 'protocol v4' -or $readme 
 }
 if ($readme -notmatch 'Grok Buildのheadless実行' -or
     $readme -notmatch '同じprompt turn' -or
-    $readme -notmatch '15秒間隔' -or
+    $readme -notmatch '1回の`status --run`を1回の前景terminal tool call' -or
+    $readme -notmatch '15分のloopを1回のshell commandへ入れず' -or
+    $readme -notmatch '15秒以下の独立した前景wait call' -or
+    $readme -notmatch 'callがtimeoutまたはbackground化した場合' -or
     $readme -notmatch '15分' -or
     $readme -notmatch 'FINDINGS.*terminal: false' -or
     $readme -notmatch 'monitor`登録とturn終了に待機を委ねません') {
@@ -132,6 +142,14 @@ if ($readme -notmatch 'Grok Buildのheadless実行' -or
 if ($readme -notmatch 'repository外の作業directory' -or $readme -notmatch '完全なcapability isolationとして扱いません' -or
     $readme -notmatch 'より強い制限設定を維持します') {
     throw 'Package README does not state the relaxed Codex role boundary and preserved Copilot restriction.'
+}
+if ($readme -notmatch 'Grok Build headless短時間分割polling検証' -or
+    $shortPollEvidence -notmatch '66\.409秒' -or
+    $shortPollEvidence -notmatch 'statusとwaitは別々のterminal call' -or
+    $shortPollEvidence -notmatch 'monitor`?、?long-running background task' -or
+    $shortPollEvidence -notmatch 'FINDINGS / terminal:false' -or
+    $shortPollEvidence -notmatch '45秒') {
+    throw 'Package docs do not preserve the Grok headless short-poll runtime evidence.'
 }
 if ($readme -notmatch '`COMPLETE`はそのreviewの完了であり、proposalや承認済み設計baselineの承認ではありません' -or
     $readme -notmatch '最新の完了runを指す`previousRunId`' -or
