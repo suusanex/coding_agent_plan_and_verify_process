@@ -140,9 +140,7 @@ do {
         throw "Purpose Review timed out while run $runId was still RUNNING."
     }
     $raw = purpose-review-runner status --run $runId
-    if ($LASTEXITCODE -ne 0) {
-        throw "Purpose Review status failed with exit code $LASTEXITCODE.`n$raw"
-    }
+    $statusExitCode = $LASTEXITCODE
     $output = $raw | ConvertFrom-Json -ErrorAction Stop
     Write-Output $raw
 
@@ -151,6 +149,10 @@ do {
     }
     if ($output.terminal -ne $terminalByStatus[$output.status]) {
         throw "Purpose Review returned inconsistent status and terminal values for $runId."
+    }
+    if ($statusExitCode -ne 0 -and
+        ($output.status -ne 'ERROR' -or -not $output.terminal -or -not $output.error)) {
+        throw "Purpose Review status failed with exit code $statusExitCode.`n$raw"
     }
     if ($output.status -ne 'RUNNING') {
         break
@@ -164,7 +166,7 @@ do {
 } while ($true)
 ```
 
-このloopから抜けた後、`$output.status`へ上表の処理を適用する。`status` command自体の非0 exit、単一JSONのparse failure、`status` / `terminal`の契約不整合は、review結果不明または失敗として停止する。timeoutはworkerを停止させるものではない。後続処理を再開する場合は同じrun IDのstatusから始め、新しい`start` / `continue`を送らない。
+このloopから抜けた後、`$output.status`へ上表の処理を適用する。`status` commandが非0 exitでも、同じrun ID、`ERROR`、`terminal: true`、`error`を持つ単一JSONなら正常に取得できたterminal `ERROR`として報告する。その他の非0 exit、単一JSONのparse failure、`status` / `terminal`の契約不整合は、review結果不明または失敗として停止する。timeoutはworkerを停止させるものではない。後続処理を再開する場合は同じrun IDのstatusから始め、新しい`start` / `continue`を送らない。
 
 対話実行などで既存のnotification / monitor機構を使う場合も、`FINDINGS`を非terminalの正常な待機区切りとして通知し、headlessで未確認の再起床を前提としない。Grok Buildをreview providerとして利用する変更ではない。
 
