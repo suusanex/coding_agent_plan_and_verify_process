@@ -80,7 +80,12 @@ if ($skill -notmatch 'RUNNING' -or
     $skill -notmatch 'ERROR' -or
     $skill -notmatch '\$statusExitCode = \$LASTEXITCODE' -or
     $skill -notmatch '\$output\.status -ne ''ERROR''' -or
-    $skill -notmatch '同じrun ID、`ERROR`、`terminal: true`、`error`を持つ単一JSON' -or
+    $skill -notmatch '同じrun ID、`ERROR`、`terminal: true`、`error\.code` / `error\.message`を持つ単一JSON' -or
+    $skill -notmatch 'FINDINGS must contain at least one finding' -or
+    $skill -notmatch 'BLOCKED must contain a message and informationRequests' -or
+    $skill -notmatch 'ERROR must contain an error code and message' -or
+    $skill -notmatch 'COMPLETE must contain no findings' -or
+    $skill -notmatch 'HUMAN_DECISION_REQUIRED must contain a message' -or
     $skill -notmatch 'Write-Output \$raw' -or
     $skill -notmatch 'terminalByStatus' -or
     $skill -notmatch '\$remaining = \$deadline - \[DateTimeOffset\]::UtcNow' -or
