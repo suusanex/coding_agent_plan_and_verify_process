@@ -38,7 +38,7 @@ $persistent-purpose-review を起動し、許可済みの設計変更をpurpose 
 
 `start` / `continue`が`RUNNING`を返したら、同じrun IDの`status --run`を確認します。`RUNNING`は待機継続、`FINDINGS`は`terminal: false`でも待機区切りとしてfindingを処理する正常状態です。`terminal: true`をFINDINGSの通知条件にせず、`COMPLETE`まで結果を捨てたりしません。`COMPLETE`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`、`ERROR`はterminal結果としてそれぞれ報告し、後者3状態を完了・承認として扱いません。
 
-Grok Buildのheadless実行（`-p --output-format streaming-json`等）では、`long-running-background-tasks`の`monitor`登録とturn終了に待機を委ねません。同じprompt turnで15秒間隔のstatus確認を繰り返し、状態JSONを逐次出力します。15分たっても`RUNNING`ならtimeoutとして停止・報告し、reviewを再submitしません。後で再開するときは同じrun IDのstatusから始めます。status commandの非0 exit、JSON parse failure、状態欠落、不正な`status` / `terminal`組合せも成功扱いにしません。対話モードのmonitor利用は禁止しませんが、FINDINGSを非terminalのまま通知し、headlessの再起床を未確認の前提にしません。
+Grok Buildのheadless実行（`-p --output-format streaming-json`等）では、`long-running-background-tasks`の`monitor`登録とturn終了に待機を委ねません。同じprompt turnで15秒間隔のstatus確認を繰り返し、状態JSONを逐次出力します。15分たっても`RUNNING`ならtimeoutとして停止・報告し、reviewを再submitしません。後で再開するときは同じrun IDのstatusから始めます。同じrun IDのterminal `ERROR`はexit codeが非0でもJSONを検証して`ERROR`として報告します。それ以外の非0 exit、JSON parse failure、状態欠落、不正な`status` / `terminal`組合せは成功扱いにしません。対話モードのmonitor利用は禁止しませんが、FINDINGSを非terminalのまま通知し、headlessの再起床を未確認の前提にしません。
 
 `priorReviewHistory`はRunner管理のfieldです。user inputから省略し、ERROR / BLOCKED後のlinked runやcontinueに過去履歴を手作業で混ぜないでください。
 
