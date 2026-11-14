@@ -157,9 +157,62 @@ if ($statusExitCode -ne 0 -and
     ($output.status -ne 'ERROR' -or -not $output.terminal -or -not $output.error)) {
     throw "Purpose Review status failed with exit code $statusExitCode.`n$raw"
 }
+
+switch ($output.status) {
+    'RUNNING' {
+        if (@($output.findings).Count -ne 0) {
+            throw "RUNNING must not contain findings for $runId."
+        }
+    }
+    'FINDINGS' {
+        if (@($output.findings).Count -eq 0) {
+            throw "FINDINGS must contain at least one finding for $runId."
+        }
+        foreach ($finding in @($output.findings)) {
+            if ([string]::IsNullOrWhiteSpace($finding.id) -or
+                [string]::IsNullOrWhiteSpace($finding.severity) -or
+                [string]::IsNullOrWhiteSpace($finding.title) -or
+                [string]::IsNullOrWhiteSpace($finding.summary) -or
+                [string]::IsNullOrWhiteSpace($finding.evidence) -or
+                [string]::IsNullOrWhiteSpace($finding.requiredOutcome)) {
+                throw "FINDINGS contains an incomplete finding for $runId."
+            }
+        }
+    }
+    'COMPLETE' {
+        if (@($output.findings).Count -ne 0) {
+            throw "COMPLETE must contain no findings for $runId."
+        }
+    }
+    'HUMAN_DECISION_REQUIRED' {
+        if ([string]::IsNullOrWhiteSpace($output.message)) {
+            throw "HUMAN_DECISION_REQUIRED must contain a message for $runId."
+        }
+    }
+    'BLOCKED' {
+        if ([string]::IsNullOrWhiteSpace($output.message) -or
+            @($output.informationRequests).Count -eq 0) {
+            throw "BLOCKED must contain a message and informationRequests for $runId."
+        }
+        foreach ($request in @($output.informationRequests)) {
+            if ([string]::IsNullOrWhiteSpace($request.id) -or
+                [string]::IsNullOrWhiteSpace($request.source) -or
+                [string]::IsNullOrWhiteSpace($request.question) -or
+                [string]::IsNullOrWhiteSpace($request.whyNeeded)) {
+                throw "BLOCKED contains an incomplete information request for $runId."
+            }
+        }
+    }
+    'ERROR' {
+        if ([string]::IsNullOrWhiteSpace($output.error.code) -or
+            [string]::IsNullOrWhiteSpace($output.error.message)) {
+            throw "ERROR must contain an error code and message for $runId."
+        }
+    }
+}
 ```
 
-call終了後に`$output.status`へ上表の処理を適用する。`status` commandが非0 exitでも、同じrun ID、`ERROR`、`terminal: true`、`error`を持つ単一JSONなら正常に取得できたterminal `ERROR`として報告する。その他の非0 exit、単一JSONのparse failure、`status` / `terminal`の契約不整合は、review結果不明または失敗として停止する。`RUNNING`なら、次のstatus callの前に次の独立した短いcallだけを実行し、そのcallが前景で終了したことを確認する。
+call終了後に`$output.status`へ上表の処理を適用する。statusごとの必須payload検証に合格してからcontinue・reportへ進む。`status` commandが非0 exitでも、同じrun ID、`ERROR`、`terminal: true`、`error.code` / `error.message`を持つ単一JSONなら正常に取得できたterminal `ERROR`として報告する。その他の非0 exit、単一JSONのparse failure、`status` / `terminal`の契約不整合、必須payload欠落は、review結果不明または失敗として停止する。`RUNNING`なら、次のstatus callの前に次の独立した短いcallだけを実行し、そのcallが前景で終了したことを確認する。
 
 ```powershell
 $deadline = [DateTimeOffset]::Parse('<deadline-utc>')
