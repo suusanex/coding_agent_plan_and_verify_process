@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | `scripts/codex-notification-runtime/install-codex-notification-runtime-local.cs` | always-on Codex callback runtimeをuser-level設定へ導入する | canonical runtime、Local Spool provider、user-level `notify` |
 | `apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs` | APM導入後にAdaptiveの管理対象Codex agentをcanonical定義へ同期し、concrete profileを補完する | `decision-surface-implementation-owner.toml` と `bounded-residual-implementation-owner.toml`。非管理対象はprofile fieldsのみ |
-| `apps/PurposeReviewRunner` | OS user単位のconfigでpurpose reviewerを起動し、同じsessionを最大3roundまで維持する。長時間reviewはworkerへ分離し、`status`で結果を取得する | versioned Runner binary、user-level config、minimal run/job state |
+| `apps/PurposeReviewRunner` | OS user単位のconfigでpurpose reviewerを起動し、初回予算3 round（`budgetGrant`で追加可能）の間同じsession・lineageを維持する。長時間reviewはworkerへ分離し、`status`で結果を取得する | versioned Runner binary、user-level config、minimal run/job state |
 | `apm-packages/persistent-purpose-review` | 元のimplementation parentへcontext選択、修正、同一runの再reviewを教える | 実行環境へ`--global`で導入する `$persistent-purpose-review` Skill |
 | `apm-packages/*/codex-profile-overlays.json` | owning packageごとのprofile推奨値を宣言する | agent、model、reasoning、sandbox |
 | `scripts/validate-architecture-slice-readiness.ps1` | architecture readinessのagents、manifest、templates、routingを確認する | ASR contractとfixture evidence |

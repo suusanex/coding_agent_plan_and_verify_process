@@ -1,5 +1,5 @@
 name: persistent-purpose-review
-version: 0.7.0
+version: 0.8.0
 description: Explicit purpose and design alignment review through an independently installed CLI Runner
 type: hybrid
 targets:

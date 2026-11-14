@@ -184,7 +184,7 @@ public sealed class RunnerApplicationTests
     [TestMethod]
     [DataRow(null)]
     [DataRow("Compared base abc and HEAD def; prior uncommitted content is unavailable. PUR-002 was withdrawn.")]
-    public async Task RoundThreeFindingsBecomeTerminalHumanDecisionRequired(string? reviewMessage)
+    public async Task RoundThreeFindingsBecomeTerminalReviewBudgetExhausted(string? reviewMessage)
     {
         using var fixture = new RunnerFixture("copilot");
         fixture.WriteRepositoryFile("goal.md", "goal");
@@ -196,21 +196,365 @@ public sealed class RunnerApplicationTests
         await fixture.Application.ExecuteAsync(fixture.ContinueCommand(first.Output.RunId!), CancellationToken.None);
         var third = await fixture.Application.ExecuteAsync(fixture.ContinueCommand(first.Output.RunId!), CancellationToken.None);
 
-        Assert.AreEqual(ReviewStatuses.HumanDecisionRequired, third.Output.Status);
+        Assert.AreEqual(ReviewStatuses.ReviewBudgetExhausted, third.Output.Status);
         Assert.IsTrue(third.Output.Terminal);
         Assert.AreEqual(3, third.Output.Round);
         Assert.AreEqual(3, third.Output.ReviewRounds);
+        Assert.AreEqual(3, third.Output.AuthorizedReviewRounds);
         Assert.AreEqual(3, third.Output.DurableSubmissions);
         Assert.AreEqual(1, third.Output.Findings.Count);
-        StringAssert.Contains(third.Output.Message!, "maximum of three review rounds");
+        StringAssert.Contains(third.Output.Message!, "authorized review budget of 3 rounds");
         if (reviewMessage is not null)
         {
             StringAssert.Contains(third.Output.Message!, reviewMessage);
         }
         var stored = await fixture.Application.ExecuteAsync(new StatusCommand(first.Output.RunId!), CancellationToken.None);
         Assert.AreEqual(third.Output.Message, stored.Output.Message);
-        await Assert.ThrowsExactlyAsync<RunnerException>(
+        var continueError = await Assert.ThrowsExactlyAsync<RunnerException>(
             () => fixture.Application.ExecuteAsync(fixture.ContinueCommand(first.Output.RunId!), CancellationToken.None));
+        Assert.AreEqual("RUN_TERMINAL", continueError.Code);
+    }
+
+    [TestMethod]
+    public async Task RoundThreeGenuineHumanDecisionRequiredIsNotConvertedToBudgetExhausted()
+    {
+        using var fixture = new RunnerFixture("copilot");
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.HumanDecisionRequired, Finding("PUR-001")));
+
+        var first = await fixture.Application.ExecuteAsync(fixture.StartCommand(), CancellationToken.None);
+        await fixture.Application.ExecuteAsync(fixture.ContinueCommand(first.Output.RunId!), CancellationToken.None);
+        var third = await fixture.Application.ExecuteAsync(fixture.ContinueCommand(first.Output.RunId!), CancellationToken.None);
+
+        Assert.AreEqual(ReviewStatuses.HumanDecisionRequired, third.Output.Status);
+        Assert.IsTrue(third.Output.Terminal);
+        Assert.AreEqual(3, third.Output.ReviewRounds);
+        Assert.AreEqual(3, third.Output.AuthorizedReviewRounds);
+
+        var sameChangeGrant = fixture.Input with
+        {
+            PreviousRunId = first.Output.RunId,
+            BudgetGrant = new ReviewBudgetGrant(2, "Grant 2 more rounds", "user")
+        };
+        var rejected = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(sameChangeGrant)), CancellationToken.None));
+        Assert.AreEqual("USER_DECISION_REQUIRED", rejected.Code);
+    }
+
+    [TestMethod]
+    public async Task ReviewBudgetExhaustedBlocksSameChangeWithoutGrantAndNewChangeWithoutDecision()
+    {
+        using var fixture = new RunnerFixture("copilot");
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+
+        var first = await fixture.Application.ExecuteAsync(fixture.StartCommand(), CancellationToken.None);
+        await fixture.Application.ExecuteAsync(fixture.ContinueCommand(first.Output.RunId!), CancellationToken.None);
+        var exhausted = await fixture.Application.ExecuteAsync(fixture.ContinueCommand(first.Output.RunId!), CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.ReviewBudgetExhausted, exhausted.Output.Status);
+
+        var retryWithoutGrant = fixture.Input with { PreviousRunId = first.Output.RunId };
+        var rejectedNoGrant = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(retryWithoutGrant)), CancellationToken.None));
+        Assert.AreEqual("REVIEW_BUDGET_EXHAUSTED", rejectedNoGrant.Code);
+
+        var retryWithUserDecision = retryWithoutGrant with { UserDecision = new UserDecision("Allow extra round", "user") };
+        var rejectedUserDecision = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(retryWithUserDecision)), CancellationToken.None));
+        Assert.AreEqual("INPUT_INVALID", rejectedUserDecision.Code);
+
+        var newChangeWithoutDecision = fixture.Input with
+        {
+            ChangeId = "change-2",
+            PreviousRunId = first.Output.RunId,
+            UserDecision = null
+        };
+        var rejectedNewChange = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(newChangeWithoutDecision)), CancellationToken.None));
+        Assert.AreEqual("USER_DECISION_REQUIRED", rejectedNewChange.Code);
+
+        var newChangeWithGrant = newChangeWithoutDecision with
+        {
+            UserDecision = new UserDecision("Supersede change-1 with distinct design change-2", "user"),
+            BudgetGrant = new ReviewBudgetGrant(1, "Grant extra round", "user")
+        };
+        var rejectedGrantOnNewChange = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(newChangeWithGrant)), CancellationToken.None));
+        Assert.AreEqual("INPUT_INVALID", rejectedGrantOnNewChange.Code);
+
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Complete));
+        var validDistinctChange = newChangeWithoutDecision with
+        {
+            UserDecision = new UserDecision("Supersede change-1 with distinct design change-2", "user")
+        };
+        var distinctResult = await fixture.Application.ExecuteAsync(
+            new StartCommand(fixture.Repository, fixture.WriteInput(validDistinctChange)),
+            CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.Complete, distinctResult.Output.Status);
+        Assert.AreEqual(1, distinctResult.Output.ReviewRounds);
+        Assert.AreEqual(Protocol.InitialReviewBudget, distinctResult.Output.AuthorizedReviewRounds);
+    }
+
+    [TestMethod]
+    public async Task BudgetGrantAllowsSameChangeContinuationPreservesHistoryAndStopsAtNewBudget()
+    {
+        using var fixture = new RunnerFixture("copilot");
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+
+        var firstRun = await fixture.Application.ExecuteAsync(fixture.StartCommand(), CancellationToken.None);
+        await fixture.Application.ExecuteAsync(fixture.ContinueCommand(firstRun.Output.RunId!), CancellationToken.None);
+        var exhausted = await fixture.Application.ExecuteAsync(fixture.ContinueCommand(firstRun.Output.RunId!), CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.ReviewBudgetExhausted, exhausted.Output.Status);
+
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        var extendedInput = fixture.Input with
+        {
+            PreviousRunId = firstRun.Output.RunId,
+            Proposal = fixture.Input.Proposal with { Version = "proposal-v2", Body = "revised technical design" },
+            BudgetGrant = new ReviewBudgetGrant(2, "Authorize 2 additional review rounds for technical fixes", "user chat"),
+            UserDecision = null
+        };
+        var roundFour = await fixture.Application.ExecuteAsync(
+            new StartCommand(fixture.Repository, fixture.WriteInput(extendedInput)),
+            CancellationToken.None);
+
+        Assert.AreEqual(ReviewStatuses.Findings, roundFour.Output.Status);
+        Assert.IsFalse(roundFour.Output.Terminal);
+        Assert.AreEqual(1, roundFour.Output.Round);
+        Assert.AreEqual(4, roundFour.Output.ReviewRounds);
+        Assert.AreEqual(5, roundFour.Output.AuthorizedReviewRounds);
+        Assert.AreEqual(4, roundFour.Output.DurableSubmissions);
+        Assert.IsFalse(fixture.Process.Requests[^1].StandardInput!.Contains("Authorize 2 additional review rounds", StringComparison.Ordinal));
+        StringAssert.Contains(fixture.Process.Requests[^1].StandardInput!, "REVIEW_BUDGET_EXHAUSTED");
+        StringAssert.Contains(fixture.Process.Requests[^1].StandardInput!, "PUR-001");
+
+        // continueでbudgetGrantを再送することはできない。
+        var continueWithGrant = extendedInput with
+        {
+            Proposal = extendedInput.Proposal with { Version = "proposal-v3", Body = "further fix" }
+        };
+        var rejectedContinueGrant = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new ContinueCommand(roundFour.Output.RunId!, fixture.WriteInput(continueWithGrant)), CancellationToken.None));
+        Assert.AreEqual("INPUT_INVALID", rejectedContinueGrant.Code);
+
+        var roundFiveInput = continueWithGrant with { BudgetGrant = null };
+        var roundFive = await fixture.Application.ExecuteAsync(
+            new ContinueCommand(roundFour.Output.RunId!, fixture.WriteInput(roundFiveInput)),
+            CancellationToken.None);
+
+        Assert.AreEqual(ReviewStatuses.ReviewBudgetExhausted, roundFive.Output.Status);
+        Assert.IsTrue(roundFive.Output.Terminal);
+        Assert.AreEqual(2, roundFive.Output.Round);
+        Assert.AreEqual(5, roundFive.Output.ReviewRounds);
+        Assert.AreEqual(5, roundFive.Output.AuthorizedReviewRounds);
+        Assert.AreEqual(5, roundFive.Output.DurableSubmissions);
+
+        // 追加許可を繰り返し与えればさらに同一changeIdで続行できる。
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Complete));
+        var secondGrantInput = roundFiveInput with
+        {
+            PreviousRunId = roundFour.Output.RunId,
+            Proposal = roundFiveInput.Proposal with { Version = "proposal-v4", Body = "final technical fix" },
+            BudgetGrant = new ReviewBudgetGrant(1, "Authorize 1 final review round", "user chat")
+        };
+        var roundSix = await fixture.Application.ExecuteAsync(
+            new StartCommand(fixture.Repository, fixture.WriteInput(secondGrantInput)),
+            CancellationToken.None);
+
+        Assert.AreEqual(ReviewStatuses.Complete, roundSix.Output.Status);
+        Assert.IsTrue(roundSix.Output.Terminal);
+        Assert.AreEqual(6, roundSix.Output.ReviewRounds);
+        Assert.AreEqual(6, roundSix.Output.AuthorizedReviewRounds);
+        Assert.AreEqual(6, roundSix.Output.DurableSubmissions);
+        var finalState = new StateStore(fixture.Paths.StateRoot).Load(roundSix.Output.RunId!);
+        Assert.AreEqual(6, finalState.ReviewHistory!.Count);
+        Assert.AreEqual("change-1", finalState.ChangeId);
+    }
+
+    [TestMethod]
+    public async Task BudgetGrantValidationRejectsPrematureUsageAndPreservesExtendedBudgetAcrossErrors()
+    {
+        using var fixture = new RunnerFixture("copilot");
+        var initialWithGrant = fixture.Input with
+        {
+            BudgetGrant = new ReviewBudgetGrant(1, "Premature grant", "user")
+        };
+        var rejectedInitial = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(initialWithGrant)), CancellationToken.None));
+        Assert.AreEqual("INPUT_INVALID", rejectedInitial.Code);
+
+        var invalidRounds = fixture.Input with
+        {
+            BudgetGrant = new ReviewBudgetGrant(0, "Invalid rounds", "user")
+        };
+        var rejectedRounds = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(invalidRounds)), CancellationToken.None));
+        Assert.AreEqual("INPUT_INVALID", rejectedRounds.Code);
+
+        // 1回目でERRORになった場合は残予算(3)があるため、budgetGrantは不要かつ事前付与を拒否する。
+        var baselineInput = RunnerFixture.CreateInput();
+        fixture.Process.ForcedResult = new ProcessResult(7, string.Empty, "transient error", false);
+        var failedFirst = await fixture.Application.ExecuteAsync(
+            new StartCommand(fixture.Repository, fixture.WriteInput(baselineInput)),
+            CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.Error, failedFirst.Output.Status);
+        fixture.Process.ForcedResult = null;
+
+        var prematureAfterError = baselineInput with
+        {
+            PreviousRunId = failedFirst.Output.RunId,
+            BudgetGrant = new ReviewBudgetGrant(1, "Premature grant after error", "user")
+        };
+        var rejectedPremature = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(prematureAfterError)), CancellationToken.None));
+        Assert.AreEqual("INPUT_INVALID", rejectedPremature.Code);
+
+        // 3回使い切ってから+2を許可し、4回目試行がERRORになっても残予算5は維持される。
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        var retryRun = await fixture.Application.ExecuteAsync(
+            new StartCommand(fixture.Repository, fixture.WriteInput(baselineInput with { PreviousRunId = failedFirst.Output.RunId })),
+            CancellationToken.None);
+        await fixture.Application.ExecuteAsync(fixture.ContinueCommand(retryRun.Output.RunId!), CancellationToken.None);
+        var exhausted = await fixture.Application.ExecuteAsync(fixture.ContinueCommand(retryRun.Output.RunId!), CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.ReviewBudgetExhausted, exhausted.Output.Status);
+
+        fixture.Process.ForcedResult = new ProcessResult(7, string.Empty, "provider error on round 4", false);
+        var extendedError = await fixture.Application.ExecuteAsync(
+            new StartCommand(fixture.Repository, fixture.WriteInput(fixture.Input with
+            {
+                PreviousRunId = retryRun.Output.RunId,
+                BudgetGrant = new ReviewBudgetGrant(2, "Grant 2 more rounds", "user")
+            })),
+            CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.Error, extendedError.Output.Status);
+        Assert.AreEqual(3, extendedError.Output.ReviewRounds);
+        Assert.AreEqual(5, extendedError.Output.AuthorizedReviewRounds);
+
+        fixture.Process.ForcedResult = null;
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Complete));
+        var resumedWithoutNewGrant = await fixture.Application.ExecuteAsync(
+            new StartCommand(fixture.Repository, fixture.WriteInput(fixture.Input with
+            {
+                PreviousRunId = extendedError.Output.RunId,
+                BudgetGrant = null
+            })),
+            CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.Complete, resumedWithoutNewGrant.Output.Status);
+        Assert.AreEqual(4, resumedWithoutNewGrant.Output.ReviewRounds);
+        Assert.AreEqual(5, resumedWithoutNewGrant.Output.AuthorizedReviewRounds);
+    }
+
+    [TestMethod]
+    public async Task LegacyProtocolFourStatesAndLineagesFailClosedWithoutConflatingBudgetExhaustion()
+    {
+        using var fixture = new RunnerFixture("copilot");
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        var start = await fixture.Application.ExecuteAsync(fixture.StartCommand(), CancellationToken.None);
+        var runId = start.Output.RunId!;
+
+        // 0.6.0(protocol v4)のstate.jsonを模擬し、authorizedReviewRounds欠如・protocolVersion=4の状態がSTATE_INCOMPATIBLEで拒否されることを確認する。
+        var statePath = Path.Combine(fixture.Paths.StateRoot, runId, "state.json");
+        var stateJson = JsonNode.Parse(File.ReadAllText(statePath))!.AsObject();
+        stateJson["protocolVersion"] = 4;
+        stateJson["status"] = ReviewStatuses.HumanDecisionRequired;
+        stateJson["reviewRounds"] = 3;
+        stateJson.Remove("authorizedReviewRounds");
+        File.WriteAllText(statePath, stateJson.ToJsonString(JsonDefaults.Options));
+
+        var stateException = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(fixture.ContinueCommand(runId), CancellationToken.None));
+        Assert.AreEqual("STATE_INCOMPATIBLE", stateException.Code);
+
+        // 0.6.0のlineage.json（authorizedReviewRounds欠如）もSTATE_INCOMPATIBLEでfail-closedとなる。
+        var lineageDirectory = Directory.GetDirectories(Path.Combine(fixture.Paths.StateRoot, "lineages")).Single();
+        var lineagePath = Path.Combine(lineageDirectory, "lineage.json");
+        var lineageJson = JsonNode.Parse(File.ReadAllText(lineagePath))!.AsObject();
+        lineageJson["latestStatus"] = ReviewStatuses.HumanDecisionRequired;
+        lineageJson["reviewRounds"] = 3;
+        lineageJson.Remove("authorizedReviewRounds");
+        File.WriteAllText(lineagePath, lineageJson.ToJsonString(JsonDefaults.Options));
+
+        var lineageException = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(fixture.Input with
+            {
+                ChangeId = "change-2",
+                PreviousRunId = runId,
+                UserDecision = new UserDecision("Attempt transition from legacy lineage", "user")
+            })), CancellationToken.None));
+        Assert.AreEqual("STATE_INCOMPATIBLE", lineageException.Code);
+    }
+
+    [TestMethod]
+    public async Task CorruptResultBudgetMetadataAndBudgetExhaustedPayloadsFailClosed()
+    {
+        using var fixture = new RunnerFixture("copilot");
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-002")));
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-003")));
+
+        var start = await fixture.Application.ExecuteAsync(fixture.StartCommand(), CancellationToken.None);
+        var runId = start.Output.RunId!;
+        await fixture.Application.ExecuteAsync(fixture.ContinueCommand(runId), CancellationToken.None);
+        var exhausted = await fixture.Application.ExecuteAsync(fixture.ContinueCommand(runId), CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.ReviewBudgetExhausted, exhausted.Output.Status);
+
+        var resultPath = Path.Combine(fixture.Paths.StateRoot, runId, "result.json");
+        var originalResultText = File.ReadAllText(resultPath);
+
+        // v5のresult.jsonからauthorizedReviewRoundsが欠落している場合はstatusでSTATE_INCOMPATIBLEとして拒否する。
+        var missingBudgetResult = JsonNode.Parse(originalResultText)!.AsObject();
+        missingBudgetResult["output"]!.AsObject().Remove("authorizedReviewRounds");
+        File.WriteAllText(resultPath, missingBudgetResult.ToJsonString(JsonDefaults.Options));
+        var missingBudgetEx = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new StatusCommand(runId), CancellationToken.None));
+        Assert.AreEqual("STATE_INCOMPATIBLE", missingBudgetEx.Code);
+
+        // REVIEW_BUDGET_EXHAUSTEDのresult.jsonがfindings空またはmessage欠落ならRESULT_INVALIDとして拒否する。
+        var emptyFindingsResult = JsonNode.Parse(originalResultText)!.AsObject();
+        emptyFindingsResult["output"]!["findings"] = new JsonArray();
+        File.WriteAllText(resultPath, emptyFindingsResult.ToJsonString(JsonDefaults.Options));
+        var emptyFindingsResultEx = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new StatusCommand(runId), CancellationToken.None));
+        Assert.AreEqual("RESULT_INVALID", emptyFindingsResultEx.Code);
+
+        // state.jsonのREVIEW_BUDGET_EXHAUSTEDでfindings空・message欠落・reviewRounds不一致はSTATE_INVALIDで拒否する。
+        File.WriteAllText(resultPath, originalResultText);
+        var statePath = Path.Combine(fixture.Paths.StateRoot, runId, "state.json");
+        var originalStateText = File.ReadAllText(statePath);
+
+        var missingFindingsState = JsonNode.Parse(originalStateText)!.AsObject();
+        var missingFindingsHistory = missingFindingsState["reviewHistory"]!.AsArray();
+        missingFindingsHistory[^1]!["findings"] = new JsonArray();
+        File.WriteAllText(statePath, missingFindingsState.ToJsonString(JsonDefaults.Options));
+        var missingFindingsStateEx = Assert.ThrowsExactly<RunnerException>(() => new StateStore(fixture.Paths.StateRoot).Load(runId));
+        Assert.AreEqual("STATE_INVALID", missingFindingsStateEx.Code);
+
+        var missingMessageState = JsonNode.Parse(originalStateText)!.AsObject();
+        var missingMessageHistory = missingMessageState["reviewHistory"]!.AsArray();
+        missingMessageHistory[^1]!["message"] = " ";
+        File.WriteAllText(statePath, missingMessageState.ToJsonString(JsonDefaults.Options));
+        var missingMessageStateEx = Assert.ThrowsExactly<RunnerException>(() => new StateStore(fixture.Paths.StateRoot).Load(runId));
+        Assert.AreEqual("STATE_INVALID", missingMessageStateEx.Code);
+
+        var mismatchedStatusState = JsonNode.Parse(originalStateText)!.AsObject();
+        var mismatchedStatusHistory = mismatchedStatusState["reviewHistory"]!.AsArray();
+        mismatchedStatusHistory[^1]!["status"] = ReviewStatuses.Findings;
+        File.WriteAllText(statePath, mismatchedStatusState.ToJsonString(JsonDefaults.Options));
+        var mismatchedStatusStateEx = Assert.ThrowsExactly<RunnerException>(() => new StateStore(fixture.Paths.StateRoot).Load(runId));
+        Assert.AreEqual("STATE_INVALID", mismatchedStatusStateEx.Code);
+
+        var mismatchedRoundsState = JsonNode.Parse(originalStateText)!.AsObject();
+        mismatchedRoundsState["reviewRounds"] = 2;
+        File.WriteAllText(statePath, mismatchedRoundsState.ToJsonString(JsonDefaults.Options));
+        var mismatchedRoundsStateEx = Assert.ThrowsExactly<RunnerException>(() => new StateStore(fixture.Paths.StateRoot).Load(runId));
+        Assert.AreEqual("STATE_INVALID", mismatchedRoundsStateEx.Code);
     }
 
     [TestMethod]
@@ -364,7 +708,7 @@ public sealed class RunnerApplicationTests
         Assert.AreEqual(ReviewStatuses.Findings, stored.Output.Status);
         Assert.AreEqual(outcome, stored.Output.Findings.Single().RequiredOutcome);
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(stored.Output, JsonDefaults.Options));
-        Assert.AreEqual(4, document.RootElement.GetProperty("protocolVersion").GetInt32());
+        Assert.AreEqual(5, document.RootElement.GetProperty("protocolVersion").GetInt32());
         Assert.AreEqual(1, document.RootElement.GetProperty("reviewRounds").GetInt32());
         var finding = document.RootElement.GetProperty("findings")[0];
         Assert.AreEqual(outcome, finding.GetProperty("requiredOutcome").GetString());
@@ -751,7 +1095,7 @@ public sealed class RunnerApplicationTests
         fixture.Process.ForcedResult = new ProcessResult(7, string.Empty, "provider failed", false);
         var currentInput = fixture.Input;
         string? previousRunId = null;
-        for (var submission = 1; submission <= Protocol.MaximumRounds; submission++)
+        for (var submission = 1; submission <= Protocol.InitialReviewBudget; submission++)
         {
             currentInput = currentInput with { PreviousRunId = previousRunId };
             var result = await fixture.Application.ExecuteAsync(
@@ -791,7 +1135,7 @@ public sealed class RunnerApplicationTests
         var fourthRoundInput = currentInput with { PreviousRunId = roundOne.Output.RunId };
         var rejected = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
             fixture.Application.ExecuteAsync(new StartCommand(fixture.Repository, fixture.WriteInput(fourthRoundInput)), CancellationToken.None));
-        Assert.AreEqual("MAX_REVIEW_ROUNDS_REACHED", rejected.Code);
+        Assert.AreEqual("REVIEW_BUDGET_EXHAUSTED", rejected.Code);
         Assert.AreEqual(6, fixture.Process.Requests.Count);
     }
 
@@ -810,7 +1154,8 @@ public sealed class RunnerApplicationTests
             ReviewStatuses.Running,
             DurableSubmissions: 2,
             InputHash: storedInput.Hash,
-            ReviewRounds: 0));
+            ReviewRounds: 0,
+            AuthorizedReviewRounds: Protocol.InitialReviewBudget));
 
         var retry = fixture.Input with { PreviousRunId = reservedRunId };
         var exception = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
@@ -842,7 +1187,7 @@ public sealed class RunnerApplicationTests
     }
 
     [TestMethod]
-    public async Task ErrorThenRetryFindingsThenContinueConsumesSharedBudgetAndRequiresHumanDecision()
+    public async Task ErrorThenRetryFindingsThenContinueConsumesSharedBudgetAndExhaustsReviewBudget()
     {
         using var fixture = new RunnerFixture("copilot");
         fixture.Process.ForcedResult = new ProcessResult(7, string.Empty, "temporary provider failure", false);
@@ -865,10 +1210,12 @@ public sealed class RunnerApplicationTests
         Assert.AreEqual(1, retried.Output.ReviewRounds);
         Assert.AreEqual(ReviewStatuses.Findings, second.Output.Status);
         Assert.AreEqual(2, second.Output.ReviewRounds);
-        Assert.AreEqual(ReviewStatuses.HumanDecisionRequired, third.Output.Status);
+        Assert.AreEqual(ReviewStatuses.ReviewBudgetExhausted, third.Output.Status);
         Assert.AreEqual(3, third.Output.ReviewRounds);
+        Assert.AreEqual(3, third.Output.AuthorizedReviewRounds);
         Assert.AreEqual(4, third.Output.DurableSubmissions);
         Assert.AreEqual(3, state.ReviewRounds);
+        Assert.AreEqual(3, state.AuthorizedReviewRounds);
         Assert.AreEqual(4, state.DurableSubmissions);
     }
 
@@ -909,8 +1256,9 @@ public sealed class RunnerApplicationTests
             CancellationToken.None);
 
         Assert.AreEqual(2, secondRound.Output.ReviewRounds);
-        Assert.AreEqual(ReviewStatuses.HumanDecisionRequired, thirdRound.Output.Status);
+        Assert.AreEqual(ReviewStatuses.ReviewBudgetExhausted, thirdRound.Output.Status);
         Assert.AreEqual(3, thirdRound.Output.ReviewRounds);
+        Assert.AreEqual(3, thirdRound.Output.AuthorizedReviewRounds);
         Assert.AreEqual(3, thirdRound.Output.DurableSubmissions);
     }
 
@@ -1019,9 +1367,10 @@ public sealed class RunnerApplicationTests
         Assert.AreEqual(ReviewStatuses.Findings, second.Output.Status);
         Assert.AreEqual(1, second.Output.Round);
         Assert.AreEqual(2, second.Output.ReviewRounds);
-        Assert.AreEqual(ReviewStatuses.HumanDecisionRequired, final.Output.Status);
+        Assert.AreEqual(ReviewStatuses.ReviewBudgetExhausted, final.Output.Status);
         Assert.AreEqual(2, final.Output.Round);
         Assert.AreEqual(3, final.Output.ReviewRounds);
+        Assert.AreEqual(3, final.Output.AuthorizedReviewRounds);
         Assert.AreEqual(4, final.Output.DurableSubmissions);
         Assert.AreEqual(3, state.ReviewRounds);
         Assert.AreEqual(4, state.DurableSubmissions);
@@ -1512,7 +1861,8 @@ public sealed class RunnerApplicationTests
             ProcessStartTimeUtc: DateTimeOffset.UtcNow.AddMinutes(-5),
             Repository: fixture.Repository,
             DurableSubmissions: 2,
-            ReviewRounds: 1));
+            ReviewRounds: 1,
+            AuthorizedReviewRounds: Protocol.InitialReviewBudget));
 
         var status = await fixture.Application.ExecuteAsync(new StatusCommand(start.Output.RunId!), CancellationToken.None);
         var state = new StateStore(fixture.Paths.StateRoot).Load(start.Output.RunId!);
