@@ -5,10 +5,10 @@ namespace PurposeReviewRunner;
 
 public static class Protocol
 {
-    public const int Version = 4;
-    public const int JobSchemaVersion = 3;
-    public const int MaximumRounds = 3;
-    public const string RunnerVersion = "0.6.0";
+    public const int Version = 5;
+    public const int JobSchemaVersion = 4;
+    public const int InitialReviewBudget = 3;
+    public const string RunnerVersion = "0.7.0";
     public const int InputSchemaVersion = 1;
     public const string ReviewKind = "purpose-design-alignment";
 }
@@ -20,6 +20,7 @@ public sealed record EvidenceItem(string Id, string Source, string Body);
 public sealed record ResponseItem(string FindingId, string Body, IReadOnlyList<string> Evidence);
 public sealed record ConformanceItem(string Owner, string Plan, IReadOnlyList<string> Evidence);
 public sealed record UserDecision(string Body, string Authority);
+public sealed record ReviewBudgetGrant(int AdditionalRounds, string Body, string Authority);
 
 public sealed record ReviewInput(
     int SchemaVersion,
@@ -33,7 +34,8 @@ public sealed record ReviewInput(
     IReadOnlyList<ResponseItem> Responses,
     IReadOnlyList<ConformanceItem> Conformance,
     UserDecision? UserDecision = null,
-    IReadOnlyList<ReviewHistoryEntry>? PriorReviewHistory = null);
+    IReadOnlyList<ReviewHistoryEntry>? PriorReviewHistory = null,
+    ReviewBudgetGrant? BudgetGrant = null);
 
 public sealed record InputBinding(
     string PurposeHash,
@@ -70,10 +72,11 @@ public static class ReviewStatuses
     public const string Findings = "FINDINGS";
     public const string Complete = "COMPLETE";
     public const string HumanDecisionRequired = "HUMAN_DECISION_REQUIRED";
+    public const string ReviewBudgetExhausted = "REVIEW_BUDGET_EXHAUSTED";
     public const string Blocked = "BLOCKED";
     public const string Error = "ERROR";
 
-    public static bool IsTerminal(string status) => status is Complete or HumanDecisionRequired or Blocked or Error;
+    public static bool IsTerminal(string status) => status is Complete or HumanDecisionRequired or ReviewBudgetExhausted or Blocked or Error;
 }
 
 public static class JobStatuses
@@ -131,7 +134,8 @@ public sealed record RunnerOutput(
     IReadOnlyList<InformationRequest>? InformationRequests = null,
     IReadOnlyList<string>? NonGuarantees = null,
     int? ReviewRounds = null,
-    int? DurableSubmissions = null)
+    int? DurableSubmissions = null,
+    int? AuthorizedReviewRounds = null)
 {
     public static RunnerOutput FromReview(
         string runId,
@@ -140,7 +144,8 @@ public sealed record RunnerOutput(
         InputBinding binding,
         string inputHash,
         int reviewRounds,
-        int durableSubmissions) =>
+        int durableSubmissions,
+        int authorizedReviewRounds) =>
         new(
             Protocol.Version,
             Protocol.RunnerVersion,
@@ -158,10 +163,11 @@ public sealed record RunnerOutput(
             response.InformationRequests,
             ReviewNonGuarantees.Items,
             reviewRounds,
-            durableSubmissions);
+            durableSubmissions,
+            authorizedReviewRounds);
 
-    public static RunnerOutput Running(string runId, int round, int? reviewRounds = null, int? durableSubmissions = null) =>
-        new(Protocol.Version, Protocol.RunnerVersion, runId, round, ReviewStatuses.Running, false, [], null, null, JobStatuses.Running, ReviewRounds: reviewRounds, DurableSubmissions: durableSubmissions);
+    public static RunnerOutput Running(string runId, int round, int? reviewRounds = null, int? durableSubmissions = null, int? authorizedReviewRounds = null) =>
+        new(Protocol.Version, Protocol.RunnerVersion, runId, round, ReviewStatuses.Running, false, [], null, null, JobStatuses.Running, ReviewRounds: reviewRounds, DurableSubmissions: durableSubmissions, AuthorizedReviewRounds: authorizedReviewRounds);
 
     public static RunnerOutput Version() =>
         new(Protocol.Version, Protocol.RunnerVersion, null, null, "COMPLETE", true, [], null, null);
@@ -173,8 +179,9 @@ public sealed record RunnerOutput(
         int? round = null,
         string? jobStatus = null,
         int? reviewRounds = null,
-        int? durableSubmissions = null) =>
-        new(Protocol.Version, Protocol.RunnerVersion, runId, round, ReviewStatuses.Error, true, [], null, new(code, message), jobStatus, ReviewRounds: reviewRounds, DurableSubmissions: durableSubmissions);
+        int? durableSubmissions = null,
+        int? authorizedReviewRounds = null) =>
+        new(Protocol.Version, Protocol.RunnerVersion, runId, round, ReviewStatuses.Error, true, [], null, new(code, message), jobStatus, ReviewRounds: reviewRounds, DurableSubmissions: durableSubmissions, AuthorizedReviewRounds: authorizedReviewRounds);
 }
 
 public sealed record JobResult(RunnerOutput Output, int ExitCode);
@@ -193,7 +200,8 @@ public sealed record JobState(
     ProviderSnapshot? Provider = null,
     string? InputHash = null,
     int DurableSubmissions = 1,
-    int? ReviewRounds = null);
+    int? ReviewRounds = null,
+    int? AuthorizedReviewRounds = null);
 
 public sealed record WorkerLaunchResult(int ProcessId, DateTimeOffset ProcessStartTimeUtc);
 
@@ -234,7 +242,8 @@ public sealed record RunState(
     int DurableSubmissions = 1,
     string? PreviousRunId = null,
     IReadOnlyList<ReviewHistoryEntry>? ReviewHistory = null,
-    int? ReviewRounds = null);
+    int? ReviewRounds = null,
+    int? AuthorizedReviewRounds = null);
 
 public static class JsonDefaults
 {

@@ -73,7 +73,7 @@ public sealed class ReviewInputStore
 
     public string GetInputPath(string runId, int round)
     {
-        if (!Guid.TryParseExact(runId, "D", out _) || round is < 1 or > Protocol.MaximumRounds)
+        if (!Guid.TryParseExact(runId, "D", out _) || round < 1)
         {
             throw new RunnerException("JOB_INVALID", "Input snapshot identity is invalid.");
         }
@@ -100,6 +100,10 @@ public sealed class ReviewInputStore
         if (input.UserDecision is { } decision && (!Text(decision.Body) || !Text(decision.Authority)))
         {
             throw new RunnerException("INPUT_INVALID", "userDecision requires body and authority.");
+        }
+        if (input.BudgetGrant is { } grant && (grant.AdditionalRounds < 1 || !Text(grant.Body) || !Text(grant.Authority)))
+        {
+            throw new RunnerException("INPUT_INVALID", "budgetGrant requires additionalRounds >= 1, body, and authority.");
         }
         var evidenceIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var evidence in input.Evidence)
@@ -133,7 +137,8 @@ public sealed record TaskLineage(
     string LatestStatus,
     int DurableSubmissions,
     string InputHash,
-    int? ReviewRounds = null);
+    int? ReviewRounds = null,
+    int? AuthorizedReviewRounds = null);
 
 public sealed class TaskLineageStore
 {
@@ -163,6 +168,11 @@ public sealed class TaskLineageStore
         {
             var lineage = JsonSerializer.Deserialize<TaskLineage>(SharedStateFile.ReadAllText(path), JsonDefaults.Options)
                 ?? throw new JsonException("Lineage JSON was empty.");
+            // 旧protocol v4以前のlineageをv5の予算・authority判定へ混在させないため、必須制御field欠如時は互換性エラーとして拒否する。
+            if (lineage.ReviewRounds is null || lineage.AuthorizedReviewRounds is null)
+            {
+                throw new RunnerException("STATE_INCOMPATIBLE", "Task lineage protocol control fields are missing or incompatible.");
+            }
             ValidateLineage(lineage);
             return lineage;
         }
@@ -196,7 +206,9 @@ public sealed class TaskLineageStore
         if (string.IsNullOrWhiteSpace(lineage.Repository) || string.IsNullOrWhiteSpace(lineage.TaskKey) ||
             string.IsNullOrWhiteSpace(lineage.ChangeId) || string.IsNullOrWhiteSpace(lineage.LatestRunId) ||
             string.IsNullOrWhiteSpace(lineage.LatestStatus) || string.IsNullOrWhiteSpace(lineage.InputHash) ||
-            lineage.DurableSubmissions < 1 || lineage.ReviewRounds is null or < 0 or > Protocol.MaximumRounds)
+            lineage.DurableSubmissions < 1 || lineage.ReviewRounds is null or < 0 ||
+            lineage.AuthorizedReviewRounds is null or < Protocol.InitialReviewBudget ||
+            lineage.ReviewRounds > lineage.AuthorizedReviewRounds)
         {
             throw new RunnerException("STATE_INVALID", "Task lineage contains invalid control data.");
         }

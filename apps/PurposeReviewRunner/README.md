@@ -1,10 +1,10 @@
 # Purpose Review Runner
 
-`purpose-review-runner`は、明示的に許可されたtask内の目的・設計整合を独立reviewerへ評価させるローカルCLIです。同一changeはlinked runを通じて最大3 review roundsまで扱います。実行手順は[`$persistent-purpose-review`](../../apm-packages/persistent-purpose-review/README.md)が提供します。両方必要です。RunnerはPCへOS userごとに一度導入します。
+`purpose-review-runner`は、明示的に許可されたtask内の目的・設計整合を独立reviewerへ評価させるローカルCLIです。同一changeの初回自動レビュー予算はlinked runを通じて最大3 review roundsです（超過時は`REVIEW_BUDGET_EXHAUSTED`で停止し、ユーザーの指示によりスキップまたは`budgetGrant`で追加レビューを行います）。実行手順は[`$persistent-purpose-review`](../../apm-packages/persistent-purpose-review/README.md)が提供します。両方必要です。RunnerはPCへOS userごとに一度導入します。
 
 通常はRunnerコマンドを手で呼ぶ必要はありません。主経路はSkillが`start` / `status` / `continue`を扱います。このREADMEはインストール、設定、更新、troubleshootingの正本です。手動CLIは[Advanced usage](#advanced-usage)にあります。
 
-必要なbuildはRunner 0.6.0以上、protocol v4です。このversionのRelease状態は未確認です。配布済みのbuildがなければ利用を開始しないでください。過去runの扱いは[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
+必要なbuildはRunner 0.7.0以上、protocol v5です。このversionのRelease状態は未確認です。配布済みのbuildがなければ利用を開始しないでください。過去runの扱いは[compatibility note](../../docs/purpose-review-runner-compatibility.md)を参照してください。
 
 ## 評価対象と完了の意味
 
@@ -14,7 +14,7 @@ Runnerは元の目的、承認済み設計、提案設計と差分、入力に�
 
 ## Install
 
-配布の正本は[GitHub Releases](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases)です。通常は[最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)を使います。Runner 0.6.0 / protocol v4のReleaseが確認できるまで、新しいSkillの運用を開始しないでください。
+配布の正本は[GitHub Releases](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases)です。通常は[最新Release](https://github.com/suusanex/coding_agent_plan_and_verify_process/releases/latest)を使います。Runner 0.7.0 / protocol v5のReleaseが確認できるまで、新しいSkillの運用を開始しないでください。
 
 | OS | asset |
 | --- | --- |
@@ -76,7 +76,7 @@ ${EDITOR:-nano} "$config_dir/config.json"
 purpose-review-runner version
 ```
 
-stdoutの単一JSONで`protocolVersion`が`4`、`runnerVersion`が`0.6.0`以上であることを確認します。`~/.local/bin`がPATHにあっても、その下の専用directoryは自動では検索されません。
+stdoutの単一JSONで`protocolVersion`が`5`、`runnerVersion`が`0.7.0`以上であることを確認します。`~/.local/bin`がPATHにあっても、その下の専用directoryは自動では検索されません。
 
 ## Config
 
@@ -170,8 +170,9 @@ Codex CLI:
 | `RUNNING`が長い | `status --run <run-id>`を繰り返す。新しいrunを作っていないか | 同じ`run-id`の`status`だけをやり直す。1 roundは約10分かかることがある |
 | `INPUT_INVALID`など、run成立前の入力エラー | stdoutのerror code。`runId`が無いこと | ReviewInput JSONを直して`start`をやり直す。成立済みreviewの再送ではない |
 | 受付後にCLIの結果だけが不明 | durable job / `runId`が既にあるか | 同じ`start` / `continue`を再送せず、その`runId`の`status`を見る |
-| terminal `ERROR` / `BLOCKED` | 既存`runId`の`status`とlineage | 同じchangeなら同じtask/change identityと前回run参照で新しいlinked runを作り、成立済み`reviewRounds`と過去履歴を維持する（review成立前のoperational failure自体は3-round予算を消費しない）。purpose / approvedDesignを変えずに別changeへ切り替える場合は新しい`changeId`と前回run参照で`start`でき、`userDecision`は不要。purposeまたはapprovedDesignを変える場合は新`changeId`と`userDecision`を使う |
-| Runner versionが古い / protocol・state非互換 | `purpose-review-runner version` | protocol v4 / Runner 0.6.0以上のbuildへ差し替える。`apm update`では直らない |
+| terminal `ERROR` / `BLOCKED` | 既存`runId`の`status`とlineage | 同じchangeなら同じtask/change identityと前回run参照で新しいlinked runを作り、成立済み`reviewRounds`・拡大済み`authorizedReviewRounds`と過去履歴を維持する（review成立前のoperational failure自体は予算を消費しない。残予算が既になければ`budgetGrant`が必要）。残予算がありpurpose / approvedDesignを変えずに別changeへ切り替える場合は新しい`changeId`と前回run参照で`start`でき、`userDecision`は不要。purposeまたはapprovedDesignを変える場合は新`changeId`と`userDecision`を使う |
+| `REVIEW_BUDGET_EXHAUSTED` | `status`の`reviewRounds` / `authorizedReviewRounds`と`findings` | 未通過のままスキップして後続へ進めるか（`COMPLETE`扱いにしない）、ユーザー許可を得た`budgetGrant`を付けて同じ`taskKey`・同じ`changeId`・`userDecision: null`・前回run参照で新しいlinked runを`start`する（別の実質的変更へ進む場合だけ`budgetGrant: null`・新`changeId`・`userDecision`） |
+| Runner versionが古い / protocol・state非互換 | `purpose-review-runner version` | protocol v5 / Runner 0.7.0以上のbuildへ差し替える。`apm update`では直らない |
 | `HUMAN_DECISION_REQUIRED` | `message`、必要な判断とauthority | ユーザーの明示判断を記録する。新しい`changeId`と`userDecision`なしで再提出しない |
 
 ## Advanced usage
@@ -191,5 +192,5 @@ purpose-review-runner continue --run <run-id> --input C:\path\to\updated-review-
 | [Persistent Purpose Review README](../../apm-packages/persistent-purpose-review/README.md) | 利用者の入口とSkillの利用方法 |
 | このREADME | Runnerのインストール、設定、update、troubleshooting |
 | [Technical reference](../../docs/purpose-review-runner-technical-reference.md) | protocol、state、worker、provider adapter |
-| [Compatibility](../../docs/purpose-review-runner-compatibility.md) | version履歴とv2/v3/0.5.0 state非互換 |
+| [Compatibility](../../docs/purpose-review-runner-compatibility.md) | version履歴とv2/v3/0.5.0/0.6.0 state非互換 |
 | [Maintainer reference](../../docs/purpose-review-runner-maintenance.md) | 開発・リリース・validation。buildとRelease手順はこちら |
