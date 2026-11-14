@@ -144,5 +144,6 @@ public sealed class JobStoreConcurrencyTests
             Repository: Path.GetFullPath(Path.Combine(stateRoot, "repo")),
             Provider: new ProviderSnapshot("codex", FakeExecutableResolver.Expected("codex"), "test-model", "high", null),
             InputHash: "test-input-hash",
-            ReviewRounds: 0);
+            ReviewRounds: 0,
+            AuthorizedReviewRounds: Protocol.InitialReviewBudget);
 }

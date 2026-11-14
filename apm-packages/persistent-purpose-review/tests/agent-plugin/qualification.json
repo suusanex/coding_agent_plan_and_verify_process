@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "persistent-purpose-review",
-  "canonicalFingerprint": "cc252d376b69f1aed66e2e150297ad7dc5e33d05f4f96f23d0e8b161c312f238",
-  "distributionFingerprint": "e30f8dbb49879a20f48c7d4e1a44483f6dc94392abda20fa47874673e859b0ac",
+  "canonicalFingerprint": "f4be109cf03224f3265cdc193a25217cc889df93725398f396af802bb257f1b6",
+  "distributionFingerprint": "46f8eaeda9107774e8ed15cb760432b3bdc398d06a8b81ae51c0484eb72e0960",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
@@ -14,14 +14,14 @@
       "distribution": "apm",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "Runner 0.6.0 / protocol v4とSkill 0.7.0の実モデル評価は未実施。目的・設計整合reviewの検出力、過剰指摘、利用者負荷を未確認のため、旧実装reviewやsession継続結果から推定しない。",
+      "reason": "Runner 0.7.0 / protocol v5とSkill 0.8.0の実モデル評価は未実施。目的・設計整合reviewの検出力、過剰指摘、利用者負荷を未確認のため、旧実装reviewやsession継続結果から推定しない。",
       "evidenceRefs": []
     },
     {
       "distribution": "agent-plugin-direct",
       "status": "HOLD",
       "evidenceMode": "PARTIAL",
-      "reason": "Runner 0.5.0時点でCodex/Copilotによる限定的な実モデル評価を実施したが、Copilotの目的・設計workflowとcontrast fixture、Codexのread-only同一session初回・resume fixtureに限られる。Runner 0.6.0のruntime契約/best-effort guardrail・reviewRounds整理後の全面的な実モデル再評価は未実施であり、利用負荷と出力適合性も広く未評価のためdirect deployment qualificationはHOLD。",
+      "reason": "Runner 0.5.0時点でCodex/Copilotによる限定的な実モデル評価を実施したが、Copilotの目的・設計workflowとcontrast fixture、Codexのread-only同一session初回・resume fixtureに限られる。Runner 0.7.0 / protocol v5のreview予算上限（REVIEW_BUDGET_EXHAUSTED）および追加レビュー許可（budgetGrant）導入後の全面的な実モデル再評価は未実施であり、利用負荷と出力適合性も広く未評価のためdirect deployment qualificationはHOLD。",
       "evidenceRefs": [
         "tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-provider-safety.md",
         "tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-purpose-design-evaluation.md"

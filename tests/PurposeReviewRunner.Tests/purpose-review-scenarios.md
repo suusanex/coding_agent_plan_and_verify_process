@@ -1,6 +1,6 @@
 # Purpose Review Runner 目的・設計整合の実モデル評価シナリオ
 
-このqualificationはRunner 0.6.0 / protocol v4、Skill 0.7.0の組合せを対象とする。Runner 0.5.0時点で実施した限定的なCopilot/Codex実モデル結果は`purpose-review-results/2026-10-28-purpose-design-evaluation.md`と`purpose-review-results/2026-10-28-provider-safety.md`に記録済みだが、assessmentはAPM `NOT_RUN / NONE`、Agent Plugin direct `HOLD / PARTIAL`を維持する。CIの決定的な契約テストは実モデルの意味的な検出力、費用、利用負荷を証明しない。過去の実装reviewやsession継続結果を今回のPASSに転用しない。
+このqualificationはRunner 0.7.0 / protocol v5、Skill 0.8.0の組合せを対象とする。Runner 0.5.0時点で実施した限定的なCopilot/Codex実モデル結果は`purpose-review-results/2026-10-28-purpose-design-evaluation.md`と`purpose-review-results/2026-10-28-provider-safety.md`に記録済みだが、assessmentはAPM `NOT_RUN / NONE`、Agent Plugin direct `HOLD / PARTIAL`を維持する。CIの決定的な契約テストは実モデルの意味的な検出力、費用、利用負荷を証明しない。過去の実装reviewやsession継続結果を今回のPASSに転用しない。
 
 ## 実施方法
 
@@ -28,7 +28,7 @@ purpose-review-runner continue --run <run-id> --input <updated-input.json>
 | HUMAN_DECISION_REQUIRED | 提案scopeを変更するにはauthorityが不足。後続の独立fixtureではユーザーの明示決定を`userDecision`として渡す | 判断前は停止。判断後のみ同じ`taskKey`・新しい`changeId`・前runを指す`previousRunId`で新しいstartをし、同じ変更の自動再開をしない |
 | COMPLETE後のbaseline更新 | 初回は`approvedDesign: null`でCOMPLETE。後続changeでnull baselineを実際のユーザー承認済み設計へ更新 | `userDecision`なしのbaseline変更は拒否。既存のユーザー承認を本文とauthority付きで引用すれば、同じ`taskKey`・新`changeId`・完了runの`previousRunId`でfresh runを受理。COMPLETEやproposalだけではbaselineを昇格しない |
 | COMPLETEまたはERROR/BLOCKED後にauthority不変で別change | 先行runのpurposeと`approvedDesign`を保ち、別のproposalを新しい`changeId`として提出 | 同じ`taskKey`・新`changeId`・直前terminal runの`previousRunId`で`userDecision: null`のまま新runを受理し、既存task authorityで実施できる範囲の作業について承認を繰り返し求めない |
-| review round上限とoperational failure分離 | 同じchangeでreview成立前のoperational failureを挟みつつ、成立したreviewが3 review roundsに達するfixture | operational failureは`durableSubmissions`のみを増やし`reviewRounds`を消費しない。3回の成立したreviewを越える同一change提出は`MAX_REVIEW_ROUNDS_REACHED`で拒否し、`FINDINGS`から新`changeId`への迂回も`CONTINUE_REQUIRED`で拒否する |
+| review round予算と`REVIEW_BUDGET_EXHAUSTED`・operational failure分離 | 同じchangeでreview成立前のoperational failureを挟みつつ、成立したreviewが初回予算3 review roundsに達するfixture、および`budgetGrant`での追加レビュー許可 | operational failureは`durableSubmissions`のみを増やし`reviewRounds`を消費しない。初回予算3回で`FINDINGS`のまま終わる場合は`REVIEW_BUDGET_EXHAUSTED`で停止し、同じ`changeId`の`budgetGrant`なし再提出を`REVIEW_BUDGET_EXHAUSTED`、新`changeId`の`userDecision`なし迂回を`USER_DECISION_REQUIRED`、`FINDINGS`からの新`changeId`迂回を`CONTINUE_REQUIRED`で拒否する。同じ`changeId`と`budgetGrant`で再提出した場合は累積`reviewRounds`を引き継ぎ`authorizedReviewRounds`を増やして続行する |
 | ID lineageとcaller責務 | 同じ作業の連続提出でSkillが同じ`taskKey` / `changeId`と前run参照を維持し、`userDecision`を必要な場合だけユーザーの明示発言から転記するか確認する。別途、異なるtaskKeyを与えたときのRunnerのlineage境界を記録する | Runnerは入力されたtaskKeyのlineageとそのbudgetを強制する。異なるtaskKeyが同じ実作業を表すか、userDecisionが本当のユーザー発言かは認証しない。SkillはID変更で予算を迂回せず、判断本文とauthorityを捏造しない |
 
 ## 利用負荷・費用の測定
@@ -74,7 +74,7 @@ CodexとCopilotを別々に、同じfixture群と同等の設定で実施する�
 ## Qualification handoff
 
 - 実施主体: release candidateのqualificationを担当するmaintainer。
-- 実施時点: Runner 0.6.0とSkill 0.7.0を配布対象として判定する前。
+- 実施時点: Runner 0.7.0とSkill 0.8.0を配布対象として判定する前。
 - 失敗時: case、run ID、transcript参照、判定差異、費用/負荷を結果文書へ記録し、該当する実装・prompt・Skill修正に戻す。
 - 保管先: `tests/PurposeReviewRunner.Tests/purpose-review-results/<date>-<commit>.md`。
 - 状態: 結果を検証してqualification recordを明示更新するまで、APMは`NOT_RUN`、direct deploymentは`HOLD`のままにする。
