@@ -492,6 +492,72 @@ public sealed class RunnerApplicationTests
     }
 
     [TestMethod]
+    public async Task CorruptResultBudgetMetadataAndBudgetExhaustedPayloadsFailClosed()
+    {
+        using var fixture = new RunnerFixture("copilot");
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-001")));
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-002")));
+        fixture.Process.Reviews.Enqueue(Review(ReviewStatuses.Findings, Finding("PUR-003")));
+
+        var start = await fixture.Application.ExecuteAsync(fixture.StartCommand(), CancellationToken.None);
+        var runId = start.Output.RunId!;
+        await fixture.Application.ExecuteAsync(fixture.ContinueCommand(runId), CancellationToken.None);
+        var exhausted = await fixture.Application.ExecuteAsync(fixture.ContinueCommand(runId), CancellationToken.None);
+        Assert.AreEqual(ReviewStatuses.ReviewBudgetExhausted, exhausted.Output.Status);
+
+        var resultPath = Path.Combine(fixture.Paths.StateRoot, runId, "result.json");
+        var originalResultText = File.ReadAllText(resultPath);
+
+        // v5のresult.jsonからauthorizedReviewRoundsが欠落している場合はstatusでSTATE_INCOMPATIBLEとして拒否する。
+        var missingBudgetResult = JsonNode.Parse(originalResultText)!.AsObject();
+        missingBudgetResult["output"]!.AsObject().Remove("authorizedReviewRounds");
+        File.WriteAllText(resultPath, missingBudgetResult.ToJsonString(JsonDefaults.Options));
+        var missingBudgetEx = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new StatusCommand(runId), CancellationToken.None));
+        Assert.AreEqual("STATE_INCOMPATIBLE", missingBudgetEx.Code);
+
+        // REVIEW_BUDGET_EXHAUSTEDのresult.jsonがfindings空またはmessage欠落ならRESULT_INVALIDとして拒否する。
+        var emptyFindingsResult = JsonNode.Parse(originalResultText)!.AsObject();
+        emptyFindingsResult["output"]!["findings"] = new JsonArray();
+        File.WriteAllText(resultPath, emptyFindingsResult.ToJsonString(JsonDefaults.Options));
+        var emptyFindingsResultEx = await Assert.ThrowsExactlyAsync<RunnerException>(() =>
+            fixture.Application.ExecuteAsync(new StatusCommand(runId), CancellationToken.None));
+        Assert.AreEqual("RESULT_INVALID", emptyFindingsResultEx.Code);
+
+        // state.jsonのREVIEW_BUDGET_EXHAUSTEDでfindings空・message欠落・reviewRounds不一致はSTATE_INVALIDで拒否する。
+        File.WriteAllText(resultPath, originalResultText);
+        var statePath = Path.Combine(fixture.Paths.StateRoot, runId, "state.json");
+        var originalStateText = File.ReadAllText(statePath);
+
+        var missingFindingsState = JsonNode.Parse(originalStateText)!.AsObject();
+        var missingFindingsHistory = missingFindingsState["reviewHistory"]!.AsArray();
+        missingFindingsHistory[^1]!["findings"] = new JsonArray();
+        File.WriteAllText(statePath, missingFindingsState.ToJsonString(JsonDefaults.Options));
+        var missingFindingsStateEx = Assert.ThrowsExactly<RunnerException>(() => new StateStore(fixture.Paths.StateRoot).Load(runId));
+        Assert.AreEqual("STATE_INVALID", missingFindingsStateEx.Code);
+
+        var missingMessageState = JsonNode.Parse(originalStateText)!.AsObject();
+        var missingMessageHistory = missingMessageState["reviewHistory"]!.AsArray();
+        missingMessageHistory[^1]!["message"] = " ";
+        File.WriteAllText(statePath, missingMessageState.ToJsonString(JsonDefaults.Options));
+        var missingMessageStateEx = Assert.ThrowsExactly<RunnerException>(() => new StateStore(fixture.Paths.StateRoot).Load(runId));
+        Assert.AreEqual("STATE_INVALID", missingMessageStateEx.Code);
+
+        var mismatchedStatusState = JsonNode.Parse(originalStateText)!.AsObject();
+        var mismatchedStatusHistory = mismatchedStatusState["reviewHistory"]!.AsArray();
+        mismatchedStatusHistory[^1]!["status"] = ReviewStatuses.Findings;
+        File.WriteAllText(statePath, mismatchedStatusState.ToJsonString(JsonDefaults.Options));
+        var mismatchedStatusStateEx = Assert.ThrowsExactly<RunnerException>(() => new StateStore(fixture.Paths.StateRoot).Load(runId));
+        Assert.AreEqual("STATE_INVALID", mismatchedStatusStateEx.Code);
+
+        var mismatchedRoundsState = JsonNode.Parse(originalStateText)!.AsObject();
+        mismatchedRoundsState["reviewRounds"] = 2;
+        File.WriteAllText(statePath, mismatchedRoundsState.ToJsonString(JsonDefaults.Options));
+        var mismatchedRoundsStateEx = Assert.ThrowsExactly<RunnerException>(() => new StateStore(fixture.Paths.StateRoot).Load(runId));
+        Assert.AreEqual("STATE_INVALID", mismatchedRoundsStateEx.Code);
+    }
+
+    [TestMethod]
     public async Task CodexStartAndContinueUseSameVersionBoundReadOnlySession()
     {
         using var fixture = new RunnerFixture("codex");

@@ -72,6 +72,26 @@ public sealed class JobStore
             {
                 throw new JsonException("Result output was missing.");
             }
+            if (result.Output.ReviewRounds is null || result.Output.AuthorizedReviewRounds is null || result.Output.DurableSubmissions is null)
+            {
+                throw new RunnerException("STATE_INCOMPATIBLE", "Job result budget metadata is missing or incompatible.");
+            }
+            if (result.Output.ReviewRounds < 0 ||
+                result.Output.AuthorizedReviewRounds < Protocol.InitialReviewBudget ||
+                result.Output.ReviewRounds > result.Output.AuthorizedReviewRounds ||
+                result.Output.DurableSubmissions < 1 ||
+                (result.Output.JobStatus == JobStatuses.Succeeded && result.Output.ReviewRounds < 1))
+            {
+                throw new RunnerException("RESULT_INVALID", "Job result review budget values are invalid.");
+            }
+            if (result.Output.Status == ReviewStatuses.ReviewBudgetExhausted &&
+                (!result.Output.Terminal ||
+                 result.Output.ReviewRounds != result.Output.AuthorizedReviewRounds ||
+                 string.IsNullOrWhiteSpace(result.Output.Message) ||
+                 result.Output.Findings is not { Count: > 0 }))
+            {
+                throw new RunnerException("RESULT_INVALID", "Job result REVIEW_BUDGET_EXHAUSTED payload is invalid.");
+            }
             var outputBinding = result.Output.InputBinding;
             if (result.Output.JobStatus == JobStatuses.Succeeded &&
                 (result.Output.ReviewKind != Protocol.ReviewKind || outputBinding is null ||
