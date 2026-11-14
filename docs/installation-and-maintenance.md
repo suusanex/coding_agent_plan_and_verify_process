@@ -68,8 +68,10 @@ Codexを利用する場合は更新後に上記Finalizerを再実行し、`--che
 
 削除するpackageを指定してglobal uninstallします。例えばPR Review Remediationだけを削除する場合は次を実行します。
 
+APM v0.26.0ではpackage短縮名ではなく、installに指定した完全なsource specを使います。明示ref付きで導入した場合は、そのrefも含めます。
+
 ```powershell
-apm uninstall pr-review-remediation --global
+apm uninstall suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --global
 ```
 
 他のprocessが依存するAdaptive / Finalizerは依存元の利用状況を確認してから削除します。APMがユーザー編集として保持した生成物は、内容とownershipを確認して整理します。無関係なagent、設定、`AGENTS.md`、他packageのファイルをまとめて削除しません。

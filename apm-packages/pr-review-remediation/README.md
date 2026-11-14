@@ -106,7 +106,7 @@ apm update --global
 OSユーザー単位のglobal領域からアンインストールします。
 
 ```powershell
-apm uninstall pr-review-remediation --global
+apm uninstall suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --global
 ```
 
 以前のversionが生成したprofile等が残る場合は、ownershipを確認してから[Troubleshooting](.apm/skills/pr-review-remediation/references/troubleshooting.md)の案内に従います。

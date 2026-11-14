@@ -40,7 +40,9 @@ GPT-6 LunaがFinalizer単体、global APM導入後のFinalizer実行、help表�
 
 APM v0.33.0では既存plugin buildのlocal-bundle install経路が拒否されることを確認した。検証対象のv0.26.0とは区別する。FinalizerのNativeAOT publishはこの環境のC++ build tools不足で失敗したが、必要な実行・コンパイル検証は`dotnet run`で成功している。NativeAOT配布の追加は本変更の対象外とする。
 
-6対象packageのglobal remote lifecycle smokeとPR reviewは引き続き実施する。
+候補`9b2bd5cb746aa20949776f4fcec8766d764a6044`を公式APM v0.26.0で検証し、6対象packageのremote global lifecycleがすべて成功した。各独立target、mixed install / reinstall、Finalizer再実行と再補完、update、2つのGit repositoryからのglobal metadata / assets参照、uninstall、無関係sentinel保持を確認した。Plan Coverageのinstalled-root full-coverage E2Eと14agentへのguardrail到達も成功した。同候補のGitHub Actions全checkも成功した。
+
+Ready PRは[#171](https://github.com/suusanex/coding_agent_plan_and_verify_process/pull/171)。GitHub Copilot reviewを要求し、remote evidenceを収集中である。実モデルによるprocess runtime qualificationは実行せず、既存NOT_RUN / HOLDの区別を維持した。
 
 Finalizerの統合レビューで、TOML本文内のsection風テキスト、quoted key、multiline profile値を独自の行走査で誤認する可能性を確認した。既存Tomlynのsyntax treeと値spanを再利用し、対象profile値だけを置換するようLunaが修正した。未知field、comment、本文、改行を保持する回帰検証も成功した。独自TOML lexerの追加は行っていない。
 
@@ -49,3 +51,5 @@ remote lifecycleの初回実測で、APM v0.26.0は候補SHAに固定した依�
 APMのfrozen reinstall後にprofile補完が失われる観測に合わせ、smokeの順序を「Finalizer単独再実行のhash不変」と「APM再install後のFinalizer再補完」に分けた。旧順序の失敗は失敗として記録し、再補完後のcheck成功で受入を検証する。
 
 隔離homeでAPM v0.26.0の初回同名agent衝突も確認した。Codex TOML / Copilot agent markdownとも管理外の既存本文を保持し、installはskipメッセージ付きで終了コード0となった。このため正式手順ではskip出力を確認し、衝突を解消してからprocessを開始する。
+
+追加の削除検証では、refなしで導入したPR Review Remediationを同じ完全source specで削除し、module / Skillの消滅を確認した。AdaptiveはFinalizerでprofile補完した後でも、APM uninstallが2 package、管理対象4 agent、3 integrated Skillを削除し、無関係sentinelを保持した。短縮名ではuninstallできないため、正式文書も完全source specへ補正した。Windows追加probeでAPM Python readerにcp932 decode例外の出力があったケースは、終了コード0・実配置・削除後のpath不在を別々に確認し、検証ログへ記録した。
