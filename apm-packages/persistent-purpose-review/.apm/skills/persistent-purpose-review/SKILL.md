@@ -26,7 +26,7 @@ disable-model-invocation: true
 - 目的の引用文と根拠sourceはinputへ埋め込む。reviewerに会話・外部sourceを再取得させず、引用を捏造・補完させない。
 - conformanceの記録は申告内容と証拠を評価するための入力である。記録されたownerが実行・確認したことをRunnerやreviewerが保証するものではない。
 - Runnerがprovider、session、review round数（`reviewRounds`）と試行回数（`durableSubmissions`）、入力結合、result parseを所有する。provider CLI構文やsession handleをSkillから再実装しない。
-- 対応providerはCodexとGitHub Copilot。Grok Buildは対象外。
+- 対応review providerはCodexとGitHub Copilot。Grok Buildは対象外だが、Grok BuildはRunnerを呼び出すcallerになれる。
 
 ## Provider execution boundary
 
@@ -105,6 +105,63 @@ purpose-review-runner start --repository <repository-root> --input <input.json>
 ```powershell
 purpose-review-runner status --run <run-id>
 ```
+
+### Wait for the review result
+
+`start` / `continue`は非同期reviewを起動するため、commandが`RUNNING`を返しただけで待機工程を終えない。直後から同じ`runId`の`status`を確認し、次の状態を`status`の値で処理する。`jobStatus`や`terminal`だけを先に評価してreview状態を省略しない。
+
+| `status` | 処理 |
+| --- | --- |
+| `RUNNING` | 同じrunのstatus確認を継続する。 |
+| `FINDINGS` | `terminal: false`でも待機を区切る。findingを設計責任者の入力として検討し、必要なら更新inputで同じrunを`continue`する。 |
+| `COMPLETE` | `terminal: true`のreview完了として待機を終え、結果を報告する。承認や実装完了にはしない。 |
+| `HUMAN_DECISION_REQUIRED` | 待機を終え、必要な判断とauthority不足を報告する。判断なしで続行・complete扱い・同じchangeの再開をしない。 |
+| `BLOCKED` | 待機を終え、`message`と`informationRequests`を報告する。不足を補える場合だけlinked runの契約に従う。 |
+| `ERROR` | 待機を終え、`error`を報告する。結果を`COMPLETE`として扱わず、runが不明な場合は再submitより先にstatusを再確認する。 |
+
+Runner protocolでは`FINDINGS`は正常な非terminal状態である。`terminal: true`を`FINDINGS`の通知・受領条件にしてはならず、`FINDINGS`を`COMPLETE`まで無視したり、`terminal: false`を単に`RUNNING`と読み替えたりしない。`status`が上表以外、または状態と`terminal`の組合せが不整合なら停止してreportする。
+
+Grok Buildのheadless実行（`-p --output-format streaming-json`または同等のheadless経路）では、同じprompt turnを維持したまま次のように`status`を反復確認する。`long-running-background-tasks`の`monitor`を登録してturnを終了し、その後のnotificationによる再起床を待機成立の前提にしない。15秒ごとにstdoutへ状態JSONを出力し、15分を上限とする。上限に到達しても`RUNNING`なら、reviewを成功扱い・再submitせず、run IDと`RUNNING`のままで中断した事実をerrorとして報告する。
+
+```powershell
+$runId = '<run-id>'
+$deadline = [DateTimeOffset]::UtcNow.AddMinutes(15)
+$terminalByStatus = @{
+    'RUNNING' = $false
+    'FINDINGS' = $false
+    'COMPLETE' = $true
+    'HUMAN_DECISION_REQUIRED' = $true
+    'BLOCKED' = $true
+    'ERROR' = $true
+}
+
+do {
+    $raw = purpose-review-runner status --run $runId
+    if ($LASTEXITCODE -ne 0) {
+        throw "Purpose Review status failed with exit code $LASTEXITCODE.`n$raw"
+    }
+    $output = $raw | ConvertFrom-Json -ErrorAction Stop
+    Write-Output $raw
+
+    if ($output.runId -ne $runId -or -not $terminalByStatus.ContainsKey($output.status)) {
+        throw "Purpose Review returned an inconsistent run or unsupported status for $runId."
+    }
+    if ($output.terminal -ne $terminalByStatus[$output.status]) {
+        throw "Purpose Review returned inconsistent status and terminal values for $runId."
+    }
+    if ($output.status -ne 'RUNNING') {
+        break
+    }
+    if ([DateTimeOffset]::UtcNow -ge $deadline) {
+        throw "Purpose Review timed out while run $runId was still RUNNING."
+    }
+    Start-Sleep -Seconds 15
+} while ($true)
+```
+
+このloopから抜けた後、`$output.status`へ上表の処理を適用する。`status` command自体の非0 exit、単一JSONのparse failure、`status` / `terminal`の契約不整合は、review結果不明または失敗として停止する。timeoutはworkerを停止させるものではない。後続処理を再開する場合は同じrun IDのstatusから始め、新しい`start` / `continue`を送らない。
+
+対話実行などで既存のnotification / monitor機構を使う場合も、`FINDINGS`を非terminalの正常な待機区切りとして通知し、headlessで未確認の再起床を前提としない。Grok Buildをreview providerとして利用する変更ではない。
 
 reviewerからfindingが返った場合、実装を自動修正しない。許可済みtaskの範囲で設計責任者が検討した応答、更新した提案・差分・証拠を新しいinputへ反映し、同じ`taskKey` / `changeId`と`continue`対象runのIDでcontinueする。このrunの全roundで`previousRunId`は初回start時の値を保つ（初回taskならnull）。
 
