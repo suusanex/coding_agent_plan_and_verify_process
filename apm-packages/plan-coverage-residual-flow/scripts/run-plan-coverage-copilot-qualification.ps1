@@ -2,6 +2,7 @@
 param(
     [string]$Repository,
     [string]$Ref,
+    [string]$UpdateRef,
     [string]$Model,
     [string]$CopilotCommand = 'copilot',
     [string]$ResultsDir,
@@ -568,7 +569,7 @@ try {
         }
 
         Write-Host 'Running fresh global APM distribution smoke...'
-        & $smokeScript -Repository $Repository -Ref $Ref
+        & $smokeScript -Repository $Repository -Ref $Ref -UpdateRef $UpdateRef
         if ($LASTEXITCODE -ne 0) {
             $distributionSmoke.status = 'FAIL'
             $distributionSmoke.rationale = "Smoke failed with exit code $LASTEXITCODE"

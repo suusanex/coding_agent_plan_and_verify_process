@@ -4,6 +4,7 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using Tomlyn;
@@ -30,13 +31,7 @@ internal static class GlobalPackageSmoke
         {
             if (args is ["--help"])
             {
-                Console.WriteLine("Usage: dotnet run --file scripts/validate-apm-global-package-smoke.cs -- --package <name> --repository <owner/repository> --ref <commit-or-tag> [--apm <path>]");
-                return 0;
-            }
-
-            if (args is ["--help"])
-            {
-                Console.WriteLine("Usage: dotnet run --file scripts/validate-apm-global-package-smoke.cs -- --package <name> --repository <owner/repository> --ref <commit-or-tag> [--apm <path>]");
+                Console.WriteLine("Usage: dotnet run --file scripts/validate-apm-global-package-smoke.cs -- --package <name> --repository <owner/repository> --ref <commit-sha-or-branch> [--update-ref <branch>] [--apm <path>]");
                 return 0;
             }
 
@@ -87,12 +82,20 @@ internal static class GlobalPackageSmoke
                 throw new InvalidOperationException($"This smoke requires APM 0.26.0. Actual version output: {apmVersion.Trim()}");
             }
 
-            var packageSpec = $"{options.Repository}/apm-packages/{options.Package}#{options.Ref}";
-            await RunIndependentTargetSmokeAsync(options, packageSpec, scratch, environment, "codex");
-            await RunIndependentTargetSmokeAsync(options, packageSpec, scratch, environment, "copilot");
-            await RunIndependentTargetSmokeAsync(options, packageSpec, scratch, environment, "agent-skills");
+            var candidateSha = await ResolveCandidateShaAsync(options, scratch, environment);
+            var updateRef = string.IsNullOrWhiteSpace(options.UpdateRef)
+                ? IsFullSha(options.Ref) ? throw new ArgumentException("--update-ref is required when --ref is a commit SHA.") : options.Ref
+                : options.UpdateRef;
+            options = options with { CandidateSha = candidateSha, UpdateRef = updateRef };
+
+            var candidatePackageSpec = $"{options.Repository}/apm-packages/{options.Package}#{options.CandidateSha}";
+            await RunIndependentTargetSmokeAsync(options, candidatePackageSpec, scratch, environment, "codex");
+            await RunIndependentTargetSmokeAsync(options, candidatePackageSpec, scratch, environment, "copilot");
+            await RunIndependentTargetSmokeAsync(options, candidatePackageSpec, scratch, environment, "agent-skills");
+            await VerifyUpdateRefAsync(options, scratch, environment, "before mixed lifecycle install");
+            var updatePackageSpec = $"{options.Repository}/apm-packages/{options.Package}#{options.UpdateRef}";
             await RunProcessAsync(options.ApmExecutable,
-                ["install", packageSpec, "--global", "--target", "codex,copilot,agent-skills", "--https", "--no-audit"],
+                ["install", updatePackageSpec, "--global", "--target", "codex,copilot,agent-skills", "--https", "--no-audit"],
                 scratch, environment, "global install");
 
             var apmHome = Path.Combine(userHome, ".apm");
@@ -123,6 +126,11 @@ internal static class GlobalPackageSmoke
             {
                 await RunProcessAsync("dotnet", ["run", "--file", finalizer, "--", "--global"], scratch, environment, "global Codex profile completion");
                 await RunProcessAsync("dotnet", ["run", "--file", finalizer, "--", "--global", "--check"], scratch, environment, "global Codex profile check");
+                var firstCompletionHashes = CaptureCodexAgentHashes(codexHome);
+                await RunProcessAsync("dotnet", ["run", "--file", finalizer, "--", "--global"], scratch, environment, "global Codex profile idempotency re-run");
+                var repeatedCompletionHashes = CaptureCodexAgentHashes(codexHome);
+                VerifyIdenticalHashes(firstCompletionHashes, repeatedCompletionHashes, "Finalizer re-run");
+                await RunProcessAsync("dotnet", ["run", "--file", finalizer, "--", "--global", "--check"], scratch, environment, "global Codex profile check after idempotency re-run");
                 Console.WriteLine($"Installed Finalizer script: {Path.GetRelativePath(apmHome, finalizer)}");
             }
 
@@ -138,17 +146,25 @@ internal static class GlobalPackageSmoke
                 await RunProcessAsync("pwsh", ["-File", e2eScript, "-InstalledRoot", userHome], scratch, environment, "global installed Plan Coverage full-coverage E2E");
             }
 
+            var profilesBeforeReinstall = CaptureCodexAgentHashes(codexHome);
             await RunProcessAsync(options.ApmExecutable,
                 ["install", "--global", "--target", "codex,copilot,agent-skills", "--frozen"],
                 scratch, environment, "global reinstall");
             if (finalizer is not null)
             {
-                await RunProcessAsync("dotnet", ["run", "--file", finalizer, "--", "--global", "--check"], scratch, environment, "global Codex profile re-check");
+                var profilesAfterReinstall = CaptureCodexAgentHashes(codexHome);
+                var changedProfiles = FindChangedHashes(profilesBeforeReinstall, profilesAfterReinstall);
+                Console.WriteLine(changedProfiles.Length == 0
+                    ? "APM frozen reinstall preserved all Codex agent profile hashes."
+                    : $"APM frozen reinstall changed Codex agent profile hashes: {string.Join(", ", changedProfiles)}");
+                await RunProcessAsync("dotnet", ["run", "--file", finalizer, "--", "--global"], scratch, environment, "global Codex profile completion after reinstall");
+                await RunProcessAsync("dotnet", ["run", "--file", finalizer, "--", "--global", "--check"], scratch, environment, "global Codex profile check after reinstall completion");
             }
 
             await RunProcessAsync(options.ApmExecutable,
                 ["update", "--global", "--yes", "--target", "codex,copilot,agent-skills"],
                 scratch, environment, "global update");
+            await VerifyUpdateRefAsync(options, scratch, environment, "after global update");
             if (finalizer is not null)
             {
                 await RunProcessAsync("dotnet", ["run", "--file", finalizer, "--", "--global"], scratch, environment, "global Codex profile completion after update");
@@ -168,9 +184,10 @@ internal static class GlobalPackageSmoke
                 }
 
                 var dependencies = await RunProcessAsync(options.ApmExecutable, ["deps", "list", "--global"], workRoot, environment, $"global package discovery from {workRepository}");
-                if (!dependencies.Contains(options.Package, StringComparison.Ordinal))
+                if (!dependencies.Contains("APM Dependencies (Global)", StringComparison.Ordinal) ||
+                    !dependencies.Contains("github", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidOperationException($"Global package {options.Package} was not discoverable from {workRepository}.");
+                    throw new InvalidOperationException($"Global APM dependency listing did not report GitHub package metadata from {workRepository}.");
                 }
 
                 VerifyNoProjectLocalProjections(workRoot);
@@ -179,7 +196,9 @@ internal static class GlobalPackageSmoke
 
             Console.WriteLine("Global package metadata and user-scope projections were observed from two workspaces; no runtime agent process was launched.");
 
-            await RunProcessAsync(options.ApmExecutable, ["uninstall", options.Package, "--global"], scratch, environment, "global uninstall");
+            await RunProcessAsync(options.ApmExecutable,
+                ["uninstall", updatePackageSpec, "--global"], scratch, environment, "global uninstall");
+            await VerifyUpdateRefAsync(options, scratch, environment, "after global uninstall");
             if (Directory.Exists(installedPackage))
             {
                 throw new InvalidOperationException($"Global uninstall retained package files: {installedPackage}");
@@ -211,6 +230,7 @@ internal static class GlobalPackageSmoke
                 {
                     try
                     {
+                        ResetReadOnlyAttributesForCleanup(resolvedScratch);
                         Directory.Delete(resolvedScratch, recursive: true);
                     }
                     catch (Exception exception)
@@ -228,15 +248,9 @@ internal static class GlobalPackageSmoke
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
         for (var index = 0; index < args.Length; index++)
         {
-            if (args[index] is not ("--package" or "--repository" or "--ref" or "--apm" or "--help"))
+            if (args[index] is not ("--package" or "--repository" or "--ref" or "--update-ref" or "--apm"))
             {
                 throw new ArgumentException($"Unknown argument: {args[index]}");
-            }
-
-            if (args[index] == "--help")
-            {
-                Console.WriteLine("Usage: dotnet run --file scripts/validate-apm-global-package-smoke.cs -- --package <name> --repository <owner/repository> --ref <commit-or-tag> [--apm <path>]");
-                return new SmokeOptions("", "", "", "");
             }
 
             if (++index >= args.Length || args[index].StartsWith("--", StringComparison.Ordinal))
@@ -260,13 +274,13 @@ internal static class GlobalPackageSmoke
             }
         }
 
-        if (!Regex.IsMatch(values["--repository"], @"^[^/]+/[^/]+$", RegexOptions.CultureInvariant) ||
-            values["--ref"].Contains('#'))
+        if (!Regex.IsMatch(values["--repository"], @"^[^/]+/[^/]+$", RegexOptions.CultureInvariant) || values["--ref"].Contains('#') ||
+            values.GetValueOrDefault("--update-ref", "").Contains('#'))
         {
-            throw new ArgumentException("Repository must be owner/repository and ref must not contain '#'.");
+            throw new ArgumentException("Repository must be owner/repository and refs must not contain '#'.");
         }
 
-        return new SmokeOptions(values["--package"], values["--repository"], values["--ref"], values.GetValueOrDefault("--apm", "apm"));
+        return new SmokeOptions(values["--package"], values["--repository"], values["--ref"], values.GetValueOrDefault("--update-ref", ""), "", values.GetValueOrDefault("--apm", "apm"));
     }
 
     private static async Task<string> RunProcessAsync(string fileName, IReadOnlyList<string> arguments, string workingDirectory,
@@ -304,6 +318,101 @@ internal static class GlobalPackageSmoke
         }
 
         return output;
+    }
+
+    private static async Task<string> ResolveCandidateShaAsync(SmokeOptions options, string scratch,
+        IReadOnlyDictionary<string, string?> environment)
+    {
+        if (IsFullSha(options.Ref))
+        {
+            return options.Ref.ToLowerInvariant();
+        }
+
+        return await GetRemoteBranchShaAsync(options.Repository, options.Ref, scratch, environment);
+    }
+
+    private static async Task VerifyUpdateRefAsync(SmokeOptions options, string scratch,
+        IReadOnlyDictionary<string, string?> environment, string phase)
+    {
+        var branchSha = await GetRemoteBranchShaAsync(options.Repository, options.UpdateRef, scratch, environment);
+        if (!string.Equals(branchSha, options.CandidateSha, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Update branch {options.UpdateRef} for {phase} resolves to {branchSha}, expected candidate SHA {options.CandidateSha}.");
+        }
+
+        Console.WriteLine($"Update branch identity verified for {phase}: {options.UpdateRef} -> {options.CandidateSha}.");
+    }
+
+    private static async Task<string> GetRemoteBranchShaAsync(string repository, string branch, string scratch,
+        IReadOnlyDictionary<string, string?> environment)
+    {
+        await RunProcessAsync("git", ["check-ref-format", "--branch", branch], scratch, environment, "update branch validation");
+        var remote = $"https://github.com/{repository}.git";
+        var output = await RunProcessAsync("git", ["ls-remote", "--heads", remote, $"refs/heads/{branch}"], scratch, environment, "remote update branch lookup");
+        var matches = output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Split('\t'))
+            .Where(fields => fields.Length == 2 && fields[1] == $"refs/heads/{branch}")
+            .ToArray();
+        if (matches.Length != 1 || !Regex.IsMatch(matches[0][0], @"^[0-9a-fA-F]{40}$", RegexOptions.CultureInvariant))
+        {
+            throw new InvalidOperationException($"Remote branch {branch} was not found uniquely in {repository}.");
+        }
+
+        return matches[0][0].ToLowerInvariant();
+    }
+
+    private static bool IsFullSha(string value) => Regex.IsMatch(value, @"^[0-9a-fA-F]{40}$", RegexOptions.CultureInvariant);
+
+    private static SortedDictionary<string, string> CaptureCodexAgentHashes(string codexHome)
+    {
+        var agentsDirectory = Path.Combine(codexHome, "agents");
+        var hashes = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        if (!Directory.Exists(agentsDirectory))
+        {
+            return hashes;
+        }
+
+        foreach (var file in Directory.EnumerateFiles(agentsDirectory, "*", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(agentsDirectory, file).Replace('\\', '/');
+            hashes.Add(relative, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(file))));
+        }
+
+        return hashes;
+    }
+
+    private static void VerifyIdenticalHashes(IReadOnlyDictionary<string, string> expected, IReadOnlyDictionary<string, string> actual, string phase)
+    {
+        var changed = FindChangedHashes(expected, actual);
+        if (changed.Length > 0)
+        {
+            throw new InvalidOperationException($"Codex agent profile hashes changed during {phase}: {string.Join(", ", changed)}");
+        }
+    }
+
+    private static string[] FindChangedHashes(IReadOnlyDictionary<string, string> before, IReadOnlyDictionary<string, string> after) =>
+        before.Keys.Union(after.Keys, StringComparer.Ordinal)
+            .Where(path => !before.TryGetValue(path, out var beforeHash) || !after.TryGetValue(path, out var afterHash) || beforeHash != afterHash)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+    private static void ResetReadOnlyAttributesForCleanup(string scratch)
+    {
+        var resolvedScratch = Path.GetFullPath(scratch);
+        foreach (var path in Directory.EnumerateFileSystemEntries(resolvedScratch, "*", SearchOption.AllDirectories))
+        {
+            var resolvedPath = Path.GetFullPath(path);
+            if (!resolvedPath.StartsWith(resolvedScratch + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Refusing to change attributes outside the generated smoke directory: {resolvedPath}");
+            }
+
+            var attributes = File.GetAttributes(resolvedPath);
+            if ((attributes & FileAttributes.ReparsePoint) == 0 && (attributes & FileAttributes.ReadOnly) != 0)
+            {
+                File.SetAttributes(resolvedPath, attributes & ~FileAttributes.ReadOnly);
+            }
+        }
     }
 
     private static string FindInstalledPackage(string moduleRoot, string packageName)
@@ -628,5 +737,5 @@ internal static class GlobalPackageSmoke
         }
     }
 
-    private sealed record SmokeOptions(string Package, string Repository, string Ref, string ApmExecutable);
+    private sealed record SmokeOptions(string Package, string Repository, string Ref, string UpdateRef, string CandidateSha, string ApmExecutable);
 }

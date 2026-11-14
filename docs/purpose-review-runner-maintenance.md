@@ -63,11 +63,11 @@ repository rootから、RunnerとSkillの所有surfaceに対応するcheckを実
 ```powershell
 dotnet test ./tests/PurposeReviewRunner.Tests/PurposeReviewRunner.Tests.csproj
 ./apm-packages/persistent-purpose-review/scripts/validate-persistent-purpose-review.ps1
-./apm-packages/persistent-purpose-review/scripts/test-apm-package-install.ps1 -Repository suusanex/coding_agent_plan_and_verify_process -Ref <candidate-commit-or-branch>
+./apm-packages/persistent-purpose-review/scripts/test-apm-package-install.ps1 -Repository suusanex/coding_agent_plan_and_verify_process -Ref '<candidate-branch>'
 ```
 
 外部providerを使う目的・設計review qualificationはManualOnlyです。目的逸脱、過剰指摘、入力内証拠の使用、linked submission予算、providerごとの利用負荷を評価し、deterministic CIのPASSを実model evidenceとして扱いません。
 
 実モデル評価は[評価シナリオ](../tests/PurposeReviewRunner.Tests/purpose-review-scenarios.md)を使い、実行結果、コスト、利用者負荷をdeterministic testとは分けて記録します。過去の実装reviewやsession継続実験は新しい目的・設計整合reviewの資格評価として再利用しません。評価未実施なら`NOT_RUN` / `HOLD`を維持し、実際の評価結果を確認せずLIVE/PASSを主張しません。
 
-global配布smokeの`<candidate-commit-or-branch>`は検証対象のremote commitまたはbranchに置き換えてください。APM v0.26.0を使用し、実ユーザーのhomeを変更しない隔離環境で実行します。
+global配布smokeの`<candidate-branch>`は検証対象のremote branchに置き換えてください。APM v0.26.0を使用し、実ユーザーのhomeを変更しない隔離環境で実行します。
