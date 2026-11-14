@@ -3,7 +3,7 @@
 ## Install
 
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target copilot,codex,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target copilot,codex,agent-skills --global
 ```
 
 独立agent、Codex agent profile、`codex-profile-finalizer`は導入しません。

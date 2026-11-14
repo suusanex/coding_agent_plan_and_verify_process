@@ -23,7 +23,7 @@
     "test-design-kernel",
     "verification-kernel"
   ],
-  "ownedInstructions": ["plan-coverage-shared.instructions.md"],
+  "ownedInstructions": [],
   "dependencies": ["adaptive-implementation-execution"],
-  "runtimeBoundary": "Adaptive composition and shared instruction materialization remain runtime adapter responsibilities."
+  "runtimeBoundary": "Adaptive composition remains a runtime adapter responsibility; shared guardrails are embedded in the package-owned agent prompts and require no external instruction materialization."
 }

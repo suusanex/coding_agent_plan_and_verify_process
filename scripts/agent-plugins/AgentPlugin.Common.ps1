@@ -309,9 +309,18 @@ function Get-AgentPluginBundleFailures([string]$PackageRoot, [string]$BundleRoot
     $canonicalRoot = Join-Path $PackageRoot '.apm'
     foreach ($surface in @('skills', 'agents', 'instructions')) {
         $sourceRoot = Join-Path $canonicalRoot $surface
-        if (-not (Test-Path -LiteralPath $sourceRoot -PathType Container)) { continue }
-        $sourceInventory = Get-AgentPluginFileInventory $sourceRoot
+        $sourceInventory = @{}
+        if (Test-Path -LiteralPath $sourceRoot -PathType Container) {
+            $sourceInventory = Get-AgentPluginFileInventory $sourceRoot
+        }
         $bundleSurface = Join-Path $BundleRoot $surface
+        if ($sourceInventory.Count -eq 0) {
+            if (Test-Path -LiteralPath $bundleSurface -PathType Container) {
+                $bundleInventory = Get-AgentPluginFileInventory $bundleSurface
+                foreach ($relative in $bundleInventory.Keys) { $failures.Add("Unexpected bundle $surface file: $relative") | Out-Null }
+            }
+            continue
+        }
         if (-not (Test-Path -LiteralPath $bundleSurface -PathType Container)) { $failures.Add("Bundle missing canonical surface: $surface") | Out-Null; continue }
         $bundleInventory = Get-AgentPluginFileInventory $bundleSurface
         foreach ($relative in $sourceInventory.Keys) {

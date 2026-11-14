@@ -123,4 +123,4 @@ Design Pair route の実装完了は final code review、human review、総合 a
 - `Locked` の confirmation が Plan / Issue を参照する: `Upstream Binding Constraints` へ移し、actual user turn evidence を要求する。
 - resume artifact が `DRAFT` のみで interaction stage 不明: READY を推測せず artifact repair で停止する。
 
-Copilot CLIの非対話入力でAdaptiveへ進む際は、現在の親sessionへ明示選択と導入済み .agents/skills/adaptive-implementation-execution/SKILL.md の読込みを指定します。slash名だけの未読実行をAdaptiveとして扱わず、別上位processへ切り替えません。
+Copilot CLIの非対話入力でAdaptiveへ進む際は、現在の親sessionへ明示選択と導入済み ~/.agents/skills/adaptive-implementation-execution/SKILL.md の読込みを指定します。slash名だけの未読実行をAdaptiveとして扱わず、別上位processへ切り替えません。

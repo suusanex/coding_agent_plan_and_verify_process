@@ -100,7 +100,7 @@ Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/agents/archit
 Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/agents/plan-slice-decomposition.agent.md' 'Architecture source IDs / sections' 'slice-local architecture traceability'
 Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md' 'Architecture baseline compatibility' 'Plan Coverage parent compatibility owner'
 Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md' 'Check 11. Architecture baseline compatibility' 'pre-implementation compatibility gate'
-Assert-FileContains 'apm-packages/plan-coverage-residual-flow/.apm/instructions/plan-coverage-shared.instructions.md' 'Only `Match` may proceed to implementation' 'shared Match-only implementation invariant'
+Assert-FileContains 'apm-packages/plan-coverage-residual-flow/docs/plan-coverage-shared-guardrails.md' 'Only `Match` may proceed to implementation' 'shared Match-only implementation invariant'
 Assert-FileContains 'docs/architecture-slice-readiness-validation.md' 'Plan Coverage parent compatibility' 'ASR suite current compatibility owner'
 Assert-FileContains 'docs/architecture-slice-readiness-validation.md' 'implementation-handoff-review` Check 11' 'ASR suite current handoff gate owner'
 Assert-FileContains 'docs/architecture-slice-readiness-validation.md' 'Only a current-baseline `Match`' 'ASR suite Match-only authorization invariant'
@@ -273,7 +273,7 @@ $validatedContracts = @(
     'apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-elaboration.agent.md',
     'apm-packages/plan-coverage-residual-flow/.apm/agents/plan-slice-decomposition.agent.md',
     'apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md',
-    'apm-packages/plan-coverage-residual-flow/.apm/instructions/plan-coverage-shared.instructions.md',
+    'apm-packages/plan-coverage-residual-flow/docs/plan-coverage-shared-guardrails.md',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/slice-architecture.md',
     'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md',

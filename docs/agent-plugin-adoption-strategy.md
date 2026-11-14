@@ -36,7 +36,7 @@
 ./scripts/agent-plugins/validate-agent-plugin-qualification.ps1
 ```
 
-`codex-profile-finalizer`はCodex runtime adapterでありprocess packageではない。`completion-notification-decorator`はCodex callback/runtime配布を中心とするsupport packageであり、portable process pluginへ昇格させない。いずれもprocess semanticsの第二正本を持たないこととdependency boundaryを検証する。
+`codex-profile-finalizer`はCodex runtime adapterでありprocess packageではない。process semanticsの第二正本を持たないこととdependency boundaryを検証する。
 
 ## 通常 CI と runtime qualification
 

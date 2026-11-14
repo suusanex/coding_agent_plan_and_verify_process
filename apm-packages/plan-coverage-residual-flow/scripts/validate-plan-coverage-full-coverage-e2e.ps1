@@ -28,18 +28,23 @@ function Find-OneFile([string]$Root, [string]$Leaf, [string]$Purpose) {
 }
 
 function Resolve-InstalledAgentAuthority([string]$Root, [string]$Leaf) {
-    $apmModulesRoot = Join-Path $Root 'apm_modules'
+    $apmModulesRoot = Join-Path $Root '.apm/apm_modules'
     if (-not (Test-Path -LiteralPath $apmModulesRoot -PathType Container)) {
         throw "installed agent $Leaf has no apm_modules root under $Root."
     }
 
+    $packageRoots = @(
+        Get-ChildItem -LiteralPath $apmModulesRoot -Force -Recurse -File -Filter 'apm.yml' |
+            Where-Object { (Get-NormalizedText $_.FullName) -match '(?m)^name:\s*plan-coverage-residual-flow\s*$' } |
+            ForEach-Object { Split-Path -Parent $_.FullName }
+    )
     $canonicalCandidates = @(
-        Get-ChildItem -LiteralPath $apmModulesRoot -Force -Recurse -File -Filter $Leaf |
-            Where-Object {
-                $_.FullName -match '[\\/]\.apm[\\/]agents[\\/]' -and
-                $_.FullName -match '[\\/]plan-coverage-residual-flow[\\/]'
-            } |
-            ForEach-Object { $_.FullName }
+        foreach ($candidateRoot in $packageRoots) {
+            $candidate = Join-Path $candidateRoot ".apm/agents/$Leaf"
+            if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                $candidate
+            }
+        }
     )
     if ($canonicalCandidates.Count -eq 0) {
         throw "installed agent $Leaf could not be resolved from package-owned .apm/agents under apm_modules."

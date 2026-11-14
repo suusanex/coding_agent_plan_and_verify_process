@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "pr-review-remediation",
-  "canonicalFingerprint": "842152285e8aec80dc3cd363b1194cd674e10f8c8583b774f08bd7f690c6dfc3",
-  "distributionFingerprint": "81e835b5f979112f82c308dc3b22e63b161071f4ebb0bcf373a0ce75f478b2af",
+  "canonicalFingerprint": "23e9e3e87f8773df9eb300e615032311800c4110941e0e83239c3088bbb25e24",
+  "distributionFingerprint": "ad2200f31f9731cfaa06b054c96e87ae23deb57ce439ba5a5f49b1dcdb688ebf",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",

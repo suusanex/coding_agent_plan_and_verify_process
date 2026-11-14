@@ -1,3 +1,5 @@
+> 履歴資料: このPoCのinstructions配置に関する観測は旧配布方式のものです。Issue #158以降、共有guardrailは各agent本文へ内包し、global instructionsとしては配布しません。現行契約は[Plan Coverage README](../apm-packages/plan-coverage-residual-flow/README.md)を参照してください。
+
 # Plan Coverage Agent Plugins PoC (Issue #107)
 
 ## Goal

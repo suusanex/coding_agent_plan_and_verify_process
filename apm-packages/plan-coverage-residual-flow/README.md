@@ -14,14 +14,16 @@ bounded Planを実装・検証のsource of truthとして維持し、通常可�
 
 ## Install
 
-導入先repository rootで`apm install`を実行し、共通 finalizerを必要に応じて一度適用します。Plan Coverage packageはAdaptive Implementationと共通 finalizerをdependencyとして導入し、source repository checkoutを要求しません。
+任意のdirectoryから`apm install --global`を実行し、共通 finalizerを必要に応じて一度適用します。Plan Coverage packageはAdaptive Implementationと共通 finalizerをdependencyとして導入し、source repository checkoutを要求しません。
 
 Codex targetでは、APM install後に導入済みmoduleの共通finalizerを一度実行します。
 
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow --target copilot,codex,agent-skills
-$moduleRoot = ".\apm_modules\suusanex\coding_agent_plan_and_verify_process"
-dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- C:\path\to\target
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow --target copilot,codex,agent-skills --global
+$apmUserHome = if ($env:OS -eq 'Windows_NT') { $env:USERPROFILE } else { $env:HOME }
+$apmHome = Join-Path $apmUserHome '.apm'
+$moduleRoot = Join-Path $apmHome 'apm_modules/suusanex/coding_agent_plan_and_verify_process'
+dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs" -- --global
 ```
 
 保守時の`--dry-run`、`--check`、`--force`は[Installation and Maintenance](../../docs/installation-and-maintenance.md)を参照します。
@@ -30,7 +32,7 @@ dotnet run --file "$moduleRoot\apm-packages\codex-profile-finalizer\scripts\fina
 suusanex/coding_agent_plan_and_verify_process/apm-packages/plan-coverage-residual-flow
 ```
 
-manifestはPlan Coverage package-owned `.apm` primitivesを`includes: auto`で配布し、Adaptive Implementationはseparate package boundary（`apm-packages/adaptive-implementation-execution`）へのdependencyで解決します。decision-surface / bounded-residual owner agentsとAdaptive Implementation SkillのownershipはAdaptive package側に残り、Plan Coverageへ複製しません。共通finalizerがpackage-owned overlayを検証してCodex concrete profileを補完し、Adaptiveの管理対象である同名Codex agent TOMLはcanonical本文へ上書きします。Plan Coverageの通常導入でAdaptive packageやfinalizer packageを別途installする必要はありません。implementation stageでDesign Pairを使う場合だけ、[Design Pair Implementation Execution](../design-pair-implementation-execution/README.md)も対象repositoryへ導入し、flow開始時に明示選択します。
+manifestはPlan Coverage package-owned `.apm` primitivesを`includes: auto`で配布し、Adaptive Implementationはseparate package boundary（`apm-packages/adaptive-implementation-execution`）へのdependencyで解決します。decision-surface / bounded-residual owner agentsとAdaptive Implementation SkillのownershipはAdaptive package側に残り、Plan Coverageへ複製しません。共通finalizerがpackage-owned overlayを検証してCodex concrete profileを補完し、agent本文のportable contractは照合だけを行い、上書きしません。Plan Coverageの通常導入でAdaptive packageやfinalizer packageを別途installする必要はありません。implementation stageでDesign Pairを使う場合だけ、[Design Pair Implementation Execution](../design-pair-implementation-execution/README.md)もglobal領域へ導入し、flow開始時に明示選択します。
 
 ## Canonical source and runtime projections
 
@@ -40,14 +42,13 @@ Plan Coverageのsemantic contract ownershipは次のとおりです。
 Canonical authoring source:
   apm-packages/plan-coverage-residual-flow/.apm/
 
-Runtime / checked-in projections:
-  .github/agents/
-  .github/instructions/
-  .codex/agents/
-  .agents/skills/
+User-global runtime projections:
+  ~/.copilot/agents/
+  ~/.codex/agents/ (CODEX_HOME override supported)
+  ~/.agents/skills/
 ```
 
-- canonical contractを修正するときは `.apm` を修正する
+- canonical agent contractは`.apm`で管理する。共有guardrailの正本は`docs/plan-coverage-shared-guardrails.md`とし、14agent内のmarker区間へ全文を内包する。検証で正本との一致を確認する。global Copilot instructionsへは配布しない
 - root runtime files（`.github` / `.codex` / `.agents`）をsource of truthとして直接編集しない
 - projection driftはstatic validatorとAPM install smokeで検出する
 - Adaptive Implementationは別package ownership
@@ -258,8 +259,8 @@ full-coverageではcanonical Coverage Ledger、parent control-plane artifacts、
 
 Living Recordとclose recordのcanonical shapeは次を参照してください。
 
-- `.agents/skills/plan-coverage-residual-flow/references/full-coverage-slice-living-record.md`
-- `.agents/skills/plan-coverage-residual-flow/references/full-coverage-close.md`
+- `~/.agents/skills/plan-coverage-residual-flow/references/full-coverage-slice-living-record.md`
+- `~/.agents/skills/plan-coverage-residual-flow/references/full-coverage-close.md`
 
 ## Verdicts and residual policy
 
@@ -343,7 +344,7 @@ Same canonical `.apm` source can be packed with `apm pack --format plugin` into 
 ```powershell
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1
-./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1
+./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1 -Repository suusanex/coding_agent_plan_and_verify_process -Ref <candidate-commit-or-branch>
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-runtime-qualification.ps1
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-agent-plugin.ps1
 ```
@@ -352,7 +353,7 @@ standalone full-coverage E2Eは、currentまたはinstalled Living Record / clos
 
 Change Risk Triage smokeはchange-facts inputとCI-only oracleを分離し、result schemaとagent hashもCIで検証します。外部modelにはoracleを渡さず、`CRT-001`〜`CRT-003`各3回のfresh-session一致確認をmanual evidenceとして分離し、`NOT RUN`や`UNOBSERVABLE`をPASSにしません。
 
-remote APM install smokeはpackageの変更をremote refで検証するときだけ実行します。
+remote APM install smokeはpackageの変更をremote refで検証するときだけ実行します。上の`<candidate-commit-or-branch>`は検証する実際のcommitまたはbranchに置き換えます。`run-plan-coverage-copilot-qualification.ps1`で配布smokeも行う場合は同じ`-Repository`と`-Ref`を指定します。`-DescribePayload`と既存runの再評価は配布smokeを行いません。
 
 ## Agent Plugin artifact
 

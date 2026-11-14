@@ -194,7 +194,7 @@ $planCoverageOwnedAgentNames = @(
     'residual-decision-gate'
 )
 $canonicalAgentsRelativeRoot = 'apm-packages/plan-coverage-residual-flow/.apm/agents'
-$canonicalSharedInstructionsRelativePath = 'apm-packages/plan-coverage-residual-flow/.apm/instructions/plan-coverage-shared.instructions.md'
+$canonicalSharedInstructionsRelativePath = 'apm-packages/plan-coverage-residual-flow/docs/plan-coverage-shared-guardrails.md'
 $skillRelativePath = 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/SKILL.md'
 $coverageLedgerRelativePath = 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/coverage-ledger.md'
 $sliceLivingRecordRelativePath = 'apm-packages/plan-coverage-residual-flow/.apm/skills/plan-coverage-residual-flow/references/full-coverage-slice-living-record.md'
@@ -380,6 +380,9 @@ if ($failures.Count -eq 0) {
     $fullCoverageDocumentation = Get-NormalizedText (Join-Path $repoRoot $fullCoverageDocumentationRelativePath)
     $asrValidationDocumentation = Get-NormalizedText (Join-Path $repoRoot $asrValidationDocumentationRelativePath)
     $installationDocumentation = Get-NormalizedText (Join-Path $repoRoot $installationDocumentationRelativePath)
+    $copilotPluginPoc = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/plan-coverage-residual-flow/scripts/run-plan-coverage-copilot-plugin-poc.ps1')
+    $copilotPluginPocTemplate = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/plan-coverage-residual-flow/tests/agent-plugin-poc/result-template.json')
+    $copilotPluginPocSchema = Get-NormalizedText (Join-Path $repoRoot 'apm-packages/plan-coverage-residual-flow/tests/agent-plugin-poc/result.schema.json')
     $runtimeQualificationSchema = Get-NormalizedText (Join-Path $packageRoot 'tests/runtime-qualification/result.schema.json')
     $runtimeQualificationScenarioLib = Get-NormalizedText (Join-Path $packageRoot 'scripts/plan-coverage-copilot-scenario-lib.ps1')
     $runtimeQualificationValidator = Get-NormalizedText (Join-Path $packageRoot 'scripts/validate-plan-coverage-runtime-qualification.ps1')
@@ -419,6 +422,35 @@ if ($failures.Count -eq 0) {
     Assert-Matches $handoffReview '`design_pair_handoff`、`design_pair_interaction_stage`、`design_pair_user_evidence`を下流へ伝播' 'implementation handoff review must propagate Design Pair route state and user evidence downstream'
     Assert-Matches $handoffReview 'waiting中はAdaptiveやverificationを次stepにしない' 'implementation handoff review must block Adaptive and verification while Design Pair is waiting'
     Assert-Matches $sharedInstructions 'Decision ownership is durable.*SliceLocalContract.*NeedsHumanDecision' 'shared guardrails must preserve upstream decision ownership'
+    Assert-Matches $copilotPluginPoc "embedded_shared_guardrails = 'SOURCE_EMBEDDED_RUNTIME_NOT_VERIFIED'" 'Copilot plugin POC must distinguish source embedding from runtime behavior evidence'
+    Assert-Matches $copilotPluginPoc "canonical_owner = 'docs/plan-coverage-shared-guardrails.md'.*embedded in each selected agents/\*\.agent\.md.*behavior unverified" 'Copilot plugin POC boundary inventory must represent guardrails as embedded content without claiming runtime behavior'
+    Assert-NotMatches $copilotPluginPoc 'APM materialization or Copilot plugin adapter may be required.*shared' 'Copilot plugin POC must not retain the retired shared-instruction runtime gap'
+    Assert-Matches $copilotPluginPocTemplate 'embedded_shared_guardrails' 'Copilot plugin POC result template must record embedded guardrails'
+    Assert-Matches $copilotPluginPocSchema 'embedded_shared_guardrails' 'Copilot plugin POC schema must validate embedded guardrail evidence'
+
+    $sharedGuardrailAgents = @(
+        'architecture-elaboration.agent.md',
+        'architecture-slice-readiness.agent.md',
+        'black-box-behavior-spec-kernel.agent.md',
+        'change-risk-triage.agent.md',
+        'coverage-gap-resolution-slice.agent.md',
+        'coverage-gap-triage.agent.md',
+        'cross-slice-verification-kernel.agent.md',
+        'implementation-contract-kernel.agent.md',
+        'implementation-handoff-review.agent.md',
+        'plan-kernel.agent.md',
+        'residual-decision-gate.agent.md',
+        'runtime-contract-kernel.agent.md',
+        'test-design-kernel.agent.md',
+        'verification-kernel.agent.md'
+    )
+    $sharedGuardrailBlock = $sharedInstructions.Trim()
+    Assert-True ($sharedGuardrailBlock.Length -gt 0) 'shared guardrails source must contain bounded, marker-delimited content'
+    foreach ($agentName in $sharedGuardrailAgents) {
+        $agentText = Get-NormalizedText (Join-Path $repoRoot "$canonicalAgentsRelativeRoot/$agentName")
+        $embeddedBlock = [regex]::Match($agentText, '(?ms)^<!-- plan-coverage-shared:start -->\s*\r?\n(.*?)\r?\n<!-- plan-coverage-shared:end -->').Groups[1].Value.Trim()
+        Assert-True ($embeddedBlock -ceq $sharedGuardrailBlock) "$agentName must embed the complete canonical shared guardrail block"
+    }
     Assert-Matches $decomposition '(?s)Unresolved Decision Ownership.*Classification.*Decision owner.*Human input required.*Resolution phase' 'decomposition must project decision ownership into every executable slice'
     Assert-Matches $implementationContract '(?m)^## Decision Ownership Gate\s*$' 'implementation contract must define the Decision Ownership Gate'
     $implementationContractLivingMode = [regex]::Match($implementationContract, '(?ms)^### Slice Living Record mode\s*$.*?(?=^### Normal mode\s*$)').Value
@@ -756,9 +788,11 @@ if ($failures.Count -eq 0) {
         Assert-Matches $standaloneE2E ([regex]::Escape($negativeCase)) "standalone E2E validator must fail closed for $negativeCase"
     }
     Assert-Matches $standaloneE2E 'foreach \(\$verdict in @\(''Drift'', ''Unclear''\)\)' 'standalone E2E validator must fail closed for architecture Drift and Unclear'
-    Assert-Matches $apmSmoke '(?s)validate-plan-coverage-full-coverage-e2e\.ps1.*-InstalledRoot' 'remote APM smoke must execute standalone E2E against the installed closure'
-    Assert-Matches $apmSmoke 'copilot,codex,agent-skills' 'APM smoke must install all Plan Coverage targets'
-    Assert-Matches $apmSmoke 'decision-surface-implementation-owner' 'APM smoke must verify Adaptive assets arrive transitively'
+    Assert-Matches $apmSmoke 'validate-apm-global-package-smoke\.cs' 'Plan Coverage APM wrapper must call the global package smoke'
+    Assert-Matches $apmSmoke '--package plan-coverage-residual-flow' 'Plan Coverage APM wrapper must select its package explicitly'
+    $globalSmoke = Get-NormalizedText (Join-Path $repoRoot 'scripts/validate-apm-global-package-smoke.cs')
+    Assert-Matches $globalSmoke 'validate-plan-coverage-full-coverage-e2e\.ps1' 'global package smoke must run standalone E2E from the global install'
+    Assert-Matches $globalSmoke 'decision-surface-implementation-owner' 'global package smoke must verify Adaptive dependency assets'
 }
 
 if ($failures.Count -gt 0) {

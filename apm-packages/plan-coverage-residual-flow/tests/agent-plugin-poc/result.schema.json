@@ -99,7 +99,7 @@
         "standard_slice": { "type": "string" },
         "full_coverage": { "type": "string" },
         "adaptive_connection": { "type": "string" },
-        "shared_instruction": { "type": "string" },
+        "embedded_shared_guardrails": { "type": "string" },
         "capability_gaps": {
           "type": "array",
           "items": { "type": "string" }

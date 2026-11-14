@@ -55,7 +55,7 @@ Codex / Copilot CLI / VS Codeとも親は現sessionを継続します。CLIで�
 CLI 1.0.109の`-p`ではslash名だけの入力でSkillが読まれないケースを観測したため、明示選択と本文pathを一緒に渡します。`disable-model-invocation: true`は維持し、modelからskill toolを呼び出す必要はありません。
 
 ```powershell
-copilot -p '/adaptive-implementation-execution を明示的に使用します。.agents/skills/adaptive-implementation-execution/SKILL.md を読み、その手順で plans/issue-123.md を実装してください。'
+copilot -p '/adaptive-implementation-execution を明示的に使用します。~/.agents/skills/adaptive-implementation-execution/SKILL.md を読み、その手順で plans/issue-123.md を実装してください。'
 ```
 
 このpathはAPMのagent-skills targetで配置した本文です。初回出力やtool traceで読込みを確認し、未読の通常実装をAdaptive完了とみなしません。構造提示後にCLIが終了することを確認し、次の起動で実際の利用者応答を渡します。

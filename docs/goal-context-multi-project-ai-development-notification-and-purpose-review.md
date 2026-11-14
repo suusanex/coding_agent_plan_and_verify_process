@@ -1,3 +1,5 @@
+> 履歴資料: Completion Notification Decoratorの記述は旧構想です。現行配布からは撤去済みです。現在の導入は[共通運用手順](installation-and-maintenance.md)を参照してください。
+
 ---
 document_type: goal-context
 repository: suusanex/coding_agent_plan_and_verify_process

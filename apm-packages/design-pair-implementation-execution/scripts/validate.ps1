@@ -326,11 +326,12 @@ Assert-Contains "$copilotEvidenceDir/conf.txt" 'HUMAN_DECISION_REQUIRED' 'confli
 Assert-Contains "$copilotEvidenceDir/conf.txt" 'DP-D01' 'conflict log Locked Decision id'
 $dpApmSmoke = 'apm-packages/design-pair-implementation-execution/scripts/validate-dp-apm-smoke.ps1'
 Assert-FileExists $dpApmSmoke
-Assert-Contains $dpApmSmoke 'APM 0\.26\.0 is required' 'Design Pair APM smoke pins APM 0.26.0'
-Assert-Contains $dpApmSmoke 'copilot,codex,agent-skills' 'Design Pair APM smoke installs all targets'
-Assert-Contains $dpApmSmoke '\.agents/skills/design-pair-implementation-execution/SKILL\.md' 'Design Pair APM smoke verifies Design Pair Skill deployment'
-Assert-Contains $dpApmSmoke 'deployed Design Pair skill name' 'Design Pair APM smoke verifies deployed skill identity'
-Assert-Contains $dpApmSmoke 'Get-ManifestVersion.*apm\.yml' 'Design Pair APM smoke derives lock versions from manifests'
+Assert-Contains $dpApmSmoke 'validate-apm-global-package-smoke\.cs' 'Design Pair APM smoke delegates to the global package smoke'
+Assert-Contains $dpApmSmoke '--package design-pair-implementation-execution' 'Design Pair APM smoke selects the Design Pair package'
+$globalApmSmoke = 'scripts/validate-apm-global-package-smoke.cs'
+Assert-FileExists $globalApmSmoke
+Assert-Contains $globalApmSmoke '0\.26\.0' 'global APM smoke pins the measured APM version'
+Assert-Contains $globalApmSmoke 'adaptive-implementation-execution.*codex-profile-finalizer' 'Design Pair dependency closure is verified by global APM smoke'
 
 $evidenceRoot = Join-Path $packageRoot 'tests/manual-model-smoke/results/i159'
 $evidenceIndex = Get-Content -Raw -LiteralPath (Join-Path $evidenceRoot 'index.json') | ConvertFrom-Json

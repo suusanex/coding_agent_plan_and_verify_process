@@ -16,7 +16,10 @@ internal static class ProgramEntry
     [
         "adaptive-implementation-execution",
         "design-pair-implementation-execution",
-        "plan-coverage-residual-flow"
+        "plan-coverage-residual-flow",
+        "pr-review-remediation",
+        "goal-context-authoring",
+        "persistent-purpose-review"
     ];
 
     private static readonly string[] PortablePackages =
@@ -161,6 +164,8 @@ internal static class ProgramEntry
         {
             Require(compatibilityWorkflow, Regex.Escape(smoke), $"Compatibility workflow must own {smoke}.", failures);
         }
+        Require(compatibilityWorkflow, "validate-apm-global-package-smoke.cs", "Compatibility workflow must execute the shared global package smoke.", failures);
+        Require(compatibilityWorkflow, @"matrix:\s*\$\{\{\s*fromJSON\(needs\.classify\.outputs\.matrix\)\s*\}\}", "Compatibility workflow must consume the classified global package matrix.", failures);
         foreach (var triggerInput in new[]
         {
             ".github/workflows/validate-adaptive-implementation-execution.yml",
@@ -169,7 +174,18 @@ internal static class ProgramEntry
             ".github/workflows/validate-agent-plugin-packages.yml",
             "apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-execution.ps1",
             "apm-packages/design-pair-implementation-execution/scripts/validate.ps1",
-            "apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1"
+            "apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1",
+            "scripts/validate-apm-global-package-smoke.cs",
+            "apm-packages/pr-review-remediation/apm.yml",
+            "apm-packages/goal-context-authoring/apm.yml",
+            "apm-packages/persistent-purpose-review/apm.yml",
+            "apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-apm-smoke.ps1",
+            "apm-packages/design-pair-implementation-execution/scripts/validate-dp-apm-smoke.ps1",
+            "apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1",
+            "apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1",
+            "apm-packages/persistent-purpose-review/scripts/test-apm-package-install.ps1",
+            ".github/workflows/validate-persistent-purpose-review.yml",
+            "apm-packages/plan-coverage-residual-flow/scripts/run-plan-coverage-copilot-qualification.ps1"
         })
         {
             RequireOccurrences(compatibilityWorkflow, triggerInput, 2, $"Compatibility workflow must trigger for pull requests and main pushes that change {triggerInput}.", failures);
@@ -255,13 +271,6 @@ internal static class ProgramEntry
             true,
             false);
         AssertScope(
-            ["apm-packages/plan-coverage-residual-flow/scripts/run-plan-coverage-copilot-qualification.ps1"],
-            [],
-            [],
-            false,
-            true,
-            false);
-        AssertScope(
             ["apm-packages/plan-coverage-residual-flow/scripts/PlanCoverageAgentPlugin.Common.ps1"],
             [],
             [],
@@ -274,6 +283,41 @@ internal static class ProgramEntry
             [],
             true,
             false,
+            false);
+        AssertScope(
+            ["apm-packages/pr-review-remediation/apm.yml"],
+            ["pr-review-remediation"],
+            ["pr-review-remediation"],
+            false,
+            false,
+            false);
+        AssertScope(
+            ["apm-packages/goal-context-authoring/apm.yml"],
+            ["goal-context-authoring"],
+            ["goal-context-authoring"],
+            false,
+            false,
+            false);
+        AssertScope(
+            ["apm-packages/persistent-purpose-review/apm.yml"],
+            ["persistent-purpose-review"],
+            ["persistent-purpose-review"],
+            false,
+            false,
+            false);
+        AssertScope(
+            ["scripts/validate-apm-global-package-smoke.cs"],
+            ConnectedPackages,
+            [],
+            false,
+            false,
+            false);
+        AssertScope(
+            ["apm-packages/plan-coverage-residual-flow/scripts/run-plan-coverage-copilot-qualification.ps1"],
+            ["plan-coverage-residual-flow"],
+            [],
+            false,
+            true,
             false);
         AssertScope(
             ["README.md"],
@@ -318,6 +362,12 @@ internal static class ProgramEntry
                 continue;
             }
 
+            if (path == "scripts/validate-apm-global-package-smoke.cs" ||
+                path == ".github/workflows/validate-process-package-compatibility.yml")
+            {
+                distribution.UnionWith(ConnectedPackages);
+            }
+
             var adaptiveDistribution = IsCanonicalOrManifest(path, "adaptive-implementation-execution") ||
                 path == "apm-packages/adaptive-implementation-execution/codex-profile-overlays.json" ||
                 path == "apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-apm-smoke.ps1" ||
@@ -330,9 +380,20 @@ internal static class ProgramEntry
             {
                 distribution.Add("design-pair-implementation-execution");
             }
-            if (IsCanonicalOrManifest(path, "plan-coverage-residual-flow") || path == "apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1")
+            if (IsCanonicalOrManifest(path, "plan-coverage-residual-flow") ||
+                path == "apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1" ||
+                path == "apm-packages/plan-coverage-residual-flow/scripts/run-plan-coverage-copilot-qualification.ps1")
             {
                 distribution.Add("plan-coverage-residual-flow");
+            }
+
+            foreach (var package in ConnectedPackages)
+            {
+                if (IsCanonicalOrManifest(path, package) ||
+                    path.StartsWith($"apm-packages/{package}/scripts/validate-", StringComparison.Ordinal) && path.EndsWith("apm-smoke.ps1", StringComparison.Ordinal))
+                {
+                    distribution.Add(package);
+                }
             }
 
             if (path.StartsWith("scripts/agent-plugins/", StringComparison.Ordinal) ||
@@ -361,6 +422,7 @@ internal static class ProgramEntry
             }
             if (planCanonical ||
                 path == ".github/workflows/validate-plan-coverage-residual-flow.yml" ||
+                path == "apm-packages/plan-coverage-residual-flow/scripts/run-plan-coverage-copilot-qualification.ps1" ||
                 path == "docs/plan-coverage-runtime-qualification.md" ||
                 path.StartsWith("apm-packages/plan-coverage-residual-flow/tests/runtime-qualification/", StringComparison.Ordinal) ||
                 path.Contains("plan-coverage-runtime-qualification", StringComparison.Ordinal) ||
