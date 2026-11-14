@@ -43,16 +43,16 @@ Design Pair は Adaptive Implementation の前段です。正式 target は `cop
 ### GitHub Copilot CLI
 
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target copilot,agent-skills
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target copilot,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target copilot,agent-skills --global
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target copilot,agent-skills --global
 ```
 
 配置後の確認:
 
-- `.agents/skills/design-pair-implementation-execution/SKILL.md`
-- `.agents/skills/adaptive-implementation-execution/SKILL.md`
-- `.github/agents/decision-surface-implementation-owner.agent.md`
-- `.github/agents/bounded-residual-implementation-owner.agent.md`
+- `~/.agents/skills/design-pair-implementation-execution/SKILL.md`
+- `~/.agents/skills/adaptive-implementation-execution/SKILL.md`
+- `~/.copilot/agents/decision-surface-implementation-owner.agent.md`
+- `~/.copilot/agents/bounded-residual-implementation-owner.agent.md`
 
 GitHub Copilot CLI ではDesign Pair READY後も現在の親sessionがAdaptive Skillとcanonical親契約を読み、選択済みmodelで構造を作ります。別の上位agentを起動しません。tracked handoffをdurable authorityとしてrouteとLocked Decisionsを保持し、構造コードの提示後AWAITING_STRUCTURE_REVIEWでそのturnを終了します。Design Pair応答を構造承認には流用しません。正式 acceptance は GitHub Copilot CLIであり、実model証拠はtests/manual-model-smokeを参照します。
 
@@ -61,14 +61,16 @@ GitHub Copilot CLI ではDesign Pair READY後も現在の親sessionがAdaptive S
 ### Codex
 
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target codex,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/adaptive-implementation-execution --target codex,agent-skills --global
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/design-pair-implementation-execution --target codex,agent-skills --global
 ```
 
-APM が管理対象agentの旧本文を残す、または concrete model / reasoning / sandbox を持たない custom agent TOML を生成する環境では、導入済みmoduleの共通 finalizer で `decision-surface-implementation-owner` と `bounded-residual-implementation-owner` をcanonical定義へ同期します。子だけがCodex profileを持ちます。同名TOMLの独自編集は上書きされます。
+APMがportable agentを配布した後、導入済みglobal moduleの共通Finalizerで子のmodel / reasoning / sandboxを補完します。本文とownershipが一致しない場合は上書きせず失敗します。
 
 ```powershell
-dotnet run --file .\apm_modules\suusanex\coding_agent_plan_and_verify_process\apm-packages\codex-profile-finalizer\scripts\finalize-codex-agent-profiles.cs -- .
+$apmUserHome = if ($env:OS -eq 'Windows_NT') { $env:USERPROFILE } else { $env:HOME }
+$apmHome = Join-Path $apmUserHome '.apm'
+dotnet run --file (Join-Path $apmHome 'apm_modules/suusanex/coding_agent_plan_and_verify_process/apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs') -- --global
 ```
 
 Copilot-only導入ではCodex profileが不要なため、finalizerの実行も不要です。`--dry-run`、`--check`、`--force`の保守手順は Adaptive package の `docs/install-guide.md` を参照してください。
@@ -126,3 +128,5 @@ pwsh -NoProfile -File scripts/agent-plugins/validate-agent-plugin-package.ps1 -P
 ```
 
 APMがsupported distributionです。direct deploymentのstatusとevidenceは`tests/agent-plugin/qualification.json`に記録し、未観測のbehaviorをPASSへ昇格させません。
+
+global update / uninstallと旧local配置の整理は[共通運用手順](../../docs/installation-and-maintenance.md#global-lifecycle)を参照してください。APM v0.26.0では標準runtime homeを利用します。

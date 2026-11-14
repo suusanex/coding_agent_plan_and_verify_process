@@ -4,6 +4,13 @@ param()
 $ErrorActionPreference = 'Stop'
 $packageRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $scratch = Join-Path ([IO.Path]::GetTempPath()) ('codex-profile-finalizer-apm-' + [guid]::NewGuid().ToString('N'))
+$userProfile = Join-Path $scratch 'home-profile'
+$apmHome = Join-Path $userProfile '.apm'
+$codexHome = Join-Path $scratch 'home-codex'
+$previousApmHome = $env:APM_HOME
+$previousUserProfile = $env:USERPROFILE
+$previousHome = $env:HOME
+$previousCodexHome = $env:CODEX_HOME
 
 try {
     if (-not (Get-Command apm -ErrorAction SilentlyContinue)) {
@@ -11,24 +18,26 @@ try {
     }
 
     New-Item -ItemType Directory -Path $scratch -Force | Out-Null
+    $env:APM_HOME = Join-Path $scratch 'ignored-apm-home'
+    $env:USERPROFILE = $userProfile
+    $env:HOME = $userProfile
+    $env:CODEX_HOME = $codexHome
     Push-Location $scratch
     try {
-        $output = & apm install $packageRoot --target codex 2>&1 | Out-String
+        $output = & apm install --global $packageRoot --target codex 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0) {
-            throw "Local APM install failed: $output"
+            throw "Global APM install failed: $output"
         }
     }
     finally {
         Pop-Location
     }
 
-    $installed = Join-Path $scratch 'apm_modules/_local/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs'
-    if (-not (Test-Path -LiteralPath $installed -PathType Leaf)) {
-        throw "Finalizer was not placed in the APM module: $installed"
-    }
+    $installed = Get-ChildItem -LiteralPath (Join-Path $apmHome 'apm_modules') -Filter 'finalize-codex-agent-profiles.cs' -File -Recurse |
+        Where-Object { $_.FullName -match '[\\/]codex-profile-finalizer[\\/]scripts[\\/]finalize-codex-agent-profiles\.cs$' } |
+        Select-Object -First 1 -ExpandProperty FullName
+    if (-not $installed) { throw "Finalizer was not placed in the global APM module store: $apmHome" }
 
-    $apmHome = Join-Path $scratch 'home-apm'
-    $codexHome = Join-Path $scratch 'home-codex'
     $fixturePackage = Join-Path $apmHome 'apm_modules\owner\repo\apm-packages\adaptive-implementation-execution'
     $agentRoot = Join-Path $fixturePackage '.apm\agents'
     $agentsRoot = Join-Path $codexHome 'agents'
@@ -40,10 +49,17 @@ try {
         Set-Content -LiteralPath (Join-Path $agentsRoot ($agent + '.toml')) -Value @"
 name = "$agent"
 description = "Fixture description"
-developer_instructions = "OLD_KEPT_USER_EDITED_BODY"
-model = "old-model"
+developer_instructions = "CANONICAL_INSTALLED_BODY"
+model = "gpt-6-luna"
+model_reasoning_effort = "high"
+sandbox_mode = "workspace-write"
 "@
     }
+    Set-Content -LiteralPath (Join-Path $agentsRoot 'decision-surface-implementation-owner.toml') -Value @'
+name = "decision-surface-implementation-owner"
+description = "Fixture description"
+developer_instructions = "CANONICAL_INSTALLED_BODY"
+'@
     @{
         schemaVersion = 1
         package = 'adaptive-implementation-execution'
@@ -61,57 +77,26 @@ model = "old-model"
     $unrelatedHash = (Get-FileHash -LiteralPath $unrelated -Algorithm SHA256).Hash
     $configHash = (Get-FileHash -LiteralPath $config -Algorithm SHA256).Hash
 
-    $userProfile = [Environment]::GetFolderPath('UserProfile')
-    $realSnapshots = @{}
-    foreach ($relative in @('.codex\agents\decision-surface-implementation-owner.toml', '.codex\agents\bounded-residual-implementation-owner.toml', '.codex\config.toml')) {
-        $path = Join-Path $userProfile $relative
-        if (Test-Path -LiteralPath $path -PathType Leaf) {
-            $realSnapshots[$path] = [IO.File]::ReadAllBytes($path)
-        }
-    }
-    $previousApmHome = $env:APM_HOME
-    $previousCodexHome = $env:CODEX_HOME
     try {
-        $env:APM_HOME = $apmHome
-        $env:CODEX_HOME = $codexHome
         $applied = & dotnet run --file $installed -- --global 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0) {
-            throw "Installed finalizer did not synchronize the global managed agents.`n$applied"
+            throw "Installed finalizer did not preserve compliant global profiles.`n$applied"
         }
         $checked = & dotnet run --file $installed -- --global --check 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0) {
-            throw "Installed finalizer check failed after global sync.`n$checked"
+            throw "Installed finalizer check failed for global profiles.`n$checked"
         }
     }
     finally {
-        if ($null -eq $previousApmHome) { Remove-Item Env:APM_HOME -ErrorAction SilentlyContinue } else { $env:APM_HOME = $previousApmHome }
-        if ($null -eq $previousCodexHome) { Remove-Item Env:CODEX_HOME -ErrorAction SilentlyContinue } else { $env:CODEX_HOME = $previousCodexHome }
-        foreach ($path in @($realSnapshots.Keys)) {
-            $current = [IO.File]::ReadAllBytes($path)
-            $before = $realSnapshots[$path]
-            $same = $current.Length -eq $before.Length
-            if ($same) {
-                for ($i = 0; $i -lt $current.Length; $i++) {
-                    if ($current[$i] -ne $before[$i]) { $same = $false; break }
-                }
-            }
-            if (-not $same) {
-                [IO.File]::WriteAllBytes($path, $before)
-                throw "Installed finalizer modified the real Codex home: $path"
-            }
-        }
     }
 
     $parent = Get-Content -Raw -LiteralPath (Join-Path $agentsRoot 'decision-surface-implementation-owner.toml')
     $child = Get-Content -Raw -LiteralPath (Join-Path $agentsRoot 'bounded-residual-implementation-owner.toml')
-    if ($parent -match 'OLD_KEPT_USER_EDITED_BODY' -or $child -match 'OLD_KEPT_USER_EDITED_BODY') {
-        throw 'Installed finalizer kept the old managed body.'
-    }
     if ($parent -notmatch 'CANONICAL_INSTALLED_BODY' -or $child -notmatch 'CANONICAL_INSTALLED_BODY') {
-        throw 'Installed finalizer did not project the canonical body.'
+        throw 'Installed finalizer changed canonical portable developer instructions.'
     }
     if ($parent -match '(?m)^(model|model_reasoning_effort|sandbox_mode)\s*=') {
-        throw 'Installed finalizer pinned the parent agent.'
+        throw 'Installed finalizer accepted profile fields on the parent agent.'
     }
     if ($child -notmatch 'model = "gpt-6-luna"') {
         throw 'Installed finalizer did not apply the child model.'
@@ -121,9 +106,13 @@ model = "old-model"
         throw 'Installed finalizer changed an unrelated Codex file.'
     }
 
-    Write-Output 'Codex profile finalizer local APM install: PASS'
+    Write-Output 'Codex profile finalizer global APM install: PASS'
 }
 finally {
+    if ($null -eq $previousApmHome) { Remove-Item Env:APM_HOME -ErrorAction SilentlyContinue } else { $env:APM_HOME = $previousApmHome }
+    if ($null -eq $previousUserProfile) { Remove-Item Env:USERPROFILE -ErrorAction SilentlyContinue } else { $env:USERPROFILE = $previousUserProfile }
+    if ($null -eq $previousHome) { Remove-Item Env:HOME -ErrorAction SilentlyContinue } else { $env:HOME = $previousHome }
+    if ($null -eq $previousCodexHome) { Remove-Item Env:CODEX_HOME -ErrorAction SilentlyContinue } else { $env:CODEX_HOME = $previousCodexHome }
     if (Test-Path -LiteralPath $scratch) {
         $resolved = [IO.Path]::GetFullPath($scratch)
         if (-not $resolved.StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()), [StringComparison]::OrdinalIgnoreCase)) {

@@ -98,6 +98,12 @@ try {
             $relative = Get-AgentPluginRelativePath $build.bundleRoot $firstAgent[0].FullName
             Assert-MutationFails 'agent-drift' { param($root) Add-Content -LiteralPath (Join-Path $root $relative) -Value 'mutation' } 'Canonical drift'
         }
+        Assert-MutationFails 'unexpected-instruction-without-canonical-surface' {
+            param($root)
+            $instruction = Join-Path $root 'instructions/retired-shared.instructions.md'
+            $null = New-Item -ItemType Directory -Path (Split-Path -Parent $instruction) -Force
+            [IO.File]::WriteAllText($instruction, 'retired instruction projection', [Text.UTF8Encoding]::new($false))
+        } 'Unexpected bundle instructions file'
         $firstInstruction = @(Get-ChildItem -LiteralPath (Join-Path $build.bundleRoot 'instructions') -File -ErrorAction SilentlyContinue | Select-Object -First 1)
         if ($firstInstruction) {
             $relative = Get-AgentPluginRelativePath $build.bundleRoot $firstInstruction[0].FullName

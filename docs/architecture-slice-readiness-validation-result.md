@@ -2,11 +2,13 @@
 
 ## Execution metadata
 
-- Executed at: `2026-11-13`
-- Executor: Issue #161 の Adaptive呼出契約更新後に行った ASR-001〜ASR-008 の deterministic fixture comparison
-- Branch: `codex/issue-161-structure-review`
-- Reviewed source: `cd27ace129588f793200c2d66ad081866480cac1` + PR #162 review修正; Architecture Slice Readiness、baseline compatibility、`Match / Drift / Unclear` authorization semantics は変更されていない
+- Executed at: `2026-11-14 14:44:42 UTC`
+- Executor: Issue #158 shared guardrails migration後に行った既存 ASR-001〜ASR-008 deterministic fixture validation
+- Branch: `issue-158-global-apm`
+- Reviewed source: base `84b3313` + Issue #158の未commit変更（共有guardrail内包と検証パス更新）。旧検証baselineは`cd27ace129588f793200c2d66ad081866480cac1` + PR #162 review修正。Architecture Slice Readiness、baseline compatibility、`Match / Drift / Unclear` authorization semanticsは変更していない
 - Scope: ASR-001〜ASR-008 fixture comparison、current contract hashes、de-escalation / decomposition authorization、shared implementation ownership propagation、および既存 architecture semantics。production code と外部systemは変更していない
+- Command: `& '.\\scripts\\validate-architecture-slice-readiness.ps1'`
+- Result: 8/8 deterministic fixture outcomes PASS; all 9 current contract hash checks PASS
 
 ### Contract revisions evaluated
 
@@ -14,11 +16,11 @@ Contract hashes are calculated from UTF-8 text after normalizing CRLF and CR lin
 
 | Contract | UTF-8/LF normalized SHA-256 |
 | --- | --- |
-| `apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-slice-readiness.agent.md` | `d461dd63ba06ce232caac055303a7fce180248bbc6b60516c71bd5d8f3ba5683` |
-| `apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-elaboration.agent.md` | `8f53674b988131d847d8c32ca01d850c90820fddb40595a6ca6ff54382948344` |
+| `apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-slice-readiness.agent.md` | `4097d1a9a8ce1df84fcbd70970b5a43e38fbdc9b18385ba88d8f8f853cd3406e` |
+| `apm-packages/plan-coverage-residual-flow/.apm/agents/architecture-elaboration.agent.md` | `b31aa851485b069cf9f0729569167cc1109af1ff39c35b0c19072222d18d207a` |
 | `apm-packages/plan-coverage-residual-flow/.apm/agents/plan-slice-decomposition.agent.md` | `29330fdd7bec03eb4d0232b241d45c1527489b9fe2810e715b89321f8904cbaf` |
-| `apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md` | `53768f9e7fef7b565180ba2a08f67361196957114551c0f5a45895935444c2b7` |
-| `apm-packages/plan-coverage-residual-flow/.apm/instructions/plan-coverage-shared.instructions.md` | `94b2d550ae2dfcdc551c00cb86388571774e50a48501d9adcbbadd21907518a6` |
+| `apm-packages/plan-coverage-residual-flow/.apm/agents/implementation-handoff-review.agent.md` | `839b14863266e6dbfeaa86dce82295e3f2809a002b69ffb4ec5267d006fdd296` |
+| `apm-packages/plan-coverage-residual-flow/docs/plan-coverage-shared-guardrails.md` | `d4dd65605372c8a6f1e02a63dedcaa709e7da4a7449d9b4f830c3f07fb05a97d` |
 | `plan-coverage-residual-flow/SKILL.md` | `09e73486ba21ff9a6b813bf01242eba81aaec8491f968442654e566139bd9dd6` |
 | `slice-architecture.md` template | `fb7bc07dd8d6bca4c6540ff9fde28a4c7e709ebd896a20530301b98188cb71fb` |
 | `coverage-ledger.md` template | `b1a532b4ab59dbaa1471d8bd1beb6af5e7f570f3086719c8fcbe452f7f493962` |

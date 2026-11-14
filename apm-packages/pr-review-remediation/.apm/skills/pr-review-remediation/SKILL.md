@@ -46,7 +46,8 @@ gh pr edit 123 --repo owner/name --add-reviewer @copilot
 要求が権限、policy、利用条件によって失敗した場合は、未取得reviewを「findingsなし」に変換せず`BLOCKED`で停止します。成功後、Skill内のcollectorを実行します。
 
 ```powershell
-dotnet run --file .agents/skills/pr-review-remediation/scripts/collect-pr-review-context.cs -- --repo owner/name --pr 123 --out .review/pr-123
+$collector = Join-Path $HOME '.agents/skills/pr-review-remediation/scripts/collect-pr-review-context.cs'
+dotnet run --file $collector -- --repo owner/name --pr 123 --out .review/pr-123
 ```
 
 生成物:

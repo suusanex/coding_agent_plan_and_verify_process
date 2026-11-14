@@ -172,15 +172,13 @@ function Test-CanonicalEquivalence([string]$Bundle) {
         }
     }
 
-    $canonInstr = Join-Path $canonicalRoot 'instructions/plan-coverage-shared.instructions.md'
-    $bundleInstr = Join-Path $Bundle 'instructions/plan-coverage-shared.instructions.md'
-    if (Test-Path -LiteralPath $canonInstr -PathType Leaf) {
-        if (-not (Test-Path -LiteralPath $bundleInstr -PathType Leaf)) {
-            Add-Fail 'Bundle missing shared instruction (non-portable / materialization surface)'
-        }
-        elseif ((Get-ApNormalizedText $canonInstr) -cne (Get-ApNormalizedText $bundleInstr)) {
-            Add-Fail 'Shared instruction content drift vs canonical'
-        }
+    $obsoleteInstruction = Join-Path $Bundle 'instructions/plan-coverage-shared.instructions.md'
+    if (Test-Path -LiteralPath $obsoleteInstruction) {
+        Add-Fail 'Bundle contains the retired shared instruction projection; guardrails must travel inside agent prompts'
+    }
+    $sharedGuardrails = Join-Path $repoRoot 'apm-packages/plan-coverage-residual-flow/docs/plan-coverage-shared-guardrails.md'
+    if (-not (Test-Path -LiteralPath $sharedGuardrails -PathType Leaf)) {
+        Add-Fail 'Canonical shared guardrail authoring source is missing'
     }
 }
 
@@ -417,6 +415,12 @@ function Invoke-NegativeMutationTests {
         param($b)
         $agent = Join-Path $b 'agents/plan-kernel.agent.md'
         Add-Content -LiteralPath $agent -Value "`n# mutated agent`n" -Encoding utf8
+    }
+    Assert-MutationFailsProduction -Name 'retired-shared-instruction-projection' -Mode equivalence -Mutate {
+        param($b)
+        $p = Join-Path $b 'instructions/plan-coverage-shared.instructions.md'
+        $null = New-Item -ItemType Directory -Path (Split-Path -Parent $p) -Force
+        Write-ApUtf8File $p 'Retired external shared instruction projection.'
     }
     Assert-MutationFailsProduction -Name 'hash-mismatch' -Mode lock -Mutate {
         param($b)

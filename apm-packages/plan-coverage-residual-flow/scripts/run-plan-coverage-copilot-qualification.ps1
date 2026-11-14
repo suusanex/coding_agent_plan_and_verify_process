@@ -563,20 +563,19 @@ $distributionSmoke = [ordered]@{
 
 try {
     if (-not $SkipDistributionSmoke) {
-        Write-Host 'Running fresh APM distribution smoke...'
         if ([string]::IsNullOrWhiteSpace($Repository)) {
-            & $smokeScript
+            throw 'Repository and Ref are required for the remote global distribution smoke. Use -SkipDistributionSmoke to omit it.'
         }
-        else {
-            & $smokeScript -Repository $Repository -Ref $Ref
-        }
+
+        Write-Host 'Running fresh global APM distribution smoke...'
+        & $smokeScript -Repository $Repository -Ref $Ref
         if ($LASTEXITCODE -ne 0) {
             $distributionSmoke.status = 'FAIL'
             $distributionSmoke.rationale = "Smoke failed with exit code $LASTEXITCODE"
             throw $distributionSmoke.rationale
         }
         $distributionSmoke.status = 'PASS'
-        $distributionSmoke.rationale = 'Fresh APM install smoke passed (copilot,codex,agent-skills + transitive Adaptive + installed E2E when remote).'
+        $distributionSmoke.rationale = 'Fresh APM global install smoke passed for all independent targets and the transitive Adaptive closure.'
     }
 
     Write-Host 'Installing Plan Coverage into qualification seed worktree...'

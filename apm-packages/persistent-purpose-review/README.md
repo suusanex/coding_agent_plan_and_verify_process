@@ -11,7 +11,7 @@ Skillはuser-invocableで、`disable-model-invocation: true`を維持します�
 - `purpose-review-runner` 0.6.0以上、protocol v4のRunner buildがあること。
 - Runnerのconfigでproviderを`codex`または`copilot`に設定し、`profile`は`null`にすること。
 
-Runner 0.6.0 / protocol v4のReleaseと実モデル評価は、この変更時点で未確認です。導入前にversionとreleaseの存在を確認し、必要なRunner buildが配布されていない場合はSkillの運用を開始しないでください。`apm update`だけではRunner binaryは更新されません。
+Runner 0.6.0 / protocol v4のReleaseと実モデル評価は、この変更時点で未確認です。導入前にversionとreleaseの存在を確認し、必要なRunner buildが配布されていない場合はSkillの運用を開始しないでください。`apm update --global`だけではRunner binaryは更新されません。
 
 ## Install
 
@@ -73,7 +73,7 @@ Grok Build headless callerについては、2026-11-14にCodex Agent Facade経�
 
 ## Maintenance
 
-`apm update`はSkillを更新します。Runnerは独立して更新します。protocol v4はv3と非互換であり、Runner 0.6.0は0.5.0の旧job/state schemaとも非互換です。既存runを移行・再構築せず、旧runは旧Runnerで扱い、新しいrunだけ新しいRunnerで開始してください。詳細は[compatibility note](../../docs/purpose-review-runner-compatibility.md)と[maintainer reference](../../docs/purpose-review-runner-maintenance.md)を参照してください。
+`apm update --global`はSkillを更新します。Runnerは独立して更新します。protocol v4はv3と非互換であり、Runner 0.6.0は0.5.0の旧job/state schemaとも非互換です。既存runを移行・再構築せず、旧runは旧Runnerで扱い、新しいrunだけ新しいRunnerで開始してください。詳細は[compatibility note](../../docs/purpose-review-runner-compatibility.md)と[maintainer reference](../../docs/purpose-review-runner-maintenance.md)を参照してください。
 
 ## Agent Plugin artifact
 
@@ -85,3 +85,5 @@ pwsh -NoProfile -File scripts/agent-plugins/validate-agent-plugin-package.ps1 -P
 ```
 
 APMがsupported distributionです。direct deploymentの未観測behaviorをPASSへ昇格しません。
+
+global update / uninstallと旧local配置の整理は[共通運用手順](../../docs/installation-and-maintenance.md#global-lifecycle)を参照してください。APM v0.26.0では標準runtime homeを利用します。

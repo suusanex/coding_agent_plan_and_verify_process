@@ -9,6 +9,7 @@ on:
       - '.github/workflows/validate-plan-coverage-residual-flow.yml'
       - '.github/workflows/validate-agent-plugin-packages.yml'
       - 'scripts/validate-process-package-boundaries.cs'
+      - 'scripts/validate-apm-global-package-smoke.cs'
       - 'apm-packages/adaptive-implementation-execution/.apm/**'
       - 'apm-packages/adaptive-implementation-execution/apm.yml'
       - 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json'
@@ -23,6 +24,16 @@ on:
       - 'apm-packages/plan-coverage-residual-flow/apm.yml'
       - 'apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1'
       - 'apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1'
+      - 'apm-packages/plan-coverage-residual-flow/scripts/run-plan-coverage-copilot-qualification.ps1'
+      - 'apm-packages/pr-review-remediation/.apm/**'
+      - 'apm-packages/pr-review-remediation/apm.yml'
+      - 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1'
+      - 'apm-packages/goal-context-authoring/.apm/**'
+      - 'apm-packages/goal-context-authoring/apm.yml'
+      - 'apm-packages/persistent-purpose-review/.apm/**'
+      - 'apm-packages/persistent-purpose-review/apm.yml'
+      - 'apm-packages/persistent-purpose-review/scripts/test-apm-package-install.ps1'
+      - '.github/workflows/validate-persistent-purpose-review.yml'
       - 'apm-packages/codex-profile-finalizer/.apm/**'
       - 'apm-packages/codex-profile-finalizer/apm.yml'
       - 'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs'
@@ -36,6 +47,7 @@ on:
       - '.github/workflows/validate-plan-coverage-residual-flow.yml'
       - '.github/workflows/validate-agent-plugin-packages.yml'
       - 'scripts/validate-process-package-boundaries.cs'
+      - 'scripts/validate-apm-global-package-smoke.cs'
       - 'apm-packages/adaptive-implementation-execution/.apm/**'
       - 'apm-packages/adaptive-implementation-execution/apm.yml'
       - 'apm-packages/adaptive-implementation-execution/codex-profile-overlays.json'
@@ -50,6 +62,16 @@ on:
       - 'apm-packages/plan-coverage-residual-flow/apm.yml'
       - 'apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1'
       - 'apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1'
+      - 'apm-packages/plan-coverage-residual-flow/scripts/run-plan-coverage-copilot-qualification.ps1'
+      - 'apm-packages/pr-review-remediation/.apm/**'
+      - 'apm-packages/pr-review-remediation/apm.yml'
+      - 'apm-packages/pr-review-remediation/scripts/validate-pr-review-remediation-apm-smoke.ps1'
+      - 'apm-packages/goal-context-authoring/.apm/**'
+      - 'apm-packages/goal-context-authoring/apm.yml'
+      - 'apm-packages/persistent-purpose-review/.apm/**'
+      - 'apm-packages/persistent-purpose-review/apm.yml'
+      - 'apm-packages/persistent-purpose-review/scripts/test-apm-package-install.ps1'
+      - '.github/workflows/validate-persistent-purpose-review.yml'
       - 'apm-packages/codex-profile-finalizer/.apm/**'
       - 'apm-packages/codex-profile-finalizer/apm.yml'
       - 'apm-packages/codex-profile-finalizer/scripts/finalize-codex-agent-profiles.cs'
@@ -106,6 +128,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
       - uses: microsoft/apm-action@v1
         with:
           setup-only: 'true'
@@ -116,18 +141,11 @@ jobs:
           PACKAGE_REPOSITORY: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
           PACKAGE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           GITHUB_APM_PAT: ${{ github.token }}
-        run: |
-          switch ('${{ matrix.package }}') {
-            'adaptive-implementation-execution' {
-              ./apm-packages/adaptive-implementation-execution/scripts/validate-adaptive-implementation-apm-smoke.ps1 -Repository $env:PACKAGE_REPOSITORY -Ref $env:PACKAGE_REF
-            }
-            'design-pair-implementation-execution' {
-              ./apm-packages/design-pair-implementation-execution/scripts/validate-dp-apm-smoke.ps1 -Repository $env:PACKAGE_REPOSITORY -Ref $env:PACKAGE_REF
-            }
-            'plan-coverage-residual-flow' {
-              ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1 -Repository $env:PACKAGE_REPOSITORY -Ref $env:PACKAGE_REF
-            }
-            default {
-              throw "Unsupported distribution package: ${{ matrix.package }}"
-            }
-          }
+          DOTNET_CLI_HOME: ${{ runner.temp }}/apm-global-smoke-dotnet-home
+          NUGET_PACKAGES: ${{ runner.temp }}/apm-global-smoke-nuget-packages
+          NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/apm-global-smoke-nuget-http-cache
+        run: >-
+          dotnet run --file ./scripts/validate-apm-global-package-smoke.cs --
+          --package '${{ matrix.package }}'
+          --repository $env:PACKAGE_REPOSITORY
+          --ref $env:PACKAGE_REF

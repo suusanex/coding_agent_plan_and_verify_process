@@ -3,11 +3,13 @@
 #:package Tomlyn@2.10.1
 
 using System.Text;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Tomlyn;
 using Tomlyn.Model;
+using Tomlyn.Parsing;
 
 return await CodexProfileFinalizer.RunAsync(args);
 
@@ -26,12 +28,30 @@ internal static class CodexProfileFinalizer
     private static readonly Regex ManifestName = new(@"(?m)^name:\s*(?<value>[^\r\n#]+)", RegexOptions.Compiled);
     private static readonly Regex AgentName = new(@"(?m)^name:\s*(?<value>[^\r\n#]+)", RegexOptions.Compiled);
     private static readonly Regex SafeAgentIdentifier = new("^[A-Za-z0-9][A-Za-z0-9._-]*$", RegexOptions.Compiled);
-    private static readonly Regex TopLevelTomlAssignment = new("^(?<indent>\\s*)(?<key>[A-Za-z0-9_-]+)\\s*=\\s*(?<value>.*)$", RegexOptions.Compiled);
-    private static readonly Regex Section = new(@"^\s*\[[^\]]+\]\s*$", RegexOptions.Compiled);
     private static readonly Regex FrontmatterModel = new(@"^\s*model\s*:", RegexOptions.Compiled);
 
     public static async Task<int> RunAsync(string[] args)
     {
+        try
+        {
+            return await RunCoreAsync(args);
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine(ex.ToString());
+            Console.Error.WriteLine(ex.ToString());
+            return 1;
+        }
+    }
+
+    private static async Task<int> RunCoreAsync(string[] args)
+    {
+        if (args.Length == 1 && args[0] is "--help" or "-h")
+        {
+            PrintUsage();
+            return 0;
+        }
+
         Options options;
         try
         {
@@ -39,13 +59,8 @@ internal static class CodexProfileFinalizer
         }
         catch (ArgumentException ex)
         {
-            if (string.Equals(ex.Message, "help", StringComparison.Ordinal))
-            {
-                PrintUsage();
-                return 0;
-            }
-
-            Console.Error.WriteLine(ex.Message);
+            Trace.WriteLine(ex.ToString());
+            Console.Error.WriteLine(ex.ToString());
             PrintUsage();
             return 2;
         }
@@ -53,51 +68,32 @@ internal static class CodexProfileFinalizer
         Locations locations;
         try
         {
-            locations = ResolveLocations(options);
+            locations = ResolveLocations();
         }
         catch (InvalidOperationException ex)
         {
+            Trace.WriteLine(ex.ToString());
             Console.Error.WriteLine(ex.ToString());
             return 2;
         }
 
-        if (!options.Global && !Directory.Exists(options.TargetRoot))
-        {
-            Console.Error.WriteLine($"Target repository not found: {options.TargetRoot}");
-            return 2;
-        }
-
-        if (options.Global)
-        {
-            Console.WriteLine($"Codex profile overlays: {locations.OverlaysRoot}");
-            Console.WriteLine($"Codex agent directory: {locations.AgentsRoot}");
-        }
+        Console.WriteLine($"Codex profile overlays: {locations.OverlaysRoot}");
+        Console.WriteLine($"Codex agent directory: {locations.AgentsRoot}");
 
         if (!Directory.Exists(locations.OverlaysRoot))
         {
-            // --global は正本の同期を明示要求する。探索先が無い成功は、更新済みと誤認させる。
-            // project-local の package 未導入は、任意実行の no-op として終了コード 0 を維持する。
-            if (options.Global)
-            {
-                Console.Error.WriteLine($"Codex profile finalizer failed: apm_modules directory is missing: {locations.OverlaysRoot}");
-                return 1;
-            }
-
-            Console.WriteLine(options.Check
-                ? "Codex profile check: FAILED (apm_modules directory is missing)."
-                : "No apm_modules directory found; no Codex profile overlays are available.");
-            return options.Check ? 1 : 0;
+            Console.Error.WriteLine($"Codex profile finalizer failed: apm_modules directory is missing: {locations.OverlaysRoot}");
+            return 1;
         }
 
         var failures = new List<string>();
         var overlays = new Dictionary<string, Profile>(StringComparer.Ordinal);
         var sources = new Dictionary<string, string>(StringComparer.Ordinal);
         var contracts = new Dictionary<string, PortableContract>(StringComparer.Ordinal);
-        var managedAgents = new HashSet<string>(StringComparer.Ordinal);
         var parentBinding = new ParentBinding();
         foreach (var metadataPath in Directory.EnumerateFiles(locations.OverlaysRoot, "codex-profile-overlays.json", SearchOption.AllDirectories))
         {
-            await ReadOverlayAsync(metadataPath, overlays, sources, contracts, managedAgents, parentBinding, failures);
+            await ReadOverlayAsync(metadataPath, overlays, sources, contracts, parentBinding, failures);
         }
 
         if (failures.Count > 0)
@@ -108,29 +104,15 @@ internal static class CodexProfileFinalizer
 
         if (overlays.Count == 0 && parentBinding.Contract is null)
         {
-            if (options.Global)
-            {
-                Console.Error.WriteLine($"Codex profile finalizer failed: no Codex profile overlays found under {locations.OverlaysRoot}.");
-                return 1;
-            }
-
-            Console.WriteLine(options.Check
-                ? "Codex profile check: FAILED (no Codex profile overlays found)."
-                : "No Codex profile overlays found.");
-            return options.Check ? 1 : 0;
+            Console.Error.WriteLine($"Codex profile finalizer failed: no Codex profile overlays found under {locations.OverlaysRoot}.");
+            return 1;
         }
 
         var operations = new List<Operation>();
         if (parentBinding.Contract is not null)
         {
-            await SyncManagedAgentAsync(
-                locations.AgentsRoot,
-                ParentAgentName,
-                null,
-                parentBinding.Contract,
-                parentBinding.Source!,
-                operations,
-                failures);
+            await InspectTargetAsync(locations.AgentsRoot, ParentAgentName, null, parentBinding.Contract,
+                parentBinding.Source!, options.Force, operations, failures);
         }
 
         foreach (var pair in overlays.OrderBy(x => x.Key, StringComparer.Ordinal))
@@ -138,19 +120,6 @@ internal static class CodexProfileFinalizer
             if (string.Equals(pair.Key, ParentAgentName, StringComparison.Ordinal))
             {
                 failures.Add($"Adaptive parent must inherit its session profile and cannot accept a Codex profile overlay: {sources[pair.Key]}.");
-                continue;
-            }
-
-            if (managedAgents.Contains(pair.Key))
-            {
-                await SyncManagedAgentAsync(
-                    locations.AgentsRoot,
-                    pair.Key,
-                    pair.Value,
-                    pair.Value.Contract,
-                    sources[pair.Key],
-                    operations,
-                    failures);
                 continue;
             }
 
@@ -202,7 +171,6 @@ internal static class CodexProfileFinalizer
         IDictionary<string, Profile> overlays,
         IDictionary<string, string> sources,
         IDictionary<string, PortableContract> contracts,
-        ISet<string> managedAgents,
         ParentBinding parentBinding,
         ICollection<string> failures)
     {
@@ -213,6 +181,7 @@ internal static class CodexProfileFinalizer
         }
         catch (Exception ex)
         {
+            Trace.WriteLine(ex.ToString());
             failures.Add($"Invalid overlay {metadataPath}: {ex.ToString()}");
             return;
         }
@@ -264,6 +233,7 @@ internal static class CodexProfileFinalizer
             }
             catch (Exception ex)
             {
+                Trace.WriteLine(ex.ToString());
                 failures.Add($"Invalid package-owned agent {agentPath}: {ex.ToString()}");
                 continue;
             }
@@ -284,10 +254,6 @@ internal static class CodexProfileFinalizer
             overlays[entry.Agent] = profile;
             sources[entry.Agent] = metadataPath;
             contracts[entry.Agent] = contract;
-            if (string.Equals(document.Package, AdaptivePackageName, StringComparison.Ordinal))
-            {
-                managedAgents.Add(entry.Agent);
-            }
         }
     }
 
@@ -301,6 +267,7 @@ internal static class CodexProfileFinalizer
         }
         catch (Exception ex)
         {
+            Trace.WriteLine(ex.ToString());
             failures.Add($"Invalid Adaptive parent canonical contract {parentPath}: {ex.ToString()}");
             return;
         }
@@ -318,6 +285,7 @@ internal static class CodexProfileFinalizer
         }
         catch (Exception ex)
         {
+            Trace.WriteLine(ex.ToString());
             failures.Add($"Invalid Adaptive parent canonical contract {parentPath}: {ex.ToString()}");
             return;
         }
@@ -396,147 +364,10 @@ internal static class CodexProfileFinalizer
         _ => string.Empty
     };
 
-    // 管理対象TOMLは、APMがKept user-edited fileとして残した旧本文もcanonical定義へ戻す。
-    // 本文更新に --force は要求しない。親へmodel pinは付けない。
-    private static async Task SyncManagedAgentAsync(
-        string agentsRoot,
-        string agent,
-        Profile? profile,
-        PortableContract contract,
-        string source,
-        ICollection<Operation> operations,
-        ICollection<string> failures)
-    {
-        var targetPath = Path.Combine(agentsRoot, agent + ".toml");
-        if (!File.Exists(targetPath))
-        {
-            failures.Add($"APM projection for {agent} is missing: {targetPath} (source: {source}).");
-            return;
-        }
-
-        var original = await File.ReadAllTextAsync(targetPath);
-        var matches = false;
-        try
-        {
-            var model = TomlSerializer.Deserialize<TomlTable>(original);
-            matches = model is not null && ManagedProjectionMatches(model, contract, profile);
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine($"Finalizer notice: invalid managed projection {targetPath}: {ex.ToString()}");
-            matches = false;
-        }
-
-        if (matches)
-        {
-            operations.Add(new Operation(OperationKind.Unchanged, targetPath, null));
-            return;
-        }
-
-        if (!TryRenderManaged(targetPath, contract, profile, out var rendered, failures))
-        {
-            return;
-        }
-
-        operations.Add(new Operation(OperationKind.Update, targetPath, rendered));
-    }
-
-    private static bool ManagedProjectionMatches(TomlTable model, PortableContract contract, Profile? profile)
-    {
-        if (!TryGetString(model, "name", out var name) || !string.Equals(name, contract.Name, StringComparison.Ordinal) ||
-            !TryGetString(model, "description", out var description) || !string.Equals(description, contract.Description, StringComparison.Ordinal) ||
-            !TryGetString(model, "developer_instructions", out var instructions) ||
-            !string.Equals(NormalizeNewlines(instructions).Trim(), contract.DeveloperInstructions, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        var allowed = new HashSet<string>(StringComparer.Ordinal) { "name", "description", "developer_instructions" };
-        if (profile is null)
-        {
-            if (ProfileKeys.Any(model.ContainsKey))
-            {
-                return false;
-            }
-        }
-        else
-        {
-            var expected = new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["model"] = profile.Model,
-                ["model_reasoning_effort"] = profile.Reasoning,
-                ["sandbox_mode"] = profile.Sandbox
-            };
-            foreach (var key in ProfileKeys)
-            {
-                if (!TryGetString(model, key, out var value) || !string.Equals(value, expected[key], StringComparison.Ordinal))
-                {
-                    return false;
-                }
-
-                allowed.Add(key);
-            }
-        }
-
-        return model.Keys.All(key => allowed.Contains(key));
-    }
-
-    private static bool TryGetString(TomlTable model, string key, out string value)
-    {
-        value = string.Empty;
-        if (!model.TryGetValue(key, out var raw) || raw is not string text)
-        {
-            return false;
-        }
-
-        value = text;
-        return true;
-    }
-
-    private static bool TryRenderManaged(
-        string targetPath,
-        PortableContract contract,
-        Profile? profile,
-        out string rendered,
-        ICollection<string> failures)
-    {
-        // Tomlynのserializerは文字列の表現とkey順が安定せず、既存TOMLの余分なkeyも残し得る。
-        // 管理対象はcanonical fieldだけを基本文字列で再生成し、直後にTomlynで読み戻して一致を確認する。
-        var builder = new StringBuilder();
-        builder.Append("name = ").Append(QuoteToml(contract.Name)).Append('\n');
-        builder.Append("description = ").Append(QuoteToml(contract.Description)).Append('\n');
-        if (profile is not null)
-        {
-            builder.Append("model = ").Append(QuoteToml(profile.Model)).Append('\n');
-            builder.Append("model_reasoning_effort = ").Append(QuoteToml(profile.Reasoning)).Append('\n');
-            builder.Append("sandbox_mode = ").Append(QuoteToml(profile.Sandbox)).Append('\n');
-        }
-
-        builder.Append("developer_instructions = ").Append(QuoteToml(contract.DeveloperInstructions)).Append('\n');
-        rendered = builder.ToString();
-        try
-        {
-            var model = TomlSerializer.Deserialize<TomlTable>(rendered)
-                ?? throw new InvalidDataException("rewritten TOML document produced no model");
-            if (!ManagedProjectionMatches(model, contract, profile))
-            {
-                throw new InvalidDataException("rewritten TOML does not match the canonical contract");
-            }
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            failures.Add($"Finalizer produced invalid TOML for {targetPath}: {ex.ToString()}");
-            rendered = string.Empty;
-            return false;
-        }
-    }
-
     private static async Task InspectTargetAsync(
         string agentsRoot,
         string agent,
-        Profile profile,
+        Profile? profile,
         PortableContract contract,
         string source,
         bool force,
@@ -559,6 +390,7 @@ internal static class CodexProfileFinalizer
         }
         catch (Exception ex)
         {
+            Trace.WriteLine(ex.ToString());
             failures.Add($"Invalid Codex projection {targetPath}: {ex.ToString()}");
             return;
         }
@@ -586,14 +418,22 @@ internal static class CodexProfileFinalizer
             return;
         }
 
-        var newline = original.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
-        var hadTrailingNewline = original.EndsWith("\r\n", StringComparison.Ordinal) || original.EndsWith("\n", StringComparison.Ordinal);
-        var normalized = original.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
-        var lines = normalized.Split('\n').ToList();
-        var firstSection = lines.FindIndex(line => Section.IsMatch(line));
-        var values = FindTopLevelAssignments(lines, firstSection, targetPath, failures);
+        var syntax = SyntaxParser.Parse(original);
+        if (syntax.HasErrors)
+        {
+            failures.Add($"Invalid Codex projection {targetPath}: {string.Join("; ", syntax.Diagnostics)}");
+            return;
+        }
 
-        var expected = new Dictionary<string, string>(StringComparer.Ordinal)
+        var values = FindTopLevelAssignments(syntax, targetPath, failures);
+
+        if (profile is null && ProfileKeys.Any(model.ContainsKey))
+        {
+            failures.Add($"Adaptive parent profile fields must be absent: {targetPath}.");
+            return;
+        }
+
+        var expected = profile is null ? new Dictionary<string, string>(StringComparer.Ordinal) : new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["model"] = profile.Model,
             ["model_reasoning_effort"] = profile.Reasoning,
@@ -602,6 +442,7 @@ internal static class CodexProfileFinalizer
         var updates = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var key in ProfileKeys)
         {
+            if (profile is null) break;
             if (!values.TryGetValue(key, out var value))
             {
                 updates[key] = expected[key];
@@ -632,27 +473,7 @@ internal static class CodexProfileFinalizer
             return;
         }
 
-        var insertAt = firstSection >= 0 ? firstSection : lines.Count;
-        foreach (var key in ProfileKeys.Reverse())
-        {
-            if (updates.TryGetValue(key, out var value))
-            {
-                if (values.TryGetValue(key, out var existing))
-                {
-                    lines[existing.Index] = ReplaceTomlAssignmentValue(lines[existing.Index], QuoteToml(value));
-                }
-                else
-                {
-                    lines.Insert(insertAt, $"{key} = {QuoteToml(value)}");
-                }
-            }
-        }
-
-        var fixedText = string.Join(newline, lines).TrimEnd('\r', '\n');
-        if (hadTrailingNewline)
-        {
-            fixedText += newline;
-        }
+        var fixedText = PatchProfileFields(original, updates, values);
         try
         {
             _ = TomlSerializer.Deserialize<TomlTable>(fixedText)
@@ -660,85 +481,87 @@ internal static class CodexProfileFinalizer
         }
         catch (Exception ex)
         {
+            Trace.WriteLine(ex.ToString());
             failures.Add($"Finalizer produced invalid TOML for {targetPath}: {ex.ToString()}");
             return;
         }
         operations.Add(new Operation(OperationKind.Update, targetPath, fixedText));
     }
 
-    private static Dictionary<string, (int Index, string Value)> FindTopLevelAssignments(
-        IReadOnlyList<string> lines,
-        int firstSection,
+    private static Dictionary<string, (int Offset, int Length)> FindTopLevelAssignments(
+        Tomlyn.Syntax.DocumentSyntax syntax,
         string targetPath,
         ICollection<string> failures)
     {
-        var values = new Dictionary<string, (int Index, string Value)>(StringComparer.Ordinal);
-        for (var i = 0; i < lines.Count; i++)
+        var values = new Dictionary<string, (int Offset, int Length)>(StringComparer.Ordinal);
+        foreach (var assignment in syntax.KeyValues)
         {
-            if (firstSection >= 0 && i >= firstSection) break;
-            var match = TopLevelTomlAssignment.Match(lines[i]);
-            if (!match.Success) continue;
-            var key = match.Groups["key"].Value;
+            var keySyntax = assignment.Key;
+            if (keySyntax?.Key is null || keySyntax.DotKeys?.Any() == true) continue;
+            var key = keySyntax.Key switch
+            {
+                Tomlyn.Syntax.BareKeySyntax bareKey => bareKey.Key?.ToString().Trim() ?? string.Empty,
+                Tomlyn.Syntax.StringValueSyntax stringKey => stringKey.Value?.ToString() ?? string.Empty,
+                _ => string.Empty
+            };
             if (!ProfileKeys.Contains(key, StringComparer.Ordinal)) continue;
+
             if (values.ContainsKey(key))
             {
                 failures.Add($"Duplicate top-level profile field {key} in {targetPath}.");
                 continue;
             }
 
-            var comment = FindInlineCommentStart(match.Groups["value"].Value);
-            var rawValue = comment >= 0 ? match.Groups["value"].Value[..comment].TrimEnd() : match.Groups["value"].Value.Trim();
-            values[key] = (i, rawValue);
+            if (assignment.Value is null) continue;
+            values[key] = (assignment.Value.Span.Offset, assignment.Value.Span.Length);
         }
 
         return values;
     }
 
-    private static string ReplaceTomlAssignmentValue(string line, string replacement)
+    private static string PatchProfileFields(
+        string original,
+        IReadOnlyDictionary<string, string> updates,
+        IReadOnlyDictionary<string, (int Offset, int Length)> values)
     {
-        var match = TopLevelTomlAssignment.Match(line);
-        if (!match.Success) return line;
-        var raw = match.Groups["value"].Value;
-        var comment = FindInlineCommentStart(raw);
-        if (comment >= 0)
+        var builder = new StringBuilder(original);
+        foreach (var pair in updates
+            .Where(pair => values.ContainsKey(pair.Key))
+            .OrderByDescending(pair => values[pair.Key].Offset))
         {
-            while (comment > 0 && char.IsWhiteSpace(raw[comment - 1])) comment--;
+            var valueSpan = values[pair.Key];
+            builder.Remove(valueSpan.Offset, valueSpan.Length);
+            builder.Insert(valueSpan.Offset, QuoteToml(pair.Value));
         }
-        var suffix = comment >= 0 ? raw[comment..] : string.Empty;
-        return $"{match.Groups["indent"].Value}{match.Groups["key"].Value} = {replacement}{suffix}";
-    }
 
-    private static int FindInlineCommentStart(string value)
-    {
-        var inBasic = false;
-        var inLiteral = false;
-        var escaped = false;
-        for (var i = 0; i < value.Length; i++)
+        var missing = ProfileKeys.Where(key => updates.ContainsKey(key) && !values.ContainsKey(key)).ToArray();
+        if (missing.Length == 0)
         {
-            var current = value[i];
-            if (inBasic)
-            {
-                if (escaped) escaped = false;
-                else if (current == '\\') escaped = true;
-                else if (current == '"') inBasic = false;
-                continue;
-            }
-            if (inLiteral)
-            {
-                if (current == '\'') inLiteral = false;
-                continue;
-            }
-            if (current == '"') inBasic = true;
-            else if (current == '\'') inLiteral = true;
-            else if (current == '#') return i;
+            return builder.ToString();
         }
-        return -1;
+
+        var fixedText = builder.ToString();
+        var newline = original.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        var syntax = SyntaxParser.Parse(fixedText);
+        var firstTableOffset = syntax.Tables.Select(table => table.Span.Offset).DefaultIfEmpty(-1).Min();
+        var additions = string.Join(newline, missing.Select(key => $"{key} = {QuoteToml(updates[key])}")) + newline;
+        if (firstTableOffset >= 0)
+        {
+            var lineStart = fixedText.LastIndexOf('\n', firstTableOffset - 1) + 1;
+            return fixedText.Insert(lineStart, additions);
+        }
+
+        var trailingStart = fixedText.Length;
+        while (trailingStart > 0 && char.IsWhiteSpace(fixedText[trailingStart - 1])) trailingStart--;
+        var prefix = fixedText[..trailingStart];
+        var suffix = fixedText[trailingStart..];
+        var prefixSeparator = prefix.Length == 0 || prefix.EndsWith('\n') || prefix.EndsWith('\r') ? string.Empty : newline;
+        var suffixSeparator = suffix.Length > 0 && suffix[0] is not ('\n' or '\r') ? newline : string.Empty;
+        return prefix + prefixSeparator + additions.TrimEnd('\r', '\n') + suffixSeparator + suffix;
     }
 
     private static Options Parse(string[] args)
     {
-        var target = Directory.GetCurrentDirectory();
-        var targetSet = false;
         var global = false;
         var dryRun = false;
         var check = false;
@@ -751,23 +574,15 @@ internal static class CodexProfileFinalizer
                 case "--check": check = true; break;
                 case "--force": force = true; break;
                 case "--global":
-                    if (global || targetSet)
+                    if (global)
                     {
-                        throw new ArgumentException("--global cannot be combined with a target repository.");
+                        throw new ArgumentException("--global must be specified exactly once.");
                     }
 
                     global = true;
                     break;
-                case "--help": case "-h": throw new ArgumentException("help");
                 default:
-                    if (arg.StartsWith("-", StringComparison.Ordinal) || targetSet || global)
-                    {
-                        throw new ArgumentException($"Unknown or duplicate argument: {arg}");
-                    }
-
-                    target = Path.GetFullPath(arg);
-                    targetSet = true;
-                    break;
+                    throw new ArgumentException($"Unknown argument: {arg}");
             }
         }
 
@@ -776,22 +591,37 @@ internal static class CodexProfileFinalizer
             throw new ArgumentException("--dry-run and --check cannot be combined.");
         }
 
-        return new Options(target, global, dryRun, check, force);
-    }
-
-    private static Locations ResolveLocations(Options options)
-    {
-        if (!options.Global)
+        if (!global)
         {
-            return new Locations(
-                Path.Combine(options.TargetRoot, "apm_modules"),
-                Path.Combine(options.TargetRoot, ".codex", "agents"));
+            throw new ArgumentException("--global is required.");
         }
 
-        // APMとCodexのuser-scope home。APM_HOME / CODEX_HOME が空でなければそれを使い、未設定時は ~/.apm と ~/.codex。
-        var apmHome = ResolveHome("APM_HOME", ".apm");
+        return new Options(dryRun, check, force);
+    }
+
+    private static Locations ResolveLocations()
+    {
+        // APM 0.26のglobal storeはOS標準のユーザーホーム直下の .apm を使う。
+        var apmHome = Path.Combine(ResolveUserProfile(), ".apm");
         var codexHome = ResolveHome("CODEX_HOME", ".codex");
         return new Locations(Path.Combine(apmHome, "apm_modules"), Path.Combine(codexHome, "agents"));
+    }
+
+    private static string ResolveUserProfile()
+    {
+        var configured = Environment.GetEnvironmentVariable(OperatingSystem.IsWindows() ? "USERPROFILE" : "HOME");
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return Path.GetFullPath(configured.Trim());
+        }
+
+        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (string.IsNullOrWhiteSpace(profile))
+        {
+            throw new InvalidOperationException("Cannot resolve user profile directory from the operating system.");
+        }
+
+        return Path.GetFullPath(profile);
     }
 
     private static string ResolveHome(string variableName, string defaultFolderName)
@@ -802,19 +632,11 @@ internal static class CodexProfileFinalizer
             return Path.GetFullPath(configured.Trim());
         }
 
-        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (string.IsNullOrWhiteSpace(profile))
-        {
-            throw new InvalidOperationException($"Cannot resolve {variableName}: the variable is unset and the user profile directory is unavailable.");
-        }
-
-        return Path.Combine(profile, defaultFolderName);
+        return Path.Combine(ResolveUserProfile(), defaultFolderName);
     }
 
     private static string NormalizeNewlines(string value) =>
         value.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
-
-    private static string UnescapeToml(string value) => value.Replace("\\\"", "\"").Replace("\\\\", "\\");
 
     private static string QuoteToml(string value)
     {
@@ -898,9 +720,9 @@ internal static class CodexProfileFinalizer
         }
     }
 
-    private static void PrintUsage() => Console.WriteLine("Usage: dotnet run --file finalize-codex-agent-profiles.cs -- [target-repository | --global] [--dry-run | --check] [--force]");
+    private static void PrintUsage() => Console.WriteLine("Usage: dotnet run --file finalize-codex-agent-profiles.cs -- --global [--dry-run | --check] [--force]");
 
-    private sealed record Options(string TargetRoot, bool Global, bool DryRun, bool Check, bool Force);
+    private sealed record Options(bool DryRun, bool Check, bool Force);
     private sealed record Locations(string OverlaysRoot, string AgentsRoot);
     private sealed class ParentBinding
     {

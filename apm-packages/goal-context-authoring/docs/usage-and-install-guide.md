@@ -3,10 +3,10 @@
 ## Install
 
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/goal-context-authoring --target copilot,codex,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/goal-context-authoring --target copilot,codex,agent-skills --global
 ```
 
-The package deploys an optional authoring Skill, generation prompt, example, and quality checklist under `.agents/skills/goal-context-authoring/`. It does not define the only valid way to create Goal Context or Decision Context.
+The package deploys an optional authoring Skill, generation prompt, example, and quality checklist under `~/.agents/skills/goal-context-authoring/`. It does not define the only valid way to create Goal Context or Decision Context.
 
 ## Author or select context
 

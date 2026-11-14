@@ -61,6 +61,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
       - uses: microsoft/apm-action@v1
         with:
           apm-version: '0.26.0'
@@ -70,4 +73,8 @@ jobs:
         run: ./apm-packages/persistent-purpose-review/scripts/validate-persistent-purpose-review.ps1
       - name: Smoke test package installation
         shell: pwsh
-        run: ./apm-packages/persistent-purpose-review/scripts/test-apm-package-install.ps1
+        env:
+          GITHUB_APM_PAT: ${{ github.token }}
+          PACKAGE_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          PACKAGE_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: ./apm-packages/persistent-purpose-review/scripts/test-apm-package-install.ps1 -Repository $env:PACKAGE_REPOSITORY -Ref $env:PACKAGE_REF

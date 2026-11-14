@@ -32,10 +32,10 @@ GitHub Copilot Code Reviewを利用できない、reviewを要求できない、
 
 ### 1. Skillを導入する
 
-処理したいrepositoryのrootで実行します。
+SkillをOSユーザー単位のglobal領域へ導入します。実際のPR処理は対象repositoryで行います。
 
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target copilot,codex,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/pr-review-remediation --target copilot,codex,agent-skills --global
 ```
 
 APMは`pr-review-remediation` Skillとreview context collectorを導入します。0.9.0以降は独立した`review-planner`、Codex agent profile、`codex-profile-finalizer`は必要ありません。
@@ -93,20 +93,20 @@ Adaptiveを明示しても、review coverage、validation、commit、push、最�
 
 ## 更新
 
-対象repositoryのrootでAPM packageを更新します。具体的な更新対象やオプションは[APMの資料](https://microsoft.github.io/apm/reference/cli/update/)を参照してください。
+OSユーザー単位のglobal領域にあるAPM packageを更新します。具体的な更新対象やオプションは[APMの資料](https://microsoft.github.io/apm/reference/cli/update/)を参照してください。
 
 ```powershell
-apm update
+apm update --global
 ```
 
 0.8.0以前から更新する場合、planner/profile依存の変更点は[Migration](.apm/skills/pr-review-remediation/references/migration.md)を確認してください。
 
 ## 削除
 
-対象repositoryのrootでアンインストールします。
+OSユーザー単位のglobal領域からアンインストールします。
 
 ```powershell
-apm uninstall pr-review-remediation
+apm uninstall pr-review-remediation --global
 ```
 
 以前のversionが生成したprofile等が残る場合は、ownershipを確認してから[Troubleshooting](.apm/skills/pr-review-remediation/references/troubleshooting.md)の案内に従います。

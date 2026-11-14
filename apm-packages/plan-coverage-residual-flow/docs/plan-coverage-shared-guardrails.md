@@ -1,15 +1,6 @@
----
-name: Plan Coverage Shared Guardrails
-description: Shared invariant guardrails for Plan Coverage Check and Residual Decision Flow agents
-# Copyright (c) 2026 suusanex
-# SPDX-License-Identifier: CC-BY-4.0
-# License: https://creativecommons.org/licenses/by/4.0/
-# Source: https://github.com/suusanex/coding_agent_plan_and_verify_process
----
-
 # Shared invariant guardrails
 
-These rules apply to Plan Coverage Check and Residual Decision Flow agents when an agent explicitly references this shared instruction. Agent-specific responsibilities, artifact destinations, allowed verdict vocabulary, and stop rules remain in each agent file.
+この規則は明示的に選択されたPlan Coverage agentに適用します。agent固有の責務、成果物の出力先、verdict、停止規則は各agent本文に従います。
 
 ## Required invariants
 

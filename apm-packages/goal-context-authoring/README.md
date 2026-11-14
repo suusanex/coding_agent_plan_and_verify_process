@@ -8,15 +8,15 @@ Goal Contextはfree-form textです。このpackageのpromptやexampleを使わ�
 
 ## Install
 
-対象repositoryのrootで実行します。
+OSユーザー単位のglobal領域へ、任意のdirectoryから導入します。
 
 ```powershell
-apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/goal-context-authoring --target copilot,codex,agent-skills
+apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/goal-context-authoring --target copilot,codex,agent-skills --global
 ```
 
 ## Use
 
-1. `.agents/skills/goal-context-authoring/references/generation-prompt.md`を任意のauthoring補助として使う、または別経路で文書を書く。
+1. `~/.agents/skills/goal-context-authoring/references/generation-prompt.md`を任意のauthoring補助として使う、または別経路で文書を書く。
 2. Goal Contextには、元の問題、期待成果、目的達成reviewに必要な境界だけを残す。
 3. Decision Contextには、明示的に固定済みのscope・採用判断・実装方針だけを残す。
 4. Goal ContextとDecision Contextのどちらにも属さない経緯、roadmap、未解決事項を引き継ぎ目的で追加しない。
@@ -46,3 +46,5 @@ pwsh -NoProfile -File scripts/agent-plugins/validate-agent-plugin-package.ps1 -P
 ```
 
 APMがsupported distributionです。direct deploymentのstatusとevidenceは`tests/agent-plugin/qualification.json`に記録し、未観測のbehaviorをPASSへ昇格させません。
+
+global update / uninstallと旧local配置の整理は[共通運用手順](../../docs/installation-and-maintenance.md#global-lifecycle)を参照してください。APM v0.26.0では標準runtime homeを利用します。

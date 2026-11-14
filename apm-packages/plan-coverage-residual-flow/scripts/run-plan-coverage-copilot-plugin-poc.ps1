@@ -53,7 +53,6 @@ function Assert-NoProjectShadowing([string]$Worktree) {
     $shadows = @(
         '.agents/skills/plan-coverage-residual-flow',
         '.github/agents/plan-kernel.agent.md',
-        '.github/instructions/plan-coverage-shared.instructions.md',
         '.codex/agents/plan-kernel.toml'
     )
     foreach ($rel in $shadows) {
@@ -323,7 +322,7 @@ function Get-BoundaryInventory {
         [ordered]@{ item = 'Plan Coverage SKILL.md'; classification = 'agent-plugins-portable'; canonical_owner = '.apm/skills'; bundle_representation = 'skills/...'; runtime_representation = 'plugin skills discovery'; direct_plugin = 'yes'; apm_path = 'yes'; reason = '1:1 pack' }
         [ordered]@{ item = 'Skill references'; classification = 'agent-plugins-portable'; canonical_owner = '.apm/skills/references'; bundle_representation = 'skills/.../references'; runtime_representation = 'plugin skill refs'; direct_plugin = 'yes'; apm_path = 'yes'; reason = 'packed with Skill' }
         [ordered]@{ item = 'Plan Coverage custom agents'; classification = 'copilot-plugin-extension'; canonical_owner = '.apm/agents'; bundle_representation = 'agents/*.agent.md'; runtime_representation = 'Copilot plugin agents/ or APM .github/agents'; direct_plugin = 'yes-on-copilot'; apm_path = 'yes'; reason = 'not AP v1 portable core' }
-        [ordered]@{ item = 'Plan Coverage shared instruction'; classification = 'apm-projection-materialization'; canonical_owner = '.apm/instructions'; bundle_representation = 'instructions/'; runtime_representation = '.github/instructions via APM'; direct_plugin = 'path-gap'; apm_path = 'yes'; reason = '.github/instructions not seeded under direct plugin' }
+        [ordered]@{ item = 'Plan Coverage shared guardrails'; classification = 'embedded-agent-contract'; canonical_owner = 'docs/plan-coverage-shared-guardrails.md'; bundle_representation = 'embedded in each selected agents/*.agent.md'; runtime_representation = 'prompt payload; behavior unverified'; direct_plugin = 'static-content-only'; apm_path = 'static-content-only'; reason = 'source text is embedded in agent files; this does not attest runtime loading or behavior' }
         [ordered]@{ item = 'Adaptive Implementation Skill'; classification = 'transitive-portable-dependency'; canonical_owner = 'adaptive package'; bundle_representation = 'absent-from-PC-bundle; standalone-pack-ok'; runtime_representation = 'APM transitive install'; direct_plugin = 'separate-bundle'; apm_path = 'yes'; reason = 'attested in install lock; not inlined by PC pack' }
         [ordered]@{ item = 'Adaptive Decision-Surface Implementation Owner agent'; classification = 'copilot-plugin-extension'; canonical_owner = 'adaptive .apm/agents'; bundle_representation = 'absent-from-PC-bundle'; runtime_representation = 'APM .github/agents from Adaptive package'; direct_plugin = 'no-in-PC-bundle'; apm_path = 'yes'; reason = 'package-owned canonical post-#111; separate Adaptive plugin or APM materialization' }
         [ordered]@{ item = 'Adaptive Bounded-Residual Implementation Owner agent'; classification = 'copilot-plugin-extension'; canonical_owner = 'adaptive .apm/agents'; bundle_representation = 'absent-from-PC-bundle'; runtime_representation = 'APM .github/agents from Adaptive package'; direct_plugin = 'no-in-PC-bundle'; apm_path = 'yes'; reason = 'package-owned canonical post-#111; separate Adaptive plugin or APM materialization' }
@@ -456,7 +455,7 @@ try {
         standard_slice     = 'NOT_RUN'
         full_coverage      = 'NOT_RUN'
         adaptive_connection = 'NOT_RUN'
-        shared_instruction = 'NOT_PROBED'
+        embedded_shared_guardrails = 'NOT_PROBED'
         capability_gaps    = @()
     }
 
@@ -654,27 +653,11 @@ try {
             $capabilityGaps.Add('FULL-001 skipped by flag') | Out-Null
         }
 
-        # Shared instruction gap probe: agents reference .github/instructions path; fixture must not seed it.
-        $sharedInFixture = $false
-        foreach ($s in $scenarioResults) {
-            $repoPath = Join-Path $evidenceRoot $(if ($s.id -match 'STD|FULL') { $s.id } else { "auth-$($s.id)" })
-            $repoPath = Join-Path $repoPath 'repo/.github/instructions/plan-coverage-shared.instructions.md'
-            if (Test-Path -LiteralPath $repoPath) { $sharedInFixture = $true }
-        }
-        if ($sharedInFixture) {
-            $capabilityGaps.Add('shared-instruction unexpectedly present in fixture (forbidden seed)') | Out-Null
-            $copilotDirect.shared_instruction = 'INVALID_FIXTURE'
-        }
-        else {
-            $copilotDirect.shared_instruction = 'NOT_MATERIALIZED_IN_FIXTURE'
-            # If agents failed to run while skill may have loaded, record gap.
-            $anyAgent = @($scenarioResults | Where-Object { @($_.agents_observed).Count -gt 0 }).Count -gt 0
-            if (-not $anyAgent -and $copilotDirect.authorization -ceq 'PASS') {
-                $capabilityGaps.Add('no Plan Coverage agents observed on authorized scenarios — possible shared-instruction / agent discovery gap under direct plugin') | Out-Null
-            }
-            if (-not $anyAgent) {
-                $capabilityGaps.Add('APM materialization or Copilot plugin adapter may be required for .github/instructions/plan-coverage-shared.instructions.md and full agent orchestration') | Out-Null
-            }
+        # 共通guardrailは選択されたagent本文に埋め込まれており、実行時の別投影はありません。
+        $copilotDirect.embedded_shared_guardrails = 'SOURCE_EMBEDDED_RUNTIME_NOT_VERIFIED'
+        $anyAgent = @($scenarioResults | Where-Object { @($_.agents_observed).Count -gt 0 }).Count -gt 0
+        if (-not $anyAgent -and $copilotDirect.authorization -ceq 'PASS') {
+            $capabilityGaps.Add('no Plan Coverage agents observed on authorized scenarios — agent discovery remains unconfirmed') | Out-Null
         }
 
         # Adaptive gap if routes need it — prefer packaging attestation language from build.
@@ -734,7 +717,7 @@ try {
         $verdict = 'HOLD'
         $rationale.Add("Copilot direct-load status=$($copilotDirect.status); portable Skill/bundle OK but runtime adapter gaps remain") | Out-Null
         foreach ($g in $capabilityGaps) { $rationale.Add("gap: $g") | Out-Null }
-        $next.Add('Design Copilot plugin adapter / APM materialization for shared instructions and Adaptive transitive deps') | Out-Null
+        $next.Add('Resolve remaining Copilot agent discovery and Adaptive transitive dependency gaps') | Out-Null
     }
     elseif ($copilotDirect.status -ceq 'FAIL' -and $copilotDirect.authorization -ceq 'FAIL') {
         $verdict = 'NO_GO'
@@ -768,9 +751,9 @@ try {
             baseline = 'apm install -> projections'
             poc      = 'apm pack (synthesized plugin.json) -> copilot plugin install|--plugin-dir; no PC apm install into fixture'
         }
-        shared_instruction             = [ordered]@{
-            baseline = 'APM materializes .github/instructions'
-            poc      = [string]$copilotDirect.shared_instruction
+        embedded_shared_guardrails    = [ordered]@{
+            baseline = 'APM-only shared instruction projection (historical behavior)'
+            poc      = [string]$copilotDirect.embedded_shared_guardrails
         }
         authorization                  = [ordered]@{
             baseline = 'A-H PASS'
@@ -894,7 +877,7 @@ $(($next | ForEach-Object { "- $_" }) -join "`n")
 
 - #106 APM baseline evidence was not modified.
 - Fixture repos did not receive ``apm install`` of Plan Coverage.
-- Shared instruction was not hand-copied into fixtures.
+- Shared guardrails are embedded in selected agent prompts and are not seeded separately.
 - Agent Plugins portable core is Skill (+ references) + closed ``plugin.json`` (pack-stage synthesis only); agents/ are Copilot plugin extension surfaces.
 - Adaptive packaging attestation fields come from ``build-plan-coverage-agent-plugin.ps1`` (install lock + path-dep refusal + standalone pack).
 "@

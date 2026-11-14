@@ -34,7 +34,6 @@ process、status、title、repository、resultを表示したい場合だけ、p
 
 `result_uri`は具体的な結果を指すuserinfoなしのHTTPS URLだけを受理します。host root、GitHub top、owner top、repository topのような粗いlinkは破棄します。envelope、field、URIが不正な場合はenrichment全体を無視し、generic itemを保存します。runtimeまたはproviderの失敗はprimary Codex turnを失敗にしません。
 
-optional enrichmentを生成するSkillについては[Completion Notification Decorator](../../apm-packages/completion-notification-decorator/README.md)を参照してください。
 
 ## Producer and consumer boundary
 
