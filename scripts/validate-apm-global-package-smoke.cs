@@ -196,14 +196,25 @@ internal static class GlobalPackageSmoke
 
             Console.WriteLine("Global package metadata and user-scope projections were observed from two workspaces; no runtime agent process was launched.");
 
-            await RunProcessAsync(options.ApmExecutable,
-                ["uninstall", updatePackageSpec, "--global"], scratch, environment, "global uninstall");
+            var ownedProjectionPaths = SnapshotInstalledClosureProjectionPaths(moduleRoot, lockPath, userHome);
+            if (options.Package == "design-pair-implementation-execution")
+            {
+                await VerifyDesignPairPlanCoverageSharedUninstallAsync(options, moduleRoot, lockPath, userHome, scratch, environment,
+                    finalizer, ownedProjectionPaths, protectedFiles);
+            }
+            else
+            {
+                await RunProcessAsync(options.ApmExecutable,
+                    ["uninstall", updatePackageSpec, "--global"], scratch, environment, "global uninstall");
+            }
+
             await VerifyUpdateRefAsync(options, scratch, environment, "after global uninstall");
             if (Directory.Exists(installedPackage))
             {
                 throw new InvalidOperationException($"Global uninstall retained package files: {installedPackage}");
             }
 
+            AssertOwnedProjectionPathsAbsent(ownedProjectionPaths, "global uninstall");
             VerifyProtectedFiles(protectedFiles, scratch);
             Console.WriteLine($"APM global package smoke passed: {options.Package}");
             return 0;
@@ -501,10 +512,7 @@ internal static class GlobalPackageSmoke
 
     private static void VerifyPackageClosure(string lockPath, string packageName)
     {
-        var lockText = File.ReadAllText(lockPath);
-        var packages = Regex.Matches(lockText, @"(?m)^\s*(?:-\s*)?name:\s*(?<name>[A-Za-z0-9._-]+)\s*$", RegexOptions.CultureInvariant)
-            .Select(match => match.Groups["name"].Value)
-            .ToHashSet(StringComparer.Ordinal);
+        var packages = ReadLockPackageNames(lockPath);
         if (!packages.Contains(packageName))
         {
             throw new InvalidOperationException($"APM lockfile does not include direct package {packageName}.");
@@ -531,6 +539,153 @@ internal static class GlobalPackageSmoke
                 }
             }
         }
+    }
+
+    private static HashSet<string> ReadLockPackageNames(string lockPath) =>
+        Regex.Matches(File.ReadAllText(lockPath), @"(?m)^\s*(?:-\s*)?name:\s*(?<name>[A-Za-z0-9._-]+)\s*$", RegexOptions.CultureInvariant)
+            .Select(match => match.Groups["name"].Value)
+            .ToHashSet(StringComparer.Ordinal);
+
+    private static HashSet<string> SnapshotInstalledClosureProjectionPaths(string moduleRoot, string lockPath, string userHome)
+    {
+        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var packageName in ReadLockPackageNames(lockPath))
+        {
+            var packageRoot = FindInstalledPackage(moduleRoot, packageName);
+            paths.UnionWith(SnapshotPackageProjectionPaths(packageRoot, userHome));
+        }
+
+        if (paths.Count == 0)
+        {
+            throw new InvalidOperationException($"No global Skill or agent projections were found in installed package closure {lockPath}.");
+        }
+
+        AssertOwnedProjectionPathsPresent(paths, "pre-uninstall closure snapshot");
+        return paths;
+    }
+
+    private static HashSet<string> SnapshotPackageProjectionPaths(string packageRoot, string userHome)
+    {
+        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var primitiveRoot = Path.Combine(packageRoot, ".apm");
+        var skillsRoot = Path.Combine(primitiveRoot, "skills");
+        if (Directory.Exists(skillsRoot))
+        {
+            foreach (var skillDirectory in Directory.EnumerateDirectories(skillsRoot))
+            {
+                paths.Add(Path.Combine(userHome, ".agents", "skills", Path.GetFileName(skillDirectory)));
+            }
+        }
+
+        var agentsRoot = Path.Combine(primitiveRoot, "agents");
+        if (Directory.Exists(agentsRoot))
+        {
+            foreach (var agentFile in Directory.EnumerateFiles(agentsRoot, "*.agent.md"))
+            {
+                var agentName = Path.GetFileName(agentFile);
+                var profileName = Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(agentName)) + ".toml";
+                paths.Add(Path.Combine(userHome, ".copilot", "agents", agentName));
+                paths.Add(Path.Combine(userHome, ".codex", "agents", profileName));
+            }
+        }
+
+        return paths;
+    }
+
+    private static void AssertOwnedProjectionPathsPresent(IEnumerable<string> paths, string phase)
+    {
+        var missing = paths.Where(path => !Directory.Exists(path) && !File.Exists(path)).ToArray();
+        if (missing.Length > 0)
+        {
+            throw new InvalidOperationException($"Owned global projections are missing during {phase}: {string.Join(", ", missing)}");
+        }
+    }
+
+    private static void AssertOwnedProjectionPathsAbsent(IEnumerable<string> paths, string phase)
+    {
+        var remaining = paths.Where(path => Directory.Exists(path) || File.Exists(path)).ToArray();
+        if (remaining.Length > 0)
+        {
+            throw new InvalidOperationException($"Owned global projections remain after {phase}: {string.Join(", ", remaining)}");
+        }
+    }
+
+    private static async Task VerifyDesignPairPlanCoverageSharedUninstallAsync(SmokeOptions options, string moduleRoot, string lockPath,
+        string userHome, string scratch, IReadOnlyDictionary<string, string?> environment, string? finalizer,
+        IReadOnlySet<string> designPairClosurePaths, IReadOnlyDictionary<string, string> protectedFiles)
+    {
+        var designPairPackageSpec = $"{options.Repository}/apm-packages/design-pair-implementation-execution#{options.UpdateRef}";
+        var planCoveragePackageSpec = $"{options.Repository}/apm-packages/plan-coverage-residual-flow#{options.UpdateRef}";
+        var designPairPackage = FindInstalledPackage(moduleRoot, "design-pair-implementation-execution");
+        var designPairPaths = SnapshotPackageProjectionPaths(designPairPackage, userHome);
+
+        await VerifyUpdateRefAsync(options, scratch, environment, "before shared dependency scenario");
+        await RunProcessAsync(options.ApmExecutable,
+            ["install", planCoveragePackageSpec, "--global", "--target", "codex,copilot,agent-skills", "--https", "--no-audit"],
+            scratch, environment, "global Plan Coverage install alongside Design Pair");
+
+        VerifyPackageClosure(lockPath, "plan-coverage-residual-flow");
+        VerifyDependencyArtifacts(moduleRoot, userHome, "plan-coverage-residual-flow");
+        var remainingClosurePackages = ReadLockPackageNames(lockPath);
+        remainingClosurePackages.Remove("design-pair-implementation-execution");
+        var sharedClosurePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var packageName in remainingClosurePackages)
+        {
+            sharedClosurePaths.UnionWith(SnapshotPackageProjectionPaths(FindInstalledPackage(moduleRoot, packageName), userHome));
+        }
+
+        if (designPairPaths.Overlaps(sharedClosurePaths))
+        {
+            throw new InvalidOperationException("Design Pair direct projections overlap the PCF shared dependency closure, so uninstall ownership cannot be distinguished.");
+        }
+
+        var combinedPaths = new HashSet<string>(designPairPaths, StringComparer.OrdinalIgnoreCase);
+        combinedPaths.UnionWith(sharedClosurePaths);
+        if (!designPairClosurePaths.IsSubsetOf(combinedPaths))
+        {
+            throw new InvalidOperationException("Adding Plan Coverage did not retain every existing Design Pair closure projection.");
+        }
+
+        AssertOwnedProjectionPathsPresent(sharedClosurePaths, "shared dependency install before Design Pair uninstall");
+        if (finalizer is not null)
+        {
+            await RunProcessAsync("dotnet", ["run", "--file", finalizer, "--", "--global"], scratch, environment, "shared dependency Finalizer completion");
+            await RunProcessAsync("dotnet", ["run", "--file", finalizer, "--", "--global", "--check"], scratch, environment, "shared dependency Finalizer check");
+        }
+
+        await RunProcessAsync(options.ApmExecutable,
+            ["uninstall", designPairPackageSpec, "--global"], scratch, environment, "Design Pair uninstall while PCF retains shared dependencies");
+        AssertOwnedProjectionPathsAbsent(designPairPaths, "Design Pair uninstall with shared PCF closure");
+        AssertOwnedProjectionPathsPresent(sharedClosurePaths, "Design Pair uninstall with shared PCF closure");
+        if (InstalledPackageExists(moduleRoot, "design-pair-implementation-execution") ||
+            !InstalledPackageExists(moduleRoot, "plan-coverage-residual-flow") ||
+            !InstalledPackageExists(moduleRoot, "adaptive-implementation-execution") ||
+            !InstalledPackageExists(moduleRoot, "codex-profile-finalizer"))
+        {
+            throw new InvalidOperationException("Design Pair uninstall did not preserve the active Plan Coverage, Adaptive, and Finalizer package closure.");
+        }
+
+        VerifyPackageClosure(lockPath, "plan-coverage-residual-flow");
+        VerifyDependencyArtifacts(moduleRoot, userHome, "plan-coverage-residual-flow");
+        AssertOwnedProjectionPathsPresent(sharedClosurePaths, "after Design Pair uninstall");
+        if (finalizer is not null)
+        {
+            await RunProcessAsync("dotnet", ["run", "--file", finalizer, "--", "--global", "--check"], scratch, environment, "Finalizer check after Design Pair uninstall");
+        }
+
+        VerifyProtectedFiles(protectedFiles, scratch);
+        await RunProcessAsync(options.ApmExecutable,
+            ["uninstall", planCoveragePackageSpec, "--global"], scratch, environment, "Plan Coverage uninstall after shared dependency scenario");
+        AssertOwnedProjectionPathsAbsent(sharedClosurePaths, "final Plan Coverage uninstall after shared dependency scenario");
+        foreach (var packageName in new[] { "design-pair-implementation-execution", "plan-coverage-residual-flow", "adaptive-implementation-execution", "codex-profile-finalizer" })
+        {
+            if (InstalledPackageExists(moduleRoot, packageName))
+            {
+                throw new InvalidOperationException($"Shared dependency scenario retained package {packageName} after final uninstall.");
+            }
+        }
+
+        VerifyProtectedFiles(protectedFiles, scratch);
     }
 
     private static void VerifyDependencyArtifacts(string moduleRoot, string userHome, string packageName)
