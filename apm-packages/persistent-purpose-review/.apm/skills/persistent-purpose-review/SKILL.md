@@ -123,7 +123,7 @@ Runner protocolでは`FINDINGS`は正常な非terminal状態である。`termina
 
 Grok Buildのheadless実行（`-p --output-format streaming-json`または同等のheadless経路）では、同じprompt turnを維持したまま`status`を反復確認する。Grokの前景terminal call制限を超える15分のloopを1回のcommandへ入れない。1回の`status`確認を1回の短いterminal tool callで実行し、その結果をGrokが同じturnで受け取って次のcallを判断する。`RUNNING`なら15秒以下を別の短いcallで待ち、次の`status` callへ進む。いずれのcallも前景で終了することを確認し、terminal toolがbackgroundへ移行したりtimeoutしたら、そのbackground taskやnotification再起床を待機成立に使わず、run IDと停止理由をerrorとして報告する。`long-running-background-tasks`の`monitor`を登録してturnを終了し、その後のnotificationによる再起床を待機成立の前提にしない。
 
-`start`または`continue`が`RUNNING`を返した時点のUTC時刻に15分を加えた`deadlineUtc`をagent stateとして保持する。再pollingでdeadlineを作り直さず、各短いcallの前後で絶対deadlineを比較する。deadlineはcalendar時間ではなく`DateTimeOffset`のUTC値として保持し、remaining timeが0ならreviewを成功扱い・再submitせず、run IDと`RUNNING`のままで中断した事実をerrorとして報告する。
+`start`または`continue`が`RUNNING`を返した時点のUTC時刻に15分を加えた`deadlineUtc`をagent stateとして保持する。再pollingでdeadlineを作り直さず、各短いcallの前後で絶対deadlineを比較する。deadlineはcalendar時間ではなく`DateTimeOffset`のUTC値として保持し、remaining timeが0ならreviewを成功扱い・再submitせず、run IDと`RUNNING`のままで中断した事実をerrorとして報告する。status callがdeadline到達後に完了した場合も、その結果を受理せず同じtimeoutとして扱う。
 
 status callは次の一度きりの処理として実行する。`<deadline-utc>`へ初回に保持した絶対時刻をISO 8601で入れる。
 
@@ -144,6 +144,10 @@ if ([DateTimeOffset]::UtcNow -ge $deadline) {
 }
 $raw = purpose-review-runner status --run $runId
 $statusExitCode = $LASTEXITCODE
+$statusFinishedAt = [DateTimeOffset]::UtcNow
+if ($statusFinishedAt -ge $deadline) {
+    throw "Purpose Review status completed after the deadline for run $runId."
+}
 $output = $raw | ConvertFrom-Json -ErrorAction Stop
 Write-Output $raw
 

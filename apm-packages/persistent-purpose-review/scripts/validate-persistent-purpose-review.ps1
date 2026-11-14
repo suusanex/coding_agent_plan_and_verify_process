@@ -79,6 +79,9 @@ if ($skill -notmatch 'RUNNING' -or
     $skill -notmatch 'BLOCKED' -or
     $skill -notmatch 'ERROR' -or
     $skill -notmatch '\$statusExitCode = \$LASTEXITCODE' -or
+    $skill -notmatch '\$statusFinishedAt = \[DateTimeOffset\]::UtcNow' -or
+    $skill -notmatch '\$statusFinishedAt -ge \$deadline' -or
+    $skill -notmatch 'status callがdeadline到達後に完了した場合' -or
     $skill -notmatch '\$output\.status -ne ''ERROR''' -or
     $skill -notmatch '同じrun ID、`ERROR`、`terminal: true`、`error\.code` / `error\.message`を持つ単一JSON' -or
     $skill -notmatch 'FINDINGS must contain at least one finding' -or
@@ -139,6 +142,7 @@ if ($readme -notmatch 'Grok Buildのheadless実行' -or
     $readme -notmatch '15分のloopを1回のshell commandへ入れず' -or
     $readme -notmatch '15秒以下の独立した前景wait call' -or
     $readme -notmatch 'callがtimeoutまたはbackground化した場合' -or
+    $readme -notmatch 'status callの開始前と完了後にdeadlineを比較' -or
     $readme -notmatch '15分' -or
     $readme -notmatch 'FINDINGS.*terminal: false' -or
     $readme -notmatch 'monitor`登録とturn終了に待機を委ねません') {
