@@ -789,7 +789,7 @@ if ($failures.Count -eq 0) {
     }
     Assert-Matches $standaloneE2E 'foreach \(\$verdict in @\(''Drift'', ''Unclear''\)\)' 'standalone E2E validator must fail closed for architecture Drift and Unclear'
     Assert-Matches $apmSmoke 'validate-apm-global-package-smoke\.cs' 'Plan Coverage APM wrapper must call the global package smoke'
-    Assert-Matches $apmSmoke '--package plan-coverage-residual-flow' 'Plan Coverage APM wrapper must select its package explicitly'
+    Assert-Matches $apmSmoke '@\(''--package'', ''plan-coverage-residual-flow''' 'Plan Coverage APM wrapper must select its package explicitly'
     $globalSmoke = Get-NormalizedText (Join-Path $repoRoot 'scripts/validate-apm-global-package-smoke.cs')
     Assert-Matches $globalSmoke 'validate-plan-coverage-full-coverage-e2e\.ps1' 'global package smoke must run standalone E2E from the global install'
     Assert-Matches $globalSmoke 'decision-surface-implementation-owner' 'global package smoke must verify Adaptive dependency assets'

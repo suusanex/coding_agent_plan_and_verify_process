@@ -54,6 +54,10 @@ global配布の検証対象はAPM v0.26.0です。この版のglobal storeはWin
 
 v0.26.0のagent配布先は`~/.codex/agents`と`~/.copilot/agents`、Skill配布先は`~/.agents/skills`です。別の`CODEX_HOME` / `COPILOT_HOME`を指定してもAPMのagent出力先は変わりません。この版の正式運用は標準runtime homeを利用する構成です。非標準runtime homeへのAPM導入はサポート対象外とし、一時repositoryや手動TOMLコピーによる補完は案内しません。Finalizer自体は`CODEX_HOME`を解決し、そこにAPM投影がなければ失敗します。
 
+APMは管理外の同名agentを上書きせずskipしますが、その場合もinstallの終了コードは0になります。出力の`local files exist, not managed by APM`を確認し、衝突が残ったままprocessを開始しないでください。元の所有者と内容を確認して既存agentを別名で保持するなど、利用者が衝突を解消した後に再installします。APMの`--force`で無関係なagentを上書きする手順は案内しません。CodexではFinalizerもportable contract不一致を拒否します。
+
+APMの再installがCodex profile補完をリセットする場合があるため、再install後もFinalizerの適用と`--check`を行います。Finalizer単独の再実行は差分を作りません。
+
 Adaptive、Design Pair、Plan Coverage、PR Review Remediation、Goal Context Authoring、Persistent Purpose ReviewはOSユーザー単位で導入します。正式なscopeは`--global`のみです。依存packageはAPMが解決するため、Design Pair / Plan CoverageのためにAdaptiveやFinalizerをwork repositoryへ追加installしません。
 
 ```powershell
@@ -146,7 +150,7 @@ dotnet run --file ./scripts/validate-process-package-boundaries.cs -- validate
 ```powershell
 dotnet test ./tests/PurposeReviewRunner.Tests/PurposeReviewRunner.Tests.csproj
 ./apm-packages/persistent-purpose-review/scripts/validate-persistent-purpose-review.ps1
-./apm-packages/persistent-purpose-review/scripts/test-apm-package-install.ps1 -Repository suusanex/coding_agent_plan_and_verify_process -Ref <candidate-commit-or-branch>
+./apm-packages/persistent-purpose-review/scripts/test-apm-package-install.ps1 -Repository suusanex/coding_agent_plan_and_verify_process -Ref '<candidate-branch>'
 dotnet publish ./apps/PurposeReviewRunner/PurposeReviewRunner.csproj -c Release -r win-x64 --self-contained true
 dotnet publish ./apps/PurposeReviewRunner/PurposeReviewRunner.csproj -c Release -r linux-x64 --self-contained true
 ```
@@ -158,7 +162,7 @@ dotnet publish ./apps/PurposeReviewRunner/PurposeReviewRunner.csproj -c Release 
 ```powershell
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1
-./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1 -Repository suusanex/coding_agent_plan_and_verify_process -Ref <candidate-commit-or-branch>
+./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1 -Repository suusanex/coding_agent_plan_and_verify_process -Ref '<candidate-branch>'
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-runtime-qualification.ps1
 ./scripts/agent-plugins/validate-agent-plugin-packages.ps1
 ./scripts/agent-plugins/validate-agent-plugin-qualification.ps1
@@ -183,4 +187,6 @@ READMEやMarkdown linkを変更した場合は、相対linkのtargetが存在す
 
 README navigation workflowは、リンク先だけの削除やrenameも検出するためpath filterを設けず、すべてのpull requestと`main`へのpushで実行します。package固有workflowはowning packageだけを起動対象とし、別packageの変更を理由にpackage-local validatorを再実行しません。公開境界の変更はProcess Package Compatibility workflow、distribution inputの変更は同workflowの該当closure、Agent Plugin inputの変更は変更packageだけを起動します。純粋な説明変更やroot README変更からremote install smokeを起動しません。documentation ownershipを移した場合は、validatorのassertion targetとworkflow triggerを同じ変更で確認します。
 
-global配布smokeの`<candidate-commit-or-branch>`は検証対象のremote commitまたはbranchに置き換えてください。APM v0.26.0を使用し、実ユーザーのhomeを変更しない隔離環境で実行します。
+global配布smokeの`<candidate-branch>`は検証対象のremote branchに置き換えてください。APM v0.26.0を使用し、実ユーザーのhomeを変更しない隔離環境で実行します。
+
+検証用wrapperで候補をSHA指定する場合は、`-Ref <40桁の候補SHA>`と`-UpdateRef <同じSHAを指すbranch>`を併用します。共通C# smokeの対応引数は`--ref`と`--update-ref`です。branch先端の一致を検査したうえで、独立targetの導入はSHA、正常なupdate lifecycleはbranchで確認します。これはAPMの追加optionではありません。

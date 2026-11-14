@@ -344,7 +344,7 @@ Same canonical `.apm` source can be packed with `apm pack --format plugin` into 
 ```powershell
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow.ps1
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-full-coverage-e2e.ps1
-./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1 -Repository suusanex/coding_agent_plan_and_verify_process -Ref <candidate-commit-or-branch>
+./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-residual-flow-apm-smoke.ps1 -Repository suusanex/coding_agent_plan_and_verify_process -Ref '<candidate-branch>'
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-runtime-qualification.ps1
 ./apm-packages/plan-coverage-residual-flow/scripts/validate-plan-coverage-agent-plugin.ps1
 ```
@@ -353,7 +353,7 @@ standalone full-coverage E2Eは、currentまたはinstalled Living Record / clos
 
 Change Risk Triage smokeはchange-facts inputとCI-only oracleを分離し、result schemaとagent hashもCIで検証します。外部modelにはoracleを渡さず、`CRT-001`〜`CRT-003`各3回のfresh-session一致確認をmanual evidenceとして分離し、`NOT RUN`や`UNOBSERVABLE`をPASSにしません。
 
-remote APM install smokeはpackageの変更をremote refで検証するときだけ実行します。上の`<candidate-commit-or-branch>`は検証する実際のcommitまたはbranchに置き換えます。`run-plan-coverage-copilot-qualification.ps1`で配布smokeも行う場合は同じ`-Repository`と`-Ref`を指定します。`-DescribePayload`と既存runの再評価は配布smokeを行いません。
+remote APM install smokeはpackageの変更をremote refで検証するときだけ実行します。上の`<candidate-branch>`は検証する実際のremote branchに置き換えます。`run-plan-coverage-copilot-qualification.ps1`で配布smokeも行う場合は同じ`-Repository`と`-Ref`を指定します。`-DescribePayload`と既存runの再評価は配布smokeを行いません。
 
 ## Agent Plugin artifact
 

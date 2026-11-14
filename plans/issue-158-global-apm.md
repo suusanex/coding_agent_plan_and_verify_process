@@ -43,3 +43,9 @@ APM v0.33.0では既存plugin buildのlocal-bundle install経路が拒否され�
 6対象packageのglobal remote lifecycle smokeとPR reviewは引き続き実施する。
 
 Finalizerの統合レビューで、TOML本文内のsection風テキスト、quoted key、multiline profile値を独自の行走査で誤認する可能性を確認した。既存Tomlynのsyntax treeと値spanを再利用し、対象profile値だけを置換するようLunaが修正した。未知field、comment、本文、改行を保持する回帰検証も成功した。独自TOML lexerの追加は行っていない。
+
+remote lifecycleの初回実測で、APM v0.26.0は候補SHAに固定した依存のupdateを拒否することを確認した。この終了コード1を成功へ読み替えず、更新可能なbranch refによる正常updateを別途実測して成功を確認した。配布smokeはbranch headと候補SHAの一致を開始時とupdate後に確認し、独立target導入をSHA、正常lifecycleを同じ候補のbranchで検証する。検証中にbranchが変化した場合は失敗とする。
+
+APMのfrozen reinstall後にprofile補完が失われる観測に合わせ、smokeの順序を「Finalizer単独再実行のhash不変」と「APM再install後のFinalizer再補完」に分けた。旧順序の失敗は失敗として記録し、再補完後のcheck成功で受入を検証する。
+
+隔離homeでAPM v0.26.0の初回同名agent衝突も確認した。Codex TOML / Copilot agent markdownとも管理外の既存本文を保持し、installはskipメッセージ付きで終了コード0となった。このため正式手順ではskip出力を確認し、衝突を解消してからprocessを開始する。

@@ -327,7 +327,7 @@ Assert-Contains "$copilotEvidenceDir/conf.txt" 'DP-D01' 'conflict log Locked Dec
 $dpApmSmoke = 'apm-packages/design-pair-implementation-execution/scripts/validate-dp-apm-smoke.ps1'
 Assert-FileExists $dpApmSmoke
 Assert-Contains $dpApmSmoke 'validate-apm-global-package-smoke\.cs' 'Design Pair APM smoke delegates to the global package smoke'
-Assert-Contains $dpApmSmoke '--package design-pair-implementation-execution' 'Design Pair APM smoke selects the Design Pair package'
+Assert-Contains $dpApmSmoke '@\(''--package'', ''design-pair-implementation-execution''' 'Design Pair APM smoke selects the Design Pair package'
 $globalApmSmoke = 'scripts/validate-apm-global-package-smoke.cs'
 Assert-FileExists $globalApmSmoke
 Assert-Contains $globalApmSmoke '0\.26\.0' 'global APM smoke pins the measured APM version'

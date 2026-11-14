@@ -7,6 +7,7 @@ on:
       - '.github/workflows/validate-adaptive-implementation-execution.yml'
       - '.github/workflows/validate-design-pair-implementation-execution.yml'
       - '.github/workflows/validate-plan-coverage-residual-flow.yml'
+      - '.github/workflows/validate-pr-review-remediation.yml'
       - '.github/workflows/validate-agent-plugin-packages.yml'
       - 'scripts/validate-process-package-boundaries.cs'
       - 'scripts/validate-apm-global-package-smoke.cs'
@@ -45,6 +46,7 @@ on:
       - '.github/workflows/validate-adaptive-implementation-execution.yml'
       - '.github/workflows/validate-design-pair-implementation-execution.yml'
       - '.github/workflows/validate-plan-coverage-residual-flow.yml'
+      - '.github/workflows/validate-pr-review-remediation.yml'
       - '.github/workflows/validate-agent-plugin-packages.yml'
       - 'scripts/validate-process-package-boundaries.cs'
       - 'scripts/validate-apm-global-package-smoke.cs'
@@ -140,6 +142,7 @@ jobs:
         env:
           PACKAGE_REPOSITORY: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
           PACKAGE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          PACKAGE_UPDATE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
           GITHUB_APM_PAT: ${{ github.token }}
           DOTNET_CLI_HOME: ${{ runner.temp }}/apm-global-smoke-dotnet-home
           NUGET_PACKAGES: ${{ runner.temp }}/apm-global-smoke-nuget-packages
@@ -149,3 +152,4 @@ jobs:
           --package '${{ matrix.package }}'
           --repository $env:PACKAGE_REPOSITORY
           --ref $env:PACKAGE_REF
+          --update-ref $env:PACKAGE_UPDATE_REF
