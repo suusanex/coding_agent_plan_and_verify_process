@@ -51,6 +51,7 @@ disable-model-invocation: true
   "changeId": "stable-change-id",
   "previousRunId": null,
   "userDecision": null,
+  "budgetGrant": null,
   "purpose": {
     "version": "purpose-v1",
     "sources": ["docs/goal-context.md#purpose"],
@@ -76,13 +77,13 @@ disable-model-invocation: true
 
 `purpose.original`と`purpose.authority`には元の課題・authorityの該当箇所をsourceから原文で引用し、出典を`sources`に示す。`approvedDesign`は確認可能な承認済みbaselineがある場合だけ記入し、なければ`null`にする。`proposal.delta`では追加だけでなく、削除・緩和も含めて差分全体を明示する。`evidence.body`へreviewに必要な内容を含め、sourceへのアクセスを前提にしない。`responses`にはfindingへの応答と裏付けを記録する。`conformance`にはowner、実施plan、証拠参照を記録するが、記録されたownerが実行・確認したことをRunnerやreviewerが保証した扱いにしない。
 
-`taskKey`と`changeId`は同じchangeの連続提出間で維持する。findingや未解決事項を隠す目的で識別子を変更し、新規taskや新規changeとして提出し直して上限を回避しない。`FINDINGS`からは新しい`changeId`へ逃げることはできず、必ず同じrunで`continue`する。Runnerはcallerが与えたIDでlineageを追跡し、異なるtaskKeyが同じ実質的作業かどうかは推測しないため、IDの一貫性はこのSkillに従う側が守る。
+`taskKey`と`changeId`は同じ実質的設計変更の連続提出間で維持し、停止理由や残予算の有無に関わらず変更しない。findingや未解決事項を隠す目的で識別子を変更し、新規taskや新規changeとして提出し直して上限を回避しない。`FINDINGS`からは新しい`changeId`へ逃げることはできず、必ず同じrunで`continue`する。Runnerはcallerが与えたIDでlineageを追跡し、異なるtaskKeyが同じ実質的作業かどうかは推測しないため、IDの一貫性はこのSkillに従う側が守る。
 
-`userDecision`はnullが既定だが、実際のユーザー判断によりpurposeまたはapproved baselineを変更する場合、新しい`changeId`とともにその判断本文とauthorityを原文・出典付きで記録する。すでにユーザーが許可した判断を再利用する場合は、その既存の発言・文書を引用してauthorityを示し、同じ承認を再度求めない。以前の提案や`COMPLETE`だけでは承認済みbaselineへ昇格させない。実際のユーザー承認の根拠がなければ`approvedDesign`を直前baselineのまま保ち、承認されていない設計は`proposal`に置く。
+`userDecision`と`budgetGrant`はいずれもnullが既定である。実際のユーザー判断によりpurposeまたはapproved baselineを変更する場合だけ、新しい`changeId`とともに`userDecision`へ判断本文とauthorityを原文・出典付きで記録する（このとき`budgetGrant`は`null`にする）。すでにユーザーが許可した判断を再利用する場合は、その既存の発言・文書を引用してauthorityを示し、同じ承認を再度求めない。以前の提案や`COMPLETE`だけでは承認済みbaselineへ昇格させない。実際のユーザー承認の根拠がなければ`approvedDesign`を直前baselineのまま保ち、承認されていない設計は`proposal`に置く。なお、ユーザーが「レビューをスキップする」許可を与えた場合は、未通過のままreview工程を終えて後続作業へ進む判断として扱い、新しい`changeId`で新たなreview予算を得るための`userDecision`としては絶対に使わない。
 
-`HUMAN_DECISION_REQUIRED`後は異なる`changeId`で新しいchangeを始めるため、`userDecision`が必要である。`ERROR` / `BLOCKED`後に異なる`changeId`の新しいchangeを始める場合、purposeと`approvedDesign`が前回inputから不変なら`userDecision`は不要であり、purposeまたは`approvedDesign`を変更する場合のみRunnerが新しい`changeId`と`userDecision`を要求する。同じchangeの`ERROR` / `BLOCKED` linked runは、既存authority内で不足原因を解消できるなら同じ`changeId`を維持する。Runnerはbody/authorityが空でないことを検証するが、ユーザー発言の真偽やauthorityを認証しない。判断を捏造して同じ変更を再開しない。
+`REVIEW_BUDGET_EXHAUSTED`後に同じchangeの追加レビューをユーザーが許可した場合は、同じ`taskKey`と同じ`changeId`を維持し、`userDecision`を`null`にして`budgetGrant`（`additionalRounds` >= 1、`body`、`authority`）付きで新しいlinked runを`start`する（`additionalRounds`だけ`authorizedReviewRounds`が増え、累積`reviewRounds`と履歴が引き継がれる）。`REVIEW_BUDGET_EXHAUSTED`後に異なる`changeId`で別変更を始める場合は、目的・approved baseline・scopeが実質的に変わった別change（または従来案の破棄・置換）に限り、`budgetGrant`を`null`にして`userDecision`を設定する。`HUMAN_DECISION_REQUIRED`後は異なる`changeId`で新しいchangeを始めるため、`userDecision`が必要である。`ERROR` / `BLOCKED`後に異なる`changeId`の新しいchangeを始める場合、purposeと`approvedDesign`が前回inputから不変なら`userDecision`は不要であり、purposeまたは`approvedDesign`を変更する場合のみRunnerが新しい`changeId`と`userDecision`を要求する（既に予算を使い切っている場合は`REVIEW_BUDGET_EXHAUSTED`と同じく`budgetGrant`または新`changeId` + `userDecision`が必要であり、残予算がある間に`budgetGrant`を事前付与することはできない）。同じchangeの`ERROR` / `BLOCKED` linked runは、既存authority内で不足原因を解消できるなら同じ`changeId`を維持する。Runnerはbody/authorityが空でないことを検証するが、ユーザー発言の真偽やauthorityを認証しない。判断や予算許可を捏造して同じ変更を再開しない。
 
-`priorReviewHistory`はRunnerが管理するoptional fieldで、利用者inputでは省略する。ERROR / BLOCKED後のlinked runやcontinueではRunnerが直前review履歴を含める。利用者が履歴を作成・改変して前回の指摘を入れ替えない。
+`priorReviewHistory`はRunnerが管理するoptional fieldで、利用者inputでは省略する。`ERROR` / `BLOCKED` / `REVIEW_BUDGET_EXHAUSTED`後のlinked runやcontinueではRunnerが直前review履歴を含める。利用者が履歴を作成・改変して前回の指摘を入れ替えない。
 
 ## Verify the Runner
 
@@ -90,7 +91,7 @@ disable-model-invocation: true
 purpose-review-runner version
 ```
 
-stdoutのJSONを読み、`protocolVersion`が`4`、`runnerVersion`が`0.6.0`以上であることを確認する。command未導入、非0 exit、JSON不正、version欠落・非互換なら停止する。Grokや別commandで代替しない。
+stdoutのJSONを読み、`protocolVersion`が`5`、`runnerVersion`が`0.7.0`以上であることを確認する。command未導入、非0 exit、JSON不正、version欠落・非互換なら停止する。Grokや別commandで代替しない。
 
 ## Submit and continue
 
@@ -115,6 +116,7 @@ purpose-review-runner status --run <run-id>
 | `RUNNING` | 同じrunのstatus確認を継続する。 |
 | `FINDINGS` | `terminal: false`でも待機を区切る。findingを設計責任者の入力として検討し、必要なら更新inputで同じrunを`continue`する。 |
 | `COMPLETE` | `terminal: true`のreview完了として待機を終え、結果を報告する。承認や実装完了にはしない。 |
+| `REVIEW_BUDGET_EXHAUSTED` | `terminal: true`の自動レビュー予算上限停止として待機を終える。未通過・未解決findingとリスクを報告し、**レビューをスキップする**か**追加レビューを許可する**かの2択をユーザーに提示する。 |
 | `HUMAN_DECISION_REQUIRED` | 待機を終え、必要な判断とauthority不足を報告する。判断なしで続行・complete扱い・同じchangeの再開をしない。 |
 | `BLOCKED` | 待機を終え、`message`と`informationRequests`を報告する。不足を補える場合だけlinked runの契約に従う。 |
 | `ERROR` | 待機を終え、`error`を報告する。結果を`COMPLETE`として扱わず、runが不明な場合は再submitより先にstatusを再確認する。 |
@@ -134,6 +136,7 @@ $terminalByStatus = @{
     'RUNNING' = $false
     'FINDINGS' = $false
     'COMPLETE' = $true
+    'REVIEW_BUDGET_EXHAUSTED' = $true
     'HUMAN_DECISION_REQUIRED' = $true
     'BLOCKED' = $true
     'ERROR' = $true
@@ -188,6 +191,24 @@ switch ($output.status) {
             throw "COMPLETE must contain no findings for $runId."
         }
     }
+    'REVIEW_BUDGET_EXHAUSTED' {
+        if ([string]::IsNullOrWhiteSpace($output.message) -or
+            @($output.findings).Count -eq 0 -or
+            $null -eq $output.authorizedReviewRounds -or
+            [int]$output.authorizedReviewRounds -lt 3) {
+            throw "REVIEW_BUDGET_EXHAUSTED must contain a message, authorizedReviewRounds, and at least one finding for $runId."
+        }
+        foreach ($finding in @($output.findings)) {
+            if ([string]::IsNullOrWhiteSpace($finding.id) -or
+                [string]::IsNullOrWhiteSpace($finding.severity) -or
+                [string]::IsNullOrWhiteSpace($finding.title) -or
+                [string]::IsNullOrWhiteSpace($finding.summary) -or
+                [string]::IsNullOrWhiteSpace($finding.evidence) -or
+                [string]::IsNullOrWhiteSpace($finding.requiredOutcome)) {
+                throw "REVIEW_BUDGET_EXHAUSTED contains an incomplete finding for $runId."
+            }
+        }
+    }
     'HUMAN_DECISION_REQUIRED' {
         if ([string]::IsNullOrWhiteSpace($output.message)) {
             throw "HUMAN_DECISION_REQUIRED must contain a message for $runId."
@@ -238,12 +259,18 @@ reviewerからfindingが返った場合、実装を自動修正しない。許�
 purpose-review-runner continue --run <run-id> --input <updated-input.json>
 ```
 
-同一changeに対する有効なreview成立回数（`reviewRounds`）は、linked run全体を通じて最大3回である。reviewが成立する前に終了したoperational failureは`durableSubmissions`にのみ計上され、3-roundのreview予算は消費しない。3回の成立したreviewで解決しない場合は停止して未解決事項を報告する。別runを作り直したり識別子を変えたりして上限を回避しない。terminal結果はcontinueしない。`COMPLETE`はレビューの完了だけを示し、提案や目的の承認を意味しない。後日、別の重要変更を始める場合は同じ`taskKey`、新しい`changeId`、直近の`COMPLETE` runを指す`previousRunId`を使い、完全な最新inputを新しいrunへ渡す。`approvedDesign`には実際に承認済みのbaselineだけを記入する。実際のユーザー承認の根拠がある場合はそれを`userDecision`に記録し、過去のproposalは自動昇格しない。同じ`changeId`の再提出・再開でterminal予算を回避しない。
+同一changeに対する有効なreview成立回数（`reviewRounds`）の初回自動レビュー予算は最大3回（`authorizedReviewRounds`初期値3）である。reviewが成立する前に終了したoperational failureは`durableSubmissions`にのみ計上され、review予算は消費しない。承認済み予算（`authorizedReviewRounds`）内の成立したreviewで解決しない場合、Runnerはterminal状態`REVIEW_BUDGET_EXHAUSTED`で停止する。別runを作り直したり識別子を変えたりして上限を回避しない。terminal結果はcontinueしない。
+
+`REVIEW_BUDGET_EXHAUSTED`で停止したときは、既存authority内の技術的な修正方針（A案/B案など）の選択をユーザーに求めず、未通過のまま停止した事実、run内`round`・累積`reviewRounds`・`authorizedReviewRounds`、未解決のfindingと根拠、これまでに試みた設計変更、未通過のまま進む場合のリスクを報告し、次の2択を明示してユーザー判断を求める:
+- **レビューをスキップする**: 未通過・未解決findingが残存したままreview工程を終了し、その未通過・スキップ状態と未解決事項・リスクを呼び出し元へ伝える。`COMPLETE`へ偽装せず、新しい`changeId`と`userDecision`でreview予算を実質リセットする用途にも使わない。
+- **追加レビューを許可する**: ユーザーが明示した追加許可回数（`additionalRounds` >= 1）・判断内容（`body`）・根拠（`authority`）を`budgetGrant`へ記録し、同じ`taskKey`、同じ`changeId`、`userDecision: null`、直前terminal runを指す`previousRunId`で新しいlinked runを`start`する。累積`reviewRounds`と`priorReviewHistory`は引き継がれ、`authorizedReviewRounds`だけが`additionalRounds`分増える。追加予算を使い切っても解決しない場合は再び`REVIEW_BUDGET_EXHAUSTED`で停止する。
+
+`COMPLETE`はレビューの完了だけを示し、提案や目的の承認を意味しない。後日、別の重要変更を始める場合は同じ`taskKey`、新しい`changeId`、直近の`COMPLETE` runを指す`previousRunId`を使い、完全な最新inputを新しいrunへ渡す。`approvedDesign`には実際に承認済みのbaselineだけを記入する。実際のユーザー承認の根拠がある場合はそれを`userDecision`に記録し、過去のproposalは自動昇格しない。同じ`changeId`の再提出・再開でterminal予算を回避しない。
 
 `HUMAN_DECISION_REQUIRED`後、ユーザーが実際に新しい目的・scope判断を示した場合だけ、同じ`taskKey`、新しい`changeId`、直前terminal run IDを入れた`previousRunId`、引用した判断を記す`userDecision`で新しい`start`を行う。これは新しい変更に対する新しいbudgetであり、未解決の同じchangeを再開したり予算を迂回する方法ではない。ユーザーに同じ判断を繰り返し求めない。
 
-terminal `ERROR`または`BLOCKED`ではそのrunをcontinueしない。原因や不足を解消した場合に限り、新しいlinked runを`start`する。同じchangeを継続する場合は`taskKey`と同じ`changeId`を保ち、`previousRunId`には直前terminal runのIDを設定して、既に消費したreview round数（`reviewRounds`）と過去履歴を引き継ぐ。この新runの各continueでは、その`previousRunId`を変えない。結果不明のrunがある場合は再submitせず、まずstatusを確認する。必要な情報が不足しているだけでユーザー承認を繰り返し要求せず、既存authorityの範囲で補える入力を用意する。authority自体の変更が必要なら作業を止め、判断が必要な点を報告する。
+terminal `ERROR`または`BLOCKED`ではそのrunをcontinueしない。原因や不足を解消した場合に限り、新しいlinked runを`start`する。同じchangeを継続する場合は`taskKey`と同じ`changeId`を保ち、`previousRunId`には直前terminal runのIDを設定して、既に消費したreview round数（`reviewRounds`）と過去履歴（および拡大済みの`authorizedReviewRounds`）を引き継ぐ。まだ残予算（`reviewRounds < authorizedReviewRounds`）がある間の`ERROR` / `BLOCKED`再試行では`budgetGrant`を`null`にし、既に予算を使い切っている（`reviewRounds >= authorizedReviewRounds`）場合だけ同一changeなら`budgetGrant`、別changeなら`userDecision`を付ける。この新runの各continueでは、その`previousRunId`を変えない。結果不明のrunがある場合は再submitせず、まずstatusを確認する。必要な情報が不足しているだけでユーザー承認を繰り返し要求せず、既存authorityの範囲で補える入力を用意する。authority自体の変更が必要なら作業を止め、判断が必要な点を報告する。
 
 ## Report
 
-目的・設計に関するfinding、設計責任者の応答、未解決・未確認事項、run内`round`と累積`reviewRounds`（および必要に応じた`durableSubmissions`）、terminal状態を分けて報告する。`COMPLETE`をユーザー承認、設計適合の独立実証、実装完了、実行時conformance保証と表現しない。
+目的・設計に関するfinding、設計責任者の応答、未解決・未確認事項、run内`round`・累積`reviewRounds`・`authorizedReviewRounds`（および必要に応じた`durableSubmissions`）、terminal状態（`REVIEW_BUDGET_EXHAUSTED`やスキップ時は未通過・未解決である事実を含む）を分けて報告する。`COMPLETE`をユーザー承認、設計適合の独立実証、実装完了、実行時conformance保証と表現しない。

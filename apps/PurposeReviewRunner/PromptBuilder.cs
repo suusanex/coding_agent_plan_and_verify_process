@@ -46,6 +46,11 @@ public static class PromptBuilder
             builder.AppendLine($"これは同じ審査の継続 round {round} です。新たな version として渡された入力と、設計の累積的な内容を再評価してください。過去の responses は参考情報に限り、この入力にある現在の目的、承認済み設計、提案、明示された利用者判断を今回の評価基準としてください。");
             builder.AppendLine("同じ問題には同じ finding ID を使ってください。過去の指摘が誤りなら訂正または撤回し、その理由を説明してください。前回出力に含まれたという理由だけで誤りを引き継がないでください。");
         }
+        else if (input.PriorReviewHistory is { Count: > 0 })
+        {
+            builder.AppendLine("これは前回の履歴（priorReviewHistory）を引き継いだ継続審査です。今回の入力として渡された目的、承認済み設計、新しい提案、応答、明示された利用者判断を全体として評価してください。");
+            builder.AppendLine("同じ問題には同じ finding ID を使ってください。過去の指摘が誤りなら訂正または撤回し、その理由を説明してください。前回出力に含まれたという理由だけで誤りを引き継がないでください。");
+        }
         else
         {
             builder.AppendLine("これは初回レビューです。提案と承認済み設計を合わせて見たとき、明示された制約の下で元の目的を保ち、必要な成果を達成する具体的な設計になっているか評価してください。");
@@ -65,8 +70,10 @@ public static class PromptBuilder
         builder.AppendLine("`FINDINGS` は対応可能なfindingを1件以上含めます。`COMPLETE` はfindingsを空にしてください。`HUMAN_DECISION_REQUIRED` と `BLOCKED` は停止理由をmessageに示し、入力だけから独立して確認できるfindingがあれば保持できます。不確実な疑いをfindingとして断定しないでください。`BLOCKED` は4項目がすべて空でないinformationRequestsを1件以上含め、その他のstatusではinformationRequestsを空にしてください。`COMPLETE` で実装適合、テスト成功、外部証拠、利用者承認を主張しないでください。");
         builder.AppendLine("findingのevidenceには、この入力内の目的・設計・提案の該当fieldとversionを示してください。必要なら入力済みの証拠を目的や設計判断の評価に使えますが、実装やconformanceの判定に広げないでください。パッチ、実装方法、テスト、ツール選定をrequiredOutcomeに含めないでください。ただし根拠sourceがその選択を明示的に要求している場合を除きます。");
         builder.AppendLine();
+        // 予算追加許可(budgetGrant)はRunnerの予算制御専用であり、reviewerが設計や目的の承認と誤認しないようprompt入力からは除外する。
+        var promptInput = input.BudgetGrant is null ? input : input with { BudgetGrant = null };
         builder.AppendLine("## 審査対象のversion付き入力 (JSON)");
-        builder.AppendLine(JsonSerializer.Serialize(input, JsonDefaults.Options));
+        builder.AppendLine(JsonSerializer.Serialize(promptInput, JsonDefaults.Options));
         return builder.ToString();
     }
 }

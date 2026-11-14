@@ -50,7 +50,7 @@ public sealed class StateStore
         {
             var state = JsonSerializer.Deserialize<RunState>(SharedStateFile.ReadAllText(statePath), JsonDefaults.Options)
                 ?? throw new JsonException("State JSON was empty.");
-            if (state.ProtocolVersion != Protocol.Version || state.RunId != runId || state.ReviewRounds is null)
+            if (state.ProtocolVersion != Protocol.Version || state.RunId != runId || state.ReviewRounds is null || state.AuthorizedReviewRounds is null)
             {
                 throw new RunnerException("STATE_INCOMPATIBLE", "Run state protocol or identity is incompatible.");
             }
@@ -94,10 +94,11 @@ public sealed class StateStore
     {
         if (string.IsNullOrWhiteSpace(state.Repository) || !Path.IsPathFullyQualified(state.Repository) || string.IsNullOrWhiteSpace(state.SessionHandle) ||
             string.IsNullOrWhiteSpace(state.TaskKey) || string.IsNullOrWhiteSpace(state.ChangeId) || state.ReviewKind != Protocol.ReviewKind || state.InputBinding is null ||
-            state.DurableSubmissions < 1 || state.ReviewRounds is null or < 1 or > Protocol.MaximumRounds ||
-            state.ReviewHistory is null || state.ReviewHistory.Count == 0 || state.ReviewHistory.Any(item => item is null || item.Round is < 1 or > Protocol.MaximumRounds || item.Findings is null || item.InformationRequests is null) ||
-            state.Round is < 1 or > Protocol.MaximumRounds ||
-            state.Status is not (ReviewStatuses.Findings or ReviewStatuses.Complete or ReviewStatuses.HumanDecisionRequired or ReviewStatuses.Blocked or ReviewStatuses.Error) ||
+            state.DurableSubmissions < 1 || state.ReviewRounds is null or < 1 ||
+            state.AuthorizedReviewRounds is null or < Protocol.InitialReviewBudget || state.ReviewRounds > state.AuthorizedReviewRounds ||
+            state.ReviewHistory is null || state.ReviewHistory.Count == 0 || state.ReviewHistory.Any(item => item is null || item.Round < 1 || item.Findings is null || item.InformationRequests is null) ||
+            state.Round < 1 ||
+            state.Status is not (ReviewStatuses.Findings or ReviewStatuses.Complete or ReviewStatuses.HumanDecisionRequired or ReviewStatuses.ReviewBudgetExhausted or ReviewStatuses.Blocked or ReviewStatuses.Error) ||
             state.Provider is null || state.Provider.Provider is not ("codex" or "copilot") ||
             string.IsNullOrWhiteSpace(state.Provider.Executable) || !Path.IsPathFullyQualified(state.Provider.Executable) ||
             string.IsNullOrWhiteSpace(state.Provider.Model) || string.IsNullOrWhiteSpace(state.Provider.ReasoningEffort))

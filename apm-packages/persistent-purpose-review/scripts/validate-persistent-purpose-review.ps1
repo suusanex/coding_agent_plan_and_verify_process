@@ -38,26 +38,34 @@ if ($skill -notmatch 'ユーザーが明示的に起動した場合だけ使用'
     throw 'Skill body does not preserve the explicit-only invocation contract.'
 }
 
-if ($manifest -notmatch '(?m)^name:\s*persistent-purpose-review\s*$' -or $manifest -notmatch '(?m)^version:\s*0\.7\.0\s*$') {
+if ($manifest -notmatch '(?m)^name:\s*persistent-purpose-review\s*$' -or $manifest -notmatch '(?m)^version:\s*0\.8\.0\s*$') {
     throw 'APM package identity/version is invalid.'
 }
 if ($manifest -notmatch '(?ms)^targets:\s*$.*^\s+- copilot\s*$.*^\s+- codex\s*$.*^\s+- agent-skills\s*$') {
     throw 'APM package targets are invalid.'
 }
-if ($skill -notmatch 'protocolVersion.*`4`' -or $skill -notmatch '0\.6\.0' -or $skill -notmatch 'schemaVersion.*1') {
-    throw 'Skill does not require Runner 0.6.0 / protocol v4 / input schema 1.'
+if ($skill -notmatch 'protocolVersion.*`5`' -or $skill -notmatch '0\.7\.0' -or $skill -notmatch 'schemaVersion.*1') {
+    throw 'Skill does not require Runner 0.7.0 / protocol v5 / input schema 1.'
 }
 if ($skill -notmatch 'start --repository.*--input' -or $skill -notmatch 'continue --run.*--input' -or $skill -notmatch 'status --run') {
-    throw 'Skill CLI usage does not match the public protocol v4 commands.'
+    throw 'Skill CLI usage does not match the public protocol v5 commands.'
 }
-foreach ($field in @('taskKey', 'changeId', 'previousRunId', 'purpose', 'approvedDesign', 'proposal', 'evidence', 'responses', 'conformance', 'userDecision')) {
+foreach ($field in @('taskKey', 'changeId', 'previousRunId', 'purpose', 'approvedDesign', 'proposal', 'evidence', 'responses', 'conformance', 'userDecision', 'budgetGrant')) {
     if ($skill -notmatch ('"' + [regex]::Escape($field) + '"')) { throw "ReviewInput example is missing field: $field" }
 }
 if ($skill -notmatch '削除・緩和' -or $skill -notmatch 'null' -or $skill -notmatch '記録されたownerが実行・確認したことをRunnerやreviewerが保証') {
     throw 'Input guidance omits full proposal delta, nullable baseline, or conformance owner boundary.'
 }
-if ($skill -notmatch '最大3回' -or $skill -notmatch 'reviewRounds' -or $skill -notmatch 'terminal' -or $skill -notmatch '識別子を変えたりして上限を回避しない' -or $skill -notmatch '既に消費したreview round数（`reviewRounds`）と過去履歴を引き継ぐ') {
-    throw 'Skill does not preserve linked review round budget and terminal rules.'
+if ($skill -notmatch '初回自動レビュー予算は最大3回' -or
+    $skill -notmatch 'authorizedReviewRounds' -or
+    $skill -notmatch 'reviewRounds' -or
+    $skill -notmatch 'REVIEW_BUDGET_EXHAUSTED' -or
+    $skill -notmatch 'レビューをスキップする' -or
+    $skill -notmatch '追加レビューを許可する' -or
+    $skill -notmatch 'terminal' -or
+    $skill -notmatch '識別子を変えたりして上限を回避しない' -or
+    $skill -notmatch '既に消費したreview round数（`reviewRounds`）と過去履歴（および拡大済みの`authorizedReviewRounds`）を引き継ぐ') {
+    throw 'Skill does not preserve linked review round budget, REVIEW_BUDGET_EXHAUSTED flow, and terminal rules.'
 }
 if ($skill -notmatch 'Grok Buildのheadless実行' -or
     $skill -notmatch '-p --output-format streaming-json' -or
@@ -76,6 +84,7 @@ if ($skill -notmatch 'RUNNING' -or
     $skill -notmatch 'FINDINGS`は正常な非terminal状態' -or
     $skill -notmatch '`terminal: true`を`FINDINGS`の通知・受領条件にしてはならず' -or
     $skill -notmatch 'HUMAN_DECISION_REQUIRED' -or
+    $skill -notmatch 'REVIEW_BUDGET_EXHAUSTED' -or
     $skill -notmatch 'BLOCKED' -or
     $skill -notmatch 'ERROR' -or
     $skill -notmatch '\$statusExitCode = \$LASTEXITCODE' -or
@@ -85,6 +94,7 @@ if ($skill -notmatch 'RUNNING' -or
     $skill -notmatch '\$output\.status -ne ''ERROR''' -or
     $skill -notmatch '同じrun ID、`ERROR`、`terminal: true`、`error\.code` / `error\.message`を持つ単一JSON' -or
     $skill -notmatch 'FINDINGS must contain at least one finding' -or
+    $skill -notmatch 'REVIEW_BUDGET_EXHAUSTED must contain a message, authorizedReviewRounds, and at least one finding' -or
     $skill -notmatch 'BLOCKED must contain a message and informationRequests' -or
     $skill -notmatch 'ERROR must contain an error code and message' -or
     $skill -notmatch 'COMPLETE must contain no findings' -or
@@ -133,8 +143,8 @@ if ($skill -match '(?im)^\s*(?:Grok|grok)\s*:' -or $skill -match 'grok --|--cont
 if ($readme -notmatch '--target agent-skills --global' -or $readme -notmatch 'disable-model-invocation: true' -or $readme -notmatch '\$persistent-purpose-review') {
     throw 'Package README does not preserve the install and explicit-only contract.'
 }
-if ($readme -notmatch '0\.6\.0' -or $readme -notmatch 'protocol v4' -or $readme -notmatch 'NOT_RUN' -or $readme -notmatch 'HOLD') {
-    throw 'Package README does not state the version and qualification boundary.'
+if ($readme -notmatch '0\.7\.0' -or $readme -notmatch 'protocol v5' -or $readme -notmatch 'REVIEW_BUDGET_EXHAUSTED' -or $readme -notmatch 'budgetGrant' -or $readme -notmatch 'NOT_RUN' -or $readme -notmatch 'HOLD') {
+    throw 'Package README does not state the version, budget exhaustion flow, and qualification boundary.'
 }
 if ($readme -notmatch 'Grok Buildのheadless実行' -or
     $readme -notmatch '同じprompt turn' -or
@@ -189,8 +199,8 @@ if ($safetyEvidence -notmatch '当時のRunnerはCodexをfail closedにした' -
 if ($readme -match '(?im)^\s*(?:Grok|grok)\s*:' -or $readme -match 'grok --|0\.4\.0|protocol v3|--context') {
     throw 'Package README contains a removed provider invocation or protocol behavior.'
 }
-if ($contract.runtimeBoundary -notmatch '0\.6\.0以上 / protocol v4') {
-    throw 'Agent Plugin contract does not identify the external Runner 0.6.0 / protocol v4 boundary.'
+if ($contract.runtimeBoundary -notmatch '0\.7\.0以上 / protocol v5') {
+    throw 'Agent Plugin contract does not identify the external Runner 0.7.0 / protocol v5 boundary.'
 }
 if ($qualification.assessments[0].status -cne 'NOT_RUN' -or $qualification.assessments[0].evidenceMode -cne 'NONE' -or
     $qualification.assessments[1].status -cne 'HOLD' -or $qualification.assessments[1].evidenceMode -cne 'PARTIAL' -or

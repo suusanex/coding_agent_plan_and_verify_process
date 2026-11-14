@@ -8,10 +8,10 @@ Skillはuser-invocableで、`disable-model-invocation: true`を維持します�
 
 - APM CLIが利用できること。
 - reviewerとしてCodex CLIまたはGitHub Copilot CLIのいずれかが導入・認証済みであること。Grok Buildはreview providerとして対応しませんが、Runnerを呼び出すcallerとしては利用できます。
-- `purpose-review-runner` 0.6.0以上、protocol v4のRunner buildがあること。
+- `purpose-review-runner` 0.7.0以上、protocol v5のRunner buildがあること。
 - Runnerのconfigでproviderを`codex`または`copilot`に設定し、`profile`は`null`にすること。
 
-Runner 0.6.0 / protocol v4のReleaseと実モデル評価は、この変更時点で未確認です。導入前にversionとreleaseの存在を確認し、必要なRunner buildが配布されていない場合はSkillの運用を開始しないでください。`apm update`だけではRunner binaryは更新されません。
+Runner 0.7.0 / protocol v5のReleaseと実モデル評価は、この変更時点で未確認です。導入前にversionとreleaseの存在を確認し、必要なRunner buildが配布されていない場合はSkillの運用を開始しないでください。`apm update`だけではRunner binaryは更新されません。
 
 ## Install
 
@@ -22,7 +22,7 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persisten
 purpose-review-runner version
 ```
 
-`version` JSONでprotocol v4、Runner 0.6.0以上を確認します。実行前に必ずSkill自体を明示的に起動します。
+`version` JSONでprotocol v5、Runner 0.7.0以上を確認します。実行前に必ずSkill自体を明示的に起動します。
 
 ```text
 $persistent-purpose-review を起動し、許可済みの設計変更をpurpose reviewしてください。
@@ -30,13 +30,13 @@ $persistent-purpose-review を起動し、許可済みの設計変更をpurpose 
 
 ## InputとCLI
 
-各提出で`schemaVersion: 1`のJSON inputを用意します。ユーザーの目的・authorityの引用とsource、承認済みbaseline（存在しなければ`null`）、設計全体とbaselineからの追加・削除・緩和を含むdelta、証拠本文、findingへの応答、要件ごとのconformance申告を埋め込みます。事前に作成したSolution Shapeがある場合は、設計案そのものなら`proposal.body`、補助資料なら`evidence`に任意で含められます。Runnerやreviewerにsourceを取りに行かせず、入力内の証拠を使います。conformance記録はownerの実施を保証しません。
+各提出で`schemaVersion: 1`のJSON inputを用意します。ユーザーの目的・authorityの引用とsource、承認済みbaseline（存在しなければ`null`）、設計全体とbaselineからの追加・削除・緩和を含むdelta、証拠本文、findingへの応答、要件ごとのconformance申告を埋め込みます。`userDecision`（purpose / approvedDesign変更または別change開始時のユーザー判断）と`budgetGrant`（`REVIEW_BUDGET_EXHAUSTED`後の追加レビュー許可）は既定で`null`です。事前に作成したSolution Shapeがある場合は、設計案そのものなら`proposal.body`、補助資料なら`evidence`に任意で含められます。Runnerやreviewerにsourceを取りに行かせず、入力内の証拠を使います。conformance記録はownerの実施を保証しません。
 
-初回は`start --repository <path> --input <json>`、同じrunでの再提出は`continue --run <uuid> --input <json>`、状態確認は`status --run <uuid>`です。各continueで完全な最新inputを渡します。同一changeの`taskKey`と`changeId`はlinked runを通じて維持し、有効なreviewが成立した回数（`reviewRounds`）は最大3回までです。review成立前のoperational failureは`durableSubmissions`に記録されますが、`reviewRounds`は消費しません。continue inputは初回start時の`previousRunId`値を保ちます。terminal `ERROR`/`BLOCKED`後は同じchangeなら同じIDsと直前run参照で新しいlinked runを`start`し、既に消費した`reviewRounds`とreview履歴を引き継ぎます。purposeと`approvedDesign`を変えずに`ERROR`/`BLOCKED`後に異なるchangeを始める場合は、新しい`changeId`と直前run参照で`start`でき、`userDecision`は不要です。purposeまたは`approvedDesign`を変更する場合は、新しい`changeId`と`userDecision`が必要です。`HUMAN_DECISION_REQUIRED`後はユーザー判断を得て新しい`changeId`と`userDecision`で新しいchangeをstartします。`FINDINGS`からは新しい`changeId`で逃げることはできず、必ず同じrunを`continue`します。
+初回は`start --repository <path> --input <json>`、同じrunでの再提出は`continue --run <uuid> --input <json>`、状態確認は`status --run <uuid>`です。各continueで完全な最新inputを渡します。同一changeの`taskKey`と`changeId`はlinked runを通じて維持し、有効なreviewが成立した回数（`reviewRounds`）の初回自動レビュー予算は最大3回（`authorizedReviewRounds`初期値3）です。review成立前のoperational failureは`durableSubmissions`に記録されますが、`reviewRounds`は消費しません。承認済み予算内で解決しない場合、Runnerはterminal `REVIEW_BUDGET_EXHAUSTED`で停止します。停止時は未解決finding・消費予算・リスクを報告し、**レビューをスキップする**（未通過のまま終了し、`COMPLETE`扱い・別`changeId`での予算リセットに流用しない）か、**追加レビューを許可する**（同じ`taskKey`/`changeId`、`userDecision: null`、追加回数と根拠を示す`budgetGrant`付きでlinked runを`start`し、累積`reviewRounds`と履歴を引き継いで`authorizedReviewRounds`を増やす）の2択をユーザーに求めます。continue inputは初回start時の`previousRunId`値を保ちます。terminal `ERROR`/`BLOCKED`後は同じchangeなら同じIDsと直前run参照で新しいlinked runを`start`し、既に消費した`reviewRounds`とreview履歴（および拡大済みの`authorizedReviewRounds`）を引き継ぎます。purposeと`approvedDesign`を変えずに`ERROR`/`BLOCKED`後に異なるchangeを始める場合は、残予算内で新しい`changeId`と直前run参照で`start`でき、`userDecision`は不要です（予算を使い切っている場合は`budgetGrant`または新`changeId` + `userDecision`が必要です）。purposeまたは`approvedDesign`を変更する場合は、新しい`changeId`と`userDecision`が必要です。`HUMAN_DECISION_REQUIRED`後はユーザー判断を得て新しい`changeId`と`userDecision`で新しいchangeをstartします。`FINDINGS`からは新しい`changeId`で逃げることはできず、必ず同じrunを`continue`します。
 
 ## 非同期reviewの待機
 
-`start` / `continue`が`RUNNING`を返したら、同じrun IDの`status --run`を確認します。`RUNNING`は待機継続、`FINDINGS`は`terminal: false`でも待機区切りとしてfindingを処理する正常状態です。`terminal: true`をFINDINGSの通知条件にせず、`COMPLETE`まで結果を捨てたりしません。`COMPLETE`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`、`ERROR`はterminal結果としてそれぞれ報告し、後者3状態を完了・承認として扱いません。
+`start` / `continue`が`RUNNING`を返したら、同じrun IDの`status --run`を確認します。`RUNNING`は待機継続、`FINDINGS`は`terminal: false`でも待機区切りとしてfindingを処理する正常状態です。`terminal: true`をFINDINGSの通知条件にせず、`COMPLETE`まで結果を捨てたりしません。`COMPLETE`、`REVIEW_BUDGET_EXHAUSTED`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`、`ERROR`はterminal結果としてそれぞれ報告し、後者4状態を完了・承認として扱いません。
 
 Grok Buildのheadless実行（`-p --output-format streaming-json`等）では、`long-running-background-tasks`の`monitor`登録とturn終了に待機を委ねません。1回の`status --run`を1回の前景terminal tool callで確認し、結果を同じprompt turnへ受け取ってから次のcallを判断します。15分のloopを1回のshell commandへ入れず、`RUNNING`の場合は15秒以下の独立した前景wait callだけを行い、その完了後に次のstatus callを発行します。callがtimeoutまたはbackground化した場合は、そのtaskや再起床を待機に使わずerrorとして停止・報告します。初回RUNNING時の絶対deadlineを保持し、status callの開始前と完了後にdeadlineを比較します。15分たっても`RUNNING`なら、またはstatus callがdeadline後に完了した場合はreview結果を受理・再submitしません。各状態の必須payload（`FINDINGS`の1件以上のfinding、`BLOCKED`のmessage/informationRequests、`ERROR`のcode/message等）もJSON parse後に検証します。同じrun IDのterminal `ERROR`はexit codeが非0でもpayload検証後に`ERROR`として報告し、それ以外の非0 exit、JSON parse failure、状態欠落、不正な`status` / `terminal`組合せ、payload欠落は成功扱いにしません。対話モードのmonitor利用は禁止しませんが、FINDINGSを非terminalのまま通知し、headlessの再起床を未確認の前提にしません。
 
@@ -73,7 +73,7 @@ Grok Build headless callerについては、2026-11-14にCodex Agent Facade経�
 
 ## Maintenance
 
-`apm update`はSkillを更新します。Runnerは独立して更新します。protocol v4はv3と非互換であり、Runner 0.6.0は0.5.0の旧job/state schemaとも非互換です。既存runを移行・再構築せず、旧runは旧Runnerで扱い、新しいrunだけ新しいRunnerで開始してください。詳細は[compatibility note](../../docs/purpose-review-runner-compatibility.md)と[maintainer reference](../../docs/purpose-review-runner-maintenance.md)を参照してください。
+`apm update`はSkillを更新します。Runnerは独立して更新します。protocol v5はv4と非互換であり、Runner 0.7.0は0.6.0の旧job/state schemaとも非互換です。既存runを移行・再構築せず、旧runは旧Runnerで扱い、新しいrunだけ新しいRunnerで開始してください。詳細は[compatibility note](../../docs/purpose-review-runner-compatibility.md)と[maintainer reference](../../docs/purpose-review-runner-maintenance.md)を参照してください。
 
 ## Agent Plugin artifact
 

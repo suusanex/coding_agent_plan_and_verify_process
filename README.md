@@ -63,7 +63,7 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/persisten
 purpose-review-runner version
 ```
 
-このSkillはuser-invocableかつ`disable-model-invocation: true`で、ユーザーが明示的に起動した場合だけ使います。Runner 0.6.0以上 / protocol v4を要求しますが、この版のRelease状態は未確認です。配布済みbuildがない場合は運用を開始せず、`apm update`だけでRunner binaryが更新されたとみなしません。`start --repository --input`と`continue --run --input`へJSON inputを渡し、同一changeをlinked run全体で最大3 review roundsまで扱います。詳細はpackage READMEを参照してください。
+このSkillはuser-invocableかつ`disable-model-invocation: true`で、ユーザーが明示的に起動した場合だけ使います。Runner 0.7.0以上 / protocol v5を要求しますが、この版のRelease状態は未確認です。配布済みbuildがない場合は運用を開始せず、`apm update`だけでRunner binaryが更新されたとみなしません。`start --repository --input`と`continue --run --input`へJSON inputを渡し、初回自動レビュー予算（最大3 review rounds）を使い切った場合は`REVIEW_BUDGET_EXHAUSTED`で停止してユーザーによるスキップまたは追加レビュー許可を受け付けます。詳細はpackage READMEを参照してください。
 
 ### Planから実装・検証・残件判断まで抜けを防ぎたい
 
