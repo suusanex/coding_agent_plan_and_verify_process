@@ -136,6 +136,9 @@ $terminalByStatus = @{
 }
 
 do {
+    if ([DateTimeOffset]::UtcNow -ge $deadline) {
+        throw "Purpose Review timed out while run $runId was still RUNNING."
+    }
     $raw = purpose-review-runner status --run $runId
     if ($LASTEXITCODE -ne 0) {
         throw "Purpose Review status failed with exit code $LASTEXITCODE.`n$raw"
@@ -152,10 +155,12 @@ do {
     if ($output.status -ne 'RUNNING') {
         break
     }
-    if ([DateTimeOffset]::UtcNow -ge $deadline) {
+    $remaining = $deadline - [DateTimeOffset]::UtcNow
+    if ($remaining -le [TimeSpan]::Zero) {
         throw "Purpose Review timed out while run $runId was still RUNNING."
     }
-    Start-Sleep -Seconds 15
+    $delayMilliseconds = [Math]::Min(15000, [Math]::Ceiling($remaining.TotalMilliseconds))
+    Start-Sleep -Milliseconds $delayMilliseconds
 } while ($true)
 ```
 

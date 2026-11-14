@@ -74,6 +74,9 @@ if ($skill -notmatch 'RUNNING' -or
     $skill -notmatch '`status` command自体の非0 exit' -or
     $skill -notmatch 'Write-Output \$raw' -or
     $skill -notmatch 'terminalByStatus' -or
+    $skill -notmatch '\$remaining = \$deadline - \[DateTimeOffset\]::UtcNow' -or
+    $skill -notmatch '\[Math\]::Min\(15000, \[Math\]::Ceiling\(\$remaining\.TotalMilliseconds\)\)' -or
+    $skill -match 'Start-Sleep -Seconds 15' -or
     $skill -notmatch 'parse failure') {
     throw 'Skill does not define nonterminal FINDINGS, terminal-state handling, or polling failure behavior.'
 }
