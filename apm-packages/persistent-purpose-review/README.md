@@ -38,7 +38,7 @@ $persistent-purpose-review を起動し、許可済みの設計変更をpurpose 
 
 `start` / `continue`が`RUNNING`を返したら、同じrun IDの`status --run`を確認します。`RUNNING`は待機継続、`FINDINGS`は`terminal: false`でも待機区切りとしてfindingを処理する正常状態です。`terminal: true`をFINDINGSの通知条件にせず、`COMPLETE`まで結果を捨てたりしません。`COMPLETE`、`HUMAN_DECISION_REQUIRED`、`BLOCKED`、`ERROR`はterminal結果としてそれぞれ報告し、後者3状態を完了・承認として扱いません。
 
-Grok Buildのheadless実行（`-p --output-format streaming-json`等）では、`long-running-background-tasks`の`monitor`登録とturn終了に待機を委ねません。同じprompt turnで15秒間隔のstatus確認を繰り返し、状態JSONを逐次出力します。15分たっても`RUNNING`ならtimeoutとして停止・報告し、reviewを再submitしません。後で再開するときは同じrun IDのstatusから始めます。同じrun IDのterminal `ERROR`はexit codeが非0でもJSONを検証して`ERROR`として報告します。それ以外の非0 exit、JSON parse failure、状態欠落、不正な`status` / `terminal`組合せは成功扱いにしません。対話モードのmonitor利用は禁止しませんが、FINDINGSを非terminalのまま通知し、headlessの再起床を未確認の前提にしません。
+Grok Buildのheadless実行（`-p --output-format streaming-json`等）では、`long-running-background-tasks`の`monitor`登録とturn終了に待機を委ねません。1回の`status --run`を1回の前景terminal tool callで確認し、結果を同じprompt turnへ受け取ってから次のcallを判断します。15分のloopを1回のshell commandへ入れず、`RUNNING`の場合は15秒以下の独立した前景wait callだけを行い、その完了後に次のstatus callを発行します。callがtimeoutまたはbackground化した場合は、そのtaskや再起床を待機に使わずerrorとして停止・報告します。初回RUNNING時の絶対deadlineを保持し、15分たっても`RUNNING`ならreviewを再submitしません。同じrun IDのterminal `ERROR`はexit codeが非0でもJSONを検証して`ERROR`として報告し、それ以外の非0 exit、JSON parse failure、状態欠落、不正な`status` / `terminal`組合せは成功扱いにしません。対話モードのmonitor利用は禁止しませんが、FINDINGSを非terminalのまま通知し、headlessの再起床を未確認の前提にしません。
 
 `priorReviewHistory`はRunner管理のfieldです。user inputから省略し、ERROR / BLOCKED後のlinked runやcontinueに過去履歴を手作業で混ぜないでください。
 
@@ -68,6 +68,8 @@ Runnerはrepository外の作業directoryでprovider CLIを起動し、埋め込�
 目的内の不要性審査については、[2026-11-10の限定評価](../../tests/PurposeReviewRunner.Tests/purpose-review-results/2026-11-10-necessity.md)でCopilotの7件の合成入力を確認しました。過剰処理の検出と必要な機構の維持を対比しています。旧promptとの改善率、Codexでの同評価、反復利用の負荷は未確認であり、以下の配布qualification状態は変更しません。
 
 Copilot CLIでは初期設計、finding修正、重要変更および限定contrast fixtureを実行しました。Codexではread-only設定でrepository外のcwd、input-only stdin、同一session resumeを使ったsynthetic fixtureを実行し、finding後に修正案がcompleteとなることを確認しました。一方でhost `functions` / `collaboration` tool namespaceはmetadata上に残り、実行イベントが0件だった観測を完全なcapability isolationの証明とは扱いません。実測は限定的なためqualification statusはdirect deployment `HOLD / PARTIAL`であり、APM distributionは`NOT_RUN / NONE`のままです。詳細とシナリオは[qualificationシナリオ](../../tests/PurposeReviewRunner.Tests/purpose-review-scenarios.md)、[provider safety/runtime evidence](../../tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-provider-safety.md)、[Agent Plugin runtime qualification](../../docs/agent-plugin-runtime-qualification.md)を参照してください。過去の実装reviewやprovider継続実験から、目的・設計reviewの検出力や利用負荷を推定しません。
+
+Grok Build headless callerについては、2026-11-14にCodex Agent Facade経由で短い前景terminal callへstatus確認と15秒waitを分割する実機試験を行いました。隔離したprovider fixtureで`RUNNING`を45秒継続させ、Grokは初回`RUNNING`から66.409秒後に`FINDINGS / terminal:false`を取得し、同じrunを`continue`して`COMPLETE`まで進みました。statusとwaitは別call、全callは前景で完了し、monitor/background callは0件でした。15分wall-clockの長時間試験は未実施です。詳細は[Grok Build headless短時間分割polling検証](../../tests/PurposeReviewRunner.Tests/purpose-review-results/2026-11-14-grok-headless-short-poll.md)を参照してください。
 
 ## Maintenance
 

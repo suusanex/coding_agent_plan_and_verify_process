@@ -121,11 +121,15 @@ purpose-review-runner status --run <run-id>
 
 Runner protocolでは`FINDINGS`は正常な非terminal状態である。`terminal: true`を`FINDINGS`の通知・受領条件にしてはならず、`FINDINGS`を`COMPLETE`まで無視したり、`terminal: false`を単に`RUNNING`と読み替えたりしない。`status`が上表以外、または状態と`terminal`の組合せが不整合なら停止してreportする。
 
-Grok Buildのheadless実行（`-p --output-format streaming-json`または同等のheadless経路）では、同じprompt turnを維持したまま次のように`status`を反復確認する。`long-running-background-tasks`の`monitor`を登録してturnを終了し、その後のnotificationによる再起床を待機成立の前提にしない。15秒ごとにstdoutへ状態JSONを出力し、15分を上限とする。上限に到達しても`RUNNING`なら、reviewを成功扱い・再submitせず、run IDと`RUNNING`のままで中断した事実をerrorとして報告する。
+Grok Buildのheadless実行（`-p --output-format streaming-json`または同等のheadless経路）では、同じprompt turnを維持したまま`status`を反復確認する。Grokの前景terminal call制限を超える15分のloopを1回のcommandへ入れない。1回の`status`確認を1回の短いterminal tool callで実行し、その結果をGrokが同じturnで受け取って次のcallを判断する。`RUNNING`なら15秒以下を別の短いcallで待ち、次の`status` callへ進む。いずれのcallも前景で終了することを確認し、terminal toolがbackgroundへ移行したりtimeoutしたら、そのbackground taskやnotification再起床を待機成立に使わず、run IDと停止理由をerrorとして報告する。`long-running-background-tasks`の`monitor`を登録してturnを終了し、その後のnotificationによる再起床を待機成立の前提にしない。
+
+`start`または`continue`が`RUNNING`を返した時点のUTC時刻に15分を加えた`deadlineUtc`をagent stateとして保持する。再pollingでdeadlineを作り直さず、各短いcallの前後で絶対deadlineを比較する。deadlineはcalendar時間ではなく`DateTimeOffset`のUTC値として保持し、remaining timeが0ならreviewを成功扱い・再submitせず、run IDと`RUNNING`のままで中断した事実をerrorとして報告する。
+
+status callは次の一度きりの処理として実行する。`<deadline-utc>`へ初回に保持した絶対時刻をISO 8601で入れる。
 
 ```powershell
 $runId = '<run-id>'
-$deadline = [DateTimeOffset]::UtcNow.AddMinutes(15)
+$deadline = [DateTimeOffset]::Parse('<deadline-utc>')
 $terminalByStatus = @{
     'RUNNING' = $false
     'FINDINGS' = $false
@@ -135,38 +139,39 @@ $terminalByStatus = @{
     'ERROR' = $true
 }
 
-do {
-    if ([DateTimeOffset]::UtcNow -ge $deadline) {
-        throw "Purpose Review timed out while run $runId was still RUNNING."
-    }
-    $raw = purpose-review-runner status --run $runId
-    $statusExitCode = $LASTEXITCODE
-    $output = $raw | ConvertFrom-Json -ErrorAction Stop
-    Write-Output $raw
+if ([DateTimeOffset]::UtcNow -ge $deadline) {
+    throw "Purpose Review timed out while run $runId was still RUNNING."
+}
+$raw = purpose-review-runner status --run $runId
+$statusExitCode = $LASTEXITCODE
+$output = $raw | ConvertFrom-Json -ErrorAction Stop
+Write-Output $raw
 
-    if ($output.runId -ne $runId -or -not $terminalByStatus.ContainsKey($output.status)) {
-        throw "Purpose Review returned an inconsistent run or unsupported status for $runId."
-    }
-    if ($output.terminal -ne $terminalByStatus[$output.status]) {
-        throw "Purpose Review returned inconsistent status and terminal values for $runId."
-    }
-    if ($statusExitCode -ne 0 -and
-        ($output.status -ne 'ERROR' -or -not $output.terminal -or -not $output.error)) {
-        throw "Purpose Review status failed with exit code $statusExitCode.`n$raw"
-    }
-    if ($output.status -ne 'RUNNING') {
-        break
-    }
-    $remaining = $deadline - [DateTimeOffset]::UtcNow
-    if ($remaining -le [TimeSpan]::Zero) {
-        throw "Purpose Review timed out while run $runId was still RUNNING."
-    }
-    $delayMilliseconds = [Math]::Min(15000, [Math]::Ceiling($remaining.TotalMilliseconds))
-    Start-Sleep -Milliseconds $delayMilliseconds
-} while ($true)
+if ($output.runId -ne $runId -or -not $terminalByStatus.ContainsKey($output.status)) {
+    throw "Purpose Review returned an inconsistent run or unsupported status for $runId."
+}
+if ($output.terminal -ne $terminalByStatus[$output.status]) {
+    throw "Purpose Review returned inconsistent status and terminal values for $runId."
+}
+if ($statusExitCode -ne 0 -and
+    ($output.status -ne 'ERROR' -or -not $output.terminal -or -not $output.error)) {
+    throw "Purpose Review status failed with exit code $statusExitCode.`n$raw"
+}
 ```
 
-このloopから抜けた後、`$output.status`へ上表の処理を適用する。`status` commandが非0 exitでも、同じrun ID、`ERROR`、`terminal: true`、`error`を持つ単一JSONなら正常に取得できたterminal `ERROR`として報告する。その他の非0 exit、単一JSONのparse failure、`status` / `terminal`の契約不整合は、review結果不明または失敗として停止する。timeoutはworkerを停止させるものではない。後続処理を再開する場合は同じrun IDのstatusから始め、新しい`start` / `continue`を送らない。
+call終了後に`$output.status`へ上表の処理を適用する。`status` commandが非0 exitでも、同じrun ID、`ERROR`、`terminal: true`、`error`を持つ単一JSONなら正常に取得できたterminal `ERROR`として報告する。その他の非0 exit、単一JSONのparse failure、`status` / `terminal`の契約不整合は、review結果不明または失敗として停止する。`RUNNING`なら、次のstatus callの前に次の独立した短いcallだけを実行し、そのcallが前景で終了したことを確認する。
+
+```powershell
+$deadline = [DateTimeOffset]::Parse('<deadline-utc>')
+$remaining = $deadline - [DateTimeOffset]::UtcNow
+if ($remaining -le [TimeSpan]::Zero) {
+    throw 'Purpose Review deadline reached while status was RUNNING.'
+}
+$delayMilliseconds = [Math]::Min(15000, [Math]::Ceiling($remaining.TotalMilliseconds))
+Start-Sleep -Milliseconds $delayMilliseconds
+```
+
+その後、Grokは同じprompt turnのagent経路で新しい`status` callを発行する。この2つの短いcallを1つのshell loopやbackground taskへまとめない。timeoutはworkerを停止させるものではない。後続処理を再開する場合は同じrun IDのstatusから始め、新しい`start` / `continue`を送らない。
 
 対話実行などで既存のnotification / monitor機構を使う場合も、`FINDINGS`を非terminalの正常な待機区切りとして通知し、headlessで未確認の再起床を前提としない。Grok Buildをreview providerとして利用する変更ではない。
 
