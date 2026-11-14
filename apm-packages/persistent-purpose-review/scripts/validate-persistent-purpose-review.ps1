@@ -154,6 +154,9 @@ if ($readme -notmatch 'repository外の作業directory' -or $readme -notmatch '�
 }
 if ($readme -notmatch 'Grok Build headless短時間分割polling検証' -or
     $shortPollEvidence -notmatch '66\.409秒' -or
+    $shortPollEvidence -notmatch '実providerの追加確認' -or
+    $shortPollEvidence -notmatch 'configured provider: Codex' -or
+    $shortPollEvidence -notmatch 'b4326f23-487b-4119-82ac-e6e9f4e55c2d' -or
     $shortPollEvidence -notmatch 'statusとwaitは別々のterminal call' -or
     $shortPollEvidence -notmatch 'monitor`?、?long-running background task' -or
     $shortPollEvidence -notmatch 'FINDINGS / terminal:false' -or

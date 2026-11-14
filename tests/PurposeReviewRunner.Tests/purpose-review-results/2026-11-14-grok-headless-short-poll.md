@@ -28,7 +28,7 @@ PR #168 のP1/P2レビューに対し、Grok Build headlessが15分のpolling lo
 5. `do {}`、`while ($true)`、Grok `monitor`、long-running background taskを禁止した。
 6. `FINDINGS / terminal:false`を受けたら同じrunへ`continue`し、分割pollingをterminal状態まで継続した。
 
-## 観測
+## 隔離delay fixtureの観測
 
 | call | UTC開始 | 実時間 | 結果 |
 | --- | --- | ---: | --- |
@@ -54,6 +54,24 @@ PR #168 のP1/P2レビューに対し、Grok Build headlessが15分のpolling lo
 - PASS: `monitor`、long-running background task、turn終了後の再起床は使用しなかった。
 - PASS: Facadeの5分無出力回収は発火せず、Facade CLIは0で完了した。
 - NOT_RUN: 実際に15分全部を連続して待つwall-clock試験。deadline pre-checkとremaining time capはpackage validatorで確認した。
+
+## 実providerの追加確認
+
+同じ分割polling SkillをGrokのuser scopeへ再installし、隔離config/envを外した実providerでも新規taskKey `issue-167-grok-short-poll-real-provider-smoke`を実行した。
+
+- configured provider: Codex / model `gpt-6-astra` / reasoning effort `medium`
+- Facade run: `20261114T134236Z-ac54aaa1`
+- Grok session: `44a4b24c-4536-4252-8330-02dfec2f5cb5`
+- Purpose Review run: `b4326f23-487b-4119-82ac-e6e9f4e55c2d`
+- round 1: `start 13:43:24Z -> RUNNING`
+- same-turn polling: `status 13:43:35Z -> RUNNING`、独立15秒wait、`status 13:44:02Z -> FINDINGS / terminal:false / findings 1`
+- 同じrunへ`continue 13:44:43Z -> RUNNING round 2`
+- `status 13:45:08Z -> COMPLETE / terminal:true / findings 0`
+- `reviewRounds: 2`、`durableSubmissions: 2`
+- status、wait、continueはすべて独立した前景callで終了し、monitor/background callは0件
+- Facade exit code 0
+
+実provider確認では最初の`RUNNING`から`FINDINGS`まで約38秒で、45秒fixtureより短かったが、同じ短いstatus/wait分離とsame-turn継続を実provider経路でも確認した。
 
 ## 非保証
 
