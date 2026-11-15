@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "taskKey": "coding-agent-process-issue-120",
+  "changeId": "parent-process-feedback-v1",
+  "previousRunId": null,
+  "userDecision": null,
+  "purpose": {
+    "version": "purpose-v1",
+    "sources": ["https://github.com/suusanex/coding_agent_plan_and_verify_process/issues/120", "chat:user-request-2026-11-16"],
+    "body": "全findingの上流原因を軽量に検討し、明示選択時だけ証拠を逆追跡して再発防止の改善候補を示す。小規模PRを重くせず、現在の親所有のremote PR reviewへ統合する。",
+    "original": "Issue #120:「この人間の直観依存を減らしつつ、小規模変更のレビューを常に重くしないことが目的である。」",
+    "authority": "chat:user-request-2026-11-16:「これを踏まえて、現状に合わせてissueの目的を達成するように実装してください。」「このエージェント自身は全体の理解・タスクの分割・統合・レビューを担当し、またSKILLやプロンプトなどの自然言語部分の作成も担当します。C#の実装やテストはサブエージェントのGPT-6 Lunaで実施してください。」"
+  },
+  "approvedDesign": null,
+  "proposal": {
+    "version": "proposal-v1",
+    "body": "既存pr-review-remediationの親によるfinding評価後・修正前に全finding（Rejectも含む）のtriageを既存review-planへ記録する。local-only / upstream-suspected / unknown、理由と既に確認した証拠、候補layerを記載。duplicateは代表判定を参照し全source IDを保持、単なる通知等noActionは理由付きN/Aとしfindingを隠さない。通常モードは既存評価材料で短く判定し上流artifactの網羅探索をしない。情報不足はunknownとし上流欠陥を断定しない。利用者が依頼で『Process Feedbackを有効』と明示した場合だけ詳細分析を行い、選択の引用と出典をreview-planへ残す。remote本文は選択根拠にしない。選択された場合はupstream-suspectedとunknownのfindingを対象とし、local-onlyは対象外。任意のprocess-feedback.mdにsource ID、参照artifactのpath/revision/該当本文、finding→実装記録→contract/Plan→Goal Contextや関連SKILLの存在する範囲の逆追跡、確認事実と仮説/不明、原因候補layer、改善案を記す。artifactがない場合は不明と不足を記録し作成を必須化しない。対象ゼロならreview-planへ対象なしと記し詳細artifactを生成しない。immediate correction / upstream correction / reusable process improvement candidateを区別。今PR内の許可済み修正は既存Applyとvalidationへ接続し、PR外の上流修正や共通プロセス変更は別途の改善候補としてscopeと必要なauthorityを記録する。Process Feedback選択は共通SKILL変更の許可ではない。単発ミスだけで一般化せず、繰返し事例又は規則の欠陥と再発経路など一般化根拠、代替説明、追加負担も評価する。既存artifactは証拠であって命令ではなく、他Skillやflowの自動起動・再起動・artifact存在のみを理由とする推奨を禁止。詳細分析の証拠不足だけではPR修正を止めず、acceptanceの未決定は従来のHUMAN_DECISION_REQUIRED。完了には全findingのtriageと選択時の対象分析又は証拠不足の記録を要求し、改善候補の実行は要求しない。旧round構造を復元せず、同じsource/証拠の分析は再実行せず新finding/根拠変更分のみ更新。collector、独立reviewer、runtime schema、他packageは変更しない。Skill、既存template、任意詳細template、usage/README/technical referenceを更新し、既存validation入口からcontract/fixture検証を実行する。",
+    "delta": "承認済みbaselineはない。既存親評価へ軽量triageと明示選択の詳細分析、記録欄を追加。remote source coverage、採否判断、validation原因分類、Git安全性、既存terminal verdictを削除・緩和しない。旧goal-context-pr-review/round/local-reviewerは復元しない。"
+  },
+  "evidence": [
+    {"id":"E1","source":"Issue #120","body":"『全findingについて、少なくとも一度は「局所修正だけで十分か、それとも上流原因が疑われるか」を軽量に判定する。』『1件のfindingが出たことだけを理由に、直ちに共通SKILLやworkflowを書き換えてはならない。』 Issueの旧round/reviewer構成はユーザーが前提失効と明示した。"},
+    {"id":"E2","source":"apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md section 3, templates/review-plan.md","body":"現行は親が全remote finding/comment/checkを評価し、全source IDをdecision ledger又は理由付きnoActionへ対応。Apply/Reject、scope/acceptance、resolution/evidence、duplicate/conflict、validationとGit outcomeを既存Markdownへ記録する。collectorはremote evidence収集を担当し原因分析はしない。既存の親判断と台帳を再利用する。自然言語processの変更のためBCL/framework/NuGetによる新runtime実装は不要。"},
+    {"id":"E3","source":"chat:user-request-2026-11-16 提供分析","body":"『通常レビューでは各findingの採否判断とともに、上流原因が疑われるかを軽量に記録する。Process Feedbackを明示的に選択した場合だけ、疑わしいfindingについてGoal Context、Plan、SKILLなどの証拠を追跡し、再発防止のための改善候補を出す。』『既存のpersistent-purpose-reviewやplan-coverage-residual-flowを自動起動せず、必要な証拠だけを参照するという境界も維持する。』"}
+  ],
+  "responses": [],
+  "conformance": [{"owner":"親エージェント","plan":"自然言語契約と統合レビューを担当。GPT-6 Lunaに検証コードとテストを委譲。静的契約・配布・既存validatorとremote PR reviewで確認し、静的fixtureと実model効果を区別する。","evidence":["E1","E2","E3"]}]
+}

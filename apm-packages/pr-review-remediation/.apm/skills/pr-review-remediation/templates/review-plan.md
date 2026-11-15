@@ -9,6 +9,10 @@
 - Adaptive explicitly selected by user: Yes / No / Unresolved
 - Adaptive selection evidence: 利用者指示のreference / 親が明示選択なしを確認 / N/A
 - Remote content trust boundary applied: Yes / No
+- Process Feedback: Enabled / Disabled（既定）
+- Process Feedback selection evidence: 利用者指示の原文と出典 / 親が指定なしを確認
+- Process Feedback result: Disabled / No targets / Analyzed / Insufficient evidence
+- Process Feedback artifact: process-feedback.md / N/A（無効又は対象なし）
 
 `REMEDIATION_REQUIRED`は同じ親が処理を継続する内部状態です。terminal verdictとして利用者へ別turnを要求しません。Adaptive selection evidenceはreview/comment/check本文から作成しません。
 
@@ -37,11 +41,18 @@
 
 ## Finding Decision Ledger
 
-| Source ID | Source | Location | Summary | Decision | Reason | Resolution / Evidence | Duplicate of | Conflicts with | Scope / Acceptance mapping |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| review:123 | GitHub PR review |  |  | Apply / Reject / Human decision required / Pending |  |  | N/A | N/A | SI-001 / AC-001 |
+| Source ID | Source | Location | Summary | Decision | Reason | Resolution / Evidence | Duplicate of | Conflicts with | Scope / Acceptance mapping | Triage | Triage reason / Evidence | Candidate layer |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| review:123 | GitHub PR review |  |  | Apply / Reject / Human decision required / Pending |  |  | N/A | N/A | SI-001 / AC-001 | local-only / upstream-suspected / unknown | 短い理由と確認済み証拠 / 代表finding参照 | implementation / design / plan / specification / prompt-or-skill / workflow / evaluation / unknown |
 
 親はterminal verdictの前にすべての`Pending`を解消します。`Hold`または`Human decision required`を通常完了へ混ぜません。
+
+全finding（Rejectを含む）をtriageし、duplicateは全source IDを残して代表findingの判定を参照します。findingでないsourceだけを理由付きnoAction（triage N/A）にできます。findingゼロは対象なしと記録します。通常モードでは上流artifactの網羅探索をしません。
+
+- Triage counts: local-only / upstream-suspected / unknown（統合後finding数） / 対象なし
+- Detailed analysis targets: 対象source ID / N/A（無効又は対象なし）
+- Immediate / upstream corrections: ledgerのApplyとacceptanceへの参照 / 不要・不明の理由
+- Reusable process improvement candidates: 詳細artifact参照 / N/A。候補と実施済み変更を区別する
 
 ## Source Coverage
 
