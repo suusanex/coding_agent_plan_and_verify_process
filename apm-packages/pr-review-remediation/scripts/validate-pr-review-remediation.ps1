@@ -101,6 +101,35 @@ try {
     }
 
     $catalog = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'tests/fixtures/remote-review-scenarios.json') | ConvertFrom-Json
+    # 自然言語policyの配布面を横断し、旧gateの復活と検証問題の隠蔽を検出する。
+    foreach ($relative in @(
+        'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md',
+        'apm-packages/pr-review-remediation/README.md',
+        'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/references/usage.md',
+        'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/references/troubleshooting.md',
+        'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/references/migration.md',
+        'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md',
+        'docs/pr-review-remediation-technical-reference.md'
+    )) {
+        Assert-Contains $relative 'REVIEW_COMPLETE_WITH_VALIDATION_ISSUES' 'explicit validation-issues verdict'
+        if ($relative -notmatch 'migration.md$') {
+            Assert-NotContains $relative 'validation成功後|validationが成功し|成功したvalidation evidence|drift、競合、validation failure|validation failure時は成功扱いせず`BLOCKED`|validation failureを無視してcommit / pushしません' 'blanket validation Git gate'
+        }
+    }
+    $skillPath = 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md'
+    Assert-Contains $skillPath 'PR準備時とreview後のremediation時の両方' 'both-phase policy'
+    Assert-Contains $skillPath '必要なvalidationがすべてPASSなら`REVIEW_COMPLETE`' 'clean completion validation requirement'
+    Assert-Contains $skillPath '未実装のApplyや未決定のacceptance' 'unfinished remediation boundary'
+    Assert-Contains $skillPath '取得済みcheckの検証失敗とsource取得失敗を区別' 'remote check/source distinction'
+    Assert-Contains $skillPath '副作用を推測して新たな承認を要求しません' 'evidence-based side-effect boundary'
+    $templatePath = 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md'
+    foreach ($pattern in @('Phase / Revision', 'Command / Check source ID', 'PASS / FAIL / NOT_RUN', 'Exit code', 'PRE_EXISTING / ENVIRONMENT / CHANGE_RELATED / UNKNOWN', '影響範囲', '未解決事項', 'Git操作の可否と根拠')) {
+        Assert-Contains $templatePath ([regex]::Escape($pattern)) 'validation and Git evidence fields'
+    }
+    $failureFixture = 'apm-packages/pr-review-remediation/tests/fixtures/expected-validation-issues.md'
+    foreach ($pattern in @('Final verdict: REVIEW_COMPLETE_WITH_VALIDATION_ISSUES', 'Git outcome: COMMITTED_AND_PUSHED', '| FAIL |', 'CHANGE_RELATED', '検証成功・品質保証完了ではない')) {
+        Assert-Contains $failureFixture ([regex]::Escape($pattern)) 'honest validation failure report'
+    }
     $expected = @{
         'REMOTE-001' = @('REVIEW_COMPLETE', 'CURRENT_PARENT', 'COMMITTED_AND_PUSHED')
         'REMOTE-002' = @('REVIEW_COMPLETE', 'NO_REMEDIATION', 'NO_CHANGES')
@@ -111,9 +140,24 @@ try {
         'REMOTE-007' = @('REVIEW_COMPLETE', 'CURRENT_PARENT', 'COMMITTED_AND_PUSHED')
         'REMOTE-008' = @('REVIEW_COMPLETE', 'EXPLICIT_ADAPTIVE', 'COMMITTED_AND_PUSHED')
         'REMOTE-009' = @('REVIEW_COMPLETE', 'CURRENT_PARENT', 'SKIPPED_BY_USER')
-        'REMOTE-010' = @('BLOCKED', 'CURRENT_PARENT', 'NOT_ATTEMPTED')
+        'REMOTE-010' = @('REVIEW_COMPLETE_WITH_VALIDATION_ISSUES', 'CURRENT_PARENT', 'COMMITTED_AND_PUSHED')
         'REMOTE-011' = @('REVIEW_COMPLETE', 'NO_REMEDIATION', 'NO_CHANGES')
         'REMOTE-012' = @('BLOCKED', 'CURRENT_PARENT', 'NOT_ATTEMPTED')
+        'REMOTE-013' = @('REVIEW_COMPLETE_WITH_VALIDATION_ISSUES', 'CURRENT_PARENT', 'COMMITTED_AND_PUSHED')
+        'REMOTE-014' = @('REVIEW_COMPLETE_WITH_VALIDATION_ISSUES', 'CURRENT_PARENT', 'COMMITTED_AND_PUSHED')
+        'REMOTE-015' = @('REVIEW_COMPLETE_WITH_VALIDATION_ISSUES', 'CURRENT_PARENT', 'COMMITTED_AND_PUSHED')
+        'REMOTE-016' = @('REVIEW_COMPLETE_WITH_VALIDATION_ISSUES', 'CURRENT_PARENT', 'COMMITTED_AND_PUSHED')
+        'REMOTE-017' = @('REVIEW_COMPLETE_WITH_VALIDATION_ISSUES', 'CURRENT_PARENT', 'COMMITTED_AND_PUSHED')
+        'REMOTE-018' = @('REVIEW_COMPLETE_WITH_VALIDATION_ISSUES', 'NO_REMEDIATION', 'NO_CHANGES')
+        'REMOTE-019' = @('BLOCKED', 'CURRENT_PARENT', 'NOT_ATTEMPTED')
+        'REMOTE-020' = @('BLOCKED', 'CURRENT_PARENT', 'NOT_ATTEMPTED')
+        'REMOTE-021' = @('BLOCKED', 'CURRENT_PARENT', 'NOT_PUSHED')
+        'REMOTE-022' = @('BLOCKED', 'CURRENT_PARENT', 'NOT_ATTEMPTED')
+        'REMOTE-023' = @('REVIEW_COMPLETE_WITH_VALIDATION_ISSUES', 'CURRENT_PARENT', 'SKIPPED_BY_USER')
+        'REMOTE-024' = @('BLOCKED', 'CURRENT_PARENT', 'NOT_ATTEMPTED')
+        'REMOTE-025' = @('HUMAN_DECISION_REQUIRED', 'CURRENT_PARENT', 'NOT_ATTEMPTED')
+        'REMOTE-026' = @('HUMAN_DECISION_REQUIRED', 'CURRENT_PARENT', 'NOT_ATTEMPTED')
+        'REMOTE-027' = @('REVIEW_COMPLETE_WITH_VALIDATION_ISSUES', 'NO_REMEDIATION', 'NO_CHANGES')
     }
     if (@($catalog.scenarios).Count -ne $expected.Count) { throw 'Unexpected remote scenario count.' }
     foreach ($scenario in @($catalog.scenarios)) {
@@ -121,6 +165,21 @@ try {
         if (-not $expected.ContainsKey($id)) { throw "Unknown remote scenario: $id" }
         $actual = @([string]$scenario.expectedVerdict, [string]$scenario.expectedRoute, [string]$scenario.expectedGitOutcome)
         if (($actual -join '|') -cne ($expected[$id] -join '|')) { throw "Wrong expected outcome for $id" }
+    }
+
+    # 原因分類やphaseが失われても、期待値の文字列一致だけでは合格させない。
+    $validationCases = @($catalog.scenarios | Where-Object { $_.PSObject.Properties.Name -contains 'validationResult' })
+    if ($validationCases.Count -ne 15) { throw 'Missing validation policy scenarios.' }
+    foreach ($phase in @('PR_PREPARATION', 'REMEDIATION')) {
+        if (-not @($validationCases | Where-Object { $_.phase -ceq $phase -and $_.expectedGitOutcome -ceq 'COMMITTED_AND_PUSHED' }).Count) { throw "Missing safe progression case for $phase" }
+    }
+    foreach ($origin in @('PRE_EXISTING', 'ENVIRONMENT', 'CHANGE_RELATED', 'UNKNOWN')) {
+        if (-not @($validationCases | Where-Object { $_.failureOrigin -ceq $origin -and $_.safetyConstraint -ceq 'NONE' }).Count) { throw "Missing failure origin: $origin" }
+    }
+    foreach ($scenario in $validationCases) {
+        if ($scenario.validationResult -cnotin @('FAIL', 'NOT_RUN')) { throw "Invalid validation result: $($scenario.id)" }
+        if ($scenario.expectedVerdict -ceq 'REVIEW_COMPLETE') { throw "Validation issue hidden: $($scenario.id)" }
+        if ($scenario.safetyConstraint -ceq 'NONE' -and $scenario.expectedVerdict -cne 'REVIEW_COMPLETE_WITH_VALIDATION_ISSUES') { throw "Blanket validation block: $($scenario.id)" }
     }
 
     $collector = Join-Path $packageRoot '.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs'

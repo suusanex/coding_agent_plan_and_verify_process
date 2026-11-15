@@ -18,7 +18,7 @@ process semanticsの正本は[`SKILL.md`](../apm-packages/pr-review-remediation/
 2. GitHub Copilot Code Reviewを要求し、collectorでremote evidenceを取得する。
 3. current parentが全remote sourceを直接評価し、decision、理由、source coverage、remediation、validationを`review-plan.md`へ記録する。
 4. `Apply` findingがあればcurrent parent、または利用者が明示したAdaptive経路で実装し、repository固有のvalidationを実行する。
-5. validation成功後、PR head identityとpush destinationを再確認し、変更があればcommitして検証済みremote / branchへpushする。
+5. validation結果を記録後、PR head identityとpush destination、安全規約を再確認し、許される変更をcommitして検証済みremote / branchへpushする。FAIL / NOT_RUNだけで禁止しない。PR準備時も同じ原則を適用する。
 6. 全sourceの解決、validation evidence、Git outcomeを確認し、terminal verdictを報告する。
 
 `REMEDIATION_REQUIRED`は評価後に同じparentが実装を続ける内部stateであり、利用者へ別turnを要求するterminal verdictではありません。
@@ -78,7 +78,6 @@ Copilot review collectorの標準hard timeoutは3600秒（1時間）、poll間�
 - Draft、base/head drift、head repository identity drift
 - invalid GitHub responseまたはcollector failure
 - unresolved finding / conflict / human decision
-- remediation validation failure
 - push destination mismatch、push failure
 
 terminal verdict:
@@ -86,8 +85,9 @@ terminal verdict:
 | Verdict | Required state |
 | --- | --- |
 | `REVIEW_COMPLETE` | 必須remote sourceを取得済み、または未取得でも進む利用者判断が記録済み。全sourceのdecisionと理由、全Applyの実装・validation、全Rejectの理由、解決済みGit outcomeがある |
+| `REVIEW_COMPLETE_WITH_VALIDATION_ISSUES` | 同じreview完了条件を満たすが、必要なvalidationにFAIL / NOT_RUNが残る。検証成功・品質保証・merge可能を意味しない |
 | `HUMAN_DECISION_REQUIRED` | product / scope / acceptance、未取得reviewの扱い等をcurrent parentだけでは決定できない |
-| `BLOCKED` | identity、権限、取得、validation、push等の問題により安全に継続・完了できない |
+| `BLOCKED` | identity、権限、取得、push先、repository固有の禁止条件等により安全に継続・完了できない |
 
 Git outcome:
 
@@ -97,7 +97,11 @@ Git outcome:
 | `NO_CHANGES` | Apply対象がなく、empty commitを作らず完了 |
 | `SKIPPED_BY_USER` | 利用者がcommitまたはpushを明示的に禁止 |
 | `NOT_PUSHED` | commit後のpushに失敗し、正常完了ではない |
-| `NOT_ATTEMPTED` | validation failure等によりGit操作を開始していない |
+| `NOT_ATTEMPTED` | Git安全性等の独立した根拠によりGit操作を開始していない。validation失敗だけでは固定しない |
+
+`REVIEW_COMPLETE`は必要なvalidationがすべてPASSの場合に限定します。FAIL / NOT_RUN（取得済みcheckのpendingを含む）はcommand / source ID、phase / revision、exit codeまたは未実施理由、原因分類（PRE_EXISTING / ENVIRONMENT / CHANGE_RELATED / UNKNOWN）と根拠、影響範囲、残件を記録します。scope内で修復可能なら修正・再検証し、残件があれば専用verdictとGit outcomeを併記します。修正不要時も同じ区別を使います。未実装Apply、未決定のacceptance、未取得reviewは検証問題として完了へ隠しません。
+
+利用者指示とrepository規約、確認済み自動デプロイ等の副作用に関する禁止条件は維持します。推測の副作用を理由に承認を追加要求しません。失敗の原因が不明でもUNKNOWNと記録して安全なPR工程を進められます。collectorはremote evidence収集のみを所有し、このverdict判定を実行しません。既存templateとvalidatorを再利用し、自然言語の運用契約を置換できないBCL・framework API・NuGet OSSや新規状態管理frameworkは導入しません。
 
 詳細なfailure別対応は[Troubleshooting](../apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/references/troubleshooting.md)を参照してください。
 

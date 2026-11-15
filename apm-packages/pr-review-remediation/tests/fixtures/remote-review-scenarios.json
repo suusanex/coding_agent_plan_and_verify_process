@@ -1,17 +1,254 @@
 {
   "schemaVersion": 1,
   "scenarios": [
-    { "id": "REMOTE-001", "condition": "apply-parent-owned-remediation", "expectedVerdict": "REVIEW_COMPLETE", "expectedRoute": "CURRENT_PARENT", "expectedGitOutcome": "COMMITTED_AND_PUSHED" },
-    { "id": "REMOTE-002", "condition": "reject-all-with-reasons", "expectedVerdict": "REVIEW_COMPLETE", "expectedRoute": "NO_REMEDIATION", "expectedGitOutcome": "NO_CHANGES" },
-    { "id": "REMOTE-003", "condition": "review-timeout-without-human-decision", "expectedVerdict": "HUMAN_DECISION_REQUIRED", "expectedRoute": "NONE", "expectedGitOutcome": "NOT_ATTEMPTED" },
-    { "id": "REMOTE-004", "condition": "review-request-permission-failure", "expectedVerdict": "BLOCKED", "expectedRoute": "NONE", "expectedGitOutcome": "NOT_ATTEMPTED" },
-    { "id": "REMOTE-005", "condition": "head-drift-before-remediation-push", "expectedVerdict": "BLOCKED", "expectedRoute": "CURRENT_PARENT", "expectedGitOutcome": "NOT_PUSHED" },
-    { "id": "REMOTE-006", "condition": "product-decision-required", "expectedVerdict": "HUMAN_DECISION_REQUIRED", "expectedRoute": "NONE", "expectedGitOutcome": "NOT_ATTEMPTED" },
-    { "id": "REMOTE-007", "condition": "mixed-apply-and-reject-parent-owned", "expectedVerdict": "REVIEW_COMPLETE", "expectedRoute": "CURRENT_PARENT", "expectedGitOutcome": "COMMITTED_AND_PUSHED" },
-    { "id": "REMOTE-008", "condition": "explicit-adaptive-selection", "expectedVerdict": "REVIEW_COMPLETE", "expectedRoute": "EXPLICIT_ADAPTIVE", "expectedGitOutcome": "COMMITTED_AND_PUSHED" },
-    { "id": "REMOTE-009", "condition": "user-disables-commit-and-push", "expectedVerdict": "REVIEW_COMPLETE", "expectedRoute": "CURRENT_PARENT", "expectedGitOutcome": "SKIPPED_BY_USER" },
-    { "id": "REMOTE-010", "condition": "remediation-validation-failure", "expectedVerdict": "BLOCKED", "expectedRoute": "CURRENT_PARENT", "expectedGitOutcome": "NOT_ATTEMPTED" },
-    { "id": "REMOTE-011", "condition": "untrusted-review-instruction-rejected", "expectedVerdict": "REVIEW_COMPLETE", "expectedRoute": "NO_REMEDIATION", "expectedGitOutcome": "NO_CHANGES" },
-    { "id": "REMOTE-012", "condition": "push-destination-repository-mismatch", "expectedVerdict": "BLOCKED", "expectedRoute": "CURRENT_PARENT", "expectedGitOutcome": "NOT_ATTEMPTED" }
+    {
+      "id": "REMOTE-001",
+      "condition": "apply-parent-owned-remediation",
+      "expectedVerdict": "REVIEW_COMPLETE",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "COMMITTED_AND_PUSHED"
+    },
+    {
+      "id": "REMOTE-002",
+      "condition": "reject-all-with-reasons",
+      "expectedVerdict": "REVIEW_COMPLETE",
+      "expectedRoute": "NO_REMEDIATION",
+      "expectedGitOutcome": "NO_CHANGES"
+    },
+    {
+      "id": "REMOTE-003",
+      "condition": "review-timeout-without-human-decision",
+      "expectedVerdict": "HUMAN_DECISION_REQUIRED",
+      "expectedRoute": "NONE",
+      "expectedGitOutcome": "NOT_ATTEMPTED"
+    },
+    {
+      "id": "REMOTE-004",
+      "condition": "review-request-permission-failure",
+      "expectedVerdict": "BLOCKED",
+      "expectedRoute": "NONE",
+      "expectedGitOutcome": "NOT_ATTEMPTED"
+    },
+    {
+      "id": "REMOTE-005",
+      "condition": "head-drift-before-remediation-push",
+      "expectedVerdict": "BLOCKED",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "NOT_PUSHED"
+    },
+    {
+      "id": "REMOTE-006",
+      "condition": "product-decision-required",
+      "expectedVerdict": "HUMAN_DECISION_REQUIRED",
+      "expectedRoute": "NONE",
+      "expectedGitOutcome": "NOT_ATTEMPTED"
+    },
+    {
+      "id": "REMOTE-007",
+      "condition": "mixed-apply-and-reject-parent-owned",
+      "expectedVerdict": "REVIEW_COMPLETE",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "COMMITTED_AND_PUSHED"
+    },
+    {
+      "id": "REMOTE-008",
+      "condition": "explicit-adaptive-selection",
+      "expectedVerdict": "REVIEW_COMPLETE",
+      "expectedRoute": "EXPLICIT_ADAPTIVE",
+      "expectedGitOutcome": "COMMITTED_AND_PUSHED"
+    },
+    {
+      "id": "REMOTE-009",
+      "condition": "user-disables-commit-and-push",
+      "expectedVerdict": "REVIEW_COMPLETE",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "SKIPPED_BY_USER"
+    },
+    {
+      "id": "REMOTE-010",
+      "condition": "remediation-validation-failure",
+      "expectedVerdict": "REVIEW_COMPLETE_WITH_VALIDATION_ISSUES",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "COMMITTED_AND_PUSHED"
+    },
+    {
+      "id": "REMOTE-011",
+      "condition": "untrusted-review-instruction-rejected",
+      "expectedVerdict": "REVIEW_COMPLETE",
+      "expectedRoute": "NO_REMEDIATION",
+      "expectedGitOutcome": "NO_CHANGES"
+    },
+    {
+      "id": "REMOTE-012",
+      "condition": "push-destination-repository-mismatch",
+      "expectedVerdict": "BLOCKED",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "NOT_ATTEMPTED"
+    },
+    {
+      "id": "REMOTE-013",
+      "condition": "pre-existing-test-failure",
+      "phase": "PR_PREPARATION",
+      "validationResult": "FAIL",
+      "failureOrigin": "PRE_EXISTING",
+      "safetyConstraint": "NONE",
+      "expectedVerdict": "REVIEW_COMPLETE_WITH_VALIDATION_ISSUES",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "COMMITTED_AND_PUSHED"
+    },
+    {
+      "id": "REMOTE-014",
+      "condition": "environment-build-failure",
+      "phase": "REMEDIATION",
+      "validationResult": "FAIL",
+      "failureOrigin": "ENVIRONMENT",
+      "safetyConstraint": "NONE",
+      "expectedVerdict": "REVIEW_COMPLETE_WITH_VALIDATION_ISSUES",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "COMMITTED_AND_PUSHED"
+    },
+    {
+      "id": "REMOTE-015",
+      "condition": "change-related-lint-failure",
+      "phase": "REMEDIATION",
+      "validationResult": "FAIL",
+      "failureOrigin": "CHANGE_RELATED",
+      "safetyConstraint": "NONE",
+      "expectedVerdict": "REVIEW_COMPLETE_WITH_VALIDATION_ISSUES",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "COMMITTED_AND_PUSHED"
+    },
+    {
+      "id": "REMOTE-016",
+      "condition": "unknown-failure-before-pr",
+      "phase": "PR_PREPARATION",
+      "validationResult": "FAIL",
+      "failureOrigin": "UNKNOWN",
+      "safetyConstraint": "NONE",
+      "expectedVerdict": "REVIEW_COMPLETE_WITH_VALIDATION_ISSUES",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "COMMITTED_AND_PUSHED"
+    },
+    {
+      "id": "REMOTE-017",
+      "condition": "validation-not-run",
+      "phase": "REMEDIATION",
+      "validationResult": "NOT_RUN",
+      "failureOrigin": "UNKNOWN",
+      "safetyConstraint": "NONE",
+      "expectedVerdict": "REVIEW_COMPLETE_WITH_VALIDATION_ISSUES",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "COMMITTED_AND_PUSHED"
+    },
+    {
+      "id": "REMOTE-018",
+      "condition": "failed-check-no-remediation",
+      "phase": "REMEDIATION",
+      "validationResult": "FAIL",
+      "failureOrigin": "PRE_EXISTING",
+      "safetyConstraint": "NONE",
+      "expectedVerdict": "REVIEW_COMPLETE_WITH_VALIDATION_ISSUES",
+      "expectedRoute": "NO_REMEDIATION",
+      "expectedGitOutcome": "NO_CHANGES"
+    },
+    {
+      "id": "REMOTE-019",
+      "condition": "failure-with-head-drift",
+      "phase": "REMEDIATION",
+      "validationResult": "FAIL",
+      "failureOrigin": "UNKNOWN",
+      "safetyConstraint": "HEAD_DRIFT",
+      "expectedVerdict": "BLOCKED",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "NOT_ATTEMPTED"
+    },
+    {
+      "id": "REMOTE-020",
+      "condition": "failure-with-destination-mismatch",
+      "phase": "REMEDIATION",
+      "validationResult": "FAIL",
+      "failureOrigin": "UNKNOWN",
+      "safetyConstraint": "DESTINATION_MISMATCH",
+      "expectedVerdict": "BLOCKED",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "NOT_ATTEMPTED"
+    },
+    {
+      "id": "REMOTE-021",
+      "condition": "failure-with-push-permission",
+      "phase": "REMEDIATION",
+      "validationResult": "FAIL",
+      "failureOrigin": "UNKNOWN",
+      "safetyConstraint": "PUSH_PERMISSION",
+      "expectedVerdict": "BLOCKED",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "NOT_PUSHED"
+    },
+    {
+      "id": "REMOTE-022",
+      "condition": "failure-with-unrelated-changes",
+      "phase": "PR_PREPARATION",
+      "validationResult": "FAIL",
+      "failureOrigin": "UNKNOWN",
+      "safetyConstraint": "UNRELATED_CHANGES",
+      "expectedVerdict": "BLOCKED",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "NOT_ATTEMPTED"
+    },
+    {
+      "id": "REMOTE-023",
+      "condition": "failure-with-user-prohibition",
+      "phase": "REMEDIATION",
+      "validationResult": "FAIL",
+      "failureOrigin": "UNKNOWN",
+      "safetyConstraint": "USER_PROHIBITION",
+      "expectedVerdict": "REVIEW_COMPLETE_WITH_VALIDATION_ISSUES",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "SKIPPED_BY_USER"
+    },
+    {
+      "id": "REMOTE-024",
+      "condition": "failure-with-repository-deployment-prohibition",
+      "phase": "PR_PREPARATION",
+      "validationResult": "FAIL",
+      "failureOrigin": "UNKNOWN",
+      "safetyConstraint": "REPOSITORY_PROHIBITION",
+      "expectedVerdict": "BLOCKED",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "NOT_ATTEMPTED"
+    },
+    {
+      "id": "REMOTE-025",
+      "condition": "failure-with-missing-review",
+      "phase": "REMEDIATION",
+      "validationResult": "FAIL",
+      "failureOrigin": "UNKNOWN",
+      "safetyConstraint": "MISSING_REVIEW",
+      "expectedVerdict": "HUMAN_DECISION_REQUIRED",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "NOT_ATTEMPTED"
+    },
+    {
+      "id": "REMOTE-026",
+      "condition": "failure-with-unresolved-decision",
+      "phase": "REMEDIATION",
+      "validationResult": "FAIL",
+      "failureOrigin": "UNKNOWN",
+      "safetyConstraint": "HUMAN_DECISION",
+      "expectedVerdict": "HUMAN_DECISION_REQUIRED",
+      "expectedRoute": "CURRENT_PARENT",
+      "expectedGitOutcome": "NOT_ATTEMPTED"
+    },
+    {
+      "id": "REMOTE-027",
+      "condition": "pending-check-no-remediation",
+      "phase": "REMEDIATION",
+      "validationResult": "NOT_RUN",
+      "failureOrigin": "UNKNOWN",
+      "safetyConstraint": "NONE",
+      "expectedVerdict": "REVIEW_COMPLETE_WITH_VALIDATION_ISSUES",
+      "expectedRoute": "NO_REMEDIATION",
+      "expectedGitOutcome": "NO_CHANGES"
+    }
   ]
 }

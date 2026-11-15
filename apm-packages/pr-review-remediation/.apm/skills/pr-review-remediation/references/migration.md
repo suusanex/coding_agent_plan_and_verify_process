@@ -1,5 +1,11 @@
 # Migration
 
+## validation policy boundary（Issue #175）
+
+PR準備とreview後remediationの双方でvalidation結果とGit操作の可否を分離します。従来のvalidation failureによる一律BLOCKED / NOT_ATTEMPTEDは廃止します。実行・失敗記録は維持し、Git安全条件、利用者指示、repository固有の禁止条件が許せばcommit / pushを進めます。
+
+残るFAIL / NOT_RUNがあるreview処理完了は`REVIEW_COMPLETE_WITH_VALIDATION_ISSUES`です。結果consumerはこれを検証成功へ読み替えず、validation evidenceとGit outcomeを独立に表示します。collector JSON schemaは変わりません。以下の旧version説明よりこのpolicyを優先します。
+
 ## 0.9.0 boundary
 
 0.9.0は、独立した`review-planner`によるrecommendation作成を削除し、現在の親がcollectorのremote evidenceを直接評価する構成へ変更します。
