@@ -14,14 +14,14 @@
       "distribution": "apm",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "Issue #172の契約変更にfingerprintを追随。過去のruntime認定は移さずNOT_RUNを維持する。",
+      "reason": "Runner 0.6.0 / protocol v4とSkill 0.7.0の実モデル評価は未実施。目的・設計整合reviewの検出力、過剰指摘、利用者負荷を未確認のため、旧実装reviewやsession継続結果から推定しない。",
       "evidenceRefs": []
     },
     {
       "distribution": "agent-plugin-direct",
       "status": "HOLD",
       "evidenceMode": "PARTIAL",
-      "reason": "Issue #172の契約変更にfingerprintを追随。過去のruntime認定は移さずNOT_RUNを維持する。",
+      "reason": "Runner 0.5.0時点でCodex/Copilotによる限定的な実モデル評価を実施したが、Copilotの目的・設計workflowとcontrast fixture、Codexのread-only同一session初回・resume fixtureに限られる。Runner 0.6.0のruntime契約/best-effort guardrail・reviewRounds整理後の全面的な実モデル再評価は未実施であり、利用負荷と出力適合性も広く未評価のためdirect deployment qualificationはHOLD。",
       "evidenceRefs": [
         "tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-provider-safety.md",
         "tests/PurposeReviewRunner.Tests/purpose-review-results/2026-10-28-purpose-design-evaluation.md"
