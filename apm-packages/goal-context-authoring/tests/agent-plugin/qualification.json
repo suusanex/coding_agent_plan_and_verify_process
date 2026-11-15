@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "goal-context-authoring",
-  "canonicalFingerprint": "cf8ab9cf58e302d5d270640ce6eea17d62754fe4148b29cfdb1bb93f5624bb4a",
-  "distributionFingerprint": "13301eb96b1d3759ca2092961ba779732e5347e871089eb5d317ce14d2b09f18",
+  "canonicalFingerprint": "93e885545564ae5b4f10048322e922535ec2745115707cdfc97cba19af5aa833",
+  "distributionFingerprint": "10bacc0e6f053c38488bffced3fc3896a957ef1668b435451b4fe2dcba9fb5c1",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
@@ -14,7 +14,7 @@
       "distribution": "apm",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "PR #162の全package CIで旧fingerprint不一致を検出。過去のruntime認定を現在candidateへ移さず、未認定とする。歴史的証拠は参照先に保持する。",
+      "reason": "Issue #172の契約変更にfingerprintを追随。過去のruntime認定は移さずNOT_RUNを維持する。",
       "evidenceRefs": [
         "tests/agent-plugins/results/2026-08-23-runtime-qualification.md"
       ]
@@ -23,7 +23,7 @@
       "distribution": "agent-plugin-direct",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "PR #162の全package CIで旧fingerprint不一致を検出。過去のruntime認定を現在candidateへ移さず、未認定とする。歴史的証拠は参照先に保持する。",
+      "reason": "Issue #172の契約変更にfingerprintを追随。過去のruntime認定は移さずNOT_RUNを維持する。",
       "evidenceRefs": [
         "tests/agent-plugins/results/2026-08-23-runtime-qualification.md"
       ]

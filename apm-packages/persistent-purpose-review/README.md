@@ -1,5 +1,9 @@
 # Persistent Purpose Review
 
+改修時は、今回の目的と影響される既存目的を根拠本文・出典・権限付きで既存の`purpose`へ継承します。`proposal.body` / `proposal.delta`には変更対象、変更前後、制約と発動条件、適用範囲と別操作への影響、守る目的と根拠、通常利用場面を示します。提出元が実際の変更差分と照合し、明示許可済みタスクで重要変更が生じた場合は採用・完了扱い前に再提出します。
+
+継続目的・利用場面・承認済み判断の変更は、適切な既存文書へ同じ実装PRで反映し、通常レビューで整合を確認します。変更なしは理由付き更新不要とできます。自由形式、明示起動、既存JSON schema、reviewerの入力限定・非コード探索は維持します。`COMPLETE`は入力完全性、承認、実装適合や文書更新完了の保証ではありません。
+
 `$persistent-purpose-review`は、明示的に許可されたtaskで、元の目的と提案設計の整合を独立reviewerに確認させるAPM Skillです。対象は初期設計と重要な設計変更です。通常の実装完了やverificationを契機に自動起動しません。findingだけ、または実装不足だけを理由に開始せず、実装修正やコード品質レビューを担当しません。
 
 Skillはuser-invocableで、`disable-model-invocation: true`を維持します。RunnerはSkillから利用する別途導入のCLIです。SkillとRunnerの両方が必要です。
