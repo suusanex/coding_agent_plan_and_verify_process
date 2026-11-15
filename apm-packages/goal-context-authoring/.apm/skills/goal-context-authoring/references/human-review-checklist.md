@@ -1,5 +1,8 @@
 # Optional Goal Context quality review
 
+- 改修では影響される既存目的・利用場面が根拠と適用範囲付きで継承され、維持／追加／変更／廃止／未確認と承認権限を区別できるか。参照不能を「維持条件なし」にしていないか。
+- 同じPRで継続文書の更新要否を判定し、必要な反映と整合確認を完了条件にしたか。変更なしでは理由付き更新不要とでき、新規開発や内部変更に無意味な文書を強制していないか。
+
 Human review is optional unless the user or another governing process explicitly requests it. Completing this checklist does not change a machine lifecycle state, because Goal Context has no required lifecycle metadata.
 
 - Does the text explain enough purpose for a later reader to judge whether the work helped?
