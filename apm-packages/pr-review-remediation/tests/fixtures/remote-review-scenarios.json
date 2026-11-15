@@ -94,7 +94,13 @@
       "safetyConstraint": "NONE",
       "expectedVerdict": "REVIEW_COMPLETE_WITH_VALIDATION_ISSUES",
       "expectedRoute": "CURRENT_PARENT",
-      "expectedGitOutcome": "COMMITTED_AND_PUSHED"
+      "expectedGitOutcome": "COMMITTED_AND_PUSHED",
+      "revision": "fixture-head",
+      "command": "dotnet test",
+      "resultDetail": "exit 1（仮想fixture）",
+      "evidence": "同じcommandがfixture-baseでも失敗する比較証拠を想定",
+      "impact": "対象validationの保証を得られていない",
+      "unresolved": "対象検証の失敗が残る"
     },
     {
       "id": "REMOTE-014",
@@ -105,7 +111,13 @@
       "safetyConstraint": "NONE",
       "expectedVerdict": "REVIEW_COMPLETE_WITH_VALIDATION_ISSUES",
       "expectedRoute": "CURRENT_PARENT",
-      "expectedGitOutcome": "COMMITTED_AND_PUSHED"
+      "expectedGitOutcome": "COMMITTED_AND_PUSHED",
+      "revision": "fixture-head",
+      "command": "dotnet build",
+      "resultDetail": "exit 1（仮想fixture）",
+      "evidence": "必要SDKが実行環境にない診断を想定",
+      "impact": "対象validationの保証を得られていない",
+      "unresolved": "対象検証の失敗が残る"
     },
     {
       "id": "REMOTE-015",
@@ -116,7 +128,13 @@
       "safetyConstraint": "NONE",
       "expectedVerdict": "REVIEW_COMPLETE_WITH_VALIDATION_ISSUES",
       "expectedRoute": "CURRENT_PARENT",
-      "expectedGitOutcome": "COMMITTED_AND_PUSHED"
+      "expectedGitOutcome": "COMMITTED_AND_PUSHED",
+      "revision": "fixture-head",
+      "command": "dotnet format --verify-no-changes",
+      "resultDetail": "exit 2（仮想fixture）",
+      "evidence": "baseは成功し変更行を対象に失敗する証拠を想定",
+      "impact": "対象validationの保証を得られていない",
+      "unresolved": "対象検証の失敗が残る"
     },
     {
       "id": "REMOTE-016",
@@ -127,7 +145,13 @@
       "safetyConstraint": "NONE",
       "expectedVerdict": "REVIEW_COMPLETE_WITH_VALIDATION_ISSUES",
       "expectedRoute": "CURRENT_PARENT",
-      "expectedGitOutcome": "COMMITTED_AND_PUSHED"
+      "expectedGitOutcome": "COMMITTED_AND_PUSHED",
+      "revision": "fixture-head",
+      "command": "dotnet test",
+      "resultDetail": "exit 1（仮想fixture）",
+      "evidence": "分類を確定できる比較証拠がない",
+      "impact": "対象validationの保証を得られていない",
+      "unresolved": "対象検証の失敗が残る"
     },
     {
       "id": "REMOTE-017",
@@ -138,7 +162,13 @@
       "safetyConstraint": "NONE",
       "expectedVerdict": "REVIEW_COMPLETE_WITH_VALIDATION_ISSUES",
       "expectedRoute": "CURRENT_PARENT",
-      "expectedGitOutcome": "COMMITTED_AND_PUSHED"
+      "expectedGitOutcome": "COMMITTED_AND_PUSHED",
+      "revision": "fixture-head",
+      "command": "fixture-check",
+      "resultDetail": "未完了checkまたは実行環境を用意できず未実施",
+      "evidence": "分類を確定できる比較証拠がない",
+      "impact": "対象validationの保証を得られていない",
+      "unresolved": "対象検証の実施・完了確認が残る"
     },
     {
       "id": "REMOTE-018",
@@ -149,7 +179,13 @@
       "safetyConstraint": "NONE",
       "expectedVerdict": "REVIEW_COMPLETE_WITH_VALIDATION_ISSUES",
       "expectedRoute": "NO_REMEDIATION",
-      "expectedGitOutcome": "NO_CHANGES"
+      "expectedGitOutcome": "NO_CHANGES",
+      "revision": "fixture-head",
+      "command": "dotnet test",
+      "resultDetail": "exit 1（仮想fixture）",
+      "evidence": "同じcommandがfixture-baseでも失敗する比較証拠を想定",
+      "impact": "対象validationの保証を得られていない",
+      "unresolved": "対象検証の失敗が残る"
     },
     {
       "id": "REMOTE-019",
@@ -160,7 +196,13 @@
       "safetyConstraint": "HEAD_DRIFT",
       "expectedVerdict": "BLOCKED",
       "expectedRoute": "CURRENT_PARENT",
-      "expectedGitOutcome": "NOT_ATTEMPTED"
+      "expectedGitOutcome": "NOT_ATTEMPTED",
+      "revision": "fixture-head",
+      "command": "dotnet test",
+      "resultDetail": "exit 1（仮想fixture）",
+      "evidence": "分類を確定できる比較証拠がない",
+      "impact": "対象validationの保証を得られていない",
+      "unresolved": "対象検証の失敗が残る"
     },
     {
       "id": "REMOTE-020",
@@ -171,7 +213,13 @@
       "safetyConstraint": "DESTINATION_MISMATCH",
       "expectedVerdict": "BLOCKED",
       "expectedRoute": "CURRENT_PARENT",
-      "expectedGitOutcome": "NOT_ATTEMPTED"
+      "expectedGitOutcome": "NOT_ATTEMPTED",
+      "revision": "fixture-head",
+      "command": "dotnet test",
+      "resultDetail": "exit 1（仮想fixture）",
+      "evidence": "分類を確定できる比較証拠がない",
+      "impact": "対象validationの保証を得られていない",
+      "unresolved": "対象検証の失敗が残る"
     },
     {
       "id": "REMOTE-021",
@@ -182,7 +230,13 @@
       "safetyConstraint": "PUSH_PERMISSION",
       "expectedVerdict": "BLOCKED",
       "expectedRoute": "CURRENT_PARENT",
-      "expectedGitOutcome": "NOT_PUSHED"
+      "expectedGitOutcome": "NOT_PUSHED",
+      "revision": "fixture-head",
+      "command": "dotnet test",
+      "resultDetail": "exit 1（仮想fixture）",
+      "evidence": "分類を確定できる比較証拠がない",
+      "impact": "対象validationの保証を得られていない",
+      "unresolved": "対象検証の失敗が残る"
     },
     {
       "id": "REMOTE-022",
@@ -193,7 +247,13 @@
       "safetyConstraint": "UNRELATED_CHANGES",
       "expectedVerdict": "BLOCKED",
       "expectedRoute": "CURRENT_PARENT",
-      "expectedGitOutcome": "NOT_ATTEMPTED"
+      "expectedGitOutcome": "NOT_ATTEMPTED",
+      "revision": "fixture-head",
+      "command": "dotnet test",
+      "resultDetail": "exit 1（仮想fixture）",
+      "evidence": "分類を確定できる比較証拠がない",
+      "impact": "対象validationの保証を得られていない",
+      "unresolved": "対象検証の失敗が残る"
     },
     {
       "id": "REMOTE-023",
@@ -204,7 +264,13 @@
       "safetyConstraint": "USER_PROHIBITION",
       "expectedVerdict": "REVIEW_COMPLETE_WITH_VALIDATION_ISSUES",
       "expectedRoute": "CURRENT_PARENT",
-      "expectedGitOutcome": "SKIPPED_BY_USER"
+      "expectedGitOutcome": "SKIPPED_BY_USER",
+      "revision": "fixture-head",
+      "command": "dotnet test",
+      "resultDetail": "exit 1（仮想fixture）",
+      "evidence": "分類を確定できる比較証拠がない",
+      "impact": "対象validationの保証を得られていない",
+      "unresolved": "対象検証の失敗が残る"
     },
     {
       "id": "REMOTE-024",
@@ -215,7 +281,13 @@
       "safetyConstraint": "REPOSITORY_PROHIBITION",
       "expectedVerdict": "BLOCKED",
       "expectedRoute": "CURRENT_PARENT",
-      "expectedGitOutcome": "NOT_ATTEMPTED"
+      "expectedGitOutcome": "NOT_ATTEMPTED",
+      "revision": "fixture-head",
+      "command": "dotnet test",
+      "resultDetail": "exit 1（仮想fixture）",
+      "evidence": "分類を確定できる比較証拠がない",
+      "impact": "対象validationの保証を得られていない",
+      "unresolved": "対象検証の失敗が残る"
     },
     {
       "id": "REMOTE-025",
@@ -226,7 +298,13 @@
       "safetyConstraint": "MISSING_REVIEW",
       "expectedVerdict": "HUMAN_DECISION_REQUIRED",
       "expectedRoute": "CURRENT_PARENT",
-      "expectedGitOutcome": "NOT_ATTEMPTED"
+      "expectedGitOutcome": "NOT_ATTEMPTED",
+      "revision": "fixture-head",
+      "command": "dotnet test",
+      "resultDetail": "exit 1（仮想fixture）",
+      "evidence": "分類を確定できる比較証拠がない",
+      "impact": "対象validationの保証を得られていない",
+      "unresolved": "対象検証の失敗が残る"
     },
     {
       "id": "REMOTE-026",
@@ -237,7 +315,13 @@
       "safetyConstraint": "HUMAN_DECISION",
       "expectedVerdict": "HUMAN_DECISION_REQUIRED",
       "expectedRoute": "CURRENT_PARENT",
-      "expectedGitOutcome": "NOT_ATTEMPTED"
+      "expectedGitOutcome": "NOT_ATTEMPTED",
+      "revision": "fixture-head",
+      "command": "dotnet test",
+      "resultDetail": "exit 1（仮想fixture）",
+      "evidence": "分類を確定できる比較証拠がない",
+      "impact": "対象validationの保証を得られていない",
+      "unresolved": "対象検証の失敗が残る"
     },
     {
       "id": "REMOTE-027",
@@ -248,7 +332,13 @@
       "safetyConstraint": "NONE",
       "expectedVerdict": "REVIEW_COMPLETE_WITH_VALIDATION_ISSUES",
       "expectedRoute": "NO_REMEDIATION",
-      "expectedGitOutcome": "NO_CHANGES"
+      "expectedGitOutcome": "NO_CHANGES",
+      "revision": "fixture-head",
+      "command": "fixture-check",
+      "resultDetail": "未完了checkまたは実行環境を用意できず未実施",
+      "evidence": "分類を確定できる比較証拠がない",
+      "impact": "対象validationの保証を得られていない",
+      "unresolved": "対象検証の実施・完了確認が残る"
     }
   ]
 }
