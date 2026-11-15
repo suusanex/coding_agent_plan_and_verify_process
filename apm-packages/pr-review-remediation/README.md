@@ -63,7 +63,7 @@ Ready PRを確認
   → GitHub Copilot Code Reviewを要求してremote review evidenceを取得
   → 現在の親エージェントが全findingを評価
   → 必要なfindingだけを修正してvalidation
-  → validation成功後にcommit / push
+  → validation結果を記録し、Git安全条件を確認してcommit / push
   → finding、検証、Git結果を報告
 ```
 
@@ -85,11 +85,14 @@ Adaptiveを明示しても、review coverage、validation、commit、push、最�
 
 | 結果 | 意味 |
 | --- | --- |
-| `REVIEW_COMPLETE` | 全findingの判断と必要な修正・validationが完了し、変更があればcommit / push済み。修正不要ならempty commitなしで完了 |
+| `REVIEW_COMPLETE` | 全findingの判断と必要な修正が完了し、必要なvalidationがすべてPASS。Git結果も解決済み |
+| `REVIEW_COMPLETE_WITH_VALIDATION_ISSUES` | review処理は完了したがFAIL / NOT_RUN（pendingを含む）が残る。検証成功・品質保証・merge可能を意味しない |
 | `HUMAN_DECISION_REQUIRED` | product / scope判断や未取得reviewを許容するかなど、利用者の判断が必要 |
-| `BLOCKED` | review要求、権限、PR更新、validation、pushなどの問題で安全に完了できない |
+| `BLOCKED` | review要求、権限、PR identity、push先、repository固有の禁止条件などで安全に完了できない |
 
 最終報告にはfindingの採否、変更概要、validation、commit / push結果、未検証事項、人手で必要な作業が含まれます。
+
+PR準備時とreview後のremediation時の両方で、validation失敗だけをcommit / push / PR作成の禁止理由にしません。関連validationを実行し、command、結果、原因（既存・環境・変更・不明）と根拠、影響、未解決事項を記録します。scope内で修復可能なら修正・再検証を続け、残件は上記の専用verdictで明示します。利用者指示、repository規約、Git安全性や確認済み自動デプロイ等の禁止条件は維持します。修正不要ならempty commitを作らず、利用者のGit操作禁止は`SKIPPED_BY_USER`として記録します。
 
 ## 更新
 

@@ -2,7 +2,7 @@
 
 ## Review Evaluation
 
-- State: REMEDIATION_REQUIRED / REVIEW_COMPLETE / HUMAN_DECISION_REQUIRED / BLOCKED
+- State: REMEDIATION_REQUIRED / REVIEW_COMPLETE / REVIEW_COMPLETE_WITH_VALIDATION_ISSUES / HUMAN_DECISION_REQUIRED / BLOCKED
 - Evaluation status: Complete / Human decision required / Blocked
 - Production / tests / docs changed during evaluation: No
 - Execution owner: CURRENT_PARENT / EXPLICIT_ADAPTIVE / NO_REMEDIATION / NONE
@@ -51,7 +51,7 @@
 
 ## Ordered Remediation Plan
 
-`REVIEW_COMPLETE`で修正不要の場合はこのsectionを`N/A - no remediation required`とし、stepを生成しません。
+修正不要の完了（検証問題ありを含む）の場合はこのsectionを`N/A - no remediation required`とし、stepを生成しません。
 
 | Step | Scope ID | Acceptance ID | Finding IDs | Change | Expected files / symbols | Acceptance | Validation |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -59,7 +59,7 @@
 
 ## Implementation Intent
 
-`REVIEW_COMPLETE`で修正不要の場合はこのsectionを省略します。
+修正不要の完了（検証問題ありを含む）の場合はこのsectionを省略します。
 
 ```yaml
 implementation_intent:
@@ -78,20 +78,23 @@ implementation_intent:
 
 このsectionは親がremediation、validation、Git操作の後に更新します。
 
-- Final verdict: REVIEW_COMPLETE / HUMAN_DECISION_REQUIRED / BLOCKED / Pending
+- Final verdict: REVIEW_COMPLETE / REVIEW_COMPLETE_WITH_VALIDATION_ISSUES / HUMAN_DECISION_REQUIRED / BLOCKED / Pending
 - Production / tests / docs changed: Yes / No / Pending
 - Unresolved findings: 0 / count / Pending
 - Human-required work: N/A / details
 
 ### Validation Evidence
 
-| Command | Result | Covered findings / acceptance |
-| --- | --- | --- |
-|  | PASS / FAIL / NOT_RUN |  |
+| Phase / Revision | Command / Check source ID | Result | Exit code / 未実施理由 | 原因分類 / 根拠 | 影響範囲 / Covered findings / acceptance | 未解決事項 / 証拠 |
+| --- | --- | --- | --- | --- | --- | --- |
+| PR_PREPARATION / REMEDIATION |  | PASS / FAIL / NOT_RUN |  | PRE_EXISTING / ENVIRONMENT / CHANGE_RELATED / UNKNOWN / N/A |  |  |
+
+失敗原因を確定できない場合はUNKNOWNとします。再検証は対象revisionと結果を追記し、元の失敗を消しません。残るFAIL / NOT_RUNがあれば、review処理を完了しても`REVIEW_COMPLETE_WITH_VALIDATION_ISSUES`と報告し、検証成功・品質保証完了を意味しないことを明記します。
 
 ### Git Result
 
 - Git outcome: COMMITTED_AND_PUSHED / NO_CHANGES / SKIPPED_BY_USER / NOT_PUSHED / NOT_ATTEMPTED / Pending
+- Git操作の可否と根拠: 利用者指示 / repository規約 / identity・権限・push先 / 確認済み副作用の禁止条件。validation結果だけで決めない。
 - Commit:
 - Remote PR head before commit / push:
 - Verified push destination repository / branch:

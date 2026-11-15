@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "pr-review-remediation",
-  "canonicalFingerprint": "23e9e3e87f8773df9eb300e615032311800c4110941e0e83239c3088bbb25e24",
-  "distributionFingerprint": "ad2200f31f9731cfaa06b054c96e87ae23deb57ce439ba5a5f49b1dcdb688ebf",
+  "canonicalFingerprint": "45d8e13d6da6a881b245b40418371aaf85e87a83a16c7f31b174fb24a53fd72e",
+  "distributionFingerprint": "0f7a4ac99823ea729743873367e7d04dbdf2e22c10f4847ee965dc904de24179",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
@@ -14,14 +14,14 @@
       "distribution": "apm",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "0.9.0でreview-plannerとCodex profile依存を削除し、current parentによるremote evidence直接評価へ変更したため、以前のAPM runtime evidenceではcandidateを認定しない。",
+      "reason": "Issue #175でvalidation結果とGit操作を分離したcandidateはruntime未評価のため、NOT_RUNを維持する。",
       "evidenceRefs": []
     },
     {
       "distribution": "agent-plugin-direct",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "0.9.0のagentなしdistribution、parent-owned source evaluation、全finding coverage、Git outcomeをdirect plugin runtimeでは未評価のため、以前のPASSを引き継がない。",
+      "reason": "Issue #175でvalidation結果とGit操作を分離したcandidateはruntime未評価のため、NOT_RUNを維持する。",
       "evidenceRefs": []
     }
   ]

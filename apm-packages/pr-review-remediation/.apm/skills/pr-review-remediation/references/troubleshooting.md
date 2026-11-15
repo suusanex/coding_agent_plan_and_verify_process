@@ -30,7 +30,9 @@ local upstreamのpush URLをGitHub上のcanonical `owner/name`へ解決し、col
 
 ## Remediation validation failed
 
-失敗したcommandと対象finding / acceptanceを記録し、`BLOCKED`にします。validation failureを無視してcommit / pushしません。
+PR準備・remediationの両方で、失敗したcommand、結果とexit code、対象revision、原因分類と根拠、影響範囲、残件を記録します。原因を確定できなければUNKNOWNとします。scope内で修復可能なら修正して再検証します。残るFAIL / NOT_RUNだけでGit操作を禁止せず、安全条件・利用者指示・repository規約が許せばcommit / push / PR工程へ進めます。完了条件が揃っても`REVIEW_COMPLETE_WITH_VALIDATION_ISSUES`とし、検証成功と表現しません。未実装Applyや未取得review、判断未決定をこの状態で隠してはいけません。
+
+Git操作を止める場合はidentity、権限、push先、無関係な差分の分離、確認済み自動デプロイ等に対するrepository固有の禁止条件など、独立した根拠を記録します。利用者の明示禁止はSKIPPED_BY_USER、commit前の安全blockerはNOT_ATTEMPTED、commit後にpushできなければNOT_PUSHEDです。
 
 ## Commit succeeded but push failed
 
