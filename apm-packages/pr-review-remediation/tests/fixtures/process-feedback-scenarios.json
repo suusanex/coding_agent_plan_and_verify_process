@@ -70,6 +70,27 @@
         { "sourceIds": ["review:40"], "decision": "Apply", "triage": "unknown", "triageReason": "確認材料が不足", "evidence": "remote本文のみ", "candidateLayer": "unknown", "duplicateOf": null, "finding": true }
       ],
       "expectedDetailedSourceIds": [], "artifact": "None", "authorityGranted": false
+    },
+    {
+      "id": "PF-006",
+      "condition": "PlanとGoal Contextがなくても存在するSKILLと実装記録でfinding traceを作り分析できる静的期待fixture",
+      "selection": "Enabled by user",
+      "findings": [
+        { "sourceIds": ["review:50"], "decision": "Apply", "triage": "upstream-suspected", "triageReason": "Skillの要求と実装の不一致を疑う", "evidence": "Issue本文とpatchを照合", "candidateLayer": "prompt-or-skill", "duplicateOf": null, "finding": true }
+      ],
+      "expectedDetailedSourceIds": ["review:50"], "artifact": "Analyzed", "authorityGranted": false,
+      "analysis": {
+        "selectionEvidence": "chat:user-request-3: Process Feedbackを有効",
+        "trace": [
+          { "relation": "finding", "path": "review:50", "revision": "head-xyz", "excerpt": "選択時にGoal Context必須とする制約がある", "fact": "findingは必須化された条件を指摘" },
+          { "relation": "implementation record", "path": "src/ReviewFlow.cs", "revision": "head-xyz", "excerpt": "SKILL記載の条件で詳細分析を開始", "fact": "実装記録に該当動作あり" },
+          { "relation": "SKILL", "path": "skills/review/SKILL.md", "revision": "head-xyz", "excerpt": "存在する証拠を参照する", "fact": "SKILLにGoal ContextやPlanは必須でない" }
+        ],
+        "missingArtifacts": ["Plan未提供", "Goal Context未提供"],
+        "immediateCorrection": { "proposal": "今回の条件制約を修正", "authority": "既存Apply", "status": "PR scope内" },
+        "upstreamCorrection": { "proposal": "不明", "authority": "別途判断", "status": "不要" },
+        "reusableCandidate": { "proposal": "artifact不在時の検証を追加候補とする", "generalizationBasis": "同じ必須条件が複数箇所へ波及する経路", "alternative": "validator fixtureのみの制約", "cost": "追加fixture保守", "smallerAction": "trace presenceだけ検証", "authority": "Process Feedbackは変更許可ではない", "status": "未実施候補" }
+      }
     }
   ]
 }

@@ -67,6 +67,7 @@ function Get-ProcessFeedbackCaseErrors($Scenario) {
             if ($finding.decision -cnotin @('Apply', 'Reject', 'Human decision required', 'Pending')) { 'Finding has invalid decision.' }
             if ($finding.triage -cnotin @('local-only', 'upstream-suspected', 'unknown')) { 'Finding has invalid triage.' }
             if ([string]::IsNullOrWhiteSpace([string]$finding.triageReason) -or [string]::IsNullOrWhiteSpace([string]$finding.evidence)) { 'Finding lacks triage reason or evidence.' }
+            if ($finding.candidateLayer -cnotin @('implementation', 'design', 'plan', 'specification', 'prompt-or-skill', 'workflow', 'evaluation', 'unknown')) { 'Finding has missing or invalid candidate layer.' }
             if ($Scenario.selection -ceq 'Enabled by user' -and $finding.triage -cin @('upstream-suspected', 'unknown')) { $expectedTargets += @($finding.sourceIds | ForEach-Object { [string]$_ }) }
         } elseif ($finding.finding -ceq $false) {
             if ($finding.decision -cne 'noAction' -or $finding.triage -cne 'N/A' -or [string]::IsNullOrWhiteSpace([string]$finding.triageReason)) { 'Non-finding must be reasoned noAction with N/A triage.' }
@@ -92,15 +93,14 @@ function Get-ProcessFeedbackCaseErrors($Scenario) {
             elseif ([string]$entry.authority -match '(?i)^(granted|authorized|approved)$') { "Analysis candidate incorrectly grants authority: $layer" }
         }
         if ($Scenario.artifact -ceq 'Analyzed') {
+            if (@($analysis.trace).Count -eq 0) { 'Analyzed result requires at least one finding trace.' }
             foreach ($trace in @($analysis.trace)) {
                 foreach ($field in @('relation', 'path', 'revision', 'excerpt', 'fact')) {
                     if ([string]::IsNullOrWhiteSpace([string]$trace.$field)) { "Trace is missing $field." }
                 }
             }
             $relations = @($analysis.trace.relation)
-            foreach ($requiredRelation in @('finding', 'implementation record', 'Plan', 'Goal Context')) {
-                if ($requiredRelation -notin $relations) { "Trace is missing relation: $requiredRelation" }
-            }
+            if ('finding' -notin $relations) { 'Trace is missing finding relation.' }
             foreach ($field in @('generalizationBasis', 'alternative', 'cost', 'smallerAction', 'status')) {
                 if ([string]::IsNullOrWhiteSpace([string]$analysis.reusableCandidate.$field)) { "Reusable candidate is missing $field." }
             }
@@ -308,7 +308,7 @@ try {
 
     $feedbackCatalog = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'tests/fixtures/process-feedback-scenarios.json') | ConvertFrom-Json
     $feedbackCases = @($feedbackCatalog.scenarios)
-    if ($feedbackCatalog.schemaVersion -ne 1 -or $feedbackCases.Count -ne 5) { throw 'Unexpected Process Feedback fixture version or scenario count.' }
+    if ($feedbackCatalog.schemaVersion -ne 1 -or $feedbackCases.Count -ne 6) { throw 'Unexpected Process Feedback fixture version or scenario count.' }
     foreach ($scenario in $feedbackCases) {
         $errors = @(Get-ProcessFeedbackCaseErrors $scenario)
         if ($errors.Count) { throw "Invalid Process Feedback case $($scenario.id): $($errors -join '; ')" }
@@ -325,6 +325,16 @@ try {
             $target = @($mutated.findings | Where-Object { $_.sourceIds[0] -ceq $finding.sourceIds[0] })[0]
             $target.triage = 'N/A'
             if (@(Get-ProcessFeedbackCaseErrors $mutated).Count -eq 0) { throw "Finding without triage accepted: $($scenario.id)/$($finding.sourceIds[0])" }
+            foreach ($candidateValue in @('', 'not-a-layer')) {
+                $mutated = $scenario | ConvertTo-Json -Depth 30 | ConvertFrom-Json
+                $target = @($mutated.findings | Where-Object { $_.sourceIds[0] -ceq $finding.sourceIds[0] })[0]
+                $target.candidateLayer = $candidateValue
+                if (@(Get-ProcessFeedbackCaseErrors $mutated).Count -eq 0) { throw "Invalid candidate layer accepted: $($scenario.id)/$($finding.sourceIds[0])" }
+            }
+            $mutated = $scenario | ConvertTo-Json -Depth 30 | ConvertFrom-Json
+            $target = @($mutated.findings | Where-Object { $_.sourceIds[0] -ceq $finding.sourceIds[0] })[0]
+            $target.PSObject.Properties.Remove('candidateLayer')
+            if (@(Get-ProcessFeedbackCaseErrors $mutated).Count -eq 0) { throw "Missing candidate layer accepted: $($scenario.id)/$($finding.sourceIds[0])" }
         }
         $mutated = $scenario | ConvertTo-Json -Depth 30 | ConvertFrom-Json
         $mutated.findings[0].sourceIds[0] = ''
@@ -340,6 +350,9 @@ try {
             $mutated = $scenario | ConvertTo-Json -Depth 30 | ConvertFrom-Json
             $mutated.analysis.reusableCandidate.authority = 'approved'
             if (@(Get-ProcessFeedbackCaseErrors $mutated).Count -eq 0) { throw "Candidate authority escalation accepted: $($scenario.id)" }
+            $mutated = $scenario | ConvertTo-Json -Depth 30 | ConvertFrom-Json
+            $mutated.analysis.trace = @()
+            if (@(Get-ProcessFeedbackCaseErrors $mutated).Count -eq 0) { throw "Analyzed result without finding trace accepted: $($scenario.id)" }
         }
     }
     $feedbackConditions = @($feedbackCases.condition -join '|')
