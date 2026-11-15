@@ -26,7 +26,13 @@ collectorはremote evidence収集のみを担当し、terminal verdictを判定�
 | `pwsh -NoProfile -File scripts/agent-plugins/validate-agent-plugin-package.ps1 -Package pr-review-remediation` | FAIL / exit 1 | ENVIRONMENT: APM 0.33.0がlocal-bundle installを拒否。CI指定は0.26.0。手元のbundle検証は未完了であり、CIの指定版結果を別途確認する |
 | `git diff --check` | PASS | whitespace検証 |
 
+再検証: 同じ変更内容に対し、APM v0.26.0の公式releaseをlocal作業用ディレクトリへ展開し、`validate-agent-plugin-package.ps1 -Package pr-review-remediation -ApmExecutable <作業用APM 0.26.0のapm.exe>`を実行してPASS（exit 0）。元の0.33.0の失敗は消さず、対応版ではbundle生成とnegative mutation検証に合格したと記録する。PR #176のCIでもpackage validator、APM install smoke、plugin package validatorがPASSとなった。
+
 これらは静的契約・配布検証であり、27シナリオを実エージェントに実行させたruntime qualificationではない。
+
+## PRレビュー対応
+
+PR #176でCopilot review:5910274385 / inline-comment:4578025400を取得。各ケースのphaseやfailureOrigin欠落が他ケースの存在により見逃される指摘を、remote patchとvalidatorで独立確認してApplyとした。重複指摘は1件、Rejectは0件。15ケースそれぞれの必須metadata・enum・安全条件と期待verdict/Git outcomeの整合を検査し、欠落・不正値・安全条件矛盾の計315 negative mutationを追加した。package validatorとgit diff --checkを再実行してPASS。設計変更ではなく検証の欠落補修のためPurpose Reviewの新規roundは開始していない。
 
 ## Git操作
 

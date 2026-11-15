@@ -21,6 +21,35 @@ function Assert-Missing([string]$RelativePath, [string]$Description) {
     if (Test-Path -LiteralPath (Join-Path $repoRoot $RelativePath)) { throw "Unexpected ${Description}: $RelativePath" }
 }
 
+function Get-ValidationCaseErrors($Scenario) {
+    # 実行証跡ではなく、期待結果fixtureの必須情報とpolicy整合を検証する。
+    foreach ($field in @('id', 'condition', 'phase', 'revision', 'command', 'resultDetail', 'failureOrigin', 'evidence', 'impact', 'unresolved', 'safetyConstraint', 'expectedVerdict', 'expectedRoute', 'expectedGitOutcome')) {
+        if ([string]::IsNullOrWhiteSpace([string]$Scenario.$field)) { "Missing validation case field: $field" }
+    }
+    if ($Scenario.phase -cnotin @('PR_PREPARATION', 'REMEDIATION')) { 'Invalid validation phase.' }
+    if ($Scenario.validationResult -cnotin @('FAIL', 'NOT_RUN')) { 'Invalid validation result.' }
+    if ($Scenario.failureOrigin -cnotin @('PRE_EXISTING', 'ENVIRONMENT', 'CHANGE_RELATED', 'UNKNOWN')) { 'Invalid failure origin.' }
+    $safetyOutcomes = @{
+        NONE = @('REVIEW_COMPLETE_WITH_VALIDATION_ISSUES', 'COMMITTED_AND_PUSHED', 'NO_CHANGES')
+        USER_PROHIBITION = @('REVIEW_COMPLETE_WITH_VALIDATION_ISSUES', 'SKIPPED_BY_USER')
+        HEAD_DRIFT = @('BLOCKED', 'NOT_ATTEMPTED')
+        DESTINATION_MISMATCH = @('BLOCKED', 'NOT_ATTEMPTED')
+        PUSH_PERMISSION = @('BLOCKED', 'NOT_PUSHED')
+        UNRELATED_CHANGES = @('BLOCKED', 'NOT_ATTEMPTED')
+        REPOSITORY_PROHIBITION = @('BLOCKED', 'NOT_ATTEMPTED')
+        MISSING_REVIEW = @('HUMAN_DECISION_REQUIRED', 'NOT_ATTEMPTED')
+        HUMAN_DECISION = @('HUMAN_DECISION_REQUIRED', 'NOT_ATTEMPTED')
+    }
+    $constraint = [string]$Scenario.safetyConstraint
+    if ($constraint -cnotin @($safetyOutcomes.Keys)) { 'Invalid safety constraint.' }
+    else {
+        $outcomes = $safetyOutcomes[$constraint]
+        if ($Scenario.expectedVerdict -cne $outcomes[0] -or $Scenario.expectedGitOutcome -cnotin $outcomes[1..($outcomes.Count - 1)]) { 'Safety constraint and outcome disagree.' }
+    }
+    $route = if ($Scenario.expectedGitOutcome -ceq 'NO_CHANGES') { 'NO_REMEDIATION' } else { 'CURRENT_PARENT' }
+    if ($Scenario.expectedRoute -cne $route) { 'Invalid validation case route.' }
+}
+
 try {
     foreach ($relative in @(
         'apm-packages/pr-review-remediation/apm.yml',
@@ -160,6 +189,7 @@ try {
         'REMOTE-027' = @('REVIEW_COMPLETE_WITH_VALIDATION_ISSUES', 'NO_REMEDIATION', 'NO_CHANGES')
     }
     if (@($catalog.scenarios).Count -ne $expected.Count) { throw 'Unexpected remote scenario count.' }
+    if (@($catalog.scenarios.id | Sort-Object -Unique).Count -ne $expected.Count) { throw 'Duplicate or missing scenario IDs.' }
     foreach ($scenario in @($catalog.scenarios)) {
         $id = [string]$scenario.id
         if (-not $expected.ContainsKey($id)) { throw "Unknown remote scenario: $id" }
@@ -177,9 +207,22 @@ try {
         if (-not @($validationCases | Where-Object { $_.failureOrigin -ceq $origin -and $_.safetyConstraint -ceq 'NONE' }).Count) { throw "Missing failure origin: $origin" }
     }
     foreach ($scenario in $validationCases) {
-        if ($scenario.validationResult -cnotin @('FAIL', 'NOT_RUN')) { throw "Invalid validation result: $($scenario.id)" }
-        if ($scenario.expectedVerdict -ceq 'REVIEW_COMPLETE') { throw "Validation issue hidden: $($scenario.id)" }
-        if ($scenario.safetyConstraint -ceq 'NONE' -and $scenario.expectedVerdict -cne 'REVIEW_COMPLETE_WITH_VALIDATION_ISSUES') { throw "Blanket validation block: $($scenario.id)" }
+        $failures = @(Get-ValidationCaseErrors $scenario)
+        if ($failures.Count) { throw "Invalid validation case $($scenario.id): $($failures -join '; ')" }
+        # 各ケースから一項目ずつ除去し、他ケースの存在に依存せず拒否することを確認する。
+        foreach ($field in @('phase', 'revision', 'command', 'validationResult', 'resultDetail', 'failureOrigin', 'evidence', 'impact', 'unresolved', 'safetyConstraint', 'expectedVerdict', 'expectedRoute', 'expectedGitOutcome')) {
+            $mutated = $scenario | ConvertTo-Json | ConvertFrom-Json
+            $mutated.PSObject.Properties.Remove($field)
+            if (@(Get-ValidationCaseErrors $mutated).Count -eq 0) { throw "Missing field accepted: $($scenario.id)/$field" }
+        }
+        foreach ($field in @('phase', 'validationResult', 'failureOrigin', 'safetyConstraint', 'expectedVerdict', 'expectedRoute', 'expectedGitOutcome')) {
+            $mutated = $scenario | ConvertTo-Json | ConvertFrom-Json
+            $mutated.$field = 'INVALID'
+            if (@(Get-ValidationCaseErrors $mutated).Count -eq 0) { throw "Invalid enum accepted: $($scenario.id)/$field" }
+        }
+        $mutated = $scenario | ConvertTo-Json | ConvertFrom-Json
+        $mutated.safetyConstraint = if ($scenario.safetyConstraint -ceq 'NONE') { 'HEAD_DRIFT' } else { 'NONE' }
+        if (@(Get-ValidationCaseErrors $mutated).Count -eq 0) { throw "Safety contradiction accepted: $($scenario.id)" }
     }
 
     $collector = Join-Path $packageRoot '.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs'
