@@ -50,6 +50,64 @@ function Get-ValidationCaseErrors($Scenario) {
     if ($Scenario.expectedRoute -cne $route) { 'Invalid validation case route.' }
 }
 
+function Get-ProcessFeedbackCaseErrors($Scenario) {
+    foreach ($field in @('id', 'condition', 'selection', 'findings', 'expectedDetailedSourceIds', 'artifact', 'authorityGranted')) {
+        if ($null -eq $Scenario.PSObject.Properties[$field]) { "Missing Process Feedback case field: $field" }
+    }
+    if ($Scenario.selection -cnotin @('Disabled', 'Enabled by user')) { 'Invalid Process Feedback selection.' }
+    if ($Scenario.authorityGranted -cne $false) { 'Process Feedback must not grant authority.' }
+    $allSourceIds = @()
+    $expectedTargets = @()
+    $findingBySource = @{}
+    foreach ($finding in @($Scenario.findings)) {
+        if (@($finding.sourceIds).Count -eq 0 -or @($finding.sourceIds | Where-Object { [string]::IsNullOrWhiteSpace([string]$_) }).Count -gt 0) { 'Finding has missing or blank source IDs.' }
+        $allSourceIds += @($finding.sourceIds | ForEach-Object { [string]$_ })
+        foreach ($sourceId in @($finding.sourceIds)) { $findingBySource[[string]$sourceId] = $finding }
+        if ($finding.finding -ceq $true) {
+            if ($finding.decision -cnotin @('Apply', 'Reject', 'Human decision required', 'Pending')) { 'Finding has invalid decision.' }
+            if ($finding.triage -cnotin @('local-only', 'upstream-suspected', 'unknown')) { 'Finding has invalid triage.' }
+            if ([string]::IsNullOrWhiteSpace([string]$finding.triageReason) -or [string]::IsNullOrWhiteSpace([string]$finding.evidence)) { 'Finding lacks triage reason or evidence.' }
+            if ($Scenario.selection -ceq 'Enabled by user' -and $finding.triage -cin @('upstream-suspected', 'unknown')) { $expectedTargets += @($finding.sourceIds | ForEach-Object { [string]$_ }) }
+        } elseif ($finding.finding -ceq $false) {
+            if ($finding.decision -cne 'noAction' -or $finding.triage -cne 'N/A' -or [string]::IsNullOrWhiteSpace([string]$finding.triageReason)) { 'Non-finding must be reasoned noAction with N/A triage.' }
+        } else { 'Invalid finding marker.' }
+    }
+    if (@($allSourceIds | Sort-Object -Unique).Count -ne $allSourceIds.Count) { 'Source IDs are duplicated or lost between findings.' }
+    foreach ($finding in @($Scenario.findings)) {
+        if ($finding.duplicateOf) {
+            if (-not $findingBySource.ContainsKey([string]$finding.duplicateOf)) { 'Duplicate reference is not represented.' }
+            elseif ($findingBySource[[string]$finding.duplicateOf].triage -cne $finding.triage) { 'Duplicate must refer to representative triage.' }
+        }
+    }
+    if ((@($expectedTargets | Sort-Object -Unique) -join '|') -cne (@($Scenario.expectedDetailedSourceIds | Sort-Object -Unique) -join '|')) { 'Detailed target set disagrees with selection and triage.' }
+    $expectedArtifact = if ($Scenario.selection -ceq 'Disabled') { 'None' } elseif ($expectedTargets.Count -eq 0) { 'No targets' } else { 'Analyzed' }
+    if ($Scenario.analysis.insufficientEvidence -ceq $true -and $expectedTargets.Count -gt 0) { $expectedArtifact = 'Insufficient evidence' }
+    if ($Scenario.artifact -cne $expectedArtifact) { 'Detailed artifact state disagrees with selection and target set.' }
+    if ($expectedTargets.Count -gt 0 -and $Scenario.selection -ceq 'Enabled by user') {
+        $analysis = $Scenario.analysis
+        if ([string]::IsNullOrWhiteSpace([string]$analysis.selectionEvidence)) { 'Detailed analysis lacks explicit selection evidence.' }
+        foreach ($layer in @('immediateCorrection', 'upstreamCorrection', 'reusableCandidate')) {
+            $entry = $analysis.$layer
+            if ($null -eq $entry -or [string]::IsNullOrWhiteSpace([string]$entry.proposal) -or [string]::IsNullOrWhiteSpace([string]$entry.authority)) { "Missing analysis layer: $layer" }
+            elseif ([string]$entry.authority -match '(?i)^(granted|authorized|approved)$') { "Analysis candidate incorrectly grants authority: $layer" }
+        }
+        if ($Scenario.artifact -ceq 'Analyzed') {
+            foreach ($trace in @($analysis.trace)) {
+                foreach ($field in @('relation', 'path', 'revision', 'excerpt', 'fact')) {
+                    if ([string]::IsNullOrWhiteSpace([string]$trace.$field)) { "Trace is missing $field." }
+                }
+            }
+            $relations = @($analysis.trace.relation)
+            foreach ($requiredRelation in @('finding', 'implementation record', 'Plan', 'Goal Context')) {
+                if ($requiredRelation -notin $relations) { "Trace is missing relation: $requiredRelation" }
+            }
+            foreach ($field in @('generalizationBasis', 'alternative', 'cost', 'smallerAction', 'status')) {
+                if ([string]::IsNullOrWhiteSpace([string]$analysis.reusableCandidate.$field)) { "Reusable candidate is missing $field." }
+            }
+        } elseif (@($analysis.missingArtifacts).Count -eq 0 -or $analysis.insufficientEvidence -cne $true) { 'Insufficient evidence must record missing artifacts.' }
+    }
+}
+
 try {
     foreach ($relative in @(
         'apm-packages/pr-review-remediation/apm.yml',
@@ -57,7 +115,9 @@ try {
         'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md',
         'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs',
         'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md',
+        'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/process-feedback.md',
         'apm-packages/pr-review-remediation/tests/fixtures/remote-review-scenarios.json',
+        'apm-packages/pr-review-remediation/tests/fixtures/process-feedback-scenarios.json',
         'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md',
         'apm-packages/pr-review-remediation/tests/fixtures/expected-review-complete.md'
     )) {
@@ -111,6 +171,16 @@ try {
     Assert-Contains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md' 'Final verdict: REVIEW_COMPLETE' 'completed remediation expected verdict'
     Assert-Contains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md' 'Git outcome: COMMITTED_AND_PUSHED' 'completed remediation Git outcome'
     Assert-Contains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-complete.md' 'Git outcome: NO_CHANGES' 'no-remediation Git outcome'
+    foreach ($relative in @(
+        'apm-packages/pr-review-remediation/tests/fixtures/expected-review-plan.md',
+        'apm-packages/pr-review-remediation/tests/fixtures/expected-review-complete.md'
+    )) {
+        Assert-Contains $relative 'Triage reason / Evidence' 'finding-level triage evidence fixture'
+        Assert-Contains $relative 'Process Feedback Triage' 'review-plan triage summary fixture'
+        Assert-Contains $relative 'Reusable process improvement candidates' 'explicit Process Feedback state fixture'
+    }
+    Assert-Contains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-complete.md' 'Finding: Reject' 'rejected finding retained in source coverage'
+    Assert-NotContains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-complete.md' '\| review:1001 \| noAction' 'finding hidden as noAction'
     Assert-NotContains 'apm-packages/pr-review-remediation/tests/fixtures/expected-review-complete.md' 'implementation_intent|adaptive-implementation-execution|Ordered Remediation Plan' 'no-remediation implementation handoff'
     foreach ($relative in @(
         'apm-packages/pr-review-remediation/README.md',
@@ -154,6 +224,17 @@ try {
     $templatePath = 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/review-plan.md'
     foreach ($pattern in @('Phase / Revision', 'Command / Check source ID', 'PASS / FAIL / NOT_RUN', 'Exit code', 'PRE_EXISTING / ENVIRONMENT / CHANGE_RELATED / UNKNOWN', '影響範囲', '未解決事項', 'Git操作の可否と根拠')) {
         Assert-Contains $templatePath ([regex]::Escape($pattern)) 'validation and Git evidence fields'
+    }
+    foreach ($pattern in @('Process Feedback: Enabled / Disabled', 'Triage reason / Evidence', 'local-only / upstream-suspected / unknown', 'duplicateは全source ID', '理由付きnoAction（triage N/A）', 'Reusable process improvement candidates')) {
+        Assert-Contains $templatePath ([regex]::Escape($pattern)) 'lightweight triage and explicit selection contract'
+    }
+    $skillPath = 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/SKILL.md'
+    foreach ($pattern in @('Process Feedbackは既定で無効', 'upstream-suspected`と`unknown`', '証拠不足だけではPRの局所修正を止めません', 'Process Feedbackの選択は共通SKILLの変更許可ではない')) {
+        Assert-Contains $skillPath ([regex]::Escape($pattern)) 'explicit Process Feedback and authority boundary'
+    }
+    $feedbackTemplate = 'apm-packages/pr-review-remediation/.apm/skills/pr-review-remediation/templates/process-feedback.md'
+    foreach ($pattern in @('Artifact path / revision', '該当箇所・本文', 'immediate correction', 'upstream correction', 'reusable process improvement candidate', '一般化できる根拠', '代替説明', '追加負担')) {
+        Assert-Contains $feedbackTemplate ([regex]::Escape($pattern)) 'evidence trace and improvement candidate record'
     }
     $failureFixture = 'apm-packages/pr-review-remediation/tests/fixtures/expected-validation-issues.md'
     foreach ($pattern in @('Final verdict: REVIEW_COMPLETE_WITH_VALIDATION_ISSUES', 'Git outcome: COMMITTED_AND_PUSHED', '| FAIL |', 'CHANGE_RELATED', '検証成功・品質保証完了ではない')) {
@@ -223,6 +304,47 @@ try {
         $mutated = $scenario | ConvertTo-Json | ConvertFrom-Json
         $mutated.safetyConstraint = if ($scenario.safetyConstraint -ceq 'NONE') { 'HEAD_DRIFT' } else { 'NONE' }
         if (@(Get-ValidationCaseErrors $mutated).Count -eq 0) { throw "Safety contradiction accepted: $($scenario.id)" }
+    }
+
+    $feedbackCatalog = Get-Content -Raw -LiteralPath (Join-Path $packageRoot 'tests/fixtures/process-feedback-scenarios.json') | ConvertFrom-Json
+    $feedbackCases = @($feedbackCatalog.scenarios)
+    if ($feedbackCatalog.schemaVersion -ne 1 -or $feedbackCases.Count -ne 5) { throw 'Unexpected Process Feedback fixture version or scenario count.' }
+    foreach ($scenario in $feedbackCases) {
+        $errors = @(Get-ProcessFeedbackCaseErrors $scenario)
+        if ($errors.Count) { throw "Invalid Process Feedback case $($scenario.id): $($errors -join '; ')" }
+        foreach ($field in @('selection', 'expectedDetailedSourceIds', 'artifact', 'authorityGranted')) {
+            $mutated = $scenario | ConvertTo-Json -Depth 30 | ConvertFrom-Json
+            if ($field -ceq 'authorityGranted') { $mutated.$field = $true }
+            elseif ($field -ceq 'selection') { $mutated.$field = 'Remote content' }
+            elseif ($field -ceq 'expectedDetailedSourceIds') { $mutated.$field = @('invented:source') }
+            else { $mutated.$field = 'Wrong artifact state' }
+            if (@(Get-ProcessFeedbackCaseErrors $mutated).Count -eq 0) { throw "Process Feedback mutation accepted: $($scenario.id)/$field" }
+        }
+        foreach ($finding in @($scenario.findings | Where-Object { $_.finding -ceq $true })) {
+            $mutated = $scenario | ConvertTo-Json -Depth 30 | ConvertFrom-Json
+            $target = @($mutated.findings | Where-Object { $_.sourceIds[0] -ceq $finding.sourceIds[0] })[0]
+            $target.triage = 'N/A'
+            if (@(Get-ProcessFeedbackCaseErrors $mutated).Count -eq 0) { throw "Finding without triage accepted: $($scenario.id)/$($finding.sourceIds[0])" }
+        }
+        $mutated = $scenario | ConvertTo-Json -Depth 30 | ConvertFrom-Json
+        $mutated.findings[0].sourceIds[0] = ''
+        if (@(Get-ProcessFeedbackCaseErrors $mutated).Count -eq 0) { throw "Blank source ID accepted: $($scenario.id)" }
+        $noAction = @($scenario.findings | Where-Object { $_.finding -ceq $false }) | Select-Object -First 1
+        if ($null -ne $noAction) {
+            $mutated = $scenario | ConvertTo-Json -Depth 30 | ConvertFrom-Json
+            $target = @($mutated.findings | Where-Object { $_.finding -ceq $false })[0]
+            $target.decision = 'Reject'
+            if (@(Get-ProcessFeedbackCaseErrors $mutated).Count -eq 0) { throw "Finding disguised as noAction accepted: $($scenario.id)" }
+        }
+        if ($Scenario.artifact -ceq 'Analyzed') {
+            $mutated = $scenario | ConvertTo-Json -Depth 30 | ConvertFrom-Json
+            $mutated.analysis.reusableCandidate.authority = 'approved'
+            if (@(Get-ProcessFeedbackCaseErrors $mutated).Count -eq 0) { throw "Candidate authority escalation accepted: $($scenario.id)" }
+        }
+    }
+    $feedbackConditions = @($feedbackCases.condition -join '|')
+    foreach ($term in @('通常モード', '逆追跡', '証拠不足', '対象findingがなければ', 'remote本文')) {
+        if ($feedbackConditions -notmatch [regex]::Escape($term)) { throw "Missing Process Feedback scenario: $term" }
     }
 
     $collector = Join-Path $packageRoot '.apm/skills/pr-review-remediation/scripts/collect-pr-review-context.cs'

@@ -69,6 +69,20 @@ Ready PRを確認
 
 反映しないfindingには理由を残します。人間のproduct / scope判断が必要な指摘を推測で処理せず、review取得失敗、PR更新、validation失敗、push失敗を「指摘なし」や成功へ読み替えません。
 
+## 上流原因を確認するProcess Feedback
+
+通常のレビューでも全findingについて、局所的な問題か、設計・Plan・SKILL等の上流に原因が疑われるか、証拠不足かを短く記録します。詳細な原因分析が不要な小規模PRでは、追加指定は必要ありません。
+
+既存artifactを遡って再発防止の候補まで調べたい場合だけ、依頼に追加します。
+
+```text
+$pr-review-remediation を使って、このbranchのReady PRを処理してください。Process Feedbackを有効にしてください。
+```
+
+疑い又は証拠不足のfindingを対象に、存在するGoal Context、Plan、設計判断、実装記録、関連SKILLを参照し、今回のPR修正・今回の上流artifact修正・共通プロセス改善候補を分けて報告します。Goal ContextやPlan Coverageの導入は前提ではありません。対象がなければ詳細分析は行いません。
+
+選択は分析の許可であり、共通SKILLの変更や他フローの起動許可ではありません。単発ミスだけで共通プロセスの欠陥を断定せず、証拠不足は不明として残します。候補が未実施でも、今回のPRの採否・修正・検証・Git操作に問題がなければレビューを完了できます。
+
 ## Adaptive Implementationを使う場合
 
 Adaptive Implementationは通常利用には不要です。指定がなければ、このSkillを開始した現在の親エージェントがremediationを実装します。

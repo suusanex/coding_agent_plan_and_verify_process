@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "pr-review-remediation",
-  "canonicalFingerprint": "45d8e13d6da6a881b245b40418371aaf85e87a83a16c7f31b174fb24a53fd72e",
-  "distributionFingerprint": "0f7a4ac99823ea729743873367e7d04dbdf2e22c10f4847ee965dc904de24179",
+  "canonicalFingerprint": "561346d27bb59f05c2e26871f9aa426073104d450785290aa6b3cd0457fee2d5",
+  "distributionFingerprint": "edba6c79cd2539579f5f78615516c32f2283d53e78e20980f300b3487f180ee6",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
@@ -14,14 +14,14 @@
       "distribution": "apm",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "Issue #175でvalidation結果とGit操作を分離したcandidateはruntime未評価のため、NOT_RUNを維持する。",
+      "reason": "Issue #120で上流原因triageと任意Process Feedbackを追加したcandidateはruntime未評価のため、NOT_RUNを維持する。",
       "evidenceRefs": []
     },
     {
       "distribution": "agent-plugin-direct",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "Issue #175でvalidation結果とGit操作を分離したcandidateはruntime未評価のため、NOT_RUNを維持する。",
+      "reason": "Issue #120で上流原因triageと任意Process Feedbackを追加したcandidateはruntime未評価のため、NOT_RUNを維持する。",
       "evidenceRefs": []
     }
   ]
