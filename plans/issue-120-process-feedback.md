@@ -35,3 +35,12 @@
 - ローカルAPM 0.33.0でのAgent Plugin package検証: FAIL。既存builderのlocal bundle installがCLIに拒否された。原因はENVIRONMENT（CI指定は0.26.0）であり、変更したSkillの分析結果ではない。
 - CIと同じAPM 0.26.0を一時venvへ導入し、`validate-agent-plugin-package.ps1 -Package pr-review-remediation -ApmExecutable <一時venvのapm.exe>`で再検証: PASS。global環境は変更していない。0.33.0との互換性はこの変更では修正していない。
 - 静的fixtureは期待する記録の整合を検査する。実modelによる分析精度、共通改善の有効性、配布後runtimeは未評価。
+
+## PR Review Remediation
+
+[PR #177](https://github.com/suusanex/coding_agent_plan_and_verify_process/pull/177)のhead `220bae1`に対するCopilot reviewをcollectorで取得し、親がremote patchと契約を照合した。2件ともApply、Rejectなし。
+
+- `inline-comment:4580578802`: candidateLayerの記録漏れをfixture validatorが見逃す。定義済み値の検査と欠落・空・不正値の負例を追加。
+- `inline-comment:4580578835`: fixture validatorが任意のPlan / Goal Contextを必須化していた。finding traceと各行の形式を検査し、Plan / Goal Contextなしで分析する肯定例を追加。
+
+両件とも既存契約へ検証コードを合わせる局所修正で、設計・共通SKILL欠陥の根拠はない。詳細Process Feedbackは今回のレビューでは未選択。修正をGPT-6 Lunaへ委譲し、親が統合確認した。修正後のpackage validator（collector publish / help、fixture負例含む）とdiff checkはPASS。初回headのCIは全14 check成功。採否・source coverage・Git結果の詳細は作業ローカルの`.review/pr-177/review-plan.md`に保持する。
