@@ -1,5 +1,7 @@
 # Goal Context Authoring
 
+既存機能の改修では、影響する既存目的・利用場面を資料から限定的に継承し、根拠・権限と維持／追加／変更／廃止／未確認を区別します。改修Issueには継続文書の更新要否判定と、必要な変更を同じ実装PRへ反映する完了条件を含めます。変更なしなら理由付き更新不要とでき、自由形式入力とhuman reviewの任意性は維持します。
+
 自然言語の資料から、後続の実装・目的達成reviewで利用できる自己完結したGoal Contextと、決定済み事項を引き継ぐDecision Contextを作るためのauthoring helperです。
 
 この機能の中心資産はSkill内の`references/generation-prompt.md`です。APM packageはそのpromptと補助referenceを配布するための経路であり、promptの意味品質をmachine validationするものではありません。
