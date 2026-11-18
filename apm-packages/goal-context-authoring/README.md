@@ -19,8 +19,8 @@ apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/goal-cont
 ## Use
 
 1. `~/.agents/skills/goal-context-authoring/references/generation-prompt.md`を任意のauthoring補助として使う、または別経路で文書を書く。
-2. Goal Contextには、元の問題、期待成果、目的達成reviewに必要な境界だけを残す。
-3. Decision Contextには、明示的に固定済みのscope・採用判断・実装方針だけを残す。
+2. 元の問いと訂正から「誰のどんな困りごとが、どう変わるか」を先に取り出す。機能が全部動いても困りごとが残る例を未達と判定できるか、原資料と照合する。達成判定が分かれる場合だけ短い目的案を示して応答を待つ。
+3. 照合した目的を保ち、Goal Contextには代表場面で得たい結果と判定に必要な境界を、Decision Contextには明示的に固定済みのscope・採用判断・実装方針を残す。[作成例](.apm/skills/goal-context-authoring/references/goal-context-template.md)では、活動全体を見直せることと、そのために台帳を読むことを分けている。
 4. Goal ContextとDecision Contextのどちらにも属さない経緯、roadmap、未解決事項を引き継ぎ目的で追加しない。
 5. secret、credential、認証情報、不要な個人情報を除く。
 

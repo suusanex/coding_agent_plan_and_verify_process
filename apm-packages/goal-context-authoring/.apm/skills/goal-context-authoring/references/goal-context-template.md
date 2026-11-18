@@ -1,13 +1,21 @@
-# Optional Goal Context example
+# Goal Context と Decision Context の作成例（任意）
 
-This file is an authoring aid, not a schema. Keep, rename, reorder, or omit every heading as the source material warrants. A single clear paragraph is also valid.
+次の短いやり取りを元にした架空の例です。見出しや確認記録を下流の必須条件にするものではありません。
+
+> 利用者：案件台帳をまとめて、次に進める案件の一覧がほしい。状況を覚えておくのに Memory が使えるかもしれない。
+>
+> 利用者の補足：一覧が目的ではない。個々の案件はすでに管理できている。困るのは、何を実現したくて今何をしているのかを、相談のたびに自分でつなぎ直すこと。A が行き詰まったら、前回の判断も踏まえて、活動全体として A を続けるか B を先にするか相談したい。各案件の状況は既存の台帳から読み取ると決めた。相談内容の保存方式はまだ決めていない。
 
 ```markdown
 # Goal Context
 
-The current workflow makes people repeat context and move results between separate tasks. The intended outcome is that they can stay in the task that performed the implementation, receive an ordinary completion notification, and return directly to that task and its concrete result.
+個別案件を管理できても、相談のたびに自分で活動の目的・現在の取り組み・これまでの判断を結び直している。利用者が自分の活動全体を継続して把握し、状況が変わったときに次に何をするかを相談して見直せるようにしたい。
 
-The review should judge the user-visible reduction in handoff work, not merely whether an internal state file or command exists. If a decision is not present in the available context, leave it unresolved instead of inventing it.
+A が行き詰まったとき、前回の判断と今回の変化を踏まえて、A を続けるか B を先に進めるかを相談できる。案件一覧と優先順位案が出ても、その判断のために利用者が毎回経緯を説明し直すなら未達である。
+
+# Decision Context
+
+個別案件の状況は既存の台帳から読み取る。
 ```
 
-Useful optional topics include the problem, desired outcome, a representative before/after situation, boundaries, rejected outcomes, and material unknowns. None is required as a heading or separate section.
+この例では、継続して相談できることが利用者の求める結果です。台帳の参照は採用済みの手段なので Decision Context にだけ記載しました。Memory は提案にとどまり、別の保存方式でも目的と未達の判定は変わりません。

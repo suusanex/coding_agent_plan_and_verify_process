@@ -23,7 +23,7 @@ No filename, extension, directory, frontmatter, table, provenance tag, lifecycle
 
 This package intentionally does not provide a Goal Context / Decision Context validity validator or semantic regression test. Meaning quality is evaluated from the source material and the generated text itself when review is needed.
 
-Human review may be performed when the user or another governing process asks for it. The optional checklist is a quality aid; using it does not create lifecycle metadata or machine approval.
+作成時は、原資料から取り出した中心目的を先に照合します。目的が明確ならそのまま全文を書き、達成判定が異なる解釈が残るなら、元の問題・望む状態・未解決の例だけを短く示してユーザーの応答を待ちます。訂正された意味を全文へ引き継ぎます。これは完成文の人手レビューとは別です。完成文のチェックリストは任意で、使用しても承認や状態の記録は発生しません。
 
 ## Handoff
 
