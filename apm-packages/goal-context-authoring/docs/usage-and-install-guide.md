@@ -23,7 +23,7 @@ No filename, extension, directory, frontmatter, table, provenance tag, lifecycle
 
 This package intentionally does not provide a Goal Context / Decision Context validity validator or semantic regression test. Meaning quality is evaluated from the source material and the generated text itself when review is needed.
 
-作成時は、原資料から取り出した中心目的を先に照合します。目的が明確ならそのまま全文を書き、達成判定が異なる解釈が残るなら、元の問題・望む状態・未解決の例だけを短く示してユーザーの応答を待ちます。訂正された意味を全文へ引き継ぎます。これは完成文の人手レビューとは別です。完成文のチェックリストは任意で、使用しても承認や状態の記録は発生しません。
+作成時は、元の問いから途中の具体化・合意・訂正までを照合します。利用者が目的を明示して矛盾がなければ、そのまま全文を書きます。達成判定が分かれる場合や、長い構想から新規 Issue の目的・管理責務を初めて推定する場合は、問題・望む状態・未解決例だけを短く示し、一往復してから全文を書きます。これは完成文の任意の人手レビューとは別で、下流の承認記録は必要ありません。
 
 ## Handoff
 
