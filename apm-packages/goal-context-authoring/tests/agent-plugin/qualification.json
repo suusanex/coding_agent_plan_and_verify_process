@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "goal-context-authoring",
-  "canonicalFingerprint": "93e885545564ae5b4f10048322e922535ec2745115707cdfc97cba19af5aa833",
-  "distributionFingerprint": "10bacc0e6f053c38488bffced3fc3896a957ef1668b435451b4fe2dcba9fb5c1",
+  "canonicalFingerprint": "a28894088d353da00e64313073dfe9971a2581651865dec410d17114a4a70cc7",
+  "distributionFingerprint": "9d6855cb9009e65c11c74dc3223ba58d28b04903b358bc862323890e314cb8f4",
   "candidateCommit": "UNCOMMITTED",
   "runtime": {
     "surface": "github-copilot-cli",
@@ -14,7 +14,7 @@
       "distribution": "apm",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "Issue #172の契約変更にfingerprintを追随。過去のruntime認定は移さずNOT_RUNを維持する。",
+      "reason": "中心目的を原資料と照合する手順に変更した版は実行時の認定を行っていない。過去の評価は引き継がない。",
       "evidenceRefs": [
         "tests/agent-plugins/results/2026-08-23-runtime-qualification.md"
       ]
@@ -23,7 +23,7 @@
       "distribution": "agent-plugin-direct",
       "status": "NOT_RUN",
       "evidenceMode": "NONE",
-      "reason": "Issue #172の契約変更にfingerprintを追随。過去のruntime認定は移さずNOT_RUNを維持する。",
+      "reason": "中心目的を原資料と照合する手順に変更した版は実行時の認定を行っていない。過去の評価は引き継がない。",
       "evidenceRefs": [
         "tests/agent-plugins/results/2026-08-23-runtime-qualification.md"
       ]
