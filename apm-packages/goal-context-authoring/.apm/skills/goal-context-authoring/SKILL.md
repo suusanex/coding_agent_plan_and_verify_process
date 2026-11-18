@@ -28,13 +28,10 @@ Downstream consumers must not turn authoring conventions into a required filenam
 
 改修では `references/generation-prompt.md` の「改修時の目的継承と完了条件」を実施する。今回の変更が影響する既存目的を根拠と権限付きで継承し、未確認を維持条件なしへ変換しない。同じ実装PRでの継続文書更新要否と必要な更新をIssueの完了条件へ含める。これは作成者の意味的確認であり、下流の自由形式受理やhuman reviewの任意性を変更しない。
 
-1. Read the source material that is actually available. Do not claim access to missing material.
-2. Put the original problem, expected outcome, and purpose-critical boundaries in Goal Context.
-3. Put explicitly settled scope, accepted decisions, and implementation direction in Decision Context.
-4. Do not mix the two authorities or add chronology, roadmap, future architecture, unresolved planning matters, or background merely because it may help later.
-5. Preserve later explicit corrections and do not invent decisions from proposals, silence, or general best practice.
-6. Exclude secrets, credentials, authentication material, and unnecessary personal data.
-7. If the user asks for review, use `references/human-review-checklist.md` as a quality aid. Human review is optional and must not be recorded or required unless it actually occurred.
+1. 利用できる原資料の問題提起と明示的な訂正から、誰のどの活動に何の支障があり、解決後に何が変わるのかを先に取り出す。機能や方式を目的に読み替えない。読めなかった資料を根拠にしない。
+2. 目的案を原資料と照合する。対象や利用者の変化を取り違えていないか、機能がそろっても困りごとが残る例を未達と判定できるかを確認する。達成判定の異なる解釈が残る場合だけ、問題・望む状態・未解決の例を短く示し、全文生成の前にユーザーの応答を待つ。明確な目的の再承認は求めない。
+3. 照合した目的（訂正があれば訂正後の意味）を保って Goal Context を書く。代表場面で利用者が得る結果と、判定に欠かせない条件を残す。Decision Context には明示的に確定した範囲・能力・方式だけを置く。提案や沈黙を決定にせず、経緯やロードマップを引き継ぎ目的で加えない。目的と決定が両立しなければ黙って一方を弱めず判断を求める。
+4. 全文でも原問題を判定できることを確認し、秘密・認証情報・不要な個人情報を除く。完成文の人手レビューは任意。依頼されたら `references/human-review-checklist.md` を使い、実施していない確認を記録しない。
 
 This skill intentionally does not provide a machine validator for semantic adequacy or a prompt regression test. Judge meaning from the source and the generated text itself.
 
@@ -53,5 +50,5 @@ This skill must not:
 
 - `GOAL_CONTEXT_CREATED`: self-contained context was saved
 - `SOURCE_MATERIAL_REQUIRED`: the requested authoring task cannot identify the needed purpose or decisions from available material
-- `HUMAN_DECISION_REQUIRED`: an unresolved contradiction must be decided before a trustworthy synthesis can be written
+- `HUMAN_DECISION_REQUIRED`: 中心目的の解釈が分かれるか、未解消の矛盾があり、全文を書く前にユーザーの判断が必要
 - `BLOCKED`: a tool, permission, or environment failure prevents completion
