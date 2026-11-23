@@ -6,6 +6,8 @@
 
 `$persistent-purpose-review`は、明示的に許可されたtaskで、元の目的と提案設計の整合を独立reviewerに確認させるAPM Skillです。対象は初期設計と重要な設計変更です。通常の実装完了やverificationを契機に自動起動しません。findingだけ、または実装不足だけを理由に開始せず、実装修正やコード品質レビューを担当しません。
 
+元の利用場面と承認済み制約を保てるなら、設計担当者は過去の指摘に応じて加えた保証を取り下げられます。レビュー担当者は、その保証だけに由来する異常系の対処を求めず、現在の案で通常利用を妨げる条件や不足する機能を評価します。
+
 Skillはuser-invocableで、`disable-model-invocation: true`を維持します。RunnerはSkillから利用する別途導入のCLIです。SkillとRunnerの両方が必要です。
 
 ## 前提条件

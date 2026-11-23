@@ -81,11 +81,14 @@ public sealed class RunnerApplicationTests
         var prompts = new[]
         {
             PromptBuilder.BuildStart(input),
+            PromptBuilder.BuildStart(input with { PriorReviewHistory = [new ReviewHistoryEntry(1, ReviewStatuses.Complete, [], null, [])] }),
             PromptBuilder.BuildContinue(input, 2)
         };
 
         foreach (var prompt in prompts)
         {
+            StringAssert.Contains(prompt, "元の利用場面のどれが成立しなくなるか");
+            StringAssert.Contains(prompt, "その保証の実現や異常系の網羅を求めず");
             StringAssert.Contains(prompt, "purpose.authority");
             StringAssert.Contains(prompt, "approvedDesign");
             StringAssert.Contains(prompt, "実装適合");
