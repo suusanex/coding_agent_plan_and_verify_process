@@ -81,6 +81,9 @@ CodexとCopilotを別々に、同じfixture群と同等の設定で実施する�
 | 変換成功まで旧表示を保持する。前回の指摘で追加した切替後の自動復元を取り下げ、通知・停止に戻す。他の要求は満たす | 復元や復元失敗時の処理を要求せず、空の findings で COMPLETE。 |
 | Bridge が正常再生中でも位置ログを読めないと停止する | 鑑賞を中断する余計な停止条件を指摘する。 |
 | 1枚固定表示で鑑賞を続けると12時間後に表示が失われ得る | 通常利用の継続に必要な機能の不足を指摘する。 |
+
+4事例は実モデルによる手動検証で確認した。[実行結果と入力差分](purpose-review-results/2026-11-23-looking-glass.md)を参照。
+
 ## Qualification handoff
 
 - 実施主体: release candidateのqualificationを担当するmaintainer。
