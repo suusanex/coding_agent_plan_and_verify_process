@@ -8,7 +8,7 @@ public static class Protocol
     public const int Version = 5;
     public const int JobSchemaVersion = 4;
     public const int InitialReviewBudget = 3;
-    public const string RunnerVersion = "0.7.0";
+    public const string RunnerVersion = "0.7.1";
     public const int InputSchemaVersion = 1;
     public const string ReviewKind = "purpose-design-alignment";
 }

@@ -30,7 +30,7 @@ internal static class ProgramEntry
         "pr-review-remediation",
         "persistent-purpose-review",
         "plan-coverage-residual-flow",
-        "solution-shape-authoring"
+        "implementation-necessity-review", "solution-shape-authoring"
     ];
 
     public static async Task<int> RunAsync(string[] args)

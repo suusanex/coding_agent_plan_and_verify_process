@@ -93,3 +93,5 @@ pwsh -NoProfile -File scripts/agent-plugins/validate-agent-plugin-package.ps1 -P
 APMがsupported distributionです。direct deploymentの未観測behaviorをPASSへ昇格しません。
 
 global update / uninstallと旧local配置の整理は[共通運用手順](../../docs/installation-and-maintenance.md#global-lifecycle)を参照してください。APM v0.26.0では標準runtime homeを利用します。
+
+Runner 0.7.1 から、制約に該当しても完遂できる利用場面と、制約を外すと失う要求を同じ提出入力から検討します。この指示の更新は Runner の更新で反映されます。

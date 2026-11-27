@@ -14,7 +14,7 @@ if (-not $Package -or $Package.Count -eq 0) {
         'pr-review-remediation',
         'persistent-purpose-review',
         'plan-coverage-residual-flow',
-        'solution-shape-authoring'
+        'implementation-necessity-review','solution-shape-authoring'
     )
 }
 

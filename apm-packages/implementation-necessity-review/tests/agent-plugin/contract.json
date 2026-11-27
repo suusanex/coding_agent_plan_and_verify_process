@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "package": "implementation-necessity-review",
+  "installTargets": ["copilot", "codex", "agent-skills"],
+  "ownedSkills": ["implementation-necessity-review"],
+  "ownedAgents": [],
+  "ownedInstructions": [],
+  "dependencies": [],
+  "runtimeBoundary": "Manual read-only implementation review Skill without a dedicated runner."
+}
