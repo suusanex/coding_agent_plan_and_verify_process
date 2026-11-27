@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "package": "implementation-necessity-review",
+  "canonicalFingerprint": "fff623d7181462ae3d2647b00883dff0dbe1ddccd2a75e83a6b5a602b83e94c5",
+  "distributionFingerprint": "efedd5bfa1e29f57a500ab0cfb75146deb505e75d043d9c26703673b120f135d",
+  "candidateCommit": "UNCOMMITTED",
+  "runtime": {
+    "surface": "github-copilot-cli",
+    "clientVersion": "NOT_RUN",
+    "apmVersion": "NOT_RUN"
+  },
+  "assessments": [
+    {
+      "distribution": "apm",
+      "status": "NOT_RUN",
+      "evidenceMode": "NONE",
+      "reason": "新規追加package。決定論的なpackage/Agent Plugin検証は別途実施するが、外部モデルを使った実運用評価は未実施のためNOT_RUNとする。",
+      "evidenceRefs": []
+    },
+    {
+      "distribution": "agent-plugin-direct",
+      "status": "NOT_RUN",
+      "evidenceMode": "NONE",
+      "reason": "新規追加package。決定論的なbundle検証は別途実施するが、direct deploymentの外部モデル実行評価は未実施のためNOT_RUNとする。",
+      "evidenceRefs": []
+    }
+  ]
+}

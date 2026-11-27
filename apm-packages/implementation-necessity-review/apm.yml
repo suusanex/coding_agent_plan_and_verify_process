@@ -1,0 +1,12 @@
+name: implementation-necessity-review
+version: 0.1.0
+description: 手動で既存実装の制約と機構の必要性をレビューする
+type: hybrid
+targets:
+  - copilot
+  - codex
+  - agent-skills
+includes: auto
+
+dependencies:
+  apm: []
