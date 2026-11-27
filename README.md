@@ -134,9 +134,11 @@ Adaptive、Design Pair、Plan CoverageのQuickstartを個別に実行する場�
 apm install suusanex/coding_agent_plan_and_verify_process/apm-packages/goal-context-authoring --target copilot,codex,agent-skills --global
 ```
 
-### Solution Shape Authoring
+### 実装必要性レビュー
 
 [実装必要性レビュー](apm-packages/implementation-necessity-review/README.md)は、PRの有無を問わず、実コードから正常利用を妨げる制約や機構を探す手動Skillです。
+
+### Solution Shape Authoring
 
 [Solution Shape Authoring](apm-packages/solution-shape-authoring/README.md)は、大きな実装計画や詳細設計の前に軽量な実現構成スケッチ（構成・責務配置、機能配置、代表的な実行経路）をMarkdownで作成する独立Skillです。作成したスケッチはそのまま共有できるほか、任意で[Persistent Purpose Review](apm-packages/persistent-purpose-review/README.md)の`proposal.body`や`evidence`へ渡せます（未添付でもPurpose Reviewの前提やblockerにはなりません）。
 
